@@ -10,6 +10,7 @@ import { createHarnessSandboxTemplate } from '@ai-sdk/harness/agent'
 import type { AgentKind } from '../src/catalog/entry.ts'
 import { HARNESSES } from '../src/catalog/index.ts'
 import { AgentError } from '../src/errors.ts'
+import type { AdapterInput } from '../src/harnesses.ts'
 import { local } from '../src/local.ts'
 import { runnerSession } from '../src/runner-session.ts'
 import { type AgentEvent, agent } from '../src/session.ts'
@@ -100,16 +101,16 @@ test('a session times its install as a phase, before the harness starts', async 
   const { adapter: install, runs } = toy()
   const script = scripted([reply('done')])
   const harness = {
-    ...script.harness,
-    adapter: async (input: Parameters<typeof script.harness.adapter>[0]) =>
-      Object.assign(Object.create(await script.harness.adapter(input)), {
+    harness: script.options.harness,
+    adapter: async (input: AdapterInput) =>
+      Object.assign(Object.create(await script.options.adapter(input)), {
         getBootstrap: install.getBootstrap,
       }) as HarnessV1,
   }
   const out = workspace()
   const events: AgentEvent[] = []
   const session = await agent({
-    harness,
+    ...harness,
     runner: local({ cwd: workspace() }),
     out,
     onEvent: (e) => events.push(e),
@@ -122,7 +123,7 @@ test('a session times its install as a phase, before the harness starts', async 
   assert.equal(typeof doc.phases.install, 'number')
 
   const skipped = await agent({
-    harness,
+    ...harness,
     runner: local({ cwd: workspace() }),
     install: 'skip',
   }).start()
@@ -134,14 +135,14 @@ test("a session with install: 'skip' fails to start on a runner without the CLI"
   const { adapter: install, runs } = toy()
   const script = scripted([])
   const harness = {
-    ...script.harness,
-    adapter: async (input: Parameters<typeof script.harness.adapter>[0]) =>
-      Object.assign(Object.create(await script.harness.adapter(input)), {
+    harness: script.options.harness,
+    adapter: async (input: AdapterInput) =>
+      Object.assign(Object.create(await script.options.adapter(input)), {
         getBootstrap: install.getBootstrap,
       }) as HarnessV1,
   }
   await assert.rejects(
-    agent({ harness, runner: local({ cwd: workspace() }), install: 'skip' }).start(),
+    agent({ ...harness, runner: local({ cwd: workspace() }), install: 'skip' }).start(),
     /doesn't have this build of the Cursor CLI installed/,
   )
   assert.equal(runs(), 0)

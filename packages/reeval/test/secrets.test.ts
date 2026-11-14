@@ -13,6 +13,7 @@ import { recordFailure, stagedRecordJson, turnErrors, writeRecord } from '../src
 import { type Attempt, type AttemptSpec, createAttempt } from '../src/attempt/state.ts'
 import { AttemptDebug, withDebug } from '../src/debug/attempt.ts'
 import '../src/debug/docker.ts'
+import { cursorMcpServers } from '@reeval/agents'
 import type { RawAssertion } from '../src/engine/runtime.ts'
 import { type BrokeredSecret, resolveEnvironment } from '../src/environment/resolve.ts'
 import {
@@ -22,7 +23,6 @@ import {
   plainCredentialHeaders,
   unbrokeredSecrets,
 } from '../src/environment.ts'
-import { cursorMcpServers } from '../src/harness/agents.ts'
 import { createFakeHarness } from '../src/harness/fake.ts'
 import { capText, OUTPUT_CAP, rawLines, turnError, turnText } from '../src/history/assemble.ts'
 import { findingLines, findingSummary, scanText } from '../src/history/secret-scan.ts'

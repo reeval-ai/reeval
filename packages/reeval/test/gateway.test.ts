@@ -6,8 +6,13 @@ import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterEach, describe, test } from 'node:test'
 import {
+  type AgentKind,
+  type AgentRoute,
   apiHost,
+  claudeCodeVertexEnv,
   everyCallFailed,
+  fxVertex,
+  grokVertexChat,
   type ProviderStop,
   providerStop,
   rejectedKey,
@@ -48,6 +53,7 @@ import {
   vertexSettings,
 } from '../src/gateway/vertex.ts'
 import { withWire } from '../src/gateway/with-wire.ts'
+import { harnessAdapter, harnessRoute } from '../src/harness/agent.ts'
 import {
   agentAuth,
   agentFor,
@@ -349,12 +355,10 @@ describe('Vercel AI Gateway routes', () => {
     process.env.AI_GATEWAY_API_KEY = 'vck_test'
     const descriptor = { kind: 'goose', model: 'google/gemini-3-flash', gateway: 'vercel' } as never
     const agent = agentFor(descriptor)
-    const adapter = (await agent.adapter({
+    const adapter = await harnessAdapter(descriptor, {
       auth: agentAuth(agent),
-      descriptor,
       model: 'google/gemini-3-flash',
-      plugins: [],
-    })) as { harnessId: string }
+    })
     assert.equal(adapter.harnessId, 'goose')
     process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'AIza-test'
     const direct = agentFor({ kind: 'pi', model: 'google/gemini-3-flash' } as never)
@@ -418,12 +422,10 @@ describe('Vercel AI Gateway routes', () => {
       'only on Vercel',
     )
     process.env.AI_GATEWAY_API_KEY = 'vck_test'
-    const adapter = (await agent.adapter({
+    const adapter = await harnessAdapter(descriptor, {
       auth: agentAuth(agent),
-      descriptor,
       model: 'xai/grok-4.6',
-      plugins: [],
-    })) as { harnessId: string }
+    })
     assert.equal(adapter.harnessId, 'grok-build')
   })
 
@@ -882,12 +884,7 @@ describe('OpenRouter routes', () => {
     ] as const) {
       const descriptor = { kind, model, gateway: 'openrouter' } as never
       const agent = agentFor(descriptor)
-      const adapter = (await agent.adapter({
-        auth: agentAuth(agent),
-        descriptor,
-        model,
-        plugins: [],
-      })) as { harnessId: string }
+      const adapter = await harnessAdapter(descriptor, { auth: agentAuth(agent), model })
       assert.equal(adapter.harnessId, kind)
     }
   })
@@ -982,6 +979,11 @@ describe('Vertex AI routes', () => {
   const onVertex = (h: HarnessDescriptor) =>
     agentFor({ ...h, gateway: 'vertex' } as AgentHarnessDescriptor, settings)
   const STREAM = '/v1/projects/reeval-512515/locations/us-east5/publishers/anthropic/models'
+  const vertexRoute = (kind: AgentKind) =>
+    harnessRoute(
+      { kind, model: 'm', gateway: 'vertex' } as AgentHarnessDescriptor,
+      settings,
+    ) as Extract<AgentRoute, { kind: 'vertex' }>
 
   test('vertex() takes its project from the entry, else GOOGLE_CLOUD_PROJECT, else refuses', () => {
     assert.deepEqual(vertexSettings({}, { GOOGLE_CLOUD_PROJECT: 'p' }), {
@@ -1003,7 +1005,7 @@ describe('Vertex AI routes', () => {
     const host = 'us-east5-aiplatform.googleapis.com'
     assert.equal(agent.credential, 'Google Cloud credentials')
     assert.deepEqual(agent.hosts, [host])
-    assert.deepEqual(agent.routeEnv, {
+    assert.deepEqual(claudeCodeVertexEnv(vertexRoute('claude-code')), {
       CLAUDE_CODE_USE_VERTEX: '1',
       CLAUDE_CODE_SKIP_VERTEX_AUTH: '1',
       ANTHROPIC_VERTEX_PROJECT_ID: 'reeval-512515',
@@ -1096,15 +1098,16 @@ describe('Vertex AI routes', () => {
           ?.localResponses,
         agent.localResponses,
       )
-      const vertex = { project: 'reeval-512515', location: 'global', credentialsFile: '/r/a.json' }
-      const adapter = await agent.adapter({
-        auth: agentAuth(agent, {}),
-        descriptor: { kind, model: 'gemini-3.8-flash' } as never,
-        model: agent.modelId?.('gemini-3.8-flash') ?? 'gemini-3.8-flash',
-        plugins: [],
-        vertex,
-      })
-      assert.equal((adapter as { harnessId: string }).harnessId, kind)
+      const adapter = await harnessAdapter(
+        { kind, model: 'gemini-3.8-flash', gateway: 'vertex' } as AgentHarnessDescriptor,
+        {
+          auth: agentAuth(agent, {}),
+          model: agent.modelId?.('gemini-3.8-flash') ?? 'gemini-3.8-flash',
+          vertex: global,
+          credentialsFile: '/r/a.json',
+        },
+      )
+      assert.equal(adapter.harnessId, kind)
     }
     assert.equal(
       onGlobal({ kind: 'pi', model: 'google/m' } as never).modelId?.('google/gemini-3.8-flash'),
@@ -1151,18 +1154,15 @@ describe('Vertex AI routes', () => {
     )
     assert.equal(agent.modelId?.('gemini-3.8-flash'), 'google/gemini-3.8-flash')
     assert.equal(agent.modelId?.('google/gemini-3.8-flash'), 'google/gemini-3.8-flash')
-    const adapter = await agent.adapter({
+    const onRoute = { ...fx, gateway: 'vertex' } as AgentHarnessDescriptor
+    const adapter = await harnessAdapter(onRoute, {
       auth: agentAuth(agent, {}),
-      ...(agent.routeEnv ? { env: agent.routeEnv } : {}),
-      descriptor: fx,
       model: 'google/gemini-3.8-flash',
-      plugins: [],
+      vertex: regional,
     })
-    assert.equal((adapter as { harnessId: string }).harnessId, 'fx')
-    assert.deepEqual(agent.routeEnv, {
-      FX_VERTEX_PROJECT: 'reeval-512515',
-      FX_VERTEX_LOCATION: 'us-east5',
-    })
+    assert.equal(adapter.harnessId, 'fx')
+    const route = harnessRoute(onRoute, regional) as Extract<AgentRoute, { kind: 'vertex' }>
+    assert.deepEqual(fxVertex(route), { project: 'reeval-512515', location: 'us-east5' })
     assert.equal(vertexHarnessModel('fx', 'google/gemini-3.8-flash'), 'google/gemini-3.8-flash')
   })
 
@@ -1213,7 +1213,13 @@ describe('Vertex AI routes', () => {
     assert.equal(agent.credential, 'Google Cloud credentials')
     assert.deepEqual(agent.hosts, [host])
     assert.deepEqual(agentAuth(agent, {}), {}, 'no key from the environment')
-    assert.deepEqual(agent.vertexChat, { project: 'reeval-512515', region: 'us-central1' })
+    const onRoute = {
+      kind: 'grok-build',
+      model: 'grok-4.6',
+      gateway: 'vertex',
+    } as AgentHarnessDescriptor
+    const route = harnessRoute(onRoute, regional) as Extract<AgentRoute, { kind: 'vertex' }>
+    assert.deepEqual(grokVertexChat(route), { project: 'reeval-512515', region: 'us-central1' })
     assert.equal(agent.modelId?.('grok-4.6'), 'xai/grok-4.6')
     assert.equal(agent.modelId?.('xai/grok-4.7'), 'xai/grok-4.7')
     const on = (method: string, h: string, path: string) =>
@@ -1239,14 +1245,12 @@ describe('Vertex AI routes', () => {
     )
     assert.ok(rules.every((r) => r.transform.headers?.authorization === 'Bearer ya29.t'))
     assert.equal(agent.adc, undefined, 'Grok reads no service account')
-    const adapter = await agent.adapter({
+    const adapter = await harnessAdapter(onRoute, {
       auth: agentAuth(agent, {}),
-      descriptor: { kind: 'grok-build', model: 'grok-4.6' } as never,
       model: 'xai/grok-4.6',
-      plugins: [],
-      ...(agent.vertexChat ? { vertexChat: agent.vertexChat } : {}),
+      vertex: regional,
     })
-    assert.equal((adapter as { harnessId: string }).harnessId, 'grok-build')
+    assert.equal(adapter.harnessId, 'grok-build')
   })
 
   test('Grok Build takes vertex() before the direct() that ends the list, and with direct off', () => {

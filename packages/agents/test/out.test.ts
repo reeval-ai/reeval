@@ -95,7 +95,8 @@ test('every file is written, with the key masked in each', async () => {
     reply('two'),
   ])
   const session = await agent({
-    harness: { ...script.harness, effort: 'high' },
+    ...script.options,
+    harness: { ...script.options.harness, effort: 'high' },
     runner: local({ cwd: dir }),
     credentials: { CURSOR_API_KEY: KEY },
     out: { dir: out, raw: true, debug: true },
@@ -152,7 +153,7 @@ test('every file is written, with the key masked in each', async () => {
 test('a directory reads part-way through: the session running, each ended turn in place', async () => {
   const script = scripted([reply('one')])
   const session = await agent({
-    harness: script.harness,
+    ...script.options,
     runner: local({ cwd: dir }),
     out,
   }).start()
@@ -171,7 +172,7 @@ test('a directory reads part-way through: the session running, each ended turn i
 test("a tool's output past the cap is cut to its ends, with its whole size", async () => {
   const long = `${'a'.repeat(OUTPUT_CAP)}${KEY}tail`
   const session = await agent({
-    harness: scripted([reply('done', shell(long))]).harness,
+    ...scripted([reply('done', shell(long))]).options,
     runner: local({ cwd: dir }),
     credentials: { CURSOR_API_KEY: KEY },
     out,
@@ -191,7 +192,7 @@ test("a tool's output past the cap is cut to its ends, with its whole size", asy
 
 test('a session that fails to start is recorded failed, with why', async () => {
   const a = agent({
-    harness: scripted([], new Error(`refused ${KEY}`)).harness,
+    ...scripted([], new Error(`refused ${KEY}`)).options,
     runner: local({ cwd: dir }),
     credentials: { CURSOR_API_KEY: KEY },
     out,
@@ -221,7 +222,7 @@ test('a key split across deltas is masked in raw/parts.jsonl', async () => {
     ...reply('').slice(-2),
   ] as HarnessV1StreamPart[]
   const session = await agent({
-    harness: scripted([split]).harness,
+    ...scripted([split]).options,
     runner: local({ cwd: dir }),
     credentials: { CURSOR_API_KEY: KEY },
     out: { dir: out, raw: true },
@@ -241,7 +242,7 @@ test('a key split across deltas is masked in raw/parts.jsonl', async () => {
 test('a secret that starts another leaves none of the longer one', async () => {
   const prefix = KEY.slice(0, 10)
   const session = await agent({
-    harness: scripted([reply(`key ${KEY} and ${prefix}`)]).harness,
+    ...scripted([reply(`key ${KEY} and ${prefix}`)]).options,
     runner: local({ cwd: dir }),
     credentials: { SHORT: prefix, CURSOR_API_KEY: KEY },
     out,
@@ -288,9 +289,9 @@ const chunks = (key: string, sizes: readonly number[]) => {
 /** The turn's raw parts, each line parsed, with `key` as the session's credential. */
 async function rawOf(key: string, turn: unknown[]) {
   const session = await agent({
-    harness: scripted([
+    ...scripted([
       [{ type: 'stream-start' }, ...turn, ...reply('').slice(-2)] as HarnessV1StreamPart[],
-    ]).harness,
+    ]).options,
     runner: local({ cwd: dir }),
     credentials: { CURSOR_API_KEY: key },
     out: { dir: out, raw: true },

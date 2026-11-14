@@ -1,30 +1,34 @@
 import type { HarnessV1 } from '@ai-sdk/harness'
-import { type AgentLog, errorText, startAgent } from '@reeval/agents'
+import {
+  type AdapterInput,
+  type AgentLog,
+  type AgentRoute,
+  type AgentSession,
+  agent,
+  catalogAdapter,
+  errorText,
+  type HarnessSpec,
+  type PlacedPlugin,
+} from '@reeval/agents'
 import { WORKSPACE_DIR } from '@reeval/sandbox-docker'
 import { runnerOf } from '../environment/runner.ts'
 import { brokerToken } from '../environment/token.ts'
-import type { SandboxAdc, VertexSettings } from '../gateway/vertex.ts'
+import { SANDBOX_ACCESS_TOKEN, type SandboxAdc, type VertexSettings } from '../gateway/vertex.ts'
+import { modelLimits } from '../prices.ts'
 import { capabilitiesOf, runsAgent, sandboxKind, suggestedSandbox } from '../sandbox/kinds.ts'
 import { hasNetworkSession, InfraError, type Sandbox } from '../sandbox/types.ts'
+import { startEnv } from '../startup.ts'
 import type { AgentHarnessDescriptor, SandboxDescriptor } from '../types.ts'
-import {
-  type AdapterVertex,
-  type Agent,
-  agentAuth,
-  agentFor,
-  agentMcp,
-  authHint,
-  writePluginFiles,
-} from './agents.ts'
+import { type Agent, agentAuth, agentFor, authHint, writePluginFiles } from './agents.ts'
 import { WORKSPACE_PATH } from './transcript.ts'
 import type { Harness } from './types.ts'
 
-/** The route's service account, written beside the workspace, as the adapter takes it. */
-async function writeAdc(sandbox: Sandbox, adc: SandboxAdc, log: AgentLog): Promise<AdapterVertex> {
+/** The route's service account, written beside the workspace; returns where it is. */
+async function writeAdc(sandbox: Sandbox, adc: SandboxAdc, log: AgentLog): Promise<string> {
   await sandbox.writeFile(`../${adc.file}`, adc.content)
   const credentialsFile = `${sandbox.workdir.replace(/[\\/][^\\/]*$/, '')}/${adc.file}`
   log.log('env', `Vertex AI service account → ${credentialsFile}`)
-  return { project: adc.project, location: adc.location, credentialsFile }
+  return credentialsFile
 }
 
 /**
@@ -47,7 +51,65 @@ export function agentSandboxProblem(agent: Agent, sandbox: SandboxDescriptor): s
   return `The ${agent.name} harness can't run in the ${sandboxKind(sandbox).provider(sandbox)} sandbox, which ${lacks.join(' and ')}: ${fix ? `set sandbox: ${fix} for this eval, or ` : ''}use fakeHarness() with fakeSandbox()`
 }
 
-/** A real agent through its AI SDK harness adapter, in a sandbox that gives it a harness session. */
+/** The core's spec of a harness descriptor: which agent, on which model. */
+export function harnessSpec(descriptor: AgentHarnessDescriptor): HarnessSpec {
+  const { kind, model, effort } = descriptor
+  if (kind === 'cursor') {
+    return {
+      kind,
+      model,
+      ...(effort ? { effort } : {}),
+      ...(descriptor.params ? { params: descriptor.params } : {}),
+    }
+  }
+  if (kind === 'claude-code') return { kind, model, ...(effort ? { effort } : {}) }
+  return { kind, model, ...(effort ? { effort } : {}) } as HarnessSpec
+}
+
+/**
+ * Where the descriptor's gateway sends its model calls. On Vertex, the attempt's `vertex()`
+ * settings, the service account written beside the workspace, and the placeholder the gateway
+ * swaps for the minted token.
+ */
+export function harnessRoute(
+  descriptor: AgentHarnessDescriptor,
+  vertex?: VertexSettings,
+  credentialsFile?: string,
+): AgentRoute {
+  const { gateway } = descriptor
+  if (gateway === 'vertex' && vertex) {
+    return {
+      kind: 'vertex',
+      ...vertex,
+      ...(credentialsFile ? { credentialsFile } : {}),
+      accessToken: SANDBOX_ACCESS_TOKEN,
+    }
+  }
+  if (gateway === 'vercel' || gateway === 'openrouter') return { kind: gateway }
+  return { kind: 'direct' }
+}
+
+/** The descriptor's adapter as an attempt builds it, for a check that reads its configuration. */
+export function harnessAdapter(
+  descriptor: AgentHarnessDescriptor,
+  input: AdapterInput & {
+    plugins?: readonly PlacedPlugin[]
+    vertex?: VertexSettings
+    credentialsFile?: string
+  },
+): Promise<HarnessV1> {
+  const { plugins = [], vertex, credentialsFile, ...adapter } = input
+  return catalogAdapter({
+    ...adapter,
+    harness: harnessSpec(descriptor),
+    route: harnessRoute(descriptor, vertex, credentialsFile),
+    plugins,
+    env: startEnv(),
+    describeModel: modelLimits,
+  })
+}
+
+/** A real agent through `@reeval/agents`, in a sandbox that gives it a harness session. */
 export function createAgentHarness(
   descriptor: AgentHarnessDescriptor,
   sandbox: SandboxDescriptor,
@@ -59,19 +121,7 @@ export function createAgentHarness(
   return {
     async start(sandbox, signal, { skills, mcp, plugins }, log) {
       const auth = agentAuth(catalog)
-      const servers = agentMcp(catalog, mcp, plugins)
-      const model = catalog.modelId?.(descriptor.model) ?? descriptor.model
-      const vertex = catalog.adc ? await writeAdc(sandbox, catalog.adc, log) : undefined
-      const adapter = await catalog.adapter({
-        auth,
-        ...(catalog.routeEnv ? { env: catalog.routeEnv } : {}),
-        ...(vertex ? { vertex } : {}),
-        ...(catalog.vertexChat ? { vertexChat: catalog.vertexChat } : {}),
-        descriptor,
-        model,
-        plugins,
-        ...(Object.keys(servers).length ? { mcpServers: catalog.mcpServers(servers) } : {}),
-      })
+      const adc = catalog.adc ? await writeAdc(sandbox, catalog.adc, log) : undefined
       for (const path of await writePluginFiles(sandbox, catalog, plugins)) {
         log.log('env', `plugin settings → ${path}`)
       }
@@ -98,26 +148,45 @@ export function createAgentHarness(
         log.log('broker', `gateway adds an access token from ${catalog.credential}`)
       }
       const { runner, session } = runnerOf(sandbox)
-      return startAgent({
-        kind: descriptor.kind,
-        entry: catalog,
-        adapter: adapter as HarnessV1,
-        model,
-        runner,
-        session,
-        workDir: WORKSPACE_DIR,
-        skills,
-        signal,
-        log,
-        traffic: {
-          statuses: () => sandbox.brokeredStatuses?.() ?? [],
-          servedModels: () => sandbox.servedRequests?.() ?? [],
-        },
-        authHint: (message, refused) => authHint(catalog, message, refused),
-        workspace: WORKSPACE_PATH,
-        raw: Boolean(process.env.REEVAL_RAW_TRANSCRIPT),
-        onClose: stopToken,
-      })
+      let started: AgentSession
+      try {
+        started = await agent({
+          harness: harnessSpec(descriptor),
+          route: harnessRoute(descriptor, vertex, adc),
+          runner,
+          session,
+          credentials: auth,
+          // A sandbox whose image wasn't baked with this build of the CLI installs it here.
+          install: 'auto',
+          workDir: WORKSPACE_DIR,
+          skills,
+          mcp,
+          plugins,
+          env: startEnv(),
+          describeModel: modelLimits,
+          traffic: {
+            statuses: () => sandbox.brokeredStatuses?.() ?? [],
+            servedModels: () => sandbox.servedRequests?.() ?? [],
+          },
+          authHint: (message, refused) => authHint(catalog, message, refused),
+          workspace: WORKSPACE_PATH,
+          raw: Boolean(process.env.REEVAL_RAW_TRANSCRIPT),
+          log,
+          signal,
+          onEvent: (event) => {
+            if (event.type === 'warning') log.log('harness', event.message)
+          },
+        }).start()
+      } catch (error) {
+        stopToken()
+        throw error
+      }
+      return {
+        send: (prompt, turnSignal) => started.send(prompt, { signal: turnSignal }).result,
+        stopped: (note) => started.stopped(note),
+        salvage: () => started.salvage(),
+        close: () => started.close().finally(stopToken),
+      }
     },
   }
 }

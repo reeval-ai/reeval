@@ -1,6 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
-import { AgentError, type AgentLog, type HarnessSession, type PluginUnpack } from '@reeval/agents'
+import {
+  AgentError,
+  type AgentLog,
+  claudeMcpServers,
+  type HarnessSession,
+  type PluginUnpack,
+} from '@reeval/agents'
 import { writeTar } from '@reeval/sandbox-docker'
 import { shellQuote } from '@reeval/sandbox-docker/process'
 import { debugLog, debugTrace } from '../debug/attempt.ts'
@@ -19,7 +25,7 @@ import {
   type ResolvedStep,
   skillFiles,
 } from '../environment/resolve.ts'
-import { agentOf, brokeringFor, claudeMcpServers, expectedBlockedFor } from '../harness/agents.ts'
+import { agentOf, brokeringFor, expectedBlockedFor } from '../harness/agents.ts'
 import { createHarness, layoutOf, workspaceSkillDir } from '../harness/index.ts'
 import type { Harness, Treatments } from '../harness/types.ts'
 import { unpackPlugins } from '../harness/unpack.ts'

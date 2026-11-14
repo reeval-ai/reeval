@@ -1,38 +1,30 @@
 import { posix } from 'node:path'
 import type { HarnessV1 } from '@ai-sdk/harness'
-import type { AgentKind, HarnessCatalogEntry } from './catalog/entry.ts'
+import type { HarnessCatalogEntry } from './catalog/entry.ts'
 import { HARNESSES } from './catalog/index.ts'
-import { LAYOUTS } from './catalog/layouts.ts'
-import { REFUSED_KEY, startAgent } from './driver/agent.ts'
+import { agentMcp, LAYOUTS } from './catalog/layouts.ts'
+import { type ModelTraffic, REFUSED_KEY, startAgent } from './driver/agent.ts'
 import { errorText, type StampedPart } from './driver/transcript.ts'
 import type { AgentLog, HarnessResult, HarnessSession } from './driver/types.ts'
 import { AgentError } from './errors.ts'
+import {
+  type AdapterContext,
+  type AdapterInput,
+  type AgentRoute,
+  catalogAdapter,
+  type HarnessSpec,
+} from './harnesses.ts'
 import { type OutOptions, OutWriter } from './out/index.ts'
 import type { OutSession } from './out/types.ts'
+import { ROUTES } from './routes/index.ts'
+import type { RouteConfig } from './routes/route.ts'
+import { VERTEX_ROUTES } from './routes/vertex.ts'
 import type { Runner, RunnerInfo } from './runner.ts'
+import type { RunnerSessionOptions } from './runner-session.ts'
 import { type InstallMode, installHarness } from './setup.ts'
-import type { ResolvedMcpServer } from './spec.ts'
+import type { PlacedPlugin, ResolvedMcpServer } from './spec.ts'
 import type { TranscriptEvent } from './types.ts'
 import { AGENTS_VERSION } from './version.ts'
-
-/** What a harness's adapter is built from. */
-export type AdapterInput = {
-  /** The session's credentials, by variable. */
-  auth: Record<string, string>
-  /** The model id the agent asks for: the harness entry's `modelId` of `model`. */
-  model: string
-  effort?: string
-  /** The session's MCP servers, in the shape the harness's CLI takes them. */
-  mcpServers?: Record<string, unknown>
-}
-
-/** Which harness a session runs, on which model, and how its AI SDK adapter is built. */
-export type AgentHarness = {
-  kind: AgentKind
-  model: string
-  effort?: string
-  adapter: (input: AdapterInput) => HarnessV1 | Promise<HarnessV1>
-}
 
 /** A skill the session places for the agent: `SKILL.md` and its other files. */
 export type AgentSkill = {
@@ -64,7 +56,9 @@ export type AgentEvent =
   | { type: 'turn-end'; turn: number; result: HarnessResult }
 
 export type AgentOptions = {
-  harness: AgentHarness
+  harness: HarnessSpec
+  /** Where the harness's model calls go; its provider's own API by default. */
+  route?: AgentRoute
   /**
    * Where the agent's CLI runs. A function's runner is the session's own, closed when the session
    * closes; a runner passed as is stays open for the caller.
@@ -85,6 +79,30 @@ export type AgentOptions = {
   rules?: string
   skills?: readonly AgentSkill[]
   mcp?: Record<string, ResolvedMcpServer>
+  /**
+   * Plugins already on the runner, each at `dir`, which the adapter makes its agent load. An
+   * agent that loads a plugin's own MCP config starts its `servers` from there, not from `mcp`.
+   */
+  plugins?: readonly PlacedPlugin[]
+  /** The host environment a route's URLs and OpenCode's provider are read from; `process.env` by default. */
+  env?: NodeJS.ProcessEnv
+  /** A gateway model's limits, for pi on a gateway that doesn't describe the model. */
+  describeModel?: AdapterContext['describeModel']
+  /** Builds the harness's AI SDK adapter in place of the catalog's, such as a test's scripted one. */
+  adapter?: (input: AdapterInput) => HarnessV1 | Promise<HarnessV1>
+  /** What the session the adapter drives says of itself: its id, description and ports. */
+  session?: RunnerSessionOptions
+  /** Where the runner's network saw the agent's model calls, which say a turn was refused. */
+  traffic?: ModelTraffic
+  /** Paths under it in the transcript are made relative to the workspace. */
+  workspace?: RegExp
+  /** Keep every stream part on each turn's result, as `raw`; `out`'s `raw` does too. */
+  raw?: boolean
+  /**
+   * What a turn's error says when it may be a refused key (`refused` when a model call got a
+   * 401), or undefined to leave it; by default it names the credentials.
+   */
+  authHint?: (message: string, refused: boolean) => string | undefined
   /** Where on the host to write what the session did. */
   out?: string | OutOptions
   /** Every event, the session's and its turns'. */
@@ -104,6 +122,25 @@ export type AgentOptions = {
   closeTimeoutMs?: number
 }
 
+/** The route's configuration for the harness; undefined on its provider's own API. */
+function routeConfig(
+  harness: HarnessSpec,
+  route: AgentRoute,
+  entry: HarnessCatalogEntry,
+  env: NodeJS.ProcessEnv,
+): RouteConfig | undefined {
+  if (route.kind === 'direct') return undefined
+  const config =
+    route.kind === 'vertex'
+      ? VERTEX_ROUTES[harness.kind]
+      : ROUTES[route.kind].routes[harness.kind]?.(env)
+  if (!config) {
+    const name = route.kind === 'vertex' ? 'Vertex AI' : ROUTES[route.kind].name
+    throw new AgentError(`The ${entry.name} harness doesn't run on ${name}`)
+  }
+  return config
+}
+
 /** A turn in flight: its events as they happen, and its result. */
 export type AgentTurn = {
   /** For one reader: a second `for await` takes events from the first. */
@@ -115,6 +152,17 @@ export type AgentTurn = {
 export type AgentSession = {
   /** Starts the next turn; refused while one is running. */
   send(prompt: string, options?: { signal?: AbortSignal }): AgentTurn
+  /**
+   * Ends the running turn as far as it got, for a turn that didn't stop when aborted: what the
+   * agent streamed, with `note` (why) last, and the usage its CLI stored. `close()` doesn't wait
+   * for it after that.
+   */
+  stopped(note: TranscriptEvent): Promise<HarnessResult>
+  /**
+   * Reads the usage the running turn's CLI stored so far, for the turn's result: call it when the
+   * run is cut off, before the runner goes away.
+   */
+  salvage(): Promise<void>
   /**
    * Aborts a running turn, closes the harness session, then the runner when the session owns it.
    * A turn or session that doesn't stop within `closeTimeoutMs` is left behind. Idempotent.
@@ -240,6 +288,9 @@ export function agent(options: AgentOptions): Agent {
   const layout = LAYOUTS[harness.kind]
   const workDir = options.workDir ?? '.'
   const outOptions = typeof options.out === 'string' ? { dir: options.out } : options.out
+  const route = options.route ?? { kind: 'direct' }
+  const env = options.env ?? process.env
+  const plugins = options.plugins ?? []
   const closeTimeout = closeTimeoutOf(options.closeTimeoutMs)
   const emit = (event: AgentEvent) => {
     try {
@@ -313,14 +364,25 @@ export function agent(options: AgentOptions): Agent {
       phase('place', since)
 
       since = Date.now()
-      const model = entry.modelId?.(harness.model) ?? harness.model
-      const mcp = options.mcp ?? {}
-      const adapter = await harness.adapter({
+      const routed = routeConfig(harness, route, entry, env)
+      const model = (routed?.modelId ?? entry.modelId)?.(harness.model) ?? harness.model
+      const mcp = agentMcp(layout, options.mcp ?? {}, plugins)
+      const input: AdapterInput = {
         auth: credentials,
         model,
         ...(harness.effort ? { effort: harness.effort } : {}),
         ...(Object.keys(mcp).length ? { mcpServers: entry.mcpServers(mcp) } : {}),
-      })
+      }
+      const adapter = options.adapter
+        ? await options.adapter(input)
+        : await catalogAdapter({
+            ...input,
+            harness,
+            route,
+            plugins,
+            env,
+            ...(options.describeModel ? { describeModel: options.describeModel } : {}),
+          })
       doc.adapter = { name: adapter.harnessId }
       const installed = await installHarness({
         runner: box,
@@ -343,6 +405,7 @@ export function agent(options: AgentOptions): Agent {
         adapter,
         model,
         runner: box,
+        ...(options.session ? { session: options.session } : {}),
         workDir,
         skills: skills
           .filter((s) => s.placement !== 'workspace')
@@ -354,11 +417,15 @@ export function agent(options: AgentOptions): Agent {
           })),
         signal,
         log,
-        authHint: (message, refused) =>
-          refused || REFUSED_KEY.test(message)
-            ? `The API rejected ${variable} for the ${entry.name} harness`
-            : undefined,
-        ...(outOptions?.raw ? { raw: true } : {}),
+        ...(options.traffic ? { traffic: options.traffic } : {}),
+        authHint:
+          options.authHint ??
+          ((message, refused) =>
+            refused || REFUSED_KEY.test(message)
+              ? `The API rejected ${variable} for the ${entry.name} harness`
+              : undefined),
+        ...(options.workspace ? { workspace: options.workspace } : {}),
+        ...(options.raw || outOptions?.raw ? { raw: true } : {}),
         onPart: (part) => onPart?.(part),
       })
       phase('bootstrap', since)
@@ -427,6 +494,15 @@ export function agent(options: AgentOptions): Agent {
         running = { done: result.catch(() => {}), force, startedAt: Date.now() }
         return { events: events.iterable, result }
       },
+      async stopped(note) {
+        const turn = running
+        if (!turn || !session.stopped) throw new AgentError('No turn is running')
+        const result = await session.stopped(note)
+        turn.force(result)
+        await turn.done
+        return result
+      },
+      salvage: () => session.salvage?.() ?? Promise.resolve(),
       close() {
         closing ??= (async () => {
           const since = Date.now()

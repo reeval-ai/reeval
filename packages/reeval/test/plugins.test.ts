@@ -7,6 +7,13 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
 import { pathToFileURL } from 'node:url'
+import {
+  agentMcp,
+  claudePluginFiles,
+  cursorHookMatcher,
+  LAYOUTS,
+  piMcpServers,
+} from '@reeval/agents'
 import { ANTIGRAVITY_HOOK_EVENTS } from '@reeval/harness-antigravity'
 import {
   buildSteps,
@@ -24,12 +31,7 @@ import { resolveEnvironment } from '../src/environment/resolve.ts'
 import { applied, defineEnvironment } from '../src/environment.ts'
 import {
   AGENTS,
-  agentMcp,
-  claudePluginFiles,
-  cursorHookMatcher,
   expectedBlockedFor,
-  LAYOUTS,
-  piMcpServers,
   refusedPlugins,
   writePluginFiles,
 } from '../src/harness/agents.ts'

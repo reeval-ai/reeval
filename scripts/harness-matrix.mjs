@@ -9,6 +9,7 @@ import { join } from 'node:path'
 const root = join(import.meta.dirname, '..')
 const src = join(root, 'packages/reeval/src')
 const { AGENTS, agentFor } = await import(join(src, 'harness/agents.ts'))
+const { harnessAdapter } = await import(join(src, 'harness/agent.ts'))
 const { OPENCODE_PROVIDERS } = await import(
   join(root, 'packages/harness-opencode/src/opencode-providers.ts')
 )
@@ -42,12 +43,10 @@ function mcpSupport(agent) {
 
 /** The web events reeval records for an agent: its adapter's tools that the transcript maps to them. */
 async function webEvents(kind, agent, model) {
-  const adapter = await agent.adapter({
-    auth: { [agent.authAs ?? agent.credential]: 'probe' },
-    descriptor: { kind, model },
-    model,
-    plugins: [],
-  })
+  const adapter = await harnessAdapter(
+    { kind, model },
+    { auth: { [agent.authAs ?? agent.credential]: 'probe' }, model },
+  )
   const tools = Object.keys(adapter.builtinTools ?? {})
   return {
     search: tools.includes('webSearch'),

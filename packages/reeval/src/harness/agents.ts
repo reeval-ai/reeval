@@ -1,4 +1,3 @@
-import type { HarnessAgentAdapter } from '@ai-sdk/harness/agent'
 import {
   AgentError,
   FAKE_LAYOUT,
@@ -8,14 +7,9 @@ import {
   type Layout,
   PLUGIN_PARTS,
   type PlacedPlugin,
-  providerOf,
   REFUSED_KEY,
   type ResolvedMcpServer,
 } from '@reeval/agents'
-import type { GooseProvider } from '@reeval/harness-goose'
-import type { OpenCodeMcpServer } from '@reeval/harness-opencode'
-import type { PiMcpServer } from '@reeval/harness-pi'
-import { piProvider } from '@reeval/harness-pi/providers'
 import {
   type DerivedTokens,
   type EndpointMatch,
@@ -25,9 +19,7 @@ import {
 import {
   type ExpectedBlocked,
   type HarnessWire,
-  keyed,
   type ModelSpecific,
-  opencodeVars,
   type ServedModel,
   type Upstream,
   WIRE,
@@ -38,17 +30,11 @@ import {
   type PluginContents,
   pluginServerName,
 } from '../environment/plugins.ts'
-import { isRoutingGateway, onRoutingGateway, ROUTING_GATEWAYS } from '../gateway/routes.ts'
-import { vercelApi } from '../gateway/vercel.ts'
-import {
-  SANDBOX_ACCESS_TOKEN,
-  VERTEX_ROUTES,
-  type VertexChat,
-  type VertexSettings,
-} from '../gateway/vertex.ts'
-import { modelLimits } from '../prices.ts'
+import { isRoutingGateway, ROUTING_GATEWAYS } from '../gateway/routes.ts'
+import { VERTEX_ROUTES, type VertexSettings } from '../gateway/vertex.ts'
 import { InfraError, type Sandbox } from '../sandbox/types.ts'
 import { heldSecret, hostEnv } from '../secrets-file.ts'
+import { startEnv } from '../startup.ts'
 import { withoutBom } from '../text.ts'
 import type {
   AgentHarnessDescriptor,
@@ -60,56 +46,11 @@ import type {
   SecretTemplate,
 } from '../types.ts'
 
-export {
-  acpMcpServers,
-  agentMcp,
-  antigravityMcpServers,
-  claudeCodeCost,
-  claudeMcpServers,
-  claudePluginFiles,
-  cursorHookMatcher,
-  cursorMcpServers,
-  gooseMcpServers,
-  LAYOUTS,
-  type Layout,
-  piCost,
-  piMcpServers,
-} from '@reeval/agents'
-export {
-  directProviderRefusal,
-  type ModelSpecific,
-  opencodeVars,
-  type ServedModel,
-  type Upstream,
-} from '../environment/harness-wire.ts'
-
-import { startEnv } from '../startup.ts'
-
 /** The kind of a real agent's harness, e.g. `cursor` or `claude-code`. */
 export type AgentKind = AgentHarnessDescriptor['kind']
 
 /** What reeval needs to know about a real agent; everything else is the same for all of them. */
-export type Agent = HarnessEntry &
-  HarnessWire & {
-    /**
-     * The adapter, with `auth` always an explicit environment holding only the credential: left on
-     * `'auto'`, an adapter picks up the host's AI Gateway key, subscriptions or keychain.
-     */
-    adapter: (options: {
-      mcpServers?: Record<string, unknown>
-      auth: Record<string, string>
-      /** `routeEnv`, for the agent's environment. */
-      env?: Record<string, string>
-      /** On Vertex through `adc`: the project, region and where the service account was written. */
-      vertex?: AdapterVertex
-      /** `vertexChat`, for the agent's provider. */
-      vertexChat?: VertexChat
-      descriptor: AgentHarnessDescriptor
-      /** The model id the agent asks for: `modelId` of the harness's own. */
-      model: string
-      plugins: readonly PlacedPlugin[]
-    }) => Promise<HarnessAgentAdapter>
-  }
+export type Agent = HarnessEntry & HarnessWire
 
 /**
  * An agent's catalog entry: what `ModelSpecific` names comes only from `forModel` for an agent
@@ -123,9 +64,6 @@ export type CatalogEntry =
         endpoints?: undefined
         forModel: NonNullable<Agent['forModel']>
       })
-
-/** What a Gemini CLI's adapter takes to run on Vertex AI from Application Default Credentials. */
-export type AdapterVertex = { project: string; location: string; credentialsFile: string }
 
 const isObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -169,215 +107,19 @@ export async function writePluginFiles(
 }
 
 /**
- * Every real agent reeval can drive, by harness kind: its catalog entry, what the egress gateway
- * needs to know about it, and its adapter.
+ * Every real agent reeval can drive, by harness kind: its catalog entry and what the egress
+ * gateway needs to know about it.
  */
 export const AGENTS: Record<AgentKind, CatalogEntry> = {
-  cursor: {
-    ...HARNESSES.cursor,
-    ...WIRE.cursor,
-    adapter: async ({ auth, mcpServers, descriptor }) =>
-      (await import('@reeval/harness-cursor-sdk')).createCursorSdk({
-        auth,
-        ...(mcpServers ? { mcpServers } : {}),
-        ...(descriptor.kind === 'cursor' && descriptor.params
-          ? { modelParams: descriptor.params }
-          : {}),
-        ...(descriptor.kind === 'cursor' && descriptor.effort ? { effort: descriptor.effort } : {}),
-        requireCredentialBrokering: true,
-      }),
-  },
-  'claude-code': {
-    ...HARNESSES['claude-code'],
-    ...WIRE['claude-code'],
-    adapter: async ({ auth, env, mcpServers, descriptor }) =>
-      (await import('@ai-sdk/harness-claude-code')).createClaudeCode({
-        auth,
-        ...(mcpServers ? { mcpServers } : {}),
-        ...(descriptor.kind === 'claude-code' && descriptor.effort
-          ? { effort: descriptor.effort }
-          : {}),
-        env: {
-          // The CLI refuses to skip permissions as root (docker({ root: true })) unless told it's
-          // in a sandbox.
-          IS_SANDBOX: '1',
-          // No telemetry, error reporting or feature-flag fetches: fewer endpoints for the key,
-          // and flags that can't change between runs.
-          CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
-          ...env,
-        },
-      }),
-  },
-  antigravity: {
-    ...HARNESSES.antigravity,
-    ...WIRE.antigravity,
-    adapter: async ({ auth, mcpServers, descriptor, plugins, vertex }) =>
-      (await import('@reeval/harness-antigravity')).createAntigravity({
-        auth,
-        ...(vertex ? { vertex } : {}),
-        ...(mcpServers ? { mcpServers } : {}),
-        ...(plugins.length ? { plugins: plugins.map(({ name, dir }) => ({ name, dir })) } : {}),
-        ...(descriptor.kind === 'antigravity' && descriptor.effort
-          ? { effort: descriptor.effort }
-          : {}),
-        // reeval's Docker sandbox always brokers; a sandbox that can't must not get the key.
-        requireCredentialBrokering: true,
-      }),
-  },
-  opencode: {
-    ...HARNESSES.opencode,
-    ...WIRE.opencode,
-    adapter: async ({ auth, mcpServers, descriptor, model, vertex }) =>
-      (await import('@reeval/harness-opencode')).createOpenCode({
-        auth,
-        model,
-        ...(vertex ? { vertex } : { vars: opencodeVars(model) }),
-        ...(descriptor.kind === 'opencode' && descriptor.effort
-          ? { effort: descriptor.effort }
-          : {}),
-        ...(mcpServers ? { mcpServers: mcpServers as Record<string, OpenCodeMcpServer> } : {}),
-        requireCredentialBrokering: true,
-      }),
-  },
-  goose: {
-    ...HARNESSES.goose,
-    ...WIRE.goose,
-    adapter: async ({ auth, mcpServers, descriptor, model, vertex }) => {
-      const goose = await import('@reeval/harness-goose')
-      const direct: Record<string, GooseProvider> = {
-        google: goose.GEMINI_PROVIDER,
-        anthropic: goose.ANTHROPIC_PROVIDER,
-        openai: goose.OPENAI_PROVIDER,
-        xai: goose.XAI_PROVIDER,
-      }
-      const provider =
-        onRoutingGateway(descriptor, {
-          vercel: goose.AI_GATEWAY_PROVIDER,
-          openrouter: goose.OPENROUTER_PROVIDER,
-        }) ?? direct[providerOf(descriptor.model)]
-      return goose.createGoose({
-        ...(vertex ? { vertex } : provider ? { provider } : {}),
-        auth,
-        model,
-        ...(descriptor.kind === 'goose' && descriptor.effort ? { effort: descriptor.effort } : {}),
-        ...(mcpServers
-          ? { mcpServers: mcpServers as Record<string, Record<string, unknown>> }
-          : {}),
-        requireCredentialBrokering: true,
-      })
-    },
-  },
-  pi: {
-    ...HARNESSES.pi,
-    ...WIRE.pi,
-    adapter: async ({ auth, mcpServers, descriptor, model, vertex }) => {
-      const pi = await import('@reeval/harness-pi')
-      const api = vercelApi(startEnv())
-      const gateway = onRoutingGateway(descriptor, {
-        vercel: { ...pi.PI_AI_GATEWAY, openai: api.openai, anthropic: api.anthropic },
-        openrouter: pi.PI_OPENROUTER,
-      })
-      const modelInfo =
-        gateway && model && !pi.piGatewayDescribes(gateway, model)
-          ? await modelLimits(model)
-          : undefined
-      return pi.createPi({
-        auth,
-        ...(gateway
-          ? { gateway, ...(modelInfo ? { modelInfo } : {}) }
-          : vertex
-            ? { vertex }
-            : { provider: keyed(piProvider(providerOf(descriptor.model))) }),
-        ...(descriptor.kind === 'pi' && descriptor.effort ? { effort: descriptor.effort } : {}),
-        ...(mcpServers ? { mcpServers: mcpServers as Record<string, PiMcpServer> } : {}),
-        requireCredentialBrokering: true,
-      })
-    },
-  },
-  codex: {
-    ...HARNESSES.codex,
-    ...WIRE.codex,
-    adapter: async ({ auth, mcpServers, descriptor, plugins }) => {
-      const codex = await import('@reeval/harness-codex')
-      const provider = onRoutingGateway(descriptor, {
-        vercel: { ...codex.AI_GATEWAY_PROVIDER, baseUrl: vercelApi(startEnv()).openai },
-        openrouter: codex.OPENROUTER_PROVIDER,
-      })
-      return codex.createCodex({
-        auth,
-        ...(provider ? { provider } : {}),
-        ...(descriptor.kind === 'codex' && descriptor.effort ? { effort: descriptor.effort } : {}),
-        ...(mcpServers
-          ? { mcpServers: mcpServers as Record<string, Record<string, unknown>> }
-          : {}),
-        ...(plugins.length ? { plugins: plugins.map(({ name, dir }) => ({ name, dir })) } : {}),
-        requireCredentialBrokering: true,
-      })
-    },
-  },
-  fx: {
-    ...HARNESSES.fx,
-    ...WIRE.fx,
-    adapter: async ({ auth, env, mcpServers, model, descriptor }) =>
-      (await import('@reeval/harness-fx')).createFx({
-        auth,
-        model,
-        // On Vercel AI Gateway, the model id picks fx's own provider.
-        ...onRoutingGateway(descriptor, {
-          vercel: { gatewayUrl: vercelApi(startEnv()).origin },
-          openrouter: { provider: 'openrouter' as const },
-        }),
-        // On Vertex AI, the route's project and region.
-        ...(env?.FX_VERTEX_PROJECT
-          ? { vertex: { project: env.FX_VERTEX_PROJECT, location: env.FX_VERTEX_LOCATION ?? '' } }
-          : {}),
-        ...(descriptor.kind === 'fx' && descriptor.effort ? { effort: descriptor.effort } : {}),
-        ...(mcpServers
-          ? { mcpServers: mcpServers as Record<string, Record<string, unknown>> }
-          : {}),
-        requireCredentialBrokering: true,
-      }),
-  },
-  'grok-build': {
-    ...HARNESSES['grok-build'],
-    ...WIRE['grok-build'],
-    adapter: async ({ auth, mcpServers, descriptor, plugins, model, vertexChat }) => {
-      const grok = await import('@reeval/harness-grok-build')
-      return grok.createGrokBuild({
-        // On Vertex the gateway adds the token, so Grok's env_key holds a placeholder.
-        ...(vertexChat
-          ? {
-              auth: { [grok.VERTEX_TOKEN_ENV]: SANDBOX_ACCESS_TOKEN },
-              provider: grok.vertexProvider(vertexChat.project, vertexChat.region),
-            }
-          : {
-              auth,
-              ...onRoutingGateway(descriptor, {
-                vercel: {
-                  provider: { ...grok.AI_GATEWAY_PROVIDER, baseUrl: vercelApi(startEnv()).openai },
-                },
-                openrouter: { provider: grok.OPENROUTER_PROVIDER },
-              }),
-            }),
-        model,
-        ...(plugins.length
-          ? {
-              pluginDirs: plugins.map((p) => p.dir),
-              pluginMcpServers: plugins.flatMap((p) =>
-                p.servers.map((s) => s.slice(p.name.length + 1)),
-              ),
-            }
-          : {}),
-        ...(descriptor.kind === 'grok-build' && descriptor.effort
-          ? { effort: descriptor.effort }
-          : {}),
-        ...(mcpServers
-          ? { mcpServers: mcpServers as Record<string, Record<string, unknown>> }
-          : {}),
-        requireCredentialBrokering: true,
-      })
-    },
-  },
+  cursor: { ...HARNESSES.cursor, ...WIRE.cursor },
+  'claude-code': { ...HARNESSES['claude-code'], ...WIRE['claude-code'] },
+  antigravity: { ...HARNESSES.antigravity, ...WIRE.antigravity },
+  opencode: { ...HARNESSES.opencode, ...WIRE.opencode },
+  goose: { ...HARNESSES.goose, ...WIRE.goose },
+  pi: { ...HARNESSES.pi, ...WIRE.pi },
+  codex: { ...HARNESSES.codex, ...WIRE.codex },
+  fx: { ...HARNESSES.fx, ...WIRE.fx },
+  'grok-build': { ...HARNESSES['grok-build'], ...WIRE['grok-build'] },
 }
 
 /** The harness of a config that names none: Cursor, on Cursor's own model. */

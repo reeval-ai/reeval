@@ -5,6 +5,7 @@
 // would otherwise drop the edit out of the transcript while every other check still passes.
 import { projectToolCall as antigravityTool } from '@reeval/harness-antigravity'
 import { projectToolCall as cursorTool } from '@reeval/harness-cursor-sdk'
+import { harnessAdapter } from '../../src/harness/agent.ts'
 import type { AgentKind } from '../../src/harness/agents.ts'
 import { agentAuth, agentFor } from '../../src/harness/agents.ts'
 import type { TranscriptEvent } from '../../src/types.ts'
@@ -40,12 +41,10 @@ export async function catalogOf(row: HarnessRow): Promise<Catalog> {
     return { harness, tools: FAKE_TOOLS, native: (n) => (FAKE_TOOLS.has(n) ? n : undefined) }
   const kind = harness as AgentKind
   const agent = agentFor({ kind, model: row.model ?? '' } as never)
-  const adapter = await agent.adapter({
+  const adapter = await harnessAdapter({ kind, model: row.model ?? '' } as never, {
     auth: agentAuth(agent, { [agent.credential]: 'probe' }),
-    descriptor: { kind, model: row.model ?? '' },
     model: row.model ?? '',
-    plugins: [],
-  } as never)
+  })
   const builtins = (adapter.builtinTools ?? {}) as Record<
     string,
     { nativeName?: string; toolUseKind?: ToolKind }
