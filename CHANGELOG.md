@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.28.0](https://github.com/reeval-ai/reeval/compare/v0.27.2...v0.28.0) (2026-11-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** take reeval cloud provider set|delete <provider> and let the platform decide which exist ([#989](https://github.com/reeval-ai/reeval/issues/989))
+
+### Features
+
+* **agents:** add the Runner interface and local() runner ([#985](https://github.com/reeval-ai/reeval/issues/985)) ([6b576b1](https://github.com/reeval-ai/reeval/commit/6b576b1a5889d221544d07364b1488d7b98038a8))
+
+
+### Bug Fixes
+
+* **cli:** take reeval cloud provider set|delete &lt;provider&gt; and let the platform decide which exist ([#989](https://github.com/reeval-ai/reeval/issues/989)) ([681b4d6](https://github.com/reeval-ai/reeval/commit/681b4d60b52742e0d9731df595a06df664cb2c07))
+
 ## [0.27.2](https://github.com/reeval-ai/reeval/compare/v0.27.1...v0.27.2) (2026-11-14)
 
 
