@@ -94,9 +94,15 @@ export async function docker(options: DockerOptions): Promise<Runner> {
       ],
       o.input === undefined ? {} : { input: o.input },
     )
+  /** Who commands run as, `uid:gid`, who owns what the runner writes. */
+  let owner = '0:0'
   try {
-    if (options.user && !options.mount) {
-      const r = await exec(['chown', options.user, workdir], { root: true })
+    const ids = await exec(['sh', '-c', 'echo "$(id -u):$(id -g)"'])
+    owner = new TextDecoder().decode(ids.stdout).trim()
+    if (ids.code !== 0 || !/^\d+:\d+$/.test(owner)) throw new Error(`id: ${ids.stderr}`)
+    // Docker creates the workdir as root, which a non-root user (`user`, or the image's) can't write.
+    if (!options.mount && owner !== '0:0') {
+      const r = await exec(['chown', owner, workdir], { root: true })
       if (r.code !== 0) throw new Error(`chown ${workdir}: ${r.stderr}`)
     }
   } catch (error) {
@@ -255,8 +261,8 @@ export async function docker(options: DockerOptions): Promise<Runner> {
       const made = await exec(['mkdir', '-p', '--', dir])
       if (made.code !== 0) throw new Error(`upload into ${boxDir}: ${made.stderr}`)
       await dockerOk(['cp', `${resolve(hostDir)}/.`, `${id}:${dir}`], `upload into ${boxDir}`)
-      if (options.user) {
-        const owned = await exec(['chown', '-R', options.user, '--', dir], { root: true })
+      if (owner !== '0:0') {
+        const owned = await exec(['chown', '-R', owner, '--', dir], { root: true })
         if (owned.code !== 0) throw new Error(`upload into ${boxDir}: ${owned.stderr}`)
       }
     },

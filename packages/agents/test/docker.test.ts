@@ -60,6 +60,27 @@ describe('docker()', { skip: skip ?? false }, () => {
     }
   })
 
+  test("docker() writes and uploads as an image's own non-root user", async () => {
+    const image = 'reeval-agents-test:non-root'
+    execFileSync('docker', ['build', '--quiet', '--tag', image, '-'], {
+      input: `FROM ${IMAGE}\nUSER node\n`,
+      stdio: ['pipe', 'ignore', 'inherit'],
+    })
+    const dir = await realpath(await mkdtemp(join(tmpdir(), 'reeval-agents-docker-')))
+    dirs.push(dir)
+    await writeFile(join(dir, 'up'), 'uploaded')
+    const runner = await docker({ image })
+    try {
+      assert.equal((await runner.info()).user, 'node')
+      await runner.writeFile('nested/file', 'written')
+      assert.equal((await run(runner, 'cat nested/file')).stdout, 'written')
+      await runner.upload?.(dir, 'in')
+      assert.equal((await run(runner, 'cat in/up && touch in/more')).stdout, 'uploaded')
+    } finally {
+      await runner.close()
+    }
+  })
+
   test("docker() sets its env and each command's on what it runs", async () => {
     const runner = await docker({ image: IMAGE, env: { BASE: 'b' } })
     try {
