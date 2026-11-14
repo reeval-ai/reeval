@@ -149,6 +149,55 @@ test("a session with install: 'skip' fails to start on a runner without the CLI"
   assert.deepEqual(script.calls, [], 'the harness never started')
 })
 
+test("a failed install or runner probe fails the start with an AgentError, keeping the cause's transient", async () => {
+  const script = scripted([])
+  const failing = (commands: HarnessV1Bootstrap['commands']) => ({
+    harness: script.options.harness,
+    adapter: async (input: AdapterInput) =>
+      Object.assign(Object.create(await script.options.adapter(input)), {
+        getBootstrap: async () => ({
+          harnessId: `failing-${++toys}`,
+          bootstrapDir: `.harness-bootstrap/failing-${toys}`,
+          files: [],
+          commands,
+        }),
+      }) as HarnessV1,
+  })
+  const install = await agent({
+    ...failing([{ command: 'echo no network >&2; exit 7' }]),
+    runner: local({ cwd: workspace() }),
+  })
+    .start()
+    .then(
+      () => assert.fail('the start succeeded'),
+      (error: unknown) => error,
+    )
+  assert.ok(install instanceof AgentError, String(install))
+  assert.match(install.message, /^Cursor harness failed to start: /)
+  assert.equal(install.transient, false)
+  assert.deepEqual(script.calls, [], 'the harness never started')
+
+  const runner = local({ cwd: workspace() })
+  const probe = await agent({
+    ...failing([]),
+    runner: {
+      ...runner,
+      info: async () => {
+        throw Object.assign(new Error('uname: connection reset'), { transient: true })
+      },
+    },
+  })
+    .start()
+    .then(
+      () => assert.fail('the start succeeded'),
+      (error: unknown) => error,
+    )
+  await runner.close()
+  assert.ok(probe instanceof AgentError, String(probe))
+  assert.equal(probe.message, 'Cursor harness failed to start: uname: connection reset')
+  assert.equal(probe.transient, true)
+})
+
 test('setupOf names each harness, its credentials and an install recipe', async () => {
   for (const kind of Object.keys(HARNESSES) as AgentKind[]) {
     const setup = setupOf(kind)

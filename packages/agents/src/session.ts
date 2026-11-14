@@ -344,8 +344,29 @@ export function agent(options: AgentOptions): Agent {
       if (outOptions) out = await OutWriter.open(outOptions, Object.values(credentials))
       runner = typeof options.runner === 'function' ? await options.runner() : options.runner
       const box = runner
+      const names = Object.keys(credentials)
+      const variable = names.length ? names.join(' or ') : (entry.credential ?? 'its credential')
+      const authHint =
+        options.authHint ??
+        ((message: string, refused: boolean) =>
+          refused || REFUSED_KEY.test(message)
+            ? `The API rejected ${variable} for the ${entry.name} harness`
+            : undefined)
+      const starting = async <T>(step: () => Promise<T>): Promise<T> => {
+        try {
+          return await step()
+        } catch (error) {
+          if (error instanceof AgentError || signal.aborted) throw error
+          const message = errorText(error)
+          const hint = authHint(message, options.traffic?.statuses().includes(401) ?? false)
+          throw new AgentError(
+            `${hint ? `${hint}. ` : ''}${entry.name} harness failed to start: ${message}`,
+            { transient: !hint && (error as { transient?: unknown }).transient === true },
+          )
+        }
+      }
       let since = Date.now()
-      const info: RunnerInfo = await box.info()
+      const info: RunnerInfo = await starting(() => box.info())
       doc.runner = info
       phase('runner', since)
       await writing(out?.session(doc))
@@ -384,21 +405,21 @@ export function agent(options: AgentOptions): Agent {
             ...(options.describeModel ? { describeModel: options.describeModel } : {}),
           })
       doc.adapter = { name: adapter.harnessId }
-      const installed = await installHarness({
-        runner: box,
-        home: info.home,
-        adapter,
-        name: entry.name,
-        mode: options.install ?? 'auto',
-        workDir,
-        signal,
-      })
+      const installed = await starting(() =>
+        installHarness({
+          runner: box,
+          home: info.home,
+          adapter,
+          name: entry.name,
+          mode: options.install ?? 'auto',
+          workDir,
+          signal,
+        }),
+      )
       if (installed) {
         phase('install', since)
         since = Date.now()
       }
-      const names = Object.keys(credentials)
-      const variable = names.length ? names.join(' or ') : (entry.credential ?? 'its credential')
       session = await startAgent({
         kind: harness.kind,
         entry,
@@ -418,12 +439,7 @@ export function agent(options: AgentOptions): Agent {
         signal,
         log,
         ...(options.traffic ? { traffic: options.traffic } : {}),
-        authHint:
-          options.authHint ??
-          ((message, refused) =>
-            refused || REFUSED_KEY.test(message)
-              ? `The API rejected ${variable} for the ${entry.name} harness`
-              : undefined),
+        authHint,
         ...(options.workspace ? { workspace: options.workspace } : {}),
         ...(options.raw || outOptions?.raw ? { raw: true } : {}),
         onPart: (part) => onPart?.(part),
