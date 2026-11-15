@@ -263,7 +263,11 @@ hosts works and a blocked host is refused and recorded, the native stream format
 nothing is left behind. Each behavior is an eval, a canary that must fail and a check of the
 record. `test/e2e-real.test.ts` records two runs of one tiny eval per harness and checks `reeval
 compare` says "same", every `reeval query` view answers, `-v` and `.reeval/debug` have the trace, and the studio's
-run view has every attempt's transcript facts. Both need `REEVAL_TEST_REAL=1` (which `pnpm test:contract` sets) and
+run view has every attempt's transcript facts. `packages/agents/test/contract.test.ts` is the core
+contract: each harness's own row on `@reeval/agents` alone, its CLI installed by `agent()` on
+Node's image under `docker()`, with the key in its environment, checking in one four-turn session
+what needs no gateway (the skill, the rules, the MCP call, the edit and the command as their kinds,
+the catalog, tokens and the model the harness reports, no container left). All three need `REEVAL_TEST_REAL=1` (which `pnpm test:contract` sets) and
 each harness's key; asked for, a row without its key fails (it never skips), naming the variable,
 so narrow a local run with `REEVAL_CONTRACT_HARNESSES`. `REEVAL_CONTRACT_SANDBOX=boat` (with `BOAT_API_KEY`) runs the rows
 in `boat()`, less the deny-all checks, and `boat-image` in `boat()` with an image recipe, with them;

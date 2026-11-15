@@ -1,12 +1,13 @@
 // setupOf(), the install modes and the marker they share with the AI SDK, on local() with a toy
 // adapter whose install counts its runs, so key-free and with no Docker.
 import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, test } from 'node:test'
 import type { HarnessV1, HarnessV1Bootstrap } from '@ai-sdk/harness'
 import { createHarnessSandboxTemplate } from '@ai-sdk/harness/agent'
+import { PNPM_VERSION as BAKED_PNPM } from '@reeval/sandbox-docker'
 import type { AgentKind } from '../src/catalog/entry.ts'
 import { HARNESSES } from '../src/catalog/index.ts'
 import { AgentError } from '../src/errors.ts'
@@ -14,7 +15,7 @@ import type { AdapterInput } from '../src/harnesses.ts'
 import { local } from '../src/local.ts'
 import { runnerSession } from '../src/runner-session.ts'
 import { type AgentEvent, agent } from '../src/session.ts'
-import { installHarness, recipeMarker, setupOf } from '../src/setup.ts'
+import { installHarness, PNPM_VERSION, recipeMarker, setupOf } from '../src/setup.ts'
 import { reply, scripted } from './scripted.ts'
 
 // Everything an install writes lands under HOME, which local() and its commands take from here.
@@ -216,4 +217,40 @@ test('setupOf names each harness, its credentials and an install recipe', async 
   ])
   assert.deepEqual(setupOf('codex').credentials, ['OPENAI_API_KEY'])
   assert.deepEqual(setupOf('pi').credentials, [], "pi's key is its model's provider's")
+})
+
+test("a runner without pnpm gets the images' pnpm before an install that runs it", async () => {
+  assert.equal(PNPM_VERSION, BAKED_PNPM)
+  const bin = mkdtempSync(join(tmpdir(), 'reeval-agents-bin-'))
+  // npm, on a PATH with no pnpm: it logs its arguments and leaves a pnpm that logs its own.
+  writeFileSync(
+    join(bin, 'npm'),
+    `#!/bin/sh\necho "npm $*" >> "${bin}/log"\nprintf '#!/bin/sh\\necho "pnpm $*" >> "${bin}/log"\\n' > "${bin}/pnpm"\nchmod +x "${bin}/pnpm"\n`,
+  )
+  chmodSync(join(bin, 'npm'), 0o755)
+  const recipe: HarnessV1Bootstrap = {
+    harnessId: 'toy-pnpm',
+    bootstrapDir: '.harness-bootstrap/toy-pnpm',
+    files: [{ path: '.harness-bootstrap/toy-pnpm/package.json', content: '{}' }],
+    commands: [{ command: 'pnpm install --frozen-lockfile' }],
+  }
+  const adapter = {
+    harnessId: 'toy-pnpm',
+    getBootstrap: async () => recipe,
+  } as unknown as HarnessV1
+  const runner = local({ cwd: workspace(), env: { PATH: `${bin}:/usr/bin:/bin` } })
+  mkdirSync(join(home, '.ai-sdk-harness'), { recursive: true })
+  const install = () =>
+    installHarness({ runner, home, adapter, name: 'Toy', mode: 'always', workDir: '.' })
+  assert.equal(await install(), true)
+  assert.equal(await install(), true)
+  rmSync(join(bin, 'pnpm'))
+  // Installed already: `auto` runs neither npm nor the recipe, pnpm or not.
+  await installHarness({ runner, home, adapter, name: 'Toy', mode: 'auto', workDir: '.' })
+  await runner.close()
+  assert.deepEqual(readFileSync(join(bin, 'log'), 'utf8').trim().split('\n'), [
+    `npm install --global --no-fund --no-audit pnpm@${PNPM_VERSION}`,
+    'pnpm install --frozen-lockfile',
+    'pnpm install --frozen-lockfile',
+  ])
 })

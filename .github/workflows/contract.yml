@@ -1,5 +1,5 @@
 # The real agents in Docker, on the pinned agent versions or the newest ones: the harness contract,
-# the real-tier feature fixtures (real Cursor, `harness/cursor-web-fetch` among them), the check that
+# (pinned only) @reeval/agents' core contract, the real-tier feature fixtures (real Cursor, `harness/cursor-web-fetch` among them), the check that
 # @cursor/sdk still declares what the Cursor harness recovers web calls from, and (pinned only) the
 # CLI end to end. Called by real.yml only, which gates it on this repository and its secrets.
 # `versions: latest` first swaps the newest `agy`, @cursor/sdk, OpenCode, Goose, pi and Codex into
@@ -35,7 +35,7 @@ jobs:
   contract:
     name: contract and e2e
     runs-on: ubuntu-24.04
-    timeout-minutes: 80
+    timeout-minutes: 90
     env:
       REEVAL_TEST_REAL: '1'
       REEVAL_TEST_REQUIRE_DOCKER: '1'
@@ -50,11 +50,12 @@ jobs:
       # don't load rules; 21 on OpenCode, with no hooks or rules; 19 on Goose and pi, with no hooks,
       # subagents or rules; 18 on Codex and fx, which also set no effort; 15 on the two OpenCode
       # rows without plugins; 14 on the six Goose and pi rows without plugins or effort), the e2e
-      # (2) on the nine harnesses' own rows, and the real-tier fixtures (2 each, 18 of them):
-      # 25 + 24 + 46 + 21 + 38 + 36 + 30 + 84 + 18 + 36 = 358, plus 5 of headroom. The latest leg
-      # skips the e2e (340), so it fits too. Each reserves its attempts in the ledger first, and
-      # fails rather than go over.
-      REEVAL_REAL_ATTEMPT_BUDGET: '363'
+      # (2) on the nine harnesses' own rows, the core contract (4 turns on each of the nine) and the
+      # real-tier fixtures (2 each, 18 of them):
+      # 25 + 24 + 46 + 21 + 38 + 36 + 30 + 84 + 18 + 36 + 36 = 394, plus 5 of headroom. The latest
+      # leg skips the e2e and the core contract (340), so it fits too. Each reserves its attempts in
+      # the ledger first, and fails rather than go over.
+      REEVAL_REAL_ATTEMPT_BUDGET: '399'
       REEVAL_REAL_LEDGER: ${{ github.workspace }}/../reeval-real-ledger
       CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
       GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
@@ -110,6 +111,13 @@ jobs:
           files=test/contract.test.ts
           [ "${{ inputs.versions }}" = pinned ] && files="$files test/e2e-real.test.ts"
           node --test --test-concurrency=1 --test-timeout=3600000 --experimental-strip-types --no-warnings $files
+      # Each harness's own row on @reeval/agents alone: its CLI installed on Node's image under
+      # docker(), with no gateway. The pinned adapters install the pinned CLIs, so the latest leg
+      # leaves it out.
+      - name: core harness contract (@reeval/agents)
+        if: ${{ !cancelled() && inputs.versions == 'pinned' }}
+        working-directory: packages/agents
+        run: node --test --test-timeout=3600000 --experimental-strip-types --no-warnings test/contract.test.ts
       # One real attempt on the fake harness: the Jev judge and the analysis model through
       # openrouter(), recording the served model, the upstream provider and the cost.
       - name: reeval's own calls on OpenRouter

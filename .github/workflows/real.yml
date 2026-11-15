@@ -2,9 +2,10 @@
 # It spends model credit, so it runs only in this repository (never a fork's code). A missing
 # secret fails the rows that need it, naming the variable: asked for, the real tier never skips.
 # One run at a time.
-#   contract (pinned)    the harness contract, the real-tier fixtures, the @cursor/sdk shape check
-#                        and the CLI end to end, on the pinned agent versions
-#   contract (latest)    the version-drift leg: the same but the e2e, on the newest agy, @cursor/sdk,
+#   contract (pinned)    the harness contract, @reeval/agents' core contract, the real-tier
+#                        fixtures, the @cursor/sdk shape check and the CLI end to end, on the
+#                        pinned agent versions
+#   contract (latest)    the version-drift leg: the same but the e2e and the core contract, on the newest agy, @cursor/sdk,
 #                        OpenCode, Goose, pi, Codex, fx and Grok Build
 #   real agents (Cursor) test/real-agents' smoke profile, then its compare questions on a real
 #                        model (test/questions-real.test.ts)
@@ -16,8 +17,9 @@
 # key-free checks find a new agent CLI release, which dispatches it alone (pinned=false,
 # latest=true) on the rows of the CLIs that released (latest_harnesses). PRs get the pinned
 # contract only. A dispatch's `harnesses` input (e.g. claude-code-gateway,codex-gateway) runs only
-# those rows' pinned contract and e2e, nothing else; naming an *-openrouter row also runs reeval's
-# own calls on OpenRouter (the judge and analysis). Budgets: each reeval run's budget.attempts, a
+# those rows' pinned contract and e2e (and the core contract, for a harness's own row), nothing
+# else; naming an *-openrouter row also runs reeval's own calls on OpenRouter (the judge and
+# analysis). Budgets: each reeval run's budget.attempts, a
 # ledger per job (contract.yml) and the timeouts below.
 name: real
 

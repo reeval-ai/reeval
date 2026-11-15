@@ -90,6 +90,11 @@ export type AgentOptions = {
   describeModel?: AdapterContext['describeModel']
   /** The fetch the adapter's own calls from the host go through; the global one by default. */
   fetch?: AdapterContext['fetch']
+  /**
+   * Refuse to start when the runner's network can't broker the harness's key; true by default
+   * for a runner with a `network`. Without it, the key goes in the CLI's environment.
+   */
+  requireBrokering?: boolean
   /** Builds the harness's AI SDK adapter in place of the catalog's, such as a test's scripted one. */
   adapter?: (input: AdapterInput) => HarnessV1 | Promise<HarnessV1>
   /** What the session the adapter drives says of itself: its id, description and ports. */
@@ -395,6 +400,7 @@ export function agent(options: AgentOptions): Agent {
         model,
         ...(harness.effort ? { effort: harness.effort } : {}),
         ...(Object.keys(mcp).length ? { mcpServers: entry.mcpServers(mcp) } : {}),
+        requireBrokering: options.requireBrokering ?? box.network !== undefined,
       }
       const adapter = options.adapter
         ? await options.adapter(input)

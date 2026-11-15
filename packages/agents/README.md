@@ -55,7 +55,12 @@ Vercel AI Gateway, OpenRouter or Vertex AI instead of its provider's own API. `s
 runner where it is, writes the rules and the `workspace` skills where the harness reads them,
 builds the harness's adapter (`catalogAdapter()`) from the credentials, route, model, MCP servers
 and plugins, and starts the session; `exec(prompt)` does all of that for one turn. A runner from a function is the session's
-own, closed with it. With `out`, the session writes `session.json`, a line of `turns.jsonl` and
+own, closed with it. On a runner without a `network` (`local()`, `docker()`) the adapter
+passes the key in the CLI's environment; `requireBrokering: true` refuses to instead. The install
+gets pnpm with npm where the CLI's install runs it and the runner has none, and the CLIs that
+download a release need `curl` and `bash` there (Node's own image has both, its `-slim` doesn't).
+Claude Code, OpenCode, Goose, fx and Grok Build serve their bridge on a port the runner forwards:
+publish one (`docker({ ports: [24210] })`) and name it in `session: { ports }`. With `out`, the session writes `session.json`, a line of `turns.jsonl` and
 the turn's lines of `transcript.jsonl` as each turn ends (`raw/parts.jsonl` and `debug.log` on
 request), every one with the credentials' exact values masked (not encoded forms, such as base64); `schema/` has their JSON Schemas, which
 `pnpm --filter reeval schema:check` holds to the types and lets change additively only.
