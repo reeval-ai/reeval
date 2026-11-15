@@ -1,10 +1,12 @@
-// Running a file's attempts in its worker (engine/run.ts): leases, cancel, the budget, timeouts,
-// console routing, results and records that land after their result.
+// Running a file's attempts in its worker (engine/run.ts): leases, cancel, the budget, timeouts
+// and the queued waits they don't count (engine/backstop.ts), console routing, results and
+// records that land after their result.
 import assert from 'node:assert/strict'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
 import { stripVTControlCharacters } from 'node:util'
+import { backstops, backstopTimer } from '../src/engine/backstop.ts'
 import { budgetMarker } from '../src/engine/budget.ts'
 import { type CollectedTest, collect, registerTest } from '../src/engine/collector.ts'
 import { expect } from '../src/engine/expect.ts'
@@ -164,6 +166,32 @@ describe('runTests', () => {
     assert.equal(results.get(0)?.errors[0]?.message, 'Eval timed out after 0.05s')
     assert.equal(released, true, 'runTests waits for the body')
     assert.deepEqual(events.at(-1), ['meta', 0, meta])
+  })
+
+  test('a wait in a queue holds the timeout, which then fires with what was left', async () => {
+    const collected = await tests([
+      'queued',
+      { timeout: 60 },
+      async (h) => {
+        const release = backstops.getStore()?.hold()
+        await new Promise((resolve) => setTimeout(resolve, 120))
+        release?.()
+        await new Promise((resolve) => setTimeout(resolve, 20))
+        assert.equal(h.signal.aborted, false, 'the queued time is not counted')
+        await new Promise((resolve) => h.signal.addEventListener('abort', resolve))
+      },
+    ])
+    const { results, reporter } = recorder()
+    const startedAt = Date.now()
+    await runTests(collected, new Set([0]), {
+      file: '/f',
+      stagingDir: stagingDir(),
+      signal: new AbortController().signal,
+      reporter,
+      onReady: () => {},
+    })
+    assert.equal(results.get(0)?.errors[0]?.name, 'TimeoutError')
+    assert.ok(Date.now() - startedAt >= 175, 'it fired after the queue and the 60 ms')
   })
 
   test('the scheduler holds attempts at the limit; a cancel skips those still waiting', async () => {
@@ -464,5 +492,35 @@ describe('console routing and error serialization', () => {
     assert.ok(!JSON.stringify(serialized).includes('A1b2C3'))
     // Twin: an error with nothing to diff gets no actual or expected.
     assert.equal('actual' in serializeError(new Error('none')), false)
+  })
+})
+
+describe('backstopTimer', () => {
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+  test('overlapping holds pause it until the last is released; a release twice is one', async () => {
+    let fired = 0
+    const timer = backstopTimer(40, () => fired++)
+    const first = timer.hold()
+    const second = timer.hold()
+    await sleep(60)
+    first()
+    first()
+    await sleep(60)
+    assert.equal(fired, 0, 'the second hold still holds it')
+    second()
+    await sleep(60)
+    assert.equal(fired, 1)
+  })
+
+  test('cleared, it never fires, whatever is held or released', async () => {
+    let fired = 0
+    const timer = backstopTimer(20, () => fired++)
+    const held = timer.hold()
+    timer.clear()
+    held()
+    timer.hold()()
+    await sleep(50)
+    assert.equal(fired, 0)
   })
 })
