@@ -258,13 +258,14 @@ export const COMMANDS: Record<string, CommandSpec> = {
                                 does, from its start; exit with the run's exit code (default: the
                                 run in progress). A ws(s) or http(s) URL is followed over a
                                 WebSocket, which reconnects after a drop from the last line it got
-                                and exits 3 when the run refuses another viewer. On a terminal,
-                                reeval run's interactive list: q detaches (exit 0) and the run goes
-                                on, as Ctrl-C does anywhere; x pressed twice cancels a run on this
-                                host. A cloud run the platform stopped exits 4. A run that stops
-                                sending heartbeats shows as stalled after 20s and ends attach as
-                                lost after 2m (exit 3)
-    --download                  For a cloud run's URL: once the run ends, download its files into
+                                and exits 3 when the run refuses another viewer; a cloud run's id,
+                                as reeval run --cloud prints it, is its URL at REEVAL_CLOUD_URL.
+                                On a terminal, reeval run's interactive list: q detaches (exit 0)
+                                and the run goes on, as Ctrl-C does anywhere; x pressed twice
+                                cancels a run on this host. A cloud run the platform stopped exits
+                                4. A run that stops sending heartbeats shows as stalled after 20s
+                                and ends attach as lost after 2m (exit 3)
+    --download                  For a cloud run's id or URL: once the run ends, download its files into
                                 this project as a run here leaves them: .reeval/runs, .reeval/debug
                                 and, for a recorded run, this project's history folder, so reeval
                                 show, compare, query and studio read it. A download that fails sets
