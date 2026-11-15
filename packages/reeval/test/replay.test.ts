@@ -25,6 +25,7 @@ import {
   type BridgePart,
   replayBridge,
   withSessionStartHook,
+  withUnpricedModel,
 } from './support/claude-code-bridge.ts'
 import { testDir } from './support/fixture.ts'
 import { turnThrough } from './support/harness-agent.ts'
@@ -1229,6 +1230,38 @@ describe('replay: the Claude Code bridge, from the SDK’s own messages', () => 
     try {
       const unread = await replayBridge({ bridge: thinkless, start, messages })
       assert.deepEqual(output(unread), { total: 534, text: 534 })
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  test("the shipped bridge reports Claude Code's cost only where it has the model's price", async () => {
+    const cost = (parts: BridgePart[]) =>
+      (parts.at(-1)?.harnessMetadata as { 'claude-code'?: { costUsd?: number } } | undefined)?.[
+        'claude-code'
+      ]?.costUsd
+    const priced = await replayBridge({ bridge: shipped, start, messages })
+    assert.equal(cost(priced), 0.03668795)
+    const unpriced = await replayBridge({
+      bridge: shipped,
+      start,
+      messages: withUnpricedModel(messages),
+    })
+    assert.equal(cost(unpriced), undefined)
+    // The twin: a bridge that takes `total_cost_usd` as it is reports the guess.
+    const source = readFileSync(shipped, 'utf8')
+    const check = 'guessedCost(msg) ? void 0 : msg.total_cost_usd'
+    assert.ok(source.includes(check), 'the shipped bridge checks the cost basis')
+    const dir = mkdtempSync(join(tmpdir(), 'reeval-guessing-'))
+    const guessing = join(dir, 'bridge.mjs')
+    writeFileSync(guessing, source.replaceAll(check, 'msg.total_cost_usd'))
+    try {
+      const guessed = await replayBridge({
+        bridge: guessing,
+        start,
+        messages: withUnpricedModel(messages),
+      })
+      assert.equal(cost(guessed), 0.03668795)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
