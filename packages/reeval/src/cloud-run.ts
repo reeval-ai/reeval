@@ -537,7 +537,9 @@ export async function checkCloudSecrets(options: {
   const fromFile = new Map<string, string>()
   for (const file of manifest.envFiles) {
     for (const name of file.variables) {
-      if (!required.includes(name) && !fromFile.has(name)) fromFile.set(name, file.path)
+      // A choice's names are checked as the choice, which stops the run when none is held.
+      if (required.includes(name) || choices.some((names) => names.includes(name))) continue
+      if (!fromFile.has(name)) fromFile.set(name, file.path)
     }
   }
   const needed = [...new Set([...required, ...choices.flat(), ...fromFile.keys()])].sort()

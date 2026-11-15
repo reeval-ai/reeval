@@ -635,6 +635,8 @@ describe('reeval run on the cloud platform', () => {
       )
       assert.equal(p.uploaded, undefined)
 
+      // The other name of a met choice in .env neither asks nor stops a run with no terminal.
+      writeFileSync(join(dir, '.env'), `ANTHROPIC_API_KEY=${TOKEN}\n`)
       const held = await platform({
         secretNames: ['CHECK_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN'],
         fails: 'not started here',
@@ -644,6 +646,8 @@ describe('reeval run on the cloud platform', () => {
           env: { ...env, REEVAL_CLOUD_URL: held.base },
         })
         assert.ok(held.uploaded, r.stdout + r.stderr)
+        assert.doesNotMatch(r.stdout + r.stderr, /Cloud environment does not have/)
+        assert.ok(!(r.stdout + r.stderr).includes(TOKEN), 'no secret value in the output')
         const entry = readTar(gunzipSync(held.uploaded)).find((e) => e.path === 'manifest.json')
         assert.ok(entry?.type === 'file')
         const manifest = JSON.parse(entry.data.toString('utf8'))
