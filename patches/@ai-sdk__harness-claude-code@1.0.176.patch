@@ -1,5 +1,5 @@
 diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
-index 2aceefb94d9f7b05454bdcaed8cbe1c583a032c1..f4287bd2147fd406e6bd12f5a86e9369736ba08d 100644
+index 2aceefb94d9f7b05454bdcaed8cbe1c583a032c1..ea09f4b3eb95c844cccc394054ea7ae594d4b959 100644
 --- a/dist/bridge/index.mjs
 +++ b/dist/bridge/index.mjs
 @@ -732,7 +732,8 @@ function createEmitStreamEvent({ state, emit, emitWarning, emitTerminalError, on
@@ -12,7 +12,13 @@ index 2aceefb94d9f7b05454bdcaed8cbe1c583a032c1..f4287bd2147fd406e6bd12f5a86e9369
  			const initModel = type === "system" && msg.subtype === "init" && typeof msg.model === "string" ? msg.model : void 0;
  			emit({
  				type: "stream-start",
-@@ -1195,6 +1196,7 @@ function parseMcpToolResult(content) {
+@@ -1192,9 +1193,13 @@ function parseMcpToolResult(content) {
+ 		return content;
+ 	}
+ }
++function guessedCost(msg) {
++	return Object.values(msg.modelUsage ?? {}).some((u) => u?.costBasis === "unknown");
++}
  function mapUsage(usage) {
  	if (!usage || typeof usage !== "object") return void 0;
  	const u = usage;
@@ -20,7 +26,7 @@ index 2aceefb94d9f7b05454bdcaed8cbe1c583a032c1..f4287bd2147fd406e6bd12f5a86e9369
  	return {
  		inputTokens: {
  			total: (u.input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0),
-@@ -1202,7 +1204,11 @@ function mapUsage(usage) {
+@@ -1202,7 +1207,11 @@ function mapUsage(usage) {
  			cacheRead: u.cache_read_input_tokens ?? 0,
  			cacheWrite: u.cache_creation_input_tokens ?? 0
  		},
@@ -33,6 +39,46 @@ index 2aceefb94d9f7b05454bdcaed8cbe1c583a032c1..f4287bd2147fd406e6bd12f5a86e9369
  			total: u.output_tokens ?? 0,
  			text: u.output_tokens ?? 0
  		}
+@@ -1972,6 +1981,7 @@ async function runTurn(start, turn) {
+ 	};
+ 	let turnUsage;
+ 	let totalCostUsd;
++	let costGuessed = false;
+ 	let deferredDecision;
+ 	const requestDeferredApproval = (call) => {
+ 		for (const droppedToolUseId of deferredToolUseIds) {
+@@ -2079,7 +2089,10 @@ async function runTurn(start, turn) {
+ 			if (type === "result" && msg.terminal_reason === "tool_deferred" && msg.deferred_tool_use?.id != null) {
+ 				const harnessUsage = mapUsage(msg.usage ?? msg.message?.usage);
+ 				if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
+-				if (typeof msg.total_cost_usd === "number") totalCostUsd = msg.total_cost_usd;
++				if (typeof msg.total_cost_usd === "number") {
++					totalCostUsd = msg.total_cost_usd;
++					costGuessed = guessedCost(msg);
++				}
+ 				deferredToolUseId = msg.deferred_tool_use.id;
+ 				requestDeferredApproval({
+ 					toolUseId: msg.deferred_tool_use.id,
+@@ -2100,7 +2113,10 @@ async function runTurn(start, turn) {
+ 					}
+ 					const harnessUsage = mapUsage(msg.usage ?? msg.message?.usage);
+ 					if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
+-					if (typeof msg.total_cost_usd === "number") totalCostUsd = msg.total_cost_usd;
++					if (typeof msg.total_cost_usd === "number") {
++					totalCostUsd = msg.total_cost_usd;
++					costGuessed = guessedCost(msg);
++				}
+ 					if (start.responseFormat?.type === "json" && msg.structured_output !== void 0) {
+ 						const id = randomUUID();
+ 						emit({
+@@ -2161,6 +2177,7 @@ async function runTurn(start, turn) {
+ 		totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
+ 		...totalCostUsd !== void 0 || lastClaudeSessionId !== void 0 ? { harnessMetadata: { "claude-code": {
+ 			...totalCostUsd !== void 0 ? { costUsd: totalCostUsd } : {},
++			...costGuessed ? { costGuessed: true } : {},
+ 			...lastClaudeSessionId !== void 0 ? { sessionId: lastClaudeSessionId } : {}
+ 		} } } : {}
+ 	});
 diff --git a/src/bridge/create-emit-stream-event.ts b/src/bridge/create-emit-stream-event.ts
 index b9d020f904e691b72cbc62786822a6772d213174..d629e47b02daf468b3aacd79154532a6b949a7c6 100644
 --- a/src/bridge/create-emit-stream-event.ts
@@ -93,3 +139,56 @@ index b9d020f904e691b72cbc62786822a6772d213174..d629e47b02daf468b3aacd79154532a6
    };
  }
  
+diff --git a/src/bridge/index.ts b/src/bridge/index.ts
+index 70595bf9f01bf84ae6585b1c6eb08e1401d303c8..066881e71b32f747e7036ec8c6fb72da08341646 100644
+--- a/src/bridge/index.ts
++++ b/src/bridge/index.ts
+@@ -551,6 +551,16 @@ function nativeToolRequiresApproval(input: {
+   return kind === 'edit' || kind === 'bash';
+ }
+ 
++/**
++ * Whether the result's `total_cost_usd` includes Claude Code's guess at its default model's rate,
++ * for a model it has no price for (`costBasis: 'unknown'`).
++ */
++function guessedCost(msg: {
++  modelUsage?: Record<string, { costBasis?: string } | undefined>;
++}): boolean {
++  return Object.values(msg.modelUsage ?? {}).some(u => u?.costBasis === 'unknown');
++}
++
+ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+   const emit: Emit = msg => turn.emit(msg as BridgeEvent);
+ 
+@@ -889,6 +899,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+   };
+   let turnUsage: Record<string, unknown> | undefined;
+   let totalCostUsd: number | undefined;
++  let costGuessed = false;
+ 
+   /*
+    * Claude Code ended the turn at a call that needs host approval. Every other
+@@ -1047,6 +1058,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+         if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
+         if (typeof msg.total_cost_usd === 'number') {
+           totalCostUsd = msg.total_cost_usd;
++          costGuessed = guessedCost(msg);
+         }
+         deferredToolUseId = msg.deferred_tool_use.id;
+         requestDeferredApproval({
+@@ -1082,6 +1094,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+           if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
+           if (typeof msg.total_cost_usd === 'number') {
+             totalCostUsd = msg.total_cost_usd;
++            costGuessed = guessedCost(msg);
+           }
+           if (
+             start.responseFormat?.type === 'json' &&
+@@ -1169,6 +1182,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+           harnessMetadata: {
+             'claude-code': {
+               ...(totalCostUsd !== undefined ? { costUsd: totalCostUsd } : {}),
++              ...(costGuessed ? { costGuessed: true } : {}),
+               // The conversation this turn belongs to, resumable outside the
+               // SDK with `claude --resume <sessionId>` and captured by the
+               // adapter for exact cross-process resume.

@@ -13,14 +13,23 @@ export function cursorUnreported(harnessMetadata: unknown): WebEventType[] {
 const usdIn = (v: unknown): number | undefined =>
   typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : undefined
 
-/** Claude Code's `total_cost_usd`, its session's cost so far, as its bridge reports it. */
+/**
+ * Claude Code's `total_cost_usd`, its session's cost so far, as its bridge reports it; `guessed`
+ * when the turn priced a model Claude Code has no price for at its default model's rate.
+ */
 export function claudeCodeCost(harnessMetadata: unknown) {
   const meta = (
-    harnessMetadata as { 'claude-code'?: { costUsd?: unknown; sessionId?: unknown } }
+    harnessMetadata as {
+      'claude-code'?: { costUsd?: unknown; sessionId?: unknown; costGuessed?: unknown }
+    }
   )?.['claude-code']
   const usd = usdIn(meta?.costUsd)
   if (usd === undefined) return undefined
-  return { usd, session: typeof meta?.sessionId === 'string' ? meta.sessionId : '' }
+  return {
+    usd,
+    session: typeof meta?.sessionId === 'string' ? meta.sessionId : '',
+    ...(meta?.costGuessed === true ? { guessed: true } : {}),
+  }
 }
 
 /** The sum of the turn's model calls' `cost.total`, priced by pi or billed by OpenRouter. */

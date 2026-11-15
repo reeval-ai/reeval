@@ -51,6 +51,27 @@ export function withSessionStartHook(messages: string): string {
     .join('\n')
 }
 
+/**
+ * `messages` (NDJSON) as Claude Code reports a turn on a model it has no price for: each result's
+ * `modelUsage` has `costBasis: 'unknown'`, and its `total_cost_usd` is a guess at its default
+ * model's rate.
+ */
+export function withUnpricedModel(messages: string): string {
+  return messages
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => {
+      const m = JSON.parse(line) as { type: string; modelUsage?: Record<string, object> }
+      if (m.type !== 'result' || !m.modelUsage) return line
+      const usage = Object.entries(m.modelUsage).map(([k, u]) => [
+        k,
+        { ...u, costBasis: 'unknown' },
+      ])
+      return JSON.stringify({ ...m, modelUsage: Object.fromEntries(usage) })
+    })
+    .join('\n')
+}
+
 /** The bridge's parts for one turn of `messages`, started with `start`, up to `finish` or `error`. */
 export async function replayBridge(options: {
   bridge: string

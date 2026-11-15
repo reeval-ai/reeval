@@ -10,7 +10,7 @@ evals/g.eval.ts › pinned  b/-/docker                                control  g
 excluded: —
 not in the cloud: vertex() calls models on this machine's Google Cloud credentials (evals/g.eval.ts › greets)
 image docker · claude-code · 1 evals
-  base  reeval-sandbox:claude-code-1.0.176-patch.a9d56a8c  (reeval's image: built when missing or when its base changed)
+  base  reeval-sandbox:claude-code-1.0.176-patch.d9876e51  (reeval's image: built when missing or when its base changed)
 image docker · codex · 1 evals
   base  reeval-sandbox:codex-0.1.14  (reeval's image: built when missing or when its base changed)
 image docker · fx · 1 evals

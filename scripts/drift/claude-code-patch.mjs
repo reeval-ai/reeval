@@ -1,11 +1,12 @@
 // Whether reeval still needs its patch to @ai-sdk/harness-claude-code (pnpm-workspace.yaml's
 // patchedDependencies): the newest adapter from npm, key-free. It replays a real captured turn
 // (packages/reeval/test/fixtures/claude-code-bridge/) through that version's own bridge, as
-// captured and with a plugin's SessionStart hook reporting before system/init. The patch fixes two
-// bugs: the bridge loses the served model, and it counts the turn's thinking tokens as text.
-//   Upstream reports the served model and the thinking tokens unpatched: it fixed both, so drop
-//   the patch (exit 1).
-//   The patch no longer applies, or applied doesn't fix both: rebase it (exit 1).
+// captured, with a plugin's SessionStart hook reporting before system/init, and on a model Claude
+// Code has no price for. The patch fixes three bugs: the bridge loses the served model, it counts
+// the turn's thinking tokens as text, and it passes on Claude Code's guess at an unpriced model's
+// cost without saying it's a guess.
+//   Upstream fixed all three: drop the patch (exit 1).
+//   The patch no longer applies, or applied doesn't fix all three: rebase it (exit 1).
 //   Otherwise the patch is still needed and still works on the newest version (exit 0).
 //   node --experimental-strip-types --no-warnings scripts/drift/claude-code-patch.mjs
 // REEVAL_DRIFT_CLAUDE_CODE_VERSION names a version instead of the newest. Appends a line to
@@ -17,6 +18,7 @@ import { join, resolve } from 'node:path'
 import {
   replayBridge,
   withSessionStartHook,
+  withUnpricedModel,
 } from '../../packages/reeval/test/support/claude-code-bridge.ts'
 
 const NAME = '@ai-sdk/harness-claude-code'
@@ -55,15 +57,32 @@ const reasoningTokens = async (dir) => {
   const parts = await replayBridge({ bridge, start, messages })
   return parts.at(-1)?.totalUsage?.outputTokens?.reasoning
 }
+/** The captured turn's `total_cost_usd`. */
+const COST = 0.03668795
+/** Whether the bridge in `dir` reports the captured turn's cost, and marks it guessed when it is. */
+const marksGuesses = async (dir) => {
+  const bridge = join(dir, 'dist/bridge/index.mjs')
+  const cost = async (turn) =>
+    (await replayBridge({ bridge, start, messages: turn })).at(-1)?.harnessMetadata?.['claude-code']
+  const [priced, unpriced] = [await cost(messages), await cost(withUnpricedModel(messages))]
+  return (
+    priced?.costUsd === COST &&
+    priced.costGuessed === undefined &&
+    unpriced?.costUsd === COST &&
+    unpriced.costGuessed === true
+  )
+}
 /** What the bridge in `dir` still gets wrong, or none. */
 const bugs = async (dir) => {
   const model = await servedModel(dir)
   const reasoning = await reasoningTokens(dir)
+  const marked = await marksGuesses(dir)
   return [
     ...(model === MODEL ? [] : [`loses the served model (reports ${model})`]),
     ...(reasoning === THINKING
       ? []
       : [`drops the turn's ${THINKING} thinking tokens (reports ${reasoning})`]),
+    ...(marked ? [] : ["doesn't mark a cost Claude Code guessed for a model it has no price for"]),
   ]
 }
 
@@ -90,7 +109,7 @@ try {
   if (!unpatched.length)
     report(
       false,
-      `${latest} reports the served model and the thinking tokens unpatched: upstream fixed both. Drop ${patchFile} and its patchedDependencies entry, and bump from ${pinned}.`,
+      `${latest} reports the served model, the thinking tokens and marks guessed costs unpatched: upstream fixed all three. Drop ${patchFile} and its patchedDependencies entry, and bump from ${pinned}.`,
     )
 
   // pnpm applies a patch only at its exact lines, where git apply would move a hunk.

@@ -25,6 +25,7 @@ import {
   type BridgePart,
   replayBridge,
   withSessionStartHook,
+  withUnpricedModel,
 } from './support/claude-code-bridge.ts'
 import { testDir } from './support/fixture.ts'
 import { turnThrough } from './support/harness-agent.ts'
@@ -1229,6 +1230,42 @@ describe('replay: the Claude Code bridge, from the SDK’s own messages', () => 
     try {
       const unread = await replayBridge({ bridge: thinkless, start, messages })
       assert.deepEqual(output(unread), { total: 534, text: 534 })
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  test("the shipped bridge marks Claude Code's cost guessed for a model it has no price for", async () => {
+    const cost = (parts: BridgePart[]) =>
+      (
+        parts.at(-1)?.harnessMetadata as
+          | { 'claude-code'?: { costUsd?: number; costGuessed?: boolean } }
+          | undefined
+      )?.['claude-code']
+    const priced = await replayBridge({ bridge: shipped, start, messages })
+    assert.equal(cost(priced)?.costUsd, 0.03668795)
+    assert.equal(cost(priced)?.costGuessed, undefined)
+    const unpriced = await replayBridge({
+      bridge: shipped,
+      start,
+      messages: withUnpricedModel(messages),
+    })
+    assert.equal(cost(unpriced)?.costUsd, 0.03668795, 'the running total still moves on')
+    assert.equal(cost(unpriced)?.costGuessed, true)
+    // The twin: a bridge that doesn't read the cost basis passes the guess on as a cost.
+    const source = readFileSync(shipped, 'utf8')
+    const check = 'costGuessed = guessedCost(msg);'
+    assert.ok(source.includes(check), 'the shipped bridge checks the cost basis')
+    const dir = mkdtempSync(join(tmpdir(), 'reeval-guessing-'))
+    const guessing = join(dir, 'bridge.mjs')
+    writeFileSync(guessing, source.replaceAll(check, ''))
+    try {
+      const guessed = await replayBridge({
+        bridge: guessing,
+        start,
+        messages: withUnpricedModel(messages),
+      })
+      assert.equal(cost(guessed)?.costGuessed, undefined)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
