@@ -132,6 +132,21 @@ test('credentials from a function are read on each start', async () => {
   )
 })
 
+test("the adapter must broker the key on a runner with a network, and needn't on one without", async () => {
+  const script = scripted([])
+  const plain = local({ cwd: dir })
+  const networked: Runner = { ...plain, network: {} }
+  for (const runner of [networked, plain]) {
+    await (await agent({ ...script.options, runner }).start()).close()
+  }
+  await (await agent({ ...script.options, runner: plain, requireBrokering: true }).start()).close()
+  await plain.close()
+  assert.deepEqual(
+    script.inputs.map((i) => i.requireBrokering),
+    [true, false, true],
+  )
+})
+
 /** A turn that streams some text, then waits for its abort. */
 const hanging = (emit: (part: never) => void, signal: AbortSignal) => {
   emit({ type: 'stream-start' } as never)

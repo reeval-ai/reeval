@@ -400,6 +400,7 @@ export function agent(options: AgentOptions): Agent {
         model,
         ...(harness.effort ? { effort: harness.effort } : {}),
         ...(Object.keys(mcp).length ? { mcpServers: entry.mcpServers(mcp) } : {}),
+        requireBrokering: options.requireBrokering ?? box.network !== undefined,
       }
       const adapter = options.adapter
         ? await options.adapter(input)
@@ -411,7 +412,6 @@ export function agent(options: AgentOptions): Agent {
             env,
             ...(options.describeModel ? { describeModel: options.describeModel } : {}),
             ...(options.fetch ? { fetch: options.fetch } : {}),
-            requireBrokering: options.requireBrokering ?? box.network !== undefined,
           })
       doc.adapter = { name: adapter.harnessId }
       const installed = await starting(() =>

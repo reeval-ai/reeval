@@ -172,7 +172,8 @@ export async function installHarness(o: {
     if (removed.code !== 0) throw new AgentError(`Couldn't remove ${marker} to install again`)
   }
   const session = await runnerSession(o.runner, { id: 'install' })
-  if (recipe.commands.some((c) => /\bpnpm\b/.test(c.command))) {
+  const installs = recipe.commands.some((c) => /\bpnpm\b/.test(c.command))
+  if (installs && (await o.runner.readFile(marker)) === null) {
     const r = await session.run({
       command: `command -v pnpm > /dev/null 2>&1 || npm install --global --no-fund --no-audit pnpm@${PNPM_VERSION}`,
       ...(o.signal ? { abortSignal: o.signal } : {}),

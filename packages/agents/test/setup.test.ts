@@ -244,6 +244,9 @@ test("a runner without pnpm gets the images' pnpm before an install that runs it
     installHarness({ runner, home, adapter, name: 'Toy', mode: 'always', workDir: '.' })
   assert.equal(await install(), true)
   assert.equal(await install(), true)
+  rmSync(join(bin, 'pnpm'))
+  // Installed already: `auto` runs neither npm nor the recipe, pnpm or not.
+  await installHarness({ runner, home, adapter, name: 'Toy', mode: 'auto', workDir: '.' })
   await runner.close()
   assert.deepEqual(readFileSync(join(bin, 'log'), 'utf8').trim().split('\n'), [
     `npm install --global --no-fund --no-audit pnpm@${PNPM_VERSION}`,
