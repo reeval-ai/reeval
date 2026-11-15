@@ -176,16 +176,22 @@ export const AGENTS: Record<AgentKind, CatalogEntry> = {
   cursor: {
     ...HARNESSES.cursor,
     ...WIRE.cursor,
-    adapter: async ({ auth, mcpServers, descriptor }) =>
-      (await import('@reeval/harness-cursor-sdk')).createCursorSdk({
+    adapter: async ({ auth, mcpServers, descriptor }) => {
+      const [cursor, { cursorFetch }] = await Promise.all([
+        import('@reeval/harness-cursor-sdk'),
+        import('./cursor-catalog.ts'),
+      ])
+      return cursor.createCursorSdk({
         auth,
         ...(mcpServers ? { mcpServers } : {}),
         ...(descriptor.kind === 'cursor' && descriptor.params
           ? { modelParams: descriptor.params }
           : {}),
         ...(descriptor.kind === 'cursor' && descriptor.effort ? { effort: descriptor.effort } : {}),
+        ...cursorFetch(),
         requireCredentialBrokering: true,
-      }),
+      })
+    },
   },
   'claude-code': {
     ...HARNESSES['claude-code'],
@@ -728,14 +734,14 @@ export function agentAuth(agent: Agent, env: NodeJS.ProcessEnv = hostEnv()) {
   const name = credentialIn(agent, env)
   const value = env[name]
   const held = heldSecret(name)
-  if (held?.mode === 'brokered' && held.hosts) {
-    const { hosts } = held
+  if ((held?.mode === 'brokered' || held?.mode === 'filled') && held.hosts) {
+    const { hosts, mode } = held
     const off = [...new Set(agent.endpoints.map((e) => e.host))].filter(
       (host) => !hostAllowed(hosts, host),
     )
     if (off.length) {
       throw new InfraError(
-        `${name} is brokered to ${hosts.join(', ')}, and the ${agent.name} harness sends it to ${off.join(', ')}, which it isn't brokered to.`,
+        `${name} is ${mode} to ${hosts.join(', ')}, and the ${agent.name} harness sends it to ${off.join(', ')}, which it isn't ${mode} to.`,
       )
     }
   }

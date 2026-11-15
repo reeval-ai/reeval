@@ -71,6 +71,13 @@ export {
 export { contextFiles, dockerignoreMatcher } from './dockerignore.ts'
 export { requestFacts } from './egress/effort.ts'
 export {
+  FILL_AUTHORIZATION_HEADER,
+  FILL_TARGET_HEADER,
+  type Filler,
+  fillerUrlProblem,
+  fillHeaders,
+} from './egress/fill.ts'
+export {
   CA_PATH,
   type Gateway,
   type GatewayOptions,
@@ -93,7 +100,6 @@ export type {
   EgressRequestEvent,
   EgressTraffic,
   LocalResponse,
-  Relay,
 } from './egress/proxy.ts'
 export {
   applyTransformations,

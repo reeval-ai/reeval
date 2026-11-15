@@ -7,6 +7,7 @@ import tls from 'node:tls'
 import zlib from 'node:zlib'
 import { type CertificateAuthority, issueServerCertificate } from './cert.ts'
 import { requestFacts } from './effort.ts'
+import { type Filler, fillerUrlProblem, fillHeaders } from './fill.ts'
 import { link } from './mux.ts'
 import {
   createPolicyCheck,
@@ -42,33 +43,6 @@ import {
 import { type DerivedTokens, tokenizeResponse } from './tokens.ts'
 import { MODEL_FIELD, usageReader } from './usage.ts'
 import { webSocketScrubber } from './websocket.ts'
-
-/** A path segment's characters: unreserved, sub-delims but `;`, `:`, `@`, and percent-encodings. */
-const SEGMENT = /^(?:[A-Za-z0-9\-._~!$&'()*+,=:@]|%[0-9A-Fa-f]{2})*$/
-/** A query's: a segment's, with `;`, `/` and `?`. */
-const QUERY = /^(?:[A-Za-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})*$/
-/** Percent-encodings of `.`, `/`, `\`, `;`, `#`, `%` and control bytes. */
-const ENCODED_SPECIAL = /%(?:2e|2f|5c|3b|23|25|[01][0-9a-f]|7f)/i
-
-/**
- * Whether a relay may take a request target as it is: only the characters above, no encoded
- * dot, slash, backslash, `;`, `#`, `%` or control byte, and no `.`, `..` or empty segment before
- * the last. A relay resolves the target as it sees fit, so anything a parser could read as a step
- * out of `via`'s path, or as the end of it, is refused rather than guessed at.
- */
-function relayable(target: string): boolean {
-  const at = target.indexOf('?')
-  const path = at === -1 ? target : target.slice(0, at)
-  const query = at === -1 ? '' : target.slice(at + 1)
-  if (!path.startsWith('/') || ENCODED_SPECIAL.test(target) || !QUERY.test(query)) return false
-  const segments = path.split('/').slice(1)
-  return segments.every(
-    (s, i) => SEGMENT.test(s) && s !== '.' && s !== '..' && (s !== '' || i === segments.length - 1),
-  )
-}
-
-/** A relay for some hosts' requests: see `EgressProxyOptions.relays`. */
-export type Relay = { hosts: readonly string[]; via: string }
 
 export type EgressProxyOptions = {
   ca: CertificateAuthority
@@ -147,15 +121,10 @@ export type EgressProxyOptions = {
    */
   localResponses?: readonly LocalResponse[]
   /**
-   * Hosts whose requests go to another server instead: each decrypted request to one of `hosts`
-   * is sent, after its credentials are swapped in, to `via`'s origin with `via`'s path before its
-   * own, as it is otherwise. `via` is an `https://` URL with no user, query or fragment; the relay is
-   * reached over HTTP/1.1. A relayed request's target may hold only unreserved characters,
-   * sub-delims but `;` (which a query may hold), `:`, `@` and percent-encodings other than of `.`,
-   * `/`, `\`, `;`, `#`, `%` and control bytes, with no `.`, `..` or empty segment before the last;
-   * any other is refused, so a relay that resolves the target can't be reached outside `via`'s path.
+   * The filler the harness credential is a reference for: a request a rule sets a header holding
+   * `reference` on goes to it, as a filled substitution's does (see `Substitution.fill`).
    */
-  relays?: readonly Relay[]
+  credentialFiller?: { filler: Filler; reference: string }
   /** Every DNS decision and, once each is done, every request and tunnel: for debug logs. */
   onEvent?: (event: EgressEvent) => void
 }
@@ -516,16 +485,50 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
   const tokenHosts = derived.flatMap((d) => [d.endpoint.host, ...d.hosts])
   const locals = options.localResponses ?? []
   const localHosts = locals.map((l) => l.match.host)
-  const relays = (options.relays ?? []).map((r) => {
-    const via = new URL(r.via)
-    if (via.protocol !== 'https:') throw new Error(`a relay's via must be an https:// URL`)
-    if (via.username || via.password || /[?#]/.test(via.href)) {
-      throw new Error(`a relay's via is an origin and path, with no user, query or fragment`)
+  const checkFiller = (filler: Filler | undefined) => {
+    const problem = filler && fillerUrlProblem(filler.url)
+    if (problem) throw new Error(`a filler's URL ${problem}`)
+  }
+  checkFiller(options.credentialFiller?.filler)
+  /**
+   * Where a request goes. To a filler only when every value swapped into it is a filled
+   * reference with that one filler: a filled substitution swapped into its headers or query, one
+   * in bodies when it has a body (which isn't read before it's sent), and the filled credential
+   * in a header a rule set. `mixed` when it would also carry a value the gateway swaps in itself
+   * (a substitution with no filler, a derived token, any other header a rule set) or another
+   * filler's reference: the gateway refuses it, so a filler never sees a real value.
+   * Neither sends it to its own host.
+   */
+  const fillRoute = (
+    own: readonly Substitution[],
+    applied: readonly Substitution[],
+    headers: OutgoingHttpHeaders,
+    replaced: readonly string[],
+    hasBody: boolean,
+  ): { filler?: Filler; mixed?: true } => {
+    const fillers = new Set<Filler>()
+    let real = false
+    for (const s of applied) {
+      if (s.fill) fillers.add(s.fill)
+      else real = true
     }
-    return { hosts: r.hosts, via, base: via.pathname.replace(/\/+$/, '') }
-  })
-  const relayHosts = relays.flatMap((r) => r.hosts)
-  const relayFor = (host: string) => relays.find((r) => hostAllowed(r.hosts, host))
+    if (hasBody) for (const s of own) if (s.fill && s.in.includes('body')) fillers.add(s.fill)
+    const credential = options.credentialFiller
+    for (const name of replaced) {
+      if (credential && String(headers[name] ?? '').includes(credential.reference)) {
+        fillers.add(credential.filler)
+      } else real = true
+    }
+    if (!fillers.size) return {}
+    const [first, ...others] = fillers
+    const one = others.every((f) => f.url === first?.url && f.token === first?.token)
+    return real || !one ? { mixed: true } : { filler: first }
+  }
+  /** Whether a request has a body, from its framing: HTTP/2's end of stream, else its headers. */
+  const hasBody = (req: http.IncomingMessage | http2.Http2ServerRequest) =>
+    req.httpVersionMajor === 2
+      ? !(req as http2.Http2ServerRequest).stream.endAfterHeaders
+      : req.headers['transfer-encoding'] !== undefined || Number(req.headers['content-length']) > 0
   let policyCheck = createPolicyCheck(options.policy, options)
   /** Bumped by `switchPolicy`: a verdict reached under the policy before it is reached again. */
   let generation = 0
@@ -766,8 +769,7 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
         decrypts(rules, host) ||
         substitutes(allSubs(), host) ||
         hostAllowed(tokenHosts, host) ||
-        hostAllowed(localHosts, host) ||
-        hostAllowed(relayHosts, host)
+        hostAllowed(localHosts, host)
       ) {
         log(`reeval:egress CONNECT ${host}:${port} decrypt`)
         socket.write('HTTP/1.1 200 Connection Established\r\n\r\n')
@@ -1170,6 +1172,8 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
     headers: OutgoingHttpHeaders
     path: string
     own: Substitution[]
+    /** The substitutions swapped into its headers and query. */
+    applied: Substitution[]
     /** Brokered secrets substituted, and credential headers set, by name. */
     names: string[]
     credentials: string[]
@@ -1189,6 +1193,7 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
         headers: {},
         path,
         own: [],
+        applied: [],
         names: [],
         credentials: [],
         refused: { status: 400, reason },
@@ -1203,6 +1208,7 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
         headers: {},
         path,
         own: [],
+        applied: [],
         names: [],
         credentials: [],
         refused: { status: 421, reason },
@@ -1237,6 +1243,7 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
         headers: {},
         path,
         own: [],
+        applied: [],
         names: [],
         credentials: [],
         refused: {
@@ -1288,6 +1295,7 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
       headers: substituted.headers as OutgoingHttpHeaders,
       path: substituted.path,
       own,
+      applied: substituted.applied,
       names: substituted.names,
       credentials: replaced,
       ...(exchange ? { exchange } : {}),
@@ -1603,20 +1611,24 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
         via: 'decrypted',
         requestHeaders: plainHeaders(req.headers),
       })
-    const { headers, path, own, names, credentials, refused, exchange, readsModel, readsUsage } =
-      transformed(target, method, asked, sent, req.httpVersion)
+    const {
+      headers,
+      path,
+      own,
+      applied,
+      names,
+      credentials,
+      refused,
+      exchange,
+      readsModel,
+      readsUsage,
+    } = transformed(target, method, asked, sent, req.httpVersion)
     t.set({ substituted: names, credentials, ...(readsUsage ? { modelCall: true } : {}) })
     const reads: Reads = { model: !!readsModel, usage: !!readsUsage }
-    const relay = relayFor(target.host)
-    const relayRefusal =
-      relay && !(relayable(asked) && relayable(path))
-        ? {
-            status: 400,
-            reason: `reeval egress gateway: ${target.host}'s requests go through a relay, which takes only plain path segments and queries: no dot or empty segment, semicolon, hash, backslash, whitespace or control character, and no percent-encoded dot, slash, backslash, semicolon, hash, percent or control byte`,
-          }
-        : undefined
-    const refusal = refused ?? relayRefusal
+    const route = fillRoute(own, applied, headers, credentials, hasBody(req))
+    const refusal = refused ?? (route.mixed && { status: 403, reason: mixedReason(method, url) })
     if (refusal) {
+      if (route.mixed) log(`reeval:egress ${method} ${url} refused (filled and real values)`)
       t.refuse(refusal.reason)
       req.resume()
       return res
@@ -1640,27 +1652,39 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
       setsCredential(rules, target.host) ||
       substitutes(allSubs(), target.host) ||
       hostAllowed(tokenHosts, target.host)
-    const body = requestBody(req as Readable, headers, own, t, readsEffort)
-    if (relay) {
+    const authority = authorityOf(target.host, target.port)
+    const { filler } = route
+    if (filler) {
+      // Only filled references go into the body: another secret's placeholder stays as it is.
+      const filled = own.filter((s) => s.fill)
+      const body = requestBody(req as Readable, headers, filled, t, readsEffort)
+      const to = new URL(filler.url)
+      log(`reeval:egress ${method} ${url} sent to its filler`)
       const upstream = https.request({
-        host: relay.via.hostname,
-        port: relay.via.port || 443,
+        host: to.hostname,
+        port: to.port || 443,
         method,
-        path: `${relay.base}${path}`,
-        headers: { ...headers, host: relay.via.host },
+        path: to.pathname,
+        headers: {
+          ...headers,
+          host: to.host,
+          ...fillHeaders(filler, `https://${authority}${path}`),
+        },
         agent,
         ca,
       })
+      const token = { ...fillerToken, value: filler.token, hosts: [target.host] }
       return forwardHttp1(body, res, upstream, {
-        own,
+        own: [...own, token],
         creds: credentialScrubs(target.host),
         url,
         ...(exchange ? { exchange } : {}),
         ...(t ? { t } : {}),
         reads,
+        unreachable: 'its filler could not be reached',
       })
     }
-    const authority = authorityOf(target.host, target.port)
+    const body = requestBody(req as Readable, headers, own, t, readsEffort)
     const session = req.httpVersionMajor === 2 ? await upstreamSession(target) : null
     if (!session) {
       const upstream = https.request({
@@ -1738,6 +1762,16 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
     return true
   }
 
+  /** The filler's token, scrubbed from what its filler answers. */
+  const fillerToken = {
+    name: 'filler token',
+    placeholder: 'reeval_redacted_filler_token',
+    in: [],
+  } satisfies Partial<Substitution>
+
+  const mixedReason = (method: string, url: string) =>
+    `reeval egress gateway: refused ${method} ${url}. It carries a secret its filler fills and a value reeval swaps in itself, so it can go neither to the filler nor to its host; send them in separate requests.`
+
   function forwardHttp1(
     req: Readable,
     res: Response,
@@ -1749,6 +1783,8 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
       exchange?: DerivedTokens
       t?: RequestTracker
       reads?: Reads
+      /** What the sandbox is told when the upstream fails, in place of the failure's own words. */
+      unreachable?: string
     },
   ) {
     const { own, creds, url, exchange, t } = to
@@ -1765,8 +1801,10 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
       })
     })
     upstream.once('error', (error) => {
-      t?.set({ status: 502, reason: failure(error) })
-      if (!res.headersSent) res.writeHead(502).end(`reeval egress gateway: ${failure(error)}\n`)
+      const reason = to.unreachable ?? failure(error)
+      if (to.unreachable) log(`reeval:egress ${url}: ${to.unreachable}: ${failure(error)}`)
+      t?.set({ status: 502, reason })
+      if (!res.headersSent) res.writeHead(502).end(`reeval egress gateway: ${reason}\n`)
       else res.destroy()
     })
     req.pipe(upstream)
@@ -1775,7 +1813,7 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
   function onUpgrade(target: Target, req: http.IncomingMessage, socket: Duplex, head: Buffer) {
     const method = req.method ?? 'GET'
     const startedAt = Date.now()
-    const { headers, path, own, names, credentials, refused } = transformed(
+    const { headers, path, own, applied, names, credentials, refused } = transformed(
       target,
       method,
       req.url ?? '/',
@@ -1807,8 +1845,9 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
       upgraded({ allowed: false, status: refused.status, reason: refused.reason })
       return reply(socket, refused.status, refused.reason)
     }
-    if (relayFor(target.host)) {
-      const reason = `reeval egress gateway: ${target.host}'s requests go through a relay, which takes no upgrades`
+    const route = fillRoute(own, applied, headers, credentials, true)
+    if (route.filler || route.mixed) {
+      const reason = `reeval egress gateway: ${method} https://${target.host}${pathOnly(req.url ?? '/')} carries a secret its filler fills, which takes no upgrades`
       upgraded({ allowed: false, status: 501, reason })
       return reply(socket, 501, reason)
     }
@@ -1934,6 +1973,7 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
       )
     },
     setSubstitutions(all) {
+      for (const s of all) checkFiller(s.fill)
       subs = [...all]
     },
     close() {

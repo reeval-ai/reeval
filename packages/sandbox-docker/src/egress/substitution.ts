@@ -2,6 +2,7 @@
 // only on HTTPS requests to that secret's own hosts, and swaps it back out of their responses.
 import { randomInt } from 'node:crypto'
 import { Transform, type TransformCallback } from 'node:stream'
+import type { Filler } from './fill.ts'
 import { hostAllowed } from './policy.ts'
 
 const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
@@ -29,6 +30,13 @@ export type Substitution = {
    * arrive, which stalls a long-lived stream. For values the upstream never echoes in a body.
    */
   scrubBodies?: boolean
+  /**
+   * The filler `value` is a reference for: a request it's swapped into goes to the filler instead
+   * of its host, and with `in: ['body']` every request on its hosts that has a body does, since
+   * the body streams after the request is sent on. A request that would also carry a value the
+   * gateway swaps in itself, or another filler's reference, is refused with a 403 and sent nowhere.
+   */
+  fill?: Filler
 }
 
 /** The substitutions whose hosts include `host`. */
@@ -46,14 +54,16 @@ const replaceIn = (value: string, from: string, to: string) =>
 
 /**
  * The request after its host's substitutions: placeholders replaced in header values, and in the
- * query string (URL-encoded) for those opted in. Returns the names substituted, for logging without values.
+ * query string (URL-encoded) for those opted in. Returns the substitutions applied, and their names
+ * for logging without values.
  */
 export function substituteRequest(
   subs: readonly Substitution[],
   request: { host: string; path: string; headers: Headers },
-): { headers: Headers; path: string; names: string[] } {
+): { headers: Headers; path: string; names: string[]; applied: Substitution[] } {
   const own = substitutionsFor(subs, request.host)
   const names = new Set<string>()
+  const applied = new Set<Substitution>()
   const headers: Headers = {}
   for (const [key, value] of Object.entries(request.headers)) {
     if (value === undefined) continue
@@ -63,6 +73,7 @@ export function substituteRequest(
         if (!s.in.includes('header') || !out.includes(s.placeholder)) continue
         out = replaceIn(out, s.placeholder, s.value)
         names.add(s.name)
+        applied.add(s)
       }
       return out
     }
@@ -77,10 +88,11 @@ export function substituteRequest(
       if (!s.in.includes('query') || !query.includes(s.placeholder)) continue
       query = replaceIn(query, s.placeholder, encodeURIComponent(s.value))
       names.add(s.name)
+      applied.add(s)
     }
     path = path.slice(0, q) + query
   }
-  return { headers, path, names: [...names] }
+  return { headers, path, names: [...names], applied: [...applied] }
 }
 
 /**

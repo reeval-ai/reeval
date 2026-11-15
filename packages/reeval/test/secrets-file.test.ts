@@ -4,20 +4,27 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
+import { createServer as createHttpsServer } from 'node:https'
 import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
 import { placeholder } from '@reeval/sandbox-docker'
+import { run } from '@reeval/sandbox-docker/process'
 import { generateText } from 'ai'
+import {
+  createCertificateAuthority,
+  issueServerCertificate,
+} from '../../sandbox-docker/src/egress/cert.ts'
 import { hostModel } from '../src/analysis/model.ts'
 import { resolveEnvironment } from '../src/environment/resolve.ts'
 import { applied, defineEnvironment } from '../src/environment.ts'
 import { vercelLanguageModel } from '../src/gateway/vercel-models.ts'
 import { agentAuth, agentFor } from '../src/harness/agents.ts'
+import { cursorFetch } from '../src/harness/cursor-catalog.ts'
 import { hostCall, judgeRoute } from '../src/judge/index.ts'
 import { redactSecrets, registerSecret } from '../src/redact.ts'
 import { gatewayGlue } from '../src/sandbox/docker.ts'
-import { hostEnv, readSecretsFile } from '../src/secrets-file.ts'
+import { filledFetch, hostEnv, readSecretsFile } from '../src/secrets-file.ts'
 import { pinStartEnv } from '../src/startup.ts'
 import type { AgentHarnessDescriptor, EnvironmentInput } from '../src/types.ts'
 import { fakeConfig, project, readRun, runCli, tempDir } from './helpers.ts'
@@ -131,30 +138,45 @@ export default defineConfig({ harnesses: cursor({ model: 'composer-2.5' }) })
         'has no hosts for K, which is brokered: list them, or leave hosts out',
       ],
       [
-        JSON.stringify({
-          version: 1,
-          secrets: { K: { mode: 'relayed', via: 'http://relay.example.com', value: 'v' } },
-        }),
-        'has no https:// via for K, which is relayed',
+        JSON.stringify({ version: 1, secrets: { K: { mode: 'filled', value: 'ref' } } }),
+        'gives K the filled mode, and has no filler to fill it',
       ],
       [
         JSON.stringify({
           version: 1,
-          secrets: { K: { mode: 'relayed', via: 'http://127.0.0.1:8787/v', value: 'v' } },
+          filler: { url: 'https://filler.example/swap' },
+          secrets: {},
         }),
-        'has no https:// via for K, which is relayed',
+        'has a filler without a url and a token',
       ],
       ...[
-        'https://u:p@relay.example.com/v',
-        'https://relay.example.com/v?x=1',
-        'https://relay.example.com/v#f',
-      ].map((via) => [
-        JSON.stringify({ version: 1, secrets: { K: { mode: 'relayed', via, value: 'v' } } }),
-        'gives K a via with a user, a query or a fragment, where reeval takes an https:// origin and path only',
+        ['http://filler.example/swap', 'is not an https:// URL'],
+        ['https://u:p@filler.example/swap', 'has a user, a query or a fragment'],
+        ['https://filler.example/swap?x=1', 'has a user, a query or a fragment'],
+        ['https://filler.example/swap#f', 'has a user, a query or a fragment'],
+      ].map(([url, why]) => [
+        JSON.stringify({ version: 1, filler: { url, token: 't-12345678' }, secrets: {} }),
+        `has a filler whose url ${why}`,
       ]),
       [
+        JSON.stringify({
+          version: 1,
+          filler: { url: 'https://filler.example/swap', token: 't-12345678' },
+          secrets: { K: { mode: 'filled', hosts: [], value: 'ref' } },
+        }),
+        'has no hosts for K, which is filled: list them, or leave hosts out',
+      ],
+      [
+        JSON.stringify({
+          version: 1,
+          filler: { url: 'https://filler.example/swap', token: 't-12345678' },
+          secrets: { K: { mode: 'filled', in: ['cookie'], value: 'ref' } },
+        }),
+        "gives K an in that isn't a list of header, query and body",
+      ],
+      [
         JSON.stringify({ version: 1, secrets: { K: { mode: 'open', value: 'v' } } }),
-        'gives K the mode "open", not brokered, relayed, sandbox or readable',
+        'gives K the mode "open", not brokered, filled, sandbox or readable',
       ],
       [
         JSON.stringify({
@@ -172,10 +194,10 @@ export default defineConfig({ harnesses: cursor({ model: 'composer-2.5' }) })
   })
 })
 
-/** Reads `secrets` as the file this process was started with. */
-function hold(secrets: Record<string, unknown>) {
+/** Reads `secrets` as the file this process was started with, with its `filler` when given. */
+function hold(secrets: Record<string, unknown>, filler?: { url: string; token: string }) {
   const file = join(tempDir('secrets-file-unit'), 'secrets.json')
-  writeFileSync(file, JSON.stringify({ version: 1, secrets }))
+  writeFileSync(file, JSON.stringify({ version: 1, secrets, ...(filler && { filler }) }))
   process.env.REEVAL_SECRETS_FILE = file
   readSecretsFile()
   assert.equal(existsSync(file), false)
@@ -466,69 +488,200 @@ describe('held secrets in this process', () => {
     }
   })
 
-  test("a relayed key's calls go to its relay under the API's own path, and the agent's go there through the gateway", async () => {
-    const via = 'https://relay.example.com/relay/'
-    hold({
-      ANTHROPIC_API_KEY: { mode: 'relayed', via, value: 'run-token-anthropic' },
-      OPENROUTER_API_KEY: { mode: 'relayed', via, value: 'run-token-router-12' },
-      AI_GATEWAY_API_KEY: {
-        mode: 'relayed',
-        via: 'https://relay.example.com/v',
-        value: 'run-token-vercel-12',
-      },
-    })
-    {
-      const anthropic = hostCall('anthropic/claude-sonnet-5-5')
-      assert.ok(anthropic.route.kind === 'direct')
-      assert.equal(anthropic.call.baseURL, `${via.slice(0, -1)}/v1`)
-      assert.equal(anthropic.call.apiKey, 'run-token-anthropic')
-      const router = hostCall('google/gemini-3.8-flash', process.env, 'judge model', 'openrouter')
-      assert.ok(router.route.kind === 'openrouter')
-      assert.equal(router.call.baseURL, `${via.slice(0, -1)}/api/v1`)
-      const gateway = hostCall('google/gemini-3.8-flash', process.env, 'judge model', 'vercel')
-      assert.ok(gateway.route.kind === 'gateway' && gateway.call.apiKey === 'run-token-vercel-12')
-      assert.equal(gateway.call.baseURL, 'https://relay.example.com/v/v4/ai')
-      await assert.rejects(
-        gateway.call.fetch?.('https://ai-gateway.vercel.sh/v4/ai/language-model') ??
-          Promise.resolve(),
-        /reeval refused to send AI_GATEWAY_API_KEY, a brokered key, to https:\/\/ai-gateway\.vercel\.sh/,
-      )
-
-      await assert.rejects(
-        anthropic.call.fetch?.('https://api.anthropic.com/v1/messages') ?? Promise.resolve(),
-        /reeval refused to send ANTHROPIC_API_KEY, a brokered key, to https:\/\/api\.anthropic\.com/,
-      )
-
-      // The agent's credential: its endpoints' requests go to the relay.
-      const glue = gatewayGlue({
-        egress: { policy: 'deny-all', auto: [] },
-        brokering: {
-          credential: 'AI_GATEWAY_API_KEY',
-          endpoints: [
-            { host: 'ai-gateway.vercel.sh', path: { exact: '/v1/messages' }, method: ['POST'] },
-            { host: 'ai-gateway.vercel.sh', path: { exact: '/v1/models' }, method: ['GET'] },
-          ],
+  test("a filled key's calls go to its filler with the URL each was for, and the agent's credential and an environment's secret take it through the gateway", async () => {
+    const filler = { url: 'https://filler.example/swap', token: 'filler-token-12345678' }
+    hold(
+      {
+        ANTHROPIC_API_KEY: { mode: 'filled', value: 'ref-anthropic-12345' },
+        AI_GATEWAY_API_KEY: {
+          mode: 'filled',
+          hosts: ['ai-gateway.vercel.sh'],
+          value: 'ref-gw-1234567',
         },
-      } as never)
-      assert.deepEqual((glue.egress as { relays?: unknown }).relays, [
-        { hosts: ['ai-gateway.vercel.sh'], via: 'https://relay.example.com/v' },
-      ])
-      // Twin: a brokered credential has no relay.
-      hold({ AI_GATEWAY_API_KEY: { mode: 'brokered', value: 'vck-hostless-12345' } })
-      const plain = gatewayGlue({
-        egress: { policy: 'deny-all', auto: [] },
-        brokering: { credential: 'AI_GATEWAY_API_KEY', endpoints: [] },
-      } as never)
-      assert.equal((plain.egress as { relays?: unknown }).relays, undefined)
-
-      // An environment's own secret can't take a relayed key.
-      hold({ OPENROUTER_API_KEY: { mode: 'relayed', via, value: 'run-token-router-12' } })
-      await assert.rejects(
-        resolve(({ secret }) => ({
-          env: { K: secret.fromEnv('OPENROUTER_API_KEY', { hosts: ['openrouter.ai'] }) },
-        })),
-        /OPENROUTER_API_KEY for .* is relayed, which only a harness's own credential and reeval's own model calls take/,
+        SERVICE_KEY: {
+          mode: 'filled',
+          hosts: ['api.example.com'],
+          in: ['query'],
+          value: 'ref-svc-1234',
+        },
+      },
+      filler,
+    )
+    // reeval's own calls keep their base URL and send the reference as the key.
+    const anthropic = hostCall('anthropic/claude-sonnet-5-5')
+    assert.ok(anthropic.route.kind === 'direct')
+    assert.equal(anthropic.call.baseURL, 'https://api.anthropic.com/v1')
+    assert.equal(anthropic.call.apiKey, 'ref-anthropic-12345')
+    await assert.rejects(
+      anthropic.call.fetch?.('https://elsewhere.example.com/v1/messages') ?? Promise.resolve(),
+      /reeval refused to send ANTHROPIC_API_KEY, a filled key, to https:\/\/elsewhere\.example\.com/,
+    )
+    const gateway = hostCall('google/gemini-3.8-flash', process.env, 'judge model', 'vercel')
+    assert.ok(gateway.route.kind === 'gateway' && gateway.call.apiKey === 'ref-gw-1234567')
+    process.env.ANTHROPIC_BASE_URL = 'https://proxy.example.com/v1'
+    try {
+      hold(
+        { ANTHROPIC_API_KEY: { mode: 'filled', hosts: ['api.anthropic.com'], value: 'r-1234567' } },
+        filler,
       )
+      assert.throws(
+        () => hostCall('anthropic/claude-sonnet-5-5'),
+        /ANTHROPIC_API_KEY for judge model "anthropic\/claude-sonnet-5-5" is filled to api\.anthropic\.com, and the judge model calls proxy\.example\.com/,
+      )
+    } finally {
+      delete process.env.ANTHROPIC_BASE_URL
+    }
+
+    // The agent's credential: the gateway sends the requests it's set on to the filler.
+    const glue = gatewayGlue({
+      egress: { policy: 'deny-all', auto: [] },
+      brokering: { credential: 'AI_GATEWAY_API_KEY', endpoints: [] },
+    } as never)
+    assert.deepEqual((glue.egress as { credentialFiller?: unknown }).credentialFiller, {
+      filler,
+      reference: 'ref-gw-1234567',
+    })
+
+    // An environment's secret is brokered with the filler, where the file swaps it in.
+    const env = await resolve(({ secret }) => ({ env: { K: secret.fromEnv('SERVICE_KEY') } }))
+    assert.deepEqual(
+      env.substitutions.map(({ name, hosts, in: where, fill }) => ({ name, hosts, where, fill })),
+      [{ name: 'K', hosts: ['api.example.com'], where: ['query'], fill: filler }],
+    )
+    assert.equal(env.substitutions[0]?.value, 'ref-svc-1234')
+    // Twin: the environment's own in wins over the file's.
+    const own = await resolve(({ secret }) => ({
+      env: { K: secret.fromEnv('SERVICE_KEY', { hosts: ['api.example.com'], in: ['header'] }) },
+    }))
+    assert.deepEqual(own.substitutions[0]?.in, ['header'])
+    // A template is a header value, so it takes the header whatever the file's in.
+    const header = await resolve(({ secret, mcp }) => ({
+      mcp: {
+        api: mcp.http('https://api.example.com/mcp', {
+          // biome-ignore lint/suspicious/noTemplateCurlyInString: secret.template's syntax
+          headers: { authorization: secret.template('Bearer ${SERVICE_KEY}') },
+        }),
+      },
+    }))
+    assert.deepEqual(header.substitutions[0]?.in, ['header'])
+    assert.deepEqual(header.substitutions[0]?.fill, filler)
+    // Vercel's project token is read only from the environment, so a filled one is refused.
+    delete process.env.AI_GATEWAY_API_KEY
+    try {
+      hold({ VERCEL_OIDC_TOKEN: { mode: 'filled', value: 'ref-oidc-12345678' } }, filler)
+      assert.throws(
+        () => hostCall('google/gemini-3.8-flash', process.env, 'judge model', 'vercel'),
+        /VERCEL_OIDC_TOKEN for judge model .* is a filled secret/,
+      )
+    } finally {
+      delete process.env.VERCEL_OIDC_TOKEN
+    }
+    // The filler's token is masked like a held value.
+    assert.doesNotMatch(redactSecrets(`token ${filler.token}`, {}), /filler-token-12345678/)
+  })
+
+  test('without a filled secret, nothing takes a filler: brokered calls, credentials and secrets go as they do today', async () => {
+    hold({
+      ANTHROPIC_API_KEY: {
+        mode: 'brokered',
+        hosts: ['api.anthropic.com'],
+        value: 'sk-ant-local-1234',
+      },
+      AI_GATEWAY_API_KEY: { mode: 'brokered', value: 'vck-local-1234567' },
+      CURSOR_API_KEY: { mode: 'brokered', value: 'crsr-local-1234567' },
+      SERVICE_KEY: { mode: 'brokered', hosts: ['api.example.com'], value: 'svc-local-12345' },
+    })
+    const glue = gatewayGlue({
+      egress: { policy: 'deny-all', auto: [] },
+      brokering: { credential: 'AI_GATEWAY_API_KEY', endpoints: [] },
+    } as never)
+    assert.equal('credentialFiller' in glue.egress, false)
+    const env = await resolve(({ secret }) => ({ env: { K: secret.fromEnv('SERVICE_KEY') } }))
+    assert.equal('fill' in (env.substitutions[0] ?? {}), false)
+    assert.deepEqual(cursorFetch(), {})
+    assert.equal(
+      filledFetch('ANTHROPIC_API_KEY', () => true),
+      undefined,
+    )
+    // reeval's own call goes to the provider itself, as a brokered key's does.
+    const anthropic = hostCall('anthropic/claude-sonnet-5-5')
+    assert.equal(anthropic.call.baseURL, 'https://api.anthropic.com/v1')
+    assert.equal(anthropic.call.apiKey, 'sk-ant-local-1234')
+  })
+
+  test("a filled judge key's call reaches the filler, with the reference, the URL it was for and the filler's token", async () => {
+    const ca = createCertificateAuthority()
+    const leaf = issueServerCertificate(ca, 'localhost')
+    const dir = tempDir('secrets-file-filler')
+    const caFile = join(dir, 'ca.pem')
+    writeFileSync(caFile, ca.cert)
+    const got: { path?: string; headers?: Record<string, unknown>; body?: string } = {}
+    const paths: string[] = []
+    const server = createHttpsServer(
+      { key: leaf.key.export({ type: 'pkcs8', format: 'pem' }), cert: leaf.cert },
+      (req, res) => {
+        let body = ''
+        req.on('data', (d) => {
+          body += d
+        })
+        req.on('end', () => {
+          paths.push(req.url ?? '')
+          if (String(req.headers['reeval-fill-target']).endsWith('/redirect')) {
+            res.writeHead(302, { location: `https://localhost:${port}/stolen` })
+            return res.end()
+          }
+          Object.assign(got, { path: req.url, headers: req.headers, body })
+          res.writeHead(200, { 'content-type': 'application/json' })
+          res.end('{"filled":true}')
+        })
+      },
+    )
+    await new Promise<void>((done) => server.listen(0, '127.0.0.1', done))
+    const { port } = server.address() as AddressInfo
+    const file = join(dir, 'secrets.json')
+    writeFileSync(
+      file,
+      JSON.stringify({
+        version: 1,
+        filler: { url: `https://localhost:${port}/swap`, token: 'filler-token-12345678' },
+        secrets: { ANTHROPIC_API_KEY: { mode: 'filled', value: 'ref-anthropic-12345' } },
+      }),
+    )
+    const src = (path: string) => JSON.stringify(new URL(`../src/${path}`, import.meta.url).href)
+    const script = join(dir, 'call.ts')
+    writeFileSync(
+      script,
+      `import { readSecretsFile } from ${src('secrets-file.ts')}
+import { hostCall } from ${src('judge/index.ts')}
+readSecretsFile()
+const { call } = hostCall('anthropic/claude-sonnet-5-5')
+const r = await call.fetch(call.baseURL + '/messages', {
+  method: 'POST',
+  headers: { 'x-api-key': call.apiKey, 'content-type': 'application/json' },
+  body: '{"model":"claude-sonnet-5-5"}',
+})
+console.log(r.status, await r.text())
+// A redirect from the filler is never followed.
+await call.fetch(call.baseURL + '/redirect', { method: 'POST', headers: { 'x-api-key': call.apiKey } })
+  .then((m) => console.log('followed', m.status), () => console.log('not followed'))
+`,
+    )
+    try {
+      const r = await run(
+        process.execPath,
+        ['--experimental-strip-types', '--no-warnings', script],
+        { env: { ...process.env, REEVAL_SECRETS_FILE: file, NODE_EXTRA_CA_CERTS: caFile } },
+      )
+      assert.equal(r.exitCode, 0, r.stdout + r.stderr)
+      assert.equal(r.stdout.trim(), '200 {"filled":true}\nnot followed')
+      assert.deepEqual(paths, ['/swap', '/swap'])
+      assert.equal(got.path, '/swap')
+      assert.equal(got.headers?.['reeval-fill-target'], 'https://api.anthropic.com/v1/messages')
+      assert.equal(got.headers?.['reeval-fill-authorization'], 'Bearer filler-token-12345678')
+      assert.equal(got.headers?.['x-api-key'], 'ref-anthropic-12345')
+      assert.equal(got.body, '{"model":"claude-sonnet-5-5"}')
+    } finally {
+      server.close()
     }
   })
 

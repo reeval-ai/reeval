@@ -116,12 +116,9 @@ export function gatewayGlue(options: SandboxOptions) {
   const calls: ModelCall[] = []
   let cost: number | undefined
   const logEvent = gatewayEvents(debug, brokering?.credential, options.expectedBlocked ?? [])
-  // A relayed credential's requests go to its relay, which swaps in the key it stands for.
-  const relayed = brokering && heldSecret(brokering.credential)
-  const relays =
-    brokering && relayed?.mode === 'relayed'
-      ? [{ hosts: [...new Set(brokering.endpoints.map((e) => e.host))], via: relayed.via }]
-      : undefined
+  const held = brokering && heldSecret(brokering.credential)
+  const credentialFiller =
+    held?.mode === 'filled' ? { filler: held.filler, reference: held.value } : undefined
   const onEvent = (event: EgressEvent) => {
     logEvent?.(event)
     if (event.type === 'dns') return
@@ -205,7 +202,7 @@ export function gatewayGlue(options: SandboxOptions) {
       ...(brokering.modelCalls ? { modelCalls: brokering.modelCalls } : {}),
       ...(brokering.tokens ? { derivedTokens: [brokering.tokens] } : {}),
       ...(brokering.localResponses ? { localResponses: brokering.localResponses } : {}),
-      ...(relays && { relays }),
+      ...(credentialFiller && { credentialFiller }),
       onRefused: ({ method, url }: { method: string; url: string }) =>
         warn(
           `the egress gateway refused ${method} ${url}: it carries ${brokering.credential}'s placeholder and isn't one of the endpoints reeval brokers it for`,

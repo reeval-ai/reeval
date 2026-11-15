@@ -98,8 +98,9 @@ export type BundleManifest = {
    * `secrets-file`, reading `REEVAL_SECRETS_FILE` and keeping its brokered and sandbox values from
    * the eval code; `brokered-model-calls`, its own model calls (the judge, analysis, questions and
    * captures) authenticating with a held brokered secret's value when the call goes to one of the
-   * secret's hosts; `relayed-secrets`, taking a `relayed` secret, whose requests from the agent and
-   * from its own model calls go to the secret's relay, and a `brokered` one with no hosts, which
+   * secret's hosts; `secret-filler`, taking a `filled` secret, a reference whose requests from the
+   * agent and from its own calls go to the secrets file's filler, which swaps in the value, and a
+   * `brokered` or `filled` one with no hosts, which
    * goes where each use sends it; `vm-waits`, its `cloud()` waiting on a refused machine start for as long as the
    * service asks and stopping its attempts only when the service ends the run; `vm-layout`, its
    * `cloud()` starting the machine type and attempts per machine the service gives, giving back a
@@ -116,8 +117,8 @@ export type BundleManifest = {
 export const BUNDLE_FEATURES = [
   'brokered-model-calls',
   'heartbeat',
-  'relayed-secrets',
   'resume',
+  'secret-filler',
   'secrets-file',
   'vm-layout',
   'vm-waits',
