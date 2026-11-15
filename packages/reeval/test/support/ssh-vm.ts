@@ -29,6 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssh-server 
 RUN useradd --create-home --shell /bin/bash user \\
  && echo 'user ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/user \\
  && mkdir -p /home/user/.ssh /run/sshd \\
+ && mkdir -m 1777 /var/crash \\
  && chown -R user:user /home/user && chmod 750 /home/user && chmod 700 /home/user/.ssh \\
  && echo 'PermitEmptyPasswords yes' > /etc/ssh/sshd_config.d/token.conf \\
  && ssh-keygen -A
