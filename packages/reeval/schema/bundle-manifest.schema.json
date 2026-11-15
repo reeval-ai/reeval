@@ -225,6 +225,16 @@
         "schemaVersion": {
           "const": 1
         },
+        "secretChoices": {
+          "description": "The credentials the run reads that any one of several host variables provides, left out of `secrets`: each list is met when one of its names is set.",
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
         "secrets": {
           "description": "The host variables the run reads secrets from, as the dry run's `secrets`; never values.",
           "type": "array",

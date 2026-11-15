@@ -44,7 +44,7 @@ import {
   openEventStream,
   teeRenderer,
 } from './events.ts'
-import { gatewayScope, resolveModelGateway } from './gateway/models.ts'
+import { gatewayScope, modelGatewayOrNone, resolveModelGateway } from './gateway/models.ts'
 import { openRouterFallbacks } from './gateway/openrouter-models.ts'
 import { vertexSettingsIn } from './gateway/vertex.ts'
 import { author, gitInfo, runnerInfo, runtimeInfo } from './history/provenance.ts'
@@ -2408,23 +2408,45 @@ async function executeRun(
       const inputs = planInputs(config.root, [...setup.configInputs, ...locks], skipped)
       const running = skipped.filter((p) => !p.attempt.plan.skip)
       const secrets = new Set(running.flatMap((p) => p.attempt.secretVars))
+      const asking = plan.rows.flatMap((row) =>
+        row.plan.skip || !models
+          ? []
+          : (row.plan.questions ?? []).flatMap((q) => {
+              const model = q.model ?? models.fallbackModel(config, judge)
+              return typeof model === 'string' ? [{ id: row.id, model }] : []
+            }),
+      )
       const needed = neededCredentials(config, {
         harnesses: plan.harnessDescriptors,
         sandboxes: plan.sandboxes,
         profile,
+        questionModels: [...new Set(asking.map((a) => a.model))],
         judges: running.flatMap((p) => (p.attempt.judge ? [p.attempt.judge] : [])),
       })
+      const { notCloud, secretChoice } = await import('./cloud-run.ts')
       for (const { names, cloudSets } of needed) {
-        if (!cloudSets) for (const name of names) secrets.add(name)
+        if (!cloudSets && !secretChoice(names)) for (const name of names) secrets.add(name)
       }
+      // A choice one of whose names the run needs anyway is met whenever the run can start.
+      const secretChoices = needed
+        .filter((c) => !c.cloudSets && secretChoice(c.names))
+        .map((c) => c.names)
+        .filter((names) => !names.some((name) => secrets.has(name)))
+      for (const names of secretChoices) for (const name of names) secrets.add(name)
       const cloudSets = new Set(
         needed.flatMap((c) => (c.cloudSets ? c.names : [])).filter((name) => !secrets.has(name)),
       )
       for (const name of cloudSets) secrets.add(name)
-      const { notCloud } = await import('./cloud-run.ts')
-      const blocked = notCloud(skipped)
+      const scope = gatewayScope(config, profile)
+      const vertexAsks = new Set(
+        asking
+          .filter((a) => modelGatewayOrNone(a.model, undefined, scope) === 'vertex')
+          .map((a) => a.id),
+      )
+      const blocked = notCloud(skipped, vertexAsks)
       const doc: PlanDocument = {
         ...planDocument(plan, skipped, excluded, images, inputs, [...secrets].sort()),
+        ...(secretChoices.length ? { secretChoices } : {}),
         ...(cloudSets.size ? { cloudSets: [...cloudSets].sort() } : {}),
         ...(blocked.length ? { notCloud: blocked } : {}),
         ...(started.target ? { target: started.target } : {}),

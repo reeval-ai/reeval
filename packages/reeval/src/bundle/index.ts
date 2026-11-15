@@ -112,6 +112,7 @@ export type PlanDoc = Record<string, unknown> & {
   profile?: { name: string } | null
   inputs?: PlanInput[]
   secrets?: string[]
+  secretChoices?: string[][]
   cloudSets?: string[]
   totals?: { attempts: number; fewest: number }
   cost?: import('../cost.ts').PlanCost
@@ -381,7 +382,11 @@ export async function bundleCommand(
   out(
     `Bundled ${plural(manifest.files.length, 'file')}${links ? ` and ${plural(links, 'link')}` : ''} (${bytes} bytes) for ${plural(Number(plan.totals?.attempts ?? 0), 'attempt')} into ${relative(process.cwd(), target) || target}`,
   )
-  if (manifest.secrets.length) out(`  needs: ${manifest.secrets.join(', ')}`)
+  const needs = [
+    ...manifest.secrets,
+    ...(manifest.secretChoices ?? []).map((names) => names.join(' or ')),
+  ]
+  if (needs.length) out(`  needs: ${needs.join(', ')}`)
   for (const env of manifest.envFiles) {
     out(
       `  left out ${env.path}${env.variables.length ? ` (${env.variables.join(', ')})` : ''}: set ${env.variables.length === 1 ? 'it' : 'them'} where the bundle runs`,
@@ -524,7 +529,12 @@ export async function makeBundle(
     files,
     ...(bundleLinks.length ? { links: bundleLinks } : {}),
     envFiles: [...envFiles.values()].sort((a, b) => (a.path < b.path ? -1 : 1)),
-    secrets: options.cloud ? secrets.filter((name) => !plan.cloudSets?.includes(name)) : secrets,
+    secrets: secrets.filter(
+      (name) =>
+        !(options.cloud && plan.cloudSets?.includes(name)) &&
+        !plan.secretChoices?.some((names) => names.includes(name)),
+    ),
+    ...(plan.secretChoices?.length ? { secretChoices: plan.secretChoices } : {}),
   }
   const manifestEntry: TarEntry = {
     type: 'file',
@@ -711,6 +721,7 @@ const manifestSchema = z.object({
     .optional(),
   envFiles: z.array(z.object({ path: z.string(), variables: z.array(z.string()) })),
   secrets: z.array(z.string()),
+  secretChoices: z.array(z.array(z.string())).optional(),
   features: z.array(z.string()).optional(),
 }) satisfies z.ZodType<BundleManifest>
 

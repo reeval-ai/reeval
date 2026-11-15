@@ -799,6 +799,11 @@ export type PlanDocument = {
    */
   secrets: string[]
   /**
+   * The credentials in `secrets` that any one of several variables provides, such as a harness
+   * that takes an API key or a subscription token: each list is met when one of its names is set.
+   */
+  secretChoices?: string[][]
+  /**
    * The names in `secrets` that the cloud platform sets on the machine a cloud run runs on, and
    * nothing else in the run reads, so a cloud run's bundle leaves them out.
    */

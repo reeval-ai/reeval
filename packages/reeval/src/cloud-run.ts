@@ -102,16 +102,28 @@ export function refuseLocalFlags(flags: Flags): void {
 }
 
 /**
- * Why the cloud platform can't run the planned attempts, one line per reason with the evals it
- * holds back; empty when it can.
+ * Whether a credential's names go in the manifest's `secretChoices`, any one of them meeting it,
+ * rather than each in its `secrets`: a gateway's stay there, since its one key fills them all.
  */
-export function notCloud(planned: readonly PlannedItem[]): string[] {
+export const secretChoice = (names: readonly string[]) =>
+  names.length > 1 && !names.some((name) => Object.values(ROUTED_KEYS).flat().includes(name))
+
+/**
+ * Why the cloud platform can't run the planned attempts, one line per reason with the evals it
+ * holds back; empty when it can. `vertexAsks` are the evals whose questions go through `vertex()`.
+ */
+export function notCloud(
+  planned: readonly PlannedItem[],
+  vertexAsks: ReadonlySet<string> = new Set(),
+): string[] {
   const why = new Map<string, Set<string>>()
   for (const { id, attempt } of planned) {
     if (attempt.skip || attempt.plan.skip) continue
     const reason =
       sandboxKind(attempt.sandbox).notCloud?.(attempt.sandbox) ??
-      (attempt.gateway?.name === 'vertex' || attempt.judge?.gateway === 'vertex'
+      (attempt.gateway?.name === 'vertex' ||
+      attempt.judge?.gateway === 'vertex' ||
+      vertexAsks.has(id)
         ? "vertex() calls models on this machine's Google Cloud credentials"
         : undefined)
     if (reason) why.set(reason, (why.get(reason) ?? new Set()).add(id))
@@ -496,9 +508,9 @@ export type CloudRunOptions = {
 }
 
 /**
- * Stops the run, naming them, when the linked project lacks the manifest's `secrets` or holds a
- * name the platform sets itself, against the names it says a run there gets. A loaded `.env`
- * file's variables are optional there: the run gets each one the project has, so for the ones it
+ * Stops the run, naming them, when the linked project lacks the manifest's `secrets` or every name
+ * of one of its `secretChoices`, or holds a name the platform sets itself, against the names it
+ * says a run there gets. A loaded `.env` file's variables are optional there: the run gets each one the project has, so for the ones it
  * lacks this asks before going on (`force` goes on without asking; with no terminal to ask on it
  * stops), and a reserved one is only noted. The platform checks again when the run starts, so a
  * platform that can't list the names skips this check, with a line under `REEVAL_DEBUG`.
@@ -507,7 +519,7 @@ export async function checkCloudSecrets(options: {
   base: URL
   auth: CloudAuth
   project: LinkedProject
-  manifest: Pick<MadeBundle['manifest'], 'secrets' | 'envFiles'>
+  manifest: Pick<MadeBundle['manifest'], 'secrets' | 'secretChoices' | 'envFiles'>
   log: (line: string) => void
   /** Asks a yes-or-no question; unset when there's no terminal to ask on. */
   confirm?: (question: string) => Promise<boolean>
@@ -521,13 +533,16 @@ export async function checkCloudSecrets(options: {
   }
   if (!auth.headers.authorization) return skip('not signed in')
   const required = [...new Set(manifest.secrets)].sort()
+  const choices = manifest.secretChoices ?? []
   const fromFile = new Map<string, string>()
   for (const file of manifest.envFiles) {
     for (const name of file.variables) {
-      if (!required.includes(name) && !fromFile.has(name)) fromFile.set(name, file.path)
+      // A choice's names are checked as the choice, which stops the run when none is held.
+      if (required.includes(name) || choices.some((names) => names.includes(name))) continue
+      if (!fromFile.has(name)) fromFile.set(name, file.path)
     }
   }
-  const needed = [...required, ...fromFile.keys()].sort()
+  const needed = [...new Set([...required, ...choices.flat(), ...fromFile.keys()])].sort()
   if (!needed.length) return
   const seg = encodeURIComponent
   const projectPath = `api/orgs/${seg(project.orgId)}/projects/${seg(project.projectId)}`
@@ -559,8 +574,13 @@ export async function checkCloudSecrets(options: {
   const gateways = Object.entries(ROUTED_KEYS).flatMap(([gateway, keys]) =>
     keys.some((k) => absent.includes(k)) ? [gateway] : [],
   )
-  const missing = absent.filter((name) => !Object.values(ROUTED_KEYS).flat().includes(name))
-  if (absent.length) {
+  const missing = [
+    ...absent.filter((name) => !Object.values(ROUTED_KEYS).flat().includes(name)),
+    ...choices
+      .filter((names) => !names.some((n) => held.has(n)))
+      .map((names) => names.join(' or ')),
+  ]
+  if (missing.length || gateways.length) {
     const settable = missing.filter((name) => !reserved.has(name))
     const refused = missing.filter((name) => reserved.has(name))
     const what = [
