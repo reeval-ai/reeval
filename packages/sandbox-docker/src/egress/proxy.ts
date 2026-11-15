@@ -99,8 +99,8 @@ export type EgressProxyOptions = {
    * `"effort"`, as OpenAI's Responses API does): the gateway asks for it
    * uncompressed and records them as the request's `responseModel` and `responseEffort`. A
    * gateway's response may also name the upstream provider that served it (a `"provider"` string)
-   * and what it charged (its last `"cost"` number), recorded as `responseProvider` and
-   * `responseCost`.
+   * and what it charged (its last `"cost"` number, plus its last `"upstream_inference_cost"` when it
+   * says `"is_byok": true`), recorded as `responseProvider` and `responseCost`.
    */
   modelResponses?: readonly EndpointMatch[]
   /**
@@ -200,7 +200,10 @@ export type EgressRequestEvent = {
   responseEffort?: string
   /** The upstream provider the response body says served it (OpenRouter's `"provider"`). */
   responseProvider?: string
-  /** The last `"cost"` the response body names, in the gateway's credits (OpenRouter's US dollars). */
+  /**
+   * The last `"cost"` the response body names, in the gateway's credits (OpenRouter's US dollars),
+   * plus the upstream provider's on a BYOK key, where the gateway's is only its fee.
+   */
   responseCost?: number
 }
 
@@ -1430,6 +1433,18 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
   const TAIL = 16 * 1024
 
   const PROVIDER = /"provider"\s*:\s*"([^"\\]{1,200})"/
+  /** A BYOK call's upstream cost in parts, for a response whose total is null. */
+  const UPSTREAM_PARTS = [
+    'upstream_inference_input_cost',
+    'upstream_inference_output_cost',
+    'upstream_inference_prompt_cost',
+    'upstream_inference_completions_cost',
+  ]
+  const lastNumber = (text: string, key: string) => {
+    const re = new RegExp(`"${key}"\\s*:\\s*(\\d+(?:\\.\\d+)?(?:[eE][-+]?\\d+)?)`, 'g')
+    const last = [...text.matchAll(re)].at(-1)
+    return last ? Number(last[1]) : undefined
+  }
   /**
    * The provider of the endpoint a gateway's routing metadata marks `"selected": true`
    * (OpenRouter's `openrouter_metadata.endpoints.available`, which lists the others too).
@@ -1443,7 +1458,8 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
    * Records the first `"model"` or `"modelId"` value in the response body and the `"effort"` of the
    * `"reasoning"` object after it, within {@link MODEL_WINDOW}; the provider of a selected endpoint
    * there or in the body's {@link TAIL}, else the first `"provider"` string in the window; and the
-   * last `"cost"` number in the whole body, reading alongside its flow. Inside a JSON string the
+   * last `"cost"` number in the body's {@link TAIL} (with a BYOK key's upstream cost), reading
+   * alongside its flow. Inside a JSON string the
    * quotes are escaped, so text that merely mentions them doesn't match.
    */
   function readModel(up: Readable, t: RequestTracker) {
@@ -1470,8 +1486,14 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
       selected ??= selectedProvider(tail)
       const served = selected ?? provider
       if (served) t.set({ responseProvider: served })
-      const cost = [...tail.matchAll(/"cost"\s*:\s*(\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)/g)].at(-1)
-      if (cost) t.set({ responseCost: Number(cost[1]) })
+      const cost = lastNumber(tail, 'cost')
+      // On a BYOK key OpenRouter's `cost` is only its fee; the provider bills the rest to the key.
+      const byok = /"is_byok"\s*:\s*true/.test(tail)
+      const upstream = byok
+        ? (lastNumber(tail, 'upstream_inference_cost') ??
+          UPSTREAM_PARTS.reduce((sum, part) => sum + (lastNumber(tail, part) ?? 0), 0))
+        : 0
+      if (cost !== undefined) t.set({ responseCost: cost + upstream })
     }
     up.on('data', onData)
   }

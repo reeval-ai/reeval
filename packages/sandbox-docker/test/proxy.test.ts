@@ -235,6 +235,32 @@ function startUpstream(host: string, h2: boolean): Promise<{ port: number; close
           20,
         )
       }
+      if (req.url === '/byok/responses') {
+        // OpenRouter's Responses API on a BYOK key: the upstream total null, its parts apart.
+        const usage = {
+          cost: 0.0003,
+          is_byok: true,
+          cost_details: {
+            upstream_inference_cost: null,
+            upstream_inference_input_cost: 0.002,
+            upstream_inference_output_cost: 0.004,
+          },
+        }
+        out.writeHead(200, { 'content-type': 'text/event-stream' })
+        return out.end(
+          `data: ${JSON.stringify({ type: 'response.completed', response: { usage } })}\n\n`,
+        )
+      }
+      if (req.url === '/byok/chat/completions' || req.url === '/own-key/chat/completions') {
+        // OpenRouter's last chunk: on a BYOK key its cost is only its fee, and the provider's is
+        // apart; on its own key the upstream cost is already in it.
+        const byok = req.url.startsWith('/byok')
+        const usage = byok
+          ? { cost: 0.0003, is_byok: true, cost_details: { upstream_inference_cost: 0.006 } }
+          : { cost: 0.006, is_byok: false, cost_details: { upstream_inference_cost: 0.006 } }
+        out.writeHead(200, { 'content-type': 'text/event-stream' })
+        return out.end(`data: ${JSON.stringify({ choices: [], usage })}\n\ndata: [DONE]\n\n`)
+      }
       if (req.url === '/header-cost/chat/completions') {
         // A gateway that names the call's cost in a response header, not the body.
         out.writeHead(200, { 'content-type': 'application/json', 'x-call-cost': '0.0031' })
@@ -3048,6 +3074,12 @@ describe('the model a response names, on a modelResponses endpoint', () => {
       0.0031,
     )
     assert.equal(await costFrom(undefined, '/header-cost/chat/completions'), undefined)
+  })
+
+  test("a BYOK call's cost is OpenRouter's fee and the provider's, an own-key call's its cost", async () => {
+    assert.equal(await costFrom(undefined, '/byok/chat/completions'), 0.0063)
+    assert.equal(await costFrom(undefined, '/own-key/chat/completions'), 0.006)
+    assert.equal(await costFrom(undefined, '/byok/responses'), 0.0063)
   })
 
   test("the body's cost wins over a header's", async () => {

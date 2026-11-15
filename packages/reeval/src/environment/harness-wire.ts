@@ -135,7 +135,10 @@ export type BrokeredRequest = {
   responseEffort?: string
   /** The upstream provider the response body said served it, on a `modelResponses` endpoint. */
   responseProvider?: string
-  /** The last `"cost"` the response body named, on a `modelResponses` endpoint. */
+  /**
+   * The last `"cost"` the response body named, on a `modelResponses` endpoint, plus the upstream
+   * provider's on a BYOK key.
+   */
   responseCost?: number
   /** The request's headers, as the agent sent them. */
   headers?: Readonly<Record<string, string | readonly string[] | undefined>>
