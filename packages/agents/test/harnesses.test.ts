@@ -126,3 +126,29 @@ test('a provider a harness has no direct way to is refused by name', async () =>
     params: { fast: 'false' },
   })
 })
+
+test("Cursor's adapter reads its model list through the context's fetch", async () => {
+  const urls: string[] = []
+  const adapter = await catalogAdapter({
+    harness: cursor({ model: MODELS.cursor }),
+    route: { kind: 'direct' },
+    auth: { CURSOR_API_KEY: 'key-for-the-fetch-test' },
+    model: MODELS.cursor,
+    plugins: [],
+    env: {},
+    fetch: async (input) => {
+      urls.push(String(input instanceof Request ? input.url : input))
+      return new Response('refused by the context fetch', { status: 401 })
+    },
+  })
+  await assert.rejects(
+    adapter.doStart({
+      sessionId: 's1',
+      sandboxSession: { addRequestTransformations: async () => {} } as never,
+      sessionWorkDir: '/workspace',
+      permissionMode: 'allow-all',
+    } as never),
+    /401/,
+  )
+  assert.ok(urls.length > 0 && urls.every((u) => u.startsWith('https://')), urls.join(', '))
+})

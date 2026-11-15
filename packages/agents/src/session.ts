@@ -88,6 +88,8 @@ export type AgentOptions = {
   env?: NodeJS.ProcessEnv
   /** A gateway model's limits, for pi on a gateway that doesn't describe the model. */
   describeModel?: AdapterContext['describeModel']
+  /** The fetch the adapter's own calls from the host go through; the global one by default. */
+  fetch?: AdapterContext['fetch']
   /** Builds the harness's AI SDK adapter in place of the catalog's, such as a test's scripted one. */
   adapter?: (input: AdapterInput) => HarnessV1 | Promise<HarnessV1>
   /** What the session the adapter drives says of itself: its id, description and ports. */
@@ -403,6 +405,7 @@ export function agent(options: AgentOptions): Agent {
             plugins,
             env,
             ...(options.describeModel ? { describeModel: options.describeModel } : {}),
+            ...(options.fetch ? { fetch: options.fetch } : {}),
           })
       doc.adapter = { name: adapter.harnessId }
       const installed = await starting(() =>

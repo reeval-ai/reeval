@@ -96,6 +96,8 @@ export type AdapterContext = AdapterInput & {
   env: NodeJS.ProcessEnv
   /** A gateway model's limits, for pi on a gateway that doesn't describe the model. */
   describeModel?: (model: string) => Promise<PiModelInfo | undefined>
+  /** The fetch the adapter's own calls from the host go through (Cursor's model list); the global one by default. */
+  fetch?: typeof fetch
 }
 
 /** `each`'s entry for the routing gateway `route` names; undefined on direct and Vertex AI. */
@@ -163,6 +165,7 @@ export async function catalogAdapter(c: AdapterContext): Promise<HarnessV1> {
         ...(mcpServers ? { mcpServers } : {}),
         ...(harness.params ? { modelParams: harness.params } : {}),
         ...effortOf(effort),
+        ...(c.fetch ? { fetch: c.fetch } : {}),
         requireCredentialBrokering: true,
       }) as unknown as HarnessV1
     case 'claude-code': {

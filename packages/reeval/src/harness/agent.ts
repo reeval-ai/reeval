@@ -89,8 +89,14 @@ export function harnessRoute(
   return { kind: 'direct' }
 }
 
+/** The fetch the adapter's own calls from the host take: Cursor's through a filled key's filler. */
+async function adapterFetch(descriptor: AgentHarnessDescriptor): Promise<{ fetch?: typeof fetch }> {
+  if (descriptor.kind !== 'cursor') return {}
+  return (await import('./cursor-catalog.ts')).cursorFetch()
+}
+
 /** The descriptor's adapter as an attempt builds it, for a check that reads its configuration. */
-export function harnessAdapter(
+export async function harnessAdapter(
   descriptor: AgentHarnessDescriptor,
   input: AdapterInput & {
     plugins?: readonly PlacedPlugin[]
@@ -106,6 +112,7 @@ export function harnessAdapter(
     plugins,
     env: startEnv(),
     describeModel: modelLimits,
+    ...(await adapterFetch(descriptor)),
   })
 }
 
@@ -164,6 +171,7 @@ export function createAgentHarness(
           plugins,
           env: startEnv(),
           describeModel: modelLimits,
+          ...(await adapterFetch(descriptor)),
           traffic: {
             statuses: () => sandbox.brokeredStatuses?.() ?? [],
             servedModels: () => sandbox.servedRequests?.() ?? [],
