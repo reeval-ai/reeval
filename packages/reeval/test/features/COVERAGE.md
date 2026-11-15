@@ -26,7 +26,7 @@
 | `compare`: control, variants, lift and `minLift` | ✓ 2 | ✓ 2 | ● 1 | ● 1 | — | — |
 | `gate: 'observe'` and `compare.gate: 'observe'`: every cell ungated, a failed `expect` reads `ran` and fails nothing, and no pass^k hint | ✓ 1 | ✓ 1 | ● 2 | — | — | — |
 | `where`: which case and environment pairs of an eval with `cases` run, decided at plan time from environment `traits` (and the harness when it reads it), listed in `--dry-run` and the record's `excluded`; with `compare`, the control decides for every variant | ✓ 1 | ✓ 1 | ● 1 | — | — | — |
-| `cases` and `caseKey`: one eval over a list of cases, counted and named once with its cases as rows inside it, pooled into a pass rate that `gate: { passRate }` gates and a paired lift that `minLift` gates; older records fold into the same shape, an `evaluate.each` family under its template without placeholders, so a port continues its history | ✓ 7 | ✓ 3 | ● 2 | — | — | — |
+| `cases` and `caseKey`: one eval over a list of cases, counted and named once with its cases as rows inside it, pooled into a pass rate that `gate: { passRate }` gates and a paired lift that `minLift` gates; older records fold into the same shape, an `evaluate.each` family under its template without placeholders, so a port continues its history | ✓ 8 | ✓ 3 | ● 2 | — | — | — |
 | `compare.harnesses` | ✓ 1 | ✓ 1 | — | — | — | — |
 | `compare.control`: the control cell, which replaces an inherited `environments` | ✓ 1 | ✓ 4 | ● 1 | ● 1 | — | — |
 | `questions` with `across`: pairwise questions in the plan, answered after the run with win rates | ✓ 4 | ✓ 5 | — | — | — | ◐ 1 (1 without a canary) |
@@ -247,9 +247,9 @@
 | Reading a remote store: the history commands pull new runs into its copy (at most once a minute, `--offline` skips it, `reeval sync` always), list the runs HEAD reaches unless `--all-branches`, find any branch's run by id, show the copy when the store is unreachable (exit 3 with none), empty a copy of another bucket, and `reeval checkout` fetches a commit the clone lacks | ✓ 2 | — | — | — | — | — |
 | `history.debug`: each attempt's `requests.ndjson` (`'requests'`) or all its debug data (`'all'`) uploads with the run to a remote store under a `debug/` prefix of its own, rescanned for secrets (a finding leaves the file out and names it in `record.debug.dropped`), staged so `reeval sync` still uploads it after `.reeval/debug` is pruned; refused on `local()`. `reeval sync --debug <run>` downloads one run's back into `.reeval/debug/<run>`, hash-checked; a pull never does | ✓ 2 | — | — | — | — | — |
 | History `.gitignore` un-ignores recorded logs and `.gitattributes` marks them generated; `reeval record` warns when git still ignores them | ✓ 1 | — | — | — | — | — |
-| `reeval history`, `reeval show` and `reeval compare`, with `--json` and `--md` | ✓ 4 | — | — | — | — | ◐ 2 (2 without a canary) |
+| `reeval history`, `reeval show` and `reeval compare`, with `--json` and `--md` | ✓ 5 | — | — | — | — | ◐ 2 (2 without a canary) |
 | `reeval show --trace`: a run's timeline as Chrome Trace Event JSON for Perfetto, attempts in lanes by overlap with their setup, turns, tool calls, checks and judge, from any record | ✓ 2 | — | — | — | — | — |
-| `revision` and the `sources` fingerprint part: an eval's body, options, case data and revision, named by `reeval compare` | ✓ 2 | ✓ 1 | — | — | — | — |
+| `revision` and the `sources` fingerprint part: an eval's body, options, case data and revision, named by `reeval compare` | ✓ 3 | ✓ 1 | — | — | — | — |
 | `snapshot` (default on): each attempt's final workspace, and with `'turns'` one after each send, in its directory in `.reeval/runs` as a directory or with `compress` a tar.gz, without dependency and cache directories, masked, capped and pruned with debug data | ✓ 2 | — | ● 2 | ● 2 | — | — |
 | `reeval compare --fail-on-regression` | ✓ 1 | — | — | — | — | — |
 | An eval Ctrl-C canceled reads `can't compare` with that side `canceled` in `reeval compare`, never `regressed`, and doesn't fail `--fail-on-regression` | ✓ 2 | — | — | — | — | — |
