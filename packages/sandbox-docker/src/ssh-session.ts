@@ -153,8 +153,8 @@ export function resetSlot(layout: SlotLayout): string {
     `for i in 1 2 3 4 5 6 7 8 9 10; do ${killAll} || pkill -KILL -u ${u}; pgrep -u ${u} >/dev/null || break; sleep 0.2; done`,
     `rm -rf ${q(layout.root)} ${q(layout.state)}`,
     // -execdir at both levels: another slot can swap its own directories for symlinks mid-walk, so
-    // nothing is looked up again by path.
-    `find ${USER_WRITABLE_MOUNTS.join(' ')} -xdev \\( ${[layout.home, ...ENGINE_STORES].map((p) => `-path ${q(p)}`).join(' -o ')} \\) -prune -o -type d -perm -0002 -execdir sh -c 'for d; do find "$d" -mindepth 1 -maxdepth 1 -user "$0" -execdir rm -rf --one-file-system -- {""} +; done' ${u} {} + 2>/dev/null`,
+    // nothing is looked up again by path. -execdir refuses a PATH with an empty or relative entry.
+    `PATH=/usr/sbin:/usr/bin:/sbin:/bin find ${USER_WRITABLE_MOUNTS.join(' ')} -xdev \\( ${[layout.home, ...ENGINE_STORES].map((p) => `-path ${q(p)}`).join(' -o ')} \\) -prune -o -type d -perm -0002 -execdir sh -c 'for d; do find "$d" -mindepth 1 -maxdepth 1 -user "$0" -execdir rm -rf --one-file-system -- {""} +; done' ${u} {} + 2>/dev/null`,
     // By uid: ipcs cuts owner names to 10 characters, so reeval-s10 would match reeval-s100.
     `for t in shm:m sem:s msg:q; do awk -v id="$uid" 'NR == 1 { for (i = 1; i <= NF; i++) if ($i == "uid") c = i; next } $c == id { print $2 }' /proc/sysvipc/\${t%:*} 2>/dev/null | xargs -r -n1 ipcrm -\${t#*:} 2>/dev/null; done`,
     skeletonHome(layout),
