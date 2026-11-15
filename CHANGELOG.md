@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.29.2](https://github.com/reeval-ai/reeval/compare/v0.29.1...v0.29.2) (2026-11-15)
+
+
+### Bug Fixes
+
+* **cli:** name the cloud run in reeval show for a downloaded run ([#1012](https://github.com/reeval-ai/reeval/issues/1012)) ([c73fe93](https://github.com/reeval-ai/reeval/commit/c73fe938eb4886537824cd4ff34022fab51610ef))
+* **cli:** say while a followed cloud run waits for its machine to start ([#1015](https://github.com/reeval-ai/reeval/issues/1015)) ([b36d579](https://github.com/reeval-ai/reeval/commit/b36d57904280b35151d8d8e192b2dccfa9d6a92f))
+* **harness:** drop Claude Code's guessed cost for a model it has no price for ([#1013](https://github.com/reeval-ai/reeval/issues/1013)) ([5d84867](https://github.com/reeval-ai/reeval/commit/5d84867d40293a514321e02d77389668bca4045c))
+* **sandbox:** count a BYOK OpenRouter call's provider cost, not only OpenRouter's fee ([#1014](https://github.com/reeval-ai/reeval/issues/1014)) ([9829592](https://github.com/reeval-ai/reeval/commit/982959269dc6968eb348e65c1003efbccb1f0d2c))
+
 ## [0.29.1](https://github.com/reeval-ai/reeval/compare/v0.29.0...v0.29.1) (2026-11-15)
 
 
