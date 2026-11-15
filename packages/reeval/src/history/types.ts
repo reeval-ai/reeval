@@ -286,7 +286,8 @@ export type AttemptRecord = {
   upstreams?: UpstreamCount[]
   /**
    * What a gateway said the harness's own API calls cost, in US dollars, summed (OpenRouter's
-   * `usage.cost`); absent when it names none.
+   * `usage.cost`, plus `cost_details.upstream_inference_cost` on a BYOK key, where `cost` is only
+   * OpenRouter's fee); absent when it names none.
    */
   reportedCostUsd?: number
   /**

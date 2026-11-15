@@ -777,7 +777,7 @@ Each input of a cell fingerprint, hashed on its own, so a change can be named.
 </Property>
 
 <Property name="reportedCostUsd" type="number" optional>
-  What a gateway said the harness's own API calls cost, in US dollars, summed (OpenRouter's `usage.cost`); absent when it names none.
+  What a gateway said the harness's own API calls cost, in US dollars, summed (OpenRouter's `usage.cost`, plus `cost_details.upstream_inference_cost` on a BYOK key, where `cost` is only OpenRouter's fee); absent when it names none.
 </Property>
 
 <Property name="effort" type="string | null">
