@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.29.0](https://github.com/reeval-ai/reeval/compare/v0.28.0...v0.29.0) (2026-11-15)
+
+
+### Features
+
+* **cloud:** carry credential alternatives as secretChoices and plan question models ([#1001](https://github.com/reeval-ai/reeval/issues/1001)) ([01e6dc0](https://github.com/reeval-ai/reeval/commit/01e6dc0eebaf3469296cafa18f4a2d54ca9f79f1))
+
 ## [0.28.0](https://github.com/reeval-ai/reeval/compare/v0.27.2...v0.28.0) (2026-11-15)
 
 
