@@ -146,13 +146,17 @@ export function resetSlot(layout: SlotLayout): string {
   const killAll = `setpriv --reuid="$uid" --regid="$(id -g ${u})" --clear-groups sh -c 'kill -KILL -1' 2>/dev/null`
   return [
     `if uid=$(id -u ${u} 2>/dev/null); then`,
-    `for i in 1 2 3 4 5 6 7 8 9 10; do ${killAll} || pkill -KILL -u ${u}; pgrep -u ${u} >/dev/null || break; sleep 0.2; done`,
+    // Before the kill, so no job they schedule starts a process after it.
     `crontab -r -u ${u} 2>/dev/null`,
     `atq 2>/dev/null | awk -v u=${u} '$NF == u { print $1 }' | xargs -r atrm 2>/dev/null`,
     `loginctl disable-linger ${u} 2>/dev/null`,
-    `find ${USER_WRITABLE_MOUNTS.join(' ')} -xdev \\( ${[layout.home, ...ENGINE_STORES].map((p) => `-path ${q(p)}`).join(' -o ')} \\) -prune -o -type d -perm -0002 -exec sh -c 'for d; do find "$d" -mindepth 1 -maxdepth 1 -user "$0" -print0 | xargs -0 -r rm -rf --; done' ${u} {} + 2>/dev/null`,
-    `for t in m s q; do ipcs -$t 2>/dev/null | awk -v u=${u} '$3 == u { print $2 }' | xargs -r -n1 ipcrm -$t 2>/dev/null; done`,
+    `for i in 1 2 3 4 5 6 7 8 9 10; do ${killAll} || pkill -KILL -u ${u}; pgrep -u ${u} >/dev/null || break; sleep 0.2; done`,
     `rm -rf ${q(layout.root)} ${q(layout.state)}`,
+    // -execdir at both levels: another slot can swap its own directories for symlinks mid-walk, so
+    // nothing is looked up again by path.
+    `find ${USER_WRITABLE_MOUNTS.join(' ')} -xdev \\( ${[layout.home, ...ENGINE_STORES].map((p) => `-path ${q(p)}`).join(' -o ')} \\) -prune -o -type d -perm -0002 -execdir sh -c 'for d; do find "$d" -mindepth 1 -maxdepth 1 -user "$0" -execdir rm -rf --one-file-system -- {""} +; done' ${u} {} + 2>/dev/null`,
+    // By uid: ipcs cuts owner names to 10 characters, so reeval-s10 would match reeval-s100.
+    `for t in shm:m sem:s msg:q; do awk -v id="$uid" 'NR == 1 { for (i = 1; i <= NF; i++) if ($i == "uid") c = i; next } $c == id { print $2 }' /proc/sysvipc/\${t%:*} 2>/dev/null | xargs -r -n1 ipcrm -\${t#*:} 2>/dev/null; done`,
     skeletonHome(layout),
     'fi; true',
   ].join('\n')
