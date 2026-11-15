@@ -114,6 +114,9 @@ export function setupOf(kind: AgentKind): HarnessSetup {
   }
 }
 
+/** The pnpm a runner without one gets, for the installs that run it; sandbox-docker's images bake the same. */
+export const PNPM_VERSION = '10.33.3'
+
 /** The AI SDK's bootstrap state directory, under `home`. */
 const stateDirectory = (home: string) => posix.join(home, '.ai-sdk-harness')
 
@@ -168,13 +171,22 @@ export async function installHarness(o: {
     const removed = await o.runner.spawn(['rm', '-f', '--', marker]).exited
     if (removed.code !== 0) throw new AgentError(`Couldn't remove ${marker} to install again`)
   }
+  const session = await runnerSession(o.runner, { id: 'install' })
+  if (recipe.commands.some((c) => /\bpnpm\b/.test(c.command))) {
+    const r = await session.run({
+      command: `command -v pnpm > /dev/null 2>&1 || npm install --global --no-fund --no-audit pnpm@${PNPM_VERSION}`,
+      ...(o.signal ? { abortSignal: o.signal } : {}),
+    })
+    if (r.exitCode !== 0) {
+      throw new Error(
+        `its install runs pnpm, which the runner doesn't have, and npm install --global pnpm@${PNPM_VERSION} exited ${r.exitCode}: ${(r.stderr || r.stdout).trim().slice(-500)}`,
+      )
+    }
+  }
   const template = await createHarnessSandboxTemplate({
     harnesses: [o.adapter],
     sandboxConfig: { workDir: o.workDir },
   })
-  await template?.prepare({
-    session: await runnerSession(o.runner, { id: 'install' }),
-    ...(o.signal ? { abortSignal: o.signal } : {}),
-  })
+  await template?.prepare({ session, ...(o.signal ? { abortSignal: o.signal } : {}) })
   return true
 }

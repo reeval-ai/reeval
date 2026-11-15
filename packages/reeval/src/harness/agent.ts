@@ -113,6 +113,7 @@ export async function harnessAdapter(
     env: startEnv(),
     describeModel: modelLimits,
     ...(await adapterFetch(descriptor)),
+    requireBrokering: true,
   })
 }
 
@@ -172,6 +173,8 @@ export function createAgentHarness(
           env: startEnv(),
           describeModel: modelLimits,
           ...(await adapterFetch(descriptor)),
+          // A sandbox whose network can't broker the key must not get it.
+          requireBrokering: true,
           traffic: {
             statuses: () => sandbox.brokeredStatuses?.() ?? [],
             servedModels: () => sandbox.servedRequests?.() ?? [],

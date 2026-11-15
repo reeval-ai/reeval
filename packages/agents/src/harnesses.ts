@@ -98,6 +98,8 @@ export type AdapterContext = AdapterInput & {
   describeModel?: (model: string) => Promise<PiModelInfo | undefined>
   /** The fetch the adapter's own calls from the host go through (Cursor's model list); the global one by default. */
   fetch?: typeof fetch
+  /** Refuse to start when the runner's network can't broker the key, rather than pass it in the CLI's env. */
+  requireBrokering?: boolean
 }
 
 /** `each`'s entry for the routing gateway `route` names; undefined on direct and Vertex AI. */
@@ -166,7 +168,7 @@ export async function catalogAdapter(c: AdapterContext): Promise<HarnessV1> {
         ...(harness.params ? { modelParams: harness.params } : {}),
         ...effortOf(effort),
         ...(c.fetch ? { fetch: c.fetch } : {}),
-        requireCredentialBrokering: true,
+        requireCredentialBrokering: c.requireBrokering ?? false,
       }) as unknown as HarnessV1
     case 'claude-code': {
       const vertex = route.kind === 'vertex' ? claudeCodeVertexEnv(route) : {}
@@ -192,8 +194,7 @@ export async function catalogAdapter(c: AdapterContext): Promise<HarnessV1> {
         ...(mcpServers ? { mcpServers } : {}),
         ...pluginDirs(plugins),
         ...effortOf(effort),
-        // A runner whose network can't broker the key must not get it.
-        requireCredentialBrokering: true,
+        requireCredentialBrokering: c.requireBrokering ?? false,
       }) as unknown as HarnessV1
     }
     case 'opencode': {
@@ -211,7 +212,7 @@ export async function catalogAdapter(c: AdapterContext): Promise<HarnessV1> {
         ...(vertex ? { vertex } : { vars }),
         ...effortOf(effort),
         ...servers<OpenCodeMcpServer>(mcpServers),
-        requireCredentialBrokering: true,
+        requireCredentialBrokering: c.requireBrokering ?? false,
       }) as unknown as HarnessV1
     }
     case 'goose': {
@@ -234,7 +235,7 @@ export async function catalogAdapter(c: AdapterContext): Promise<HarnessV1> {
         model,
         ...effortOf(effort),
         ...servers<Record<string, unknown>>(mcpServers),
-        requireCredentialBrokering: true,
+        requireCredentialBrokering: c.requireBrokering ?? false,
       }) as unknown as HarnessV1
     }
     case 'pi': {
@@ -263,7 +264,7 @@ export async function catalogAdapter(c: AdapterContext): Promise<HarnessV1> {
         ...source,
         ...effortOf(effort),
         ...servers<PiMcpServer>(mcpServers),
-        requireCredentialBrokering: true,
+        requireCredentialBrokering: c.requireBrokering ?? false,
       }) as unknown as HarnessV1
     }
     case 'codex': {
@@ -278,7 +279,7 @@ export async function catalogAdapter(c: AdapterContext): Promise<HarnessV1> {
         ...effortOf(effort),
         ...servers<Record<string, unknown>>(mcpServers),
         ...pluginDirs(plugins),
-        requireCredentialBrokering: true,
+        requireCredentialBrokering: c.requireBrokering ?? false,
       }) as unknown as HarnessV1
     }
     case 'fx':
@@ -293,7 +294,7 @@ export async function catalogAdapter(c: AdapterContext): Promise<HarnessV1> {
         ...(route.kind === 'vertex' ? { vertex: fxVertex(route) } : {}),
         ...effortOf(effort),
         ...servers<Record<string, unknown>>(mcpServers),
-        requireCredentialBrokering: true,
+        requireCredentialBrokering: c.requireBrokering ?? false,
       }) as unknown as HarnessV1
     case 'grok-build': {
       const grok = await import('@reeval/harness-grok-build')
@@ -331,7 +332,7 @@ export async function catalogAdapter(c: AdapterContext): Promise<HarnessV1> {
           : {}),
         ...effortOf(effort),
         ...servers<Record<string, unknown>>(mcpServers),
-        requireCredentialBrokering: true,
+        requireCredentialBrokering: c.requireBrokering ?? false,
       }) as unknown as HarnessV1
     }
   }
