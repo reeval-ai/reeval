@@ -65,6 +65,12 @@ the turn's lines of `transcript.jsonl` as each turn ends (`raw/parts.jsonl` and 
 request), every one with the credentials' exact values masked (not encoded forms, such as base64); `schema/` has their JSON Schemas, which
 `pnpm --filter reeval schema:check` holds to the types and lets change additively only.
 
+`docker()`, from `@reeval/agents/docker`, is a runner in a plain container (`docker run -d`,
+then `docker exec`), removed on `close()` unless `keep`; it has no network policy, gateway or
+image builds. `install` (`auto` by default, `skip` or `always`) puts the harness's pinned CLI on
+the runner as the session's `install` phase, so `agent({ runner: () => docker({ image: 'node:24',
+ports: [24210] }), … })` needs nothing baked in.
+
 It sits under reeval and knows nothing of evals or of where a harness runs:
 
 - It imports only its own modules, `node:` builtins and the packages in its `dependencies`.
@@ -80,3 +86,9 @@ It sits under reeval and knows nothing of evals or of where a harness runs:
 pnpm --filter @reeval/agents test
 pnpm --filter @reeval/agents typecheck
 ```
+
+`test/contract.test.ts` is the real-agent contract: each harness's own row on its provider's key,
+on `docker()` with `install: 'auto'`, checking the skill, rules, MCP call, edit and command, tool
+catalog, tokens and reported model, and that no container is left. It runs with
+`REEVAL_TEST_REAL=1`, each row's key and Docker (`REEVAL_CONTRACT_HARNESSES` narrows the rows),
+and in `real.yml`'s pinned contract leg.

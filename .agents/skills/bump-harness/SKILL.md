@@ -77,7 +77,11 @@ then names one cause.
      REEVAL_UPDATE_CAPTURES=1 REEVAL_UPDATE_FORMATS=1 \
      node --test --test-concurrency=1 --experimental-strip-types --no-warnings \
      test/contract.test.ts test/e2e-real.test.ts
+   cd ../agents && REEVAL_TEST_REAL=1 REEVAL_CONTRACT_HARNESSES=<row> \
+     node --test --experimental-strip-types --no-warnings test/contract.test.ts
    ```
+
+   The second is the core contract: the new pin installed by `agent()` on a plain Node image.
 
    Review the diff of `test/replay/<harness>/` and `test/replay/formats/<harness>.json`: a new
    event kind or key is a format change the adapter must handle, not just accept. Without keys

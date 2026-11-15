@@ -46,6 +46,10 @@ REEVAL_RAW_TRANSCRIPT=1 node <repo>/packages/reeval/dist/cli.js run -vv --tag au
 | Wire, bodies | a local tap: patch `packages/sandbox-docker/src/egress/proxy.ts` to write each decrypted request and response body to a directory, and drop the patch after. Don't audit with reeval's own usage reader (`model-call` events): it is one of the things under test |
 | Disk | the `tar` from the `audit` eval. Look for sqlite databases (read them with `node:sqlite`), JSONL logs, session directories and spilled tool-output files |
 
+For the stream and disk alone, `@reeval/agents`' `agent().exec()` on `docker()` with
+`out: { dir, raw: true }` writes the transcript and `raw/parts.jsonl` without a reeval project;
+the wire still needs reeval's gateway.
+
 Keep the captures out of the repo; they hold prompts and paths.
 
 ## 3. Diff per signal
