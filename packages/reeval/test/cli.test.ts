@@ -2,6 +2,7 @@
 // file, every flag of every command parsed, and every kind of bad command line exiting 2.
 import assert from 'node:assert/strict'
 import { readFileSync, writeFileSync } from 'node:fs'
+import { availableParallelism } from 'node:os'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
 import { parseCli } from '../src/cli-parse.ts'
@@ -44,15 +45,26 @@ describe('cli', () => {
     const p = await project('cli-help', { 'reeval.config.ts': fakeConfig() })
     const golden = readFileSync(GOLDEN, 'utf8').replace('reeval VERSION', `reeval ${version}`)
     const lines = [[], ...PATHS.map((c) => c.path), ['image'], ['cloud']]
+    const calls = lines.flatMap((path) => ['--help', '-h'].map((flag) => ({ path, flag })))
+    // At most four at a time: a burst of dozens on a small macOS runner can leave one silent past
+    // runCli's idle timeout.
+    let next = 0
+    let failed = false
     await Promise.all(
-      lines.flatMap((path) =>
-        ['--help', '-h'].map(async (flag) => {
-          const r = await runCli(p.dir, [...path, flag])
-          const expected = path.length ? `${commandHelpText(version, path)}\n` : golden
-          assert.equal(r.code, 0, `reeval ${path.join(' ')} ${flag}: ${r.stderr}`)
-          assert.equal(r.stdout, expected, `reeval ${path.join(' ')} ${flag}`)
-        }),
-      ),
+      Array.from({ length: Math.min(4, availableParallelism()) }, async () => {
+        for (let call = calls[next++]; call && !failed; call = calls[next++]) {
+          const { path, flag } = call
+          try {
+            const r = await runCli(p.dir, [...path, flag])
+            const expected = path.length ? `${commandHelpText(version, path)}\n` : golden
+            assert.equal(r.code, 0, `reeval ${path.join(' ')} ${flag}: ${r.stderr}`)
+            assert.equal(r.stdout, expected, `reeval ${path.join(' ')} ${flag}`)
+          } catch (error) {
+            failed = true
+            throw error
+          }
+        }
+      }),
     )
   })
 
