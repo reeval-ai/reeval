@@ -1923,7 +1923,7 @@ describe("a cloud run's files, downloaded with --download", () => {
         assert.equal(r.code, 2, r.stdout + r.stderr)
         assert.match(
           r.stderr,
-          /--download takes a cloud run's event stream URL \(http:\/\/127\.0\.0\.1:\d+\/api\/runs\/<run>\/events\)/,
+          /--download takes a cloud run's id or event stream URL \(http:\/\/127\.0\.0\.1:\d+\/api\/runs\/<run>\/events\)/,
         )
       }
       const unset = await runCli(dir, ['attach', '--download', `${p.base}/api/runs/run_1/events`], {
@@ -1932,7 +1932,7 @@ describe("a cloud run's files, downloaded with --download", () => {
       assert.equal(unset.code, 2)
       assert.match(
         unset.stderr,
-        /--download takes a cloud run's event stream URL \(https:\/\/cloud\.reeval\.ai\/api\/runs\/<run>\/events\)/,
+        /--download takes a cloud run's id or event stream URL \(https:\/\/cloud\.reeval\.ai\/api\/runs\/<run>\/events\)/,
       )
       const local = await runCli(dir, ['run', '--download'])
       assert.equal(local.code, 2, local.stdout + local.stderr)

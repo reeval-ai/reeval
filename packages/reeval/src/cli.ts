@@ -1092,7 +1092,7 @@ async function cloudDownload(
   const run = isAttachUrl(source) ? cloudRunOf(source, base) : null
   if (!run) {
     throw new UsageError(
-      `--download takes a cloud run's event stream URL (${base.href}api/runs/<run>/events), not ${displayUrl(source)}: a run on this machine has its files in .reeval/ already`,
+      `--download takes a cloud run's id or event stream URL (${base.href}api/runs/<run>/events), not ${displayUrl(source)}: a run on this machine has its files in .reeval/ already`,
     )
   }
   const path = requireConfig(configPath)
