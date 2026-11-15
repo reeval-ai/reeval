@@ -194,7 +194,8 @@ type FilesOf = (machine: TarEntry[]) => TarEntry[] | null
  * `resume` in turn (then 202): a 200 or 202 relays the resumed run's lines, ending with
  * `resumedCode`; with `resumeEnds`, it relays nothing and the run reads as that status, for that
  * reason. With `queued`, each status read answers `queued` with the next of them, which the
- * project's capacity view then holds, until none is left, unless `capacity` replaces its answer.
+ * project's capacity view then holds, until none is left, unless `capacity` replaces its answer;
+ * the next `provisioning` status reads then answer `provisioning`.
  */
 async function platform(
   options: {
@@ -219,6 +220,7 @@ async function platform(
     queued?: Array<{ waitingFor?: string; position?: number }>
     /** What the capacity view answers instead: that status, or a body whose items aren't a list. */
     capacity?: number | 'malformed'
+    provisioning?: number
   } = {},
 ) {
   const seen: Seen[] = []
@@ -243,6 +245,7 @@ async function platform(
   const resumeAnswers = [...(options.resume ?? [])]
   const resumeBodies: unknown[] = []
   const queue = [...(options.queued ?? [])]
+  let provisioning = options.provisioning ?? 0
   let waiting: { waitingFor?: string; position?: number } | undefined
   const stops = options.stops ?? (options.resume ? 'The run was stopped by the platform.' : '')
   const run = () => ({
@@ -374,6 +377,10 @@ async function platform(
           orgId: 'org_a',
           projectId: 'proj_a',
         })
+      }
+      if (provisioning > 0) {
+        provisioning--
+        return json(res, 200, { ...run(), status: 'provisioning' })
       }
       return json(res, 200, run())
     }
@@ -1197,6 +1204,44 @@ evaluate('reaches', async (c) => {
       ])
       const reads = p.seen.filter((s) => s.path === '/api/orgs/org_a/projects/proj_a/capacity')
       assert.ok(reads.every((s) => s.auth === 'Bearer cloud-test-token'))
+    } finally {
+      await p.close()
+    }
+  })
+
+  test('a follower says once that the cloud run is waiting for its machine, after the queue', async () => {
+    const p = await platform({
+      holds: true,
+      queued: [{ waitingFor: 'capacity' }],
+      provisioning: 5,
+    })
+    const env = {
+      REEVAL_CLOUD_URL: p.base,
+      REEVAL_TOKEN: 'cloud-test-token',
+      REEVAL_TEST_CLOUD_QUEUE_MS: '20',
+    }
+    try {
+      const dir = await fixtureProject()
+      let canceling: Promise<unknown> | undefined
+      const followed = await runCli(dir, ['run', '--cloud'], {
+        env,
+        onOutput: (stdout) => {
+          if (!stdout.includes('held') || !stdout.includes('its machine to start')) return false
+          setTimeout(() => {
+            canceling = runCli(dir, ['cloud', 'run', 'cancel', 'run_1'], { env })
+          }, 300)
+          return true
+        },
+      })
+      await canceling
+      assert.equal(followed.code, 130, followed.stdout + followed.stderr)
+      const said = followed.stdout
+        .split('\n')
+        .filter((l) => l.includes('is queued') || l.includes('its machine'))
+      assert.deepEqual(said, [
+        'Cloud run run_1 is queued: waiting for shared capacity',
+        'Cloud run run_1 is waiting for its machine to start',
+      ])
     } finally {
       await p.close()
     }
