@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.29.1](https://github.com/reeval-ai/reeval/compare/v0.29.0...v0.29.1) (2026-11-15)
+
+
+### Bug Fixes
+
+* **cli:** don't say a cloud run had already ended when the cancel ended it ([#1009](https://github.com/reeval-ai/reeval/issues/1009)) ([67f6eb2](https://github.com/reeval-ai/reeval/commit/67f6eb2621db1b812a2a8af370a274aed3f18466))
+* **cli:** follow a cloud run by its id in reeval attach ([#1008](https://github.com/reeval-ai/reeval/issues/1008)) ([f8eb717](https://github.com/reeval-ai/reeval/commit/f8eb7171d7fff20c5d0a478586225043f9d6be17))
+* **cli:** say while a followed cloud run is queued, and why ([#1010](https://github.com/reeval-ai/reeval/issues/1010)) ([bff9731](https://github.com/reeval-ai/reeval/commit/bff97312495f0454440dc283a5353c37579cef25))
+
 ## [0.29.0](https://github.com/reeval-ai/reeval/compare/v0.28.0...v0.29.0) (2026-11-15)
 
 
