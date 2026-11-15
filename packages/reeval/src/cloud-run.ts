@@ -385,9 +385,10 @@ export async function watchQueue(
 /**
  * `code`, the exit code cloud run `runId`'s stream ended with, or 4 when the platform says it
  * stopped the run before it finished; a canceled run is named as such, since a cancel before the
- * run's header ends the stream with nothing to show. A stop can end the stream with any code (a cancel's, or
- * what the attempts it cut short left), so every run that ended is asked about, unless `read` is
- * the platform's answer already. An answer that doesn't come keeps the stream's code.
+ * run's header ends the stream with nothing to show. A stop can end the stream with any code (a
+ * cancel's, or what the attempts it cut short left), so every run that ended is asked about,
+ * unless `read` is the platform's answer already. An answer that doesn't come keeps the stream's
+ * code.
  */
 export async function stoppedOr(
   code: number,
