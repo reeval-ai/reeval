@@ -496,7 +496,11 @@ export async function showCommand(ctx: Ctx, refs: string[]): Promise<number> {
     const artifactDir = runDir(dir, entry.runId)
     const inputs = await readReportInputs(artifactDir, run)
     ctx.out(renderSummary(run, { ...inputs, remarks: inputs.remarks ?? remarks }).trimEnd())
-  } else ctx.out(formatShow(run, { remarks }))
+  } else {
+    const { cloudOriginOf } = await import('./cloud-files.ts')
+    const origin = await cloudOriginOf(config.root, run.runId, { exact: true }).catch(() => null)
+    ctx.out(formatShow(run, { remarks, ...(origin && { cloudRunId: origin.cloudRunId }) }))
+  }
   return 0
 }
 
