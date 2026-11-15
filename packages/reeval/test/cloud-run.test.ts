@@ -572,6 +572,64 @@ describe('reeval run on the cloud platform', () => {
     }
   })
 
+  test('stops before uploading, naming the command, when the project has no key for a gateway the plan resolves', async () => {
+    const p = await platform({ secretNames: [] })
+    try {
+      const dir = await fixtureProject()
+      const config = join(dir, 'reeval.config.ts')
+      writeFileSync(
+        config,
+        `import { vercel } from 'reeval/gateway'\n${readFileSync(config, 'utf8').replace(
+          'judge: { model: fakeJudge({ score: 0.9 }) },',
+          "judge: { model: 'typesafe-ai/jev-1.14.0' },\n  gateway: [vercel()],",
+        )}`,
+      )
+      const r = await runCli(dir, ['run', '--cloud'], {
+        env: {
+          REEVAL_CLOUD_URL: p.base,
+          REEVAL_TOKEN: 'cloud-test-token',
+          AI_GATEWAY_API_KEY: '',
+          VERCEL_OIDC_TOKEN: '',
+        },
+      })
+      assert.equal(r.code, 2, r.stdout + r.stderr)
+      assert.match(
+        r.stderr,
+        /lacks a secret and a gateway key this run needs, so nothing was uploaded:\n {2}vercel\(\): reeval cloud gateway set vercel\nAdd its key with that command, or take it out of the gateway list\.\n {2}CHECK_TOKEN\n/,
+      )
+      assert.doesNotMatch(r.stderr, /AI_GATEWAY_API_KEY|VERCEL_OIDC_TOKEN/)
+      assert.ok(!p.seen.some((s) => s.method === 'POST' && s.path.endsWith('/runs')))
+    } finally {
+      await p.close()
+    }
+  })
+
+  test('a plan on vertex() runs here, with a note', async () => {
+    const p = await platform()
+    try {
+      const dir = await fixtureProject()
+      const config = join(dir, 'reeval.config.ts')
+      writeFileSync(
+        config,
+        `import { vertex } from 'reeval/gateway'\n${readFileSync(config, 'utf8').replace(
+          'judge: { model: fakeJudge({ score: 0.9 }) },',
+          "judge: { model: 'google/gemini-3.8-flash' },\n  gateway: [vertex({ project: 'p' })],",
+        )}`,
+      )
+      const r = await runCli(dir, ['run', '--cloud', '--dry-run'], {
+        env: { REEVAL_CLOUD_URL: p.base },
+      })
+      assert.equal(r.code, 0, r.stdout + r.stderr)
+      assert.match(
+        r.stdout,
+        /target {2}here, not in the cloud: vertex\(\) calls models on this machine's Google Cloud credentials/,
+      )
+      assert.deepEqual(p.seen, [])
+    } finally {
+      await p.close()
+    }
+  })
+
   test('says a declared name the platform reserves needs renaming, not setting', async () => {
     const p = await platform({ secretNames: [], reserved: ['CHECK_TOKEN'] })
     try {

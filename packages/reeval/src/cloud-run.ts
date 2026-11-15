@@ -11,6 +11,7 @@ import type { LinkedProject } from './cloud-project.ts'
 import type { PlannedItem } from './engine/node.ts'
 import { UsageError } from './errors.ts'
 import { displayUrl, EventStreamError, type FollowOptions } from './events.ts'
+import { ROUTED_KEYS } from './judge/index.ts'
 import { CLOUD_TOKEN_VAR, type CloudToken, cloudToken } from './login/credentials.ts'
 import type { PlanDocument } from './plan.ts'
 import { stripCredentials } from './redact.ts'
@@ -108,7 +109,11 @@ export function notCloud(planned: readonly PlannedItem[]): string[] {
   const why = new Map<string, Set<string>>()
   for (const { id, attempt } of planned) {
     if (attempt.skip || attempt.plan.skip) continue
-    const reason = sandboxKind(attempt.sandbox).notCloud?.(attempt.sandbox)
+    const reason =
+      sandboxKind(attempt.sandbox).notCloud?.(attempt.sandbox) ??
+      (attempt.gateway?.name === 'vertex' || attempt.judge?.gateway === 'vertex'
+        ? "vertex() calls models on this machine's Google Cloud credentials"
+        : undefined)
     if (reason) why.set(reason, (why.get(reason) ?? new Set()).add(id))
   }
   return [...why].map(([reason, ids]) => {
@@ -549,14 +554,29 @@ export async function checkCloudSecrets(options: {
   const held = new Set(body.names)
   const reserved = new Set(strings(body.reserved) ? body.reserved : [])
   const list = (names: string[]) => names.map((name) => `  ${name}`).join('\n')
-  const missing = required.filter((name) => !held.has(name))
-  if (missing.length) {
+  const absent = required.filter((name) => !held.has(name))
+  // A gateway's key fills every one of its variables, so lacking any means the project has no key.
+  const gateways = Object.entries(ROUTED_KEYS).flatMap(([gateway, keys]) =>
+    keys.some((k) => absent.includes(k)) ? [gateway] : [],
+  )
+  const missing = absent.filter((name) => !Object.values(ROUTED_KEYS).flat().includes(name))
+  if (absent.length) {
     const settable = missing.filter((name) => !reserved.has(name))
     const refused = missing.filter((name) => reserved.has(name))
-    const one = missing.length === 1
+    const what = [
+      missing.length && (missing.length === 1 ? 'a secret' : `${missing.length} secrets`),
+      gateways.length &&
+        (gateways.length === 1 ? 'a gateway key' : `${gateways.length} gateway keys`),
+    ].filter(Boolean)
     const parts = [
-      `The cloud project ${await projectLabel(base, auth, project)} lacks ${one ? 'a secret' : `${missing.length} secrets`} this run needs, so nothing was uploaded:`,
+      `The cloud project ${await projectLabel(base, auth, project)} lacks ${what.join(' and ')} this run needs, so nothing was uploaded:`,
     ]
+    if (gateways.length) {
+      parts.push(
+        list(gateways.map((g) => `${g}(): reeval cloud gateway set ${g}`)),
+        `Add ${gateways.length === 1 ? 'its key' : 'each key'} with that command, or take ${gateways.length === 1 ? 'it' : 'them'} out of the gateway list.`,
+      )
+    }
     if (settable.length) {
       parts.push(
         list(settable),
