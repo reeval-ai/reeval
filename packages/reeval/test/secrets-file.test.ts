@@ -537,7 +537,10 @@ describe('held secrets in this process', () => {
       egress: { policy: 'deny-all', auto: [] },
       brokering: { credential: 'AI_GATEWAY_API_KEY', endpoints: [] },
     } as never)
-    assert.deepEqual((glue.egress as { credentialFiller?: unknown }).credentialFiller, filler)
+    assert.deepEqual((glue.egress as { credentialFiller?: unknown }).credentialFiller, {
+      filler,
+      reference: 'ref-gw-1234567',
+    })
 
     // An environment's secret is brokered with the filler, where the file swaps it in.
     const env = await resolve(({ secret }) => ({ env: { K: secret.fromEnv('SERVICE_KEY') } }))
@@ -551,6 +554,28 @@ describe('held secrets in this process', () => {
       env: { K: secret.fromEnv('SERVICE_KEY', { hosts: ['api.example.com'], in: ['header'] }) },
     }))
     assert.deepEqual(own.substitutions[0]?.in, ['header'])
+    // A template is a header value, so it takes the header whatever the file's in.
+    const header = await resolve(({ secret, mcp }) => ({
+      mcp: {
+        api: mcp.http('https://api.example.com/mcp', {
+          // biome-ignore lint/suspicious/noTemplateCurlyInString: secret.template's syntax
+          headers: { authorization: secret.template('Bearer ${SERVICE_KEY}') },
+        }),
+      },
+    }))
+    assert.deepEqual(header.substitutions[0]?.in, ['header'])
+    assert.deepEqual(header.substitutions[0]?.fill, filler)
+    // Vercel's project token is read only from the environment, so a filled one is refused.
+    delete process.env.AI_GATEWAY_API_KEY
+    try {
+      hold({ VERCEL_OIDC_TOKEN: { mode: 'filled', value: 'ref-oidc-12345678' } }, filler)
+      assert.throws(
+        () => hostCall('google/gemini-3.8-flash', process.env, 'judge model', 'vercel'),
+        /VERCEL_OIDC_TOKEN for judge model .* is a filled secret/,
+      )
+    } finally {
+      delete process.env.VERCEL_OIDC_TOKEN
+    }
     // The filler's token is masked like a held value.
     assert.doesNotMatch(redactSecrets(`token ${filler.token}`, {}), /filler-token-12345678/)
   })
@@ -591,6 +616,7 @@ describe('held secrets in this process', () => {
     const caFile = join(dir, 'ca.pem')
     writeFileSync(caFile, ca.cert)
     const got: { path?: string; headers?: Record<string, unknown>; body?: string } = {}
+    const paths: string[] = []
     const server = createHttpsServer(
       { key: leaf.key.export({ type: 'pkcs8', format: 'pem' }), cert: leaf.cert },
       (req, res) => {
@@ -599,6 +625,11 @@ describe('held secrets in this process', () => {
           body += d
         })
         req.on('end', () => {
+          paths.push(req.url ?? '')
+          if (String(req.headers['reeval-fill-target']).endsWith('/redirect')) {
+            res.writeHead(302, { location: `https://localhost:${port}/stolen` })
+            return res.end()
+          }
           Object.assign(got, { path: req.url, headers: req.headers, body })
           res.writeHead(200, { 'content-type': 'application/json' })
           res.end('{"filled":true}')
@@ -630,6 +661,9 @@ const r = await call.fetch(call.baseURL + '/messages', {
   body: '{"model":"claude-sonnet-5-5"}',
 })
 console.log(r.status, await r.text())
+// A redirect from the filler is never followed.
+await call.fetch(call.baseURL + '/redirect', { method: 'POST', headers: { 'x-api-key': call.apiKey } })
+  .then((m) => console.log('followed', m.status), () => console.log('not followed'))
 `,
     )
     try {
@@ -639,7 +673,8 @@ console.log(r.status, await r.text())
         { env: { ...process.env, REEVAL_SECRETS_FILE: file, NODE_EXTRA_CA_CERTS: caFile } },
       )
       assert.equal(r.exitCode, 0, r.stdout + r.stderr)
-      assert.equal(r.stdout.trim(), '200 {"filled":true}')
+      assert.equal(r.stdout.trim(), '200 {"filled":true}\nnot followed')
+      assert.deepEqual(paths, ['/swap', '/swap'])
       assert.equal(got.path, '/swap')
       assert.equal(got.headers?.['reeval-fill-target'], 'https://api.anthropic.com/v1/messages')
       assert.equal(got.headers?.['reeval-fill-authorization'], 'Bearer filler-token-12345678')

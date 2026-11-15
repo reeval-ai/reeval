@@ -337,7 +337,7 @@ function template(
       return v
     }
     const p =
-      placeholders.get(name) ?? broker(secrets, name, v, to, file?.in, 'agent', name, file?.fill)
+      placeholders.get(name) ?? broker(secrets, name, v, to, undefined, 'agent', name, file?.fill)
     placeholders.set(name, p)
     return p
   })

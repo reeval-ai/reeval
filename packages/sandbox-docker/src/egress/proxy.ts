@@ -121,11 +121,10 @@ export type EgressProxyOptions = {
    */
   localResponses?: readonly LocalResponse[]
   /**
-   * The filler the credentials the transformations set are references for: a request a
-   * credential rule sets a header on goes to it, as a filled substitution's does (see
-   * `Substitution.fill`).
+   * The filler the harness credential is a reference for: a request a rule sets a header holding
+   * `reference` on goes to it, as a filled substitution's does (see `Substitution.fill`).
    */
-  credentialFiller?: Filler
+  credentialFiller?: { filler: Filler; reference: string }
   /** Every DNS decision and, once each is done, every request and tunnel: for debug logs. */
   onEvent?: (event: EgressEvent) => void
 }
@@ -490,19 +489,46 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
     const problem = filler && fillerUrlProblem(filler.url)
     if (problem) throw new Error(`a filler's URL ${problem}`)
   }
-  checkFiller(options.credentialFiller)
+  checkFiller(options.credentialFiller?.filler)
   /**
-   * The filler a request goes to instead of its own host: a filled substitution's, when it was
-   * swapped into the headers or query or may be in the body, else the credential filler when a
-   * credential rule set a header. Undefined sends it to its own host.
+   * Where a request goes. To a filler only when every value swapped into it is a filled
+   * reference with that one filler: a filled substitution swapped into its headers or query, one
+   * in bodies when it has a body (which isn't read before it's sent), and the filled credential
+   * in a header a rule set. `mixed` when it would also carry a value the gateway swaps in itself
+   * (a substitution with no filler, a derived token, any other header a rule set) or another
+   * filler's reference: the gateway refuses it, so a filler never sees a real value.
+   * Neither sends it to its own host.
    */
-  const fillerFor = (
+  const fillRoute = (
     own: readonly Substitution[],
-    names: readonly string[],
-    credentials: readonly string[],
-  ) =>
-    own.find((s) => s.fill && (names.includes(s.name) || s.in.includes('body')))?.fill ??
-    (credentials.length ? options.credentialFiller : undefined)
+    applied: readonly Substitution[],
+    headers: OutgoingHttpHeaders,
+    replaced: readonly string[],
+    hasBody: boolean,
+  ): { filler?: Filler; mixed?: true } => {
+    const fillers = new Set<Filler>()
+    let real = false
+    for (const s of applied) {
+      if (s.fill) fillers.add(s.fill)
+      else real = true
+    }
+    if (hasBody) for (const s of own) if (s.fill && s.in.includes('body')) fillers.add(s.fill)
+    const credential = options.credentialFiller
+    for (const name of replaced) {
+      if (credential && String(headers[name] ?? '').includes(credential.reference)) {
+        fillers.add(credential.filler)
+      } else real = true
+    }
+    if (!fillers.size) return {}
+    const [first, ...others] = fillers
+    const one = others.every((f) => f.url === first?.url && f.token === first?.token)
+    return real || !one ? { mixed: true } : { filler: first }
+  }
+  /** Whether a request has a body, from its framing: HTTP/2's end of stream, else its headers. */
+  const hasBody = (req: http.IncomingMessage | http2.Http2ServerRequest) =>
+    req.httpVersionMajor === 2
+      ? !(req as http2.Http2ServerRequest).stream.endAfterHeaders
+      : req.headers['transfer-encoding'] !== undefined || Number(req.headers['content-length']) > 0
   let policyCheck = createPolicyCheck(options.policy, options)
   /** Bumped by `switchPolicy`: a verdict reached under the policy before it is reached again. */
   let generation = 0
@@ -1146,6 +1172,8 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
     headers: OutgoingHttpHeaders
     path: string
     own: Substitution[]
+    /** The substitutions swapped into its headers and query. */
+    applied: Substitution[]
     /** Brokered secrets substituted, and credential headers set, by name. */
     names: string[]
     credentials: string[]
@@ -1165,6 +1193,7 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
         headers: {},
         path,
         own: [],
+        applied: [],
         names: [],
         credentials: [],
         refused: { status: 400, reason },
@@ -1179,6 +1208,7 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
         headers: {},
         path,
         own: [],
+        applied: [],
         names: [],
         credentials: [],
         refused: { status: 421, reason },
@@ -1213,6 +1243,7 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
         headers: {},
         path,
         own: [],
+        applied: [],
         names: [],
         credentials: [],
         refused: {
@@ -1264,6 +1295,7 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
       headers: substituted.headers as OutgoingHttpHeaders,
       path: substituted.path,
       own,
+      applied: substituted.applied,
       names: substituted.names,
       credentials: replaced,
       ...(exchange ? { exchange } : {}),
@@ -1579,16 +1611,29 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
         via: 'decrypted',
         requestHeaders: plainHeaders(req.headers),
       })
-    const { headers, path, own, names, credentials, refused, exchange, readsModel, readsUsage } =
-      transformed(target, method, asked, sent, req.httpVersion)
+    const {
+      headers,
+      path,
+      own,
+      applied,
+      names,
+      credentials,
+      refused,
+      exchange,
+      readsModel,
+      readsUsage,
+    } = transformed(target, method, asked, sent, req.httpVersion)
     t.set({ substituted: names, credentials, ...(readsUsage ? { modelCall: true } : {}) })
     const reads: Reads = { model: !!readsModel, usage: !!readsUsage }
-    if (refused) {
-      t.refuse(refused.reason)
+    const route = fillRoute(own, applied, headers, credentials, hasBody(req))
+    const refusal = refused ?? (route.mixed && { status: 403, reason: mixedReason(method, url) })
+    if (refusal) {
+      if (route.mixed) log(`reeval:egress ${method} ${url} refused (filled and real values)`)
+      t.refuse(refusal.reason)
       req.resume()
       return res
-        .writeHead(refused.status, { 'content-type': 'text/plain' })
-        .end(`${refused.reason}\n`)
+        .writeHead(refusal.status, { 'content-type': 'text/plain' })
+        .end(`${refusal.reason}\n`)
     }
     const local = locals.find((l) =>
       onEndpoint([l.match], { host: target.host, method, path: asked, headers: {} }),
@@ -1607,10 +1652,12 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
       setsCredential(rules, target.host) ||
       substitutes(allSubs(), target.host) ||
       hostAllowed(tokenHosts, target.host)
-    const body = requestBody(req as Readable, headers, own, t, readsEffort)
     const authority = authorityOf(target.host, target.port)
-    const filler = fillerFor(own, names, credentials)
+    const { filler } = route
     if (filler) {
+      // Only filled references go into the body: another secret's placeholder stays as it is.
+      const filled = own.filter((s) => s.fill)
+      const body = requestBody(req as Readable, headers, filled, t, readsEffort)
       const to = new URL(filler.url)
       log(`reeval:egress ${method} ${url} sent to its filler`)
       const upstream = https.request({
@@ -1626,15 +1673,18 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
         agent,
         ca,
       })
+      const token = { ...fillerToken, value: filler.token, hosts: [target.host] }
       return forwardHttp1(body, res, upstream, {
-        own,
+        own: [...own, token],
         creds: credentialScrubs(target.host),
         url,
         ...(exchange ? { exchange } : {}),
         ...(t ? { t } : {}),
         reads,
+        unreachable: 'its filler could not be reached',
       })
     }
+    const body = requestBody(req as Readable, headers, own, t, readsEffort)
     const session = req.httpVersionMajor === 2 ? await upstreamSession(target) : null
     if (!session) {
       const upstream = https.request({
@@ -1712,6 +1762,16 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
     return true
   }
 
+  /** The filler's token, scrubbed from what its filler answers. */
+  const fillerToken = {
+    name: 'filler token',
+    placeholder: 'reeval_redacted_filler_token',
+    in: [],
+  } satisfies Partial<Substitution>
+
+  const mixedReason = (method: string, url: string) =>
+    `reeval egress gateway: refused ${method} ${url}. It carries a secret its filler fills and a value reeval swaps in itself, so it can go neither to the filler nor to its host; send them in separate requests.`
+
   function forwardHttp1(
     req: Readable,
     res: Response,
@@ -1723,6 +1783,8 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
       exchange?: DerivedTokens
       t?: RequestTracker
       reads?: Reads
+      /** What the sandbox is told when the upstream fails, in place of the failure's own words. */
+      unreachable?: string
     },
   ) {
     const { own, creds, url, exchange, t } = to
@@ -1739,8 +1801,10 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
       })
     })
     upstream.once('error', (error) => {
-      t?.set({ status: 502, reason: failure(error) })
-      if (!res.headersSent) res.writeHead(502).end(`reeval egress gateway: ${failure(error)}\n`)
+      const reason = to.unreachable ?? failure(error)
+      if (to.unreachable) log(`reeval:egress ${url}: ${to.unreachable}: ${failure(error)}`)
+      t?.set({ status: 502, reason })
+      if (!res.headersSent) res.writeHead(502).end(`reeval egress gateway: ${reason}\n`)
       else res.destroy()
     })
     req.pipe(upstream)
@@ -1749,7 +1813,7 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
   function onUpgrade(target: Target, req: http.IncomingMessage, socket: Duplex, head: Buffer) {
     const method = req.method ?? 'GET'
     const startedAt = Date.now()
-    const { headers, path, own, names, credentials, refused } = transformed(
+    const { headers, path, own, applied, names, credentials, refused } = transformed(
       target,
       method,
       req.url ?? '/',
@@ -1781,7 +1845,8 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
       upgraded({ allowed: false, status: refused.status, reason: refused.reason })
       return reply(socket, refused.status, refused.reason)
     }
-    if (fillerFor(own, names, credentials)) {
+    const route = fillRoute(own, applied, headers, credentials, true)
+    if (route.filler || route.mixed) {
       const reason = `reeval egress gateway: ${method} https://${target.host}${pathOnly(req.url ?? '/')} carries a secret its filler fills, which takes no upgrades`
       upgraded({ allowed: false, status: 501, reason })
       return reply(socket, 501, reason)

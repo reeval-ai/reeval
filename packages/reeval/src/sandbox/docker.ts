@@ -117,7 +117,8 @@ export function gatewayGlue(options: SandboxOptions) {
   let cost: number | undefined
   const logEvent = gatewayEvents(debug, brokering?.credential, options.expectedBlocked ?? [])
   const held = brokering && heldSecret(brokering.credential)
-  const credentialFiller = held?.mode === 'filled' ? held.filler : undefined
+  const credentialFiller =
+    held?.mode === 'filled' ? { filler: held.filler, reference: held.value } : undefined
   const onEvent = (event: EgressEvent) => {
     logEvent?.(event)
     if (event.type === 'dns') return

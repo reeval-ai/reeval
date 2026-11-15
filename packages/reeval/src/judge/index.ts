@@ -14,7 +14,7 @@ import {
 import { vertexSettings } from '../gateway/vertex.ts'
 import type { JudgeRetry } from '../history/types.ts'
 import { badCharacterAt, isPlaceholder, redactSecrets } from '../redact.ts'
-import { heldFetch, heldSecret, hostEnv } from '../secrets-file.ts'
+import { heldFetch, heldSecret, hostEnv, LOOPBACK } from '../secrets-file.ts'
 import { startEnv } from '../startup.ts'
 import type {
   FakeJudgeModel,
@@ -98,8 +98,6 @@ export type JudgeRoute =
   | { kind: 'gateway' }
   | { kind: 'openrouter' }
   | { kind: 'vertex' }
-
-const LOOPBACK = /^(localhost|127(\.\d{1,3}){3}|\[::1\])$/
 
 export type { JudgeState } from '../types.ts'
 

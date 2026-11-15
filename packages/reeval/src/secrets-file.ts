@@ -213,7 +213,8 @@ export function hostEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv
   return out
 }
 
-const LOOPBACK = /^(localhost|127(\.\d{1,3}){3}|\[::1\])$/
+/** This machine's hostnames, which a held key may reach over plain HTTP. */
+export const LOOPBACK = /^(localhost|127(\.\d{1,3}){3}|\[::1\])$/
 
 /**
  * A fetch for reeval's own calls with held secret `key`'s value: to `allowed` hosts only, over
