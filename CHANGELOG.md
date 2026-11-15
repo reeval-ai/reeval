@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.28.0](https://github.com/reeval-ai/reeval/compare/v0.27.2...v0.28.0) (2026-11-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** take reeval cloud provider set|delete <provider> and let the platform decide which exist ([#989](https://github.com/reeval-ai/reeval/issues/989))
+
+### Features
+
+* **agents:** add the agent() session API and host-side output ([#997](https://github.com/reeval-ai/reeval/issues/997)) ([44745c2](https://github.com/reeval-ai/reeval/commit/44745c2d5ac28fdbf59df486b571d1f3e7313158))
+* **agents:** add the docker() runner and harness setup install ([#998](https://github.com/reeval-ai/reeval/issues/998)) ([ae3a500](https://github.com/reeval-ai/reeval/commit/ae3a500164d3417d4db16d75682e994e279f01db))
+* **agents:** add the Runner interface and local() runner ([#985](https://github.com/reeval-ai/reeval/issues/985)) ([6b576b1](https://github.com/reeval-ai/reeval/commit/6b576b1a5889d221544d07364b1488d7b98038a8))
+* **cloud:** add reeval cloud gateway set|delete &lt;gateway&gt; and list ([#992](https://github.com/reeval-ai/reeval/issues/992)) ([9f2170a](https://github.com/reeval-ai/reeval/commit/9f2170aa153dbc145fc13548633f5cb0172ae31b))
+* **cloud:** stop a cloud run before upload when the project has no key for its gateway ([#1000](https://github.com/reeval-ai/reeval/issues/1000)) ([635dc80](https://github.com/reeval-ai/reeval/commit/635dc80f2fb1ca0a1b494632ccdaf42c974a7f6b))
+* **judge:** let reeval's own model calls use a brokered key on its host ([#993](https://github.com/reeval-ai/reeval/issues/993)) ([c17f168](https://github.com/reeval-ai/reeval/commit/c17f168307f3ca84c934df1285b459333c32c231))
+* **secrets:** fill held secrets through an external filler ([#1003](https://github.com/reeval-ai/reeval/issues/1003)) ([9f50631](https://github.com/reeval-ai/reeval/commit/9f50631778d8e3bc69e69e718611345416a62881))
+* **secrets:** relay a held secret's requests, and broker one with no hosts where each use goes ([#995](https://github.com/reeval-ai/reeval/issues/995)) ([7412e2a](https://github.com/reeval-ai/reeval/commit/7412e2a38f49808314b1237c8e0aabc0f55569ae))
+
+
+### Bug Fixes
+
+* **cli:** take reeval cloud provider set|delete &lt;provider&gt; and let the platform decide which exist ([#989](https://github.com/reeval-ai/reeval/issues/989)) ([681b4d6](https://github.com/reeval-ai/reeval/commit/681b4d60b52742e0d9731df595a06df664cb2c07))
+
 ## [0.27.2](https://github.com/reeval-ai/reeval/compare/v0.27.1...v0.27.2) (2026-11-14)
 
 

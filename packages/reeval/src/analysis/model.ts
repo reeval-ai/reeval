@@ -45,7 +45,7 @@ const isEvaluationModel = (model: string) => model.startsWith('typesafe-ai/')
  * `judge` when it's a language model. `judge` is the run's judge model (a profile's over the
  * config's); the config's when none is given.
  */
-function fallbackModel(
+export function fallbackModel(
   config: ResolvedConfig,
   judge: JudgeModel | undefined = config.judge.model,
 ): string | FakeAnalysisModel | undefined {

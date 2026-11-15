@@ -604,6 +604,101 @@ describe('reeval run on the cloud platform', () => {
     }
   })
 
+  test('a credential any one of several names provides is a secret choice, met by any of them', async () => {
+    const p = await platform({ secretNames: [], fails: 'not started here' })
+    try {
+      const dir = await fixtureProject()
+      const config = join(dir, 'reeval.config.ts')
+      writeFileSync(
+        config,
+        `import { claudeCode } from 'reeval/harness'\nimport { docker } from 'reeval/sandbox'\n${readFileSync(
+          config,
+          'utf8',
+        )
+          .replace(
+            "harnesses: fakeHarness({ script: [[{ reply: 'hi' }]] }),",
+            "harnesses: claudeCode({ model: 'claude-sonnet-5' }),",
+          )
+          .replace(/sandbox: fakeSandbox\(.*\),/, 'sandbox: docker(),')}`,
+      )
+      const env = {
+        REEVAL_CLOUD_URL: p.base,
+        REEVAL_TOKEN: 'cloud-test-token',
+        ANTHROPIC_API_KEY: '',
+        CLAUDE_CODE_OAUTH_TOKEN: '',
+      }
+      const refused = await runCli(dir, ['run', '--cloud'], { env })
+      assert.equal(refused.code, 2, refused.stdout + refused.stderr)
+      assert.match(
+        refused.stderr,
+        /lacks 2 secrets this run needs, so nothing was uploaded:\n {2}CHECK_TOKEN\n {2}ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN\n/,
+      )
+      assert.equal(p.uploaded, undefined)
+
+      // The other name of a met choice in .env neither asks nor stops a run with no terminal.
+      writeFileSync(join(dir, '.env'), `ANTHROPIC_API_KEY=${TOKEN}\n`)
+      const held = await platform({
+        secretNames: ['CHECK_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN'],
+        fails: 'not started here',
+      })
+      try {
+        const r = await runCli(dir, ['run', '--cloud'], {
+          env: { ...env, REEVAL_CLOUD_URL: held.base },
+        })
+        assert.ok(held.uploaded, r.stdout + r.stderr)
+        assert.doesNotMatch(r.stdout + r.stderr, /Cloud environment does not have/)
+        assert.ok(!(r.stdout + r.stderr).includes(TOKEN), 'no secret value in the output')
+        const entry = readTar(gunzipSync(held.uploaded)).find((e) => e.path === 'manifest.json')
+        assert.ok(entry?.type === 'file')
+        const manifest = JSON.parse(entry.data.toString('utf8'))
+        assert.deepEqual(manifest.secrets, ['CHECK_TOKEN'])
+        assert.deepEqual(manifest.secretChoices, [['ANTHROPIC_API_KEY', 'CLAUDE_CODE_OAUTH_TOKEN']])
+      } finally {
+        await held.close()
+      }
+    } finally {
+      await p.close()
+    }
+  })
+
+  test("a question model's key is in the plan's secrets, and one on vertex() keeps the run here", async () => {
+    const dir = await fixtureProject()
+    const config = join(dir, 'reeval.config.ts')
+    const base = readFileSync(config, 'utf8')
+    writeFileSync(
+      join(dir, 'evals/asks.eval.ts'),
+      `import { evaluate } from 'reeval'
+evaluate('asks', { questions: [{ question: 'Is it tidy?', output: true, model: 'google/gemini-3.8-flash' }] }, async (c) => {
+  await c.send('hi')
+})
+`,
+    )
+    const plan = async (gateway: string) => {
+      writeFileSync(
+        config,
+        `import { vercel, vertex } from 'reeval/gateway'\n${base
+          .replace(
+            'judge: { model: fakeJudge({ score: 0.9 }) },',
+            `judge: { model: fakeJudge({ score: 0.9 }) },\n  gateway: [${gateway}],`,
+          )
+          .replace(
+            "script: [[{ reply: 'hi' }]] }",
+            "script: [[{ reply: 'hi' }]], gateway: 'direct' }",
+          )}`,
+      )
+      const r = await runCli(dir, ['run', '--dry-run', '--json', '--local'])
+      assert.equal(r.code, 0, r.stderr)
+      return JSON.parse(r.stdout) as { secrets: string[]; notCloud?: string[] }
+    }
+    const onVercel = await plan('vercel()')
+    assert.ok(onVercel.secrets.includes('AI_GATEWAY_API_KEY'), onVercel.secrets.join(', '))
+    assert.equal(onVercel.notCloud, undefined)
+    const onVertex = await plan("vertex({ project: 'p' })")
+    assert.deepEqual(onVertex.notCloud, [
+      "vertex() calls models on this machine's Google Cloud credentials (evals/asks.eval.ts › asks)",
+    ])
+  })
+
   test('a plan on vertex() runs here, with a note', async () => {
     const p = await platform()
     try {
