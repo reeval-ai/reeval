@@ -1433,6 +1433,13 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
   const TAIL = 16 * 1024
 
   const PROVIDER = /"provider"\s*:\s*"([^"\\]{1,200})"/
+  /** A BYOK call's upstream cost in parts, for a response whose total is null. */
+  const UPSTREAM_PARTS = [
+    'upstream_inference_input_cost',
+    'upstream_inference_output_cost',
+    'upstream_inference_prompt_cost',
+    'upstream_inference_completions_cost',
+  ]
   const lastNumber = (text: string, key: string) => {
     const re = new RegExp(`"${key}"\\s*:\\s*(\\d+(?:\\.\\d+)?(?:[eE][-+]?\\d+)?)`, 'g')
     const last = [...text.matchAll(re)].at(-1)
@@ -1451,7 +1458,8 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
    * Records the first `"model"` or `"modelId"` value in the response body and the `"effort"` of the
    * `"reasoning"` object after it, within {@link MODEL_WINDOW}; the provider of a selected endpoint
    * there or in the body's {@link TAIL}, else the first `"provider"` string in the window; and the
-   * last `"cost"` number in the whole body (with a BYOK key's upstream cost), reading alongside its flow. Inside a JSON string the
+   * last `"cost"` number in the body's {@link TAIL} (with a BYOK key's upstream cost), reading
+   * alongside its flow. Inside a JSON string the
    * quotes are escaped, so text that merely mentions them doesn't match.
    */
   function readModel(up: Readable, t: RequestTracker) {
@@ -1481,7 +1489,10 @@ export function createEgressProxy(options: EgressProxyOptions): EgressProxy {
       const cost = lastNumber(tail, 'cost')
       // On a BYOK key OpenRouter's `cost` is only its fee; the provider bills the rest to the key.
       const byok = /"is_byok"\s*:\s*true/.test(tail)
-      const upstream = byok ? (lastNumber(tail, 'upstream_inference_cost') ?? 0) : 0
+      const upstream = byok
+        ? (lastNumber(tail, 'upstream_inference_cost') ??
+          UPSTREAM_PARTS.reduce((sum, part) => sum + (lastNumber(tail, part) ?? 0), 0))
+        : 0
       if (cost !== undefined) t.set({ responseCost: cost + upstream })
     }
     up.on('data', onData)
