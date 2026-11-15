@@ -585,7 +585,7 @@ describe('reeval run on the cloud platform', () => {
         r.stderr,
         /The cloud project Main \(main\) lacks a secret this run needs, so nothing was uploaded:\n {2}CHECK_TOKEN\nAdd it with reeval cloud secrets set <name> --from-env, /,
       )
-      assert.doesNotMatch(r.stderr, /FROM_FILE|sets this name itself/)
+      assert.doesNotMatch(r.stderr, /FROM_FILE|sets this name itself|cloud provider set/)
       assert.ok(!(r.stdout + r.stderr).includes(TOKEN), 'no secret value in the output')
       assert.deepEqual(
         p.seen.map((s) => `${s.method} ${s.path}`),
@@ -661,6 +661,10 @@ describe('reeval run on the cloud platform', () => {
       assert.match(
         refused.stderr,
         /lacks 2 secrets this run needs, so nothing was uploaded:\n {2}CHECK_TOKEN\n {2}ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN\n/,
+      )
+      assert.match(
+        refused.stderr,
+        /set once for the whole org with reeval cloud provider set <provider> .*; a project secret of the same name takes precedence over it\./,
       )
       assert.equal(p.uploaded, undefined)
 
@@ -1196,6 +1200,7 @@ evaluate('reaches', async (c) => {
       })
       await canceling
       assert.equal(followed.code, 130, followed.stdout + followed.stderr)
+      assert.match(followed.stdout + followed.stderr, /Cloud run run_1 was canceled\n/)
       const said = followed.stdout.split('\n').filter((l) => l.includes('is queued'))
       assert.deepEqual(said, [
         "Cloud run run_1 is queued: waiting for the org's limit on attempts or runs at once, position 2 in the org's queue",
