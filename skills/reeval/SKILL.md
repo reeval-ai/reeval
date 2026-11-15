@@ -57,7 +57,7 @@ npx reeval run
 
 1. Install: `npm init -y` if there's no `package.json`, then `npm i -D reeval`
    (or a tarball: `npm i -D /path/to/reeval.tgz`). Pre-release: pin the version.
-   Node 22.13 or later; npm, pnpm or Yarn.
+   Node 22.16 or later; npm, pnpm or Yarn.
 2. `npx reeval init --harness <cursor|claude-code|antigravity|opencode|goose|pi|codex|fx|grok-build>`
    (it only asks in a terminal) writes `reeval.config.ts` (the agent, `analysis.model:
    'google/gemini-3.8-flash'` for `reeval analyze`, and `pr` and `nightly` profiles), `evals/environments.ts` (one `defineEnvironment`), `evals/greet.eval.ts` (an eval

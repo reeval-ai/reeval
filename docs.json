@@ -17,7 +17,7 @@
   "variables": {
     "pkg": "reeval",
     "cli": "reeval",
-    "node": "22.13",
+    "node": "22.16",
     "podman": "4"
   },
   "agent": {
