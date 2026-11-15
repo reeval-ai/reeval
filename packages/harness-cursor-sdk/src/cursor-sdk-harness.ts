@@ -80,6 +80,8 @@ export type CursorSdkHarnessSettings = {
    * SDK fetch it itself (with the sandbox's key).
    */
   readonly modelCatalog?: 'fetch' | false | readonly CursorSdkModelEntry[]
+  /** The fetch the adapter's own calls to Cursor's API from the host go through. Defaults to the global one. */
+  readonly fetch?: typeof fetch
   /** On-disk layers the agent loads. Defaults to `project` and `user` (rules, skills, MCP, hooks). */
   readonly settingSources?: readonly CursorSdkSettingSource[]
   /** MCP servers in the SDK's `McpServerConfig` shape, passed inline on every turn. */
@@ -222,7 +224,10 @@ async function startSession(
   const catalogSetting = settings.modelCatalog ?? 'fetch'
   const catalog =
     catalogSetting === 'fetch'
-      ? await fetchCursorModelCatalog(credentials, abortSignal ? { signal: abortSignal } : {})
+      ? await fetchCursorModelCatalog(credentials, {
+          ...(abortSignal ? { signal: abortSignal } : {}),
+          ...(settings.fetch ? { fetch: settings.fetch } : {}),
+        })
       : catalogSetting === false
         ? undefined
         : [...catalogSetting]

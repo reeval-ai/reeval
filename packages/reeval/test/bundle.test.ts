@@ -115,8 +115,8 @@ describe('reeval bundle', () => {
     assert.deepEqual(manifest.features, [
       'brokered-model-calls',
       'heartbeat',
-      'relayed-secrets',
       'resume',
+      'secret-filler',
       'secrets-file',
       'vm-layout',
       'vm-waits',

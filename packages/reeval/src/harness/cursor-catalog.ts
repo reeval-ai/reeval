@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import {
+  CURSOR_API_URL,
   type CursorSdkModelEntry,
   cursorEffortParam,
   cursorModelEntry,
@@ -14,6 +15,7 @@ import {
 import { UsageError } from '../errors.ts'
 import { harnessId } from '../options.ts'
 import { cacheDir } from '../root.ts'
+import { filledFetch } from '../secrets-file.ts'
 import type { CursorEfforts, CursorHarnessDescriptor, HarnessDescriptor } from '../types.ts'
 
 /** How long a catalog read for a key is reused, across runs. */
@@ -52,6 +54,16 @@ async function writeCached(key: string, items: CursorSdkModelEntry[], now: numbe
 }
 
 type CatalogOptions = { now?: number; fetch?: typeof fetch }
+
+/**
+ * The fetch reeval's own calls to Cursor's API take: through the filler of a filled
+ * `CURSOR_API_KEY`, else the runtime's.
+ */
+export function cursorFetch(): { fetch?: typeof fetch } {
+  const host = new URL(CURSOR_API_URL).hostname
+  const filled = filledFetch('CURSOR_API_KEY', (h) => h === host)
+  return filled ? { fetch: filled } : {}
+}
 
 /**
  * The catalog `key` sees: the cached copy within the hour (unless `fresh`), else
@@ -167,7 +179,7 @@ export function checkCursorCatalog(
 export async function checkCursorPlan(
   key: string,
   planned: readonly Planned[],
-  options: CatalogOptions = {},
+  options: CatalogOptions = cursorFetch(),
 ): Promise<CursorEfforts | Error> {
   const catalog = await cursorCatalog(key, options).catch((error: Error) => error)
   if (catalog instanceof Error) return catalog

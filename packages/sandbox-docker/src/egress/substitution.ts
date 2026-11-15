@@ -2,6 +2,7 @@
 // only on HTTPS requests to that secret's own hosts, and swaps it back out of their responses.
 import { randomInt } from 'node:crypto'
 import { Transform, type TransformCallback } from 'node:stream'
+import type { Filler } from './fill.ts'
 import { hostAllowed } from './policy.ts'
 
 const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
@@ -29,6 +30,12 @@ export type Substitution = {
    * arrive, which stalls a long-lived stream. For values the upstream never echoes in a body.
    */
   scrubBodies?: boolean
+  /**
+   * The filler `value` is a reference for: a request it's swapped into goes to the filler instead
+   * of its host, and with `in: ['body']` every request on its hosts does, since the body streams
+   * after the request is sent on.
+   */
+  fill?: Filler
 }
 
 /** The substitutions whose hosts include `host`. */

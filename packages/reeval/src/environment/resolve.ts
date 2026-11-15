@@ -6,7 +6,13 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { mkdir, rm } from 'node:fs/promises'
 import { basename, isAbsolute, join, relative, sep } from 'node:path'
 import type { ResolvedMcpServer } from '@reeval/agents'
-import { hostAllowed, placeholder, type Substitution } from '@reeval/sandbox-docker'
+import {
+  type Filler,
+  hostAllowed,
+  placeholder,
+  type SubstituteIn,
+  type Substitution,
+} from '@reeval/sandbox-docker'
 import { run } from '@reeval/sandbox-docker/process'
 import { parse as parseYaml } from 'yaml'
 import { parseDuration } from '../config.ts'
@@ -165,15 +171,22 @@ type Secrets = {
 /**
  * The value `REEVAL_SECRETS_FILE` holds for host variable `from`, with the hosts it's brokered to:
  * the file's, narrowed to the ones `hosts` names when the environment names some, or the
- * environment's alone when the file names none. A sandbox one keeps `hosts`; a relayed one is
- * refused, since only a harness's credential and reeval's own calls take its relay.
+ * environment's alone when the file names none. A sandbox one keeps `hosts`; a filled one is
+ * brokered the same way, with its filler and where the file swaps it in.
  */
 function held(
   from: string,
   where: string,
   secrets: Secrets,
   hosts: readonly string[] | undefined,
-): { value: string; hosts: readonly string[] | undefined } | undefined {
+):
+  | {
+      value: string
+      hosts: readonly string[] | undefined
+      fill?: Filler
+      in?: readonly SubstituteIn[]
+    }
+  | undefined {
   const secret = heldSecret(from)
   if (!secret) {
     if (!isPlaceholder(process.env[from])) return undefined
@@ -183,11 +196,6 @@ function held(
   }
   // The mode the file gives wins over the config's hosts: a sandbox secret is never brokered.
   if (secret.mode === 'sandbox') return { value: secret.value, hosts: undefined }
-  if (secret.mode === 'relayed') {
-    throw new InfraError(
-      `${from} for ${where} is relayed, which only a harness's own credential and reeval's own model calls take: give it the brokered mode for ${where}.`,
-    )
-  }
   const own = secret.hosts
   if (!own && !hosts) {
     throw new InfraError(
@@ -215,6 +223,14 @@ function held(
       `${from} for ${where} is brokered to ${to}, and this sandbox has no egress gateway to swap it in. Run it in docker() or another sandbox with a gateway, or give it the sandbox mode.`,
     )
   }
+  if (secret.mode === 'filled') {
+    return {
+      value: secret.value,
+      hosts: kept,
+      fill: secret.filler,
+      ...(secret.in && { in: secret.in }),
+    }
+  }
   return { value: secret.value, hosts: kept }
 }
 
@@ -226,6 +242,7 @@ function broker(
   where: readonly Substitution['in'][number][] = ['header'],
   phase: BrokeredSecret['phase'] = 'agent',
   from = name,
+  fill?: Filler,
 ): string {
   const at = badCharacterAt(value)
   if (at && where.includes('header')) {
@@ -241,6 +258,7 @@ function broker(
     in: [...where],
     phase,
     ...(from === name ? {} : { secret: from }),
+    ...(fill && { fill }),
   }
   secrets.brokered.push(sub)
   return sub.placeholder
@@ -284,9 +302,10 @@ function hostValue(
     as,
     value,
     hosts,
-    secret.in,
+    secret.in ?? file?.in,
     secret.to === 'checks' ? 'checks' : 'agent',
     from,
+    file?.fill,
   )
 }
 
@@ -317,7 +336,8 @@ function template(
       secrets.real.push(name)
       return v
     }
-    const p = placeholders.get(name) ?? broker(secrets, name, v, to)
+    const p =
+      placeholders.get(name) ?? broker(secrets, name, v, to, file?.in, 'agent', name, file?.fill)
     placeholders.set(name, p)
     return p
   })
