@@ -124,7 +124,10 @@ export type Attempt = {
    * Set when the eval body reads `turn.status`. Unhandled mid-turn errors stay counted only then.
    */
   turnStatusRead: boolean
-  /** The turn in flight, with how many model calls the sandbox had seen when it began. */
+  /**
+   * The turn in flight, or the one the eval's timeout cut off: its index, and how many model calls
+   * the sandbox had seen when it began.
+   */
   turnCalls?: { turn: number; before: number }
 }
 

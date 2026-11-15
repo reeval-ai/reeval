@@ -33,6 +33,9 @@ const STATUS: ReadonlyMap<number, Cause> = new Map([
   [529, 'overloaded'],
 ])
 
+/** The stop an HTTP status alone says the provider made, if it says one. */
+export const statusCause = (status: number): Cause | undefined => STATUS.get(status)
+
 const CAUSE_TEXT: Record<Cause, string> = {
   credit: 'out of credit',
   quota: 'over its quota',

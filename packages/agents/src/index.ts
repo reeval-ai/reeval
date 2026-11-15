@@ -49,7 +49,7 @@ export {
   startAgent,
   turnCosts,
 } from './driver/agent.ts'
-export { type ProviderStop, providerStop } from './driver/provider-stop.ts'
+export { type ProviderStop, providerStop, statusCause } from './driver/provider-stop.ts'
 export {
   errorText,
   normalizeStream,

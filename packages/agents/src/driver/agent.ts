@@ -338,7 +338,10 @@ export async function startAgent(options: StartAgentOptions): Promise<HarnessSes
         const calls = modelStatuses()
           ?.slice(callsBefore)
           .filter((s): s is number => s !== null)
-        const failed = everyCallFailed(entry.name, calls ?? seen)
+        // The model calls when one answered, else every request the key was sent on: a key check
+        // or model list the CLI got a 401 on before giving up is still the turn's whole story.
+        const modelSeen = calls?.length ? calls : seen
+        const failed = everyCallFailed(entry.name, modelSeen)
         // A CLI can end a turn as if it worked when its API refused every call (fx does).
         if (status === 'completed' && failed && !events.some((e) => e.type === 'error')) {
           const at = Date.now() - startedAt
@@ -359,13 +362,13 @@ export async function startAgent(options: StartAgentOptions): Promise<HarnessSes
           hinted ??= message
           return { ...e, message }
         })
-        const rejected = rejectedKey({ hinted, status, statuses: seen })
+        const rejected = rejectedKey({ hinted, status, statuses: modelSeen })
         const stopped = rejected
           ? undefined
           : providerStop({
               errors: transcript.flatMap((e) => (e.type === 'error' ? [e.message] : [])),
               status,
-              statuses: seen,
+              statuses: modelSeen,
             })
         const cost = turnCost(finishMetadata)
         return {

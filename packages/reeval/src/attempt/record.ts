@@ -1,6 +1,6 @@
 import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { AgentError } from '@reeval/agents'
+import { AgentError, statusCause } from '@reeval/agents'
 import { debugLog } from '../debug/attempt.ts'
 import { allowedHosts, isDirect } from '../egress.ts'
 import type { RawAssertion } from '../engine/runtime.ts'
@@ -130,28 +130,41 @@ export function attemptError(a: Attempt, error: unknown, raw: readonly RawAssert
   return check ? checkFailure([check]) : error
 }
 
+/** The statuses that say the provider, not the agent or its config, failed a call. */
+const outageStatus = (s: number) => s === 402 || s === 408 || s === 429 || s >= 500
+
 /**
- * The infra error for an eval that timed out in a turn whose every answered model call failed: a
- * CLI that keeps retrying a rate limit or an outage spends the eval's time, not the agent. A turn
- * with no answered call says nothing, since one long streamed call can be the whole turn.
+ * A timeout spent in a turn whose every answered model call the provider failed (a payment, rate
+ * or capacity limit, a 5xx) becomes an infra error: a CLI that keeps retrying an outage spends the
+ * eval's time, not the agent. After teardown, so a stream the timeout cut has ended and counts as
+ * answered. A turn with no answered call says nothing, since one long streamed call can be the
+ * whole turn, and nor does one that got a 4xx the provider sends for a bad request or key.
  */
-function providerTimeout(a: Attempt): string | undefined {
-  if (!a.turnCalls) return undefined
+export function reclassifyTimeout(a: Attempt): void {
+  const { record, turnCalls } = a
+  if (record.error?.kind !== 'timeout' || !turnCalls) return
   const statuses = (a.sandbox?.modelCalls?.() ?? [])
-    .slice(a.turnCalls.before)
+    .slice(turnCalls.before)
     .flatMap((c) => (c.status === null ? [] : [c.status]))
-  if (!statuses.length || statuses.some((s) => s < 400)) return undefined
+  if (!statuses.length || !statuses.every(outageStatus)) return
   const counts = new Map<number, number>()
   for (const s of statuses) counts.set(s, (counts.get(s) ?? 0) + 1)
   const http = [...counts].map(([s, n]) => `HTTP ${s}${n > 1 ? ` ×${n}` : ''}`).join(', ')
-  return `The eval timed out while the model provider failed every model call in turn ${a.turnCalls.turn} (${http})`
+  const last = statuses.at(-1) as number
+  const cause = statusCause(last)
+  record.outcome = 'infra_error'
+  record.error = {
+    kind: 'infra',
+    message: `The eval timed out while the model provider failed every model call in turn ${turnCalls.turn} (${http})`,
+    turn: { index: turnCalls.turn, kind: 'transport' },
+    ...(cause && { provider: { cause, status: last } }),
+  }
 }
 
 /**
  * Why the attempt failed, into the record: the eval's own timeout, a cancel, an infra error, or an
  * assertion, which is the judge's when `error`, from `attemptError`, is a judge's. A judge's that
- * only a provider outage caused is an infra error, so `--retry-errors` and `--resume` run it again,
- * and so is a timeout the provider's failing calls caused.
+ * only a provider outage caused is an infra error, so `--retry-errors` and `--resume` run it again.
  */
 export function recordFailure(
   a: Attempt,
@@ -160,13 +173,9 @@ export function recordFailure(
   raw: readonly RawAssertion[],
 ): void {
   const { record } = a
-  const outage =
-    (timedOut || (a.signal.aborted && isTimeout(a.signal.reason))) && providerTimeout(a)
-  record.error = outage
-    ? { kind: 'infra', message: outage }
-    : timedOut
-      ? { kind: 'timeout', message: 'The eval timed out' }
-      : classify(error, a.signal)
+  record.error = timedOut
+    ? { kind: 'timeout', message: 'The eval timed out' }
+    : classify(error, a.signal)
   record.error.message = capMiddle(redactSecrets(record.error.message))
   if (error instanceof PrepareError && !timedOut) {
     const { class: kind, stage, ref, cause, log, setBy } = error.failure
