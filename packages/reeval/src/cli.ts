@@ -976,9 +976,13 @@ async function imageCleanCommand(flags: Flags, configPath: string | undefined): 
 /** The first 12 hex digits of an image id or digest. */
 const short12 = (id: string) => id.replace(/^sha256:/, '').slice(0, 12)
 
+/** A cloud run's id, as `reeval run --cloud` prints it; never a local run's id. */
+const CLOUD_RUN_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 /**
- * `reeval attach`: a run's socket URL or stream file as given, else the run a ref names (by default the one in
- * progress) and the stream file it writes. Exits with the run's exit code.
+ * `reeval attach`: a run's socket URL or stream file as given, a cloud run's id as its event stream
+ * URL, else the run a ref names (by default the one in progress) and the stream file it writes.
+ * Exits with the run's exit code.
  */
 async function attachCommand(
   flags: Flags,
@@ -989,6 +993,11 @@ async function attachCommand(
   // Where the run's live.json is, which is what lets x cancel it: a stream in a project's
   // `.reeval/events/` is that project's run, any other this project's when there is one.
   let root = configPath === undefined ? undefined : dirname(configPath)
+  if (target && CLOUD_RUN_ID.test(target) && !existsSync(target)) {
+    loadEnvFiles(configPath)
+    const { cloudUrl } = await import('./cloud-run.ts')
+    target = new URL(`api/runs/${target}/events`, cloudUrl()).href
+  }
   if (target && (isAttachUrl(target) || existsSync(target))) {
     source = target
     const inEvents = isAttachUrl(target)
@@ -1083,7 +1092,7 @@ async function cloudDownload(
   const run = isAttachUrl(source) ? cloudRunOf(source, base) : null
   if (!run) {
     throw new UsageError(
-      `--download takes a cloud run's event stream URL (${base.href}api/runs/<run>/events), not ${displayUrl(source)}: a run on this machine has its files in .reeval/ already`,
+      `--download takes a cloud run's id or event stream URL (${base.href}api/runs/<run>/events), not ${displayUrl(source)}: a run on this machine has its files in .reeval/ already`,
     )
   }
   const path = requireConfig(configPath)

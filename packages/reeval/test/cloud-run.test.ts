@@ -997,6 +997,36 @@ evaluate('reaches', async (c) => {
     }
   })
 
+  test('reeval attach follows a cloud run by the id reeval run --cloud printed', async () => {
+    const id = '40d317a7-1743-4aef-a3e7-6bafce97f284'
+    const asked: string[] = []
+    const notFound = (url: string | undefined, socket: import('node:stream').Duplex) => {
+      asked.push(url ?? '')
+      const body = JSON.stringify({ error: { code: 'not_found', message: 'No such run.' } })
+      socket.end(
+        `HTTP/1.1 404 Not Found\r\ncontent-type: application/json\r\ncontent-length: ${body.length}\r\n\r\n${body}`,
+      )
+    }
+    const server = createServer((req, res) => notFound(req.url, res.socket!))
+    server.on('upgrade', (req, socket) => notFound(req.url, socket))
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    try {
+      const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
+      const r = await runCli(await fixtureProject(), ['attach', id], {
+        env: { REEVAL_CLOUD_URL: base, REEVAL_TOKEN: 'cloud-test-token' },
+      })
+      assert.equal(r.code, 3, r.stdout + r.stderr)
+      assert.ok(
+        asked.some((path) => path.startsWith(`/api/runs/${id}/events`)),
+        asked.join(', '),
+      )
+      assert.ok(r.stderr.includes(`${base}/api/runs/${id}/events`), r.stderr)
+    } finally {
+      server.closeAllConnections()
+      await new Promise((resolve) => server.close(resolve))
+    }
+  })
+
   test("exits with the run's exit code when it fails, from the config's cloud: true", async () => {
     const p = await platform()
     try {
@@ -1893,7 +1923,7 @@ describe("a cloud run's files, downloaded with --download", () => {
         assert.equal(r.code, 2, r.stdout + r.stderr)
         assert.match(
           r.stderr,
-          /--download takes a cloud run's event stream URL \(http:\/\/127\.0\.0\.1:\d+\/api\/runs\/<run>\/events\)/,
+          /--download takes a cloud run's id or event stream URL \(http:\/\/127\.0\.0\.1:\d+\/api\/runs\/<run>\/events\)/,
         )
       }
       const unset = await runCli(dir, ['attach', '--download', `${p.base}/api/runs/run_1/events`], {
@@ -1902,7 +1932,7 @@ describe("a cloud run's files, downloaded with --download", () => {
       assert.equal(unset.code, 2)
       assert.match(
         unset.stderr,
-        /--download takes a cloud run's event stream URL \(https:\/\/cloud\.reeval\.ai\/api\/runs\/<run>\/events\)/,
+        /--download takes a cloud run's id or event stream URL \(https:\/\/cloud\.reeval\.ai\/api\/runs\/<run>\/events\)/,
       )
       const local = await runCli(dir, ['run', '--download'])
       assert.equal(local.code, 2, local.stdout + local.stderr)
