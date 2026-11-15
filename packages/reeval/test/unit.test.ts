@@ -2160,6 +2160,9 @@ test('warnings only name states someone can act on', () => {
   assert.deepEqual(warnings(run), [
     "Image img:1 isn't pushed, so an exact rerun needs this machine's image (id 0123456789ab).",
   ])
+  assert.deepEqual(warnings(run, 'run_1'), [
+    "Image img:1 isn't pushed, so an exact rerun needs cloud run run_1's image (id 0123456789ab).",
+  ])
   const pushed = {
     ...run,
     stack: { images: [{ ...run.stack.images[0], repoDigests: ['r@sha256:1'] }] },

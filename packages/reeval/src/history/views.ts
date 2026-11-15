@@ -172,15 +172,18 @@ export function formatHistory({ runs, rows, orphaned }: ReturnType<typeof histor
 }
 
 /** `reeval show`: the run's header and state, then the result blocks `reeval run` ended with. */
-export function formatShow(run: RunRecord, opts: { remarks?: RunRemarks | null } = {}): string {
-  const rows = stateRows(run)
+export function formatShow(
+  run: RunRecord,
+  opts: { remarks?: RunRemarks | null; cloudRunId?: string } = {},
+): string {
+  const rows = stateRows(run, opts.cloudRunId)
   const width = Math.max(...rows.map(([k]) => k.length))
   return [
     `run ${run.runId}  ${runTally(run)}`,
     `  started ${run.startedAt}  (${formatDuration(run.durationMs)}) · artifacts ${run.artifacts}`,
     '',
     ...rows.map(([k, v]) => `  ${k.padEnd(width)}  ${v}`),
-    ...warnings(run).map((w) => `  ! ${w}`),
+    ...warnings(run, opts.cloudRunId).map((w) => `  ! ${w}`),
     '',
     ...render(suiteResult(run), opts.remarks ?? null, { color: false, verbose: false }),
   ].join('\n')

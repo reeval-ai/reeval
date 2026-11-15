@@ -26,7 +26,11 @@ const short = (hash: string) => hash.replace(/^sha256:/, '').slice(0, 12)
  * The state a run executed in, as label/value pairs, shared by `reeval show`.
  * The commit is where the run executed; the commit that adds its history file comes later.
  */
-export function stateRows(run: RunRecord): Array<[string, string]> {
+export function stateRows(
+  run: RunRecord,
+  /** The cloud run this run was downloaded from, which ran it on a machine of its own. */
+  cloudRunId?: string,
+): Array<[string, string]> {
   const { git, stack: env } = run
   const rows: Array<[string, string]> = []
   rows.push([
@@ -94,9 +98,11 @@ export function stateRows(run: RunRecord): Array<[string, string]> {
   ])
   rows.push([
     'Runner',
-    run.runner.kind === 'ci'
-      ? `CI (${run.runner.provider})${run.runner.runUrl ? ` ${run.runner.runUrl}` : ''}`
-      : `local · ${run.author}`,
+    cloudRunId !== undefined
+      ? `cloud run ${cloudRunId} · ${run.author}`
+      : run.runner.kind === 'ci'
+        ? `CI (${run.runner.provider})${run.runner.runUrl ? ` ${run.runner.runUrl}` : ''}`
+        : `local · ${run.author}`,
   ])
   return rows
 }

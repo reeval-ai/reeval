@@ -1514,6 +1514,8 @@ describe("a cloud run's files, downloaded with --download", () => {
       const show = await runCli(dir, ['show', runId])
       assert.equal(show.code, 0, show.stdout + show.stderr)
       assert.match(show.stdout, new RegExp(`run ${runId} {2}1 pass`))
+      assert.match(show.stdout, /\n {2}Runner +cloud run run_1 · /)
+      assert.doesNotMatch(show.stdout, /local ·/)
       const query = await runCli(dir, ['query', 'select run_id from runs'])
       assert.equal(query.code, 0, query.stdout + query.stderr)
       assert.match(query.stdout, new RegExp(runId))

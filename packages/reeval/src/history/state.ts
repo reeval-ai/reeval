@@ -121,11 +121,12 @@ export const FINGERPRINT_SCOPE = [
  * One-line warnings for states that stop an exact rerun and that someone can act on. Derived
  * when shown, never stored.
  */
-export function warnings(run: RunRecord): string[] {
+export function warnings(run: RunRecord, cloudRunId?: string): string[] {
   const out: string[] = []
+  const machine = cloudRunId === undefined ? "this machine's" : `cloud run ${cloudRunId}'s`
   for (const image of run.stack.images.filter((i) => i.repoDigests.length === 0)) {
     out.push(
-      `Image ${image.ref} isn't pushed, so an exact rerun needs this machine's image (id ${image.id.replace(/^sha256:/, '').slice(0, 12)}).`,
+      `Image ${image.ref} isn't pushed, so an exact rerun needs ${machine} image (id ${image.id.replace(/^sha256:/, '').slice(0, 12)}).`,
     )
   }
   if (!run.git) out.push("Not a git repository, so the code under test isn't pinned.")
