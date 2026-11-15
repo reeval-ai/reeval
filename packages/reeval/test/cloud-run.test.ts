@@ -194,7 +194,7 @@ type FilesOf = (machine: TarEntry[]) => TarEntry[] | null
  * `resume` in turn (then 202): a 200 or 202 relays the resumed run's lines, ending with
  * `resumedCode`; with `resumeEnds`, it relays nothing and the run reads as that status, for that
  * reason. With `queued`, each status read answers `queued` with the next of them, which the
- * project's capacity view then holds, until none is left.
+ * project's capacity view then holds, until none is left, unless `capacity` replaces its answer.
  */
 async function platform(
   options: {
@@ -217,6 +217,8 @@ async function platform(
     resumedCode?: number
     resumeEnds?: { status: 'failed' | 'stopped'; message: string }
     queued?: Array<{ waitingFor?: string; position?: number }>
+    /** What the capacity view answers instead: that status, or a body whose items aren't a list. */
+    capacity?: number | 'malformed'
   } = {},
 ) {
   const seen: Seen[] = []
@@ -318,6 +320,10 @@ async function platform(
       return json(res, 200, { names, reserved })
     }
     if (req.method === 'GET' && url.pathname === '/api/orgs/org_a/projects/proj_a/capacity') {
+      if (options.capacity === 'malformed') return json(res, 200, { runs: { items: {} } })
+      if (options.capacity !== undefined) {
+        return json(res, options.capacity, { error: { code: 'forbidden', message: 'no' } })
+      }
       return json(res, 200, { runs: { items: waiting ? [{ id: 'run_1', ...waiting }] : [] } })
     }
     if (req.method === 'GET' && url.pathname === '/api/orgs/org_a/projects') {
@@ -1185,8 +1191,8 @@ evaluate('reaches', async (c) => {
       assert.equal(followed.code, 130, followed.stdout + followed.stderr)
       const said = followed.stdout.split('\n').filter((l) => l.includes('is queued'))
       assert.deepEqual(said, [
-        "Cloud run run_1 is queued: waiting for the org's limit on attempts at once, position 2 in the queue",
-        "Cloud run run_1 is queued: waiting for the org's limit on attempts at once, position 1 in the queue",
+        "Cloud run run_1 is queued: waiting for the org's limit on attempts or runs at once, position 2 in the org's queue",
+        "Cloud run run_1 is queued: waiting for the org's limit on attempts or runs at once, position 1 in the org's queue",
         'Cloud run run_1 is queued',
       ])
       const reads = p.seen.filter((s) => s.path === '/api/orgs/org_a/projects/proj_a/capacity')
@@ -1195,6 +1201,39 @@ evaluate('reaches', async (c) => {
       await p.close()
     }
   })
+
+  for (const capacity of [403, 'malformed'] as const) {
+    test(`a follower says a cloud run is queued when its capacity view answers ${capacity}`, async () => {
+      const p = await platform({ holds: true, queued: [{}, {}, {}], capacity })
+      const env = {
+        REEVAL_CLOUD_URL: p.base,
+        REEVAL_TOKEN: 'cloud-test-token',
+        REEVAL_TEST_CLOUD_QUEUE_MS: '20',
+      }
+      try {
+        const dir = await fixtureProject()
+        let canceling: Promise<unknown> | undefined
+        const followed = await runCli(dir, ['run', '--cloud'], {
+          env,
+          onOutput: (stdout) => {
+            if (!stdout.includes('held') || !stdout.includes('is queued')) return false
+            setTimeout(() => {
+              canceling = runCli(dir, ['cloud', 'run', 'cancel', 'run_1'], { env })
+            }, 200)
+            return true
+          },
+        })
+        await canceling
+        assert.equal(followed.code, 130, followed.stdout + followed.stderr)
+        const said = followed.stdout.split('\n').filter((l) => l.includes('is queued'))
+        assert.deepEqual(said, ['Cloud run run_1 is queued'])
+        const views = p.seen.filter((s) => s.path.endsWith('/capacity')).length
+        assert.equal(views, capacity === 403 ? 1 : 3)
+      } finally {
+        await p.close()
+      }
+    })
+  }
 
   test('reeval attach says while the cloud run is queued, and stops asking once it has left the queue', async () => {
     const shared = { waitingFor: 'capacity' }

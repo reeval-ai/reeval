@@ -1027,7 +1027,9 @@ async function attachCommand(
   const log = (line: string) => console.log(dim(line))
   const followed = new AbortController()
   if (cloudRun) {
-    void cloud.watchQueue(cloudRun.runId, cloudRun.base, cloudRun.auth, log, followed.signal)
+    cloud
+      .watchQueue(cloudRun.runId, cloudRun.base, cloudRun.auth, log, followed.signal)
+      .catch(() => {})
   }
   try {
     code = await attachHere(flags, {
