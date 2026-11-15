@@ -335,9 +335,10 @@ async function queuedWhy(
 
 /**
  * While cloud run `runId` is queued, logs that it is and why, again each time that changes, so a
- * follower isn't silent before the run starts. Stops once the run leaves the queue or `signal`
- * aborts. A platform that doesn't answer is asked again next time, keeping the last reason; one
- * that refuses the capacity view isn't asked for it again. Never throws.
+ * follower isn't silent before the run starts; once it's provisioning (its machine starting,
+ * until the run's header arrives), logs that once and stops. Stops too once the run is anything
+ * else or `signal` aborts. A platform that doesn't answer is asked again next time, keeping the
+ * last reason; one that refuses the capacity view isn't asked for it again. Never throws.
  */
 export async function watchQueue(
   runId: string,
@@ -361,6 +362,10 @@ export async function watchQueue(
       ).catch(() => null)
       if (signal.aborted) return
       if (!run) continue
+      if (run.status === 'provisioning') {
+        log(`Cloud run ${runId} is waiting for its machine to start`)
+        return
+      }
       if (run.status !== 'queued') return
       if (askView) {
         const view = await queuedWhy(runId, run, base, auth, signal)
