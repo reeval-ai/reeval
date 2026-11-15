@@ -38,7 +38,7 @@ export const DEFAULT_THRESHOLD = 0.8
 const GATEWAY_KEYS = [VERCEL_KEY, VERCEL_OIDC]
 
 /** Each routing gateway's keys, in the order reeval prefers them. */
-const ROUTED_KEYS: Readonly<Record<RoutingGatewayName, readonly string[]>> = {
+export const ROUTED_KEYS: Readonly<Record<RoutingGatewayName, readonly string[]>> = {
   vercel: GATEWAY_KEYS,
   openrouter: [OPENROUTER_KEY],
 }
