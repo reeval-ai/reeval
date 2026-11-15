@@ -2,6 +2,7 @@
 // file, every flag of every command parsed, and every kind of bad command line exiting 2.
 import assert from 'node:assert/strict'
 import { readFileSync, writeFileSync } from 'node:fs'
+import { availableParallelism } from 'node:os'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
 import { parseCli } from '../src/cli-parse.ts'
@@ -44,15 +45,20 @@ describe('cli', () => {
     const p = await project('cli-help', { 'reeval.config.ts': fakeConfig() })
     const golden = readFileSync(GOLDEN, 'utf8').replace('reeval VERSION', `reeval ${version}`)
     const lines = [[], ...PATHS.map((c) => c.path), ['image'], ['cloud']]
+    const calls = lines.flatMap((path) => ['--help', '-h'].map((flag) => ({ path, flag })))
+    // A few at a time: dozens of CLIs started at once on a macOS runner have left one silent past
+    // runCli's idle timeout.
+    let next = 0
     await Promise.all(
-      lines.flatMap((path) =>
-        ['--help', '-h'].map(async (flag) => {
+      Array.from({ length: availableParallelism() }, async () => {
+        for (let call = calls[next++]; call; call = calls[next++]) {
+          const { path, flag } = call
           const r = await runCli(p.dir, [...path, flag])
           const expected = path.length ? `${commandHelpText(version, path)}\n` : golden
           assert.equal(r.code, 0, `reeval ${path.join(' ')} ${flag}: ${r.stderr}`)
           assert.equal(r.stdout, expected, `reeval ${path.join(' ')} ${flag}`)
-        }),
-      ),
+        }
+      }),
     )
   })
 
