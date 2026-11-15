@@ -42,7 +42,7 @@ test('start, two turns and close run in order, placing rules and skills first', 
   const runner = counted()
   const events: AgentEvent[] = []
   const a = agent({
-    harness: script.harness,
+    ...script.options,
     runner,
     credentials: { CURSOR_API_KEY: 'sk-test' },
     rules: 'Be brief.\n',
@@ -111,9 +111,7 @@ test('start, two turns and close run in order, placing rules and skills first', 
 
 test("a runner from a function is the session's own, closed with it", async () => {
   const runner = counted()
-  const r = await agent({ harness: scripted([reply('done')]).harness, runner: () => runner }).exec(
-    'go',
-  )
+  const r = await agent({ ...scripted([reply('done')]).options, runner: () => runner }).exec('go')
   assert.equal(r.text, 'done')
   assert.equal(runner.closes, 1)
 })
@@ -122,7 +120,7 @@ test('credentials from a function are read on each start', async () => {
   let reads = 0
   const script = scripted([])
   const a = agent({
-    harness: script.harness,
+    ...script.options,
     runner: local({ cwd: dir }),
     credentials: async () => ({ CURSOR_API_KEY: `sk-${++reads}` }),
   })
@@ -148,7 +146,7 @@ const hanging = (emit: (part: never) => void, signal: AbortSignal) => {
 test('aborting a turn ends it aborted, with what it streamed, and the session takes the next', async () => {
   const script = scripted([hanging, reply('after')])
   const session = await agent({
-    harness: script.harness,
+    ...script.options,
     runner: local({ cwd: dir }),
     parts: true,
   }).start()
@@ -165,7 +163,7 @@ test('aborting a turn ends it aborted, with what it streamed, and the session ta
 
 test('a turn while one runs is refused, and so is one after close', async () => {
   const session = await agent({
-    harness: scripted([hanging]).harness,
+    ...scripted([hanging]).options,
     runner: local({ cwd: dir }),
   }).start()
   const running = session.send('stall')
@@ -183,7 +181,7 @@ test("a refused key is the turn's rejectedKey, naming the variable", async () =>
     ] as never,
   ])
   const r = await agent({
-    harness: script.harness,
+    ...script.options,
     runner: local({ cwd: dir }),
     credentials: { CURSOR_API_KEY: 'sk-bad' },
   }).exec('go')
@@ -197,7 +195,7 @@ test("a refused key is the turn's rejectedKey, naming the variable", async () =>
 test('a harness that fails to start is an AgentError, and the owned runner is closed', async () => {
   const runner = counted()
   const a = agent({
-    harness: scripted([], new Error('no cursor here')).harness,
+    ...scripted([], new Error('no cursor here')).options,
     runner: () => runner,
   })
   await assert.rejects(a.start(), (error) => {
@@ -212,7 +210,7 @@ test('credentials that fail to read close the owned runner, and the session is r
   const runner = counted()
   const out = join(dir, 'out')
   const a = agent({
-    harness: scripted([]).harness,
+    ...scripted([]).options,
     runner: () => runner,
     credentials: () => Promise.reject(new Error('vault unreachable')),
     out,
@@ -228,7 +226,7 @@ test('credentials that fail to read close the owned runner, and the session is r
 test('a runner made before a later step fails is closed', async () => {
   const runner = counted()
   runner.info = () => Promise.reject(new Error('no uname'))
-  await assert.rejects(agent({ harness: scripted([]).harness, runner: () => runner }).start())
+  await assert.rejects(agent({ ...scripted([]).options, runner: () => runner }).start())
   assert.equal(runner.closes, 1)
 })
 
@@ -241,7 +239,7 @@ test('close() ends a turn that ignores its abort, closes the owned runner and th
     return new Promise<void>(() => {})
   }
   const session = await agent({
-    harness: scripted([ignoring]).harness,
+    ...scripted([ignoring]).options,
     runner: () => runner,
     out,
     closeTimeoutMs: 50,
@@ -290,7 +288,7 @@ test('a skill name or file that would leave its directory is refused before anyt
     const script = scripted([])
     await assert.rejects(
       agent({
-        harness: script.harness,
+        ...script.options,
         runner: local({ cwd: dir }),
         workDir: 'a/b/c',
         skills: [skill],
@@ -306,7 +304,7 @@ test("a skill file the runner's file system can't name is the skill's AgentError
   const deep = Array.from({ length: 20 }, (_, i) => `${i}`.padEnd(250, 'd')).join('/')
   await assert.rejects(
     agent({
-      harness: scripted([]).harness,
+      ...scripted([]).options,
       runner: local({ cwd: dir }),
       skills: [
         {
@@ -331,7 +329,7 @@ test('closeTimeoutMs past what setTimeout takes waits, rather than forcing the t
   }
   for (const closeTimeoutMs of [Number.POSITIVE_INFINITY, 2 ** 31, Number.NaN]) {
     const session = await agent({
-      harness: scripted([slow]).harness,
+      ...scripted([slow]).options,
       runner: local({ cwd: dir }),
       closeTimeoutMs,
       onEvent: (e) => e.type === 'warning' && warnings.push(e.message),
@@ -341,4 +339,50 @@ test('closeTimeoutMs past what setTimeout takes waits, rather than forcing the t
     assert.equal((await turn.result).text, 'late', String(closeTimeoutMs))
   }
   assert.deepEqual(warnings, [])
+})
+
+test('stopped() ends a turn that ignores its abort, and close() then waits for nothing', async () => {
+  const ignoring = (emit: (part: never) => void) => {
+    emit({ type: 'stream-start' } as never)
+    emit({ type: 'text-start', id: 't' } as never)
+    emit({ type: 'text-delta', id: 't', delta: 'so far' } as never)
+    return new Promise<void>(() => {})
+  }
+  const session = await agent({
+    ...scripted([ignoring]).options,
+    runner: local({ cwd: dir }),
+    closeTimeoutMs: 60_000,
+  }).start()
+  const abort = new AbortController()
+  const turn = session.send('stall', { signal: abort.signal })
+  await new Promise((resolve) => setTimeout(resolve, 20))
+  abort.abort()
+  const note = { type: 'error', message: 'stopped waiting', ts: new Date().toISOString() } as const
+  const stopped = await session.stopped(note as never)
+  assert.equal(stopped.transcript.at(-1)?.type, 'error')
+  assert.equal(await turn.result, stopped, "it is the turn's result")
+  const since = Date.now()
+  await session.close()
+  assert.ok(Date.now() - since < 10_000, 'close() left the stopped turn behind')
+  await assert.rejects(session.stopped(note as never), /No turn is running/)
+})
+
+test("a route's model id is the one the adapter is built with, and one it doesn't serve is refused", async () => {
+  const script = scripted([])
+  const session = await agent({
+    ...script.options,
+    harness: { kind: 'claude-code', model: 'claude-haiku-4-5-20251001' },
+    route: { kind: 'vertex', project: 'p', location: 'global' },
+    runner: local({ cwd: dir }),
+  }).start()
+  await session.close()
+  assert.equal(script.inputs[0]?.model, 'claude-haiku-4-5@20251001')
+  await assert.rejects(
+    agent({
+      ...script.options,
+      route: { kind: 'vertex', project: 'p', location: 'global' },
+      runner: local({ cwd: dir }),
+    }).start(),
+    /The Cursor harness doesn't run on Vertex AI/,
+  )
 })

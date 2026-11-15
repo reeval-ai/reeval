@@ -8,7 +8,18 @@ import type {
   HarnessV1StreamPart,
 } from '@ai-sdk/harness'
 import { HarnessAgent } from '@ai-sdk/harness/agent'
-import { interactiveTools, reasoningTime, setupOf } from '@reeval/agents'
+import {
+  acpMcpServers,
+  antigravityMcpServers,
+  claudeMcpServers,
+  cursorHookMatcher,
+  cursorMcpServers,
+  gooseMcpServers,
+  interactiveTools,
+  LAYOUTS,
+  reasoningTime,
+  setupOf,
+} from '@reeval/agents'
 import {
   ANTIGRAVITY_BUILTIN_TOOLS,
   ANTIGRAVITY_HOME_SKILLS_DIR,
@@ -53,6 +64,7 @@ import {
   openCodeEndpoints,
   openCodeTurnUsage,
 } from '@reeval/harness-opencode'
+import { resolveOpenCodeProvider } from '@reeval/harness-opencode/providers'
 import { PI_HOME_SKILLS_DIR, PI_WORKSPACE_SKILLS_DIR, piProvider } from '@reeval/harness-pi'
 import {
   applyTransformations,
@@ -64,27 +76,20 @@ import {
 import { calledTool, fetched, searched } from '../src/assert.ts'
 import { malformedCredentials, missingCredentials, resolveConfig } from '../src/config.ts'
 import { plannedEgress } from '../src/egress.ts'
+import type { ServedModel } from '../src/environment/harness-wire.ts'
 import { resolveEnvironment } from '../src/environment/resolve.ts'
 import { applied, defineEnvironment } from '../src/environment.ts'
 import { resolveGateway } from '../src/gateway/resolve.ts'
+import { harnessAdapter } from '../src/harness/agent.ts'
 import {
   AGENTS,
   type AgentKind,
-  acpMcpServers,
   agentAuth,
   agentFor,
-  antigravityMcpServers,
   authHint,
   brokeringFor,
-  claudeMcpServers,
-  cursorHookMatcher,
-  cursorMcpServers,
   fakeBrokering,
-  gooseMcpServers,
-  LAYOUTS,
   layoutOf,
-  opencodeVars,
-  type ServedModel,
 } from '../src/harness/agents.ts'
 import { noDefaultEffort, withDefaultEffort } from '../src/harness/default-effort.ts'
 import { effortFromModelLabel, harnessEffort, servedEffortOf } from '../src/harness/effort.ts'
@@ -629,7 +634,8 @@ describe('the OpenCode harness', () => {
         'bedrock-runtime.ap-southeast-2.amazonaws.com',
         'mcp.exa.ai',
       ])
-      assert.deepEqual(opencodeVars(bedrock.model), { AWS_REGION: 'ap-southeast-2' })
+      const resolved = resolveOpenCodeProvider(bedrock.model, process.env)
+      assert.deepEqual('vars' in resolved && resolved.vars, { AWS_REGION: 'ap-southeast-2' })
       assert.equal(
         brokeringFor(bedrock)?.servedModel?.({
           method: 'POST',
@@ -1422,11 +1428,9 @@ async function adapterRules(kind: AgentKind, env: Record<string, string>, model 
   return withHostEnv(env, async () => {
     const descriptor = { kind, model } as AgentHarnessDescriptor
     const agent = agentFor(descriptor)
-    const adapter = await agent.adapter({
+    const adapter = await harnessAdapter(descriptor, {
       auth: agentAuth(agent),
-      descriptor,
       model: descriptor.model,
-      plugins: [],
     })
     const { session, rules } = recordingSession()
     await assert.rejects(
@@ -1812,11 +1816,9 @@ describe('credential brokering per agent', () => {
     for (const [descriptor, env, credential] of FAIL_CLOSED) {
       await withHostEnv(env, async () => {
         const agent = agentFor(descriptor)
-        const adapter = await agent.adapter({
+        const adapter = await harnessAdapter(descriptor, {
           auth: agentAuth(agent),
-          descriptor,
           model: descriptor.model,
-          plugins: [],
         })
         const { session } = recordingSession()
         const { addRequestTransformations: _, ...plain } = session
@@ -2448,11 +2450,9 @@ describe('tools that wait on a person are off', () => {
     await withHostEnv(keys, async () => {
       for (const descriptor of descriptors) {
         const agent = agentFor(descriptor)
-        const adapter = await agent.adapter({
+        const adapter = await harnessAdapter(descriptor, {
           auth: agentAuth(agent),
-          descriptor,
           model: descriptor.model,
-          plugins: [],
         })
         assert.deepEqual(
           interactiveTools(adapter as HarnessV1),
@@ -2894,15 +2894,11 @@ describe("each harness's image serves its attempts' bootstrap", () => {
   const VERTEX = { project: 'p', location: 'global', regions: {} }
   const bootstrapOf = async (descriptor: AgentHarnessDescriptor) => {
     const agent = agentFor(descriptor, VERTEX)
-    const adapter = await agent.adapter({
+    const adapter = await harnessAdapter(descriptor, {
       auth: agentAuth(agent, { [agent.credential]: 'k' }),
-      ...(agent.routeEnv ? { env: agent.routeEnv } : {}),
-      ...(agent.adc
-        ? { vertex: { project: 'p', location: 'global', credentialsFile: '/reeval/adc.json' } }
-        : {}),
-      descriptor,
       model: agent.modelId?.(descriptor.model) ?? descriptor.model,
-      plugins: [],
+      vertex: VERTEX,
+      credentialsFile: '/reeval/adc.json',
     })
     return (adapter as HarnessV1).getBootstrap?.({})
   }

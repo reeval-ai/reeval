@@ -7,8 +7,9 @@ import {
   resolveOpenCodeProvider,
 } from '@reeval/harness-opencode/providers'
 import { claudeCodeModelName, claudeCodeTakesEffort } from '../contract/harness.ts'
+import { directProviderRefusal } from '../environment/harness-wire.ts'
 import { UsageError } from '../errors.ts'
-import { AGENTS, directProviderRefusal, isAgentKind } from '../harness/agents.ts'
+import { AGENTS, isAgentKind } from '../harness/agents.ts'
 import { harnessEffort } from '../harness/effort.ts'
 import { harnessId } from '../options.ts'
 import { startEnv } from '../startup.ts'

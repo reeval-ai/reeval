@@ -16,9 +16,9 @@ import {
 } from '@reeval/agents'
 import type { EndpointMatch, LocalResponse, RequestTransformation } from '@reeval/sandbox-docker'
 import { claudeCodeVertexAliasRefusal } from '../contract/harness.ts'
+import type { ModelSpecific } from '../environment/harness-wire.ts'
 import { type BrokeredToken, cachedTokenSource, type TokenSource } from '../environment/token.ts'
 import { UsageError } from '../errors.ts'
-import type { ModelSpecific } from '../harness/agents.ts'
 import type {
   AgentHarnessDescriptor,
   GatewayDescriptor,
@@ -91,19 +91,12 @@ type VertexWire = Omit<VertexRoute, 'credential' | 'modelId'>
 export type VertexRoute = ModelSpecific & {
   /** The model id Vertex serves for the harness's own id. */
   modelId: (model: string) => string
-  /** Variables the adapter sets for the agent, pointing it at the project and region. */
-  routeEnv?: Record<string, string>
   token: BrokeredToken
   /** Application Default Credentials the agent's CLI reads in the sandbox, for a CLI that needs some. */
   adc?: SandboxAdc
   /** Requests the egress gateway answers itself, never reaching Google. */
   localResponses?: readonly LocalResponse[]
-  /** The project and region of Vertex's Chat Completions API, for an agent that calls it there. */
-  vertexChat?: VertexChat
 }
-
-/** Where Vertex's OpenAI-compatible Chat Completions API is for an agent's calls. */
-export type VertexChat = { project: string; region: string }
 
 /**
  * A service-account file in the sandbox with a key made up for it, which Google's client
@@ -161,12 +154,6 @@ function claudeCode(settings: VertexSettings, source = vertexTokens()): VertexWi
       if (host !== vertexHost(region)) return undefined
       const model = /\/publishers\/anthropic\/models\/([^/:]+):/.exec(path)?.[1]
       return model && model !== 'count-tokens' ? model : undefined
-    },
-    routeEnv: {
-      CLAUDE_CODE_USE_VERTEX: '1',
-      CLAUDE_CODE_SKIP_VERTEX_AUTH: '1',
-      ANTHROPIC_VERTEX_PROJECT_ID: settings.project,
-      CLOUD_ML_REGION: region,
     },
     token: { source, transformations: bearerOn(endpoints) },
   }
@@ -288,7 +275,6 @@ function grokBuild(settings: VertexSettings, source = vertexTokens()): VertexWir
     hosts: [vertexHost(region)],
     servedModel: ({ host, responseModel }) =>
       host === vertexHost(region) ? responseModel : undefined,
-    vertexChat: { project: settings.project, region },
     token: { source, transformations: bearerOn(endpoints) },
   }
 }
@@ -317,7 +303,6 @@ function fx(settings: VertexSettings, source = vertexTokens()): VertexWire {
     hosts: [host],
     servedModel: (request) =>
       request.host === host ? request.responseModel?.replace(/^google\//, '') : undefined,
-    routeEnv: { FX_VERTEX_PROJECT: settings.project, FX_VERTEX_LOCATION: region },
     token: { source, transformations: bearerOn(endpoints) },
   }
 }

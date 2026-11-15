@@ -2045,6 +2045,38 @@ evaluate('hi', async (c) => {
   )
 
   test(
+    "an image without the harness's CLI that can't install it is an infra error, not a failure",
+    docker,
+    async () => {
+      // Cursor's image has no claude CLI, and deny-all leaves the install no way out.
+      const p = await project('docker-install-fails', {
+        'reeval.config.ts': `
+import { defineConfig, defineEnvironment } from 'reeval'
+import { claudeCode } from 'reeval/harness'
+import { docker } from 'reeval/sandbox'
+export default defineConfig({
+  harnesses: claudeCode({ model: 'claude-sonnet-5' }),
+  environments: defineEnvironment('box', { sandbox: docker({ image: '${DEFAULT_IMAGE}' }) }),
+  egress: 'deny-all',
+  timeout: '120s',
+})
+`,
+        'evals/d.eval.ts': `import { evaluate } from 'reeval'
+evaluate('hi', async (c) => { await c.send('Reply with the word hi.') })
+`,
+      })
+      const r = await runCli(p.dir, ['run'], { env: { ANTHROPIC_API_KEY: 'not_a_real_key' } })
+      assert.equal(r.code, 3, r.stdout + r.stderr)
+      const { run, evals } = readRun(p.dir)
+      const attempt = evals[0]?.attempts[0]
+      assert.equal(attempt?.outcome, 'infra_error', JSON.stringify(attempt?.error))
+      assert.equal(attempt?.error?.kind, 'infra')
+      assert.match(attempt?.error?.message ?? '', /^Claude Code harness failed to start: /)
+      assert.equal(liveContainers(run.runId), '')
+    },
+  )
+
+  test(
     'Claude Code on a subscription token: the token is brokered as a Bearer token on its endpoints only',
     claudeImage,
     async () => {

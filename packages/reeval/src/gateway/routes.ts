@@ -3,7 +3,8 @@
 // model id it names, and why it can't serve the rest) with what the egress gateway needs for each.
 import type { Route, RouteConfig, RouteName } from '@reeval/agents'
 import type { ROUTING_GATEWAY_NAMES } from '../contract/gateway.ts'
-import type { Agent, AgentKind, ModelSpecific } from '../harness/agents.ts'
+import type { ModelSpecific } from '../environment/harness-wire.ts'
+import type { Agent, AgentKind } from '../harness/agents.ts'
 import { OPENROUTER_GATEWAY } from './openrouter.ts'
 import { VERCEL_GATEWAY } from './vercel.ts'
 

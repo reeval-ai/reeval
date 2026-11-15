@@ -60,6 +60,26 @@ export {
 } from './driver/transcript.ts'
 export type { AgentLog, AgentLogPhase, HarnessResult, HarnessSession } from './driver/types.ts'
 export { AgentError } from './errors.ts'
+export {
+  type AdapterContext,
+  type AdapterInput,
+  type AgentRoute,
+  antigravity,
+  type ClaudeCodeEffort,
+  catalogAdapter,
+  claudeCode,
+  claudeCodeVertexEnv,
+  codex,
+  cursor,
+  fx,
+  fxVertex,
+  goose,
+  grokBuild,
+  grokVertexChat,
+  type HarnessSpec,
+  opencode,
+  pi,
+} from './harnesses.ts'
 export { type LocalOptions, local } from './local.ts'
 export { masked, OUTPUT_CAP, type OutOptions } from './out/index.ts'
 export type { OutSession, OutTranscriptLine, OutTurn } from './out/types.ts'
@@ -107,10 +127,8 @@ export type { Proc, ProcExit, Runner, RunnerInfo, SpawnOptions } from './runner.
 export { withFallbacks } from './runner.ts'
 export { type RunnerSessionOptions, runnerSession } from './runner-session.ts'
 export {
-  type AdapterInput,
   type Agent,
   type AgentEvent,
-  type AgentHarness,
   type AgentOptions,
   type AgentPhase,
   type AgentSession,

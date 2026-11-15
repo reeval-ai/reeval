@@ -1,21 +1,14 @@
 import { randomBytes } from 'node:crypto'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { resolveBridgePort } from '@ai-sdk/harness/utils'
-import { type AgentLog, type HarnessResult, providerStop } from '@reeval/agents'
+import { type AgentLog, agentMcp, type HarnessResult, providerStop } from '@reeval/agents'
 import { shellQuote as q } from '@reeval/sandbox-docker/process'
 import { type ResolvedMcpServer, skillFiles } from '../environment/resolve.ts'
 import { redactSecrets } from '../redact.ts'
 import { hasNetworkSession, InfraError, type Sandbox } from '../sandbox/types.ts'
 import { hostEnv } from '../secrets-file.ts'
 import type { FakeHarnessDescriptor, TranscriptEvent } from '../types.ts'
-import {
-  AGENTS,
-  agentMcp,
-  fakeBrokering,
-  keyRejected,
-  layoutOf,
-  writePluginFiles,
-} from './agents.ts'
+import { AGENTS, fakeBrokering, keyRejected, layoutOf, writePluginFiles } from './agents.ts'
 import { fakeBootstrapScript } from './fake-bootstrap.ts'
 import type { Harness } from './types.ts'
 

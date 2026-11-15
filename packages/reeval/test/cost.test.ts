@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, describe, test } from 'node:test'
 import { gzipSync } from 'node:zlib'
-import { turnCosts } from '@reeval/agents'
+import { claudeCodeCost, piCost, turnCosts } from '@reeval/agents'
 import {
   costLine,
   formatTokenRange,
@@ -18,7 +18,6 @@ import {
   usdOf,
 } from '../src/cost.ts'
 import { UsageError } from '../src/errors.ts'
-import { claudeCodeCost, piCost } from '../src/harness/agents.ts'
 import { priceRecord, pricerOf } from '../src/history/cost.ts'
 import type { RunRecord } from '../src/history/types.ts'
 import { loadPrices, modelLimits, type Price, type Prices } from '../src/prices.ts'

@@ -1,7 +1,8 @@
 // A harness adapter that plays a script, one entry per turn, and records what it was given: the
 // AI SDK's contract, with no CLI behind it.
 import type { HarnessV1, HarnessV1StreamPart } from '@ai-sdk/harness'
-import type { AdapterInput, AgentHarness } from '../src/session.ts'
+import type { AdapterInput } from '../src/harnesses.ts'
+import type { AgentOptions } from '../src/session.ts'
 
 type Emit = (part: HarnessV1StreamPart) => void
 
@@ -29,7 +30,8 @@ export function reply(text: string, extra: HarnessV1StreamPart[] = []): HarnessV
 }
 
 export type Scripted = {
-  harness: AgentHarness
+  /** The session's harness, with the scripted adapter in place of the catalog's. */
+  options: Required<Pick<AgentOptions, 'harness' | 'adapter'>>
   /** What `adapter()` was built from, each time. */
   inputs: AdapterInput[]
   /** The skills each turn was given. */
@@ -45,9 +47,8 @@ export function scripted(turns: ScriptedTurn[], fail?: Error): Scripted {
     skills: [],
     prompts: [],
     calls: [],
-    harness: {
-      kind: 'cursor',
-      model: 'composer-test',
+    options: {
+      harness: { kind: 'cursor', model: 'composer-test' },
       adapter: (input) => {
         record.inputs.push(input)
         return adapter

@@ -18,9 +18,9 @@ import {
   providerServedModel,
   resolveOpenCodeProvider,
 } from '@reeval/harness-opencode/providers'
-import { type PiProvider, piProvider } from '@reeval/harness-pi/providers'
+import { piProvider } from '@reeval/harness-pi/providers'
 import type { DerivedTokens, EndpointMatch, LocalResponse } from '@reeval/sandbox-docker'
-import type { SandboxAdc, VertexChat } from '../gateway/vertex.ts'
+import type { SandboxAdc } from '../gateway/vertex.ts'
 import type { Agent } from '../harness/agents.ts'
 import { InfraError } from '../sandbox/types.ts'
 import { startEnv } from '../startup.ts'
@@ -34,14 +34,10 @@ export type HarnessWire = {
    * `credential` from the environment.
    */
   token?: BrokeredToken
-  /** Variables the adapter sets for the agent on its gateway's route (Vertex's project and region). */
-  routeEnv?: Record<string, string>
   /** The service account the agent's CLI reads on Vertex, written beside the workspace. */
   adc?: SandboxAdc
   /** Requests the egress gateway answers itself on the agent's route (Vertex's token exchange). */
   localResponses?: readonly LocalResponse[]
-  /** Where Vertex's Chat Completions API is, for an agent that calls it on Vertex (Grok Build). */
-  vertexChat?: VertexChat
   /**
    * The variable the adapter takes the credential as, when not its own name: a gateway's key, or
    * the one the CLI reads (pi reads Google's key as `GEMINI_API_KEY`).
@@ -327,16 +323,6 @@ export function opencodeForModel(
   }
 }
 
-/**
- * The variables besides its key that OpenCode's provider takes from the host, as they are:
- * Bedrock's `AWS_REGION` (default `us-east-1`); none for most providers.
- */
-export function opencodeVars(model: string, env: NodeJS.ProcessEnv = startEnv()) {
-  const resolved = resolveOpenCodeProvider(model, env)
-  if ('error' in resolved) throw new InfraError(`opencode(): ${resolved.error}`)
-  return resolved.vars
-}
-
 /** reeval's name for a provider's key where it isn't the agent's: Google's, which the judge reads too. */
 const HOST_CREDENTIAL: Record<string, string> = { google: 'GOOGLE_GENERATIVE_AI_API_KEY' }
 
@@ -381,12 +367,6 @@ export function piForModel(model: string): ModelSpecific {
       respondedOn(...hosts)(request),
     hosts,
   }
-}
-
-/** A provider pi runs on its own key; throws naming why reeval can't run one. */
-export function keyed(provider: PiProvider | { refused: string }): PiProvider {
-  if ('refused' in provider) throw new InfraError(`pi(): ${provider.refused}`)
-  return provider
 }
 
 /** Anthropic's Messages API, whose response names the model that served it. */

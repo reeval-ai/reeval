@@ -36,7 +36,7 @@ start is an `AgentError`.
 
 ```ts
 const a = agent({
-  harness: { kind: 'cursor', model: 'composer-2.5', adapter: (input) => createCursorSdk(input) },
+  harness: cursor({ model: 'composer-2.5' }),
   runner: local({ cwd: './workspace' }),
   credentials: { CURSOR_API_KEY: key },
   rules: 'Run the tests before you finish.\n',
@@ -49,9 +49,12 @@ const result = await turn.result
 await session.close()
 ```
 
-`start()` asks the runner where it is, writes the rules and the `workspace` skills where the
-harness reads them, builds the adapter from the credentials, model and MCP servers, and starts the
-session; `exec(prompt)` does all of that for one turn. A runner from a function is the session's
+`harness` is plain data, from `cursor()`, `claudeCode()`, `antigravity()`, `opencode()`,
+`goose()`, `pi()`, `codex()`, `fx()` or `grokBuild()`, and `route` sends its model calls through
+Vercel AI Gateway, OpenRouter or Vertex AI instead of its provider's own API. `start()` asks the
+runner where it is, writes the rules and the `workspace` skills where the harness reads them,
+builds the harness's adapter (`catalogAdapter()`) from the credentials, route, model, MCP servers
+and plugins, and starts the session; `exec(prompt)` does all of that for one turn. A runner from a function is the session's
 own, closed with it. With `out`, the session writes `session.json`, a line of `turns.jsonl` and
 the turn's lines of `transcript.jsonl` as each turn ends (`raw/parts.jsonl` and `debug.log` on
 request), every one with the credentials' exact values masked (not encoded forms, such as base64); `schema/` has their JSON Schemas, which
