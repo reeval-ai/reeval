@@ -274,6 +274,8 @@ async function unpackFiles(
     `  tar -xmf "$d/${name}" -C "$t" && cd "$t" && find . -type f > "$t.all" || exit $?`,
     '  : > "$t.new"',
     '  while IFS= read -r f; do',
+    // A name with a line break in it reads as lines `find` didn't start with `./`.
+    '    case $f in ./*) ;; *) exit 1 ;; esac',
     '    if [ -e "$d/$f" ] || [ -L "$d/$f" ]; then',
     '      cat "$f" > "$d/$f" || exit 1',
     '      continue',
