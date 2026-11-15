@@ -28,12 +28,17 @@ CLI with its own NDJSON stream; Antigravity for one that recovers data from disk
    - `"@reeval/harness-<name>": "workspace:<version>"` in `packages/reeval/package.json`
      `devDependencies` (tsdown inlines it), its runtime deps in `reeval`'s `dependencies`, and a
      `knip.json` entry.
-2. **Catalog entry** in `packages/reeval/src/harness/agents.ts`: `credential`, `endpoints` (the
-   brokered hosts and paths), `hosts`, `servedModel` or `modelResponses`, `reasoning`,
-   `reasoningTokens`, the `Layout` (rules file, skill dirs), `pluginParts`, `mcpServers` and
-   `adapter`. Then the `kind` in `src/contract/harness.ts`, the helper in `src/harness.ts`,
-   `src/types.ts` and `src/init.ts`. Run `pnpm --filter reeval typecheck` and
-   `pnpm --filter reeval schema:check`.
+2. **Catalog entry**, split by who needs it:
+   - **Core**, `packages/agents/src/catalog/<name>.ts` (gathered in `HARNESSES`): `name`,
+     `factory`, `credential`, `platforms`, `reasoning`, `reasoningTokens`, `storedUsage`,
+     `pluginParts` and `mcpServers`. Its `Layout` (rules file, skill dirs) goes in `layouts.ts`
+     and `skill-dirs.ts`, its route ids in `src/routes/`, and its `<name>()` factory and adapter
+     case in `src/harnesses.ts` (`catalogAdapter`). Then `pnpm --filter @reeval/agents test`.
+   - **Wire**, reeval's `packages/reeval/src/environment/harness-wire.ts` (`WIRE`): `endpoints`
+     (the brokered hosts and paths), `hosts`, and `servedModel` or `modelResponses`.
+   - **reeval**: the `kind` in `src/contract/harness.ts`, the helper in `src/harness.ts`,
+     `src/types.ts` and `src/init.ts`. Run `pnpm --filter reeval typecheck` and
+     `pnpm --filter reeval schema:check`.
 3. **Image and pin.** Add the harness's install (the CLI it leaves, a `probe` for an adapter
    that leaves no binary, and the adapter on placeholder auth) to `INSTALLS` in
    `packages/agents/src/setup.ts`, which `setupOf` reads, and its adapter, pinned
@@ -47,7 +52,9 @@ CLI with its own NDJSON stream; Antigravity for one that recovers data from disk
    `test/contract/reeval.config.ts` and `test/e2e/reeval.config.ts`, a format in
    `test/support/stream-formats.ts`, its secret in `.github/workflows/contract.yml`, and the row
    in `test:contract`'s default list (`packages/reeval/package.json`) and `contract.yml`'s. See
-   `packages/reeval/test/contract/README.md#adding-a-harness`.
+   `packages/reeval/test/contract/README.md#adding-a-harness`. Add its own row, on its provider's
+   key, to the core contract's `ROWS` in `packages/agents/test/contract.test.ts` too: the CLI on
+   `node:24` under `docker()`, with no gateway.
 5. **Telemetry declarations**: a row in `packages/reeval/test/contract/telemetry.ts`
    ([#836](https://github.com/reeval-ai/reeval/pull/836)) for every signal in `SIGNALS`, each
    `captured`, `partial` (with a `note`), `dropped` (with where the data is) or `not-produced`.
@@ -99,6 +106,6 @@ signal `captured`.
       (`.reeval/debug/<run>/…/requests.ndjson` plus response bodies) summed per turn equals the
       record's `usage` (input, cacheRead, cacheWrite, output, reasoning), exactly.
 - [ ] An aborted turn keeps its parts and its usage.
-- [ ] The contract row passes on a real key; formats and captures are committed; `pnpm test:replay`
-      passes key-free.
+- [ ] The contract row and the core contract row pass on a real key; formats and captures are
+      committed; `pnpm test:replay` and `pnpm --filter @reeval/agents test` pass key-free.
 - [ ] `pnpm docs:gen && pnpm docs:check`, `pnpm lint`, `typos`, `pnpm typecheck` pass.
