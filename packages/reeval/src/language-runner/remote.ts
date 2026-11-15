@@ -112,7 +112,7 @@ function remoteBody(
 
       live.set(attemptKey, {
         onRequest: (message) => {
-          void replyToAttempt(t, matcherCalls, handles, message).then((reply) =>
+          void inAttempt(() => replyToAttempt(t, matcherCalls, handles, message)).then((reply) =>
             runner.send({ ...reply, key: attemptKey }),
           )
         },

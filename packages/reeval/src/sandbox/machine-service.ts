@@ -268,7 +268,7 @@ export async function leaseMachine(
   })
   stop.catch(() => {})
   // The attempt's timeout is for its own work, so waiting for a slot doesn't count, nor does a
-  // machine's start, which its provider bounds.
+  // machine's start (its provider bounds a start, not the wait; a cancel ends either).
   const queued = backstops.getStore()?.hold()
   try {
     const lease = await Promise.race([leased, stop]).finally(queued)
