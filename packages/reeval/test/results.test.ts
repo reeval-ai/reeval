@@ -451,6 +451,37 @@ describe('mergeOutcome and abort classification', () => {
     recordFailure(other, new Error('setup timed out'), false, [])
     assert.deepEqual(other.record.error, { kind: 'aborted', message: 'The run was canceled' })
   })
+
+  test("a timeout while the provider failed every model call of the turn is the provider's", () => {
+    const attempt = (statuses: (number | null)[], before = 1) =>
+      ({
+        record: { error: null, judgements: [], outcome: 'pass' },
+        signal: new AbortController().signal,
+        judgeThrown: new Set(),
+        turnCalls: { turn: 2, before },
+        sandbox: { modelCalls: () => statuses.map((status) => ({ status })) },
+      }) as unknown as Attempt
+    const outage = attempt([200, 500, 503, null, 500])
+    recordFailure(outage, new Error('ignored'), true, [])
+    assert.deepEqual(outage.record.error, {
+      kind: 'infra',
+      message:
+        'The eval timed out while the model provider failed every model call in turn 2 (HTTP 500 ×2, HTTP 503)',
+    })
+    const timeout = { kind: 'timeout', message: 'The eval timed out' }
+    for (const [statuses, why] of [
+      [[200, 500, 200], 'one call answered'],
+      [[200, null], 'no call answered: one long streamed call'],
+      [[500], 'the failed call was an earlier turn'],
+    ] as const) {
+      const a = attempt([...statuses])
+      recordFailure(a, new Error('ignored'), true, [])
+      assert.deepEqual(a.record.error, timeout, why)
+    }
+    const between = { ...attempt([500, 500], 0), turnCalls: undefined } as unknown as Attempt
+    recordFailure(between, new Error('ignored'), true, [])
+    assert.deepEqual(between.record.error, timeout, 'no turn in flight')
+  })
 })
 
 describe('gate policies', () => {

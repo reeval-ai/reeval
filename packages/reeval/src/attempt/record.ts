@@ -131,9 +131,27 @@ export function attemptError(a: Attempt, error: unknown, raw: readonly RawAssert
 }
 
 /**
+ * The infra error for an eval that timed out in a turn whose every answered model call failed: a
+ * CLI that keeps retrying a rate limit or an outage spends the eval's time, not the agent. A turn
+ * with no answered call says nothing, since one long streamed call can be the whole turn.
+ */
+function providerTimeout(a: Attempt): string | undefined {
+  if (!a.turnCalls) return undefined
+  const statuses = (a.sandbox?.modelCalls?.() ?? [])
+    .slice(a.turnCalls.before)
+    .flatMap((c) => (c.status === null ? [] : [c.status]))
+  if (!statuses.length || statuses.some((s) => s < 400)) return undefined
+  const counts = new Map<number, number>()
+  for (const s of statuses) counts.set(s, (counts.get(s) ?? 0) + 1)
+  const http = [...counts].map(([s, n]) => `HTTP ${s}${n > 1 ? ` ×${n}` : ''}`).join(', ')
+  return `The eval timed out while the model provider failed every model call in turn ${a.turnCalls.turn} (${http})`
+}
+
+/**
  * Why the attempt failed, into the record: the eval's own timeout, a cancel, an infra error, or an
  * assertion, which is the judge's when `error`, from `attemptError`, is a judge's. A judge's that
- * only a provider outage caused is an infra error, so `--retry-errors` and `--resume` run it again.
+ * only a provider outage caused is an infra error, so `--retry-errors` and `--resume` run it again,
+ * and so is a timeout the provider's failing calls caused.
  */
 export function recordFailure(
   a: Attempt,
@@ -142,9 +160,13 @@ export function recordFailure(
   raw: readonly RawAssertion[],
 ): void {
   const { record } = a
-  record.error = timedOut
-    ? { kind: 'timeout', message: 'The eval timed out' }
-    : classify(error, a.signal)
+  const outage =
+    (timedOut || (a.signal.aborted && isTimeout(a.signal.reason))) && providerTimeout(a)
+  record.error = outage
+    ? { kind: 'infra', message: outage }
+    : timedOut
+      ? { kind: 'timeout', message: 'The eval timed out' }
+      : classify(error, a.signal)
   record.error.message = capMiddle(redactSecrets(record.error.message))
   if (error instanceof PrepareError && !timedOut) {
     const { class: kind, stage, ref, cause, log, setBy } = error.failure
