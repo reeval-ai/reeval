@@ -844,4 +844,17 @@ describe('record costs', () => {
     })
     assert.equal(pi({ pi: { costUsd: 0 } }), undefined, "a model outside pi's prices is estimated")
   })
+
+  test("a turn Claude Code guessed has no reported cost, and the next turn's leaves the guess out", () => {
+    const said = (costUsd: number, guessed = false) => ({
+      'claude-code': { costUsd, sessionId: 's1', ...(guessed ? { costGuessed: true } : {}) },
+    })
+    const guessedFirst = turnCosts(claudeCodeCost, 'claude-code')
+    assert.equal(guessedFirst(said(0.2386, true)), undefined)
+    assert.equal(guessedFirst(said(0.2486))?.usd, 0.01)
+    const guessedBetween = turnCosts(claudeCodeCost, 'claude-code')
+    assert.equal(guessedBetween(said(0.01))?.usd, 0.01)
+    assert.equal(guessedBetween(said(0.2486, true)), undefined)
+    assert.equal(guessedBetween(said(0.2586))?.usd, 0.01)
+  })
 })

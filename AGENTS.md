@@ -230,18 +230,18 @@ from its repository under `scripts/third-party-licenses/`.
 **Patched upstream adapters.** `@ai-sdk/harness-claude-code` 1.0.176 carries a pnpm patch
 (`patches/`, `patchedDependencies` in `pnpm-workspace.yaml`): its bridge loses the served model
 when a plugin's `SessionStart` hook reports before `system/init`, and counts Anthropic's
-`output_tokens_details.thinking_tokens` as text, where the patch makes them `reasoning`, and
-reports Claude Code's `total_cost_usd` for a model it has no price for, a guess at its default
-model's rate (`modelUsage[].costBasis: 'unknown'`), where the patch reports no cost, so reeval
-prices the turn's tokens itself.
+`output_tokens_details.thinking_tokens` as text, where the patch makes them `reasoning`. It
+also passes on `total_cost_usd` with no sign that Claude Code guessed it at its default model's
+rate, for a model it has no price for (`modelUsage[].costBasis: 'unknown'`). The patch marks that
+turn `costGuessed`, and reeval prices its tokens itself.
 A patch reaches only this workspace, so `reeval` lists the adapter in `devDependencies`
 and tsdown inlines it with its bridge files (`dist/bridge/`), which its bootstrap writes into the
 sandbox. Its image tag and label carry the patch's hash (`HARNESS_PACKAGES`' `patch`, which a test
 holds to the file), so a changed patch rebuilds the image. Bumping the adapter fails `pnpm install`
 (`ERR_PNPM_UNUSED_PATCH`) until the patch is moved or dropped. `test/replay.test.ts` replays a real
-captured turn through the shipped bridge, with and without that hook, and the nightly drift workflow's
+captured turn through the shipped bridge, with and without that hook and on an unpriced model, and the nightly drift workflow's
 `scripts/drift/claude-code-patch.mjs` fails once the newest upstream reports the model in both,
-the thinking tokens and no guessed cost unpatched (drop the patch) or the patch stops
+the thinking tokens and marks a guessed cost unpatched (drop the patch) or the patch stops
 applying (rebase it with `pnpm patch`).
 
 In `packages/reeval`, the tests run `dist/cli.js`, so rebuild after changing `src/`:
@@ -569,7 +569,7 @@ pnpm reeval run --dry-run          # the plan, without running
 ### With a real agent
 
 1. Build the sandbox images once. This bakes each harness's CLI into reeval's image for it,
-   `reeval-sandbox:<harness>-<adapter version>` (`cursor-0.1.9`, `claude-code-1.0.176-patch.ef60a00b`,
+   `reeval-sandbox:<harness>-<adapter version>` (`cursor-0.1.9`, `claude-code-1.0.176-patch.d9876e51`,
    `antigravity-0.1.17`, `opencode-0.2.16`, `goose-0.1.17`, `pi-0.2.10`, `codex-0.1.14`, `fx-0.1.14`, `grok-build-0.1.13`), so
    the tag pins the CLI build. Rebuild after bumping a harness adapter. A project's other images
    (`from`, `dockerfile` and `install`) build with `reeval image build` there (`--dry-run` lists them).

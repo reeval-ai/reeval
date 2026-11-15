@@ -68,9 +68,12 @@ export type HarnessEntry = Layout & {
   /**
    * What the agent said its turn cost, in US dollars, from the turn's `finish` part's
    * `harnessMetadata`. `session` names a running total over the session's turns (Claude Code's
-   * `total_cost_usd`), so the turn's cost is the rise since the session's last turn.
+   * `total_cost_usd`), so the turn's cost is the rise since the session's last turn. `guessed`
+   * marks a total the agent priced partly at a guessed rate, which gives that turn no cost.
    */
-  reportedCost?: (harnessMetadata: unknown) => { usd: number; session?: string } | undefined
+  reportedCost?: (
+    harnessMetadata: unknown,
+  ) => { usd: number; session?: string; guessed?: boolean } | undefined
   /**
    * How the agent's reasoning reaches reeval, which decides whether a turn's reasoning time is
    * measured: `streamed`, as the model produces it, so each block is timed; `recovered`, read

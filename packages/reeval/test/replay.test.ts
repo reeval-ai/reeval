@@ -1235,33 +1235,37 @@ describe('replay: the Claude Code bridge, from the SDK’s own messages', () => 
     }
   })
 
-  test("the shipped bridge reports Claude Code's cost only where it has the model's price", async () => {
+  test("the shipped bridge marks Claude Code's cost guessed for a model it has no price for", async () => {
     const cost = (parts: BridgePart[]) =>
-      (parts.at(-1)?.harnessMetadata as { 'claude-code'?: { costUsd?: number } } | undefined)?.[
-        'claude-code'
-      ]?.costUsd
+      (
+        parts.at(-1)?.harnessMetadata as
+          | { 'claude-code'?: { costUsd?: number; costGuessed?: boolean } }
+          | undefined
+      )?.['claude-code']
     const priced = await replayBridge({ bridge: shipped, start, messages })
-    assert.equal(cost(priced), 0.03668795)
+    assert.equal(cost(priced)?.costUsd, 0.03668795)
+    assert.equal(cost(priced)?.costGuessed, undefined)
     const unpriced = await replayBridge({
       bridge: shipped,
       start,
       messages: withUnpricedModel(messages),
     })
-    assert.equal(cost(unpriced), undefined)
-    // The twin: a bridge that takes `total_cost_usd` as it is reports the guess.
+    assert.equal(cost(unpriced)?.costUsd, 0.03668795, 'the running total still moves on')
+    assert.equal(cost(unpriced)?.costGuessed, true)
+    // The twin: a bridge that doesn't read the cost basis passes the guess on as a cost.
     const source = readFileSync(shipped, 'utf8')
-    const check = 'guessedCost(msg) ? void 0 : msg.total_cost_usd'
+    const check = 'costGuessed = guessedCost(msg);'
     assert.ok(source.includes(check), 'the shipped bridge checks the cost basis')
     const dir = mkdtempSync(join(tmpdir(), 'reeval-guessing-'))
     const guessing = join(dir, 'bridge.mjs')
-    writeFileSync(guessing, source.replaceAll(check, 'msg.total_cost_usd'))
+    writeFileSync(guessing, source.replaceAll(check, ''))
     try {
       const guessed = await replayBridge({
         bridge: guessing,
         start,
         messages: withUnpricedModel(messages),
       })
-      assert.equal(cost(guessed), 0.03668795)
+      assert.equal(cost(guessed)?.costGuessed, undefined)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
