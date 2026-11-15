@@ -94,6 +94,11 @@ export type BundleManifest = {
   /** The host variables the run reads secrets from, as the dry run's `secrets`; never values. */
   secrets: string[]
   /**
+   * The credentials the run reads that any one of several host variables provides, left out of
+   * `secrets`: each list is met when one of its names is set.
+   */
+  secretChoices?: string[][]
+  /**
    * What the reeval that wrote it supports that a runner must know of before it starts the run:
    * `secrets-file`, reading `REEVAL_SECRETS_FILE` and keeping its brokered and sandbox values from
    * the eval code; `brokered-model-calls`, its own model calls (the judge, analysis, questions and
