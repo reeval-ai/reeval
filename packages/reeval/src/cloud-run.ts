@@ -277,6 +277,106 @@ async function readRun(runId: string, base: URL, auth: CloudAuth): Promise<Platf
   }
 }
 
+/** Why the platform says a queued run waits, as a follower reads it. */
+const WAITING_FOR: Record<string, string> = {
+  org_limit: "the org's limit on attempts or runs at once",
+  project_cap: "the project's cap on attempts at once",
+  concurrency_group: 'another run of its concurrency group',
+  capacity: 'shared capacity',
+  start_rate: 'paced machine starts',
+  suspended: 'the org, which is suspended',
+  free_tier_paused: 'the free tier, which is paused',
+}
+
+/** How often a followed cloud run is asked whether it's still queued; the first ask waits as long. */
+const QUEUE_CHECK_MS = 10_000
+
+type QueuedRun = { status?: unknown; orgId?: unknown; projectId?: unknown }
+type QueueItem = { id?: unknown; waitingFor?: unknown; position?: unknown }
+
+/**
+ * Why the project's capacity view says queued run `run` waits, as `: waiting for …, position 2 in
+ * the org's queue` (empty when it doesn't list the run); `retry` when it didn't answer usably, and
+ * `refused` when it refused this caller.
+ */
+async function queuedWhy(
+  runId: string,
+  run: QueuedRun,
+  base: URL,
+  auth: CloudAuth,
+  signal: AbortSignal,
+): Promise<{ why: string } | 'retry' | 'refused'> {
+  if (typeof run.orgId !== 'string' || typeof run.projectId !== 'string') return { why: '' }
+  const answer = await request(
+    new URL(
+      `api/orgs/${encodeURIComponent(run.orgId)}/projects/${encodeURIComponent(run.projectId)}/capacity`,
+      base,
+    ),
+    { method: 'GET', what: `read run ${runId}'s queue`, timeoutMs: STATUS_TIMEOUT_MS, signal },
+    auth.headers,
+  ).catch(() => null)
+  if (!answer) return 'retry'
+  if (!answer.ok) return answer.status >= 400 && answer.status < 500 ? 'refused' : 'retry'
+  const items = (answer.body as { runs?: { items?: unknown } } | null)?.runs?.items
+  if (!Array.isArray(items)) return 'retry'
+  const item = items.find(
+    (i): i is QueueItem => typeof i === 'object' && i !== null && (i as QueueItem).id === runId,
+  )
+  if (!item) return { why: '' }
+  const waiting = typeof item.waitingFor === 'string' ? WAITING_FOR[item.waitingFor] : undefined
+  const { position } = item
+  const place =
+    typeof position === 'number' && Number.isInteger(position) && position > 0
+      ? `position ${position} in the org's queue`
+      : ''
+  const parts = [waiting ? `waiting for ${waiting}` : '', place].filter(Boolean)
+  return { why: parts.length ? `: ${parts.join(', ')}` : '' }
+}
+
+/**
+ * While cloud run `runId` is queued, logs that it is and why, again each time that changes, so a
+ * follower isn't silent before the run starts. Stops once the run leaves the queue or `signal`
+ * aborts. A platform that doesn't answer is asked again next time, keeping the last reason; one
+ * that refuses the capacity view isn't asked for it again. Never throws.
+ */
+export async function watchQueue(
+  runId: string,
+  base: URL,
+  auth: CloudAuth,
+  log: (line: string) => void,
+  signal: AbortSignal,
+  everyMs = Math.max(10, Number(process.env.REEVAL_TEST_CLOUD_QUEUE_MS) || QUEUE_CHECK_MS),
+): Promise<void> {
+  const { setTimeout: sleep } = await import('node:timers/promises')
+  let said = ''
+  let why = ''
+  let askView = true
+  for (;;) {
+    try {
+      await sleep(everyMs, undefined, { signal, ref: false })
+      const run = await call<QueuedRun>(
+        new URL(`api/runs/${encodeURIComponent(runId)}`, base),
+        { method: 'GET', what: `read run ${runId}`, timeoutMs: STATUS_TIMEOUT_MS, signal },
+        auth,
+      ).catch(() => null)
+      if (signal.aborted) return
+      if (!run) continue
+      if (run.status !== 'queued') return
+      if (askView) {
+        const view = await queuedWhy(runId, run, base, auth, signal)
+        if (view === 'refused') askView = false
+        else if (view !== 'retry') why = view.why
+      }
+      if (signal.aborted) return
+      const line = `Cloud run ${runId} is queued${why}`
+      if (line !== said) log(line)
+      said = line
+    } catch {
+      if (signal.aborted) return
+    }
+  }
+}
+
 /**
  * `code`, the exit code cloud run `runId`'s stream ended with, or 4 when the platform says it
  * stopped the run before it finished. A stop can end the stream with any code (a cancel's, or
@@ -742,6 +842,8 @@ async function followCloudRun(
   let detached = false
   let code: number
   let read: PlatformRun | null | undefined
+  const followed = new AbortController()
+  watchQueue(runId, base, auth, log, followed.signal).catch(() => {})
   try {
     code = await options.follow({
       source: events.href,
@@ -760,6 +862,8 @@ async function followCloudRun(
     if (!(error instanceof EventStreamError)) throw error
     const resumed = resumedAfter !== undefined
     ;({ code, read } = await afterLostStream(error, runId, base, auth, log, resumed))
+  } finally {
+    followed.abort()
   }
   if (detached) {
     const again = options.download

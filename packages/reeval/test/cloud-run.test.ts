@@ -193,7 +193,8 @@ type FilesOf = (machine: TarEntry[]) => TarEntry[] | null
  * `resume`, the run's stream already holds a stopped run, and resuming it answers each of
  * `resume` in turn (then 202): a 200 or 202 relays the resumed run's lines, ending with
  * `resumedCode`; with `resumeEnds`, it relays nothing and the run reads as that status, for that
- * reason.
+ * reason. With `queued`, each status read answers `queued` with the next of them, which the
+ * project's capacity view then holds, until none is left, unless `capacity` replaces its answer.
  */
 async function platform(
   options: {
@@ -215,6 +216,9 @@ async function platform(
     resume?: Array<{ status: number; code?: string; message?: string; retryAfter?: string }>
     resumedCode?: number
     resumeEnds?: { status: 'failed' | 'stopped'; message: string }
+    queued?: Array<{ waitingFor?: string; position?: number }>
+    /** What the capacity view answers instead: that status, or a body whose items aren't a list. */
+    capacity?: number | 'malformed'
   } = {},
 ) {
   const seen: Seen[] = []
@@ -238,6 +242,8 @@ async function platform(
   let resumed = false
   const resumeAnswers = [...(options.resume ?? [])]
   const resumeBodies: unknown[] = []
+  const queue = [...(options.queued ?? [])]
+  let waiting: { waitingFor?: string; position?: number } | undefined
   const stops = options.stops ?? (options.resume ? 'The run was stopped by the platform.' : '')
   const run = () => ({
     id: 'run_1',
@@ -313,6 +319,13 @@ async function platform(
       const reserved = asked.filter((n) => options.reserved?.includes(n))
       return json(res, 200, { names, reserved })
     }
+    if (req.method === 'GET' && url.pathname === '/api/orgs/org_a/projects/proj_a/capacity') {
+      if (options.capacity === 'malformed') return json(res, 200, { runs: { items: {} } })
+      if (options.capacity !== undefined) {
+        return json(res, options.capacity, { error: { code: 'forbidden', message: 'no' } })
+      }
+      return json(res, 200, { runs: { items: waiting ? [{ id: 'run_1', ...waiting }] : [] } })
+    }
     if (req.method === 'GET' && url.pathname === '/api/orgs/org_a/projects') {
       return json(res, 200, { projects: [{ id: 'proj_a', slug: 'main', name: 'Main' }] })
     }
@@ -353,6 +366,15 @@ async function platform(
     }
     if (req.method === 'GET' && url.pathname === '/api/runs/run_1') {
       if (options.slowStatus) return
+      waiting = queue.shift()
+      if (waiting) {
+        return json(res, 200, {
+          id: 'run_1',
+          status: 'queued',
+          orgId: 'org_a',
+          projectId: 'proj_a',
+        })
+      }
       return json(res, 200, run())
     }
     if (req.method === 'POST' && url.pathname === '/api/runs/run_1/resume' && options.resume) {
@@ -1138,6 +1160,107 @@ evaluate('reaches', async (c) => {
       assert.equal(interrupted.code, 0, interrupted.stdout + interrupted.stderr)
       assert.ok(killed > 0 && Date.now() - killed < 3000, 'Ctrl-C ends the wait')
       assert.doesNotMatch(interrupted.stdout + interrupted.stderr, /goes on|reeval:/)
+    } finally {
+      await p.close()
+    }
+  })
+
+  test('a follower says while the cloud run is queued, and why, each time that changes', async () => {
+    const org = { waitingFor: 'org_limit', position: 2 }
+    const p = await platform({
+      holds: true,
+      queued: [org, org, { waitingFor: 'org_limit', position: 1 }, {}],
+    })
+    const env = {
+      REEVAL_CLOUD_URL: p.base,
+      REEVAL_TOKEN: 'cloud-test-token',
+      REEVAL_TEST_CLOUD_QUEUE_MS: '20',
+    }
+    try {
+      const dir = await fixtureProject()
+      let canceling: Promise<unknown> | undefined
+      const followed = await runCli(dir, ['run', '--cloud'], {
+        env,
+        onOutput: (stdout) => {
+          if (!stdout.includes('held') || !/run_1 is queued\n/.test(stdout)) return false
+          canceling = runCli(dir, ['cloud', 'run', 'cancel', 'run_1'], { env })
+          return true
+        },
+      })
+      await canceling
+      assert.equal(followed.code, 130, followed.stdout + followed.stderr)
+      const said = followed.stdout.split('\n').filter((l) => l.includes('is queued'))
+      assert.deepEqual(said, [
+        "Cloud run run_1 is queued: waiting for the org's limit on attempts or runs at once, position 2 in the org's queue",
+        "Cloud run run_1 is queued: waiting for the org's limit on attempts or runs at once, position 1 in the org's queue",
+        'Cloud run run_1 is queued',
+      ])
+      const reads = p.seen.filter((s) => s.path === '/api/orgs/org_a/projects/proj_a/capacity')
+      assert.ok(reads.every((s) => s.auth === 'Bearer cloud-test-token'))
+    } finally {
+      await p.close()
+    }
+  })
+
+  for (const capacity of [403, 'malformed'] as const) {
+    test(`a follower says a cloud run is queued when its capacity view answers ${capacity}`, async () => {
+      const p = await platform({ holds: true, queued: [{}, {}, {}], capacity })
+      const env = {
+        REEVAL_CLOUD_URL: p.base,
+        REEVAL_TOKEN: 'cloud-test-token',
+        REEVAL_TEST_CLOUD_QUEUE_MS: '20',
+      }
+      try {
+        const dir = await fixtureProject()
+        let canceling: Promise<unknown> | undefined
+        const followed = await runCli(dir, ['run', '--cloud'], {
+          env,
+          onOutput: (stdout) => {
+            if (!stdout.includes('held') || !stdout.includes('is queued')) return false
+            setTimeout(() => {
+              canceling = runCli(dir, ['cloud', 'run', 'cancel', 'run_1'], { env })
+            }, 200)
+            return true
+          },
+        })
+        await canceling
+        assert.equal(followed.code, 130, followed.stdout + followed.stderr)
+        const said = followed.stdout.split('\n').filter((l) => l.includes('is queued'))
+        assert.deepEqual(said, ['Cloud run run_1 is queued'])
+        const views = p.seen.filter((s) => s.path.endsWith('/capacity')).length
+        assert.equal(views, capacity === 403 ? 1 : 3)
+      } finally {
+        await p.close()
+      }
+    })
+  }
+
+  test('reeval attach says while the cloud run is queued, and stops asking once it has left the queue', async () => {
+    const shared = { waitingFor: 'capacity' }
+    const p = await platform({ queued: [shared, shared] })
+    const env = {
+      REEVAL_CLOUD_URL: p.base,
+      REEVAL_TOKEN: 'cloud-test-token',
+      REEVAL_TEST_CLOUD_QUEUE_MS: '20',
+    }
+    try {
+      const dir = await fixtureProject()
+      let reads = 0
+      const viewer = await runCli(dir, ['attach', `${p.base}/api/runs/run_1/events`], {
+        env,
+        onOutput: (stdout) => {
+          if (!stdout.includes('is queued')) return false
+          setTimeout(() => {
+            reads = p.seen.filter((s) => s.path === '/api/runs/run_1').length
+            void runCli(dir, ['cloud', 'run', 'cancel', 'run_1'], { env })
+          }, 500)
+          return true
+        },
+      })
+      assert.equal(viewer.code, 130, viewer.stdout + viewer.stderr)
+      const said = viewer.stdout.split('\n').filter((l) => l.includes('is queued'))
+      assert.deepEqual(said, ['Cloud run run_1 is queued: waiting for shared capacity'])
+      assert.ok(reads <= 4, `asked ${reads} times`)
     } finally {
       await p.close()
     }
