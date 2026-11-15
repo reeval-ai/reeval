@@ -177,8 +177,13 @@ export function rejectedKey(turn: {
 
 /** The model calls a runner's network saw, for a runner whose network sees them. */
 export type ModelTraffic = {
-  /** Each model call's HTTP status, in order. */
+  /** Each request the key was sent on: its HTTP status, in order. */
   statuses(): readonly number[]
+  /**
+   * The same for the model calls among them, when the network tells them from the rest (a model
+   * list a CLI fetches is not one); `null` for a call that got no response.
+   */
+  modelStatuses?(): readonly (number | null)[]
   /** The model each model call's response named, in order. */
   servedModels(): readonly string[]
 }
@@ -246,6 +251,7 @@ export async function startAgent(options: StartAgentOptions): Promise<HarnessSes
     ...(options.skills?.length ? { skills: options.skills } : {}),
   })
   const statuses = () => traffic?.statuses() ?? []
+  const modelStatuses = () => traffic?.modelStatuses?.()
   let network: Awaited<ReturnType<typeof runnerSession>> | undefined
   const release = () => Promise.resolve(network?.destroy()).catch(() => {})
   let session: Awaited<ReturnType<typeof agent.createSession>>
@@ -303,6 +309,7 @@ export async function startAgent(options: StartAgentOptions): Promise<HarnessSes
       const parts: StampedPart[] = []
       const servedBefore = traffic?.servedModels().length ?? 0
       const seenBefore = statuses().length
+      const callsBefore = modelStatuses()?.length ?? 0
       servedModel = null
       finishMetadata = undefined
       let stepUsage: TokenUsage | null = null
@@ -328,7 +335,10 @@ export async function startAgent(options: StartAgentOptions): Promise<HarnessSes
             ? { ...e, durationMs: null }
             : e,
         )
-        const failed = everyCallFailed(entry.name, seen)
+        const calls = modelStatuses()
+          ?.slice(callsBefore)
+          .filter((s): s is number => s !== null)
+        const failed = everyCallFailed(entry.name, calls ?? seen)
         // A CLI can end a turn as if it worked when its API refused every call (fx does).
         if (status === 'completed' && failed && !events.some((e) => e.type === 'error')) {
           const at = Date.now() - startedAt

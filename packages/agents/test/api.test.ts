@@ -401,3 +401,28 @@ test("a route's model id is the one the adapter is built with, and one it doesn'
     /The Cursor harness doesn't run on Vertex AI/,
   )
 })
+
+test("a turn whose every model call failed is an error, though the CLI's other requests succeeded", async () => {
+  const run = async (calls: (number | null)[] | undefined) => {
+    const statuses: number[] = []
+    const models: (number | null)[] = []
+    const turn = async (emit: (part: never) => void) => {
+      statuses.push(200, 402)
+      models.push(...(calls ?? []))
+      for (const part of reply('Payment Required')) emit(part as never)
+    }
+    const traffic = {
+      statuses: () => statuses,
+      servedModels: () => [],
+      ...(calls && { modelStatuses: () => models }),
+    }
+    const options = scripted([turn]).options
+    return agent({ ...options, runner: local({ cwd: dir }), traffic }).exec('go')
+  }
+  const failed = await run([402, null])
+  assert.equal(failed.status, 'error')
+  const error = failed.transcript.find((e) => e.type === 'error')
+  assert.match(JSON.stringify(error), /every Cursor model call in the turn failed \(HTTP 402\)/)
+  assert.equal((await run(undefined)).status, 'completed', 'a model list that answered 200')
+  assert.equal((await run([null])).status, 'completed', 'no call answered')
+})
