@@ -115,19 +115,43 @@ const skeletonHome = (layout: SlotLayout) => {
 }
 
 /**
+ * The file systems a slot's user can leave files on: the root and the usual tmpfs mounts, each
+ * walked on its own since the walk stays on one file system. Outside its home and working root,
+ * the user can only create entries in a world-writable directory.
+ */
+const USER_WRITABLE_MOUNTS = [
+  '/',
+  '/tmp',
+  '/var/tmp',
+  '/dev/shm',
+  '/run',
+  '/run/lock',
+  '/dev/mqueue',
+]
+
+/** Container engines' image stores, whose layers hold files of any uid, the user's included. */
+const ENGINE_STORES = ['/var/lib/docker', '/var/lib/containerd', '/var/lib/containers']
+
+/**
  * Root commands that put a used slot back as a new one finds it: none of its user's processes,
- * cron or at jobs, lingering, temporary files, locks or message queues, an empty working root and
- * state directory, and the skeleton home.
+ * cron or at jobs, lingering, files in world-writable directories or System V IPC objects, an empty
+ * working root and state directory, and the skeleton home.
+ *
+ * The processes die by `kill(-1)` sent as the user, which the kernel delivers to every process
+ * of theirs at once, so one that keeps forking a new pid and exiting can't slip between a listing
+ * and its kill as it does past `pkill`. `pkill` stays for a machine without `setpriv`.
  */
 export function resetSlot(layout: SlotLayout): string {
   const u = q(layout.user)
+  const killAll = `setpriv --reuid="$uid" --regid="$(id -g ${u})" --clear-groups sh -c 'kill -KILL -1' 2>/dev/null`
   return [
-    `if id -u ${u} >/dev/null 2>&1; then`,
-    `for i in 1 2 3 4 5 6 7 8 9 10; do pkill -KILL -u ${u} || break; sleep 0.2; done`,
+    `if uid=$(id -u ${u} 2>/dev/null); then`,
+    `for i in 1 2 3 4 5 6 7 8 9 10; do ${killAll} || pkill -KILL -u ${u}; pgrep -u ${u} >/dev/null || break; sleep 0.2; done`,
     `crontab -r -u ${u} 2>/dev/null`,
     `atq 2>/dev/null | awk -v u=${u} '$NF == u { print $1 }' | xargs -r atrm 2>/dev/null`,
     `loginctl disable-linger ${u} 2>/dev/null`,
-    `find /tmp /var/tmp /dev/shm /run/lock /dev/mqueue -xdev -mindepth 1 -user ${u} -delete 2>/dev/null`,
+    `find ${USER_WRITABLE_MOUNTS.join(' ')} -xdev \\( ${[layout.home, ...ENGINE_STORES].map((p) => `-path ${q(p)}`).join(' -o ')} \\) -prune -o -type d -perm -0002 -exec sh -c 'for d; do find "$d" -mindepth 1 -maxdepth 1 -user "$0" -print0 | xargs -0 -r rm -rf --; done' ${u} {} + 2>/dev/null`,
+    `for t in m s q; do ipcs -$t 2>/dev/null | awk -v u=${u} '$3 == u { print $2 }' | xargs -r -n1 ipcrm -$t 2>/dev/null; done`,
     `rm -rf ${q(layout.root)} ${q(layout.state)}`,
     skeletonHome(layout),
     'fi; true',
