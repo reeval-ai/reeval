@@ -47,6 +47,87 @@ function extractRoot(): string {
   return dir
 }
 
+/** A fake-harness reeval project in `dir` whose one Python eval passes once the agent writes. */
+function pythonEvals(dir: string): void {
+  writeFileSync(
+    join(dir, 'reeval.config.ts'),
+    [
+      "import { defineConfig } from 'reeval'",
+      "import { fakeHarness } from 'reeval/harness'",
+      "import { fakeSandbox } from 'reeval/sandbox'",
+      '',
+      'export default defineConfig({',
+      "  include: ['evals/**/*.eval.py'],",
+      "  harnesses: fakeHarness({ script: [[{ write: { 'greet.py': 'hi' } }, { reply: 'done' }]] }),",
+      "  sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }),",
+      '})',
+      '',
+    ].join('\n'),
+  )
+  mkdirSync(join(dir, 'evals'))
+  writeFileSync(
+    join(dir, 'evals/greet.eval.py'),
+    [
+      'from reeval_python import evaluate, expect',
+      '',
+      '',
+      '@evaluate("greets")',
+      'def greets(c):',
+      '    c.send("Create greet.py")',
+      '    expect(c.exec("test -f greet.py")).to_succeed()',
+      '',
+    ].join('\n'),
+  )
+}
+
+/** A uv package project in `dir`: a `[build-system]`, a README and its module under `src/`. */
+function uvPackage(dir: string, name: string, dependencies: string[], extra: string[]): void {
+  const module = name.replace(/-/g, '_')
+  writeFileSync(
+    join(dir, 'pyproject.toml'),
+    [
+      '[project]',
+      `name = "${name}"`,
+      'version = "0.0.0"',
+      'readme = "README.md"',
+      'requires-python = ">=3.11"',
+      `dependencies = [${dependencies.map((d) => `"${d}"`).join(', ')}]`,
+      '',
+      ...extra,
+      '',
+      '[build-system]',
+      'requires = ["uv_build>=0.8,<0.14"]',
+      'build-backend = "uv_build"',
+      '',
+    ].join('\n'),
+  )
+  writeFileSync(join(dir, 'README.md'), `# ${name}\n`)
+  mkdirSync(join(dir, 'src', module), { recursive: true })
+  writeFileSync(join(dir, 'src', module, '__init__.py'), '')
+}
+
+/**
+ * Bundles the reeval project `app` and runs the bundle from a fresh directory, with the Python SDK
+ * only from the project's own uv environment: the repo's copy on `PYTHONPATH` would hide a
+ * dependency the install missed.
+ */
+async function runPythonBundle(app: string) {
+  const out = join(tempDir('bundle-out'), 'python.tar.gz')
+  const made = await runCli(app, ['bundle', '--out', out])
+  assert.equal(made.code, 0, made.stderr)
+  const kinds = Object.fromEntries(manifestOf(entriesOf(out)).files.map((f) => [f.path, f.kind]))
+  assert.equal(kinds['uv.lock'], 'lockfile')
+  assert.ok(!Object.keys(kinds).some((p) => p.split('/').includes('src')), 'the sources stay out')
+  const r = await runCli(tempDir('bundle-fresh'), ['run', '--bundle', out], {
+    env: { TMPDIR: extractRoot(), REEVAL_PYTHON_SDK: '' },
+  })
+  assert.match(
+    r.stdout,
+    /installing from uv\.lock: uv sync --frozen --all-packages --no-install-workspace/,
+  )
+  return r
+}
+
 const entriesOf = (file: string) => readTar(gunzipSync(readFileSync(file)))
 const manifestOf = (entries: TarEntry[]): BundleManifest => {
   const m = entries.find((e) => e.path === 'manifest.json')
@@ -248,71 +329,52 @@ describe('reeval bundle', () => {
     assert.match(r.stdout, /1 passed/)
   })
 
-  test("runs a uv package project's Python evals without the package's sources it leaves out", async () => {
+  test("runs a uv package project's Python evals from a bundle without the package's sources", async () => {
     const { dir } = await project('bundle-uv-package', {})
-    writeFileSync(
-      join(dir, 'reeval.config.ts'),
-      [
-        "import { defineConfig } from 'reeval'",
-        "import { fakeHarness } from 'reeval/harness'",
-        "import { fakeSandbox } from 'reeval/sandbox'",
-        '',
-        'export default defineConfig({',
-        "  include: ['evals/**/*.eval.py'],",
-        "  harnesses: fakeHarness({ script: [[{ write: { 'greet.py': 'hi' } }, { reply: 'done' }]] }),",
-        "  sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }),",
-        '})',
-        '',
-      ].join('\n'),
+    pythonEvals(dir)
+    uvPackage(
+      dir,
+      'uv-package',
+      ['reeval-python'],
+      ['[tool.uv.sources]', 'reeval-python = { path = "../reeval-python" }'],
     )
-    mkdirSync(join(dir, 'evals'))
+    syncPythonFixtureProject(dir)
+    const r = await runPythonBundle(dir)
+    assert.equal(r.code, 0, r.stderr + r.stdout)
+    assert.match(r.stdout, /1 passed/)
+  })
+
+  test("runs a uv workspace member's Python evals from a bundle, with the member's dependencies", async () => {
+    const repo = tempDir('bundle-uv-workspace')
+    uvPackage(repo, 'uv-root', [], ['[tool.uv.workspace]', 'members = ["evals-member"]'])
+    const member = join(repo, 'evals-member')
+    mkdirSync(member)
+    pythonEvals(member)
     writeFileSync(
-      join(dir, 'evals/greet.eval.py'),
-      [
-        'from reeval_python import evaluate, expect',
-        '',
-        '',
-        '@evaluate("greets")',
-        'def greets(c):',
-        '    c.send("Create greet.py")',
-        '    expect(c.exec("test -f greet.py")).to_succeed()',
-        '',
-      ].join('\n'),
-    )
-    writeFileSync(
-      join(dir, 'pyproject.toml'),
+      join(member, 'pyproject.toml'),
       [
         '[project]',
-        'name = "uv-package"',
+        'name = "evals-member"',
         'version = "0.0.0"',
-        'readme = "README.md"',
         'requires-python = ">=3.11"',
         'dependencies = ["reeval-python"]',
         '',
         '[tool.uv.sources]',
         'reeval-python = { path = "../reeval-python" }',
         '',
-        '[build-system]',
-        'requires = ["uv_build>=0.8,<0.14"]',
-        'build-backend = "uv_build"',
-        '',
       ].join('\n'),
     )
-    writeFileSync(join(dir, 'README.md'), '# uv-package\n')
-    mkdirSync(join(dir, 'src/uv_package'), { recursive: true })
-    writeFileSync(join(dir, 'src/uv_package/__init__.py'), '')
-    syncPythonFixtureProject(dir)
-    const out = join(tempDir('bundle-out'), 'uv-package.tar.gz')
-    const made = await runCli(dir, ['bundle', '--out', out])
-    assert.equal(made.code, 0, made.stderr)
-    const kinds = Object.fromEntries(manifestOf(entriesOf(out)).files.map((f) => [f.path, f.kind]))
-    assert.equal(kinds['uv.lock'], 'lockfile')
-    assert.ok(!Object.keys(kinds).some((p) => p.startsWith('src/')), 'the sources stay out')
-    const r = await runCli(tempDir('bundle-fresh'), ['run', '--bundle', out], {
-      env: { TMPDIR: extractRoot() },
-    })
+    syncPythonFixtureProject(member)
+    writeFileSync(join(repo, '.gitignore'), 'node_modules\n.venv\n.reeval\nsandboxes\n')
+    mkdirSync(join(repo, 'node_modules'))
+    symlinkSync(pkgRoot, join(repo, 'node_modules/reeval'), 'dir')
+    const git = (...args: string[]) =>
+      spawnTool('git', args, { cwd: repo, env: baseEnv, encoding: 'utf8' })
+    git('init', '-q')
+    git('add', '.')
+    git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init')
+    const r = await runPythonBundle(member)
     assert.equal(r.code, 0, r.stderr + r.stdout)
-    assert.match(r.stdout, /installing from uv\.lock: uv sync --frozen --no-install-project/)
     assert.match(r.stdout, /1 passed/)
   })
 
