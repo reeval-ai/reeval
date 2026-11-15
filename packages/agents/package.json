@@ -56,6 +56,6 @@
     "@reeval/sandbox-docker": "workspace:*"
   },
   "devDependencies": {
-    "oxc-parser": "0.156.0"
+    "oxc-parser": "0.158.0"
   }
 }
