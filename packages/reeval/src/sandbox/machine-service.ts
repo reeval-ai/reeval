@@ -3,6 +3,7 @@
 // the pools on one account share its limits (`pool-account.ts`). It closes them all when the run
 // ends. A worker leases a slot over its IPC channel (or, outside
 // a worker, from pools in its own process) and gives it back when its attempt is done.
+import { backstops } from '../engine/backstop.ts'
 import { callService } from '../scheduler/services.ts'
 import { attemptSpan, emitSpan, openSpan } from '../trace/spans.ts'
 import type { MachineDescriptor } from './machine.ts'
@@ -266,8 +267,11 @@ export async function leaseMachine(
     signal.addEventListener('abort', () => reject(signal.reason), { once: true })
   })
   stop.catch(() => {})
+  // The attempt's timeout is for its own work, so waiting for a slot doesn't count, nor does a
+  // machine's start, which its provider bounds.
+  const queued = backstops.getStore()?.hold()
   try {
-    const lease = await Promise.race([leased, stop])
+    const lease = await Promise.race([leased, stop]).finally(queued)
     if ('ended' in lease) throw new RunStopped(lease.ended)
     const placement = {
       'reeval.sandbox': request.sandbox.kind,

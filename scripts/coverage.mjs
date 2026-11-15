@@ -44,6 +44,7 @@ const ours = new RegExp(`^${repo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/[^/]+/(
  * tests can't reach takes a `c8 ignore` comment that says why.
  */
 const ENGINE = [
+  'backstop',
   'budget',
   'collector',
   'errors',

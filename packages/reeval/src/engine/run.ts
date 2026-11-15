@@ -11,6 +11,7 @@ import { acquire, type Lease } from '../scheduler/client.ts'
 import type { EvalMeta } from '../types.ts'
 import type { Progress } from '../ui/events.ts'
 import type { DebugLine } from '../view/debug.ts'
+import { backstops, backstopTimer } from './backstop.ts'
 import { budgetMarker } from './budget.ts'
 import type { CollectedTest } from './collector.ts'
 import type { SerializedError } from './errors.ts'
@@ -169,32 +170,45 @@ async function runTest(
   const own = createExpect(task)
   const pending: Pending[] = []
   const timeout = new AbortController()
+  const timedOut = new Promise<never>((_, reject) => {
+    timeout.signal.addEventListener('abort', () => reject(timeout.signal.reason), { once: true })
+  })
+  const ms = options.timeout
+  // Fails the attempt and aborts its body, which keeps its lease until it has cleaned up.
+  const backstop = ms
+    ? backstopTimer(ms, () => {
+        const error = new TimeoutError(`Eval timed out after ${ms / 1000}s`)
+        timeout.abort(error)
+      })
+    : undefined
   let reported = false
   let meta: EvalMeta | undefined
-  const body = currentAttempt.run(index, () =>
-    withAttemptExpect(own, pending, () =>
-      test.body({
-        file,
-        signal: AbortSignal.any([signal, timeout.signal]),
-        setMeta: (next) => {
-          // Masked here, where the attempt's own secrets are known: labels are the eval's words.
-          meta = redactValue(next)
-          if (reported) reporter.meta(index, next)
-        },
-        progress: (progress) => reporter.progress(index, progress),
-        debug: (line) => reporter.debug(index, line),
-        unawaited: () => unawaitedError(pending, file),
-        expectError: () => attemptExpectError(own),
-        assertions: () => rawAssertions(task),
-      }),
-    ),
-  )
+  const run = () =>
+    currentAttempt.run(index, () =>
+      withAttemptExpect(own, pending, () =>
+        test.body({
+          file,
+          signal: AbortSignal.any([signal, timeout.signal]),
+          setMeta: (next) => {
+            // Masked here, where the attempt's own secrets are known: labels are the eval's words.
+            meta = redactValue(next)
+            if (reported) reporter.meta(index, next)
+          },
+          progress: (progress) => reporter.progress(index, progress),
+          debug: (line) => reporter.debug(index, line),
+          unawaited: () => unawaitedError(pending, file),
+          expectError: () => attemptExpectError(own),
+          assertions: () => rawAssertions(task),
+        }),
+      ),
+    )
+  const body = backstop ? backstops.run(backstop, run) : run()
   bodies.add(body)
   const release = () => lease?.release()
   const cleanedUp = body.then(release, release)
   let state: WireResult['state'] = 'passed'
   try {
-    await (options.timeout ? withTimeout(body, options.timeout, timeout) : body)
+    await (backstop ? Promise.race([body, timedOut]).finally(() => backstop.clear()) : body)
     finish({ state: 'passed', errors: [] })
   } catch (error) {
     finish({ state: 'failed', errors: [serializeError(error)] })
@@ -220,17 +234,4 @@ async function runTest(
     })
     options.settled?.({ state: 'failed' })
   }
-}
-
-/** Fails after `ms`, aborting the body; the body keeps its lease until it has cleaned up. */
-function withTimeout(running: Promise<void>, ms: number, abort: AbortController): Promise<void> {
-  let timer: NodeJS.Timeout | undefined
-  const timedOut = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => {
-      const error = new TimeoutError(`Eval timed out after ${ms / 1000}s`)
-      abort.abort(error)
-      reject(error)
-    }, ms)
-  })
-  return Promise.race([running, timedOut]).finally(() => clearTimeout(timer))
 }
