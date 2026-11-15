@@ -46,17 +46,23 @@ describe('cli', () => {
     const golden = readFileSync(GOLDEN, 'utf8').replace('reeval VERSION', `reeval ${version}`)
     const lines = [[], ...PATHS.map((c) => c.path), ['image'], ['cloud']]
     const calls = lines.flatMap((path) => ['--help', '-h'].map((flag) => ({ path, flag })))
-    // A few at a time: dozens of CLIs started at once on a macOS runner have left one silent past
+    // At most four at a time: a burst of dozens on a small macOS runner can leave one silent past
     // runCli's idle timeout.
     let next = 0
+    let failed = false
     await Promise.all(
-      Array.from({ length: availableParallelism() }, async () => {
-        for (let call = calls[next++]; call; call = calls[next++]) {
+      Array.from({ length: Math.min(4, availableParallelism()) }, async () => {
+        for (let call = calls[next++]; call && !failed; call = calls[next++]) {
           const { path, flag } = call
-          const r = await runCli(p.dir, [...path, flag])
-          const expected = path.length ? `${commandHelpText(version, path)}\n` : golden
-          assert.equal(r.code, 0, `reeval ${path.join(' ')} ${flag}: ${r.stderr}`)
-          assert.equal(r.stdout, expected, `reeval ${path.join(' ')} ${flag}`)
+          try {
+            const r = await runCli(p.dir, [...path, flag])
+            const expected = path.length ? `${commandHelpText(version, path)}\n` : golden
+            assert.equal(r.code, 0, `reeval ${path.join(' ')} ${flag}: ${r.stderr}`)
+            assert.equal(r.stdout, expected, `reeval ${path.join(' ')} ${flag}`)
+          } catch (error) {
+            failed = true
+            throw error
+          }
         }
       }),
     )
