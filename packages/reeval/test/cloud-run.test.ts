@@ -1171,7 +1171,7 @@ evaluate('reaches', async (c) => {
         { env },
       )
       assert.equal(ended.code, 0, ended.stdout + ended.stderr)
-      const status = /Cloud run run_1 has already ended \((\w+)\)/.exec(ended.stdout)?.[1]
+      const status = /Cloud run run_1 has ended \((\w+)\)/.exec(ended.stdout)?.[1]
       assert.equal(status, 'cancelled', ended.stdout)
       const missing = await runCli(dir, ['cloud', 'run', 'cancel', 'run_2'], { env })
       assert.equal(missing.code, 2, missing.stdout + missing.stderr)
@@ -1233,7 +1233,7 @@ evaluate('reaches', async (c) => {
         env: { REEVAL_CLOUD_URL: escaped.base, REEVAL_TOKEN: 'cloud-test-token' },
       })
       assert.equal(r.code, 0, r.stdout + r.stderr)
-      assert.match(r.stdout, /Cloud run run_1 has already ended \(cancel\[2Jled\)/)
+      assert.match(r.stdout, /Cloud run run_1 has ended \(cancel\[2Jled\)/)
       assert.ok(!r.stdout.includes('\u001b'), 'no escape reaches the terminal')
     } finally {
       await escaped.close()

@@ -390,7 +390,7 @@ export async function cloudRunCommand(
   } else {
     const said = platformText(run?.status)
     const status = said ? ` (${said})` : ''
-    io.out(`Cloud run ${runId} has already ended${status}`)
+    io.out(`Cloud run ${runId} has ended${status}`)
   }
   return 0
 }
