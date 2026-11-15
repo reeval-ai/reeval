@@ -97,6 +97,10 @@ function startUpstream(host: string, h2: boolean): Promise<{ port: number; close
         })
         return out.end(echo)
       }
+      if (req.url === '/redirect') {
+        out.writeHead(302, { location: `https://${OTHER}/stolen` })
+        return out.end()
+      }
       if (req.url?.startsWith('/tokens/')) {
         const auth = String(req.headers.authorization ?? '')
         if (req.url === '/tokens/denied') {
@@ -347,7 +351,7 @@ async function startProxy(
     | 'onEvent'
     | 'modelResponses'
     | 'localResponses'
-    | 'relays'
+    | 'credentialFiller'
     | 'firstByteTimeout'
   > = {},
   /** Hand each connection over as a plain Duplex, as the gateway's mux streams are. */
@@ -3376,21 +3380,124 @@ describe('local responses', () => {
   })
 })
 
-describe('relays', () => {
+describe('fillers', () => {
+  const REFERENCE = 'held-reference-0123456789abcdef'
+  const HOLDER = `reeval_secret_${'F'.repeat(32)}`
+  const TOKEN = 'filler-token-0123456789abcdef'
   let upstream: { port: number; close(): void }
-  let relay: { port: number; close(): void }
+  let filler: { port: number; close(): void }
+  let fillerUrl: string
   before(async () => {
     upstream = await startUpstream(HOST, false)
-    relay = await startUpstream('localhost', false)
+    filler = await startUpstream('localhost', false)
+    fillerUrl = `https://localhost:${filler.port}/echo/swap`
   })
   after(() => {
     upstream.close()
-    relay.close()
+    filler.close()
+  })
+  const filled = (over: Partial<Substitution> = {}): Substitution => ({
+    name: 'API_KEY',
+    placeholder: HOLDER,
+    value: REFERENCE,
+    hosts: [HOST],
+    in: ['header'],
+    fill: { url: fillerUrl, token: TOKEN },
+    ...over,
   })
 
-  test("a relayed host's requests go to the relay, under its path, with the credential swapped in", async () => {
+  test('a request a filled secret is swapped into goes to its filler, with its target and token, and nothing reaches the host', async () => {
+    const gw = await startProxy()
+    try {
+      gw.proxy.setSubstitutions([filled()])
+      seen.length = 0
+      const r = await viaProxy(gw, HOST, upstream.port, {
+        method: 'POST',
+        path: '/v1/chat?stream=1',
+        headers: { authorization: `Bearer ${HOLDER}`, 'content-type': 'application/json' },
+        body: '{"model":"m"}',
+      })
+      assert.equal(r.status, 200)
+      const echo = JSON.parse(r.body)
+      assert.equal(echo.path, '/echo/swap')
+      assert.equal(echo.body, '{"model":"m"}')
+      assert.equal(echo.headers.host, `localhost:${filler.port}`)
+      assert.equal(
+        echo.headers['reeval-fill-target'],
+        `https://${HOST}:${upstream.port}/v1/chat?stream=1`,
+      )
+      assert.deepEqual(
+        seen.map((x) => [x.host, x.headers.authorization, x.headers['reeval-fill-authorization']]),
+        [['localhost', `Bearer ${REFERENCE}`, `Bearer ${TOKEN}`]],
+        'only the filler was reached, with the reference swapped in',
+      )
+      // The filler's token, echoed back, reaches the sandbox scrubbed.
+      assert.doesNotMatch(r.body, new RegExp(TOKEN))
+      assert.equal(echo.headers['reeval-fill-authorization'], 'Bearer reeval_redacted_filler_token')
+      // The reference is put back as the placeholder, as a brokered value is.
+      assert.equal(r.headers['x-echo-authorization'], `Bearer ${HOLDER}`)
+      assert.doesNotMatch(r.body, new RegExp(REFERENCE))
+
+      // Twin: a request on the same host that carries no placeholder goes to the host.
+      seen.length = 0
+      const plain = await viaProxy(gw, HOST, upstream.port, { path: '/echo/plain' })
+      assert.equal(plain.status, 200)
+      assert.deepEqual(
+        seen.map((x) => x.host),
+        [HOST],
+      )
+      assert.equal(JSON.parse(plain.body).headers['reeval-fill-authorization'], undefined)
+    } finally {
+      gw.close()
+    }
+  })
+
+  test('the sandbox can name neither the target nor the token: the gateway sets both', async () => {
+    const gw = await startProxy()
+    try {
+      gw.proxy.setSubstitutions([filled()])
+      seen.length = 0
+      const r = await viaProxy(gw, HOST, upstream.port, {
+        path: '/v1/models',
+        headers: {
+          authorization: `Bearer ${HOLDER}`,
+          'reeval-fill-target': 'https://elsewhere.test/steal',
+          'reeval-fill-authorization': 'Bearer forged',
+        },
+      })
+      const echo = JSON.parse(r.body)
+      assert.equal(echo.headers['reeval-fill-target'], `https://${HOST}:${upstream.port}/v1/models`)
+      assert.equal(seen[0]?.headers['reeval-fill-authorization'], `Bearer ${TOKEN}`)
+    } finally {
+      gw.close()
+    }
+  })
+
+  test('an HTTP/2 request a filled secret is swapped into goes to its filler too', async () => {
+    const h2 = await startUpstream(HOST, true)
+    const gw = await startProxy()
+    try {
+      gw.proxy.setSubstitutions([filled()])
+      seen.length = 0
+      const r = await viaProxyH2(gw, HOST, h2.port, '/v1/run', `Bearer ${HOLDER}`, '{"a":1}')
+      assert.equal(r.status, 200)
+      const echo = JSON.parse(r.body)
+      assert.equal(echo.path, '/echo/swap')
+      assert.equal(echo.body, '{"a":1}')
+      assert.equal(echo.headers['reeval-fill-target'], `https://${HOST}:${h2.port}/v1/run`)
+      assert.deepEqual(
+        seen.map((x) => x.host),
+        ['localhost'],
+      )
+    } finally {
+      gw.close()
+      h2.close()
+    }
+  })
+
+  test("a credential rule's request goes to the credential filler; a request no rule sets a header on goes to the host", async () => {
     const gw = await startProxy(undefined, {
-      relays: [{ hosts: [HOST], via: `https://localhost:${relay.port}/echo/vercel/` }],
+      credentialFiller: { filler: { url: fillerUrl, token: TOKEN }, reference: REFERENCE },
     })
     gw.proxy.addTransformations([
       {
@@ -3398,99 +3505,385 @@ describe('relays', () => {
           host: HOST,
           headers: [{ key: { exact: 'Authorization' }, value: { exact: `Bearer ${PLACEHOLDER}` } }],
         },
-        transform: { headers: { Authorization: `Bearer ${REAL}` } },
+        transform: { headers: { Authorization: `Bearer ${REFERENCE}` } },
+      },
+    ])
+    try {
+      seen.length = 0
+      const r = await viaProxy(gw, HOST, upstream.port, {
+        path: '/v1/models',
+        headers: { authorization: `Bearer ${PLACEHOLDER}` },
+      })
+      assert.equal(r.status, 200)
+      assert.equal(
+        JSON.parse(r.body).headers['reeval-fill-target'],
+        `https://${HOST}:${upstream.port}/v1/models`,
+      )
+      assert.equal(r.headers['x-echo-authorization'], `Bearer ${PLACEHOLDER}`)
+      // Twin: no credential set, so the host itself is reached.
+      const plain = await viaProxy(gw, HOST, upstream.port, { path: '/echo/plain' })
+      assert.equal(plain.status, 200)
+      assert.deepEqual(
+        seen.map((x) => x.host),
+        ['localhost', HOST],
+      )
+    } finally {
+      gw.close()
+    }
+  })
+
+  test('a brokered secret with no filler reaches its host as it does with none configured, and the filler gets nothing', async () => {
+    const REAL_VALUE = 'real-brokered-value-0123456789abcd'
+    const gw = await startProxy(undefined, {
+      credentialFiller: { filler: { url: fillerUrl, token: TOKEN }, reference: REFERENCE },
+    })
+    try {
+      gw.proxy.setSubstitutions([filled({ value: REAL_VALUE, fill: undefined })])
+      seen.length = 0
+      const r = await viaProxy(gw, HOST, upstream.port, {
+        path: '/echo/brokered',
+        headers: { authorization: `Bearer ${HOLDER}` },
+      })
+      assert.equal(r.status, 200)
+      const echo = JSON.parse(r.body)
+      assert.equal(echo.path, '/echo/brokered')
+      assert.equal(echo.headers['reeval-fill-target'], undefined)
+      assert.equal(echo.headers['reeval-fill-authorization'], undefined)
+      assert.deepEqual(
+        seen.map((x) => [x.host, x.headers.authorization]),
+        [[HOST, `Bearer ${REAL_VALUE}`]],
+      )
+      assert.ok(!gw.lines.some((l) => l.includes('filler')))
+    } finally {
+      gw.close()
+    }
+  })
+
+  test('a filled secret with in body sends every request on its hosts that has a body to the filler, and one without to the host', async () => {
+    const gw = await startProxy()
+    try {
+      gw.proxy.setSubstitutions([filled({ in: ['body'] })])
+      seen.length = 0
+      const r = await viaProxy(gw, HOST, upstream.port, {
+        method: 'POST',
+        path: '/v1/x',
+        headers: { 'content-type': 'application/json' },
+        body: `{"key":"${HOLDER}"}`,
+      })
+      assert.equal(JSON.parse(r.body).path, '/echo/swap')
+      assert.doesNotMatch(r.body, new RegExp(REFERENCE))
+      // Twin: a GET can't carry the reference, so it goes to the host.
+      const get = await viaProxy(gw, HOST, upstream.port, { path: '/echo/get' })
+      assert.equal(JSON.parse(get.body).path, '/echo/get')
+      assert.deepEqual(
+        seen.map((x) => x.host),
+        ['localhost', HOST],
+      )
+    } finally {
+      gw.close()
+    }
+  })
+
+  test('a request that carries a filled reference and a real value is refused, and reaches neither the filler nor the host', async () => {
+    const REAL_VALUE = 'real-brokered-value-0123456789abcd'
+    const OTHER_HOLDER = `reeval_secret_${'O'.repeat(32)}`
+    const brokered = filled({
+      name: 'OTHER_KEY',
+      placeholder: OTHER_HOLDER,
+      value: REAL_VALUE,
+      fill: undefined,
+    })
+    const gw = await startProxy()
+    try {
+      gw.proxy.setSubstitutions([filled(), brokered])
+      seen.length = 0
+      const r = await viaProxy(gw, HOST, upstream.port, {
+        path: '/echo/mixed',
+        headers: { authorization: `Bearer ${HOLDER}`, 'x-other': OTHER_HOLDER },
+      })
+      assert.equal(r.status, 403)
+      assert.match(r.body, /carries a secret its filler fills and a value reeval swaps in itself/)
+      assert.doesNotMatch(r.body, new RegExp(`${REAL_VALUE}|${REFERENCE}|${TOKEN}`))
+      assert.deepEqual(seen, [])
+
+      // A body-filled secret and a brokered one: a request with a body might carry the
+      // reference, so with the brokered value it is refused too.
+      gw.proxy.setSubstitutions([filled({ in: ['body'] }), brokered])
+      const body = await viaProxy(gw, HOST, upstream.port, {
+        method: 'POST',
+        path: '/echo/body',
+        headers: { 'x-other': OTHER_HOLDER },
+        body: '{"nothing":"here"}',
+      })
+      assert.equal(body.status, 403)
+      assert.deepEqual(seen, [])
+      // Twin: without a body it carries only the real value, and goes to the host.
+      const get = await viaProxy(gw, HOST, upstream.port, {
+        path: '/echo/get',
+        headers: { 'x-other': OTHER_HOLDER },
+      })
+      assert.equal(get.status, 200)
+      assert.deepEqual(
+        seen.map((x) => [x.host, x.headers['x-other']]),
+        [[HOST, REAL_VALUE]],
+      )
+    } finally {
+      gw.close()
+    }
+  })
+
+  test("a secret with no filler that shares a filled one's name goes to the host on its own", async () => {
+    const REAL_VALUE = 'real-brokered-value-0123456789abcd'
+    const OTHER_HOLDER = `reeval_secret_${'N'.repeat(32)}`
+    const gw = await startProxy()
+    try {
+      gw.proxy.setSubstitutions([
+        filled(),
+        filled({ placeholder: OTHER_HOLDER, value: REAL_VALUE, fill: undefined }),
+      ])
+      seen.length = 0
+      const r = await viaProxy(gw, HOST, upstream.port, {
+        path: '/echo/same-name',
+        headers: { authorization: `Bearer ${OTHER_HOLDER}` },
+      })
+      assert.equal(r.status, 200)
+      assert.deepEqual(
+        seen.map((x) => [x.host, x.headers.authorization]),
+        [[HOST, `Bearer ${REAL_VALUE}`]],
+      )
+    } finally {
+      gw.close()
+    }
+  })
+
+  test("a request with two fillers' references is refused", async () => {
+    const SECOND = `reeval_secret_${'S'.repeat(32)}`
+    const gw = await startProxy()
+    try {
+      gw.proxy.setSubstitutions([
+        filled(),
+        filled({
+          name: 'SECOND',
+          placeholder: SECOND,
+          value: 'second-reference-0123456789',
+          fill: {
+            url: `https://localhost:${filler.port}/echo/other`,
+            token: 'other-token-0123456789',
+          },
+        }),
+      ])
+      seen.length = 0
+      const r = await viaProxy(gw, HOST, upstream.port, {
+        path: '/echo/two',
+        headers: { authorization: `Bearer ${HOLDER}`, 'x-second': SECOND },
+      })
+      assert.equal(r.status, 403)
+      assert.deepEqual(seen, [])
+    } finally {
+      gw.close()
+    }
+  })
+
+  test("the credential filler takes only requests that carry the filled credential: another rule's real value goes to the host alone, and is refused beside it", async () => {
+    const SESSION = 'real-session-value-0123456789abcdef'
+    const gw = await startProxy(undefined, {
+      credentialFiller: { filler: { url: fillerUrl, token: TOKEN }, reference: REFERENCE },
+    })
+    gw.proxy.addTransformations([
+      {
+        match: {
+          host: HOST,
+          headers: [{ key: { exact: 'Authorization' }, value: { exact: `Bearer ${PLACEHOLDER}` } }],
+        },
+        transform: { headers: { Authorization: `Bearer ${REFERENCE}` } },
+      },
+      {
+        match: { host: HOST, path: { startsWith: '/echo' } },
+        transform: { headers: { 'x-session': SESSION } },
+      },
+    ])
+    try {
+      seen.length = 0
+      const own = await viaProxy(gw, HOST, upstream.port, { path: '/echo/session' })
+      assert.equal(own.status, 200)
+      assert.deepEqual(
+        seen.map((x) => [x.host, x.headers['x-session']]),
+        [[HOST, SESSION]],
+      )
+      seen.length = 0
+      const both = await viaProxy(gw, HOST, upstream.port, {
+        path: '/echo/both',
+        headers: { authorization: `Bearer ${PLACEHOLDER}` },
+      })
+      assert.equal(both.status, 403)
+      assert.deepEqual(seen, [])
+    } finally {
+      gw.close()
+    }
+  })
+
+  test('with a filled credential, its exchange goes to the filler and the derived tokens go to their host', async () => {
+    const gw = await startProxy(undefined, {
+      credentialFiller: {
+        filler: { url: `https://localhost:${filler.port}/tokens/exchange`, token: TOKEN },
+        reference: REFERENCE,
+      },
+      derivedTokens: [
+        {
+          name: 'CURSOR_API_KEY',
+          endpoint: { host: HOST, path: { startsWith: '/tokens/' }, method: ['POST'] },
+          fields: ['accessToken', 'refreshToken'],
+          hosts: [HOST],
+        },
+      ],
+    })
+    gw.proxy.addTransformations([
+      {
+        match: {
+          host: HOST,
+          path: { startsWith: '/tokens/' },
+          headers: [{ key: { exact: 'Authorization' }, value: { exact: `Bearer ${PLACEHOLDER}` } }],
+        },
+        transform: { headers: { Authorization: `Bearer ${REFERENCE}` } },
       },
     ])
     try {
       seen.length = 0
       const r = await viaProxy(gw, HOST, upstream.port, {
         method: 'POST',
-        path: '/v1/chat?stream=1',
-        headers: { authorization: `Bearer ${PLACEHOLDER}`, 'content-type': 'application/json' },
-        body: '{"model":"m"}',
+        path: '/tokens/exchange',
+        headers: { authorization: `Bearer ${PLACEHOLDER}` },
+        body: '{}',
       })
       assert.equal(r.status, 200)
-      const echo = JSON.parse(r.body)
-      assert.equal(echo.path, '/echo/vercel/v1/chat?stream=1')
-      assert.equal(echo.body, '{"model":"m"}')
-      assert.equal(echo.headers.host, `localhost:${relay.port}`)
+      const access = (JSON.parse(r.body) as { accessToken: string }).accessToken
+      assert.doesNotMatch(access, /real-access-signature/)
+      const next = await viaProxy(gw, HOST, upstream.port, {
+        path: '/echo/after',
+        headers: { authorization: `Bearer ${access}` },
+      })
+      assert.equal(next.status, 200)
       assert.deepEqual(
         seen.map((x) => [x.host, x.headers.authorization]),
-        [['localhost', `Bearer ${REAL}`]],
-        'only the relay was reached, with the swapped credential',
+        [
+          ['localhost', `Bearer ${REFERENCE}`],
+          [HOST, `Bearer ${ACCESS}`],
+        ],
       )
-      // The response is scrubbed as any brokered host's is.
-      assert.equal(r.headers['x-echo-authorization'], `Bearer ${PLACEHOLDER}`)
     } finally {
       gw.close()
     }
   })
 
-  test('a relayed target outside plain segments and queries is refused, and the relay gets nothing', async () => {
-    const gw = await startProxy(undefined, {
-      relays: [{ hosts: [HOST], via: `https://localhost:${relay.port}/echo/vercel/` }],
-    })
+  test('a filled secret in the query goes to the filler in its target, and the sandbox sees the placeholder', async () => {
+    const gw = await startProxy()
     try {
-      for (const path of [
-        '/../../openrouter/v1/x',
-        '/%2e%2e/%2e%2e/openrouter',
-        '/%2E./openrouter',
-        '/a/../../../b',
-        '/v1/./chat',
-        '/v1//chat',
-        '/v1\\..\\x',
-        '/v1/%5c../x',
-        '/..#x',
-        '/a/..#?q',
-        '/..;/x',
-        '/..%2f..%2fx',
-        '/%252e%252e/x',
-        '/x/..%3b/y',
-        '/a/..%09/b',
-        '/..%00/x',
-        '/v1/chat?x=1#f',
-        '/v1/chat?x=%00',
-      ]) {
-        seen.length = 0
-        const r = await viaProxy(gw, HOST, upstream.port, { path })
-        assert.equal(r.status, 400, path)
-        assert.match(r.body, /takes only plain path segments and queries/, path)
-        assert.deepEqual(seen, [], `${path} reached nothing`)
-      }
-      // Twins: dots inside a segment, a trailing slash, sub-delims, `:` and `@`, another
-      // percent-encoding, and a query with `;` and `/`, go through as they are.
-      for (const path of [
-        '/v1/models/gpt-6.1',
-        '/v1/chat/',
-        '/v1/..x/y',
-        "/v1/a:b@c/!$&'()*+,=",
-        '/v1/models/anthropic%2Dclaude',
-        '/v1/chat?stream=1&a=b;c/d?e',
-      ]) {
-        const r = await viaProxy(gw, HOST, upstream.port, { path })
-        assert.equal(r.status, 200, path)
-        assert.equal(JSON.parse(r.body).path, `/echo/vercel${path}`)
-      }
+      gw.proxy.setSubstitutions([filled({ in: ['query'] })])
+      seen.length = 0
+      const r = await viaProxy(gw, HOST, upstream.port, { path: `/v1/q?key=${HOLDER}` })
+      assert.equal(r.status, 200)
+      const echo = JSON.parse(r.body)
+      assert.equal(echo.path, '/echo/swap')
+      assert.equal(
+        echo.headers['reeval-fill-target'],
+        `https://${HOST}:${upstream.port}/v1/q?key=${HOLDER}`,
+      )
+      assert.equal(
+        seen[0]?.headers['reeval-fill-target'],
+        `https://${HOST}:${upstream.port}/v1/q?key=${REFERENCE}`,
+      )
+      assert.deepEqual(
+        seen.map((x) => x.host),
+        ['localhost'],
+      )
     } finally {
       gw.close()
     }
   })
 
-  test('a relay must be https, with no user, query or fragment', async () => {
-    await assert.rejects(
-      startProxy(undefined, { relays: [{ hosts: [HOST], via: 'http://localhost:1/' }] }),
-      /a relay's via must be an https:\/\/ URL/,
-    )
-    for (const via of [
+  test("a filler's redirect reaches the sandbox unfollowed, and an unreachable filler is a 502 that names neither it nor its token", async () => {
+    const gw = await startProxy()
+    try {
+      gw.proxy.setSubstitutions([
+        filled({ fill: { url: `https://localhost:${filler.port}/redirect`, token: TOKEN } }),
+      ])
+      seen.length = 0
+      const moved = await viaProxy(gw, HOST, upstream.port, {
+        path: '/v1/models',
+        headers: { authorization: `Bearer ${HOLDER}` },
+      })
+      assert.equal(moved.status, 302)
+      assert.deepEqual(
+        seen.map((x) => x.host),
+        ['localhost'],
+      )
+      gw.proxy.setSubstitutions([
+        filled({ fill: { url: 'https://localhost:1/swap', token: TOKEN } }),
+      ])
+      const down = await viaProxy(gw, HOST, upstream.port, {
+        path: '/v1/models',
+        headers: { authorization: `Bearer ${HOLDER}` },
+      })
+      assert.equal(down.status, 502)
+      assert.equal(down.body, 'reeval egress gateway: its filler could not be reached\n')
+    } finally {
+      gw.close()
+    }
+  })
+
+  test('an upgrade that carries a filled secret is refused, and reaches nothing', async () => {
+    const gw = await startProxy()
+    try {
+      gw.proxy.setSubstitutions([filled()])
+      seen.length = 0
+      const tunnel = await connect(gw, HOST, upstream.port)
+      assert.ok(tunnel.ok)
+      const secure = tls.connect({ socket: tunnel.socket, servername: HOST, ca: gw.ca.cert })
+      await new Promise((r) => secure.once('secureConnect', r))
+      secure.write(
+        `GET /ws HTTP/1.1\r\nhost: ${HOST}\r\nupgrade: websocket\r\nconnection: Upgrade\r\nsec-websocket-key: dGhlIHNhbXBsZSBub25jZQ==\r\nsec-websocket-version: 13\r\nauthorization: Bearer ${HOLDER}\r\n\r\n`,
+      )
+      let text = ''
+      await new Promise<void>((resolve) => {
+        secure.on('data', (d) => {
+          text += d
+          if (text.includes('\r\n\r\n')) resolve()
+        })
+        secure.on('end', () => resolve())
+      })
+      secure.destroy()
+      assert.match(text, /^HTTP\/1.1 501/)
+      assert.match(text, /carries a secret its filler fills, which takes no upgrades/)
+      assert.deepEqual(seen, [])
+    } finally {
+      gw.close()
+    }
+  })
+
+  test("a filler's URL must be https, with no user, query or fragment", async () => {
+    for (const url of [
+      'http://localhost:1/',
       'https://u:p@localhost:1/',
       'https://localhost:1/v?x=1',
       'https://localhost:1/v#f',
     ]) {
       await assert.rejects(
-        startProxy(undefined, { relays: [{ hosts: [HOST], via }] }),
-        /a relay's via is an origin and path, with no user, query or fragment/,
-        via,
+        startProxy(undefined, {
+          credentialFiller: { filler: { url, token: TOKEN }, reference: REFERENCE },
+        }),
+        /a filler's URL (is not an https:\/\/ URL|has a user, a query or a fragment)/,
+        url,
       )
+      const gw = await startProxy()
+      try {
+        assert.throws(
+          () => gw.proxy.setSubstitutions([filled({ fill: { url, token: TOKEN } })]),
+          /a filler's URL/,
+          url,
+        )
+      } finally {
+        gw.close()
+      }
     }
   })
 })

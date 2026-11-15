@@ -1,6 +1,6 @@
 // What a result means: gate policies, lift with its interval, and what a
 // fingerprint covers. Pure functions here; the CLI behavior is in options.test.ts and
-// history.test.ts.
+// history-compare.test.ts.
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'

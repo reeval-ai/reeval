@@ -470,14 +470,14 @@ export function agentAuth(agent: Agent, env: NodeJS.ProcessEnv = hostEnv()) {
   const name = credentialIn(agent, env)
   const value = env[name]
   const held = heldSecret(name)
-  if (held?.mode === 'brokered' && held.hosts) {
-    const { hosts } = held
+  if ((held?.mode === 'brokered' || held?.mode === 'filled') && held.hosts) {
+    const { hosts, mode } = held
     const off = [...new Set(agent.endpoints.map((e) => e.host))].filter(
       (host) => !hostAllowed(hosts, host),
     )
     if (off.length) {
       throw new InfraError(
-        `${name} is brokered to ${hosts.join(', ')}, and the ${agent.name} harness sends it to ${off.join(', ')}, which it isn't brokered to.`,
+        `${name} is ${mode} to ${hosts.join(', ')}, and the ${agent.name} harness sends it to ${off.join(', ')}, which it isn't ${mode} to.`,
       )
     }
   }

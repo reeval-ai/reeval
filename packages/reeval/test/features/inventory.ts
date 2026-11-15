@@ -75,7 +75,7 @@ export const inventory: InventoryFeature[] = [
     area: 'Config and selection',
     name: 'Finding the nearest `reeval.config.*` upward from the current directory; `--config` wins',
     fixtures: ['config/found-from-subdirectory'],
-    unit: ['reeval/test/unit.test.ts', 'reeval/test/history.test.ts'],
+    unit: ['reeval/test/unit.test.ts', 'reeval/test/history-compare.test.ts'],
   },
   {
     id: 'matrix.harness-runs',
@@ -180,6 +180,7 @@ export const inventory: InventoryFeature[] = [
       'reeval/test/cases.test.ts',
       'reeval/test/query.test.ts',
       'reeval/test/history.test.ts',
+      'reeval/test/history-compare.test.ts',
       'reeval/test/remarks.test.ts',
     ],
   },
@@ -940,7 +941,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'secret.file',
     area: 'Environments',
-    name: '`REEVAL_SECRETS_FILE` modes (brokered, with or without hosts, relayed, sandbox, readable) and `secretWarnings`',
+    name: '`REEVAL_SECRETS_FILE` modes (brokered, with or without hosts, filled, sandbox, readable) and `secretWarnings`',
     fixtures: [
       'secrets/file-sandbox-agent-sees-value',
       'secrets/file-sandbox-hidden-from-eval',
@@ -2160,6 +2161,7 @@ export const inventory: InventoryFeature[] = [
     name: '`reeval history`, `reeval show` and `reeval compare`, with `--json` and `--md`',
     unit: [
       'reeval/test/history.test.ts',
+      'reeval/test/history-compare.test.ts',
       'reeval/test/unit.test.ts',
       'reeval/test/output.test.ts',
       'reeval/test/docker.test.ts',
@@ -2177,7 +2179,11 @@ export const inventory: InventoryFeature[] = [
     area: 'Records and studio',
     name: "`revision` and the `sources` fingerprint part: an eval's body, options, case data and revision, named by `reeval compare`",
     plan: ['revision/cascade'],
-    unit: ['reeval/test/history.test.ts', 'reeval/test/results.test.ts'],
+    unit: [
+      'reeval/test/history.test.ts',
+      'reeval/test/history-compare.test.ts',
+      'reeval/test/results.test.ts',
+    ],
   },
   {
     id: 'history.snapshots',
@@ -2190,26 +2196,26 @@ export const inventory: InventoryFeature[] = [
     id: 'compare.fail-on-regression',
     area: 'Records and studio',
     name: '`reeval compare --fail-on-regression`',
-    unit: ['reeval/test/history.test.ts'],
+    unit: ['reeval/test/history-compare.test.ts'],
   },
   {
     id: 'compare.canceled',
     area: 'Records and studio',
     name: "An eval Ctrl-C canceled reads `can't compare` with that side `canceled` in `reeval compare`, never `regressed`, and doesn't fail `--fail-on-regression`",
-    unit: ['reeval/test/history.test.ts', 'reeval/test/output.test.ts'],
+    unit: ['reeval/test/history-compare.test.ts', 'reeval/test/output.test.ts'],
   },
   {
     id: 'compare.family-gate',
     area: 'Records and studio',
     name: "An eval's pooled `minLift` gate over its cases gates its one row in `reeval compare`, and `--fail-on-regression` fails when it goes from pass to fail",
-    unit: ['reeval/test/history.test.ts', 'reeval/test/unit.test.ts'],
+    unit: ['reeval/test/history-compare.test.ts', 'reeval/test/unit.test.ts'],
   },
   {
     id: 'compare.gate-change',
     area: 'Records and studio',
     name: "A changed gate is a fingerprint part `reeval compare` names and re-scores base under, so `--fail-on-regression` fails only on a flip the gate doesn't explain",
     unit: [
-      'reeval/test/history.test.ts',
+      'reeval/test/history-compare.test.ts',
       'reeval/test/analysis.test.ts',
       'reeval/test/unit.test.ts',
     ],

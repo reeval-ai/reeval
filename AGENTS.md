@@ -468,7 +468,7 @@ pnpm --filter reeval schema:update   # accept a compatible change, then commit s
   Keep the field, or bump the shape's `schemaVersion` and add `MIGRATIONS[shape][oldVersion]`.
 - **Newer files:** a record or analysis with a `schemaVersion` above this reeval's is skipped with
   "written by a newer reeval … Upgrade reeval to read it", never a crash. Fields and enum values a newer reeval
-  added are ignored; `test/history.test.ts` ("records from a newer reeval") covers both.
+  added are ignored; `test/history-compare.test.ts` ("records from a newer reeval") covers both.
 - **Caches** (`.reeval/history-cache.json`, `.reeval/history.db`) aren't snapshotted: they're keyed on
   reeval's version and build, so another reeval rebuilds them.
 - **Add a corpus entry** whenever you change a persisted shape, recorded by the reeval before your

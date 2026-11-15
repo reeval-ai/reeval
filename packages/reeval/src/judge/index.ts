@@ -1,4 +1,4 @@
-import { apiHost, OPENROUTER_API, OPENROUTER_HOST } from '@reeval/agents'
+import { apiHost, OPENROUTER_HOST } from '@reeval/agents'
 import { hostAllowed } from '@reeval/sandbox-docker'
 import { OPENROUTER_KEY } from '../gateway/openrouter.ts'
 import { ROUTING_GATEWAYS, type RoutingGatewayName } from '../gateway/routes.ts'
@@ -14,8 +14,8 @@ import {
 import { vertexSettings } from '../gateway/vertex.ts'
 import type { JudgeRetry } from '../history/types.ts'
 import { badCharacterAt, isPlaceholder, redactSecrets } from '../redact.ts'
-import { heldSecret, hostEnv } from '../secrets-file.ts'
-import { nativeFetch, startEnv } from '../startup.ts'
+import { heldFetch, heldSecret, hostEnv, LOOPBACK } from '../secrets-file.ts'
+import { startEnv } from '../startup.ts'
 import type {
   FakeJudgeModel,
   GatewayName,
@@ -98,25 +98,6 @@ export type JudgeRoute =
   | { kind: 'gateway' }
   | { kind: 'openrouter' }
   | { kind: 'vertex' }
-
-const LOOPBACK = /^(localhost|127(\.\d{1,3}){3}|\[::1\])$/
-
-/**
- * A fetch for a held brokered key: to `allowed` hosts only, over https unless the host is this
- * machine, through the runtime's own fetch as reeval started with it, and never following a
- * redirect, which could carry the key's header to another origin.
- */
-function brokeredFetch(key: string, allowed: (host: string) => boolean): typeof fetch {
-  return (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input))
-    if (!allowed(url.hostname) || (url.protocol !== 'https:' && !LOOPBACK.test(url.hostname))) {
-      return Promise.reject(
-        new Error(`reeval refused to send ${key}, a brokered key, to ${url.origin}.`),
-      )
-    }
-    return nativeFetch(input, { ...init, redirect: 'error' })
-  }
-}
 
 export type { JudgeState } from '../types.ts'
 
@@ -273,32 +254,18 @@ export function hostCall(
         `${key} for ${what} "${model}" is a ${held.mode} secret, which only the agent's sandbox gets, and the ${what} calls ${host} from reeval's own process: give ${key} the brokered mode with ${host} among its hosts, or the readable mode.`,
       )
     }
-    if (held.mode === 'relayed') {
-      // The relay passes each request on to the API under the same path, so the call keeps the
-      // API's own path under the relay.
-      const api =
-        kind === 'direct' && direct
-          ? direct.api
-          : kind === 'openrouter'
-            ? OPENROUTER_API.openai
-            : `${vercelApi({}).origin}${VERCEL_AI_SDK_PATH}`
-      const via = new URL(held.via)
-      call.baseURL = `${held.via.replace(/\/+$/, '')}${new URL(api).pathname}`
-      call.fetch = brokeredFetch(key, (h) => h === via.hostname)
-    } else {
-      const { hosts } = held
-      if (hosts && !hostAllowed(hosts, host)) {
-        throw new Error(
-          `${key} for ${what} "${model}" is brokered to ${hosts.join(', ')}, and the ${what} calls ${host}, which it isn't brokered to.`,
-        )
-      }
-      if (!url || (url.protocol !== 'https:' && !LOOPBACK.test(url.hostname))) {
-        throw new Error(
-          `${key} for ${what} "${model}" is brokered, and the ${what} would call ${baseURL}: a brokered key goes only to an https:// URL, or to this machine.`,
-        )
-      }
-      call.fetch = brokeredFetch(key, (h) => (hosts ? hostAllowed(hosts, h) : h === host))
+    const { hosts, mode } = held
+    if (hosts && !hostAllowed(hosts, host)) {
+      throw new Error(
+        `${key} for ${what} "${model}" is ${mode} to ${hosts.join(', ')}, and the ${what} calls ${host}, which it isn't ${mode} to.`,
+      )
     }
+    if (!url || (url.protocol !== 'https:' && !LOOPBACK.test(url.hostname))) {
+      throw new Error(
+        `${key} for ${what} "${model}" is ${mode}, and the ${what} would call ${baseURL}: a ${mode} key goes only to an https:// URL, or to this machine.`,
+      )
+    }
+    call.fetch = heldFetch(key, (h) => (hosts ? hostAllowed(hosts, h) : h === host))
   }
   if (key === VERCEL_OIDC) {
     const expired = vercelCredentialProblem(real)
