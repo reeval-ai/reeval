@@ -277,6 +277,88 @@ async function readRun(runId: string, base: URL, auth: CloudAuth): Promise<Platf
   }
 }
 
+/** Why the platform says a queued run waits, as a follower reads it. */
+const WAITING_FOR: Record<string, string> = {
+  org_limit: "the org's limit on attempts at once",
+  project_cap: "the project's cap on attempts at once",
+  concurrency_group: 'another run of its concurrency group',
+  capacity: 'shared capacity',
+  start_rate: 'paced machine starts',
+  suspended: 'the org, which is suspended',
+  free_tier_paused: 'the free tier, which is paused',
+}
+
+/** How often a followed cloud run is asked whether it's still queued; the first ask waits as long. */
+const QUEUE_CHECK_MS = 10_000
+
+type QueuedRun = { status?: unknown; orgId?: unknown; projectId?: unknown }
+type QueueItem = { id?: unknown; waitingFor?: unknown; position?: unknown }
+
+/** `: waiting for the org's limit on attempts at once, position 2 in the queue`, or empty when unknown. */
+async function queuedWhy(
+  runId: string,
+  run: QueuedRun,
+  base: URL,
+  auth: CloudAuth,
+  signal: AbortSignal,
+): Promise<string> {
+  if (typeof run.orgId !== 'string' || typeof run.projectId !== 'string') return ''
+  const view = await call<{ runs?: { items?: QueueItem[] } }>(
+    new URL(
+      `api/orgs/${encodeURIComponent(run.orgId)}/projects/${encodeURIComponent(run.projectId)}/capacity`,
+      base,
+    ),
+    { method: 'GET', what: `read run ${runId}'s queue`, timeoutMs: STATUS_TIMEOUT_MS, signal },
+    auth,
+  ).catch(() => null)
+  const item = view?.runs?.items?.find((i) => i?.id === runId)
+  if (!item) return ''
+  const waiting = typeof item.waitingFor === 'string' ? WAITING_FOR[item.waitingFor] : undefined
+  const { position } = item
+  const place =
+    typeof position === 'number' && Number.isInteger(position) && position > 0
+      ? `position ${position} in the queue`
+      : ''
+  const parts = [waiting ? `waiting for ${waiting}` : '', place].filter(Boolean)
+  return parts.length ? `: ${parts.join(', ')}` : ''
+}
+
+/**
+ * While cloud run `runId` is queued, logs that it is and why, again each time that changes, so a
+ * follower isn't silent before the run starts. Stops once the run leaves the queue or `signal`
+ * aborts; a platform that doesn't answer is asked again next time.
+ */
+export async function watchQueue(
+  runId: string,
+  base: URL,
+  auth: CloudAuth,
+  log: (line: string) => void,
+  signal: AbortSignal,
+  everyMs = Number(process.env.REEVAL_TEST_CLOUD_QUEUE_MS) || QUEUE_CHECK_MS,
+): Promise<void> {
+  const { setTimeout: sleep } = await import('node:timers/promises')
+  let said = ''
+  for (;;) {
+    try {
+      await sleep(everyMs, undefined, { signal, ref: false })
+    } catch {
+      return
+    }
+    const run = await call<QueuedRun>(
+      new URL(`api/runs/${encodeURIComponent(runId)}`, base),
+      { method: 'GET', what: `read run ${runId}`, timeoutMs: STATUS_TIMEOUT_MS, signal },
+      auth,
+    ).catch(() => null)
+    if (signal.aborted) return
+    if (!run) continue
+    if (run.status !== 'queued') return
+    const line = `Cloud run ${runId} is queued${await queuedWhy(runId, run, base, auth, signal)}`
+    if (signal.aborted) return
+    if (line !== said) log(line)
+    said = line
+  }
+}
+
 /**
  * `code`, the exit code cloud run `runId`'s stream ended with, or 4 when the platform says it
  * stopped the run before it finished. A stop can end the stream with any code (a cancel's, or
@@ -742,6 +824,8 @@ async function followCloudRun(
   let detached = false
   let code: number
   let read: PlatformRun | null | undefined
+  const followed = new AbortController()
+  void watchQueue(runId, base, auth, log, followed.signal)
   try {
     code = await options.follow({
       source: events.href,
@@ -760,6 +844,8 @@ async function followCloudRun(
     if (!(error instanceof EventStreamError)) throw error
     const resumed = resumedAfter !== undefined
     ;({ code, read } = await afterLostStream(error, runId, base, auth, log, resumed))
+  } finally {
+    followed.abort()
   }
   if (detached) {
     const again = options.download

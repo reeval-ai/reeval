@@ -1025,6 +1025,10 @@ async function attachCommand(
   let code: number
   let read: Awaited<ReturnType<typeof cloud.afterLostStream>>['read'] | undefined
   const log = (line: string) => console.log(dim(line))
+  const followed = new AbortController()
+  if (cloudRun) {
+    void cloud.watchQueue(cloudRun.runId, cloudRun.base, cloudRun.auth, log, followed.signal)
+  }
   try {
     code = await attachHere(flags, {
       source,
@@ -1045,6 +1049,8 @@ async function attachCommand(
       cloudRun.auth,
       log,
     ))
+  } finally {
+    followed.abort()
   }
   if (cloudRun && !detached) {
     code = await cloud.stoppedOr(code, cloudRun.runId, cloudRun.base, cloudRun.auth, log, read)
