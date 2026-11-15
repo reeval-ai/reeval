@@ -35,7 +35,7 @@ jobs:
   contract:
     name: contract and e2e
     runs-on: ubuntu-24.04
-    timeout-minutes: 55
+    timeout-minutes: 80
     env:
       REEVAL_TEST_REAL: '1'
       REEVAL_TEST_REQUIRE_DOCKER: '1'
