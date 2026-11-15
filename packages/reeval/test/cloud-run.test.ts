@@ -1426,6 +1426,28 @@ evaluate('reaches', async (c) => {
     }
   })
 
+  test('a lost stream of a cloud run that goes on says how to follow it again', async () => {
+    const p = await platform({ fails: 'lost', status: 'running' })
+    const env = { REEVAL_CLOUD_URL: p.base, REEVAL_TOKEN: 'cloud-test-token' }
+    try {
+      const dir = await fixtureProject()
+      for (const args of [
+        ['run', '--cloud'],
+        ['attach', `${p.base}/api/runs/run_1/events`],
+      ]) {
+        const r = await runCli(dir, args, { env })
+        assert.equal(r.code, 3, `${args[0]}: ${r.stdout}${r.stderr}`)
+        assert.match(
+          r.stderr,
+          /Cloud run run_1 goes on: reeval attach \S+\/api\/runs\/run_1\/events follows it again; reeval cloud run cancel run_1 cancels it/,
+          args[0],
+        )
+      }
+    } finally {
+      await p.close()
+    }
+  })
+
   test('exit 2 for a REEVAL_CLOUD_URL that is not http(s) or carries userinfo, and for flags a cloud run cannot take', async () => {
     const dir = await fixtureProject()
     const unset = await runCli(dir, ['run', '--cloud', '--dry-run'], {

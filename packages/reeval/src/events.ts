@@ -393,6 +393,11 @@ export type FollowOptions = {
   reconnectMs?: number
   /** How often a connected socket sends `ping`; 30s unless given. */
   pingMs?: number
+  /**
+   * How long a connected socket may hear nothing, not even a `pong`, before it's dropped and
+   * reconnected; 40s unless given.
+   */
+  deadMs?: number
   /** How long a socket stays up before its next drop starts the backoff over; 5s unless given. */
   stableMs?: number
   /** Called once each time the socket drops and following starts reconnecting. */
@@ -493,6 +498,8 @@ const RECONNECT_MS = [250, 500, 1_000, 2_000, 5_000]
  * before but not lately.
  */
 const PING_MS = 30_000
+/** A socket that has heard no frame for this long, with a ping out, is dead. */
+const DEAD_MS = 40_000
 const PING = 'ping'
 const PONG = 'pong'
 /** How long a connection stays up, with no frame, before the backoff starts over. */
@@ -521,6 +528,7 @@ async function* socketEvents(
   connect: (url: string) => WebSocket,
   signal: AbortSignal | undefined,
   pingMs: number,
+  deadMs: number,
 ): AsyncGenerator<SocketEvent> {
   const socket = connect(url)
   socket.binaryType = 'arraybuffer'
@@ -533,19 +541,30 @@ async function* socketEvents(
   }
   const decoder = new TextDecoder()
   let pinging: NodeJS.Timeout | undefined
+  let heardAt = Date.now()
   socket.onopen = () => {
     opened = true
-    pinging = setInterval(() => {
-      if (socket.readyState === socket.OPEN) socket.send(PING)
-    }, pingMs)
+    heardAt = Date.now()
+    socket.send(PING)
+    pinging = setInterval(
+      () => {
+        // A link that went away silently, or a machine that slept, leaves a socket that is still
+        // open here but hears nothing, not even the answers to its pings.
+        if (Date.now() - heardAt > deadMs) return close(1006, '')
+        if (socket.readyState === socket.OPEN) socket.send(PING)
+      },
+      Math.min(pingMs, deadMs),
+    )
     pinging.unref()
     push({ type: 'open' })
   }
-  socket.onmessage = (e: MessageEvent) =>
+  socket.onmessage = (e: MessageEvent) => {
+    heardAt = Date.now()
     push({
       type: 'frame',
       data: typeof e.data === 'string' ? e.data : decoder.decode(e.data as ArrayBuffer),
     })
+  }
   // A refused connection fires only `error`, with no `close` after it.
   let closed = false
   const close = (code: number, reason: string) => {
@@ -609,6 +628,7 @@ async function* followSocket(source: string, options: FollowOptions): AsyncGener
   const giveUpMs = options.reconnectMs ?? LOST_MS
   const stableMs = options.stableMs ?? STABLE_MS
   const pingMs = options.pingMs ?? PING_MS
+  const deadMs = options.deadMs ?? DEAD_MS
   const shown = displayUrl(source)
   const base = socketUrl(source)
   let seq = 0
@@ -623,7 +643,7 @@ async function* followSocket(source: string, options: FollowOptions): AsyncGener
     url.searchParams.set('after', String(seq))
     let closed: Extract<SocketEvent, { type: 'close' }> | undefined
     let openedAt: number | undefined
-    for await (const event of socketEvents(url.href, connect, options.signal, pingMs)) {
+    for await (const event of socketEvents(url.href, connect, options.signal, pingMs, deadMs)) {
       if (event.type === 'open') {
         openedAt = Date.now()
         droppedAt = undefined
