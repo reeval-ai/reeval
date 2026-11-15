@@ -26,8 +26,8 @@ updates:
       # so bumping any of the family without it installs two copies. They move by hand, together.
       - dependency-name: ai
       - dependency-name: '@ai-sdk/*'
-      # reeval supports Node 22.13 and later (engines), so the types stay on 22: a newer major
-      # would type-check APIs that 22.13 lacks.
+      # reeval supports Node 22.16 and later (engines), so the types stay on 22: a newer major
+      # would type-check APIs that 22.16 lacks.
       - dependency-name: '@types/node'
         update-types: [version-update:semver-major]
   # `/` covers .github/workflows only, so the composite actions are listed too.

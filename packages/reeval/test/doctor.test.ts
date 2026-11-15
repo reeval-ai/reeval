@@ -37,8 +37,8 @@ const SECRET = 'sk-live-doctor-9f8e7d6c5b4a'
 
 const deps = (over: Partial<DoctorDeps> = {}): DoctorDeps => ({
   env: {},
-  runtime: { name: 'node', version: '22.13.0' },
-  nodeVersion: '22.13.0',
+  runtime: { name: 'node', version: '22.16.0' },
+  nodeVersion: '22.16.0',
   platform: 'linux',
   dockerState: async () => 'running',
   dockerCapacity: async () => ({ cpus: 8, memoryBytes: 16 * 1024 ** 3 }),
@@ -245,28 +245,28 @@ export default defineConfig({
 
   test('the runtime, held to engines by its Node version', () => {
     const node = (version: string) => checkRuntime({ name: 'node', version }, version)
-    assert.deepEqual(node('22.13.0'), {
+    assert.deepEqual(node('22.16.0'), {
       id: 'runtime',
       status: 'ok',
-      summary: 'node 22.13.0 (reeval needs Node >=22.13)',
+      summary: 'node 22.16.0 (reeval needs Node >=22.16)',
     })
     assert.equal(node('24.1.0').status, 'ok')
-    const old = node('22.12.9')
+    const old = node('22.15.1')
     assert.equal(old.status, 'fail')
-    assert.equal(old.summary, 'node 22.12.9, but reeval needs Node >=22.13')
-    assert.equal(old.fix, 'install Node 22.13 or later (https://nodejs.org)')
+    assert.equal(old.summary, 'node 22.15.1, but reeval needs Node >=22.16')
+    assert.equal(old.fix, 'install Node 22.16 or later (https://nodejs.org)')
     assert.equal(node('20.19.0').status, 'fail')
 
     const bun = checkRuntime({ name: 'bun', version: '1.4.2' }, '26.3.0')
     assert.equal(bun.status, 'ok')
-    assert.equal(bun.summary, 'bun 1.4.2, compatible with node 26.3.0 (reeval needs Node >=22.13)')
+    assert.equal(bun.summary, 'bun 1.4.2, compatible with node 26.3.0 (reeval needs Node >=22.16)')
     const oldBun = checkRuntime({ name: 'bun', version: '1.0.0' }, '20.8.0')
     assert.equal(oldBun.status, 'fail')
     assert.equal(
       oldBun.summary,
-      'bun 1.0.0, compatible with node 20.8.0, but reeval needs Node >=22.13',
+      'bun 1.0.0, compatible with node 20.8.0, but reeval needs Node >=22.16',
     )
-    assert.equal(oldBun.fix, 'upgrade bun, or install Node 22.13 or later (https://nodejs.org)')
+    assert.equal(oldBun.fix, 'upgrade bun, or install Node 22.16 or later (https://nodejs.org)')
   })
 
   test('the runtime is told apart from the Node version Bun and Deno report', () => {

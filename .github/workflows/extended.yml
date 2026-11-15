@@ -1,6 +1,6 @@
 # ci.yml's full-run legs, which PRs skip unless labeled ci:full: macOS (and Windows, off for now) through
 # scripts/ci-os.sh, and (when `floor` is true) the unit and plan files on the engines floor
-# (Node 22.13). ci.yml calls this on main, nightly, on demand, on release and for ci:full, and
+# (Node 22.16). ci.yml calls this on main, nightly, on demand, on release and for ci:full, and
 # its `ci` check fails when any of these fails. No concurrency group: the caller's applies.
 #
 # The Docker tier runs on Linux only: GitHub's Windows runners have Windows containers only, while
@@ -19,7 +19,7 @@ on:
         type: string
         default: ''
       floor:
-        description: Run the Node 22.13 unit floor (off ordinary main pushes)
+        description: Run the Node 22.16 unit floor (off ordinary main pushes)
         type: boolean
         default: true
 
@@ -28,7 +28,7 @@ permissions:
 
 jobs:
   unit-floor:
-    name: unit and plan (node 22.13, ${{ matrix.shard }})
+    name: unit and plan (node 22.16, ${{ matrix.shard }})
     if: inputs.floor
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -42,7 +42,7 @@ jobs:
           ref: ${{ inputs.ref }}
           persist-credentials: false
       - uses: ./.github/actions/setup
-        with: { node-version: '22.13' }
+        with: { node-version: '22.16' }
       - run: pnpm build
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
