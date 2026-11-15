@@ -21,6 +21,7 @@ import { UsageError } from '../src/errors.ts'
 import type { RunRecord } from '../src/history/types.ts'
 import { recordFileName } from '../src/ids.ts'
 import { baseEnv, pkgRoot, project, readRun, runCli, spawnTool, tempDir } from './helpers.ts'
+import { syncPythonFixtureProject } from './support/python-fixture.ts'
 
 const fixture = join(pkgRoot, 'test/fixtures/bundle')
 const TOKEN = 'bundle-check-token-value'
@@ -244,6 +245,74 @@ describe('reeval bundle', () => {
     })
     assert.equal(r.code, 0, r.stderr + r.stdout)
     assert.match(r.stdout, /installing from package-lock\.json: npm ci/)
+    assert.match(r.stdout, /1 passed/)
+  })
+
+  test("runs a uv package project's Python evals without the package's sources it leaves out", async () => {
+    const { dir } = await project('bundle-uv-package', {})
+    writeFileSync(
+      join(dir, 'reeval.config.ts'),
+      [
+        "import { defineConfig } from 'reeval'",
+        "import { fakeHarness } from 'reeval/harness'",
+        "import { fakeSandbox } from 'reeval/sandbox'",
+        '',
+        'export default defineConfig({',
+        "  include: ['evals/**/*.eval.py'],",
+        "  harnesses: fakeHarness({ script: [[{ write: { 'greet.py': 'hi' } }, { reply: 'done' }]] }),",
+        "  sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }),",
+        '})',
+        '',
+      ].join('\n'),
+    )
+    mkdirSync(join(dir, 'evals'))
+    writeFileSync(
+      join(dir, 'evals/greet.eval.py'),
+      [
+        'from reeval_python import evaluate, expect',
+        '',
+        '',
+        '@evaluate("greets")',
+        'def greets(c):',
+        '    c.send("Create greet.py")',
+        '    expect(c.exec("test -f greet.py")).to_succeed()',
+        '',
+      ].join('\n'),
+    )
+    writeFileSync(
+      join(dir, 'pyproject.toml'),
+      [
+        '[project]',
+        'name = "uv-package"',
+        'version = "0.0.0"',
+        'readme = "README.md"',
+        'requires-python = ">=3.11"',
+        'dependencies = ["reeval-python"]',
+        '',
+        '[tool.uv.sources]',
+        'reeval-python = { path = "../reeval-python" }',
+        '',
+        '[build-system]',
+        'requires = ["uv_build>=0.8,<0.14"]',
+        'build-backend = "uv_build"',
+        '',
+      ].join('\n'),
+    )
+    writeFileSync(join(dir, 'README.md'), '# uv-package\n')
+    mkdirSync(join(dir, 'src/uv_package'), { recursive: true })
+    writeFileSync(join(dir, 'src/uv_package/__init__.py'), '')
+    syncPythonFixtureProject(dir)
+    const out = join(tempDir('bundle-out'), 'uv-package.tar.gz')
+    const made = await runCli(dir, ['bundle', '--out', out])
+    assert.equal(made.code, 0, made.stderr)
+    const kinds = Object.fromEntries(manifestOf(entriesOf(out)).files.map((f) => [f.path, f.kind]))
+    assert.equal(kinds['uv.lock'], 'lockfile')
+    assert.ok(!Object.keys(kinds).some((p) => p.startsWith('src/')), 'the sources stay out')
+    const r = await runCli(tempDir('bundle-fresh'), ['run', '--bundle', out], {
+      env: { TMPDIR: extractRoot() },
+    })
+    assert.equal(r.code, 0, r.stderr + r.stdout)
+    assert.match(r.stdout, /installing from uv\.lock: uv sync --frozen --no-install-project/)
     assert.match(r.stdout, /1 passed/)
   })
 
