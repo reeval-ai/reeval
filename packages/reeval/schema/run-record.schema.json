@@ -667,6 +667,13 @@
           "items": {
             "type": "object",
             "properties": {
+              "callUsage": {
+                "description": "The tokens of each of the turn's main model calls (not its `side` ones) whose response the egress gateway read, in order, so an estimated `cost` prices a call whose prompt is over its model's long-prompt threshold at that tier. Absent when the gateway read none.",
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/TokenUsage"
+                }
+              },
               "cost": {
                 "description": "What the harness says the turn cost (Claude Code, pi), else its tokens at the list price of its model (or the cell's); unset when neither is known.",
                 "$ref": "#/$defs/CostUsd"
@@ -1558,7 +1565,7 @@
       "type": "object",
       "properties": {
         "basis": {
-          "description": "`reported`: what the harness (Claude Code, pi) or the gateway (OpenRouter) said it cost; `estimated`: the tokens at list prices, which leave out discounts and long-context rates.",
+          "description": "`reported`: what the harness (Claude Code, pi) or the gateway (OpenRouter) said it cost; `estimated`: the tokens at list prices, which leave out discounts, and long-prompt rates where a model call's own tokens, or the price's tiers, aren't known.",
           "enum": ["estimated", "reported"]
         },
         "source": {
@@ -1580,7 +1587,7 @@
       "type": "object",
       "properties": {
         "basis": {
-          "description": "`reported`: what the harness (Claude Code, pi) or the gateway (OpenRouter) said it cost; `estimated`: the tokens at list prices, which leave out discounts and long-context rates.",
+          "description": "`reported`: what the harness (Claude Code, pi) or the gateway (OpenRouter) said it cost; `estimated`: the tokens at list prices, which leave out discounts, and long-prompt rates where a model call's own tokens, or the price's tiers, aren't known.",
           "enum": ["estimated", "reported"]
         },
         "source": {

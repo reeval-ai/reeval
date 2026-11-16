@@ -342,6 +342,12 @@ export type AttemptRecord = {
      * its model (or the cell's); unset when neither is known.
      */
     cost?: CostUsd
+    /**
+     * The tokens of each of the turn's main model calls (not its `side` ones) whose response the
+     * egress gateway read, in order, so an estimated `cost` prices a call whose prompt is over its
+     * model's long-prompt threshold at that tier. Absent when the gateway read none.
+     */
+    callUsage?: TokenUsage[]
     /** Event types the harness can't report; see `Turn.unreported`. */
     unreported: WebEventType[]
     /** The turn's first error, such as a provider's billing or auth error, cut at 1 KB; else null. */

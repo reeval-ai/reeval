@@ -4,7 +4,7 @@
 // whether to run, never a bill: it ignores subscriptions, negotiated prices and retries, and
 // leaves out of the dollars any model it has no price for.
 import type { RunRecord } from './history/types.ts'
-import type { ModelsDev, Price, Prices } from './prices.ts'
+import type { ModelsDev, Price, Prices, Tier } from './prices.ts'
 import { quantile } from './stats.ts'
 import { plural } from './text.ts'
 import type { Cell, HarnessDescriptor, TokenUsage } from './types.ts'
@@ -87,15 +87,27 @@ const DATE_SUFFIX = /-(\d{8}|\d{4}-\d{2}-\d{2})$/
  * (`claude-sonnet-5-5`, as Anthropic's own ids write it); null when `table` has none of those.
  */
 export function priceFor(model: string, table: Record<string, Price>): Price | null {
+  const key = priceKey(model, table)
+  return key === null ? null : (table[key] as Price)
+}
+
+/** The id `priceFor` finds the model's price under; null when there's none. */
+export function priceKey(model: string, table: Record<string, Price>): string | null {
   let id = model.toLowerCase().replace(/\[.*\]$/, '')
   for (;;) {
     const bare = id.slice(id.lastIndexOf('/') + 1)
     const key = [id, bare, bare.replaceAll('.', '-')].find((k) => Object.hasOwn(table, k))
-    if (key !== undefined) return table[key] as Price
+    if (key !== undefined) return key
     const shorter = id.replace(EFFORT_SUFFIX, '').replace(DATE_SUFFIX, '')
     if (shorter === id) return null
     id = shorter
   }
+}
+
+/** One request's price: the largest tier its prompt is over, else the base price. */
+export function tierPrice(t: Tokens, price: Price, tiers: readonly Tier[] = []): Price {
+  const prompt = t.input + t.cacheRead + t.cacheWrite
+  return tiers.findLast((tier) => prompt > tier.size)?.price ?? price
 }
 
 /** `output` already counts the reasoning tokens, billed at the output rate unless the price has its own. */

@@ -432,7 +432,7 @@ describe('loadPrices', () => {
     mkdirSync(join(dir, 'reeval'), { recursive: true })
     writeFileSync(
       join(dir, 'reeval', 'models-dev-prices.json'),
-      JSON.stringify({ fetchedAt, table }),
+      JSON.stringify({ fetchedAt, table, tiers: {} }),
     )
   }
 
@@ -445,6 +445,7 @@ describe('loadPrices', () => {
     assert.equal(s.hits.length, 0)
     assert.deepEqual(prices, {
       table: TABLE,
+      tiers: {},
       overlay: null,
       file: null,
       modelsDev: { fetchedAt: '2026-10-23T06:00:00Z', stale: false },
@@ -590,6 +591,36 @@ describe('loadPrices', () => {
     assert.deepEqual(await loadPrices({}, now, s.source), { table: null, why })
     assert.deepEqual(await loadPrices({}, now, s.source), { table: null, why })
     assert.equal(s.hits.length, 1)
+  })
+
+  test("a fetch keeps a model's long-prompt tiers, with the base's cache prices and their own output's for reasoning, and caches them", async (t) => {
+    const cost = { input: 0.1, output: 0.5, cache_read: 0.01, cache_write: 0.125, reasoning: 0.4 }
+    const tiers = [
+      { input: 1, output: 5, tier: { type: 'context', size: 500_000 } },
+      { input: 0.5, output: 2.5, cache_read: 0.05, tier: { type: 'context', size: 100_000 } },
+      { input: 9, output: 9, tier: { type: 'batch', size: 1 } },
+      null,
+    ]
+    const catalog = { anthropic: { models: { 'claude-haiku-5-5': { cost: { ...cost, tiers } } } } }
+    const s = await server('answer', gzipSync(JSON.stringify(catalog)))
+    t.after(s.stop)
+    const { env } = cache()
+    const expected = {
+      'claude-haiku-5-5': [
+        { size: 100_000, price: [0.5, 0.05, 0.125, 2.5] },
+        { size: 500_000, price: [1, 0.01, 0.125, 5] },
+      ],
+    }
+    const fetched = await loadPrices(env, now, s.source)
+    assert.deepEqual(fetched.table && fetched.tiers, expected)
+    const cached = await loadPrices(env, now, await refused())
+    assert.deepEqual(cached.table && cached.tiers, expected)
+    assert.equal(s.hits.length, 1)
+    const file = join(process.env.XDG_CACHE_HOME as string, 'reeval', 'models-dev-prices.json')
+    const { tiers: _, ...older } = JSON.parse(readFileSync(file, 'utf8'))
+    writeFileSync(file, JSON.stringify(older))
+    await loadPrices(env, now, s.source)
+    assert.equal(s.hits.length, 2, 'a cache an older reeval wrote, without tiers, is fetched again')
   })
 
   test('a malformed model entry is skipped, not the whole catalog', async (t) => {
@@ -785,6 +816,50 @@ describe('record costs', () => {
     const estimated = { usd: 0.0074, basis: 'estimated', source: 'models.dev 2026-11-05' }
     assert.deepEqual(attempt?.cost, estimated)
     assert.deepEqual(attempt?.judgements[0]?.cost, estimated)
+  })
+
+  test('a model call over its long-prompt threshold is priced at that tier, the rest at the base', () => {
+    const tiered = pricerOf({
+      table: { 'claude-haiku-5-5': [0.1, 0.01, 0.125, 0.5] },
+      tiers: { 'claude-haiku-5-5': [{ size: 100_000, price: [0.5, 0.05, 0.625, 2.5] }] },
+      overlay: null,
+      file: null,
+      modelsDev: { fetchedAt: '2026-11-05T09:00:00Z', stale: false },
+    })
+    const short = { input: 2, output: 100, cacheRead: 90_000, cacheWrite: 1_000, reasoning: null }
+    const long = { input: 2, output: 100, cacheRead: 120_000, cacheWrite: 1_000, reasoning: null }
+    const edge = { input: 0, output: 0, cacheRead: 100_000, cacheWrite: 0, reasoning: null }
+    const sum = { input: 4, output: 200, cacheRead: 210_000, cacheWrite: 2_000, reasoning: null }
+    const run = priceRecord(
+      {
+        cost: { inputTokens: null, outputTokens: null, usage: null, source: 'unreported' },
+        evals: [
+          {
+            cells: [{ key: 'a', model: 'claude-haiku-5-5' }],
+            attempts: [
+              {
+                cell: 'a',
+                usage: sum,
+                turns: [
+                  { usage: sum, model: 'claude-haiku-5-5', callUsage: [short, long, edge] },
+                  { usage: sum, model: 'claude-haiku-5-5' },
+                ],
+                judgements: [{ model: 'claude-haiku-5-5', usage: long }],
+              },
+            ],
+          },
+        ],
+      } as unknown as RunRecord,
+      tiered,
+    )
+    const attempt = run.evals[0]?.attempts[0]
+    // The flat $0.0024504, plus the long call's $0.006876 at the tier less its $0.0013752 at the base.
+    assert.deepEqual(
+      attempt?.turns.map((t) => t.cost?.usd),
+      [0.007951, 0.00245],
+      'a turn without its calls is priced flat',
+    )
+    assert.equal(attempt?.judgements[0]?.cost?.usd, 0.006876, 'a judge call is one request')
   })
 
   test('formats dollars to two significant figures under $1 and says what was estimated', () => {
