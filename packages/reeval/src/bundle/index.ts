@@ -90,6 +90,15 @@ const INSTALL_FILES = [
   '.nvmrc',
   '.node-version',
 ]
+/** The lockfiles the compiled reeval installs with its own Bun, which migrates the others' in memory. */
+const BUN_LOCKFILES = new Set([
+  'bun.lock',
+  'bun.lockb',
+  'package-lock.json',
+  'npm-shrinkwrap.json',
+  'pnpm-lock.yaml',
+  'yarn.lock',
+])
 /** Each lockfile and the install that reproduces it exactly. */
 const INSTALLS: Array<{ lockfile: string; command: (dir: string) => [string, ...string[]] }> = [
   { lockfile: 'pnpm-lock.yaml', command: () => ['pnpm', 'install', '--frozen-lockfile'] },
@@ -1117,6 +1126,19 @@ async function install(
   dir: string,
   log: (line: string) => void,
 ): Promise<void> {
+  if (COMPILED) {
+    const byDir = new Map<string, string>()
+    for (const f of manifest.files) {
+      if (f.kind !== 'lockfile' || !BUN_LOCKFILES.has(basename(f.path))) continue
+      const other = byDir.get(dirname(f.path))
+      if (other) {
+        throw new UsageError(
+          `The bundle has ${other} and ${f.path} in one directory, and reeval's own Bun installs from only one of them. Keep one, then bundle it again.`,
+        )
+      }
+      byDir.set(dirname(f.path), f.path)
+    }
+  }
   for (const f of manifest.files) {
     if (f.kind !== 'lockfile') continue
     const how = INSTALLS.find((i) => i.lockfile === basename(f.path))
@@ -1127,9 +1149,8 @@ async function install(
         .split('/')
         .filter((p) => p !== '.'),
     )
-    // Compiled, reeval is a Bun executable, which runs as `bun` with `BUN_BE_BUN=1`. Under
-    // `--frozen-lockfile` Bun installs from an npm, pnpm or Yarn lockfile too, migrated in memory.
-    const asBun = COMPILED && how.lockfile !== 'uv.lock'
+    // Compiled, reeval is a Bun executable, which runs as `bun` with `BUN_BE_BUN=1`.
+    const asBun = COMPILED && BUN_LOCKFILES.has(how.lockfile)
     const [cmd, ...args] = asBun
       ? [process.execPath, 'install', '--frozen-lockfile']
       : how.command(at)
