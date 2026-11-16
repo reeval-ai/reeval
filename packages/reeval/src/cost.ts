@@ -1,8 +1,8 @@
 // What a planned run should cost: each attempt's tokens from the same eval and cell in recent
 // history, else a typical coding attempt's, plus its judge calls, as a range. Priced at the cost
 // a harness or gateway reported for a past attempt on the same model, else at the list prices
-// loaded for the view (prices.ts), else at the cost its record estimated; tokens only without
-// prices. An estimate for deciding whether to run, never a bill: it ignores subscriptions,
+// loaded for the view (prices.ts) with each model call it recorded at its long-prompt tier, else
+// at the cost its record estimated; tokens only without prices. An estimate for deciding whether to run, never a bill: it ignores subscriptions,
 // negotiated prices and retries, and leaves out of the dollars any model it can't price.
 import type { RunRecord } from './history/types.ts'
 import type { ModelsDev, Price, Prices, Tier } from './prices.ts'
@@ -110,10 +110,24 @@ export function priceKey(model: string, table: Record<string, Price>): string | 
   }
 }
 
-/** One request's price: the largest tier its prompt is over, else the base price. */
-export function tierPrice(t: Tokens, price: Price, tiers: readonly Tier[] = []): Price {
-  const prompt = t.input + t.cacheRead + t.cacheWrite
-  return tiers.findLast((tier) => prompt > tier.size)?.price ?? price
+/**
+ * The tokens at `price`, plus what each of `calls` (its requests' own tokens, where they're
+ * known) costs over that at the largest long-prompt tier its prompt is over.
+ */
+export function tieredUsd(
+  t: Tokens,
+  price: Price,
+  tiers: readonly Tier[] = [],
+  calls: readonly Tokens[] = [],
+): number {
+  return calls.reduce(
+    (sum, c) => {
+      const prompt = c.input + c.cacheRead + c.cacheWrite
+      const tier = tiers.findLast((tier) => prompt > tier.size)?.price
+      return tier ? sum + usdOf(c, tier) - usdOf(c, price) : sum
+    },
+    usdOf(t, price),
+  )
 }
 
 /** `output` already counts the reasoning tokens, billed at the output rate unless the price has its own. */
@@ -138,6 +152,8 @@ export const needsPrices = (harnesses: HarnessDescriptor[], judgeModel: string |
 
 type Sample = {
   usage: TokenUsage
+  /** Its turns' model calls the gateway read, which a long-prompt tier prices. */
+  calls: TokenUsage[]
   /** The model its cell ran; undefined in a record from before cells named it. */
   model: string | undefined
   reported: number | undefined
@@ -168,6 +184,7 @@ function indexHistory(records: RunRecord[]) {
         const cell = e.cells?.find((c) => c.key === a.cell)
         const sample: Sample = {
           usage: a.usage,
+          calls: a.turns?.flatMap((t) => t.callUsage ?? []) ?? [],
           model: cell?.model ?? undefined,
           reported: a.cost?.basis === 'reported' ? a.cost.usd : a.reportedCostUsd || undefined,
           estimated: a.cost?.basis === 'estimated' ? a.cost.usd : undefined,
@@ -237,6 +254,10 @@ export function planCost(
   const overlay = prices.table ? prices.overlay : null
   const priced = (model: string) =>
     table && ((overlay && priceFor(model, overlay)) ?? priceFor(model, table))
+  const tiersOf = (model: string) => {
+    const key = table && !(overlay && priceFor(model, overlay)) && priceKey(model, table)
+    return key && prices.tiers && Object.hasOwn(prices.tiers, key) ? prices.tiers[key] : undefined
+  }
   const judgeOf = (id: string): { part: CostPart; model: string | null } => {
     const past = history.judges.get(id)
     const calls = past?.length
@@ -272,6 +293,7 @@ export function planCost(
       const samples = history.byCell.get(key) ?? history.byHarness.get(`${id}\0${cell.harness}`)
       const basis: CostBasis = !model ? 'free' : samples?.length ? 'history' : 'typical'
       const price = model ? priced(model) : null
+      const tiers = model ? tiersOf(model) : undefined
       let agent: CostPart = { tokens: ZERO, usd: table && ZERO }
       if (basis === 'history' && samples) {
         const own: string[] = []
@@ -280,7 +302,7 @@ export function planCost(
           used.set(id, s.runId)
           const same = harness.kind !== 'fake' && s.model === harness.model
           const reported = same ? s.reported : undefined
-          const listed = price ? usdOf(s.usage, price) : undefined
+          const listed = price ? tieredUsd(s.usage, price, tiers, s.calls) : undefined
           const estimated = same ? s.estimated : undefined
           if (reported !== undefined || (listed === undefined && estimated !== undefined)) {
             own.push(id)

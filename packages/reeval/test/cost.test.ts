@@ -19,7 +19,7 @@ import {
 } from '../src/cost.ts'
 import { UsageError } from '../src/errors.ts'
 import { priceRecord, pricerOf } from '../src/history/cost.ts'
-import type { RunRecord } from '../src/history/types.ts'
+import type { AttemptRecord, RunRecord } from '../src/history/types.ts'
 import { loadPrices, modelLimits, type Price, type Prices } from '../src/prices.ts'
 import type { Cell } from '../src/types.ts'
 import { tokenUsage } from '../src/usage.ts'
@@ -184,6 +184,21 @@ describe('priceFor', () => {
         prices,
       )
     const listed = { ...PRICES, table: { 'my-model': [1, 1, 1, 1] as Price } }
+
+    test('each recorded model call is priced at the long-prompt tier its prompt reaches', () => {
+      const call = { input: 250_000, cacheRead: 0, cacheWrite: 0, output: 0, reasoning: null }
+      const record = past('a')
+      const attempt = record.evals[0]?.attempts[0] as AttemptRecord
+      attempt.turns = [{ callUsage: [call, call, call, call] }] as AttemptRecord['turns']
+      const tiers = { 'my-model': [{ size: 200_000, price: [2, 2, 2, 2] as Price }] }
+      assert.deepEqual(plan([record], { ...listed, tiers }).usd, { low: 1.6, high: 2.5 })
+      const own = { ...listed, tiers, overlay: { 'my-model': [1, 1, 1, 1] as Price } }
+      assert.deepEqual(
+        plan([record], own).usd,
+        { low: 0.8, high: 1.25 },
+        'a REEVAL_PRICES price has no tiers',
+      )
+    })
 
     test('a reported cost wins over the list price, and prices a model with none', () => {
       const cost = plan([past('a', [2, 'reported']), past('b', [2, 'reported'])])

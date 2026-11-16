@@ -2,7 +2,7 @@
 // reported wins, unless it's $0, which a harness says for a model it has no price for; else reeval
 // estimates the tokens at list prices (prices.ts) and says so. A model
 // with no price gets no cost, never $0, and a sum counts what it left out in `unpriced`.
-import { priceFor, priceKey, tierPrice, usdOf } from '../cost.ts'
+import { priceFor, priceKey, tieredUsd } from '../cost.ts'
 import { loadPrices, type Price, type Prices, type Tier } from '../prices.ts'
 import type { CostTotal, CostUsd, TokenUsage } from '../types.ts'
 import { totalTokens } from '../usage.ts'
@@ -43,12 +43,8 @@ function estimate(
   if (!used(usage) || !model || !pricer) return undefined
   const priced = pricer(model)
   if (!priced) return undefined
-  const { price, tiers } = priced
-  const over = calls.reduce(
-    (sum, c) => sum + usdOf(c, tierPrice(c, price, tiers)) - usdOf(c, price),
-    0,
-  )
-  return { usd: micro(usdOf(usage, price) + over), basis: 'estimated', source: priced.source }
+  const usd = tieredUsd(usage, priced.price, priced.tiers, calls)
+  return { usd: micro(usd), basis: 'estimated', source: priced.source }
 }
 
 /** The turns' costs as the attempt's, unless some turn that used tokens has none. */
