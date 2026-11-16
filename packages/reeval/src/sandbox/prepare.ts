@@ -114,7 +114,10 @@ export function createBuilds(options: Partial<Omit<Builds, 'once' | 'pushOnce'>>
   }
 }
 
-/** Where `images.yml` publishes reeval's image for each harness, which a run pulls without `--registry`. */
+/**
+ * Where `images.yml` publishes reeval's image for each harness, which a run pulls when no
+ * `--registry` names another.
+ */
 export const DEFAULT_REGISTRY = 'ghcr.io/reeval-ai/sandbox'
 
 /** A layer only this machine can name, or one built on such a layer: never pulled or pushed. */
@@ -133,7 +136,7 @@ async function pulled(
   if (!registry || b.refresh === 'force' || onlyHere(layer)) return null
   const r = await pullLayer(registry, layer, { engine: b.engine, signal })
   if (!r.pulled) {
-    b.log(`${r.remote} isn't in the registry (${r.reason}): building ${layer.ref}`)
+    b.log(`Not using ${r.remote} (${r.reason}): building ${layer.ref}`)
     return null
   }
   b.log(`Pulled ${layer.ref} from ${r.remote}`)

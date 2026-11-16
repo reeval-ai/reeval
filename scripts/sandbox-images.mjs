@@ -5,7 +5,7 @@
 //   pnpm images claude-code codex   only those
 //   pnpm images --registry ghcr.io/reeval-ai/sandbox --push
 //                                   build and push each image the registry doesn't have yet, under
-//                                   the ref `reeval --registry` pulls it by
+//                                   the ref reeval pulls it by
 import { parseArgs } from 'node:util'
 import { setupOf } from '../packages/agents/dist/index.js'
 import {

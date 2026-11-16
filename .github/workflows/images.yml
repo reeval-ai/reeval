@@ -1,7 +1,7 @@
 name: images
 
-# Publishes every harness's sandbox image to GHCR for amd64 and arm64, under the ref
-# `reeval --registry ghcr.io/reeval-ai/sandbox` pulls it by. Each ref names its image's key, so a
+# Publishes every harness's sandbox image to GHCR for amd64 and arm64, under the ref reeval pulls
+# it by when no `--registry` names another. Each ref names its image's key, so a
 # push builds only the images whose key the registry doesn't have yet.
 on:
   push:
