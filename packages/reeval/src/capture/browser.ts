@@ -775,19 +775,20 @@ export async function readLayout(cdp: CdpClient): Promise<PageLayout | undefined
   return { scrollY: Math.round(scrollY), width: Math.ceil(width), height: Math.ceil(height) }
 }
 
-/** How long a wheel's scroll may stand still before it counts as stopped short. */
+/** How long a wheel's scroll may stand still, once it has moved, before it counts as stopped short. */
 const SCROLL_STILL_MS = 200
 const SCROLL_CAP_MS = 1500
 
 /**
  * The window's offset once a wheel sent from `from` toward `want` has scrolled: the compositor
- * scrolls after `Input.dispatchMouseEvent` returns. A page that stops short (its end, a locked
- * body) stands still, and its offset then is the answer.
+ * scrolls after `Input.dispatchMouseEvent` returns, and a slow one can start well after it. A page
+ * that stops short (its end) stands still, and its offset then is the answer; one that never
+ * moves (a locked body) is answered at the cap.
  */
 async function scrolledTo(cdp: CdpClient, from: number, want: number): Promise<number> {
   const start = Date.now()
   let last = from
-  let still = start
+  let still: number | undefined
   for (;;) {
     const y = (await readLayout(cdp))?.scrollY
     if (y === undefined) return want
@@ -796,7 +797,10 @@ async function scrolledTo(cdp: CdpClient, from: number, want: number): Promise<n
     if (y !== last) {
       last = y
       still = now
-    } else if (now - still >= SCROLL_STILL_MS || now - start >= SCROLL_CAP_MS) {
+    } else if (
+      (still !== undefined && now - still >= SCROLL_STILL_MS) ||
+      now - start >= SCROLL_CAP_MS
+    ) {
       return y
     }
     await new Promise((resolve) => setTimeout(resolve, 16))
