@@ -20,7 +20,7 @@ export type BundleFile = {
   /**
    * What it is to the run: a kind from the dry run's `inputs` (`eval`, `skill`, `lockfile`, …),
    * or `install` for a file the install from the lockfile reads (`package.json`,
-   * `pnpm-workspace.yaml`, …).
+   * `pnpm-workspace.yaml`, …), or `dev-cli` for the tarball `devCli` names.
    */
   kind: string
   sha256: string

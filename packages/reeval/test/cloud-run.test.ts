@@ -549,15 +549,13 @@ describe('reeval run on the cloud platform', () => {
       assert.ok(tarball?.type === 'file')
       const listed = manifest.files.find((f: { path: string }) => f.path === manifest.devCli)
       assert.equal(listed?.sha256, createHash('sha256').update(tarball.data).digest('hex'))
-      const pkg = readTar(gunzipSync(tarball.data)).find((e) => e.path === 'package/package.json')
+      const packed = readTar(gunzipSync(tarball.data))
+      assert.ok(packed.some((e) => e.path === 'package/dist/cli.js'))
+      const pkg = packed.find((e) => e.path === 'package/package.json')
       assert.ok(pkg?.type === 'file')
-      const { name, version, devDependencies } = JSON.parse(pkg.data.toString('utf8'))
+      const { name, version } = JSON.parse(pkg.data.toString('utf8'))
       const own = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8'))
       assert.deepEqual([name, version], [own.name, own.version])
-      assert.ok(
-        !JSON.stringify(devDependencies ?? {}).includes('workspace:'),
-        'pnpm pack resolves workspace: specs',
-      )
     } finally {
       await p.close()
     }

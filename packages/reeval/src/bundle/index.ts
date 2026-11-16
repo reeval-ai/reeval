@@ -518,14 +518,19 @@ export async function makeBundle(
     mtime: Math.floor(Date.now() / 1000),
     target: l.target,
   }))
+  const devCliDir = DEV_CLI.slice(0, DEV_CLI.indexOf('/') + 1)
+  if (
+    options.cloud &&
+    process.env.REEVAL_DEV_CLI === '1' &&
+    [...files, ...bundleLinks].some((f) => f.path.startsWith(devCliDir))
+  ) {
+    throw new UsageError(`REEVAL_DEV_CLI=1 carries reeval in ${devCliDir}, which the run reads`)
+  }
   const devCli =
     options.cloud && process.env.REEVAL_DEV_CLI === '1'
       ? { path: DEV_CLI, data: await packDevCli() }
       : null
   if (devCli) {
-    if (kinds.has(join(root, ...DEV_CLI.split('/')))) {
-      throw new UsageError(`REEVAL_DEV_CLI=1 carries reeval at ${DEV_CLI}, which the run reads`)
-    }
     const { path, data } = devCli
     files.push({ path, kind: 'dev-cli', sha256: sha256(data), size: data.length })
     files.sort((a, b) => (a.path < b.path ? -1 : 1))
@@ -802,6 +807,7 @@ const manifestSchema = z.object({
   secrets: z.array(z.string()),
   secretChoices: z.array(z.array(z.string())).optional(),
   features: z.array(z.string()).optional(),
+  devCli: bundlePath.optional(),
 }) satisfies z.ZodType<BundleManifest>
 
 /** `value` as a manifest, or a refusal naming the first few fields that aren't one. */
@@ -968,7 +974,10 @@ export async function openBundle(file: string, log: (line: string) => void): Pro
   process.once('SIGINT', interrupted)
   try {
     // Links go last, so no file is written through one.
-    const skipped = await extractTar([...files, ...linked], dir)
+    const skipped = await extractTar(
+      [...files.filter((f) => f.path !== manifest.devCli), ...linked],
+      dir,
+    )
     const escapes: string[] = []
     for (const l of linked) {
       const real = await realpath(join(dir, ...l.path.split('/'))).catch(() => null)
