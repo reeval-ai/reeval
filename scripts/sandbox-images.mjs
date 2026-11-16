@@ -86,7 +86,7 @@ async function digestOf(ref) {
   }
   if (r.status === 404) return null
   const digest = r.ok && r.headers.get('docker-content-digest')
-  if (!digest) throw new Error(`${ref}: the registry answered ${r.status} with no digest`)
+  if (!digest) throw new Error(`the registry answered ${r.status} with no digest`)
   return digest
 }
 
@@ -100,7 +100,7 @@ if (values.digests) {
     }
     for (const platform of ['linux/amd64', 'linux/arm64']) {
       const remote = registryRef(values.registry, layer, platform)
-      const digest = await digestOf(remote).catch((e) => fail(e.message))
+      const digest = await digestOf(remote).catch((e) => fail(`${remote}: ${e.message}`))
       if (digest) digests[remote] = digest
       else missing++
       console.log(`${remote}: ${digest ?? 'not published, so reeval builds it'}`)
