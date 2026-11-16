@@ -236,7 +236,8 @@ async function unpackFiles(
   const one = async () => {
     for (const f of files) await box.writeFile(`${prefix}${f.path}`, f.content)
   }
-  if (files.length < 2) return one()
+  // The unpack reads `find`'s names a line at a time.
+  if (files.length < 2 || files.some((f) => f.path.includes('\n'))) return one()
   const entries = files.map((f) => ({
     type: 'file' as const,
     path: f.path,
