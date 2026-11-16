@@ -329,6 +329,61 @@ describe('reeval bundle', () => {
     assert.match(r.stdout, /1 passed/)
   })
 
+  test('a bundle that carries its own reeval runs on it, not on the reeval its lockfile pins', async () => {
+    const repo = tempDir('bundle-dev-cli')
+    cpSync(fixture, repo, { recursive: true })
+    mkdirSync(join(repo, 'pinned'))
+    const stub = { name: 'reeval', version: '0.0.1' }
+    writeFileSync(join(repo, 'pinned/package.json'), `${JSON.stringify(stub)}\n`)
+    const pkg = {
+      name: 'repo',
+      version: '1.0.0',
+      private: true,
+      devDependencies: { reeval: 'file:pinned' },
+    }
+    writeFileSync(join(repo, 'package.json'), `${JSON.stringify(pkg)}\n`)
+    const lock = {
+      name: 'repo',
+      version: '1.0.0',
+      lockfileVersion: 3,
+      requires: true,
+      packages: {
+        '': pkg,
+        'node_modules/reeval': { resolved: 'pinned', link: true },
+        pinned: { ...stub, dev: true },
+      },
+    }
+    writeFileSync(join(repo, 'package-lock.json'), `${JSON.stringify(lock)}\n`)
+    writeFileSync(join(repo, '.gitignore'), 'node_modules\n.reeval\nsandboxes\n')
+    mkdirSync(join(repo, 'node_modules'))
+    symlinkSync(pkgRoot, join(repo, 'node_modules/reeval'), 'dir')
+    const out = join(tempDir('bundle-out'), 'repo.tar.gz')
+    const made = await runCli(repo, ['bundle', '--out', out], { env: { TMPDIR: extractRoot() } })
+    assert.equal(made.code, 0, made.stderr)
+    const tarball = Buffer.from('a reeval package tarball')
+    const path = '.reeval-dev/reeval.tgz'
+    const carried = rewrite(
+      [...entriesOf(out), { type: 'file', path, mode: 0o644, mtime: 0, data: tarball }],
+      join(tempDir('bundle-out'), 'carried.tar.gz'),
+      (m) => ({
+        ...m,
+        devCli: path,
+        files: [
+          ...m.files,
+          { path, kind: 'dev-cli', sha256: sha256(tarball), size: tarball.length },
+        ],
+      }),
+    )
+    const fresh = tempDir('bundle-fresh')
+    const r = await runCli(fresh, ['run', '--bundle', carried], {
+      env: { TMPDIR: fresh, CHECK_TOKEN: TOKEN },
+    })
+    assert.equal(r.code, 0, r.stderr + r.stdout)
+    assert.match(r.stdout, /installing from package-lock\.json: npm ci/)
+    assert.match(r.stdout, /the bundle carries its own reeval, which .* now links to/)
+    assert.match(r.stdout, /1 passed/)
+  })
+
   test("runs a uv package project's Python evals from a bundle without the package's sources", async () => {
     const { dir } = await project('bundle-uv-package', {})
     pythonEvals(dir)

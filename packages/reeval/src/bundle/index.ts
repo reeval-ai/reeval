@@ -4,8 +4,18 @@
 // same list.
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { cpSync, existsSync, mkdirSync, renameSync, rmSync, statSync, utimesSync } from 'node:fs'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  renameSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  utimesSync,
+} from 'node:fs'
 import { lstat, mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import {
   basename,
@@ -997,6 +1007,7 @@ export async function openBundle(file: string, log: (line: string) => void): Pro
     // own, with no commits, as a fresh clone's top is.
     await git(dir, ['init', '-q']).catch(() => {})
     await install(manifest, dir, log)
+    if (manifest.devCli !== undefined && !COMPILED) useRunningReeval(project, log)
     // A `uv run` here, such as the Python runner's in the dry run and in the run's workers, would
     // sync again and build the project, whose sources aren't here; the install above synced every
     // dependency of the uv project the bundle's project is in.
@@ -1192,6 +1203,24 @@ export function planDifferences(manifest: BundleManifest, plan: PlanDoc): string
   const [bundled, here] = withoutUncheckedEfforts(comparable(manifest.plan), comparable(plan))
   out.push(...differences(bundled, here).map((d) => `plan: ${d}`))
   return out
+}
+
+/**
+ * A bundle that carries its own reeval (`devCli`) is run by it, installed from that tarball, and
+ * its workers and evals load the `reeval` the project resolves, which the lockfile pinned to a
+ * release: that one becomes a link to this reeval, whose own dependencies resolve where it is.
+ */
+function useRunningReeval(project: string, log: (line: string) => void): void {
+  let at: string
+  try {
+    at = dirname(createRequire(join(project, 'noop.js')).resolve('reeval/package.json'))
+  } catch {
+    at = join(project, 'node_modules', 'reeval')
+  }
+  rmSync(at, { recursive: true, force: true })
+  mkdirSync(dirname(at), { recursive: true })
+  symlinkSync(PACKAGE_DIR, at, 'junction')
+  log(`reeval: the bundle carries its own reeval, which ${at} now links to`)
 }
 
 /** Installs from each lockfile in the bundle, in its directory, the way its lockfile pins. */
