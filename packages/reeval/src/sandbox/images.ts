@@ -2,7 +2,6 @@
 // and the images their `tart()` sandboxes clone, pulled.
 import {
   type BakedHarness,
-  contextHash,
   dockerfileBases,
   dockerfileTag,
   type Engine,
@@ -50,7 +49,7 @@ import {
   dockerKey,
   vmImage,
 } from './providers.ts'
-import { installSteps } from './recipe.ts'
+import { harnessRecipe, installSteps } from './recipe.ts'
 import { bakedTartImage, tartBakeKey } from './tart-bake.ts'
 import type { MissingImage } from './tart-images.ts'
 
@@ -242,11 +241,12 @@ export async function imageStages(target: ImageTarget, root: string): Promise<St
       detail: info ? `built (${short(info.id)})` : 'not built yet',
     }
   }
+  const recipe = await harnessRecipe(harness)
   const reevalBase = async (): Promise<Probe> => {
     const { info, error } = await look(imageFor(harness), engine)
     if (error) return { info, status: 'unknown', detail: error }
     if (!info) return { info, status: 'build', detail: 'not built yet' }
-    return info.labels[LABEL.context] === contextHash()
+    return info.labels[LABEL.key] === reevalImageKey(harness, recipe)
       ? { info, status: 'ready', detail: `built (${short(info.id)})` }
       : {
           info,
@@ -287,7 +287,7 @@ export async function imageStages(target: ImageTarget, root: string): Promise<St
   } else if (sandbox.dockerfile) {
     const onReeval = usesReevalBase(sandbox.dockerfile)
     const base = onReeval ? await reevalBase() : null
-    const { tag } = dockerfileTag(sandbox.dockerfile, harness)
+    const { tag } = dockerfileTag(sandbox.dockerfile, harness, recipe)
     const built = await exists(tag)
     // Its key, from the built image, or else the tag when no base of it can move before the build.
     const moving = dockerfileBases(sandbox.dockerfile)
@@ -331,7 +331,7 @@ export async function imageStages(target: ImageTarget, root: string): Promise<St
     }
   } else {
     const base = await reevalBase()
-    parent = reevalImageKey(harness)
+    parent = reevalImageKey(harness, recipe)
     if (base.status === 'unknown') unanswered = base.detail
     stages.push({
       what: 'base',

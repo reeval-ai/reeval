@@ -1,0 +1,54 @@
+name: images
+
+# Publishes every harness's sandbox image to GHCR for amd64 and arm64, under the ref
+# `reeval --registry ghcr.io/reeval-ai/sandbox` pulls it by. Each ref names its image's key, so a
+# push builds only the images whose key the registry doesn't have yet.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/images.yml
+      - scripts/sandbox-images.mjs
+      - packages/sandbox-docker/**
+      - packages/agents/**
+      - packages/harness-*/**
+      - patches/**
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: images
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: publish (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm build
+      - name: Log in to GHCR
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: echo "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+      - run: node scripts/sandbox-images.mjs --registry ghcr.io/reeval-ai/sandbox --push

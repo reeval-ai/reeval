@@ -259,12 +259,15 @@ describe('Dockerfile tags', () => {
   writeFileSync(plain, 'FROM debian:bookworm-slim\n')
 
   test("FROM $REEVAL_BASE: the tag hashes reeval's image key (adapter and base context), not its id", () => {
-    const a = dockerfileTag(reevalBase, 'cursor').tag
-    assert.equal(dockerfileTag(reevalBase, 'cursor').tag, a)
-    assert.notEqual(dockerfileTag(reevalBase, 'claude-code').tag, a)
+    const a = dockerfileTag(reevalBase, 'cursor', 'recipe').tag
+    assert.equal(dockerfileTag(reevalBase, 'cursor', 'recipe').tag, a)
+    assert.notEqual(dockerfileTag(reevalBase, 'claude-code', 'recipe').tag, a)
   })
 
   test("canary: another base ignores reeval's image", () => {
-    assert.equal(dockerfileTag(plain, 'cursor').tag, dockerfileTag(plain, 'claude-code').tag)
+    assert.equal(
+      dockerfileTag(plain, 'cursor', 'recipe').tag,
+      dockerfileTag(plain, 'claude-code', 'recipe').tag,
+    )
   })
 })

@@ -19,7 +19,13 @@ import { type BoatClient, boatError, deleteUntilGone, startVm, type VmService } 
 import { sandboxLabels } from './labels.ts'
 import { createBuilds, imageHarness, pluginBuildSpec, prepareImage } from './prepare.ts'
 import { type PrepareContext, PrepareError } from './provider.ts'
-import { type ImageRecipe, imageRecipeKey, type ResolveDigest, registryResolver } from './recipe.ts'
+import {
+  harnessRecipe,
+  type ImageRecipe,
+  imageRecipeKey,
+  type ResolveDigest,
+  registryResolver,
+} from './recipe.ts'
 
 import { InfraError } from './types.ts'
 
@@ -131,7 +137,9 @@ export async function vmImageKey(
       harness: baked,
       plugins: plugins.map(pluginBuildId),
       unresolved: r.unresolved.ref,
-      ...(recipe.dockerfile && { context: dockerfileTag(recipe.dockerfile, baked).sha256 }),
+      ...(recipe.dockerfile && {
+        context: dockerfileTag(recipe.dockerfile, baked, await harnessRecipe(baked)).sha256,
+      }),
     })
   }
   const key = createHash('sha256')

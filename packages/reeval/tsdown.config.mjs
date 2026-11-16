@@ -220,11 +220,16 @@ export default defineConfig({
         ].map((m) => m[1])
         for (const file of BRIDGE_FILES) {
           const code = readFileSync(join(bridge, file), 'utf8')
-          // Apache-2.0 §4(b): a modified file says so.
+          // Apache-2.0 §4(b): a modified file says so. The patch adds the notice, so the bridge
+          // reeval ships is byte for byte the one the workspace bakes, and their image keys match.
           const notice = `// Modified by Invertase with ${patch}; see THIRD_PARTY_NOTICES.md.\n`
+          if (changed.includes(file) && /\.m?js$/.test(file) && !code.startsWith(notice)) {
+            throw new Error(
+              `${patch} changes dist/bridge/${file}: its first line must be ${notice}`,
+            )
+          }
           mkdirSync(join(dist, 'bridge'), { recursive: true })
-          const marked = changed.includes(file) && /\.m?js$/.test(file)
-          writeFileSync(join(dist, 'bridge', file), marked ? notice + code : code)
+          writeFileSync(join(dist, 'bridge', file), code)
         }
         thirdParty.push({
           ...packageLicense(adapter, 'dist/bridge'),

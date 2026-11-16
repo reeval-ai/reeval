@@ -24,7 +24,13 @@ import {
 import { shellQuote as q } from '@reeval/sandbox-docker/process'
 import type { DaytonaSandboxDescriptor, HarnessDescriptor } from '../types.ts'
 import { harnessBake } from './harness-install.ts'
-import { imageRecipeKey, installSteps, type ResolveDigest, registryResolver } from './recipe.ts'
+import {
+  harnessRecipe,
+  imageRecipeKey,
+  installSteps,
+  type ResolveDigest,
+  registryResolver,
+} from './recipe.ts'
 
 /** Bumped when the generated Dockerfile's shape changes, so every snapshot is built anew. */
 const REVISION = 1
@@ -177,7 +183,7 @@ export async function daytonaImage(
       named && 'key' in named
         ? named.key
         : dockerfile !== undefined
-          ? `dockerfile:${dockerfileTag(dockerfile, baked ?? 'cursor').tag}`
+          ? `dockerfile:${dockerfileTag(dockerfile, baked ?? 'cursor', await harnessRecipe(baked ?? 'cursor')).tag}`
           : `from:${from ?? NODE_IMAGE}@${fromPin}`
   }
   const pinned = (ref: string) => {
