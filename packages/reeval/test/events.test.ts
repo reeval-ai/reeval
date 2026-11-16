@@ -472,6 +472,23 @@ describe('attach', () => {
     assert.equal(await done, 130)
   })
 
+  test('onFirstLine is told once, before the first line is drawn', async () => {
+    const file = join(tempDir('events'), 'a.ndjson')
+    const stream = openEventStream({ file, header: header(), warn: assert.fail })
+    stream.write(notice('first'))
+    await stream.end(0)
+    const out = capture()
+    const told: string[] = []
+    const code = await attach({
+      source: file,
+      out,
+      output: () => output,
+      onFirstLine: () => told.push(out.text),
+    })
+    assert.equal(code, 0)
+    assert.deepEqual(told, [''], 'once, with nothing drawn yet')
+  })
+
   test("a resume's lines follow the run's exit line: it draws both and exits with the last code", async () => {
     const file = join(tempDir('events'), 'a.ndjson')
     const first = openEventStream({ file, header: header(), warn: assert.fail })

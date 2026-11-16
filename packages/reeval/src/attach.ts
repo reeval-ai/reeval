@@ -42,6 +42,8 @@ export type AttachOptions = {
   silence?: { stallMs?: number; lostMs?: number }
   /** Told when the viewer detaches, before `attach` returns 0. */
   onDetach?: () => void
+  /** Told once, before the stream's first line other than a heartbeat is drawn. */
+  onFirstLine?: () => void
   /** How to cancel a run this viewer can't reach, which the interactive list shows. */
   cancelHint?: string
   /**
@@ -147,6 +149,7 @@ export async function attach(options: AttachOptions): Promise<number> {
   const stallMs = options.silence?.stallMs ?? STALL_MS
   const lostMs = options.silence?.lostMs ?? LOST_MS
   const { root } = options
+  let { onFirstLine } = options
   const reachable = (line: RunEventsHeader) =>
     root !== undefined && cancelable(root, line, { alive })
   let renderer: Renderer | undefined
@@ -266,6 +269,8 @@ export async function attach(options: AttachOptions): Promise<number> {
         beating = true
         continue
       }
+      onFirstLine?.()
+      onFirstLine = undefined
       if (line.type === 'header') {
         // A resume of the run starts its own output, as its terminal did.
         renderer?.close()

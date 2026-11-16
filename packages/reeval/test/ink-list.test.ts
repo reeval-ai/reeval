@@ -850,6 +850,27 @@ test("before the list, the prepare step's glyph spins in place, then settles to 
   assert.equal(out.length, drawn, 'and it stops')
 })
 
+test('dismissed, a step line with nothing under it goes, and one with lines under it settles', (t) => {
+  t.mock.timers.enable({ apis: ['setInterval'] })
+  const out: string[] = []
+  const spinner = new StepSpinner(
+    (s) => out.push(s),
+    c,
+    () => ({ rows: 24, columns: 80 }),
+  )
+  spinner.start('  ◆  Waiting for the cloud run to start...\n', 1)
+  spinner.dismiss()
+  assert.equal(out.at(-1), '\x1b[1A\r\x1b[J', 'up to the step line, erasing it')
+  const drawn = out.length
+  t.mock.timers.tick(800)
+  spinner.dismiss()
+  assert.equal(out.length, drawn, 'and it stops')
+  spinner.start('  ◆  Waiting for the cloud run to start...\n', 1)
+  spinner.before('Cloud run run_1 is queued\n')
+  spinner.dismiss()
+  assert.equal(out.at(-1), '\x1b[2A\r\x1b[2C◆\r\x1b[2B', 'a line under it keeps it, settled')
+})
+
 test('the prepare step settles rather than spin a line about to scroll out of reach', (t) => {
   t.mock.timers.enable({ apis: ['setInterval'] })
   const out: string[] = []
