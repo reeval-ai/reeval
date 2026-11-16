@@ -236,7 +236,8 @@ async function unpackFiles(
   const one = async () => {
     for (const f of files) await box.writeFile(`${prefix}${f.path}`, f.content)
   }
-  if (files.length < 2) return one()
+  // The unpack reads `find`'s names a line at a time.
+  if (files.length < 2 || files.some((f) => f.path.includes('\n'))) return one()
   const entries = files.map((f) => ({
     type: 'file' as const,
     path: f.path,
@@ -274,8 +275,6 @@ async function unpackFiles(
     `  tar -xmf "$d/${name}" -C "$t" && cd "$t" && find . -type f > "$t.all" || exit $?`,
     '  : > "$t.new"',
     '  while IFS= read -r f; do',
-    // A name with a line break in it reads as lines `find` didn't start with `./`.
-    '    case $f in ./*) ;; *) exit 1 ;; esac',
     '    if [ -e "$d/$f" ] || [ -L "$d/$f" ]; then',
     '      cat "$f" > "$d/$f" || exit 1',
     '      continue',

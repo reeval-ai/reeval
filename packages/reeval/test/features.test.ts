@@ -2871,7 +2871,7 @@ export const features: Feature[] = [
     dir: 'env/files-odd-names',
     tiers: ['fake', 'docker'],
     env: 'odd-names',
-    canary: /expected \[ 'dir\/in\.txt', 'plain\.txt', …\(1\) \] to include 'lines\.txt'/,
+    canary: /expected \[ 'dir\/in\.txt', …\(3\) \] to include 'lines\.txt'/,
   },
   {
     dir: 'env/files-directory',
