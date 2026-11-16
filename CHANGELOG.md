@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.29.4](https://github.com/reeval-ai/reeval/compare/v0.29.3...v0.29.4) (2026-11-16)
+
+
+### Bug Fixes
+
+* **attach:** reconnect a silent cloud run socket and survive a sleeping viewer ([#1030](https://github.com/reeval-ai/reeval/issues/1030)) ([5bfbc13](https://github.com/reeval-ai/reeval/commit/5bfbc139631ffbdc940bdb97dd599d3837fe3a1b))
+* **capture:** wait for a slow compositor to start a wheel scroll ([#1032](https://github.com/reeval-ai/reeval/issues/1032)) ([8eb8fc1](https://github.com/reeval-ai/reeval/commit/8eb8fc1c77007cb4e844921e67a027f187da1296))
+* **sandbox:** place files whose names hold a line break instead of hanging ([#1031](https://github.com/reeval-ai/reeval/issues/1031)) ([7fae853](https://github.com/reeval-ai/reeval/commit/7fae8539c540443495fc7c7b35d9051d063add6f))
+
 ## [0.29.3](https://github.com/reeval-ai/reeval/compare/v0.29.2...v0.29.3) (2026-11-15)
 
 
