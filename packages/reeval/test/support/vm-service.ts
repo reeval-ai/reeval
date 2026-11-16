@@ -265,6 +265,8 @@ export async function fakeVmService(
       },
     )
   })
+  // Only the client closes an idle connection, as in the fake Boat API.
+  server.keepAliveTimeout = 0
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
   const { port } = server.address() as AddressInfo
   return {
