@@ -775,7 +775,7 @@ export async function readLayout(cdp: CdpClient): Promise<PageLayout | undefined
   return { scrollY: Math.round(scrollY), width: Math.ceil(width), height: Math.ceil(height) }
 }
 
-/** How long a wheel's scroll may stand still, once it has moved, before it counts as stopped short. */
+/** How long a wheel's scroll may stand still, once moving, before it counts as stopped short. */
 const SCROLL_STILL_MS = 200
 const SCROLL_CAP_MS = 1500
 
