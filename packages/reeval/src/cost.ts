@@ -169,7 +169,7 @@ function indexHistory(records: RunRecord[]) {
         const sample: Sample = {
           usage: a.usage,
           model: cell?.model ?? undefined,
-          reported: a.cost?.basis === 'reported' ? a.cost.usd : a.reportedCostUsd,
+          reported: a.cost?.basis === 'reported' ? a.cost.usd : a.reportedCostUsd || undefined,
           estimated: a.cost?.basis === 'estimated' ? a.cost.usd : undefined,
           key: a.key,
           runId: record.runId,
@@ -274,6 +274,7 @@ export function planCost(
       const price = model ? priced(model) : null
       let agent: CostPart = { tokens: ZERO, usd: table && ZERO }
       if (basis === 'history' && samples) {
+        const own: string[] = []
         const usds = samples.map((s) => {
           const id = `${s.runId}\0${s.key}`
           used.set(id, s.runId)
@@ -282,14 +283,13 @@ export function planCost(
           const listed = price ? usdOf(s.usage, price) : undefined
           const estimated = same ? s.estimated : undefined
           if (reported !== undefined || (listed === undefined && estimated !== undefined)) {
-            recorded.add(id)
+            own.push(id)
           }
           return reported ?? listed ?? estimated ?? null
         })
-        agent = {
-          tokens: rangeOf(samples.map((s) => totalTokens(s.usage))),
-          usd: table && usds.every((n) => n !== null) ? rangeOf(usds) : null,
-        }
+        const usd = table && usds.every((n) => n !== null) ? rangeOf(usds) : null
+        if (usd) for (const id of own) recorded.add(id)
+        agent = { tokens: rangeOf(samples.map((s) => totalTokens(s.usage))), usd }
       } else if (basis === 'typical') {
         const { low, high } = TYPICAL_ATTEMPT
         agent = {
@@ -350,7 +350,7 @@ export function planCost(
     attempts: tally,
     pastRuns: new Set(used.values()).size,
     pastAttempts: used.size,
-    recordedAttempts: table ? recorded.size : 0,
+    recordedAttempts: recorded.size,
     unpriced: [...unpriced]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([model, tokens]) => ({ model, tokens: round(tokens, 0) as Range })),

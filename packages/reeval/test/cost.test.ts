@@ -217,6 +217,7 @@ describe('priceFor', () => {
     test("one sample it can't price leaves the cell without dollars; without prices, tokens only", () => {
       const partly = plan([past('a', [2, 'reported']), past('b')])
       assert.equal(partly.usd, null)
+      assert.equal(partly.recordedAttempts, 0)
       assert.deepEqual(partly.unpriced, [
         { model: 'my-model', tokens: { low: 800_000, high: 1_250_000 } },
       ])
