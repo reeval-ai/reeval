@@ -210,14 +210,20 @@ async function dryRun(
   return { plan: JSON.parse(out) as PlanDoc }
 }
 
-/** `value` with the absolute path `root` written as {@link ROOT} in every string. */
+/**
+ * `value` with the absolute path `root` written as {@link ROOT} in every string. On Windows the
+ * plan spells a path outside the project with `/` (`C:/…`), so `root` is matched in both forms.
+ */
 function rooted<T>(value: T, root: string): T {
   const inJson = (s: string) => JSON.stringify(s).slice(1, -1)
-  const json = JSON.stringify(value)
-    .split(inJson(root + sep))
-    .join(`${ROOT}/`)
-    .split(`"${inJson(root)}"`)
-    .join(`"${ROOT}"`)
+  let json = JSON.stringify(value)
+  for (const at of new Set([root, root.replaceAll(sep, '/')])) {
+    json = json
+      .split(inJson(at + (at === root ? sep : '/')))
+      .join(`${ROOT}/`)
+      .split(`"${inJson(at)}"`)
+      .join(`"${ROOT}"`)
+  }
   return JSON.parse(json) as T
 }
 
