@@ -5,7 +5,17 @@
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { cpSync, existsSync, mkdirSync, renameSync, rmSync, statSync, utimesSync } from 'node:fs'
-import { lstat, mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises'
+import {
+  lstat,
+  mkdtemp,
+  readdir,
+  readFile,
+  realpath,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import {
   basename,
@@ -35,7 +45,14 @@ import type { GitInfo } from '../history/types.ts'
 import { RUN_ID } from '../ids.ts'
 import { PreflightInfraError } from '../preflight.ts'
 import { savedFilters, stagingInUse } from '../resume.ts'
-import { COMPILED, DIST_DIR, PACKAGE_DIR, PACKAGE_VERSION, reevalCommand } from '../root.ts'
+import {
+  COMPILED,
+  DIST_DIR,
+  PACKAGE_DIR,
+  PACKAGE_NAMES,
+  PACKAGE_VERSION,
+  reevalCommand,
+} from '../root.ts'
 import { withoutBom } from '../text.ts'
 import { NewerSchemaError, readableBundleManifest } from '../view/record.ts'
 import {
@@ -1247,5 +1264,19 @@ async function install(
         `${shown} failed (exit ${result.exitCode}) installing from ${f.path}, so nothing ran:\n${said}`,
       )
     }
+    if (manifest.devCli) await useRunningReeval(at)
+  }
+}
+
+/**
+ * A bundle that carries its own reeval runs its eval files on the reeval running it, not on the
+ * release its lockfile installed, which the workers would otherwise load.
+ */
+async function useRunningReeval(at: string): Promise<void> {
+  for (const name of PACKAGE_NAMES) {
+    const installed = join(at, 'node_modules', ...name.split('/'))
+    if (!(await lstat(installed).catch(() => null))) continue
+    await rm(installed, { recursive: true, force: true })
+    await symlink(PACKAGE_DIR, installed, 'junction')
   }
 }

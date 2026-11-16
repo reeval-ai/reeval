@@ -534,10 +534,26 @@ describe('reeval run on the cloud platform', () => {
     }
   })
 
-  test('REEVAL_DEV_CLI=1 carries the running reeval as a package tarball the bundle still runs with', async () => {
+  test('REEVAL_DEV_CLI=1 carries the running reeval, which runs the evals over the one the lockfile installs', async () => {
+    const dir = await fixtureProject()
+    const stale = [
+      "const fs=require('fs')",
+      "fs.mkdirSync('node_modules/reeval/dist',{recursive:true})",
+      "fs.writeFileSync('node_modules/reeval/package.json',JSON.stringify({name:'reeval',version:'0.0.1'}))",
+      `fs.writeFileSync('node_modules/reeval/dist/cli.js',Buffer.from('${Buffer.from("process.send({ t: 'hello', protocol: 0 })").toString('base64')}','base64'))`,
+    ].join(';')
+    const pkg = { name: 'cloud', version: '1.0.0', private: true }
+    writeFileSync(
+      join(dir, 'package.json'),
+      `${JSON.stringify({ ...pkg, scripts: { postinstall: `node -e "${stale}"` } })}\n`,
+    )
+    writeFileSync(
+      join(dir, 'package-lock.json'),
+      `${JSON.stringify({ ...pkg, lockfileVersion: 3, requires: true, packages: { '': pkg } })}\n`,
+    )
     const p = await platform()
     try {
-      const r = await runCli(await fixtureProject(), ['run', '--cloud'], {
+      const r = await runCli(dir, ['run', '--cloud'], {
         env: { REEVAL_CLOUD_URL: p.base, REEVAL_TOKEN: 'cloud-test-token', REEVAL_DEV_CLI: '1' },
       })
       assert.equal(r.code, 0, r.stdout + r.stderr)
