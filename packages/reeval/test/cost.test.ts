@@ -15,10 +15,11 @@ import {
   type PlanCost,
   planCost,
   priceFor,
+  pricerOf,
   usdOf,
 } from '../src/cost.ts'
 import { UsageError } from '../src/errors.ts'
-import { priceRecord, pricerOf } from '../src/history/cost.ts'
+import { priceRecord } from '../src/history/cost.ts'
 import type { AttemptRecord, RunRecord } from '../src/history/types.ts'
 import { loadPrices, modelLimits, type Price, type Prices } from '../src/prices.ts'
 import type { Cell } from '../src/types.ts'

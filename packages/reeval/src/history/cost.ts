@@ -2,30 +2,12 @@
 // reported wins, unless it's $0, which a harness says for a model it has no price for; else reeval
 // estimates the tokens at list prices (prices.ts) and says so. A model
 // with no price gets no cost, never $0, and a sum counts what it left out in `unpriced`.
-import { priceFor, priceKey, tieredUsd } from '../cost.ts'
-import { loadPrices, type Price, type Prices, type Tier } from '../prices.ts'
+import { type Pricer, pricerOf, tieredUsd } from '../cost.ts'
+import { loadPrices, type Prices } from '../prices.ts'
 import type { CostTotal, CostUsd, TokenUsage } from '../types.ts'
 import { totalTokens } from '../usage.ts'
 import { sumCosts } from '../view/cost.ts'
 import type { AttemptRecord, JudgmentRecord, RunRecord } from './types.ts'
-
-/** A model's price, its long-prompt tiers and where they came from; null when there's none. */
-export type Pricer = (model: string) => { price: Price; tiers?: Tier[]; source: string } | null
-
-/** The loaded prices as a pricer; null without any. */
-export function pricerOf(prices: Prices): Pricer | null {
-  if (!prices.table) return null
-  const { table, tiers, overlay, file, modelsDev } = prices
-  const listed = 'fetchedAt' in modelsDev ? `models.dev ${modelsDev.fetchedAt.slice(0, 10)}` : null
-  return (model) => {
-    const own = overlay && priceFor(model, overlay)
-    if (own) return { price: own, source: file ?? 'REEVAL_PRICES' }
-    const key = listed && priceKey(model, table)
-    if (!key) return null
-    const tiered = tiers && Object.hasOwn(tiers, key) ? { tiers: tiers[key] } : {}
-    return { price: table[key] as Price, ...tiered, source: listed }
-  }
-}
 
 const used = (u: TokenUsage | null | undefined): u is TokenUsage => !!u && totalTokens(u) > 0
 const micro = (usd: number) => Math.round(usd * 1e6) / 1e6
