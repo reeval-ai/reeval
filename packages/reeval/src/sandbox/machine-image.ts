@@ -26,18 +26,19 @@ const REFUSED =
 const FROM_FAILED = /reeval needs a Debian|did not complete successfully/
 
 /**
- * Whether the recipe caused `error`: its install or Dockerfile step failed, its `from` isn't one
- * reeval can bake onto, or a registry refused its image. Anything else is the machine's, which
+ * Whether the recipe caused `error`: its install, Dockerfile or plugin build step failed, its
+ * `from` isn't one reeval can bake onto, or a registry refused its image. Anything else is the machine's, which
  * another machine may not have, and so is a step that fails on a connection, which is usually
  * the machine's network.
  */
-function recipeCaused(error: unknown, message: string): boolean {
+export function recipeCaused(error: unknown, message: string): boolean {
   if (MACHINE_FAULT.test(message)) return false
   if (error instanceof ImageBuildError) {
     const { stage } = error.failure
     return (
       stage === 'install' ||
       stage === 'dockerfile' ||
+      stage === 'plugin' ||
       (stage === 'from' && FROM_FAILED.test(message))
     )
   }
