@@ -22,7 +22,7 @@ export function writePastCostRuns(root: string): void {
     ['20261001T000000Z_aaaaaaa_test', [attempt(1, 600_000), attempt(2, 900_000)]],
     [
       '20261002T000000Z_bbbbbbb_test',
-      [attempt(1, 1_200_000, 'pass', 1.5), attempt(2, 9_000_000, 'infra_error')],
+      [attempt(1, 1_200_000, 'pass', 0.3), attempt(2, 9_000_000, 'infra_error')],
     ],
   ] as const
   for (const [runId, attempts] of runs) {
@@ -34,7 +34,7 @@ export function writePastCostRuns(root: string): void {
       evals: [
         {
           id: 'evals/cost.eval.ts › greets',
-          cells: [{ key: cell, harness: 'cursor:composer-2.5' }],
+          cells: [{ key: cell, harness: 'cursor:composer-2.5', model: 'composer-2.5' }],
           attempts,
         },
       ],
