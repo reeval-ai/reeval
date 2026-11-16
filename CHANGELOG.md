@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.29.5](https://github.com/reeval-ai/reeval/compare/v0.29.4...v0.29.5) (2026-11-16)
+
+
+### Bug Fixes
+
+* **attempt:** blame the model provider, not the agent, when every model call fails ([#1021](https://github.com/reeval-ai/reeval/issues/1021)) ([168fc7d](https://github.com/reeval-ai/reeval/commit/168fc7d953cb1ef9924e4f2fa008400c1970d2d4))
+* **events:** accept a heartbeat that sees one attempt start before the other ([#1034](https://github.com/reeval-ai/reeval/issues/1034)) ([832f0ed](https://github.com/reeval-ai/reeval/commit/832f0ed50a58309437099a139911ed5dd5daad79))
+
 ## [0.29.4](https://github.com/reeval-ai/reeval/compare/v0.29.3...v0.29.4) (2026-11-16)
 
 
