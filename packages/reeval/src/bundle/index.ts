@@ -35,7 +35,7 @@ import type { GitInfo } from '../history/types.ts'
 import { RUN_ID } from '../ids.ts'
 import { PreflightInfraError } from '../preflight.ts'
 import { savedFilters, stagingInUse } from '../resume.ts'
-import { COMPILED, DIST_DIR, PACKAGE_VERSION, reevalCommand } from '../root.ts'
+import { COMPILED, DIST_DIR, PACKAGE_DIR, PACKAGE_VERSION, reevalCommand } from '../root.ts'
 import { withoutBom } from '../text.ts'
 import { NewerSchemaError, readableBundleManifest } from '../view/record.ts'
 import {
@@ -518,6 +518,23 @@ export async function makeBundle(
     mtime: Math.floor(Date.now() / 1000),
     target: l.target,
   }))
+  const devCliDir = DEV_CLI.slice(0, DEV_CLI.indexOf('/') + 1)
+  if (
+    options.cloud &&
+    process.env.REEVAL_DEV_CLI === '1' &&
+    [...files, ...bundleLinks].some((f) => f.path.startsWith(devCliDir))
+  ) {
+    throw new UsageError(`REEVAL_DEV_CLI=1 carries reeval in ${devCliDir}, which the run reads`)
+  }
+  const devCli =
+    options.cloud && process.env.REEVAL_DEV_CLI === '1'
+      ? { path: DEV_CLI, data: await packDevCli() }
+      : null
+  if (devCli) {
+    const { path, data } = devCli
+    files.push({ path, kind: 'dev-cli', sha256: sha256(data), size: data.length })
+    files.sort((a, b) => (a.path < b.path ? -1 : 1))
+  }
   const ignore = [await historyDir(config, plan.profile?.name)]
   const git = await gitInfo(project, ignore)
   const patch = git?.dirty ? await worktreePatch(project, ignore) : null
@@ -555,6 +572,7 @@ export async function makeBundle(
         !plan.secretChoices?.some((names) => names.includes(name)),
     ),
     ...(plan.secretChoices?.length ? { secretChoices: plan.secretChoices } : {}),
+    ...(devCli ? { devCli: devCli.path } : {}),
   }
   const manifestEntry: TarEntry = {
     type: 'file',
@@ -574,11 +592,57 @@ export async function makeBundle(
   }
   return {
     project,
-    archive: gzipSync(writeTar([manifestEntry, ...entries, ...linkEntries])),
+    archive: gzipSync(
+      writeTar([
+        manifestEntry,
+        ...entries,
+        ...(devCli
+          ? [
+              {
+                type: 'file' as const,
+                ...devCli,
+                mode: 0o644,
+                mtime: Math.floor(Date.now() / 1000),
+              },
+            ]
+          : []),
+        ...linkEntries,
+      ]),
+    ),
     manifest,
     plan,
     links: bundleLinks.length,
     bytes: files.reduce((n, f) => n + f.size, 0),
+  }
+}
+
+/** Where a cloud bundle made with `REEVAL_DEV_CLI=1` carries the running reeval's tarball. */
+const DEV_CLI = '.reeval-dev/reeval.tgz'
+
+/**
+ * The running reeval as the tarball `pnpm pack` makes of its package, which bundles the workspace
+ * packages it inlines; only from a checkout's built package.
+ */
+async function packDevCli(): Promise<Buffer> {
+  if (COMPILED) {
+    throw new UsageError('REEVAL_DEV_CLI=1 needs reeval run from a checkout, not a compiled binary')
+  }
+  const dir = await mkdtemp(join(tmpdir(), 'reeval-dev-cli-'))
+  try {
+    const packed = await runProcess('pnpm', ['pack', '--pack-destination', dir], {
+      cwd: PACKAGE_DIR,
+    }).catch((error: Error) => {
+      throw new UsageError(`REEVAL_DEV_CLI=1 packs reeval with pnpm: ${error.message}`)
+    })
+    const tarball = (await readdir(dir)).find((f) => f.endsWith('.tgz'))
+    if (packed.exitCode !== 0 || !tarball) {
+      throw new UsageError(
+        `REEVAL_DEV_CLI=1 couldn't pack reeval in ${PACKAGE_DIR}:\n${packed.stderr}${packed.stdout}`,
+      )
+    }
+    return await readFile(join(dir, tarball))
+  } finally {
+    await rm(dir, { recursive: true, force: true })
   }
 }
 
@@ -743,6 +807,7 @@ const manifestSchema = z.object({
   secrets: z.array(z.string()),
   secretChoices: z.array(z.array(z.string())).optional(),
   features: z.array(z.string()).optional(),
+  devCli: bundlePath.optional(),
 }) satisfies z.ZodType<BundleManifest>
 
 /** `value` as a manifest, or a refusal naming the first few fields that aren't one. */
@@ -909,7 +974,10 @@ export async function openBundle(file: string, log: (line: string) => void): Pro
   process.once('SIGINT', interrupted)
   try {
     // Links go last, so no file is written through one.
-    const skipped = await extractTar([...files, ...linked], dir)
+    const skipped = await extractTar(
+      [...files.filter((f) => f.path !== manifest.devCli), ...linked],
+      dir,
+    )
     const escapes: string[] = []
     for (const l of linked) {
       const real = await realpath(join(dir, ...l.path.split('/'))).catch(() => null)

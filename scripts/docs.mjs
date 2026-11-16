@@ -112,9 +112,10 @@ async function cliCommands() {
   return out
 }
 
-/** Set by reeval in its own processes, or read only by internal API, never by a user. */
+/** Set by reeval in its own processes, or read only by internal API or reeval's maintainers, never by a user. */
 const INTERNAL_VARIABLES = [
   'REEVAL_BACKGROUND',
+  'REEVAL_DEV_CLI',
   'REEVAL_FAKE_EXEC',
   'REEVAL_PROJECT_ROOT',
   'REEVAL_PYTHON',

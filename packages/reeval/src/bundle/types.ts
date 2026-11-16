@@ -20,7 +20,7 @@ export type BundleFile = {
   /**
    * What it is to the run: a kind from the dry run's `inputs` (`eval`, `skill`, `lockfile`, …),
    * or `install` for a file the install from the lockfile reads (`package.json`,
-   * `pnpm-workspace.yaml`, …).
+   * `pnpm-workspace.yaml`, …), or `dev-cli` for the tarball `devCli` names.
    */
   kind: string
   sha256: string
@@ -116,6 +116,12 @@ export type BundleManifest = {
    * reeval may list others.
    */
   features?: string[]
+  /**
+   * The path in the archive of a package tarball of the reeval that wrote it, which a runner
+   * installs in place of the `reeval` release; only in a cloud run's bundle made with
+   * `REEVAL_DEV_CLI=1`.
+   */
+  devCli?: string
 }
 
 /** The features this reeval writes in every bundle's manifest. */
