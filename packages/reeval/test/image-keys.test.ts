@@ -255,7 +255,7 @@ describe('sandbox image tags are content keys', () => {
     })
     assert.ok(
       lines.some(
-        (l) => l.startsWith(`${DEFAULT_REGISTRY}/`) && l.includes(`building ${reevalImage}`),
+        (l) => l.includes(` ${DEFAULT_REGISTRY}/`) && l.includes(`building ${reevalImage}`),
       ),
       lines.join('\n'),
     )
