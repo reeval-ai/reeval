@@ -143,16 +143,21 @@ registerTest('todo', { mode: 'todo' }, async () => {})
     })
   })
 
-  test("leaves out a package scope's package.json, which only some runtimes' resolution reads", async () => {
+  test("records each loaded file's package scope, whether or not this runtime's resolution reads it", async () => {
     const c = fakeChannel()
     startWorker(c.channel)
     const { root, file, run } = evalFile(`
 import { readFileSync } from 'node:fs'
 import dep from 'dep'
+import { H } from '#h'
 readFileSync(new URL('../fixture/package.json', import.meta.url))
-registerTest(dep, { mode: 'run', attempt: { name: 'a' } }, async () => {})
+registerTest(dep + H, { mode: 'run', attempt: { name: 'a' } }, async () => {})
 `)
     writeFileSync(join(root, 'package.json'), '{ "name": "project" }\n')
+    writeFileSync(join(root, 'evals/package.json'), '{ "imports": { "#h": "./lib/h.ts" } }\n')
+    mkdirSync(join(root, 'evals/lib'))
+    writeFileSync(join(root, 'evals/lib/h.ts'), "export const H: string = 'h'\n")
+    writeFileSync(join(root, 'evals/lib/package.json'), '{}\n')
     mkdirSync(join(root, 'node_modules/dep'), { recursive: true })
     writeFileSync(
       join(root, 'node_modules/dep/package.json'),
@@ -167,6 +172,9 @@ registerTest(dep, { mode: 'run', attempt: { name: 'a' } }, async () => {})
       name: 'a',
       inputs: [
         { path: file, kind: 'eval' },
+        { path: join(root, 'evals/lib/h.ts'), kind: 'module' },
+        { path: join(root, 'evals/lib/package.json'), kind: 'read' },
+        { path: join(root, 'evals/package.json'), kind: 'read' },
         { path: join(root, 'fixture/package.json'), kind: 'read' },
       ],
     })

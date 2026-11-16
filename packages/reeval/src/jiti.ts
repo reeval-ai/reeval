@@ -73,13 +73,20 @@ const nativeImport = (id: string) => (isBuiltin(id) ? Promise.resolve(ownRequire
 
 /**
  * A jiti that imports from `id`. Compiled, a file's imports of reeval itself get this reeval's own
- * modules: a copy on disk would register evals, and hold state, the executable can't see.
+ * modules: a copy on disk would register evals, and hold state, the executable can't see. It
+ * transforms every module on Bun as on Node (jiti's `tryNative` is on by default on Bun, which
+ * would load some without `trackLoad` seeing them), so both runtimes record the same inputs.
  */
 export async function reevalJiti(id: string, options: JitiOptions = {}): Promise<Jiti> {
   const virtualModules = COMPILED ? await ownModules() : undefined
   return jitiFactory()(
     id,
-    { transform: jitiTransform, ...options, ...(virtualModules && { virtualModules }) },
+    {
+      transform: jitiTransform,
+      tryNative: false,
+      ...options,
+      ...(virtualModules && { virtualModules }),
+    },
     {
       onError: (error) => {
         throw error
