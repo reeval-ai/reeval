@@ -27,6 +27,12 @@ export const isAttachUrl = (target: string) => /^(?:wss?|https?):\/\//i.test(tar
 /** The stream ended, or its writer died, before the run's exit line. Exits 3. */
 export class EventStreamError extends Error {
   override name = 'EventStreamError'
+  /** Following gave up on a stream that went quiet or couldn't be reached, not one it refused. */
+  readonly lost: boolean
+  constructor(message: string, { lost = false } = {}) {
+    super(message)
+    this.lost = lost
+  }
 }
 
 /** How long a run waits at exit for its last POSTs. */
@@ -391,7 +397,7 @@ export type FollowOptions = {
   connect?: (url: string) => WebSocket
   /** How long a dropped socket is reconnected to before following gives up; `LOST_MS` unless given. */
   reconnectMs?: number
-  /** How often a connected socket sends `ping`; 30s unless given. */
+  /** How often a connected socket sends `ping`, at most `deadMs` apart; 30s unless given. */
   pingMs?: number
   /**
    * How long a connected socket may hear nothing, not even a `pong`, before it's dropped and
@@ -490,6 +496,13 @@ export const SOCKET_CLOSE = {
   tooManyViewers: 4429,
 } as const
 
+/**
+ * Sockets dropped as dead. The runtime's WebSocket can't be destroyed, so each one's connection
+ * may hold the process open until TCP gives up on it.
+ */
+let abandoned = 0
+export const abandonedSockets = () => abandoned
+
 /** The waits between reconnects to a run's event socket, the last repeated. */
 const RECONNECT_MS = [250, 500, 1_000, 2_000, 5_000]
 /**
@@ -550,7 +563,10 @@ async function* socketEvents(
       () => {
         // A link that went away silently, or a machine that slept, leaves a socket that is still
         // open here but hears nothing, not even the answers to its pings.
-        if (Date.now() - heardAt > deadMs) return close(1006, '')
+        if (Date.now() - heardAt > deadMs) {
+          abandoned++
+          return close(1006, '')
+        }
         if (socket.readyState === socket.OPEN) socket.send(PING)
       },
       Math.min(pingMs, deadMs),
@@ -628,7 +644,7 @@ async function* followSocket(source: string, options: FollowOptions): AsyncGener
   const giveUpMs = options.reconnectMs ?? LOST_MS
   const stableMs = options.stableMs ?? STABLE_MS
   const pingMs = options.pingMs ?? PING_MS
-  const deadMs = options.deadMs ?? DEAD_MS
+  const deadMs = options.deadMs ?? (Number(process.env.REEVAL_TEST_FOLLOW_DEAD_MS) || DEAD_MS)
   const shown = displayUrl(source)
   const base = socketUrl(source)
   let seq = 0
@@ -700,6 +716,7 @@ async function* followSocket(source: string, options: FollowOptions): AsyncGener
     if (Date.now() - droppedAt > giveUpMs) {
       throw new EventStreamError(
         `lost the connection to ${shown} and couldn't reconnect for ${formatDuration(giveUpMs)}`,
+        { lost: true },
       )
     }
     const wait = RECONNECT_MS[Math.min(failures, RECONNECT_MS.length - 1)] ?? 0

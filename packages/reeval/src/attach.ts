@@ -242,6 +242,7 @@ export async function attach(options: AttachOptions): Promise<number> {
           lost.abort()
           throw new EventStreamError(
             `no word from run ${runId} for ${formatDuration(lostMs)} and no exit line: reeval attach stopped following it as lost`,
+            { lost: true },
           )
         }
         stalled = true

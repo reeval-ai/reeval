@@ -13,7 +13,12 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { createServer } from 'node:http'
-import type { AddressInfo } from 'node:net'
+import {
+  type AddressInfo,
+  createServer as createTcpServer,
+  type Socket,
+  connect as tcpConnect,
+} from 'node:net'
 import { hostname } from 'node:os'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
@@ -1014,6 +1019,45 @@ describe('attach', () => {
       assert.deepEqual(afters, ['0', '1'])
       assert.match(out.text, /Lost the connection to run run-1; reconnecting/)
     } finally {
+      await s.close()
+    }
+  })
+
+  test('reeval attach exits once it has followed a run past a link that went silent', async () => {
+    const afters: string[] = []
+    const s = await scripted((ws, after) => {
+      afters.push(after)
+      if (afters.length === 1) return void ws.send(frame(1, headerLine))
+      ws.send(frame(2, { type: 'exit', at: 2, code: 7 }))
+      ws.close(1000)
+    })
+    // Forwards each connection, but stops passing the first one's bytes after a moment without
+    // closing it, as a link that died would.
+    const held: Socket[] = []
+    const proxy = createTcpServer((client) => {
+      const upstream = tcpConnect(Number(new URL(s.source).port), '127.0.0.1')
+      client.pipe(upstream).pipe(client)
+      if (held.length) return
+      held.push(client, upstream)
+      setTimeout(() => {
+        client.unpipe(upstream)
+        upstream.unpipe(client)
+        client.pause()
+        upstream.pause()
+      }, 300)
+    })
+    await new Promise<void>((resolve) => proxy.listen(0, '127.0.0.1', resolve))
+    try {
+      const port = (proxy.address() as AddressInfo).port
+      const r = await runCli(tempDir('attach'), ['attach', `ws://127.0.0.1:${port}/events`], {
+        env: { REEVAL_TEST_FOLLOW_DEAD_MS: '800' },
+        timeoutMs: 20_000,
+      })
+      assert.equal(r.code, 7, r.stdout + r.stderr)
+      assert.deepEqual(afters, ['0', '1'])
+    } finally {
+      for (const socket of held) socket.destroy()
+      proxy.close()
       await s.close()
     }
   })

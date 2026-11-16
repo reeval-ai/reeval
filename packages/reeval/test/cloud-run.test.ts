@@ -22,7 +22,8 @@ import { gunzipSync, gzipSync } from 'node:zlib'
 import { readTar, type TarEntry, writeTar } from '@reeval/sandbox-docker'
 import type WebSocket from 'ws'
 import { WebSocketServer } from 'ws'
-import { checkCloudSecrets, cloudUrl } from '../src/cloud-run.ts'
+import { afterLostStream, checkCloudSecrets, cloudUrl } from '../src/cloud-run.ts'
+import { EventStreamError } from '../src/events.ts'
 import { stripCredentials } from '../src/redact.ts'
 import { pkgRoot, project, runCli, tempDir } from './helpers.ts'
 import { fakeS3 } from './support/fake-s3.ts'
@@ -1426,23 +1427,19 @@ evaluate('reaches', async (c) => {
     }
   })
 
-  test('a lost stream of a cloud run that goes on says how to follow it again', async () => {
-    const p = await platform({ fails: 'lost', status: 'running' })
-    const env = { REEVAL_CLOUD_URL: p.base, REEVAL_TOKEN: 'cloud-test-token' }
+  test('a lost stream of a cloud run that goes on says how to follow it again; a refused one does not', async () => {
+    const p = await platform()
     try {
-      const dir = await fixtureProject()
-      for (const args of [
-        ['run', '--cloud'],
-        ['attach', `${p.base}/api/runs/run_1/events`],
-      ]) {
-        const r = await runCli(dir, args, { env })
-        assert.equal(r.code, 3, `${args[0]}: ${r.stdout}${r.stderr}`)
-        assert.match(
-          r.stderr,
-          /Cloud run run_1 goes on: reeval attach \S+\/api\/runs\/run_1\/events follows it again; reeval cloud run cancel run_1 cancels it/,
-          args[0],
-        )
-      }
+      const base = cloudUrl({ REEVAL_CLOUD_URL: p.base })
+      const auth = { headers: { authorization: 'Bearer cloud-test-token' }, refused: '' }
+      const follow = (error: EventStreamError) =>
+        afterLostStream(error, 'run_1', base, auth, assert.fail)
+      await assert.rejects(
+        follow(new EventStreamError('no word from run r for 2m 00s', { lost: true })),
+        /^EventStreamError: no word from run r for 2m 00s\. Cloud run run_1 goes on: reeval attach \S+\/api\/runs\/run_1\/events follows it again; reeval cloud run cancel run_1 cancels it$/,
+      )
+      const refused = new EventStreamError('skipped from line 1 to line 3')
+      await assert.rejects(follow(refused), (error) => error === refused)
     } finally {
       await p.close()
     }

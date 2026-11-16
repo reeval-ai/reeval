@@ -35,6 +35,7 @@ import {
   ATTEMPTS_HEARTBEAT_MS,
   ATTEMPTS_HEARTBEAT_RANGE,
   type AttemptsBeat,
+  abandonedSockets,
   beatWith,
   displayUrl,
   type EventStream,
@@ -3000,6 +3001,8 @@ process.on('uncaughtException', crash)
 
 // Node exits 0 when nothing is left to wait on, even with the command unfinished: never a pass.
 let settled = false
+/** How long a finished command waits for its own work before leaving a dead socket behind. */
+const ABANDONED_EXIT_MS = 2_000
 process.on('exit', (code) => {
   // A crash or a forced Ctrl-C exits on purpose, with its own code.
   if (settled || code !== 0) return
@@ -3014,6 +3017,8 @@ process.on('exit', (code) => {
 run(process.argv.slice(2))
   .finally(() => {
     settled = true
+    // A dead socket's connection would keep the finished command waiting on TCP for minutes.
+    if (abandonedSockets()) setTimeout(() => process.exit(), ABANDONED_EXIT_MS).unref()
   })
   .then(
     (code) => {
