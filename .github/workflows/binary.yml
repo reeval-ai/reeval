@@ -32,6 +32,7 @@ on:
       - .github/workflows/binary.yml
       - scripts/bun-compile.mjs
       - scripts/binary-smoke.mjs
+      - packages/reeval/src/bundle/**
       - scripts/binary-python-smoke.mjs
       - scripts/python-wheels.py
       - scripts/install.sh
@@ -59,7 +60,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  BUN_VERSION: 1.4.2
+  BUN_VERSION: 1.4.4
 
 jobs:
   compile:

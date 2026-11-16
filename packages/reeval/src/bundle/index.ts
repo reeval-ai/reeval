@@ -35,7 +35,7 @@ import type { GitInfo } from '../history/types.ts'
 import { RUN_ID } from '../ids.ts'
 import { PreflightInfraError } from '../preflight.ts'
 import { savedFilters, stagingInUse } from '../resume.ts'
-import { DIST_DIR, PACKAGE_VERSION, reevalCommand } from '../root.ts'
+import { COMPILED, DIST_DIR, PACKAGE_VERSION, reevalCommand } from '../root.ts'
 import { withoutBom } from '../text.ts'
 import { NewerSchemaError, readableBundleManifest } from '../view/record.ts'
 import {
@@ -90,6 +90,15 @@ const INSTALL_FILES = [
   '.nvmrc',
   '.node-version',
 ]
+/** The lockfiles the compiled reeval installs with its own Bun, which migrates the others' in memory. */
+const BUN_LOCKFILES = new Set([
+  'bun.lock',
+  'bun.lockb',
+  'package-lock.json',
+  'npm-shrinkwrap.json',
+  'pnpm-lock.yaml',
+  'yarn.lock',
+])
 /** Each lockfile and the install that reproduces it exactly. */
 const INSTALLS: Array<{ lockfile: string; command: (dir: string) => [string, ...string[]] }> = [
   { lockfile: 'pnpm-lock.yaml', command: () => ['pnpm', 'install', '--frozen-lockfile'] },
@@ -201,14 +210,20 @@ async function dryRun(
   return { plan: JSON.parse(out) as PlanDoc }
 }
 
-/** `value` with the absolute path `root` written as {@link ROOT} in every string. */
+/**
+ * `value` with the absolute path `root` written as {@link ROOT} in every string. On Windows the
+ * plan spells a path outside the project with `/` (`C:/…`), so `root` is matched in both forms.
+ */
 function rooted<T>(value: T, root: string): T {
   const inJson = (s: string) => JSON.stringify(s).slice(1, -1)
-  const json = JSON.stringify(value)
-    .split(inJson(root + sep))
-    .join(`${ROOT}/`)
-    .split(`"${inJson(root)}"`)
-    .join(`"${ROOT}"`)
+  let json = JSON.stringify(value)
+  for (const at of new Set([root, root.replaceAll(sep, '/')])) {
+    json = json
+      .split(inJson(at + (at === root ? sep : '/')))
+      .join(`${ROOT}/`)
+      .split(`"${inJson(at)}"`)
+      .join(`"${ROOT}"`)
+  }
   return JSON.parse(json) as T
 }
 
@@ -426,7 +441,7 @@ export async function makeBundle(
   const { plan } = planned
   const inputs = (plan.inputs ?? []).map((i) => ({
     ...i,
-    abs: isAbsolute(i.path) ? i.path : join(project, ...i.path.split('/')),
+    abs: resolve(project, i.path),
   }))
   const repositories: string[] = []
   for (const i of inputs) {
@@ -1117,6 +1132,19 @@ async function install(
   dir: string,
   log: (line: string) => void,
 ): Promise<void> {
+  if (COMPILED) {
+    const byDir = new Map<string, string>()
+    for (const f of manifest.files) {
+      if (f.kind !== 'lockfile' || !BUN_LOCKFILES.has(basename(f.path))) continue
+      const other = byDir.get(dirname(f.path))
+      if (other) {
+        throw new UsageError(
+          `The bundle has ${other} and ${f.path} in one directory, and reeval's own Bun installs from only one of them. Keep one, then bundle it again.`,
+        )
+      }
+      byDir.set(dirname(f.path), f.path)
+    }
+  }
   for (const f of manifest.files) {
     if (f.kind !== 'lockfile') continue
     const how = INSTALLS.find((i) => i.lockfile === basename(f.path))
@@ -1127,9 +1155,17 @@ async function install(
         .split('/')
         .filter((p) => p !== '.'),
     )
-    const [cmd, ...args] = how.command(at)
-    log(`reeval: installing from ${f.path}: ${cmd} ${args.join(' ')}`)
-    const result = await runProcess(cmd, args, { cwd: at }).catch((error: Error) => {
+    // Compiled, reeval is a Bun executable, which runs as `bun` with `BUN_BE_BUN=1`.
+    const asBun = COMPILED && BUN_LOCKFILES.has(how.lockfile)
+    const [cmd, ...args] = asBun
+      ? [process.execPath, 'install', '--frozen-lockfile']
+      : how.command(at)
+    const shown = asBun
+      ? `bun ${args.join(' ')} (this reeval's Bun ${process.versions.bun})`
+      : `${cmd} ${args.join(' ')}`
+    log(`reeval: installing from ${f.path}: ${shown}`)
+    const env = asBun ? { BUN_BE_BUN: '1' } : undefined
+    const result = await runProcess(cmd, args, { cwd: at, env }).catch((error: Error) => {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         throw new UsageError(
           `The bundle installs from ${f.path} with ${cmd}, which isn't on this machine's PATH. Install ${cmd}, then run it again.`,
@@ -1140,7 +1176,7 @@ async function install(
     if (result.exitCode !== 0) {
       const said = `${result.stderr}\n${result.stdout}`.trim().split('\n').slice(-20).join('\n')
       throw new PreflightInfraError(
-        `${cmd} ${args.join(' ')} failed (exit ${result.exitCode}) installing from ${f.path}, so nothing ran:\n${said}`,
+        `${shown} failed (exit ${result.exitCode}) installing from ${f.path}, so nothing ran:\n${said}`,
       )
     }
   }

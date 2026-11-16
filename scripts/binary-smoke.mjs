@@ -5,21 +5,24 @@
 //
 // From an empty directory it checks `reeval --version` against packages/reeval/package.json, then
 // plans and runs a copy of examples/with-skill-lift, and plans one whose config captures a stack
-// on an object that isn't an Error. Then it serves that run with `reeval studio`,
-// pairs with it as the hosted page would and fetches the run's view. With --docker it builds the sandbox image
-// with the binary and runs one egress fixture in Docker, whose eval passes and canary fails.
+// on an object that isn't an Error. Then it serves that run with `reeval studio`, pairs with it as
+// the hosted page would and fetches the run's view. It bundles a project with each JavaScript
+// lockfile and runs the bundle with no package manager, so the binary installs as Bun. With
+// --docker it builds the sandbox image with the binary and runs one egress fixture in Docker,
+// whose eval passes and canary fails.
 import { spawn, spawnSync } from 'node:child_process'
 import {
   chmodSync,
   cpSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { basename, join, resolve } from 'node:path'
+import { basename, delimiter, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs, stripVTControlCharacters } from 'node:util'
 
@@ -119,6 +122,7 @@ const captured = reeval(capture, ['run', '--dry-run'])
 check('a config can capture a stack on a non-Error', captured.status === 0)
 
 await serveStudio(example)
+bunInstall()
 
 if (values.docker) {
   const fixture = project(
@@ -141,6 +145,182 @@ if (failures.length) {
   process.exit(1)
 }
 console.log(`\nbinary-smoke: ${basename(binary)} ${version} works on its own`)
+
+/**
+ * Bundles a workspace with each JavaScript lockfile at its git root and runs the bundle with the
+ * package managers shadowed by commands that fail: the binary installs from every lockfile as Bun
+ * itself. Each lockfile also comes stale, naming another member (a Yarn v1 one malformed), which
+ * must fail the frozen install: with no lockfile read, Bun would resolve from package.json. Two
+ * lockfiles in one directory must be refused.
+ */
+function bunInstall() {
+  const shadow = join(alone, 'shadow')
+  mkdirSync(shadow)
+  for (const tool of ['bun', 'node', 'npm', 'pnpm', 'yarn']) {
+    writeFileSync(join(shadow, tool), `#!/bin/sh\necho "smoke: ${tool} ran" >&2\nexit 127\n`)
+    chmodSync(join(shadow, tool), 0o755)
+    writeFileSync(join(shadow, `${tool}.cmd`), `@echo smoke: ${tool} ran 1>&2\r\n@exit /b 127\r\n`)
+  }
+  const path = Object.keys(process.env).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH'
+  const env = { [path]: `${shadow}${delimiter}${process.env[path] ?? ''}` }
+  const root = { name: 'repo', private: true, workspaces: ['apps/*'] }
+  const json = (value) => `${JSON.stringify(value, null, 2)}\n`
+  const npmLock = (member) =>
+    json({
+      name: 'repo',
+      lockfileVersion: 3,
+      requires: true,
+      packages: {
+        '': { name: 'repo', workspaces: ['apps/*'] },
+        [`apps/${member}`]: { version: '1.0.0' },
+        [`node_modules/${member}`]: { resolved: `apps/${member}`, link: true },
+      },
+    })
+  /** Bundles a workspace with `files` over the defaults, then runs the bundle in a fresh directory. */
+  function bundleRun(name, files) {
+    const repo = join(alone, name)
+    const app = join(repo, 'apps/evals')
+    mkdirSync(join(app, 'evals'), { recursive: true })
+    const all = {
+      'package.json': json(root),
+      'apps/evals/package.json': json({ name: 'evals', version: '1.0.0', private: true }),
+      '.gitignore': 'node_modules\n.reeval\nsandboxes\n',
+      'apps/evals/reeval.config.ts': [
+        "import { defineConfig } from 'reeval'",
+        "import { fakeHarness } from 'reeval/harness'",
+        "import { fakeSandbox } from 'reeval/sandbox'",
+        'export default defineConfig({',
+        "  harnesses: fakeHarness({ script: [[{ reply: 'hi' }]] }),",
+        "  sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }),",
+        '})',
+        '',
+      ].join('\n'),
+      'apps/evals/evals/hi.eval.ts': [
+        "import { evaluate, expect } from 'reeval'",
+        "evaluate('hi', async (c) => expect((await c.send('Say hi')).text).toBe('hi'))",
+        '',
+      ].join('\n'),
+      ...files,
+    }
+    for (const [file, text] of Object.entries(all)) writeFileSync(join(repo, file), text)
+    const git = (...args) => {
+      const g = spawnSync('git', args, { cwd: repo, encoding: 'utf8', windowsHide: true })
+      if (g.status !== 0) throw new Error(`git ${args.join(' ')}: ${g.stderr || g.error}`)
+    }
+    git('init', '-q')
+    git('add', '.')
+    git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init')
+    const out = join(repo, 'bundle.tar.gz')
+    const made = reeval(app, ['bundle', '--out', out], env)
+    const fresh = join(repo, 'fresh')
+    mkdirSync(fresh)
+    const r = reeval(fresh, ['run', '--bundle', out], env)
+    return { made, r }
+  }
+  const cases = [
+    {
+      lockfile: 'bun.lock',
+      files: (member) => ({
+        'bun.lock': json({
+          lockfileVersion: 1,
+          workspaces: { '': { name: 'repo' }, [`apps/${member}`]: { name: member } },
+          packages: { [member]: [`${member}@workspace:apps/${member}`] },
+        }),
+      }),
+    },
+    {
+      lockfile: 'package-lock.json',
+      files: (member) => ({ 'package-lock.json': npmLock(member) }),
+    },
+    {
+      lockfile: 'npm-shrinkwrap.json',
+      files: (member) => ({ 'npm-shrinkwrap.json': npmLock(member) }),
+    },
+    {
+      lockfile: 'pnpm-lock.yaml',
+      files: (member) => ({
+        'package.json': json({ name: 'repo', private: true }),
+        'pnpm-workspace.yaml': 'packages:\n  - apps/*\n',
+        'pnpm-lock.yaml': [
+          "lockfileVersion: '9.0'",
+          '',
+          'settings:',
+          '  autoInstallPeers: true',
+          '  excludeLinksFromLockfile: false',
+          '',
+          'importers:',
+          '',
+          '  .: {}',
+          '',
+          `  apps/${member}: {}`,
+          '',
+        ].join('\n'),
+      }),
+    },
+    {
+      lockfile: 'yarn.lock',
+      files: (member) => ({
+        'yarn.lock':
+          member === 'evals'
+            ? '# THIS IS AN AUTOGENERATED FILE. DO NOT EDIT THIS FILE DIRECTLY.\n# yarn lockfile v1\n\n\n'
+            : 'not: [a lockfile\n',
+      }),
+    },
+    {
+      lockfile: 'yarn.lock',
+      berry: true,
+      files: (member) => ({
+        'yarn.lock': [
+          '__metadata:',
+          '  version: 8',
+          '  cacheKey: 10c0',
+          '',
+          `"${member}@workspace:apps/${member}":`,
+          '  version: 0.0.0-use.local',
+          `  resolution: "${member}@workspace:apps/${member}"`,
+          '  languageName: unknown',
+          '  linkType: soft',
+          '',
+          '"repo@workspace:.":',
+          '  version: 0.0.0-use.local',
+          '  resolution: "repo@workspace:."',
+          '  languageName: unknown',
+          '  linkType: soft',
+          '',
+        ].join('\n'),
+      }),
+    },
+  ]
+  for (const [i, { lockfile, berry, files: lockFiles }] of cases.entries()) {
+    for (const stale of [false, true]) {
+      const name = `${stale ? 'a stale ' : ''}${lockfile}${berry ? ' (Berry)' : ''}`
+      const files = lockFiles(stale ? 'other' : 'evals')
+      const { made, r } = bundleRun(`lockfile-${i}${stale ? '-stale' : ''}`, files)
+      const installed = r.out.includes(
+        `installing from ${lockfile}: bun install --frozen-lockfile (this reeval's Bun `,
+      )
+      if (stale) {
+        check(
+          `${name} fails the bundle's frozen install`,
+          made.status === 0 && installed && r.status !== 0 && /lockfile is frozen/.test(r.out),
+        )
+      } else {
+        check(
+          `reeval run --bundle installs from ${name} as Bun, with no package manager`,
+          made.status === 0 && installed && r.status === 0 && outcome(r) === '1 passed',
+        )
+      }
+    }
+  }
+  const both = bundleRun('lockfiles-both', {
+    'package-lock.json': npmLock('evals'),
+    'yarn.lock': '# yarn lockfile v1\n\n\n',
+  })
+  check(
+    'reeval run --bundle refuses two JavaScript lockfiles in one directory',
+    both.made.status === 0 && both.r.status === 2 && /in one directory/.test(both.r.out),
+  )
+}
 
 /** Starts `reeval studio` in `cwd`, pairs with its token as the studio page does, then reads the runs. */
 async function serveStudio(cwd) {
