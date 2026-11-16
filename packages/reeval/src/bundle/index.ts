@@ -90,8 +90,6 @@ const INSTALL_FILES = [
   '.nvmrc',
   '.node-version',
 ]
-/** Compiled, reeval is a Bun executable, which runs as `bun` itself with `BUN_BE_BUN=1`. */
-const BUN = COMPILED ? process.execPath : 'bun'
 /** Each lockfile and the install that reproduces it exactly. */
 const INSTALLS: Array<{ lockfile: string; command: (dir: string) => [string, ...string[]] }> = [
   { lockfile: 'pnpm-lock.yaml', command: () => ['pnpm', 'install', '--frozen-lockfile'] },
@@ -104,8 +102,8 @@ const INSTALLS: Array<{ lockfile: string; command: (dir: string) => [string, ...
         ? ['yarn', 'install', '--immutable']
         : ['yarn', 'install', '--frozen-lockfile'],
   },
-  { lockfile: 'bun.lock', command: () => [BUN, 'install', '--frozen-lockfile'] },
-  { lockfile: 'bun.lockb', command: () => [BUN, 'install', '--frozen-lockfile'] },
+  { lockfile: 'bun.lock', command: () => ['bun', 'install', '--frozen-lockfile'] },
+  { lockfile: 'bun.lockb', command: () => ['bun', 'install', '--frozen-lockfile'] },
   // The bundle has a uv project's pyproject.toml files and lockfile, not its own sources, so only
   // the dependencies install, every workspace member's: building a package would need its sources.
   {
@@ -1129,9 +1127,14 @@ async function install(
         .split('/')
         .filter((p) => p !== '.'),
     )
-    const [cmd, ...args] = how.command(at)
+    // Compiled, reeval is a Bun executable, which runs as `bun` with `BUN_BE_BUN=1`. Under
+    // `--frozen-lockfile` Bun installs from an npm, pnpm or Yarn lockfile too, migrated in memory.
+    const asBun = COMPILED && how.lockfile !== 'uv.lock'
+    const [cmd, ...args] = asBun
+      ? [process.execPath, 'install', '--frozen-lockfile']
+      : how.command(at)
     log(`reeval: installing from ${f.path}: ${cmd} ${args.join(' ')}`)
-    const env = cmd === BUN && COMPILED ? { BUN_BE_BUN: '1' } : undefined
+    const env = asBun ? { BUN_BE_BUN: '1' } : undefined
     const result = await runProcess(cmd, args, { cwd: at, env }).catch((error: Error) => {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         throw new UsageError(

@@ -413,6 +413,12 @@ reeval cloud run cancel <run> Cancel a cloud run, by the id reeval run --cloud p
 
 ## `reeval bundle`
 
+From the npm package, `reeval run --bundle` installs with the lockfile's own package manager. The compiled `reeval` binary installs a `bun.lock`, `package-lock.json`, `npm-shrinkwrap.json`, `pnpm-lock.yaml` or `yarn.lock` with its own Bun (`install --frozen-lockfile`), so the machine needs no package manager. A `uv.lock` still installs with `uv`.
+
+- Bun runs a dependency's lifecycle scripts only when `trustedDependencies` in `package.json` names it.
+- Bun doesn't migrate Yarn settings such as `nodeLinker`, so a Plug'n'Play project gets a `node_modules/` directory.
+- A lockfile Bun can't migrate, such as a `pnpm-lock.yaml` with a `lockfileVersion` below 7 (pnpm 8 and older) or a Yarn Berry lockfile with an entry Bun can't keep, fails the install with Bun's reason. The run exits 3 before any attempt.
+
 [//]: # (generated:cli-help:bundle)
 
 ```text
