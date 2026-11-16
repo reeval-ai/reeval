@@ -186,9 +186,10 @@ process.stdout.write(String(Error.prepareStackTrace === own))`
     const r = spawnSync(
       process.execPath,
       ['--experimental-strip-types', '--no-warnings', '--input-type=module', '-e', script],
-      { encoding: 'utf8' },
+      { encoding: 'utf8', timeout: 60_000 },
     )
     assert.equal(r.stderr, '')
+    assert.equal(r.status, 0)
     assert.equal(r.stdout, 'true')
   })
 

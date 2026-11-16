@@ -20,7 +20,7 @@ export const transformedFiles = new Set<string>()
  * Babel replaces `Error.prepareStackTrace` for the whole process on its first transform, with a
  * hook that hands every stack to the one it replaced. Bun's own throws for an object that isn't
  * an Error, which `Error.captureStackTrace(this)` in a plain constructor passes (follow-redirects,
- * under `@daytona/sdk`), so the hook is put back after each transform.
+ * under `@daytona/sdk`), so each transform puts back the `Error.prepareStackTrace` it found.
  */
 export const jitiTransform: Transform = (options) => {
   if (options.filename) transformedFiles.add(options.filename)
