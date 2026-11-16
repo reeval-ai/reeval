@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import http from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
@@ -272,13 +272,10 @@ test('ensureChrome skips download when the binary is cached', async () => {
 })
 
 test("c.capture()'s timeout starts once a downloaded browser is in hand", {
-  skip: process.platform === 'win32' && 'the fake browser is a shell script',
+  skip: process.platform === 'win32' && 'the fake browser is a script with a shebang',
 }, async () => {
   const dir = mkdtempSync(join(tmpdir(), 'reeval-capture-download-'))
-  const started = join(dir, 'started')
-  const script = Buffer.from(
-    `#!/usr/bin/env node\nrequire('node:fs').writeFileSync(${JSON.stringify(started)}, String(Date.now()))\nsetTimeout(() => {}, 30_000)\n`,
-  )
+  const script = Buffer.from('#!/usr/bin/env node\nsetTimeout(() => {}, 30_000)\n')
   const name = Buffer.from('chrome-headless-shell-linux64/chrome-headless-shell')
   const zip = Buffer.alloc(30 + name.length + script.length)
   zip.writeUInt32LE(0x04034b50, 0)
@@ -290,11 +287,13 @@ test("c.capture()'s timeout starts once a downloaded browser is in hand", {
   await new Promise<void>((ok) => site.listen(0, '127.0.0.1', ok))
   const origin = `http://127.0.0.1:${(site.address() as AddressInfo).port}`
   const realFetch = globalThis.fetch
+  let downloaded = 0
   globalThis.fetch = async (input, init) => {
     if (!String(input).startsWith('https://storage.googleapis.com/')) {
       return realFetch(input, init)
     }
     await new Promise((r) => setTimeout(r, 1_500))
+    downloaded = Date.now()
     return new Response(zip)
   }
   const cacheHome = process.env.XDG_CACHE_HOME
@@ -315,13 +314,15 @@ test("c.capture()'s timeout starts once a downloaded browser is in hand", {
     )
     const failed = Date.now()
     assert.match(String(error), /did not open a DevTools port/)
-    const browserMs = failed - Number(readFileSync(started, 'utf8'))
-    assert.ok(browserMs >= 900, `the browser had ${browserMs}ms of the capture's 1s`)
+    const browserMs = failed - downloaded
+    assert.ok(browserMs >= 950, `the browser had ${browserMs}ms of the capture's 1s`)
   } finally {
     globalThis.fetch = realFetch
     if (cacheHome === undefined) delete process.env.XDG_CACHE_HOME
     else process.env.XDG_CACHE_HOME = cacheHome
+    site.closeAllConnections()
     site.close()
+    rmSync(dir, { recursive: true, force: true })
   }
 })
 

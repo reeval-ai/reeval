@@ -267,7 +267,7 @@ export async function capturePage(
   const fake = a.spec.sandbox.kind === 'fake'
   const use = resolveUse(a, resolved, fake)
   a.captureNames.add(resolved.name)
-  // A fresh host downloads the browser first, which `timeout` doesn't count: it's the page's.
+  // `timeout` is the page's alone: a fresh host's browser download comes first.
   const bin = fake ? '' : await browserBinary(a)
   const started = Date.now()
   const remaining = () => Math.max(0, resolved.timeoutMs - (Date.now() - started))
