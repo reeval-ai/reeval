@@ -4,7 +4,7 @@
 // file that exists count: a stat, a directory listing or a read through a descriptor isn't seen.
 import fs, { statSync } from 'node:fs'
 import { createRequire, syncBuiltinESMExports } from 'node:module'
-import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { transformedFiles } from './jiti.ts'
 import { ownReads } from './own-reads.ts'
@@ -100,7 +100,10 @@ export function trackLoad(root: string) {
         ...Object.keys(cache).filter((f) => !required.has(f)),
       ])
       const scopes = new Set([main, ...modules].map((f) => packageScope(resolve(f))))
-      const above = (path: string) => resolve(root).startsWith(dirname(path) + sep)
+      const above = (path: string) => {
+        const down = relative(dirname(path), resolve(root))
+        return down !== '' && !down.startsWith('..') && !isAbsolute(down)
+      }
       const out: LocalInput[] = [{ path: main, kind: mainKind }]
       const all = new Set(reads)
       for (const scope of scopes)
