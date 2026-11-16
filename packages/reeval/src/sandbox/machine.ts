@@ -10,7 +10,7 @@ import type {
   TartSandboxDescriptor,
 } from '../types.ts'
 import type { SandboxOptions } from './index.ts'
-import type { HostPath, SandboxHooks, SandboxKind } from './kinds.ts'
+import type { HostPath, SandboxHooks, SandboxKind, SandboxPrivileges } from './kinds.ts'
 import type { OpenPool } from './machine-service.ts'
 import type { Sandbox } from './types.ts'
 
@@ -47,6 +47,8 @@ export interface MachineProvider<D extends MachineDescriptor> extends SandboxHoo
   hostLimit?: (sandbox: D) => { max: number; why: string }
   /** Boots one machine for an attempt and starts it through `startSandbox`. */
   create(sandbox: D, options: SandboxOptions): Promise<Sandbox>
+  /** What a container on the machine widens, for the plan's warnings; nothing when unset. */
+  privileges?(sandbox: D): SandboxPrivileges
   /**
    * How many machines the run may have at once, when the provider says, and for a pooled one the
    * attempts its pool runs at once, which is the run's default concurrency.
@@ -100,7 +102,7 @@ export function kindOf<D extends MachineDescriptor>(machine: MachineProvider<D>)
     hostPaths: machine.hostPaths,
     buildsAtStart: () => true,
     ...(machine.hostLimit && { hostLimit: machine.hostLimit }),
-    privileges: () => ({ root: false, capabilities: [] }),
+    privileges: (s) => machine.privileges?.(s) ?? { root: false, capabilities: [] },
     create: (s, o) => machine.create(s, o),
     ...(capacity && {
       async capacity(sandbox: D) {
@@ -121,7 +123,6 @@ export function kindOf<D extends MachineDescriptor>(machine: MachineProvider<D>)
     ...(machine.planWarnings && { planWarnings: machine.planWarnings }),
     ...(machine.attemptCap && { attemptCap: machine.attemptCap }),
     ...(machine.slotsPerMachine && { slotsPerMachine: machine.slotsPerMachine }),
-    ...(machine.notCloud && { notCloud: machine.notCloud }),
     ...(machine.slotNetworks && { slotNetworks: machine.slotNetworks }),
     ...(machine.preparesImage && { preparesImage: machine.preparesImage }),
   }

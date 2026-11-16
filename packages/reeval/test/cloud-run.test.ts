@@ -859,6 +859,85 @@ evaluate('asks', { questions: [{ question: 'Is it tidy?', output: true, model: '
     }
   })
 
+  test('refuses tart() and podman() on a cloud run with exit 2, before uploading or creating anything', async () => {
+    const p = await platform()
+    try {
+      const { dir } = await project('cloud-refused', {
+        'reeval.config.ts': `
+import { defineConfig } from 'reeval'
+import { fakeHarness } from 'reeval/harness'
+export default defineConfig({ harnesses: fakeHarness(), cloud: true })
+`,
+        'evals/mac.eval.ts': `
+import { evaluate } from 'reeval'
+import { tart } from 'reeval/sandbox'
+evaluate('mac', { sandbox: tart({ image: 'macos-base' }), egress: 'allow-all' }, async () => {})
+`,
+        'evals/pod.eval.ts': `
+import { evaluate } from 'reeval'
+import { podman } from 'reeval/sandbox'
+evaluate('pod', { sandbox: podman() }, async () => {})
+`,
+        '.reeval/project.json': JSON.stringify({ orgId: 'org_a', projectId: 'proj_a' }),
+      })
+      const env = { REEVAL_CLOUD_URL: p.base, REEVAL_TOKEN: 'cloud-test-token' }
+      for (const [file, refusal] of [
+        ['evals/mac.eval.ts', /tart\(\) runs macOS VMs on a Mac, and a cloud run has no Macs/],
+        ['evals/pod.eval.ts', /podman\(\) runs containers on this machine's Podman/],
+      ] as const) {
+        for (const args of [
+          ['run', file],
+          ['run', '--cloud', file],
+          ['run', '--dry-run', file],
+        ]) {
+          const r = await runCli(dir, args, { env })
+          assert.equal(r.code, 2, `${args.join(' ')}\n${r.stdout}${r.stderr}`)
+          assert.match(r.stderr, refusal)
+          assert.doesNotMatch(r.stdout, /Running here|target {2}here/)
+        }
+        const here = await runCli(dir, ['run', '--dry-run', '--local', file], { env })
+        assert.equal(here.code, 0, here.stdout + here.stderr)
+      }
+      assert.deepEqual(p.seen, [], 'no run created, no bundle uploaded')
+    } finally {
+      await p.close()
+    }
+  })
+
+  test("places a docker() run's attempts on VMs of their own: the uploaded plan has no images and the VM service's names", async () => {
+    const vmNames = ['REEVAL_VM_TOKEN', 'REEVAL_VM_URL']
+    const p = await platform({ secretNames: [], reserved: vmNames, fails: 'not started here' })
+    try {
+      const { dir } = await project('cloud-docker-placed', {
+        'reeval.config.ts': `
+import { defineConfig } from 'reeval'
+import { fakeHarness } from 'reeval/harness'
+import { docker } from 'reeval/sandbox'
+export default defineConfig({ harnesses: fakeHarness(), sandbox: docker({ root: true }) })
+`,
+        'evals/a.eval.ts': `
+import { evaluate } from 'reeval'
+evaluate('builds', async () => {})
+`,
+        '.reeval/project.json': JSON.stringify({ orgId: 'org_a', projectId: 'proj_a' }),
+      })
+      const unset = { REEVAL_VM_URL: '', REEVAL_VM_TOKEN: '' }
+      const r = await runCli(dir, ['run', '--cloud'], {
+        env: { ...unset, REEVAL_CLOUD_URL: p.base, REEVAL_TOKEN: 'cloud-test-token' },
+      })
+      assert.doesNotMatch(r.stdout + r.stderr, /Running here|nothing was uploaded/)
+      assert.ok(p.uploaded, r.stdout + r.stderr)
+      const entry = readTar(gunzipSync(p.uploaded)).find((e) => e.path === 'manifest.json')
+      assert.ok(entry?.type === 'file')
+      const { plan } = JSON.parse(entry.data.toString('utf8'))
+      assert.deepEqual(plan.images, [], "each VM prepares the image, so the runner doesn't")
+      assert.deepEqual(plan.cloudSets, vmNames)
+      assert.equal(plan.evals[0].cells[0].sandbox, 'docker', 'the cell keeps its id')
+    } finally {
+      await p.close()
+    }
+  })
+
   test('says a declared name the platform reserves needs renaming, not setting', async () => {
     const p = await platform({ secretNames: [], reserved: ['CHECK_TOKEN'] })
     try {

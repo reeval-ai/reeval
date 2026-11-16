@@ -16,12 +16,13 @@ import { DIRECT_PROVIDERS, ROUTED_KEYS } from './judge/index.ts'
 import { CLOUD_TOKEN_VAR, type CloudToken, cloudToken } from './login/credentials.ts'
 import type { PlanDocument } from './plan.ts'
 import { stripCredentials } from './redact.ts'
-import { sandboxKind } from './sandbox/kinds.ts'
 import { formatDuration, plural } from './text.ts'
 import type { ResolvedConfig, ResolvedHistory, ResolvedProfile } from './types.ts'
 
 /** The platform's URL, as the cloud run and `reeval login` read it. */
 export const CLOUD_URL_VAR = 'REEVAL_CLOUD_URL'
+/** `cloud` while reeval plans a cloud run, here or on the platform's machine. */
+export const PLAN_TARGET = 'REEVAL_PLAN_TARGET'
 
 /** The platform when `REEVAL_CLOUD_URL` isn't set. An explicit value replaces it. */
 const DEFAULT_CLOUD_URL = 'https://cloud.reeval.ai'
@@ -128,12 +129,11 @@ export function notCloud(
   for (const { id, attempt } of planned) {
     if (attempt.skip || attempt.plan.skip) continue
     const reason =
-      sandboxKind(attempt.sandbox).notCloud?.(attempt.sandbox) ??
-      (attempt.gateway?.name === 'vertex' ||
+      attempt.gateway?.name === 'vertex' ||
       attempt.judge?.gateway === 'vertex' ||
       vertexAsks.has(id)
         ? "vertex() calls models on this machine's Google Cloud credentials"
-        : undefined)
+        : undefined
     if (reason) why.set(reason, (why.get(reason) ?? new Set()).add(id))
   }
   return [...why].map(([reason, ids]) => {

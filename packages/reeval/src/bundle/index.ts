@@ -23,6 +23,7 @@ import { extractTar, readTar, safeTarPath, type TarEntry, writeTar } from '@reev
 import { run as runProcess } from '@reeval/sandbox-docker/process'
 import { z } from 'zod'
 import type { Flags } from '../cli-spec.ts'
+import { PLAN_TARGET } from '../cloud-run.ts'
 import { loadConfig, requireConfig, selectProfile, withProfileHistory } from '../config.ts'
 import { loadEnvFiles } from '../env.ts'
 import { UsageError } from '../errors.ts'
@@ -139,8 +140,9 @@ export type BundleOptions = {
   /** Prices the plan's cost, which the dry run otherwise leaves to tokens. */
   prices?: boolean
   /**
-   * For a cloud run: the manifest's `secrets` leave out the plan's `cloudSets`, which the cloud
-   * platform sets itself. Its plan keeps them, as the dry run there plans them too.
+   * For a cloud run: the dry run places each attempt's sandbox on a machine of its own, and the
+   * manifest's `secrets` leave out the plan's `cloudSets`, which the cloud platform sets itself.
+   * Its plan keeps them, as the dry run there plans them too.
    */
   cloud?: boolean
 }
@@ -193,7 +195,12 @@ async function dryRun(
   const prices = options.prices ? {} : { REEVAL_PRICES: process.env.REEVAL_PRICES ?? 'none' }
   const child = spawn(cmd, rest, {
     cwd,
-    env: { ...process.env, ...prices, ...options.env },
+    env: {
+      ...process.env,
+      ...prices,
+      ...(options.cloud ? { [PLAN_TARGET]: 'cloud' } : {}),
+      ...options.env,
+    },
     stdio: ['ignore', 'pipe', 'inherit'],
     windowsHide: true,
   })

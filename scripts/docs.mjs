@@ -125,6 +125,7 @@ const INTERNAL_VARIABLES = [
   'REEVAL_RUNNER_PROTOCOL',
   'REEVAL_VM_URL',
   'REEVAL_VM_TOKEN',
+  'REEVAL_PLAN_TARGET',
 ]
 
 /** Read only by reeval's own test suite. */

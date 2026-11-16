@@ -5,7 +5,7 @@ import { inspect } from 'node:util'
 import { detectAgent } from 'std-env'
 import { parseCli } from './cli-parse.ts'
 import { commandHelpText, type Flags, helpText } from './cli-spec.ts'
-import { cloudAsked, type RunTarget, wantsCloud } from './cloud-run.ts'
+import { cloudAsked, PLAN_TARGET, type RunTarget, wantsCloud } from './cloud-run.ts'
 import type { EvalQuestions, questionRunner } from './compare/questions.ts'
 import {
   configLabel,
@@ -467,6 +467,8 @@ async function bundleRun(flags: Flags, filters: string[]): Promise<number> {
     )
   } else log(`reeval: running ${file} in ${opened.project}, where its .reeval/ stays`)
   process.chdir(opened.project)
+  // A bundle on a machine with the VM service is a cloud run: its attempts go to VMs of their own.
+  if (process.env.REEVAL_VM_URL) process.env[PLAN_TARGET] = 'cloud'
   return runCommand(
     {
       ...flags,
@@ -1369,6 +1371,7 @@ async function runCommand(
   }
   const cloud = bundled ? undefined : await cloudTarget(runFlags, setup, filters, configPath)
   if (cloud && 'exit' in cloud) return cloud.exit
+  if (cloud && cloud.target.kind !== 'local') process.env[PLAN_TARGET] = 'cloud'
   const explicit = runFlags.concurrency ?? (process.env.REEVAL_CONCURRENCY || undefined)
   const ctx = await startRun(setup, bundled)
   const startedWith: RunInvocation | undefined = resumed
@@ -2285,6 +2288,7 @@ async function executeRun(
       verbosity,
       configFile,
       completed: [] as string[],
+      ...(process.env[PLAN_TARGET] === 'cloud' ? { placement: 'cloud' } : {}),
       ...(setup.dryRun && setup.json ? { inputs: true } : {}),
     }),
   ) as typeof ctx

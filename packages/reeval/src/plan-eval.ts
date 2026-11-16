@@ -55,6 +55,7 @@ import {
   unbrokeredError,
 } from './options.ts'
 import { providerLimit, sandboxKind } from './sandbox/kinds.ts'
+import { place, type Target } from './sandbox/place.ts'
 import type { Limits } from './scheduler/core.ts'
 import { startEnv } from './startup.ts'
 import { controlTraitKeys, filtersLabel, pickTraits, traitFilters } from './traits.ts'
@@ -97,6 +98,8 @@ export type PlanContext = Pick<
   file: string | undefined
   /** Its place among the file's planned evals, for the scheduler's tie-break. */
   order: number
+  /** Where the attempts' sandboxes run; this machine when unset. */
+  target?: Target
 }
 
 /** One test to register: an attempt, or the one entry that stands for a skipped eval. */
@@ -282,7 +285,11 @@ function planTests(
         .map((harness) => withDefaultEffort(harness, ctx.cursorEfforts))
   const plannedAttempts = resolvedEval.skip
     ? []
-    : pick(expand({ ...resolved, harness: routed }, vertex))
+    : pick(
+        expand({ ...resolved, harness: routed }, vertex, (s) =>
+          place(s, ctx.target ?? 'here', where),
+        ),
+      )
   const { caseJson, ...declared } = declaration.source
   const source: EvalSource = {
     ...declared,

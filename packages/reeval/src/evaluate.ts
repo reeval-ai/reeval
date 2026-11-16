@@ -343,6 +343,7 @@ function prepare(
     source,
     ...(family ? { family } : {}),
   })
+  const run = getRunContext()
   const planned = planEval(
     {
       name,
@@ -353,7 +354,12 @@ function prepare(
       ...(family ? { family } : {}),
       ...(where ? { where } : {}),
     },
-    { ...getRunContext(), file: collectingFile(), order: registered },
+    {
+      ...run,
+      file: collectingFile(),
+      order: registered,
+      ...(run.placement && { target: run.placement }),
+    },
   )
   if (planned.tests) {
     const note = maskedNote([...groupStack.map((g) => g.given), given])

@@ -29,7 +29,6 @@ export const TART_MACHINE: MachineProvider<TartSandboxDescriptor> = {
   id: (s) => `tart:${idPart(s.image)}`,
   hostPaths: { 'ssh.key': 'file' },
   hostLimit: tartVmLimit,
-  notCloud: () => 'tart() runs its VMs on a Mac',
   async create(sandbox, options) {
     const { createTartSandbox } = await import('./tart.ts')
     return createTartSandbox(sandbox, options)
@@ -78,9 +77,18 @@ export const TART_MACHINE: MachineProvider<TartSandboxDescriptor> = {
  */
 const BOAT_EGRESS: EgressCapabilities = { enforce: 'none', record: true, switches: false }
 
-/** A sandbox with an image recipe, whose attempts each run in a container of the image. */
+/**
+ * A sandbox with an image recipe, or marked for reeval's image, whose attempts each run in a
+ * container of the image.
+ */
 const inImage = (s: BoatSandboxDescriptor | CloudSandboxDescriptor) =>
-  !!(s.image || s.from || s.dockerfile || s.install?.length)
+  !!(
+    s.image ||
+    s.from ||
+    s.dockerfile ||
+    s.install?.length ||
+    ('reevalImage' in s && s.reevalImage)
+  )
 
 /** A container in the VM's Docker, as `docker()` runs one: the gateway can be its only way out. */
 const inContainer = (s: BoatSandboxDescriptor | CloudSandboxDescriptor) =>
@@ -224,6 +232,7 @@ export const CLOUD_MACHINE: MachineProvider<CloudSandboxDescriptor> = {
         s.from ?? null,
         s.dockerfile ?? null,
         s.install ?? null,
+        s.reevalImage ?? false,
       ]),
     // Every cloud VM of the run is on one service.
     account: () => '',
@@ -244,6 +253,7 @@ export const CLOUD_MACHINE: MachineProvider<CloudSandboxDescriptor> = {
   slotsPerMachine: (s) => s.attemptsPerMachine ?? 1,
   slotNetworks: inImage,
   preparesImage: inImage,
+  privileges: (s) => ({ root: !!s.root, capabilities: s.capabilities ?? [] }),
   async doctor(sandboxes, ctx) {
     const { cloudDoctor } = await import('./cloud.ts')
     return cloudDoctor(sandboxes, ctx)

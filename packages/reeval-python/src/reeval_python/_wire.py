@@ -618,6 +618,8 @@ CloudSandboxDescriptor = TypedDict(
     "CloudSandboxDescriptor",
     {
         "attemptsPerMachine": "NotRequired[int]",
+        "capabilities": "NotRequired[list[str]]",
+        "cpus": "NotRequired[float]",
         "dockerfile": "NotRequired[str]",
         "from": "NotRequired[str]",
         "id": "NotRequired[str]",
@@ -625,8 +627,13 @@ CloudSandboxDescriptor = TypedDict(
         "install": "NotRequired[list[InstallStep]]",
         "kind": "Literal[\"cloud\"]",
         "maxConcurrent": "NotRequired[float]",
+        "memory": "NotRequired[str | int]",
+        "pids": "NotRequired[int]",
+        "reevalImage": "NotRequired[Literal[True]]",
         "reuse": "NotRequired[bool]",
+        "root": "NotRequired[bool]",
         "size": "NotRequired[Literal[\"small\", \"medium\", \"large\", \"xlarge\"]]",
+        "swap": "NotRequired[str | int]",
     },
 )
 
@@ -2277,6 +2284,7 @@ CAMEL_KEYS: frozenset[str] = frozenset(
         "preSatisfied",
         "providerOptions",
         "readFile",
+        "reevalImage",
         "refuseKey",
         "resolvedModel",
         "servedModel",

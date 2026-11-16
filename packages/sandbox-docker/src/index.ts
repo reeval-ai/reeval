@@ -197,6 +197,7 @@ export {
   type SandboxLimits,
   type SessionOptions,
   type Spawned,
+  sizeBytes,
 } from './session.ts'
 export { darwinShell } from './shells.ts'
 export {

@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { UsageError } from '../errors.ts'
 import type { CloudMachineSize, CloudSandboxDescriptor } from '../types.ts'
 import { BOAT_ATTEMPTS_PER_MACHINE_MAX } from './boat.ts'
+import { containerFieldMessage, containerFields } from './container.ts'
 import {
   installMessage,
   oneRecipe,
@@ -25,17 +26,23 @@ const fields = {
   id: nonEmpty().optional(),
   size: sizeSchema.optional(),
   ...recipeFields,
+  ...containerFields,
   maxConcurrent: z.number().optional(),
   reuse: z.boolean().optional(),
   attemptsPerMachine: attemptsSchema.optional(),
 }
 
 export const cloudSandboxSchema = z
-  .strictObject({ kind: z.literal('cloud'), ...fields, dockerfile: nonEmpty().optional() })
+  .strictObject({
+    kind: z.literal('cloud'),
+    ...fields,
+    dockerfile: nonEmpty().optional(),
+    reevalImage: z.literal(true).optional(),
+  })
   .superRefine(oneRecipe)
 
 /** `cloud()`'s argument. */
-export type CloudOptions = Omit<CloudSandboxDescriptor, 'kind' | 'dockerfile'>
+export type CloudOptions = Omit<CloudSandboxDescriptor, 'kind' | 'dockerfile' | 'reevalImage'>
 
 export const cloudOptionsSchema = z.strictObject(fields).superRefine(oneRecipe)
 
@@ -46,19 +53,10 @@ export type _SameAsSchema = [
   Assert<Same<z.input<typeof cloudOptionsSchema>, CloudOptions>>,
 ]
 
-const SIZES =
-  "pick a machine size with size: 'small' (2 vCPUs, 4 GB), 'medium', 'large' or 'xlarge'"
-
-/** Docker's options, which a cloud VM doesn't have, and what to do instead. */
+/** Other sandboxes' options, which `cloud()` doesn't take, and what to do instead. */
 const NOT_CLOUD: Record<string, string> = {
   dockerfile: 'name an image, from or install instead',
-  root: 'the agent, setup steps and checks run as the unprivileged reeval user, and a cloud VM has no root mode',
-  capabilities: 'a VM has no container capabilities to add',
-  memory: SIZES,
-  cpus: SIZES,
-  swap: SIZES,
-  type: SIZES,
-  pids: 'a VM has no container process limit',
+  type: "pick a machine size with size: 'small' (2 vCPUs, 4 GB), 'medium', 'large' or 'xlarge'",
   engine: 'cloud() runs VMs, not a container engine',
   apiKey: 'its token comes from REEVAL_VM_TOKEN, so there is no key to name',
   prefix: 'reeval names its VMs itself',
@@ -70,6 +68,12 @@ const ORDER = [
   'image',
   'from',
   'install',
+  'root',
+  'capabilities',
+  'memory',
+  'swap',
+  'cpus',
+  'pids',
   'maxConcurrent',
   'reuse',
   'attemptsPerMachine',
@@ -91,8 +95,8 @@ function explain(issue: Issue, value: unknown): string {
   if (key === 'install' && issue.path.length > 1) {
     return installMessage('cloud', (v as unknown[])[issue.path[1] as number])
   }
-  const recipe = recipeFieldMessage('cloud', key, v)
-  if (recipe) return recipe
+  const field = recipeFieldMessage('cloud', key, v) ?? containerFieldMessage('cloud', key, v)
+  if (field) return field
   switch (key) {
     case 'size':
       return `cloud({ size }) is one of ${CLOUD_SIZES.map((t) => `'${t}'`).join(', ')} (got ${got(v)})`
@@ -128,6 +132,13 @@ export const cloudProblem = (value: CloudSandboxDescriptor) =>
       'from',
       'dockerfile',
       'install',
+      'root',
+      'capabilities',
+      'memory',
+      'swap',
+      'cpus',
+      'pids',
+      'reevalImage',
       'reuse',
       'attemptsPerMachine',
     ],

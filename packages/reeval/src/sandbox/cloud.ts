@@ -145,8 +145,9 @@ export async function createCloudSandbox(
   descriptor: CloudSandboxDescriptor,
   options: SandboxOptions,
 ): Promise<NetworkSandbox> {
-  const recipe = recipeOf(descriptor)
+  const recipe = recipeOf(descriptor) ?? (descriptor.reevalImage ? {} : null)
   if (recipe) {
+    const { root, capabilities, memory, swap, cpus, pids } = descriptor
     const { createVmContainerSandbox } = await import('./vm-container.ts')
     const { imageOnMachine } = await import('./machine-image.ts')
     return createVmContainerSandbox(
@@ -164,6 +165,16 @@ export async function createCloudSandbox(
         sandbox: CLOUD.kind,
         size: descriptor.size ?? 'small',
         description: (info) => `cloud VM ${info.id} (${info.size})`,
+        container: {
+          ...(root !== undefined && { root }),
+          ...(capabilities && { capabilities }),
+          limits: {
+            ...(memory !== undefined && { memory }),
+            ...(swap !== undefined && { swap }),
+            ...(cpus !== undefined && { cpus }),
+            ...(pids !== undefined && { pids }),
+          },
+        },
       },
     )
   }

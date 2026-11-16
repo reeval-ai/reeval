@@ -1093,8 +1093,18 @@ const cellTraits = (env: AppliedEnvironment): Pick<Cell, 'traits'> => {
   return Object.keys(traits).length ? { traits } : {}
 }
 
-export function expand(resolved: Resolved, vertex?: VertexSettings): PlannedAttempt[] {
+export function expand(
+  resolved: Resolved,
+  vertex?: VertexSettings,
+  placeSandbox?: (sandbox: SandboxDescriptor) => SandboxDescriptor,
+): PlannedAttempt[] {
   const { compare } = resolved
+  // The cell keeps the sandbox's id as written, wherever it's placed.
+  const placed = (env: AppliedEnvironment) => {
+    const sandbox = attemptSandbox(resolved, env)
+    const sid = sandboxId(sandbox)
+    return { sid, sandbox: placeSandbox ? { ...placeSandbox(sandbox), id: sid } : sandbox }
+  }
   // An environment from another level is not applied beside a compare's control.
   const own: Array<Environment | undefined> = compare
     ? [compare.control]
@@ -1114,8 +1124,7 @@ export function expand(resolved: Resolved, vertex?: VertexSettings): PlannedAtte
       cell: Cell
       gate: CellGate
     }> = controls.map((env) => {
-      const sandbox = attemptSandbox(resolved, env)
-      const sid = sandboxId(sandbox)
+      const { sandbox, sid } = placed(env)
       return {
         env,
         sandbox,
@@ -1135,8 +1144,7 @@ export function expand(resolved: Resolved, vertex?: VertexSettings): PlannedAtte
     if (compare && (!compare.harnesses || compare.harnesses.includes(hid))) {
       for (const v of compare.variants) {
         const env = applied(v)
-        const sandbox = attemptSandbox(resolved, env)
-        const sid = sandboxId(sandbox)
+        const { sandbox, sid } = placed(env)
         cells.push({
           env,
           sandbox,

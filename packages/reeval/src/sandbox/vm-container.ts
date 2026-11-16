@@ -6,7 +6,14 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { docker, dockerCapacity, type RemoteEngine, sshArgv } from '@reeval/sandbox-docker'
+import {
+  docker,
+  dockerCapacity,
+  type RemoteEngine,
+  type SandboxLimits,
+  sizeBytes,
+  sshArgv,
+} from '@reeval/sandbox-docker'
 import { run, unsetOtel } from '@reeval/sandbox-docker/process'
 import { attemptDebug } from '../debug/attempt.ts'
 import { registerSecret } from '../redact.ts'
@@ -67,6 +74,34 @@ export type VmContainerOptions = {
   size: string
   /** How messages name one machine: `boat sandbox bx_… (small)`. */
   description(info: PooledSshMachine): string
+  /** The container's user, capabilities and limits, as `docker()` sets them. */
+  container?: {
+    root?: boolean
+    capabilities?: string[]
+    limits?: Partial<SandboxLimits>
+  }
+}
+
+/**
+ * The container's limits: the machine's share per slot, with `asked` in its place where set. A
+ * limit above the share fails, since the slot's neighbors have the rest.
+ */
+export function slotLimits(
+  share: { memoryBytes: number; cpus: number } | null,
+  asked: Partial<SandboxLimits>,
+  where: string,
+): Partial<SandboxLimits> {
+  if (!share) return asked
+  const over = [
+    asked.memory !== undefined &&
+      sizeBytes(asked.memory) > share.memoryBytes &&
+      `memory ${asked.memory} is more than its ${Math.floor(share.memoryBytes / 1024 ** 2)}m`,
+    asked.cpus !== undefined &&
+      asked.cpus > share.cpus &&
+      `cpus ${asked.cpus} is more than its ${share.cpus}`,
+  ].filter(Boolean)
+  if (over.length) throw new InfraError(`${where}: the attempt's ${over.join(' and ')} per slot`)
+  return { memory: share.memoryBytes, cpus: share.cpus, ...asked }
 }
 
 /** Waits until `image` is in the machine's Docker, which starts as the machine boots. */
@@ -168,21 +203,34 @@ export async function createVmContainerSandbox(
       debug?.log('container', `${info.id} slot ${lease.slot}: ${(error as Error).message}`)
       continue
     }
-    let sandbox: NetworkSandbox
+    const { root, capabilities, limits: asked = {} } = o.container ?? {}
+    let limits: Partial<SandboxLimits>
     try {
       // The machine's slots share it evenly.
       const capacity = await dockerCapacity(engine)
       const slots = info.attemptsPerMachine ?? descriptor.attemptsPerMachine ?? 1
+      limits = slotLimits(
+        capacity && {
+          memoryBytes: Math.floor(capacity.memoryBytes / slots),
+          cpus: Math.round((capacity.cpus / slots) * 100) / 100,
+        },
+        asked,
+        engine.description,
+      )
+    } catch (error) {
+      // Limits too large for a slot aren't the machine's fault.
+      await done(false)
+      throw error
+    }
+    let sandbox: NetworkSandbox
+    try {
       sandbox = await containerSandbox(options, {
         image: image.ref,
         engine,
         fn: o.fn,
-        limits: capacity
-          ? {
-              memory: Math.floor(capacity.memoryBytes / slots),
-              cpus: Math.round((capacity.cpus / slots) * 100) / 100,
-            }
-          : {},
+        ...(root !== undefined && { root }),
+        ...(capabilities && { capabilities }),
+        limits,
         machine: {
           sandbox: o.sandbox,
           size: info.size || o.size,

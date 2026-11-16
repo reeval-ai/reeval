@@ -13,6 +13,7 @@ import type {
 } from '../types.ts'
 import { boatProblem } from './boat.ts'
 import { cloudProblem } from './cloud.ts'
+import { containerFieldMessage, containerFields } from './container.ts'
 import { daytonaProblem } from './daytona.ts'
 import {
   installMessage,
@@ -34,20 +35,12 @@ import {
 } from './shared.ts'
 import { tartProblem } from './tart.ts'
 
-/** Docker's memory size: bytes, or a number with `b`, `k`, `m` or `g`. */
-const MEMORY = /^\d+(\.\d+)?[bkmg]?$/i
-
 /** Every field but `kind` and `dockerfile`, shared by the descriptor and `docker()`'s options. */
 const fields = {
   id: nonEmpty().optional(),
   ...recipeFields,
   maxConcurrent: z.number().optional(),
-  root: z.boolean().optional(),
-  capabilities: z.array(z.string().regex(/^(CAP_)?[A-Z_]+$/)).optional(),
-  memory: z.union([z.string().regex(MEMORY), z.int().positive()]).optional(),
-  swap: z.union([z.string().regex(MEMORY), z.int().nonnegative()]).optional(),
-  cpus: z.number().positive().optional(),
-  pids: z.int().positive().optional(),
+  ...containerFields,
 }
 
 export const dockerSandboxSchema = z
@@ -113,15 +106,6 @@ const DOCKER_HINTS: Record<string, string> = {
 /** The sentence for a field whose value the schema refused, given the value. */
 const FIELD: Record<string, (value: unknown) => string> = {
   id: (v) => `docker({ id }) must be a non-empty string (got ${got(v)})`,
-  root: (v) => `docker({ root }) is true or false (got ${got(v)})`,
-  capabilities: (v) =>
-    `docker({ capabilities }) takes Linux capability names, e.g. capabilities: ['NET_RAW'] (got ${got(v)})`,
-  memory: (v) => `docker({ memory }) takes a size such as '4g' or '512m', or bytes (got ${got(v)})`,
-  swap: (v) =>
-    `docker({ swap }) takes a size such as '2g' or '512m', bytes, or 0 for none (got ${got(v)})`,
-  cpus: (v) =>
-    `docker({ cpus }) takes a number of CPUs above zero, e.g. 1.5 (got ${typeof v === 'number' ? String(v) : got(v)})`,
-  pids: (v) => `docker({ pids }) takes a whole number of processes above zero (got ${got(v)})`,
   maxConcurrent: (v) => `docker({ maxConcurrent }) takes a number (got ${got(v)})`,
   kind: (v) => `a Docker sandbox's kind is "docker" (got ${got(v)})`,
   engine: (v) => `a Docker sandbox's engine is "docker" or "podman" (got ${got(v)})`,
@@ -160,6 +144,7 @@ function explainDocker(issue: Issue, value: unknown): string {
   const key = String(issue.path[0])
   return (
     recipeFieldMessage('docker', key, options[key]) ??
+    containerFieldMessage('docker', key, options[key]) ??
     (FIELD[key] ?? ((v) => `docker({ ${key} }) is invalid (got ${got(v)})`))(options[key])
   )
 }

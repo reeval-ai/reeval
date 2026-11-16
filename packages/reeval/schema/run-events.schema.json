@@ -1885,6 +1885,17 @@
           "description": "The attempts one machine runs at once, each as a user of its own, as `boat({ attemptsPerMachine })` does. Default 1.",
           "type": "number"
         },
+        "capabilities": {
+          "description": "Linux capabilities the attempt's container adds back, as `docker({ capabilities })` does.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cpus": {
+          "description": "CPUs the attempt's container may use; the VM's share per slot when unset.",
+          "type": "number"
+        },
         "dockerfile": {
           "description": "An absolute path to a Dockerfile, built from its directory with `REEVAL_BASE` set.",
           "type": "string"
@@ -1915,13 +1926,47 @@
           "description": "The most attempts on cloud VMs at once, across the run: machines times `attemptsPerMachine`.",
           "type": "number"
         },
+        "memory": {
+          "description": "The attempt's container's memory, as `docker({ memory })` sets it; the VM's share per slot when unset. More than that share fails the attempt.",
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "pids": {
+          "description": "Processes and threads at once in the attempt's container. Default 1024.",
+          "type": "number"
+        },
+        "reevalImage": {
+          "description": "Each attempt runs in a container of reeval's image for the harness, which each VM pulls by digest or builds as its first attempt starts, as a recipe's is. Set for a `docker()` placed on a cloud run; `cloud()` doesn't take it.",
+          "const": true
+        },
         "reuse": {
           "description": "A machine takes another of the run's attempts once one ends, instead of being deleted, as `boat({ reuse })` does. Default false, one attempt per slot.",
+          "type": "boolean"
+        },
+        "root": {
+          "description": "Run the agent, setup steps and checks as root in the attempt's container, as `docker({ root })` does.",
           "type": "boolean"
         },
         "size": {
           "description": "The machine size. Default `small`.",
           "enum": ["large", "medium", "small", "xlarge"]
+        },
+        "swap": {
+          "description": "Swap on top of `memory`, as `docker({ swap })` sets it.",
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
         }
       },
       "required": ["kind"]
