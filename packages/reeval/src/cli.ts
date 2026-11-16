@@ -50,10 +50,19 @@ import { openRouterFallbacks } from './gateway/openrouter-models.ts'
 import { vertexSettingsIn } from './gateway/vertex.ts'
 import { author, gitInfo, runnerInfo, runtimeInfo } from './history/provenance.ts'
 import type { GitInfo, RunInvocation } from './history/types.ts'
-import { cwdIn, fromCwd, newRunId, RUN_ID, RUN_STAMP_LENGTH, relativeFile } from './ids.ts'
+import {
+  CLOUD_RUN_ID,
+  cwdIn,
+  fromCwd,
+  newRunId,
+  RUN_ID,
+  RUN_STAMP_LENGTH,
+  relativeFile,
+} from './ids.ts'
 import { judgeModelName, unusedGatewayKey } from './judge/index.ts'
 import { type LiveKept, type LiveProgressWriter, writeLiveProgress } from './live.ts'
 import { checkLimitHarness, harnessId, plannedSandboxes, plannedSandboxIds } from './options.ts'
+import { asOwnReads } from './own-reads.ts'
 import type { PlanDocument, RunPlan } from './plan.ts'
 import { preflight, type SandboxVersions } from './preflight.ts'
 import { isPlaceholder, redactSecrets, registerSecret, stripCredentials } from './redact.ts'
@@ -977,9 +986,6 @@ async function imageCleanCommand(flags: Flags, configPath: string | undefined): 
 /** The first 12 hex digits of an image id or digest. */
 const short12 = (id: string) => id.replace(/^sha256:/, '').slice(0, 12)
 
-/** A cloud run's id, as `reeval run --cloud` prints it; never a local run's id. */
-const CLOUD_RUN_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
 /**
  * `reeval attach`: a run's socket URL or stream file as given, a cloud run's id as its event stream
  * URL, else the run a ref names (by default the one in progress) and the stream file it writes.
@@ -1062,7 +1068,7 @@ async function attachCommand(
   if (download && detached) {
     console.log(
       dim(
-        `Not downloading the files of cloud run ${download.runId} after detaching: reeval attach --download${download.profile === undefined ? '' : ` --profile ${download.profile}`} ${displayUrl(source)} downloads them once it has ended`,
+        `Not downloading the files of cloud run ${download.runId} after detaching: reeval attach --download${download.profile === undefined ? '' : ` --profile ${download.profile}`} ${cloud.attachTarget(download.runId, cloud.cloudUrl())} downloads them once it has ended`,
       ),
     )
   } else if (download) {
@@ -1905,13 +1911,20 @@ async function prepareRun(
   const listing = !!(flags['dry-run'] && flags.json)
   const tracked = listing ? (await import('./inputs-load.ts')).trackLoad(dirname(path)) : undefined
   let configInputs: LocalInput[] = []
+  let envFiles: string[] = []
   let loaded: Awaited<ReturnType<typeof loadConfig>>
   const named = noProfile ? undefined : (flags.profile ?? (process.env.REEVAL_PROFILE || undefined))
   try {
-    loadEnvFiles(path)
+    // Listed by name, not by the tracker: Bun doesn't sync `env.ts`'s named `readFileSync`.
+    envFiles = asOwnReads(() => loadEnvFiles(path))
     loaded = await loadConfig(path, 'run', named)
   } finally {
-    if (tracked) configInputs = tracked.stop(path, 'config')
+    if (tracked) {
+      configInputs = [
+        ...tracked.stop(path, 'config'),
+        ...envFiles.map((file) => ({ path: file, kind: 'env-file' as const })),
+      ]
+    }
   }
   if (profileOf && flags.profile && !loaded.profiles[flags.profile]) {
     throw new UsageError(
