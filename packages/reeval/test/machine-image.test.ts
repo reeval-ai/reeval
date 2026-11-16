@@ -30,6 +30,7 @@ test("a machine that can't be reached is its own infra error, not the recipe's",
     imageOnMachine(
       recipe,
       harness,
+      [],
       { id, description: `cloud VM ${id}` },
       unreachable(id),
       AbortSignal.timeout(60_000),
