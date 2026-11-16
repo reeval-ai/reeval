@@ -177,6 +177,9 @@ export function createAgentHarness(
           requireBrokering: true,
           traffic: {
             statuses: () => sandbox.brokeredStatuses?.() ?? [],
+            ...(sandbox.modelCalls && {
+              modelStatuses: () => sandbox.modelCalls?.().map((c) => c.status) ?? [],
+            }),
             servedModels: () => sandbox.servedRequests?.() ?? [],
           },
           authHint: (message, refused) => authHint(catalog, message, refused),

@@ -1,6 +1,6 @@
 import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { AgentError } from '@reeval/agents'
+import { AgentError, statusCause } from '@reeval/agents'
 import { debugLog } from '../debug/attempt.ts'
 import { allowedHosts, isDirect } from '../egress.ts'
 import type { RawAssertion } from '../engine/runtime.ts'
@@ -128,6 +128,37 @@ export function attemptError(a: Attempt, error: unknown, raw: readonly RawAssert
   if (!isJudges(a, error, raw)) return error
   const check = raw.find((r) => r.status !== 'pass' && !judged(r))
   return check ? checkFailure([check]) : error
+}
+
+/** The statuses that say the provider, not the agent or its config, failed a call. */
+const outageStatus = (s: number) => s === 402 || s === 408 || s === 429 || s >= 500
+
+/**
+ * A timeout spent in a turn whose every answered model call the provider failed (a payment, rate
+ * or capacity limit, a 5xx) becomes an infra error: a CLI that keeps retrying an outage spends the
+ * eval's time, not the agent. After teardown, so a stream the timeout cut has ended and counts as
+ * answered. A turn with no answered call says nothing, since one long streamed call can be the
+ * whole turn, and nor does one that got a 4xx the provider sends for a bad request or key.
+ */
+export function reclassifyTimeout(a: Attempt): void {
+  const { record, turnCalls } = a
+  if (record.error?.kind !== 'timeout' || !turnCalls) return
+  const statuses = (a.sandbox?.modelCalls?.() ?? [])
+    .slice(turnCalls.before)
+    .flatMap((c) => (c.status === null ? [] : [c.status]))
+  if (!statuses.length || !statuses.every(outageStatus)) return
+  const counts = new Map<number, number>()
+  for (const s of statuses) counts.set(s, (counts.get(s) ?? 0) + 1)
+  const http = [...counts].map(([s, n]) => `HTTP ${s}${n > 1 ? ` ×${n}` : ''}`).join(', ')
+  const last = statuses.at(-1) as number
+  const cause = statusCause(last)
+  record.outcome = 'infra_error'
+  record.error = {
+    kind: 'infra',
+    message: `The eval timed out while the model provider failed every model call in turn ${turnCalls.turn} (${http})`,
+    turn: { index: turnCalls.turn, kind: 'transport' },
+    ...(cause && { provider: { cause, status: last } }),
+  }
 }
 
 /**

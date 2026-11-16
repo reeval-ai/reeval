@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
-import { recordFailure } from '../src/attempt/record.ts'
+import { reclassifyTimeout, recordFailure } from '../src/attempt/record.ts'
 import type { Attempt } from '../src/attempt/state.ts'
 import {
   acrossOf,
@@ -450,6 +450,49 @@ describe('mergeOutcome and abort classification', () => {
     const other = attempt(setup.signal)
     recordFailure(other, new Error('setup timed out'), false, [])
     assert.deepEqual(other.record.error, { kind: 'aborted', message: 'The run was canceled' })
+  })
+
+  test("a timeout while the provider failed every model call of the turn is the provider's", () => {
+    const timeout = { kind: 'timeout', message: 'The eval timed out' }
+    const attempt = (statuses: (number | null)[], before = 1) =>
+      ({
+        record: { error: { ...timeout }, judgements: [], outcome: 'fail' },
+        turnCalls: { turn: 1, before },
+        sandbox: { modelCalls: () => statuses.map((status) => ({ status })) },
+      }) as unknown as Attempt
+    const outage = attempt([200, 429, 503, null, 429])
+    reclassifyTimeout(outage)
+    assert.equal(outage.record.outcome, 'infra_error')
+    assert.deepEqual(outage.record.error, {
+      kind: 'infra',
+      message:
+        'The eval timed out while the model provider failed every model call in turn 1 (HTTP 429 ×2, HTTP 503)',
+      turn: { index: 1, kind: 'transport' },
+      provider: { cause: 'rate_limit', status: 429 },
+    })
+    const fivexx = attempt([200, 500])
+    reclassifyTimeout(fivexx)
+    assert.equal(fivexx.record.error?.kind, 'infra')
+    assert.equal(fivexx.record.error?.provider, undefined, 'a 500 names no stop')
+    for (const [statuses, why] of [
+      [[200, 500, 200], 'a stream the timeout cut counts as answered'],
+      [[200, null], 'no call answered: one long streamed call'],
+      [[200, 500, 400], 'a bad request is not an outage'],
+      [[200, 401, 401], 'nor is a refused key'],
+      [[500], 'the failed call was an earlier turn'],
+    ] as const) {
+      const a = attempt([...statuses])
+      reclassifyTimeout(a)
+      assert.deepEqual(a.record.error, timeout, why)
+      assert.equal(a.record.outcome, 'fail', why)
+    }
+    const between = { ...attempt([500, 500], 0), turnCalls: undefined } as unknown as Attempt
+    reclassifyTimeout(between)
+    assert.deepEqual(between.record.error, timeout, 'no turn cut off')
+    const failed = attempt([200, 500])
+    failed.record.error = { kind: 'assertion', message: 'expected' }
+    reclassifyTimeout(failed)
+    assert.equal(failed.record.error.kind, 'assertion', 'only a timeout')
   })
 })
 

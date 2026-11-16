@@ -21,6 +21,7 @@ import { observer } from './observe.ts'
 import {
   attemptError,
   judgeErrorsMessage,
+  reclassifyTimeout,
   reclassifyTurnErrors,
   recordEgress,
   recordFailure,
@@ -181,6 +182,7 @@ async function attemptBody(
     }
     await sandbox?.destroy()
     recordTimeline(a, sandbox)
+    reclassifyTimeout(a)
     if (sandbox) {
       debug.log(
         'teardown',

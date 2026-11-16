@@ -150,6 +150,7 @@ export function turnSender(
     // An agent that ignores the abort would hold the attempt, and the run, until it finishes.
     const { cutoff, cancel } = cutOff(signal, entry.startedAt, agent)
     const sendStarted = Date.now()
+    a.turnCalls = { turn: turnNumber - 1, before: box.modelCalls?.().length ?? 0 }
     const sending = agent.send(prompt, signal).catch((error: unknown): HarnessResult => {
       // A harness whose turn throws on abort (the fake agent's commands do) was cut off by the
       // MCP timeout, which then fails the turn below.
@@ -178,6 +179,8 @@ export function turnSender(
       .finally(() => {
         cancel()
         watch?.close()
+        // Only a timeout that cut this turn off is the turn's to explain.
+        if (!a.signal.aborted) a.turnCalls = undefined
       })
     if (steps) a.turnSteps.set(entry, steps)
     const sendWallMs = agentMs ?? Date.now() - sendStarted
