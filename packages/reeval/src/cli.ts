@@ -54,6 +54,7 @@ import { cwdIn, fromCwd, newRunId, RUN_ID, RUN_STAMP_LENGTH, relativeFile } from
 import { judgeModelName, unusedGatewayKey } from './judge/index.ts'
 import { type LiveKept, type LiveProgressWriter, writeLiveProgress } from './live.ts'
 import { checkLimitHarness, harnessId, plannedSandboxes, plannedSandboxIds } from './options.ts'
+import { asOwnReads } from './own-reads.ts'
 import type { PlanDocument, RunPlan } from './plan.ts'
 import { preflight, type SandboxVersions } from './preflight.ts'
 import { isPlaceholder, redactSecrets, registerSecret, stripCredentials } from './redact.ts'
@@ -1857,13 +1858,20 @@ async function prepareRun(
   const listing = !!(flags['dry-run'] && flags.json)
   const tracked = listing ? (await import('./inputs-load.ts')).trackLoad(dirname(path)) : undefined
   let configInputs: LocalInput[] = []
+  let envFiles: string[] = []
   let loaded: Awaited<ReturnType<typeof loadConfig>>
   const named = noProfile ? undefined : (flags.profile ?? (process.env.REEVAL_PROFILE || undefined))
   try {
-    loadEnvFiles(path)
+    // Listed by name, not by the tracker: Bun doesn't sync `env.ts`'s named `readFileSync`.
+    envFiles = asOwnReads(() => loadEnvFiles(path))
     loaded = await loadConfig(path, 'run', named)
   } finally {
-    if (tracked) configInputs = tracked.stop(path, 'config')
+    if (tracked) {
+      configInputs = [
+        ...tracked.stop(path, 'config'),
+        ...envFiles.map((file) => ({ path: file, kind: 'env-file' as const })),
+      ]
+    }
   }
   if (profileOf && flags.profile && !loaded.profiles[flags.profile]) {
     throw new UsageError(

@@ -256,6 +256,41 @@ for (const [name, r] of [
     outcome(r) ?? why(bundled.find((b) => b.status !== 0) ?? r),
   )
 }
+// A .env the config loads is an input on both runtimes: listed in the plan, named in the bundle's
+// summary, and its values held out of what a bundle carries.
+const LABEL = 'bun-compile-widget-label'
+const withEnvNode = project(join(root, 'examples/with-skill-lift'), true)
+const withEnv = project(join(root, 'examples/with-skill-lift'), false)
+for (const dir of [withEnvNode, withEnv])
+  writeFileSync(join(dir, '.env'), `WIDGET_LABEL=${LABEL}\n`)
+const envInputs = (r) =>
+  r.status === 0 ? JSON.parse(r.stdout).inputs.filter((i) => i.kind === 'env-file') : null
+const envPlanNode = envInputs(node(withEnvNode, ['run', '--dry-run', '--json']))
+const envPlanBin = envInputs(compiled(withEnv, ['run', '--dry-run', '--json']))
+check(
+  'a .env as an input',
+  envPlanBin?.length === 1 && JSON.stringify(envPlanBin) === JSON.stringify(envPlanNode),
+  JSON.stringify(envPlanBin),
+)
+const envBundled = compiled(withEnv, ['bundle', '--out', join(alone, 'env.bundle.tar.gz')])
+check(
+  'the bundle names the .env it leaves out',
+  envBundled.status === 0 && envBundled.stdout.includes('left out .env (WIDGET_LABEL)'),
+  why(envBundled) || envBundled.stdout.trim(),
+)
+const math = join(withEnv, 'project/src/math.js')
+writeFileSync(math, `${readFileSync(math, 'utf8')}// ${LABEL}\n`)
+const leaked = compiled(withEnv, ['bundle', '--out', join(alone, 'leak.bundle.tar.gz')])
+check(
+  'a bundle refuses a file holding a .env value',
+  leaked.status !== 0 &&
+    (leaked.stderr + leaked.stdout).includes(
+      'project/src/math.js: holds the value of WIDGET_LABEL',
+    ),
+  (leaked.stderr + leaked.stdout).trim().slice(-600),
+)
+for (const dir of [withEnvNode, withEnv]) rmSync(dir, { recursive: true, force: true })
+
 const query = compiled(example, ['query', 'effort', '--json'])
 check('reeval query (node:sqlite)', query.status === 0, why(query))
 
