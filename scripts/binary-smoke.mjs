@@ -265,7 +265,10 @@ function bunInstall() {
       ...files,
     }
     for (const [file, text] of Object.entries(all)) writeFileSync(join(repo, file), text)
-    const git = (...args) => spawnSync('git', args, { cwd: repo, windowsHide: true })
+    const git = (...args) => {
+      const g = spawnSync('git', args, { cwd: repo, encoding: 'utf8', windowsHide: true })
+      if (g.status !== 0) throw new Error(`git ${args.join(' ')}: ${g.stderr || g.error}`)
+    }
     git('init', '-q')
     git('add', '.')
     git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init')
@@ -276,7 +279,7 @@ function bunInstall() {
     const r = reeval(fresh, ['run', '--bundle', out], env)
     const lockfile = Object.keys(files).find((f) => /lock/.test(f))
     const installed = r.out.includes(
-      `installing from ${lockfile}: ${binary} install --frozen-lockfile`,
+      `installing from ${lockfile}: bun install --frozen-lockfile (this reeval's Bun `,
     )
     if (name.startsWith('a stale')) {
       check(

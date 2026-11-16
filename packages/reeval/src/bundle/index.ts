@@ -1133,7 +1133,10 @@ async function install(
     const [cmd, ...args] = asBun
       ? [process.execPath, 'install', '--frozen-lockfile']
       : how.command(at)
-    log(`reeval: installing from ${f.path}: ${cmd} ${args.join(' ')}`)
+    const shown = asBun
+      ? `bun ${args.join(' ')} (this reeval's Bun ${process.versions.bun})`
+      : `${cmd} ${args.join(' ')}`
+    log(`reeval: installing from ${f.path}: ${shown}`)
     const env = asBun ? { BUN_BE_BUN: '1' } : undefined
     const result = await runProcess(cmd, args, { cwd: at, env }).catch((error: Error) => {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -1146,7 +1149,7 @@ async function install(
     if (result.exitCode !== 0) {
       const said = `${result.stderr}\n${result.stdout}`.trim().split('\n').slice(-20).join('\n')
       throw new PreflightInfraError(
-        `${cmd} ${args.join(' ')} failed (exit ${result.exitCode}) installing from ${f.path}, so nothing ran:\n${said}`,
+        `${shown} failed (exit ${result.exitCode}) installing from ${f.path}, so nothing ran:\n${said}`,
       )
     }
   }
