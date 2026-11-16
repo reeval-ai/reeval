@@ -1153,7 +1153,8 @@ evaluate('reaches', async (c) => {
 
   test('Ctrl-C or SIGTERM without a terminal detaches and the run goes on, from reeval run and reeval attach', async () => {
     for (const signals of [['SIGINT'], ['SIGTERM'], ['SIGINT', 'SIGTERM']] as const) {
-      const p = await platform({ holds: true })
+      const id = '0b9e4d21-5c3a-4f6e-8a7d-1e2f3c4b5a69'
+      const p = await platform({ holds: true, runId: id })
       const env = { REEVAL_CLOUD_URL: p.base, REEVAL_TOKEN: 'cloud-test-token' }
       const interrupt = (stdout: string, pid: number) => {
         if (!stdout.includes('held')) return false
@@ -1165,12 +1166,13 @@ evaluate('reaches', async (c) => {
         const dir = await fixtureProject()
         const r = await runCli(dir, ['run', '--cloud'], { env, onOutput: interrupt })
         assert.equal(r.code, 130, `${sent}: ${r.stdout}${r.stderr}`)
-        assert.match(
-          r.stdout,
-          /Cloud run run_1 goes on: reeval attach \S+\/api\/runs\/run_1\/events follows it again; reeval cloud run cancel run_1 cancels it/,
-          sent,
+        assert.ok(
+          r.stdout.includes(
+            `Cloud run ${id} goes on: reeval attach ${id} follows it again; reeval cloud run cancel ${id} cancels it`,
+          ),
+          `${sent}: ${r.stdout}`,
         )
-        const again = await runCli(dir, ['attach', `${p.base}/api/runs/run_1/events`], {
+        const again = await runCli(dir, ['attach', id], {
           env,
           onOutput: interrupt,
         })
