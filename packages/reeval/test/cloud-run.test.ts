@@ -913,8 +913,13 @@ evaluate('pod', { sandbox: podman() }, async () => {})
 import { defineConfig } from 'reeval'
 import { fakeHarness } from 'reeval/harness'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({ harnesses: fakeHarness(), sandbox: docker({ root: true }) })
+export default defineConfig({
+  harnesses: fakeHarness(),
+  sandbox: docker({ root: true, dockerfile: './image/Dockerfile' }),
+})
 `,
+        'image/Dockerfile': 'FROM debian:12\nCOPY seed.txt /seed.txt\n',
+        'image/seed.txt': 'seed\n',
         'evals/a.eval.ts': `
 import { evaluate } from 'reeval'
 evaluate('builds', async () => {})
@@ -927,12 +932,41 @@ evaluate('builds', async () => {})
       })
       assert.doesNotMatch(r.stdout + r.stderr, /Running here|nothing was uploaded/)
       assert.ok(p.uploaded, r.stdout + r.stderr)
-      const entry = readTar(gunzipSync(p.uploaded)).find((e) => e.path === 'manifest.json')
+      const entries = readTar(gunzipSync(p.uploaded))
+      const entry = entries.find((e) => e.path === 'manifest.json')
       assert.ok(entry?.type === 'file')
-      const { plan } = JSON.parse(entry.data.toString('utf8'))
+      const { plan, files } = JSON.parse(entry.data.toString('utf8'))
+      for (const [path, kind] of [
+        ['image/Dockerfile', 'dockerfile'],
+        ['image/seed.txt', 'docker-context'],
+      ]) {
+        assert.ok(
+          entries.some((e) => e.path === path),
+          `the VM builds from ${path}`,
+        )
+        assert.equal(files.find((f: { path: string }) => f.path === path)?.kind, kind)
+      }
       assert.deepEqual(plan.images, [], "each VM prepares the image, so the runner doesn't")
       assert.deepEqual(plan.cloudSets, vmNames)
-      assert.equal(plan.evals[0].cells[0].sandbox, 'docker', 'the cell keeps its id')
+      assert.equal(plan.evals[0].cells[0].sandbox, 'docker:image', 'the cell keeps its id')
+      const bundle = join(tempDir('cloud-placed-bundle'), 'run.bundle.tar.gz')
+      writeFileSync(bundle, p.uploaded)
+      const extract = tempDir('cloud-placed-tmp')
+      mkdirSync(join(extract, 'node_modules'))
+      symlinkSync(pkgRoot, join(extract, 'node_modules/reeval'), 'dir')
+      const here = await runCli(tempDir('cloud-placed-fresh'), ['run', '--bundle', bundle], {
+        env: { ...unset, TMPDIR: extract },
+      })
+      assert.equal(here.code, 2, 'without the VM service, docker() never runs on the runner')
+      assert.match(here.stderr + here.stdout, /doesn't plan here as it did where it was bundled/)
+      const onVms = await runCli(tempDir('cloud-placed-fresh'), ['run', '--bundle', bundle], {
+        env: { REEVAL_VM_URL: 'http://127.0.0.1:9', REEVAL_VM_TOKEN: 'vm-token', TMPDIR: extract },
+      })
+      assert.doesNotMatch(
+        onVms.stderr + onVms.stdout,
+        /doesn't plan here/,
+        'with the VM service, the runner plans the bundle as it was bundled',
+      )
     } finally {
       await p.close()
     }
@@ -1684,7 +1718,7 @@ evaluate('reaches', async (c) => {
     assert.match(r.stderr, /couldn't read the cloud platform's config/)
   })
 
-  test('a plan the platform cannot run runs here, with a note', async () => {
+  test('a tart() plan is refused on --cloud --dry-run, never run here', async () => {
     const p = await platform()
     try {
       const dir = await fixtureProject()
@@ -1703,8 +1737,9 @@ evaluate('on a mac', { environments: mac }, async () => {})
       const r = await runCli(dir, ['run', '--cloud', '--dry-run'], {
         env: { REEVAL_CLOUD_URL: p.base },
       })
-      assert.equal(r.code, 0, r.stdout + r.stderr)
-      assert.match(r.stdout, /target {2}here, not in the cloud: tart\(\) runs its VMs on a Mac/)
+      assert.equal(r.code, 2, r.stdout + r.stderr)
+      assert.match(r.stderr, /tart\(\) runs macOS VMs on a Mac, and a cloud run has no Macs/)
+      assert.doesNotMatch(r.stdout, /target {2}here/)
       assert.deepEqual(p.seen, [], 'a dry run never calls the platform')
     } finally {
       await p.close()

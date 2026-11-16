@@ -49,6 +49,8 @@ export interface MachineProvider<D extends MachineDescriptor> extends SandboxHoo
   create(sandbox: D, options: SandboxOptions): Promise<Sandbox>
   /** What a container on the machine widens, for the plan's warnings; nothing when unset. */
   privileges?(sandbox: D): SandboxPrivileges
+  /** Whether `sandbox` builds a plugin's `build` into its image on the machine; never when unset. */
+  pluginBuilds?(sandbox: D): boolean
   /**
    * How many machines the run may have at once, when the provider says, and for a pooled one the
    * attempts its pool runs at once, which is the run's default concurrency.
@@ -72,11 +74,12 @@ export interface MachineProvider<D extends MachineDescriptor> extends SandboxHoo
 /**
  * The kinds entry of a machine provider. Every machine is apart from the host, gets the harness a
  * session, keeps brokered values out behind the gateway and is checked in preflight; none starts
- * from an image preflight builds or runs a plugin's `build`.
+ * from an image preflight builds, and only one whose `pluginBuilds` says so runs a plugin's
+ * `build`, on the machine.
  */
 export function kindOf<D extends MachineDescriptor>(machine: MachineProvider<D>): SandboxKind<D> {
-  const { capacity, sandboxCapabilities } = machine
-  const full = (own: MachineProvider<D>['capabilities']) => ({
+  const { capacity, sandboxCapabilities, pluginBuilds } = machine
+  const full = (own: MachineProvider<D>['capabilities'], builds = false) => ({
     platform: machine.os,
     ...own,
     brokers: true,
@@ -84,17 +87,18 @@ export function kindOf<D extends MachineDescriptor>(machine: MachineProvider<D>)
     isolated: true,
     images: false,
     preflight: true,
-    pluginBuilds: false,
+    pluginBuilds: builds,
   })
   const capabilities = full(machine.capabilities)
   return {
     helpers: machine.helpers,
     ...(machine.internal && { internal: true as const }),
     capabilities,
-    ...(sandboxCapabilities && {
+    ...((sandboxCapabilities || pluginBuilds) && {
       capabilitiesFor(sandbox: D) {
-        const own = sandboxCapabilities.call(machine, sandbox)
-        return own ? full(own) : capabilities
+        const own = sandboxCapabilities?.call(machine, sandbox)
+        const builds = pluginBuilds?.call(machine, sandbox) ?? false
+        return own || builds ? full(own ?? machine.capabilities, builds) : capabilities
       },
     }),
     provider: () => machine.kind,

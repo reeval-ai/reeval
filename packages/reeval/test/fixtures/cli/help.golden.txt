@@ -92,8 +92,9 @@ Usage:
                                 exiting with its exit code (4 when the platform stopped it). Ctrl-C
                                 detaches and the run goes on: reeval cloud run cancel cancels it. A
                                 value that isn't an http or https URL, or one with a user name or
-                                password, exits 2. A plan the platform can't run (tart(), files a
-                                bundle can't carry) runs here, with a note
+                                password, exits 2. tart() and podman() exit 2; a plan the platform
+                                can't run otherwise (vertex(), files a bundle can't carry) runs
+                                here, with a note
     --download                  With a cloud run, once it ends download its files as a run here
                                 leaves them, as reeval attach --download does
     --local                     Run here, whatever the config's or profile's cloud sets

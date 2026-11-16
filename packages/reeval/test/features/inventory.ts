@@ -1283,8 +1283,8 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'cloud.fan-out',
     area: 'Sandbox',
-    name: "A cloud run places each `docker()` attempt on a VM of its own: the same container (recipe, `root`, `capabilities`, limits within the VM's share per slot) in the VM's Docker, reeval's image for the harness when there's no recipe, the cell keeping its `docker` id",
-    fixtures: ['sandbox/cloud-fan-out'],
+    name: "A cloud run places each `docker()` attempt on a VM of its own: the same container (recipe, `root`, `capabilities`, limits within the VM's share per slot) in the VM's Docker, reeval's image for the harness when there's no recipe, a plugin's `build` in a layer of the VM's image, the cell keeping its `docker` id",
+    fixtures: ['sandbox/cloud-fan-out', 'sandbox/cloud-plugin-build'],
     plan: ['cloud/docker-placed', 'cloud/docker-here'],
     unit: [
       'reeval/test/place.test.ts',

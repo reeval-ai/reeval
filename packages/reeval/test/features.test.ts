@@ -1633,6 +1633,25 @@ export const features: Feature[] = [
     },
   },
   {
+    dir: 'sandbox/cloud-plugin-build',
+    tiers: ['docker'],
+    env: 'built',
+    hostEnv: () => ({
+      REEVAL_PLAN_TARGET: 'cloud',
+      REEVAL_VM_URL: dockerVmService.url,
+      REEVAL_VM_TOKEN: dockerVmService.token,
+    }),
+    prepare: () => buildSshVmImage(['boat', 'boat-docker']),
+    canary: /expected '' to contain 'built on linux as uid 0'/,
+    record: ({ run }) => {
+      const [p] = plugins(run)
+      assert.equal(p?.name, 'built')
+      assert.match(p?.build ?? '', /^reeval-plugin:[0-9a-f]{12}-[0-9a-f]{16}$/)
+      const r = run.evals.find((e) => e.name === 'lands')?.attempts[0]?.resources
+      assert.equal(r?.machine.sandbox, 'cloud', 'built on a VM, not the machine that ran the run')
+    },
+  },
+  {
     dir: 'sandbox/cloud-session',
     tiers: ['docker'],
     env: 'vm',

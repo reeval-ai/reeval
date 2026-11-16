@@ -26,6 +26,7 @@ import type {
 import { containerSandbox } from './docker.ts'
 import type { SandboxOptions } from './index.ts'
 import { leaseMachine } from './machine-service.ts'
+import type { BuiltPlugin } from './prepare.ts'
 import { PrepareError } from './provider.ts'
 import { type PooledSshMachine, TTL_MARGIN_S } from './ssh-pool.ts'
 import { InfraError, type NetworkSandbox } from './types.ts'
@@ -47,7 +48,7 @@ export type VmImageSource = {
     engine: RemoteEngine,
     machine: PooledSshMachine,
     signal: AbortSignal,
-  ): Promise<{ ref: string; image?: AttemptImage }>
+  ): Promise<{ ref: string; image?: AttemptImage; plugins?: BuiltPlugin[] }>
 }
 
 /** The image `base`'s snapshot holds, which its machine's Docker has once it has booted. */
@@ -83,25 +84,28 @@ export type VmContainerOptions = {
 }
 
 /**
- * The container's limits: the machine's share per slot, with `asked` in its place where set. A
- * limit above the share fails, since the slot's neighbors have the rest.
+ * The container's limits: the machine's share per slot, with `asked` in its place where it's
+ * lower. A limit above the share is held to it, since the slot's neighbors have the rest and the
+ * eval doesn't pick the machine's size; `onHeld` says which.
  */
 export function slotLimits(
   share: { memoryBytes: number; cpus: number } | null,
   asked: Partial<SandboxLimits>,
-  where: string,
+  onHeld: (line: string) => void = () => {},
 ): Partial<SandboxLimits> {
   if (!share) return asked
-  const over = [
-    asked.memory !== undefined &&
-      sizeBytes(asked.memory) > share.memoryBytes &&
-      `memory ${asked.memory} is more than its ${Math.floor(share.memoryBytes / 1024 ** 2)}m`,
-    asked.cpus !== undefined &&
-      asked.cpus > share.cpus &&
-      `cpus ${asked.cpus} is more than its ${share.cpus}`,
-  ].filter(Boolean)
-  if (over.length) throw new InfraError(`${where}: the attempt's ${over.join(' and ')} per slot`)
-  return { memory: share.memoryBytes, cpus: share.cpus, ...asked }
+  const limits = { memory: share.memoryBytes, cpus: share.cpus, ...asked }
+  if (asked.memory !== undefined && sizeBytes(asked.memory) > share.memoryBytes) {
+    limits.memory = share.memoryBytes
+    onHeld(
+      `memory ${asked.memory} held to its ${Math.floor(share.memoryBytes / 1024 ** 2)}m per slot`,
+    )
+  }
+  if (asked.cpus !== undefined && asked.cpus > share.cpus) {
+    limits.cpus = share.cpus
+    onHeld(`cpus ${asked.cpus} held to its ${share.cpus} per slot`)
+  }
+  return limits
 }
 
 /** Waits until `image` is in the machine's Docker, which starts as the machine boots. */
@@ -192,7 +196,7 @@ export async function createVmContainerSandbox(
       await rm(dir, { recursive: true, force: true })
       await lease.release(broken)
     }
-    let image: { ref: string; image?: AttemptImage }
+    let image: Awaited<ReturnType<VmImageSource['ready']>>
     try {
       image = await source.ready(engine, info, options.signal)
     } catch (error) {
@@ -204,24 +208,17 @@ export async function createVmContainerSandbox(
       continue
     }
     const { root, capabilities, limits: asked = {} } = o.container ?? {}
-    let limits: Partial<SandboxLimits>
-    try {
-      // The machine's slots share it evenly.
-      const capacity = await dockerCapacity(engine)
-      const slots = info.attemptsPerMachine ?? descriptor.attemptsPerMachine ?? 1
-      limits = slotLimits(
-        capacity && {
-          memoryBytes: Math.floor(capacity.memoryBytes / slots),
-          cpus: Math.round((capacity.cpus / slots) * 100) / 100,
-        },
-        asked,
-        engine.description,
-      )
-    } catch (error) {
-      // Limits too large for a slot aren't the machine's fault.
-      await done(false)
-      throw error
-    }
+    // The machine's slots share it evenly.
+    const capacity = await dockerCapacity(engine)
+    const slots = info.attemptsPerMachine ?? descriptor.attemptsPerMachine ?? 1
+    const limits = slotLimits(
+      capacity && {
+        memoryBytes: Math.floor(capacity.memoryBytes / slots),
+        cpus: Math.round((capacity.cpus / slots) * 100) / 100,
+      },
+      asked,
+      (line) => debug?.log('container', `${info.id}: the attempt's ${line}`),
+    )
     let sandbox: NetworkSandbox
     try {
       sandbox = await containerSandbox(options, {
@@ -248,6 +245,7 @@ export async function createVmContainerSandbox(
     return {
       ...sandbox,
       ...(image.image && { image: image.image }),
+      ...(image.plugins?.length && { builtPlugins: image.plugins }),
       destroy: () => {
         destroyed ??= (async () => {
           await destroy()

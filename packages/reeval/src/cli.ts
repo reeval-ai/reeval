@@ -457,6 +457,9 @@ async function bundleRun(flags: Flags, filters: string[]): Promise<number> {
   const from = process.cwd()
   const resume = flags.resume
   if (resume !== undefined) checkResumeState(from, resume)
+  // A bundle on a machine with the VM service is a cloud run: its attempts go to VMs of their own,
+  // in the dry run that checks the bundle's plan too.
+  if (process.env.REEVAL_VM_URL) process.env[PLAN_TARGET] = 'cloud'
   const opened = await openBundle(file, log)
   if (opened.exit !== undefined) return opened.exit
   const { args, author } = opened.manifest
@@ -467,8 +470,6 @@ async function bundleRun(flags: Flags, filters: string[]): Promise<number> {
     )
   } else log(`reeval: running ${file} in ${opened.project}, where its .reeval/ stays`)
   process.chdir(opened.project)
-  // A bundle on a machine with the VM service is a cloud run: its attempts go to VMs of their own.
-  if (process.env.REEVAL_VM_URL) process.env[PLAN_TARGET] = 'cloud'
   return runCommand(
     {
       ...flags,

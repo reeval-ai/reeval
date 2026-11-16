@@ -1,9 +1,10 @@
 import { attemptDebug, debugLog } from '../debug/attempt.ts'
 import { allowedHosts } from '../egress.ts'
 import { builtPlugins, pluginBuildId } from '../environment/plugins.ts'
-import { resolveEnvironment } from '../environment/resolve.ts'
+import { type ResolvedEnvironment, resolveEnvironment } from '../environment/resolve.ts'
 import { layoutOf } from '../harness/index.ts'
 import { capabilitiesOf, sandboxKind } from '../sandbox/kinds.ts'
+import type { BuiltPlugin } from '../sandbox/prepare.ts'
 import { InfraError } from '../sandbox/types.ts'
 import { fetchHeldSecrets } from '../secrets-file.ts'
 import { preparedWorkspace } from '../workspace.ts'
@@ -61,25 +62,12 @@ export async function prepareEnvironment(
     }
     record.image = attemptImage(prepared)
     a.image = record.image.ref
-    const built = preparedImage(prepared).plugins ?? []
-    for (const [i, plugin] of env.plugins.entries()) {
-      if (plugin.declared.build === undefined) continue
-      const found = built.find((b) => b.id === pluginBuildId(plugin.declared))
-      if (!found) {
-        throw new InfraError(
-          `The ${plugin.name} plugin's build for ${where} wasn't prepared before the run started`,
-        )
-      }
-      if (found.commit !== plugin.commit) {
-        throw new InfraError(
-          `The ${plugin.name} plugin's ref moved during the run: it was built at ${found.commit?.slice(0, 12)} and is now ${plugin.commit?.slice(0, 12)}. Pin ref to a commit or tag.`,
-        )
-      }
-      plugin.built = { dir: found.dir, tag: found.tag }
-      const pluginRecord = env.record.plugins?.[i]
-      if (pluginRecord) pluginRecord.build = found.tag
-      debugLog('image', `plugin ${plugin.name} built in ${found.tag}`)
-    }
+    useBuiltPlugins(
+      env,
+      preparedImage(prepared).plugins ?? [],
+      `for ${where}`,
+      'before the run started',
+    )
     const { ref, id, base, install, agentCli } = record.image
     debugLog(
       'image',
@@ -122,5 +110,33 @@ export async function prepareEnvironment(
         ? `none: the ${spec.sandbox.kind} sandbox starts from its provider's base`
         : `none: the ${spec.sandbox.kind} sandbox runs on the host`,
     )
+  }
+}
+
+/**
+ * Points each of `env`'s plugins with a `build` at its layer in the attempt's image, from `built`;
+ * `where` and `when` say, for a missing one, where it should have been built and when.
+ */
+export function useBuiltPlugins(
+  env: ResolvedEnvironment,
+  built: readonly BuiltPlugin[],
+  where: string,
+  when: string,
+): void {
+  for (const [i, plugin] of env.plugins.entries()) {
+    if (plugin.declared.build === undefined) continue
+    const found = built.find((b) => b.id === pluginBuildId(plugin.declared))
+    if (!found) {
+      throw new InfraError(`The ${plugin.name} plugin's build ${where} wasn't prepared ${when}`)
+    }
+    if (found.commit !== plugin.commit) {
+      throw new InfraError(
+        `The ${plugin.name} plugin's ref moved during the run: it was built at ${found.commit?.slice(0, 12)} and is now ${plugin.commit?.slice(0, 12)}. Pin ref to a commit or tag.`,
+      )
+    }
+    plugin.built = { dir: found.dir, tag: found.tag }
+    const pluginRecord = env.record.plugins?.[i]
+    if (pluginRecord) pluginRecord.build = found.tag
+    debugLog('image', `plugin ${plugin.name} built in ${found.tag}`)
   }
 }

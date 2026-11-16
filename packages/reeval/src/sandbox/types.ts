@@ -4,6 +4,7 @@ import type { EgressTraffic, NetworkPolicy, Substitution } from '@reeval/sandbox
 import type { SecretWarning } from '../history/types.ts'
 import type { ModelCall } from '../model-calls.ts'
 import type { AttemptImage, ExecResult } from '../types.ts'
+import type { BuiltPlugin } from './prepare.ts'
 import type { ResourceMeter } from './resources.ts'
 
 export type ExecOptions = { signal?: AbortSignal; env?: Record<string, string>; cwd?: string }
@@ -77,6 +78,8 @@ export interface Sandbox {
   meter?(): ResourceMeter
   /** The image the sandbox prepared on its machine as it started, where preflight prepared none. */
   readonly image?: AttemptImage
+  /** The plugin builds that image has, each built in a layer of its own. */
+  readonly builtPlugins?: readonly BuiltPlugin[]
   /** Idempotent, never throws. */
   destroy(): Promise<void>
   /**

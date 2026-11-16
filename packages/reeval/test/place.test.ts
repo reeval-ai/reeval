@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { CloudUnsupported, place } from '../src/sandbox/place.ts'
-import { InfraError } from '../src/sandbox/types.ts'
 import { slotLimits } from '../src/sandbox/vm-container.ts'
 import type { SandboxDescriptor } from '../src/types.ts'
 
@@ -77,18 +76,21 @@ test('on a cloud run, tart() and podman() are refused, with no run here instead'
 
 test("a cloud container's limits are its VM's share per slot, which it may lower but not pass", () => {
   const share = { memoryBytes: 2 * 1024 ** 3, cpus: 1 }
-  assert.deepEqual(slotLimits(share, {}, 'vm'), { memory: share.memoryBytes, cpus: 1 })
-  assert.deepEqual(slotLimits(share, { memory: '1g', pids: 64 }, 'vm'), {
+  assert.deepEqual(slotLimits(share, {}), { memory: share.memoryBytes, cpus: 1 })
+  assert.deepEqual(slotLimits(share, { memory: '1g', pids: 64 }), {
     memory: '1g',
     cpus: 1,
     pids: 64,
   })
-  assert.deepEqual(slotLimits(null, { cpus: 4 }, 'vm'), { cpus: 4 })
-  assert.throws(
-    () => slotLimits(share, { memory: '4g', cpus: 2 }, 'cloud VM v1'),
-    (e: unknown) =>
-      e instanceof InfraError &&
-      e.message ===
-        "cloud VM v1: the attempt's memory 4g is more than its 2048m and cpus 2 is more than its 1 per slot",
+  assert.deepEqual(slotLimits(null, { cpus: 4 }), { cpus: 4 })
+  const held: string[] = []
+  assert.deepEqual(
+    slotLimits(share, { memory: '4g', cpus: 2, pids: 64 }, (l) => held.push(l)),
+    {
+      memory: share.memoryBytes,
+      cpus: 1,
+      pids: 64,
+    },
   )
+  assert.deepEqual(held, ['memory 4g held to its 2048m per slot', 'cpus 2 held to its 1 per slot'])
 })

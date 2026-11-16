@@ -1,8 +1,9 @@
 // `reeval run` on the cloud platform. It bundles the project as `reeval bundle` does, creates the
 // run at `REEVAL_CLOUD_URL` (https://cloud.reeval.ai when that isn't set), uploads the bundle and
 // starts it, then follows the run's event stream as `reeval attach` does and exits with the run's
-// exit code. A plan the platform can't run (a sandbox it has no machine for, files a bundle can't
-// carry) runs on this machine instead, with a one-line note.
+// exit code. docker() attempts run on machines of their own, and tart() or podman() exit 2. A plan
+// the platform can't run otherwise (vertex(), files a bundle can't carry) runs on this machine
+// instead, with a one-line note.
 import { createHash } from 'node:crypto'
 import type { AttachOptions } from './attach.ts'
 import type { MadeBundle } from './bundle/index.ts'

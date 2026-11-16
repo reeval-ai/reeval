@@ -155,8 +155,15 @@ export async function createCloudSandbox(
       {
         ready: async (engine, machine, signal) => {
           const where = { id: machine.id, description: `cloud VM ${machine.id}` }
-          const image = await imageOnMachine(recipe, options.harness, where, engine, signal)
-          return { ref: image.ref, image }
+          const { plugins, ...image } = await imageOnMachine(
+            recipe,
+            options.harness,
+            options.pluginBuilds ?? [],
+            where,
+            engine,
+            signal,
+          )
+          return { ref: image.ref, image, ...(plugins && { plugins }) }
         },
       },
       options,
