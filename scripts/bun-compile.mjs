@@ -157,6 +157,12 @@ function project(dir, link) {
     const json = JSON.parse(readFileSync(manifest, 'utf8'))
     json.imports = { '#profiles': './shared/profiles.ts', '#seed': './shared/seed.ts' }
     writeFileSync(join(copy, 'shared/seed.ts'), 'export const SEED: number = 1\n')
+    // The loader checks the tsconfig.json an eval file is under, which neither runtime records.
+    writeFileSync(join(copy, 'tsconfig.json'), '{ "extends": "./shared/tsconfig.base.json" }\n')
+    writeFileSync(
+      join(copy, 'shared/tsconfig.base.json'),
+      '{ "compilerOptions": { "strict": true, "paths": { "#seed": ["./seed.ts"] } } }\n',
+    )
     writeFileSync(manifest, JSON.stringify(json, null, 2))
     const config = join(copy, 'reeval.config.ts')
     writeFileSync(config, readFileSync(config, 'utf8').replace("'../profiles.ts'", "'#profiles'"))

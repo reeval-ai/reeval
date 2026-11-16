@@ -3764,7 +3764,7 @@ export type RunContext = {
 
 /**
  * What a host file is to the run: `eval` the eval file, `module` a file its load imported, `read`
- * one it read, `tsconfig` a tsconfig.json it loaded under, `config` and `env-file` the config
+ * one it read, `tsconfig` a tsconfig.json or jsconfig.json it read, `config` and `env-file` the config
  * and its `.env` files, `lockfile` a lockfile reeval records, and the rest what the environment
  * or sandbox names: `file` (`file()` and `directory()`), `rules`, `workspace` (a local `git()`),
  * `skill`, `plugin`, `npm` (a local package spec), `marketplace` (a local one),
