@@ -629,6 +629,15 @@ jobs:
         with: { node-version: "${{ matrix.npm == '10.9' && '22' || '' }}" }
       - run: npm install --global npm@${{ matrix.npm }} && npm --version
       - run: pnpm build
+      # Pins the published harness images by digest in what ships, so reeval pulls exactly those;
+      # a release fails while one isn't published. A tag from before --digests ships no pins.
+      - env:
+          STRICT: ${{ github.workflow == 'release' && '--strict' || '' }}
+        run: |
+          if grep -q -- '--digests' scripts/sandbox-images.mjs; then
+            node scripts/sandbox-images.mjs --registry ghcr.io/reeval-ai/sandbox $STRICT \
+              --digests packages/reeval/dist/image-digests.json
+          fi
       # pnpm pack rewrites workspace: ranges, and .pnpmfile.cjs drops devDependencies and
       # scripts. On a release commit, release.yml publishes the npm 11 leg's tarball.
       - run: pnpm --filter reeval pack --pack-destination "$RUNNER_TEMP/package"

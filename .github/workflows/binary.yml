@@ -88,6 +88,15 @@ jobs:
           # Only main writes caches (cache-cleanup.yml deletes the rest).
           no-cache: ${{ github.event_name == 'pull_request' }}
       - run: pnpm build
+      # Pins the published harness images by digest in what ships, so reeval pulls exactly those;
+      # a release fails while one isn't published. A tag from before --digests ships no pins.
+      - env:
+          STRICT: ${{ github.workflow == 'release' && '--strict' || '' }}
+        run: |
+          if grep -q -- '--digests' scripts/sandbox-images.mjs; then
+            node scripts/sandbox-images.mjs --registry ghcr.io/reeval-ai/sandbox $STRICT \
+              --digests packages/reeval/dist/image-digests.json
+          fi
       - id: version
         run: echo "version=$(node -p "require('./packages/reeval/package.json').version")" >> "$GITHUB_OUTPUT"
       # This runner's own target also runs bun-compile's checks against Node; the rest compile only.

@@ -6,6 +6,9 @@ import { LABEL } from './image.ts'
 
 type Options = { engine?: Engine | undefined; signal?: AbortSignal | undefined }
 
+/** How long a pull may take before it's given up on and the layer built: a proxy can stall it. */
+const PULL_TIMEOUT_MS = 10 * 60_000
+
 /**
  * What's wrong with a registry prefix, or null: a registry host (with an optional port) and an
  * optional path, as `docker push` names one, without a scheme, tag or digest.
@@ -57,26 +60,43 @@ export async function enginePlatform(engine: Engine = 'docker'): Promise<string>
 /**
  * Pulls `layer` from `registry` and tags it as its local ref, once it's checked: its
  * {@link LABEL.key} must be the layer's key and its platform the engine's ({@link enginePlatform}). `pulled: false` with
- * the reason when the registry doesn't have it, can't be reached or has another image under the
- * ref: the caller builds it instead. The registry is otherwise trusted: anyone who can push to it
- * chooses what a matching tag holds.
+ * the reason when the registry doesn't have it, can't be reached, takes over
+ * {@link PULL_TIMEOUT_MS} or has another image under the ref: the caller builds it instead. With
+ * `digests` (each {@link registryRef} to the digest it was published as), only a ref listed there
+ * is pulled, by its digest, so what the tag points to later doesn't matter. Otherwise the registry
+ * is trusted: anyone who can push to it chooses what a matching tag holds.
  */
 export async function pullLayer(
   registry: string,
   layer: Layer,
-  options: Options = {},
+  options: Options & { digests?: Readonly<Record<string, string>>; timeoutMs?: number } = {},
 ): Promise<{ pulled: true; remote: string } | { pulled: false; remote: string; reason: string }> {
   const { engine, signal } = options
   const platform = await enginePlatform(engine)
   const remote = registryRef(registry, layer, platform)
-  const pull = await docker(['pull', '--quiet', remote], { engine, signal }).catch(
-    (error: Error) => ({ exitCode: 1, stderr: error.message }),
-  )
+  const digest = options.digests?.[remote]
+  if (options.digests && !digest) {
+    return { pulled: false, remote, reason: 'this reeval has no digest pinned for it' }
+  }
+  const source = digest ? `${remote.slice(0, remote.lastIndexOf(':'))}@${digest}` : remote
+  const limit = options.timeoutMs ?? PULL_TIMEOUT_MS
+  const timeout = AbortSignal.timeout(limit)
+  const pull = await docker(['pull', '--quiet', source], {
+    engine,
+    signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+  }).catch((error: Error) => ({ exitCode: 1, stderr: error.message }))
+  if (timeout.aborted) {
+    return {
+      pulled: false,
+      remote,
+      reason: `the pull took over ${limit / 1000} s`,
+    }
+  }
   if (pull.exitCode !== 0) {
     return { pulled: false, remote, reason: firstLine(pull.stderr) || `exit ${pull.exitCode}` }
   }
   try {
-    const info = await imageInfo(remote, engine).catch(() => null)
+    const info = await imageInfo(source, engine).catch(() => null)
     const key = info?.labels[LABEL.key]
     if (key !== layer.key) {
       return {
@@ -94,13 +114,13 @@ export async function pullLayer(
         reason: `it's for ${info?.platform ?? 'an unknown platform'}, not ${platform}`,
       }
     }
-    const tag = await docker(['tag', remote, layer.ref], { engine, signal })
+    const tag = await docker(['tag', source, layer.ref], { engine, signal })
     if (tag.exitCode !== 0) {
       return { pulled: false, remote, reason: firstLine(tag.stderr) || `exit ${tag.exitCode}` }
     }
     return { pulled: true, remote }
   } finally {
-    await docker(['image', 'rm', remote], { engine }).catch(() => {})
+    await docker(['image', 'rm', source], { engine }).catch(() => {})
   }
 }
 

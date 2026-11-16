@@ -10,7 +10,7 @@ image docker:docker · cursor · 1 evals
   dockerfile docker/Dockerfile  reeval-dockerfile:docker-041abaa0fd4f5133  (docker build (layer cache), tagged by content hash)
   harness                       reeval-dockerfile:docker-041abaa0fd4f5133  (inherited: FROM ${REEVAL_BASE}, which is reeval-sandbox:cursor-0.1.9)
 image docker · cursor · 1 evals
-  base  reeval-sandbox:cursor-0.1.9  (reeval's image: built when missing or when its base changed)
+  base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)
 input env-file        .env                                     []
 input file            .env                                     [Answer from the guide skill. (42)]
 input rules           RULES.md                                 [Answer from the guide skill. (42)]

@@ -83,6 +83,10 @@ A non-empty `REEVAL_RAW_TRANSCRIPT` stores each turn's unnormalized stream parts
 
 A non-empty `REEVAL_NO_REPORT_HINT` hides the `reeval report` hint after a crash or an infra error. `report`, `--json`, `agent` UI, and a detected coding agent with neither `--ui` nor `REEVAL_UI` also hide it.
 
+## `REEVAL_DEFAULT_REGISTRY`
+
+`REEVAL_DEFAULT_REGISTRY=none` stops reeval pulling its own image for each harness from `ghcr.io/reeval-ai/sandbox` when `--registry` names no registry, so it builds the image instead. Other values are ignored.
+
 ## `REEVAL_BASE`
 
 `REEVAL_BASE` is the build argument for a `dockerfile` sandbox, passed as the harness sandbox image. The `Dockerfile` file reads `ARG REEVAL_BASE`. A shell value is unused.
