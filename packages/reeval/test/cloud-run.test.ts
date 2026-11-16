@@ -602,6 +602,38 @@ describe('reeval run on the cloud platform', () => {
     }
   })
 
+  test("names the provider command for a missing secret that is a direct provider's key", async () => {
+    const p = await platform({ secretNames: [] })
+    try {
+      const dir = await fixtureProject()
+      const config = join(dir, 'reeval.config.ts')
+      writeFileSync(
+        config,
+        readFileSync(config, 'utf8').replace(
+          "env: { CHECK_TOKEN: secret.fromEnv('CHECK_TOKEN') },",
+          "env: { CHECK_TOKEN: secret.fromEnv('CHECK_TOKEN'), OPENAI_API_KEY: secret.fromEnv('OPENAI_API_KEY'), TYPESAFE_AI_API_KEY: secret.fromEnv('TYPESAFE_AI_API_KEY') },",
+        ),
+      )
+      const r = await runCli(dir, ['run', '--cloud', '--force'], {
+        env: {
+          REEVAL_CLOUD_URL: p.base,
+          REEVAL_TOKEN: 'cloud-test-token',
+          OPENAI_API_KEY: `${TOKEN}-openai`,
+          TYPESAFE_AI_API_KEY: `${TOKEN}-typesafe`,
+        },
+      })
+      assert.equal(r.code, 2, r.stdout + r.stderr)
+      assert.match(
+        r.stderr,
+        /lacks 3 secrets this run needs, so nothing was uploaded:\n {2}OPENAI_API_KEY: reeval cloud provider set openai\n {2}TYPESAFE_AI_API_KEY: reeval cloud provider set typesafe-ai\nAdd each key for the whole org with that command, which reads it from stdin or a prompt\.\n {2}CHECK_TOKEN\nAdd it with reeval cloud secrets set <name> --from-env, /,
+      )
+      assert.doesNotMatch(r.stderr, /cloud provider set <provider>/)
+      assert.ok(!(r.stdout + r.stderr).includes(TOKEN), 'no secret value in the output')
+    } finally {
+      await p.close()
+    }
+  })
+
   test('stops before uploading, naming the command, when the project has no key for a gateway the plan resolves', async () => {
     const p = await platform({ secretNames: [] })
     try {
