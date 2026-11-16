@@ -222,8 +222,11 @@ async function platform(
     /** What the capacity view answers instead: that status, or a body whose items aren't a list. */
     capacity?: number | 'malformed'
     provisioning?: number
+    /** The run's id; not a cloud run id unless set, so hints name its URL. */
+    runId?: string
   } = {},
 ) {
+  const id = options.runId ?? 'run_1'
   const seen: Seen[] = []
   const tmp = extractRoot()
   let files: FilesOf = (machine) => machine
@@ -250,7 +253,7 @@ async function platform(
   let waiting: { waitingFor?: string; position?: number } | undefined
   const stops = options.stops ?? (options.resume ? 'The run was stopped by the platform.' : '')
   const run = () => ({
-    id: 'run_1',
+    id,
     segment: resumed ? 1 : 0,
     lastSeq: lines.length,
     status: resumed
@@ -328,7 +331,7 @@ async function platform(
       if (options.capacity !== undefined) {
         return json(res, options.capacity, { error: { code: 'forbidden', message: 'no' } })
       }
-      return json(res, 200, { runs: { items: waiting ? [{ id: 'run_1', ...waiting }] : [] } })
+      return json(res, 200, { runs: { items: waiting ? [{ id, ...waiting }] : [] } })
     }
     if (req.method === 'GET' && url.pathname === '/api/orgs/org_a/projects') {
       return json(res, 200, { projects: [{ id: 'proj_a', slug: 'main', name: 'Main' }] })
@@ -336,17 +339,17 @@ async function platform(
     if (req.method === 'POST' && url.pathname === '/api/orgs/org_a/projects/proj_a/runs') {
       declared = JSON.parse(body.toString())
       return json(res, 201, {
-        runId: 'run_1',
+        runId: id,
         status: 'created',
-        upload: { url: `${base}/api/runs/run_1/bundle`, method: 'PUT' },
+        upload: { url: `${base}/api/runs/${id}/bundle`, method: 'PUT' },
       })
     }
-    if (req.method === 'PUT' && url.pathname === '/api/runs/run_1/bundle') {
+    if (req.method === 'PUT' && url.pathname === `/api/runs/${id}/bundle`) {
       assert.equal(req.headers['content-type'], 'application/gzip')
       uploaded = body
       return json(res, 200, run())
     }
-    if (req.method === 'POST' && url.pathname === '/api/runs/run_1/start') {
+    if (req.method === 'POST' && url.pathname === `/api/runs/${id}/start`) {
       if (!uploaded) return json(res, 409, { error: { code: 'no_bundle', message: 'no bundle' } })
       if (options.fails) {
         over = true
@@ -368,12 +371,12 @@ async function platform(
       }
       return json(res, 202, run())
     }
-    if (req.method === 'GET' && url.pathname === '/api/runs/run_1') {
+    if (req.method === 'GET' && url.pathname === `/api/runs/${id}`) {
       if (options.slowStatus) return
       waiting = queue.shift()
       if (waiting) {
         return json(res, 200, {
-          id: 'run_1',
+          id,
           status: 'queued',
           orgId: 'org_a',
           projectId: 'proj_a',
@@ -385,7 +388,7 @@ async function platform(
       }
       return json(res, 200, run())
     }
-    if (req.method === 'POST' && url.pathname === '/api/runs/run_1/resume' && options.resume) {
+    if (req.method === 'POST' && url.pathname === `/api/runs/${id}/resume` && options.resume) {
       resumeBodies.push(JSON.parse(body.toString() || 'null'))
       const next = resumeAnswers.shift() ?? { status: 202 }
       if (next.status !== 200 && next.status !== 202) {
@@ -406,7 +409,7 @@ async function platform(
       }
       return json(res, next.status, run())
     }
-    if (req.method === 'POST' && url.pathname === '/api/runs/run_1/cancel') {
+    if (req.method === 'POST' && url.pathname === `/api/runs/${id}/cancel`) {
       if (over || options.status !== undefined) return json(res, 200, run())
       canceled = true
       const answer = run()
@@ -414,7 +417,7 @@ async function platform(
       finish()
       return json(res, 202, answer)
     }
-    if (req.method === 'GET' && url.pathname === '/api/runs/run_1/artifacts/files.tar.gz') {
+    if (req.method === 'GET' && url.pathname === `/api/runs/${id}/artifacts/files.tar.gz`) {
       await vm
       const served = vm ? files(machineFiles(tmp, lines)) : null
       if (!served) return json(res, 404, { error: { code: 'not_found', message: 'no files' } })
@@ -435,7 +438,7 @@ async function platform(
   server.on('upgrade', (req, socket, head) => {
     const url = new URL(req.url ?? '/', 'http://platform')
     seen.push({ method: 'WS', path: url.pathname, auth: req.headers.authorization })
-    if (url.pathname !== '/api/runs/run_1/events') return socket.destroy()
+    if (url.pathname !== `/api/runs/${id}/events`) return socket.destroy()
     sockets.handleUpgrade(req, socket, head, (ws: WebSocket) => {
       viewers.add(ws)
       ws.on('close', () => viewers.delete(ws))
@@ -479,7 +482,8 @@ async function platform(
 
 describe('reeval run on the cloud platform', () => {
   test('bundles, creates, uploads, starts and follows the run, with its exit code', async () => {
-    const p = await platform()
+    const id = '6f0c2a54-8d1e-4b7a-9c3f-2e5d7a1b0c94'
+    const p = await platform({ runId: id })
     try {
       const dir = await fixtureProject()
       const r = await runCli(dir, ['run', '--cloud'], {
@@ -487,7 +491,10 @@ describe('reeval run on the cloud platform', () => {
       })
       assert.equal(r.code, 0, r.stdout + r.stderr)
       assert.match(r.stdout, /Running in the cloud \(1 attempt\), --local to run here/)
-      assert.match(r.stdout, /Started cloud run run_1/)
+      assert.ok(
+        r.stdout.includes(`Started cloud run ${id}; reeval attach ${id} follows it`),
+        r.stdout,
+      )
       assert.match(r.stdout, /1 passed/)
       assert.deepEqual(
         p.seen.filter((s) => s.path !== '/ingest').map((s) => `${s.method} ${s.path}`),
@@ -495,10 +502,10 @@ describe('reeval run on the cloud platform', () => {
           'GET /api/config',
           'GET /api/orgs/org_a/projects/proj_a/secret-names',
           'POST /api/orgs/org_a/projects/proj_a/runs',
-          'PUT /api/runs/run_1/bundle',
-          'POST /api/runs/run_1/start',
-          'WS /api/runs/run_1/events',
-          'GET /api/runs/run_1',
+          `PUT /api/runs/${id}/bundle`,
+          `POST /api/runs/${id}/start`,
+          `WS /api/runs/${id}/events`,
+          `GET /api/runs/${id}`,
         ],
       )
       for (const s of p.seen.filter((s) => s.path !== '/ingest')) {
@@ -511,11 +518,15 @@ describe('reeval run on the cloud platform', () => {
         bundleBytes: archive.length,
       })
       assert.ok(!archive.includes(TOKEN), 'no secret value in the bundle')
-      const again = await runCli(dir, ['attach', `${p.base}/api/runs/run_1/events`], {
-        env: { REEVAL_CLOUD_URL: p.base, REEVAL_TOKEN: 'cloud-test-token' },
-      })
-      assert.equal(again.code, 0, again.stdout + again.stderr)
-      assert.equal(p.seen.at(-1)?.auth, 'Bearer cloud-test-token', 'reeval attach sends it too')
+      for (const target of [id, `${p.base}/api/runs/${id}/events`]) {
+        const again = await runCli(dir, ['attach', target], {
+          env: { REEVAL_CLOUD_URL: p.base, REEVAL_TOKEN: 'cloud-test-token' },
+        })
+        assert.equal(again.code, 0, again.stdout + again.stderr)
+        const socket = p.seen.findLast((s) => s.method === 'WS')
+        assert.equal(socket?.path, `/api/runs/${id}/events`, target)
+        assert.equal(socket?.auth, 'Bearer cloud-test-token', 'reeval attach sends it too')
+      }
     } finally {
       await p.close()
     }

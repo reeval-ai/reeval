@@ -72,3 +72,6 @@ export function newRunId(
 }
 
 export { RUN_ID } from './view/api.ts'
+
+/** A cloud run's id, as `reeval run --cloud` prints it; never a local run's id. */
+export const CLOUD_RUN_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

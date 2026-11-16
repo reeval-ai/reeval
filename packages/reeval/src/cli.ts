@@ -50,7 +50,15 @@ import { openRouterFallbacks } from './gateway/openrouter-models.ts'
 import { vertexSettingsIn } from './gateway/vertex.ts'
 import { author, gitInfo, runnerInfo, runtimeInfo } from './history/provenance.ts'
 import type { GitInfo, RunInvocation } from './history/types.ts'
-import { cwdIn, fromCwd, newRunId, RUN_ID, RUN_STAMP_LENGTH, relativeFile } from './ids.ts'
+import {
+  CLOUD_RUN_ID,
+  cwdIn,
+  fromCwd,
+  newRunId,
+  RUN_ID,
+  RUN_STAMP_LENGTH,
+  relativeFile,
+} from './ids.ts'
 import { judgeModelName, unusedGatewayKey } from './judge/index.ts'
 import { type LiveKept, type LiveProgressWriter, writeLiveProgress } from './live.ts'
 import { checkLimitHarness, harnessId, plannedSandboxes, plannedSandboxIds } from './options.ts'
@@ -977,9 +985,6 @@ async function imageCleanCommand(flags: Flags, configPath: string | undefined): 
 /** The first 12 hex digits of an image id or digest. */
 const short12 = (id: string) => id.replace(/^sha256:/, '').slice(0, 12)
 
-/** A cloud run's id, as `reeval run --cloud` prints it; never a local run's id. */
-const CLOUD_RUN_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
 /**
  * `reeval attach`: a run's socket URL or stream file as given, a cloud run's id as its event stream
  * URL, else the run a ref names (by default the one in progress) and the stream file it writes.
@@ -1061,7 +1066,7 @@ async function attachCommand(
   if (download && detached) {
     console.log(
       dim(
-        `Not downloading the files of cloud run ${download.runId} after detaching: reeval attach --download${download.profile === undefined ? '' : ` --profile ${download.profile}`} ${displayUrl(source)} downloads them once it has ended`,
+        `Not downloading the files of cloud run ${download.runId} after detaching: reeval attach --download${download.profile === undefined ? '' : ` --profile ${download.profile}`} ${cloud.attachTarget(download.runId, cloud.cloudUrl())} downloads them once it has ended`,
       ),
     )
   } else if (download) {

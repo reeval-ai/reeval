@@ -11,6 +11,7 @@ import type { LinkedProject } from './cloud-project.ts'
 import type { PlannedItem } from './engine/node.ts'
 import { UsageError } from './errors.ts'
 import { displayUrl, EventStreamError, type FollowOptions } from './events.ts'
+import { CLOUD_RUN_ID } from './ids.ts'
 import { DIRECT_PROVIDERS, ROUTED_KEYS } from './judge/index.ts'
 import { CLOUD_TOKEN_VAR, type CloudToken, cloudToken } from './login/credentials.ts'
 import type { PlanDocument } from './plan.ts'
@@ -436,9 +437,8 @@ export async function afterLostStream(
       throw new CloudError(`cloud run ${runId} failed${why ? `: ${why}` : ''}`)
     }
     if (run && !ended && lost.lost) {
-      const events = new URL(`api/runs/${encodeURIComponent(runId)}/events`, base)
       throw new EventStreamError(
-        `${lost.message}. Cloud run ${runId} goes on: reeval attach ${displayUrl(events.href)} follows it again; ${cancelHint(runId)}`,
+        `${lost.message}. Cloud run ${runId} goes on: reeval attach ${attachTarget(runId, base)} follows it again; ${cancelHint(runId)}`,
       )
     }
     throw lost
@@ -449,6 +449,12 @@ export async function afterLostStream(
 
 /** How the interactive list says to cancel cloud run `runId`, which no key there reaches. */
 export const cancelHint = (runId: string) => `reeval cloud run cancel ${runId} cancels it`
+
+/** What `reeval attach` follows cloud run `runId` at `base` by: its id, else its event stream URL. */
+export const attachTarget = (runId: string, base: URL) =>
+  CLOUD_RUN_ID.test(runId)
+    ? runId
+    : displayUrl(new URL(`api/runs/${encodeURIComponent(runId)}/events`, base).href)
 
 /** A cloud run's id, from the id itself or its event stream URL on the platform at `base`. */
 async function cloudRunId(given: string, base: URL): Promise<string> {
@@ -864,7 +870,7 @@ async function followCloudRun(
   const { headers } = auth
   const runUrl = (path = '') => new URL(`api/runs/${encodeURIComponent(runId)}${path}`, base)
   const events = runUrl('/events')
-  const reattach = `reeval attach ${displayUrl(events.href)}`
+  const reattach = `reeval attach ${attachTarget(runId, base)}`
   log(`${lead} ${runId}; ${reattach} follows it`)
   let detached = false
   let code: number
@@ -894,7 +900,7 @@ async function followCloudRun(
   }
   if (detached) {
     const again = options.download
-      ? `reeval attach --download${options.download.profile === undefined ? '' : ` --profile ${options.download.profile}`} ${displayUrl(events.href)} follows it again and downloads its files once it ends`
+      ? `reeval attach --download${options.download.profile === undefined ? '' : ` --profile ${options.download.profile}`} ${attachTarget(runId, base)} follows it again and downloads its files once it ends`
       : `${reattach} follows it again`
     log(`Cloud run ${runId} goes on: ${again}; ${cancelHint(runId)}`)
     return INTERRUPTED
