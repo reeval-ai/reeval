@@ -205,14 +205,16 @@ function readInputs(
       }
     }
   }
-  if (sandbox?.kind === 'docker' && sandbox.dockerfile && existsSync(sandbox.dockerfile)) {
-    const context = dirname(sandbox.dockerfile)
-    for (const path of contextFiles(context, sandbox.dockerfile)) {
+  // A docker() sandbox placed on a cloud machine keeps its recipe, which builds there.
+  const dockerfile =
+    sandbox && 'dockerfile' in sandbox && typeof sandbox.dockerfile === 'string'
+      ? sandbox.dockerfile
+      : undefined
+  if (dockerfile && existsSync(dockerfile)) {
+    const context = dirname(dockerfile)
+    for (const path of contextFiles(context, dockerfile)) {
       const full = join(context, path)
-      out.inputs.push({
-        path: full,
-        kind: full === sandbox.dockerfile ? 'dockerfile' : 'docker-context',
-      })
+      out.inputs.push({ path: full, kind: full === dockerfile ? 'dockerfile' : 'docker-context' })
     }
   }
   out.warnings = [...new Set(out.warnings)]

@@ -431,14 +431,13 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'run.cloud',
     area: 'Config and selection',
-    name: "`reeval run` in the cloud at `REEVAL_CLOUD_URL` (`https://cloud.reeval.ai` when unset): `cloud: true` in the config or a profile, or `--cloud`, with `--local` to run here; the run goes into the project `reeval link` linked (exit 2, `--dry-run` too, when none is); it is bundled, uploaded, started and followed as `reeval attach` follows one, exiting with its exit code (2 when the URL isn't http(s) or carries a user name or password, or for a flag that stays on this machine, 3 when the platform fails); a plan it can't run (`tart()`, files a bundle can't carry) runs here with a note; `--dry-run` names the target and the JSON plan's `target` and `notCloud` say where it goes",
+    name: "`reeval run` in the cloud at `REEVAL_CLOUD_URL` (`https://cloud.reeval.ai` when unset): `cloud: true` in the config or a profile, or `--cloud`, with `--local` to run here; the run goes into the project `reeval link` linked (exit 2, `--dry-run` too, when none is); it is bundled, uploaded, started and followed as `reeval attach` follows one, exiting with its exit code (2 when the URL isn't http(s) or carries a user name or password, or for a flag that stays on this machine, 3 when the platform fails); `tart()` and `podman()` exit 2 before anything is uploaded; a plan it can't run (`vertex()`, files a bundle can't carry) runs here with a note; `--dry-run` names the target and the JSON plan's `target` and `notCloud` say where it goes",
     plan: [
       'cloud/config',
       'cloud/local-flag',
       'cloud/profile-off',
       'cloud/profile-keeps',
       'cloud/profile-on',
-      'cloud/tart-runs-here',
       'cloud/ci-without',
       'cloud/ci-flag',
     ],
@@ -1280,6 +1279,18 @@ export const inventory: InventoryFeature[] = [
     fixtures: ['sandbox/cloud-image'],
     plan: ['environments/cloud'],
     unit: ['reeval/test/machine-image.test.ts', 'reeval/test/refusals.test.ts'],
+  },
+  {
+    id: 'cloud.fan-out',
+    area: 'Sandbox',
+    name: "A cloud run places each `docker()` attempt on a VM of its own: the same container (recipe, `root`, `capabilities`, limits within the VM's share per slot) in the VM's Docker, reeval's image for the harness when there's no recipe, a plugin's `build` in a layer of the VM's image, the cell keeping its `docker` id",
+    fixtures: ['sandbox/cloud-fan-out', 'sandbox/cloud-plugin-build'],
+    plan: ['cloud/docker-placed', 'cloud/docker-here'],
+    unit: [
+      'reeval/test/place.test.ts',
+      'reeval/test/cloud-run.test.ts',
+      'reeval/test/refusals.test.ts',
+    ],
   },
   {
     id: 'sandbox.vm-identity',

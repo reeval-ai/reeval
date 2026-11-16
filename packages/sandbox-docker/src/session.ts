@@ -62,7 +62,7 @@ export const DEFAULT_LIMITS: SandboxLimits = { memory: '4g', cpus: 2, pids: 1024
 const UNITS = { b: 1, k: 1024, m: 1024 ** 2, g: 1024 ** 3 } as const
 
 /** A Docker memory size in bytes, as Docker reads it (binary units). */
-function sizeBytes(size: string | number): number {
+export function sizeBytes(size: string | number): number {
   if (typeof size === 'number') return size
   const m = /^(\d+(?:\.\d+)?)([bkmg])?$/i.exec(size.trim())
   if (!m) throw new Error(`not a Docker memory size: ${JSON.stringify(size)}`)

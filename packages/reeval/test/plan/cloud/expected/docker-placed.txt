@@ -1,0 +1,6 @@
+no profile · 1 evals · 2 cells · 2 attempts
+WARNING: running as root in the sandbox: evaluate("builds the app") (docker({ root: true })) [eval evals/docker.eval.ts]
+evals/docker.eval.ts › builds the app  fake/plain/docker             control  gated  ×1
+                                       fake/rooted/docker:debian:12  control  gated  ×1
+excluded: —
+target cloud

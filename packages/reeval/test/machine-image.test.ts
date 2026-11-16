@@ -3,8 +3,8 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import type { RemoteEngine } from '@reeval/sandbox-docker'
-import { imageOnMachine } from '../src/sandbox/machine-image.ts'
+import { ImageBuildError, type ImageStage, type RemoteEngine } from '@reeval/sandbox-docker'
+import { imageOnMachine, recipeCaused } from '../src/sandbox/machine-image.ts'
 import { PrepareError } from '../src/sandbox/provider.ts'
 import { InfraError } from '../src/sandbox/types.ts'
 
@@ -30,6 +30,7 @@ test("a machine that can't be reached is its own infra error, not the recipe's",
     imageOnMachine(
       recipe,
       harness,
+      [],
       { id, description: `cloud VM ${id}` },
       unreachable(id),
       AbortSignal.timeout(60_000),
@@ -43,4 +44,20 @@ test("a machine that can't be reached is its own infra error, not the recipe's",
   assert.match((first as Error).message, /^cloud VM m1 couldn't prepare the sandbox image: /)
   const second = await fail('m2')
   assert.match((second as Error).message, /^cloud VM m2 /, 'the next machine tries for itself')
+})
+
+test("a failed install, Dockerfile or plugin build step is the recipe's, a lost connection the machine's", () => {
+  const failed = (stage: ImageStage) =>
+    new ImageBuildError('step failed', {
+      stage,
+      ref: 'r',
+      transient: false,
+      cause: null,
+      log: null,
+    })
+  for (const stage of ['install', 'dockerfile', 'plugin'] as const) {
+    assert.ok(recipeCaused(failed(stage), 'exit code: 1'), stage)
+  }
+  assert.ok(!recipeCaused(failed('harness'), 'exit code: 1'), 'harness')
+  assert.ok(!recipeCaused(failed('plugin'), 'ssh: connect to host: connection refused'))
 })

@@ -2,7 +2,13 @@ import type { BrokeredSecret } from '../environment/resolve.ts'
 import type { Brokering } from '../harness/agents.ts'
 import type { SecretWarning } from '../history/types.ts'
 import { withoutOtel } from '../otel-env.ts'
-import type { HarnessDescriptor, PlannedEgress, SandboxBase, SandboxDescriptor } from '../types.ts'
+import type {
+  HarnessDescriptor,
+  PlannedEgress,
+  PluginSource,
+  SandboxBase,
+  SandboxDescriptor,
+} from '../types.ts'
 import { sandboxKind } from './kinds.ts'
 import type { PreparedHost } from './tart-hosts.ts'
 import { InfraError, RunStopped, type Sandbox } from './types.ts'
@@ -21,6 +27,8 @@ export type SandboxOptions = {
   hosts?: readonly PreparedHost[]
   /** The saved image preflight prepared for a VM sandbox, which each attempt runs in a container of. */
   base?: SandboxBase
+  /** The plugins with a `build`, which a sandbox that prepares its image on its machine builds there. */
+  pluginBuilds?: readonly PluginSource[]
   /** The attempt's harness, whose CLI `boat()` installs before the session's start is timed. */
   harness?: HarnessDescriptor
   /** The harness's credential, which the Docker egress gateway keeps out of the sandbox. */

@@ -270,6 +270,14 @@ const planned =
       { config, profile: null, runs, tags: [], concurrency: 1, file: undefined, order: 0 },
     )
   }
+/** What planning an eval with `options` refuses on a cloud run. */
+const plannedOnCloud = (o: unknown) => () => {
+  const config = resolveConfig({ harnesses: fakeHarness() }, DIR, 'reeval.config.ts')
+  planEval(
+    { name: 'e', mode: 'run', groups: [], options: o as never, source: { body: '0'.repeat(64) } },
+    { config, profile: null, tags: [], concurrency: 1, file: undefined, order: 0, target: 'cloud' },
+  )
+}
 /** What planning an eval with `options` refuses inside a group with `group`. */
 const plannedUnder = (group: unknown, o: unknown) => () => {
   const config = resolveConfig(
@@ -929,6 +937,12 @@ export const CASES: Record<string, Case[]> = {
     ['cloud() image and from', any(cloud, { image: 'acme/agent:1', from: 'python:3.12' })],
     ['cloud() install empty', any(cloud, { install: [] })],
     ['cloud() dockerfile', any(cloud, { dockerfile: 'Dockerfile' })],
+    ['cloud() memory not a size', any(cloud, { memory: 'lots' })],
+    [
+      'tart() on a cloud run',
+      plannedOnCloud({ sandbox: tart({ image: 'macos-base' }), egress: 'allow-all' }),
+    ],
+    ['podman() on a cloud run', plannedOnCloud({ sandbox: podman() })],
     [
       'opencode mcp: {file:} in an arg',
       mcpOn(OPENCODE, ({ mcp }) => ({

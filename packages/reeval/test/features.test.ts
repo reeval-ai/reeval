@@ -1592,6 +1592,66 @@ export const features: Feature[] = [
     },
   },
   {
+    dir: 'sandbox/cloud-fan-out',
+    tiers: ['docker'],
+    env: '-',
+    hostEnv: () => ({
+      REEVAL_PLAN_TARGET: 'cloud',
+      REEVAL_VM_URL: dockerVmService.url,
+      REEVAL_VM_TOKEN: dockerVmService.token,
+    }),
+    prepare: () => buildSshVmImage(['boat', 'boat-docker']),
+    canary: /expected \{ .*'root\\n'.* \} to match object/s,
+    evals: {
+      lands: { outcome: 'pass', attempts: ['fake/-/docker#1', 'fake/-/docker#2'] },
+      canary: {
+        outcome: 'fail',
+        attempts: ['fake/-/docker#1'],
+        error: { kind: 'assertion', message: /to match object/ },
+      },
+    },
+    record: ({ run }) => {
+      const prefix = runPrefix(CLOUD_VM, run.runId)
+      assert.deepEqual(
+        dockerBoatApi.live().filter((name) => name.startsWith(prefix)),
+        [],
+        'every VM of the run is deleted',
+      )
+      const attempts = run.evals.flatMap((e) => e.attempts)
+      const machines = attempts.map((a) => a.resources?.machine)
+      for (const [i, a] of attempts.entries()) {
+        assert.equal(a.resources?.scope, 'container', JSON.stringify(a.resources))
+        assert.equal(machines[i]?.sandbox, 'cloud', 'on a VM, not the machine that ran the run')
+        const image = run.stack.images.find((im) => im.id === a.imageId)
+        assert.match(image?.ref ?? '', /^reeval-sandbox:/, "reeval's image for the harness")
+      }
+      assert.equal(
+        new Set(machines.map((m) => m?.id)).size,
+        attempts.length,
+        `each attempt on a VM of its own: ${JSON.stringify(machines)}`,
+      )
+    },
+  },
+  {
+    dir: 'sandbox/cloud-plugin-build',
+    tiers: ['docker'],
+    env: 'built',
+    hostEnv: () => ({
+      REEVAL_PLAN_TARGET: 'cloud',
+      REEVAL_VM_URL: dockerVmService.url,
+      REEVAL_VM_TOKEN: dockerVmService.token,
+    }),
+    prepare: () => buildSshVmImage(['boat', 'boat-docker']),
+    canary: /expected '' to contain 'built on linux as uid 0'/,
+    record: ({ run }) => {
+      const [p] = plugins(run)
+      assert.equal(p?.name, 'built')
+      assert.match(p?.build ?? '', /^reeval-plugin:[0-9a-f]{12}-[0-9a-f]{16}$/)
+      const r = run.evals.find((e) => e.name === 'lands')?.attempts[0]?.resources
+      assert.equal(r?.machine.sandbox, 'cloud', 'built on a VM, not the machine that ran the run')
+    },
+  },
+  {
     dir: 'sandbox/cloud-session',
     tiers: ['docker'],
     env: 'vm',

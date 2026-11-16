@@ -12,6 +12,7 @@ import { shellQuote } from '@reeval/sandbox-docker/process'
 import { debugLog, debugTrace } from '../debug/attempt.ts'
 import { snapshot } from '../diff.ts'
 import {
+  builtPlugins,
   droppedPaths,
   PLUGIN_DIR,
   PLUGIN_MANIFEST,
@@ -35,8 +36,9 @@ import { createSandbox, InfraError, type Sandbox } from '../sandbox/index.ts'
 import { capabilitiesOf, sandboxKind } from '../sandbox/kinds.ts'
 import { brokerPhases } from '../sandbox/phases.ts'
 import { clip, formatDuration } from '../text.ts'
-import type { StartRetry } from '../types.ts'
+import type { SandboxDescriptor, StartRetry } from '../types.ts'
 import { asCheck } from './checks.ts'
+import { useBuiltPlugins } from './environment.ts'
 import { timeMcpServers } from './mcp-startup.ts'
 import { type Attempt, setupAllowance, startTimeoutMs } from './state.ts'
 
@@ -302,6 +304,12 @@ async function unpackFiles(
       return one()
     }
   }
+}
+
+/** Whether the sandbox builds its plugins into an image on its own machine, not in preflight. */
+const onMachine = (sandbox: SandboxDescriptor) => {
+  const can = capabilitiesOf(sandbox)
+  return can.pluginBuilds && !can.images
 }
 
 /**
@@ -578,6 +586,7 @@ export async function startSession(
     image: a.image,
     ...(a.hosts && { hosts: a.hosts }),
     ...(a.base && { base: a.base }),
+    ...(onMachine(spec.sandbox) && { pluginBuilds: builtPlugins(spec.environment.layers) }),
     harness: spec.harness,
     brokering: brokeringFor(spec.harness, spec.vertex),
     ...(agentOf(spec.harness, spec.vertex)?.keychainTrust && { keychainTrust: true }),
@@ -595,6 +604,14 @@ export async function startSession(
     debugLog(
       'image',
       `ready ${ref} (${id.replace(/^sha256:/, '').slice(0, 12)}) · prepared on its machine${ref !== base ? ` · on ${base}` : ''}${agentCli ? ` · agent CLI ${agentCli}` : ''}`,
+    )
+  }
+  if (onMachine(spec.sandbox)) {
+    useBuiltPlugins(
+      env,
+      box.builtPlugins ?? [],
+      `in ${box.image?.ref ?? 'its image'}`,
+      'as its machine started',
     )
   }
   if (!capabilitiesOf(spec.sandbox).isolated) {

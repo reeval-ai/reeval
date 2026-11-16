@@ -335,7 +335,13 @@ export const cases: PlanCase[] = [
     args: ['--profile', 'there', 'evals/a.eval.ts'],
     prepare: linkCloud,
   },
-  { dir: 'cloud', name: 'tart-runs-here', args: ['evals/mac.eval.ts'], prepare: linkCloud },
+  { dir: 'cloud', name: 'docker-placed', args: ['evals/docker.eval.ts'], prepare: linkCloud },
+  {
+    dir: 'cloud',
+    name: 'docker-here',
+    args: ['--local', 'evals/docker.eval.ts'],
+    prepare: linkCloud,
+  },
   {
     dir: 'cloud',
     name: 'ci-without',

@@ -4,8 +4,9 @@
 import { setTimeout as sleep } from 'node:timers/promises'
 import { docker, ImageBuildError, imageInfo, type RemoteEngine } from '@reeval/sandbox-docker'
 import { attemptDebug } from '../debug/attempt.ts'
-import type { AttemptImage, DockerSandboxDescriptor, HarnessDescriptor } from '../types.ts'
-import { createBuilds, imageHarness, prepareImage } from './prepare.ts'
+import { pluginBuildId } from '../environment/plugins.ts'
+import type { DockerSandboxDescriptor, HarnessDescriptor, PluginSource } from '../types.ts'
+import { createBuilds, imageHarness, type PreparedImage, prepareImage } from './prepare.ts'
 import { PrepareError } from './provider.ts'
 import { classifyDocker } from './providers.ts'
 import type { ImageRecipe } from './recipe.ts'
@@ -25,18 +26,19 @@ const REFUSED =
 const FROM_FAILED = /reeval needs a Debian|did not complete successfully/
 
 /**
- * Whether the recipe caused `error`: its install or Dockerfile step failed, its `from` isn't one
- * reeval can bake onto, or a registry refused its image. Anything else is the machine's, which
+ * Whether the recipe caused `error`: its install, Dockerfile or plugin build step failed, its
+ * `from` isn't one reeval can bake onto, or a registry refused its image. Anything else is the machine's, which
  * another machine may not have, and so is a step that fails on a connection, which is usually
  * the machine's network.
  */
-function recipeCaused(error: unknown, message: string): boolean {
+export function recipeCaused(error: unknown, message: string): boolean {
   if (MACHINE_FAULT.test(message)) return false
   if (error instanceof ImageBuildError) {
     const { stage } = error.failure
     return (
       stage === 'install' ||
       stage === 'dockerfile' ||
+      stage === 'plugin' ||
       (stage === 'from' && FROM_FAILED.test(message))
     )
   }
@@ -46,25 +48,26 @@ function recipeCaused(error: unknown, message: string): boolean {
 /** A recipe's config failure in this worker, so its other attempts fail without building again. */
 const failed = new Map<string, PrepareError>()
 /** Each machine's image per recipe in this worker, so its slots prepare it once between them. */
-const prepared = new Map<string, Promise<AttemptImage>>()
+const prepared = new Map<string, Promise<PreparedImage>>()
 
-/** The image as the record has it, ready in `engine`'s Docker on `machine`. */
+/** The image as the record has it, with `plugins` built into it, ready in `engine`'s Docker on `machine`. */
 export async function imageOnMachine(
   recipe: ImageRecipe,
   harness: HarnessDescriptor | undefined,
+  plugins: readonly PluginSource[],
   machine: { id: string; description: string },
   engine: RemoteEngine,
   signal: AbortSignal,
-): Promise<AttemptImage> {
+): Promise<PreparedImage> {
   if (!harness) throw new InfraError(`An image recipe on ${machine.description} needs the harness`)
-  const recipeKey = JSON.stringify([recipe, imageHarness(harness)])
+  const recipeKey = JSON.stringify([recipe, imageHarness(harness), plugins.map(pluginBuildId)])
   const key = `${machine.id}\0${recipeKey}`
   for (;;) {
     const known = failed.get(recipeKey)
     if (known) throw known
     let image = prepared.get(key)
     if (!image) {
-      image = prepare(recipe, harness, machine.description, engine, signal)
+      image = prepare(recipe, harness, plugins, machine.description, engine, signal)
       prepared.set(key, image)
       image.catch((error: unknown) => {
         prepared.delete(key)
@@ -86,10 +89,11 @@ export async function imageOnMachine(
 async function prepare(
   recipe: ImageRecipe,
   harness: HarnessDescriptor,
+  plugins: readonly PluginSource[],
   where: string,
   engine: RemoteEngine,
   signal: AbortSignal,
-): Promise<AttemptImage> {
+): Promise<PreparedImage> {
   const debug = attemptDebug()
   const log = (line: string) => debug?.log('container', line)
   const retry = async <T>(step: () => Promise<T>): Promise<T> => {
@@ -115,12 +119,13 @@ async function prepare(
         }
       })
     }
-    const { plugins: _, ...ready } = await prepareImage(
+    const ready = await prepareImage(
       { kind: 'docker', ...recipe } as DockerSandboxDescriptor,
       imageHarness(harness),
       process.cwd(),
       signal,
       createBuilds({ engine, log, retry }),
+      plugins,
     )
     const ms = Date.now() - started
     if (ms >= 1000) log(`${ready.ref} ready in its Docker after ${Math.round(ms / 1000)}s`)

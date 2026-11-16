@@ -1339,6 +1339,27 @@ export type CloudSandboxDescriptor = {
   dockerfile?: string
   /** Baked onto the sandbox image in one build container: in order, no secrets, no workspace. */
   install?: InstallStep[]
+  /**
+   * Each attempt runs in a container of reeval's image for the harness, which each VM pulls by
+   * digest or builds as its first attempt starts, as a recipe's is. Set for a `docker()` placed on
+   * a cloud run; `cloud()` doesn't take it.
+   */
+  reevalImage?: true
+  /** Run the agent, setup steps and checks as root in the attempt's container, as `docker({ root })` does. */
+  root?: boolean
+  /** Linux capabilities the attempt's container adds back, as `docker({ capabilities })` does. */
+  capabilities?: string[]
+  /**
+   * The attempt's container's memory, as `docker({ memory })` sets it; the VM's share per slot when
+   * unset. More than that share fails the attempt.
+   */
+  memory?: string | number
+  /** Swap on top of `memory`, as `docker({ swap })` sets it. */
+  swap?: string | number
+  /** CPUs the attempt's container may use; the VM's share per slot when unset. */
+  cpus?: number
+  /** Processes and threads at once in the attempt's container. Default 1024. */
+  pids?: number
   /** The most attempts on cloud VMs at once, across the run: machines times `attemptsPerMachine`. */
   maxConcurrent?: number
   /**
@@ -3777,6 +3798,8 @@ export type RunContext = {
    * for the run's key; unset before then, or without a key.
    */
   cursorEfforts?: CursorEfforts
+  /** Where the attempts' sandboxes run: `cloud` on a cloud run's own machines; here when unset. */
+  placement?: 'cloud'
   /** `reeval run --dry-run --json`: each attempt lists the host files it reads in `inputs`. */
   inputs?: boolean
 }
