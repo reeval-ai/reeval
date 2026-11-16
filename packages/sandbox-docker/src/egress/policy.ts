@@ -1,4 +1,5 @@
-import { lookup as dnsLookup } from 'node:dns/promises'
+import { lookup as dnsLookup, Resolver } from 'node:dns/promises'
+import { readFileSync } from 'node:fs'
 import { BlockList, isIP } from 'node:net'
 import type { HarnessV1NetworkPolicy } from '@ai-sdk/harness'
 import type { BakedHarness } from '../image.ts'
@@ -174,8 +175,98 @@ function hostMatch(patterns: readonly string[], host: string): 'exact' | 'wildca
 export const hostAllowed = (patterns: readonly string[], host: string) =>
   hostMatch(patterns, host) !== undefined
 
-const defaultLookup: Lookup = async (host) =>
+const osLookup: Lookup = async (host) =>
   (await dnsLookup(host, { all: true, verbatim: true })).map((a) => a.address)
+
+/** The servers' answer that the name has no addresses, as opposed to a failure to answer. */
+const NO_SUCH_NAME = new Set(['ENOTFOUND', 'ENODATA'])
+
+export type ResolverLookupOptions = {
+  /** The DNS servers to ask (`host` or `host:port`); the system's when unset. */
+  servers?: string[]
+  /** Each query's first timeout; c-ares backs off on its retries. */
+  timeoutMs?: number
+  tries?: number
+  /** How long a name the servers said doesn't exist is refused without asking again. */
+  negativeTtlMs?: number
+  /** Its names, read once, go to `fallback`. */
+  hostsFile?: string
+  /**
+   * Asked for the names only the OS resolves (`localhost`, the hosts file's, a single label its
+   * search domains complete, an IPv4 shorthand such as `127.1`) and when the servers refuse the
+   * connection (none listening).
+   */
+  fallback?: Lookup
+}
+
+/** The host names a hosts file lists, or none when it can't be read. */
+function hostsNames(file: string): Set<string> {
+  let text: string
+  try {
+    text = readFileSync(file, 'utf8')
+  } catch {
+    return new Set()
+  }
+  const names = text
+    .split('\n')
+    .flatMap((line) => line.replace(/#.*/, '').trim().split(/\s+/).slice(1))
+  return new Set(names.map(normalize))
+}
+
+/**
+ * Resolves through c-ares rather than `getaddrinfo`, which runs on libuv's four-thread pool: a
+ * name whose lookup hangs (a cloud metadata host probed from a VM that isn't on that cloud takes
+ * 20 s) would otherwise hold a thread, and four of them stall every attempt's CONNECT in the
+ * process. A name the servers said doesn't exist is refused from a cache for a while, since the
+ * tools that probe metadata hosts probe them again and again; any other failure (a timeout, a
+ * SERVFAIL) fails fast but isn't cached, so a DNS blip doesn't refuse a real host. c-ares reads
+ * neither the hosts file nor the search domains, so the names those resolve go to `getaddrinfo`,
+ * as do all names when the servers refuse the connection.
+ */
+export function resolverLookup(options: ResolverLookupOptions = {}): Lookup {
+  const resolver = new Resolver({ timeout: options.timeoutMs ?? 2000, tries: options.tries ?? 2 })
+  if (options.servers) resolver.setServers(options.servers)
+  const fallback = options.fallback ?? osLookup
+  const ttl = options.negativeTtlMs ?? 10_000
+  let hosts: Set<string> | undefined
+  const failed = new Map<string, { error: Error; until: number }>()
+  return async (host) => {
+    const name = normalize(host)
+    hosts ??= hostsNames(options.hostsFile ?? '/etc/hosts')
+    if (
+      name === 'localhost' ||
+      name.endsWith('.localhost') ||
+      !name.includes('.') ||
+      /^[\d.]+$/.test(name) ||
+      hosts.has(name)
+    ) {
+      return fallback(name)
+    }
+    const known = failed.get(name)
+    if (known && known.until > Date.now()) throw known.error
+    if (known) failed.delete(name)
+    const answers = await Promise.allSettled([resolver.resolve4(name), resolver.resolve6(name)])
+    const addresses = answers.flatMap((a) => (a.status === 'fulfilled' ? a.value : []))
+    if (addresses.length) return addresses
+    const errors = answers.flatMap((a) =>
+      a.status === 'rejected' ? [a.reason as NodeJS.ErrnoException] : [],
+    )
+    if (errors.some((e) => e.code === 'ECONNREFUSED')) return fallback(name)
+    const error =
+      errors.find((e) => !NO_SUCH_NAME.has(e.code ?? '')) ??
+      errors.find((e) => e.code === 'ENOTFOUND') ??
+      errors[0] ??
+      (new Error(`${name} has no addresses`) as NodeJS.ErrnoException)
+    if (NO_SUCH_NAME.has(error.code ?? '')) {
+      if (failed.size >= 1000) failed.delete(failed.keys().next().value as string)
+      failed.set(name, { error, until: Date.now() + ttl })
+    }
+    throw error
+  }
+}
+
+/** On Linux, where a VM's resolver can hang on a metadata host; elsewhere the OS's own resolvers (split DNS, mDNS) answer names c-ares can't. */
+const defaultLookup = process.platform === 'linux' ? resolverLookup() : osLookup
 
 export type PolicyOptions = { lookup?: Lookup; allowLoopback?: boolean }
 
