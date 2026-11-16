@@ -108,8 +108,7 @@ export async function prepareEnvironment(
       )
     }
     const from = vm?.ref ?? ('image' in spec.sandbox ? spec.sandbox.image : undefined)
-    const s = spec.sandbox
-    if (s.kind === 'cloud' && (s.image || s.from || s.dockerfile || s.install?.length)) {
+    if (kind.preparesImage?.(spec.sandbox)) {
       debugLog('image', `each machine prepares the recipe's image as its attempt starts`)
     } else if (!base)
       debugLog(

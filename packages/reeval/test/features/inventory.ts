@@ -1279,7 +1279,7 @@ export const inventory: InventoryFeature[] = [
     name: "`cloud({ image, from, install })` (internal): each attempt in a container of the recipe's image in its VM's Docker, which pulls or builds it as `docker()` does locally, under any egress policy",
     fixtures: ['sandbox/cloud-image'],
     plan: ['environments/cloud'],
-    unit: ['reeval/test/refusals.test.ts'],
+    unit: ['reeval/test/machine-image.test.ts', 'reeval/test/refusals.test.ts'],
   },
   {
     id: 'sandbox.vm-identity',

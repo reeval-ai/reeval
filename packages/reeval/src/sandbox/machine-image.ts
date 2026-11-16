@@ -2,7 +2,7 @@
 // reeval's image for the harness pulled by the digest this reeval pins, `image` pulled, or `from`,
 // a Dockerfile or `install` built on the machine. A reused machine has it already.
 import { setTimeout as sleep } from 'node:timers/promises'
-import { docker, imageInfo, type RemoteEngine } from '@reeval/sandbox-docker'
+import { docker, ImageBuildError, imageInfo, type RemoteEngine } from '@reeval/sandbox-docker'
 import { attemptDebug } from '../debug/attempt.ts'
 import type { AttemptImage, DockerSandboxDescriptor, HarnessDescriptor } from '../types.ts'
 import { createBuilds, imageHarness, prepareImage } from './prepare.ts'
@@ -13,6 +13,26 @@ import { InfraError } from './types.ts'
 
 /** Waits before each retry of a transient pull or build step. */
 const RETRY_DELAYS_MS = [2_000, 8_000]
+
+/** What a machine's fault says, wherever it surfaces: its SSH, its Docker daemon. */
+const MACHINE_FAULT =
+  /\bssh: |connection (refused|reset|closed|timed out)|broken pipe|cannot connect to the docker daemon|error during connect|is the docker daemon running/i
+/** What a registry says when it refuses an image the recipe names. */
+const REFUSED =
+  /pull access denied|manifest unknown|repository does not exist|invalid reference format/i
+
+/**
+ * Whether the recipe caused `error`: its install or Dockerfile step failed, or a registry refused
+ * its image. Anything else is the machine's, which another machine may not have.
+ */
+function recipeCaused(error: unknown, message: string): boolean {
+  const log = error instanceof ImageBuildError ? (error.failure.log ?? '') : ''
+  if (MACHINE_FAULT.test(message) || MACHINE_FAULT.test(log)) return false
+  if (error instanceof ImageBuildError) {
+    return error.failure.stage === 'install' || error.failure.stage === 'dockerfile'
+  }
+  return REFUSED.test(message)
+}
 
 /** A recipe's config failure in this worker, so its other attempts fail without building again. */
 const failed = new Map<string, PrepareError>()
@@ -48,7 +68,7 @@ export async function imageOnMachine(
       return await image
     } catch (error) {
       if (signal.aborted) throw signal.reason
-      if (error instanceof PrepareError) throw error
+      if (error instanceof InfraError) throw error
       // Another slot started it and was canceled: this one prepares it itself.
     }
   }
@@ -99,9 +119,10 @@ async function prepare(
   } catch (error) {
     if (signal.aborted) throw signal.reason
     const failure = classifyDocker(error)
-    throw new PrepareError({
-      ...failure,
-      message: `${where} couldn't prepare the sandbox image: ${failure.message}`,
-    })
+    const message = `${where} couldn't prepare the sandbox image: ${failure.message}`
+    if (failure.class === 'config' && recipeCaused(error, failure.message)) {
+      throw new PrepareError({ ...failure, message })
+    }
+    throw new InfraError(message)
   }
 }

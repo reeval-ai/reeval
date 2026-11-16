@@ -243,6 +243,7 @@ export const CLOUD_MACHINE: MachineProvider<CloudSandboxDescriptor> = {
   ],
   slotsPerMachine: (s) => s.attemptsPerMachine ?? 1,
   slotNetworks: inImage,
+  preparesImage: inImage,
   async doctor(sandboxes, ctx) {
     const { cloudDoctor } = await import('./cloud.ts')
     return cloudDoctor(sandboxes, ctx)
