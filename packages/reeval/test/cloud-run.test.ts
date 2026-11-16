@@ -532,6 +532,37 @@ describe('reeval run on the cloud platform', () => {
     }
   })
 
+  test('REEVAL_DEV_CLI=1 carries the running reeval as a package tarball the bundle still runs with', async () => {
+    const p = await platform()
+    try {
+      const r = await runCli(await fixtureProject(), ['run', '--cloud'], {
+        env: { REEVAL_CLOUD_URL: p.base, REEVAL_TOKEN: 'cloud-test-token', REEVAL_DEV_CLI: '1' },
+      })
+      assert.equal(r.code, 0, r.stdout + r.stderr)
+      assert.ok(p.uploaded)
+      const entries = readTar(gunzipSync(p.uploaded))
+      const manifestEntry = entries.find((e) => e.path === 'manifest.json')
+      assert.ok(manifestEntry?.type === 'file')
+      const manifest = JSON.parse(manifestEntry.data.toString('utf8'))
+      assert.equal(manifest.devCli, '.reeval-dev/reeval.tgz')
+      const tarball = entries.find((e) => e.path === manifest.devCli)
+      assert.ok(tarball?.type === 'file')
+      const listed = manifest.files.find((f: { path: string }) => f.path === manifest.devCli)
+      assert.equal(listed?.sha256, createHash('sha256').update(tarball.data).digest('hex'))
+      const pkg = readTar(gunzipSync(tarball.data)).find((e) => e.path === 'package/package.json')
+      assert.ok(pkg?.type === 'file')
+      const { name, version, devDependencies } = JSON.parse(pkg.data.toString('utf8'))
+      const own = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8'))
+      assert.deepEqual([name, version], [own.name, own.version])
+      assert.ok(
+        !JSON.stringify(devDependencies ?? {}).includes('workspace:'),
+        'pnpm pack resolves workspace: specs',
+      )
+    } finally {
+      await p.close()
+    }
+  })
+
   test('refuses an unlinked project before bundling, naming reeval link, with --dry-run too', async () => {
     const p = await platform({ secretNames: ['CHECK_TOKEN'] })
     try {

@@ -168,6 +168,10 @@
         "createdAt": {
           "type": "string"
         },
+        "devCli": {
+          "description": "The path in the archive of a package tarball of the reeval that wrote it, which a runner installs in place of the `reeval` release; only in a cloud run's bundle made with `REEVAL_DEV_CLI=1`.",
+          "type": "string"
+        },
         "envFiles": {
           "description": "The `.env` files the run loads, left out of the archive.",
           "type": "array",

@@ -116,6 +116,12 @@ export type BundleManifest = {
    * reeval may list others.
    */
   features?: string[]
+  /**
+   * The path in the archive of a package tarball of the reeval that wrote it, which a runner
+   * installs in place of the `reeval` release; only in a cloud run's bundle made with
+   * `REEVAL_DEV_CLI=1`.
+   */
+  devCli?: string
 }
 
 /** The features this reeval writes in every bundle's manifest. */
