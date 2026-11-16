@@ -35,7 +35,7 @@ import type { GitInfo } from '../history/types.ts'
 import { RUN_ID } from '../ids.ts'
 import { PreflightInfraError } from '../preflight.ts'
 import { savedFilters, stagingInUse } from '../resume.ts'
-import { DIST_DIR, PACKAGE_VERSION, reevalCommand } from '../root.ts'
+import { COMPILED, DIST_DIR, PACKAGE_VERSION, reevalCommand } from '../root.ts'
 import { withoutBom } from '../text.ts'
 import { NewerSchemaError, readableBundleManifest } from '../view/record.ts'
 import {
@@ -90,6 +90,8 @@ const INSTALL_FILES = [
   '.nvmrc',
   '.node-version',
 ]
+/** Compiled, reeval is a Bun executable, which runs as `bun` itself with `BUN_BE_BUN=1`. */
+const BUN = COMPILED ? process.execPath : 'bun'
 /** Each lockfile and the install that reproduces it exactly. */
 const INSTALLS: Array<{ lockfile: string; command: (dir: string) => [string, ...string[]] }> = [
   { lockfile: 'pnpm-lock.yaml', command: () => ['pnpm', 'install', '--frozen-lockfile'] },
@@ -102,8 +104,8 @@ const INSTALLS: Array<{ lockfile: string; command: (dir: string) => [string, ...
         ? ['yarn', 'install', '--immutable']
         : ['yarn', 'install', '--frozen-lockfile'],
   },
-  { lockfile: 'bun.lock', command: () => ['bun', 'install', '--frozen-lockfile'] },
-  { lockfile: 'bun.lockb', command: () => ['bun', 'install', '--frozen-lockfile'] },
+  { lockfile: 'bun.lock', command: () => [BUN, 'install', '--frozen-lockfile'] },
+  { lockfile: 'bun.lockb', command: () => [BUN, 'install', '--frozen-lockfile'] },
   // The bundle has a uv project's pyproject.toml files and lockfile, not its own sources, so only
   // the dependencies install, every workspace member's: building a package would need its sources.
   {
@@ -1129,7 +1131,8 @@ async function install(
     )
     const [cmd, ...args] = how.command(at)
     log(`reeval: installing from ${f.path}: ${cmd} ${args.join(' ')}`)
-    const result = await runProcess(cmd, args, { cwd: at }).catch((error: Error) => {
+    const env = cmd === BUN && COMPILED ? { BUN_BE_BUN: '1' } : undefined
+    const result = await runProcess(cmd, args, { cwd: at, env }).catch((error: Error) => {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         throw new UsageError(
           `The bundle installs from ${f.path} with ${cmd}, which isn't on this machine's PATH. Install ${cmd}, then run it again.`,

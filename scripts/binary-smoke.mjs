@@ -6,20 +6,22 @@
 // From an empty directory it checks `reeval --version` against packages/reeval/package.json, then
 // plans and runs a copy of examples/with-skill-lift, and plans one whose config captures a stack
 // on an object that isn't an Error. Then it serves that run with `reeval studio`,
-// pairs with it as the hosted page would and fetches the run's view. With --docker it builds the sandbox image
+// pairs with it as the hosted page would and fetches the run's view. It bundles a project with a
+// bun.lock and runs the bundle with no bun on PATH, so the binary installs as Bun. With --docker it builds the sandbox image
 // with the binary and runs one egress fixture in Docker, whose eval passes and canary fails.
 import { spawn, spawnSync } from 'node:child_process'
 import {
   chmodSync,
   cpSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { basename, join, resolve } from 'node:path'
+import { basename, delimiter, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs, stripVTControlCharacters } from 'node:util'
 
@@ -119,6 +121,7 @@ const captured = reeval(capture, ['run', '--dry-run'])
 check('a config can capture a stack on a non-Error', captured.status === 0)
 
 await serveStudio(example)
+bunInstall()
 
 if (values.docker) {
   const fixture = project(
@@ -141,6 +144,80 @@ if (failures.length) {
   process.exit(1)
 }
 console.log(`\nbinary-smoke: ${basename(binary)} ${version} works on its own`)
+
+/**
+ * Bundles a workspace whose bun.lock is at its git root and runs the bundle with no `bun` on PATH:
+ * the binary installs from it as Bun itself. A member renamed since the lockfile must fail the
+ * frozen install, so the install is really Bun's.
+ */
+function bunInstall() {
+  const path = Object.keys(process.env).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH'
+  const noBun = (process.env[path] ?? '')
+    .split(delimiter)
+    .filter((d) => !['bun', 'bun.exe'].some((b) => existsSync(join(d, b))))
+    .join(delimiter)
+  for (const member of ['evals', 'renamed']) {
+    const repo = join(alone, `bun-${member}`)
+    const app = join(repo, 'apps/evals')
+    mkdirSync(join(app, 'evals'), { recursive: true })
+    const files = {
+      'package.json': { name: 'repo', private: true, workspaces: ['apps/*'] },
+      'bun.lock': {
+        lockfileVersion: 1,
+        workspaces: { '': { name: 'repo' }, 'apps/evals': { name: 'evals' } },
+        packages: { evals: ['evals@workspace:apps/evals'] },
+      },
+      'apps/evals/package.json': { name: member, private: true },
+    }
+    for (const [file, json] of Object.entries(files))
+      writeFileSync(join(repo, file), `${JSON.stringify(json, null, 2)}\n`)
+    writeFileSync(join(repo, '.gitignore'), 'node_modules\n.reeval\nsandboxes\n')
+    writeFileSync(
+      join(app, 'reeval.config.ts'),
+      [
+        "import { defineConfig } from 'reeval'",
+        "import { fakeHarness } from 'reeval/harness'",
+        "import { fakeSandbox } from 'reeval/sandbox'",
+        'export default defineConfig({',
+        "  harnesses: fakeHarness({ script: [[{ reply: 'hi' }]] }),",
+        "  sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }),",
+        '})',
+        '',
+      ].join('\n'),
+    )
+    writeFileSync(
+      join(app, 'evals/hi.eval.ts'),
+      [
+        "import { evaluate, expect } from 'reeval'",
+        "evaluate('hi', async (c) => expect((await c.send('Say hi')).text).toBe('hi'))",
+        '',
+      ].join('\n'),
+    )
+    const git = (...args) => spawnSync('git', args, { cwd: repo, windowsHide: true })
+    git('init', '-q')
+    git('add', '.')
+    git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init')
+    const out = join(repo, 'bundle.tar.gz')
+    const made = reeval(app, ['bundle', '--out', out], { [path]: noBun })
+    const fresh = join(repo, 'fresh')
+    mkdirSync(fresh)
+    const r = reeval(fresh, ['run', '--bundle', out], { [path]: noBun })
+    if (member === 'evals') {
+      check(
+        'reeval run --bundle installs from bun.lock as Bun, with no bun on PATH',
+        made.status === 0 &&
+          r.status === 0 &&
+          r.out.includes(`installing from bun.lock: ${binary} install --frozen-lockfile`) &&
+          outcome(r) === '1 passed',
+      )
+    } else {
+      check(
+        "a stale bun.lock fails the bundle's frozen install",
+        made.status === 0 && r.status !== 0 && /lockfile is frozen/.test(r.out),
+      )
+    }
+  }
+}
 
 /** Starts `reeval studio` in `cwd`, pairs with its token as the studio page does, then reads the runs. */
 async function serveStudio(cwd) {
