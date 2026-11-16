@@ -608,3 +608,16 @@ describe('--registry and --push', () => {
     assert.equal(ok.code, 0, ok.stdout + ok.stderr)
   })
 })
+
+test("the bundle ships the patched Claude Code bridge byte for byte, so its image key is the workspace's", () => {
+  const bundled = new URL('../dist/bridge/', import.meta.url)
+  const workspace = new URL('./bridge/', import.meta.resolve('@ai-sdk/harness-claude-code'))
+  const files = readdirSync(bundled)
+  assert.ok(files.includes('index.mjs'))
+  for (const file of files) {
+    assert.ok(
+      readFileSync(new URL(file, bundled)).equals(readFileSync(new URL(file, workspace))),
+      `dist/bridge/${file} differs from the adapter's`,
+    )
+  }
+})
