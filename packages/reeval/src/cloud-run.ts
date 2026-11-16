@@ -384,9 +384,11 @@ export async function watchQueue(
 
 /**
  * `code`, the exit code cloud run `runId`'s stream ended with, or 4 when the platform says it
- * stopped the run before it finished. A stop can end the stream with any code (a cancel's, or
- * what the attempts it cut short left), so every run that ended is asked about, unless `read` is
- * the platform's answer already. An answer that doesn't come keeps the stream's code.
+ * stopped the run before it finished; a canceled run is named as such, since a cancel before the
+ * run's header ends the stream with nothing to show. A stop can end the stream with any code (a
+ * cancel's, or what the attempts it cut short left), so every run that ended is asked about,
+ * unless `read` is the platform's answer already. An answer that doesn't come keeps the stream's
+ * code.
  */
 export async function stoppedOr(
   code: number,
@@ -397,6 +399,7 @@ export async function stoppedOr(
   read?: PlatformRun | null,
 ): Promise<number> {
   const run = read !== undefined ? read : await readRun(runId, base, auth)
+  if (run?.status === 'cancelled') log(`Cloud run ${runId} was canceled`)
   if (run?.status !== 'stopped') return code
   const why = platformText(run.error?.message) || platformText(run.error?.code)
   log(
@@ -431,6 +434,12 @@ export async function afterLostStream(
   if (exitCode === undefined) {
     if (run?.status === 'failed') {
       throw new CloudError(`cloud run ${runId} failed${why ? `: ${why}` : ''}`)
+    }
+    if (run && !ended && lost.lost) {
+      const events = new URL(`api/runs/${encodeURIComponent(runId)}/events`, base)
+      throw new EventStreamError(
+        `${lost.message}. Cloud run ${runId} goes on: reeval attach ${displayUrl(events.href)} follows it again; ${cancelHint(runId)}`,
+      )
     }
     throw lost
   }
@@ -707,6 +716,11 @@ export async function checkCloudSecrets(options: {
         list(settable),
         `Add ${settable.length === 1 ? 'it' : 'each'} with ${SET_HINT}. Then run again.`,
       )
+      if (settable.some((name) => /_API_KEY\b/.test(name))) {
+        parts.push(
+          "A model provider's key can also be set once for the whole org with reeval cloud provider set <provider> (reeval cloud provider list shows the org's keys); a project secret of the same name takes precedence over it.",
+        )
+      }
     }
     if (refused.length) {
       parts.push(

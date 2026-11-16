@@ -39,7 +39,7 @@ Cursor ⋅ Claude Code ⋅ Codex ⋅ Antigravity ⋅ OpenCode ⋅ Goose ⋅ pi �
 npm i -D reeval
 ```
 
-reeval runs on Node.js 22.13 or later. Real runs also need a sandbox runtime (Docker or Podman) and an API keys for the agents. `npx reeval doctor` checks both and names the fix for anything missing.
+reeval runs on Node.js 22.16 or later. Real runs also need a sandbox runtime (Docker or Podman) and an API keys for the agents. `npx reeval doctor` checks both and names the fix for anything missing.
 
 ## Quick start
 

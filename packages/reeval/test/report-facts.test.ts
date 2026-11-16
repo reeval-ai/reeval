@@ -75,7 +75,7 @@ const sorted = (facts: AttemptFacts): AttemptFacts => ({
 
 describe('attemptFacts', () => {
   test("agrees with history.db's tool_calls, skill_uses and context_reads on every corpus run", {
-    skip: !nodeAtLeast(process.versions.node) && 'node:sqlite needs Node 22.13',
+    skip: !nodeAtLeast(process.versions.node) && 'reeval query needs Node 22.16',
   }, async () => {
     let attempts = 0
     let calls = 0

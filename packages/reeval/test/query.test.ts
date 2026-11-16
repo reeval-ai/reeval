@@ -893,8 +893,8 @@ describe('reeval query plumbing', () => {
   })
 
   test('the Node floor is where node:sqlite arrives, in engines too', () => {
-    assert.ok(nodeAtLeast('22.13.0') && nodeAtLeast('v24.1.0') && nodeAtLeast('23.0.0'))
-    assert.ok(!nodeAtLeast('22.12.9') && !nodeAtLeast('22.6.0') && !nodeAtLeast('20.19.0'))
+    assert.ok(nodeAtLeast('22.16.0') && nodeAtLeast('v24.1.0') && nodeAtLeast('23.0.0'))
+    assert.ok(!nodeAtLeast('22.15.1') && !nodeAtLeast('22.6.0') && !nodeAtLeast('20.19.0'))
     const pkg = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8'))
     assert.equal(pkg.engines.node, `>=${SQLITE_NODE.replace(/\.0$/, '')}`)
   })

@@ -22,7 +22,8 @@ import { gunzipSync, gzipSync } from 'node:zlib'
 import { readTar, type TarEntry, writeTar } from '@reeval/sandbox-docker'
 import type WebSocket from 'ws'
 import { WebSocketServer } from 'ws'
-import { checkCloudSecrets, cloudUrl } from '../src/cloud-run.ts'
+import { afterLostStream, checkCloudSecrets, cloudUrl } from '../src/cloud-run.ts'
+import { EventStreamError } from '../src/events.ts'
 import { stripCredentials } from '../src/redact.ts'
 import { pkgRoot, project, runCli, tempDir } from './helpers.ts'
 import { fakeS3 } from './support/fake-s3.ts'
@@ -585,7 +586,7 @@ describe('reeval run on the cloud platform', () => {
         r.stderr,
         /The cloud project Main \(main\) lacks a secret this run needs, so nothing was uploaded:\n {2}CHECK_TOKEN\nAdd it with reeval cloud secrets set <name> --from-env, /,
       )
-      assert.doesNotMatch(r.stderr, /FROM_FILE|sets this name itself/)
+      assert.doesNotMatch(r.stderr, /FROM_FILE|sets this name itself|cloud provider set/)
       assert.ok(!(r.stdout + r.stderr).includes(TOKEN), 'no secret value in the output')
       assert.deepEqual(
         p.seen.map((s) => `${s.method} ${s.path}`),
@@ -661,6 +662,10 @@ describe('reeval run on the cloud platform', () => {
       assert.match(
         refused.stderr,
         /lacks 2 secrets this run needs, so nothing was uploaded:\n {2}CHECK_TOKEN\n {2}ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN\n/,
+      )
+      assert.match(
+        refused.stderr,
+        /set once for the whole org with reeval cloud provider set <provider> .*; a project secret of the same name takes precedence over it\./,
       )
       assert.equal(p.uploaded, undefined)
 
@@ -1196,6 +1201,7 @@ evaluate('reaches', async (c) => {
       })
       await canceling
       assert.equal(followed.code, 130, followed.stdout + followed.stderr)
+      assert.match(followed.stdout + followed.stderr, /Cloud run run_1 was canceled\n/)
       const said = followed.stdout.split('\n').filter((l) => l.includes('is queued'))
       assert.deepEqual(said, [
         "Cloud run run_1 is queued: waiting for the org's limit on attempts or runs at once, position 2 in the org's queue",
@@ -1421,6 +1427,24 @@ evaluate('reaches', async (c) => {
         assert.equal(r.code, 4, `${args[0]}: ${r.stdout}${r.stderr}`)
         assert.match(r.stdout, /Cloud run run_1 stopped: lost/, args[0])
       }
+    } finally {
+      await p.close()
+    }
+  })
+
+  test('a lost stream of a cloud run that goes on says how to follow it again; a refused one does not', async () => {
+    const p = await platform()
+    try {
+      const base = cloudUrl({ REEVAL_CLOUD_URL: p.base })
+      const auth = { headers: { authorization: 'Bearer cloud-test-token' }, refused: '' }
+      const follow = (error: EventStreamError) =>
+        afterLostStream(error, 'run_1', base, auth, assert.fail)
+      await assert.rejects(
+        follow(new EventStreamError('no word from run r for 2m 00s', { lost: true })),
+        /^EventStreamError: no word from run r for 2m 00s\. Cloud run run_1 goes on: reeval attach \S+\/api\/runs\/run_1\/events follows it again; reeval cloud run cancel run_1 cancels it$/,
+      )
+      const refused = new EventStreamError('skipped from line 1 to line 3')
+      await assert.rejects(follow(refused), (error) => error === refused)
     } finally {
       await p.close()
     }

@@ -164,6 +164,7 @@ export async function attach(options: AttachOptions): Promise<number> {
   let current = !options.resumedAfter
   let heard = Date.now()
   let stalled = false
+  let stalledAt = 0
   const rendererFor = (line: RunEventsHeader) =>
     createRenderer({
       out: options.out,
@@ -199,8 +200,11 @@ export async function attach(options: AttachOptions): Promise<number> {
   /** The next line, or `SILENT` once the run has been quiet past the next threshold. */
   const next = async (pending: Promise<IteratorResult<RunEventLine>>) => {
     if (!beating || code !== undefined) return pending
-    const quietFor = Date.now() - heard
-    const wait = Math.max(0, (stalled ? lostMs : stallMs) - quietFor)
+    // Lost counts from the stall notice too, so a viewer that wakes from a sleep long past both
+    // still has the rest of `lostMs` to reconnect.
+    const wait = stalled
+      ? Math.max(0, lostMs - stallMs - (Date.now() - stalledAt))
+      : Math.max(0, stallMs - (Date.now() - heard))
     let timer: NodeJS.Timeout | undefined
     const silent = new Promise<typeof SILENT>((resolve) => {
       timer = setTimeout(() => resolve(SILENT), wait)
@@ -238,9 +242,11 @@ export async function attach(options: AttachOptions): Promise<number> {
           lost.abort()
           throw new EventStreamError(
             `no word from run ${runId} for ${formatDuration(lostMs)} and no exit line: reeval attach stopped following it as lost`,
+            { lost: true },
           )
         }
         stalled = true
+        stalledAt = Date.now()
         notice(
           'warn',
           `No word from run ${runId} for ${formatDuration(stallMs)}: it may have stalled, or lost its connection.`,

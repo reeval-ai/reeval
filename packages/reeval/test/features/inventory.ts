@@ -895,6 +895,12 @@ export const inventory: InventoryFeature[] = [
     fixtures: ['env/files-binary'],
   },
   {
+    id: 'files.odd-names',
+    area: 'Environments',
+    name: '`files` whose names hold a line break land under that name',
+    fixtures: ['env/files-odd-names'],
+  },
+  {
     id: 'files.directory',
     area: 'Environments',
     name: '`directory()`: a host directory as `files`, with `into`, ordered `glob` patterns, `DEFAULT_DIRECTORY_IGNORES` and the executable bit',

@@ -104,7 +104,12 @@ const INSTALLS: Array<{ lockfile: string; command: (dir: string) => [string, ...
   },
   { lockfile: 'bun.lock', command: () => ['bun', 'install', '--frozen-lockfile'] },
   { lockfile: 'bun.lockb', command: () => ['bun', 'install', '--frozen-lockfile'] },
-  { lockfile: 'uv.lock', command: () => ['uv', 'sync', '--frozen'] },
+  // The bundle has a uv project's pyproject.toml files and lockfile, not its own sources, so only
+  // the dependencies install, every workspace member's: building a package would need its sources.
+  {
+    lockfile: 'uv.lock',
+    command: () => ['uv', 'sync', '--frozen', '--all-packages', '--no-install-workspace'],
+  },
 ]
 
 type PlanInput = { path: string; kind: string; evals?: string[]; symlinkTo?: string }
@@ -909,6 +914,19 @@ export async function openBundle(file: string, log: (line: string) => void): Pro
     // own, with no commits, as a fresh clone's top is.
     await git(dir, ['init', '-q']).catch(() => {})
     await install(manifest, dir, log)
+    // A `uv run` here, such as the Python runner's in the dry run and in the run's workers, would
+    // sync again and build the project, whose sources aren't here; the install above synced every
+    // dependency of the uv project the bundle's project is in.
+    if (
+      manifest.files.some(
+        (f) =>
+          f.kind === 'lockfile' &&
+          basename(f.path) === 'uv.lock' &&
+          within(join(dir, ...dirname(f.path).split('/')), project),
+      )
+    ) {
+      process.env.UV_NO_SYNC = '1'
+    }
     const planned = await dryRun(project, runArgs(manifest.args), config)
     if ('code' in planned) {
       log(`reeval: ${file}'s dry run in ${project} failed, so nothing ran`)

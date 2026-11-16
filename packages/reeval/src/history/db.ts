@@ -28,8 +28,8 @@ const PART_KEYS = Object.keys(PART_COLUMNS) as Array<keyof typeof PART_COLUMNS>
 
 export const historyDbPath = (root: string) => join(root, '.reeval', 'history.db')
 
-/** `node:sqlite` is in Node from 22.13 (package `engines`); before 24 it warns on load. */
-export const SQLITE_NODE = '22.13.0'
+/** The Node floor (package `engines`); `node:sqlite` is in Node from 22.13, and before 24 it warns. */
+export const SQLITE_NODE = '22.16.0'
 
 export function nodeAtLeast(version: string, min = SQLITE_NODE): boolean {
   const [a = 0, b = 0, c = 0] = version.replace(/^v/, '').split('.').map(Number)

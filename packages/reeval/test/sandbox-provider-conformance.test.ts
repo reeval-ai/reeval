@@ -544,14 +544,20 @@ for (const machine of MACHINE_PROVIDERS as readonly MachineProvider<MachineDescr
         const first = await kind.create(pooled({ reuse: true }), options(id, { harness }))
         const install = (await first.exec('cat ~/install')).stdout
         await first.exec(
-          'touch ~/left /tmp/left-$(id -un); n=555111; (setsid sleep $n >/dev/null 2>&1 &)',
+          'touch ~/left /tmp/left-$(id -un) /var/crash/left-$(id -un); n=555111; (setsid sleep $n >/dev/null 2>&1 &)',
         )
+        // A process that forks its next pid and exits, so no listing of the user's processes
+        // finds it alive: only a kill the kernel sends to all of them at once stops it.
+        await first.exec(
+          `H='[ $N -gt 0 ] || exit 0; : > /tmp/hopped-$U; N=$((N - 1)) sh -c "$H" &'; (N=200000 U=$(id -un) H="$H" env -u REEVAL_EXEC_ID setsid sh -c "$H" >/dev/null 2>&1 &)`,
+        )
+        await first.exec('ipcmk -M 4096 >/dev/null 2>&1 || true')
         await first.destroy()
         const second = await kind.create(pooled({ reuse: true }), options(id, { harness }))
         try {
           assert.equal(backend.machines(id).length, 1, 'the second attempt reused the machine')
           const left = await second.exec(
-            'ls ~/left /tmp/left-$(id -un) 2>/dev/null; pgrep -u "$(id -un)" -x -f "sleep 555111"; true',
+            'sleep 1; ls ~/left /tmp/left-$(id -un) /var/crash/left-$(id -un) /tmp/hopped-$(id -un) 2>/dev/null; pgrep -u "$(id -un)" -x -f "sleep 555111"; ipcs -m 2>/dev/null | awk -v u="$(id -un)" \'$3 == u\'; true',
           )
           assert.equal(left.stdout, '', 'the reset left nothing behind')
           const again = (await second.exec('cat ~/install')).stdout

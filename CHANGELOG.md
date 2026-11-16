@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.29.4](https://github.com/reeval-ai/reeval/compare/v0.29.3...v0.29.4) (2026-11-16)
+
+
+### Bug Fixes
+
+* **attach:** reconnect a silent cloud run socket and survive a sleeping viewer ([#1030](https://github.com/reeval-ai/reeval/issues/1030)) ([5bfbc13](https://github.com/reeval-ai/reeval/commit/5bfbc139631ffbdc940bdb97dd599d3837fe3a1b))
+* **capture:** wait for a slow compositor to start a wheel scroll ([#1032](https://github.com/reeval-ai/reeval/issues/1032)) ([8eb8fc1](https://github.com/reeval-ai/reeval/commit/8eb8fc1c77007cb4e844921e67a027f187da1296))
+* **sandbox:** place files whose names hold a line break instead of hanging ([#1031](https://github.com/reeval-ai/reeval/issues/1031)) ([7fae853](https://github.com/reeval-ai/reeval/commit/7fae8539c540443495fc7c7b35d9051d063add6f))
+
+## [0.29.3](https://github.com/reeval-ai/reeval/compare/v0.29.2...v0.29.3) (2026-11-15)
+
+
+### Bug Fixes
+
+* **bundle:** run a uv package project's bundle without its sources ([#1023](https://github.com/reeval-ai/reeval/issues/1023)) ([425f3e4](https://github.com/reeval-ai/reeval/commit/425f3e420a756c3a1a6e61f950e0a86678ce7b3c))
+* **cli:** say when a followed cloud run was canceled, and point a missing model key at org keys ([#1020](https://github.com/reeval-ai/reeval/issues/1020)) ([bf6e4d6](https://github.com/reeval-ai/reeval/commit/bf6e4d6fd226d44b1ca7eb3b2ed2187207b0e708))
+* **engine:** hold an attempt's timeout while it waits for a machine lease ([#1022](https://github.com/reeval-ai/reeval/issues/1022)) ([cc95722](https://github.com/reeval-ai/reeval/commit/cc95722afc5d8fea0da4fd6e3bcdb9b35bb293d1))
+* require node 22.16 or later ([#1018](https://github.com/reeval-ai/reeval/issues/1018)) ([c087106](https://github.com/reeval-ai/reeval/commit/c087106ab857e97d6e776b3e92fa4c1aa463916f))
+* **sandbox:** kill a reused slot's processes atomically and clear its files everywhere ([#1017](https://github.com/reeval-ai/reeval/issues/1017)) ([5d6101d](https://github.com/reeval-ai/reeval/commit/5d6101d68be75a4430a0101530906b097b1d6acb))
+
 ## [0.29.2](https://github.com/reeval-ai/reeval/compare/v0.29.1...v0.29.2) (2026-11-15)
 
 

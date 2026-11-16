@@ -6,7 +6,7 @@
 #   light  lint, the build, typecheck and docs, and the unit and plan files in four shards, on every
 #          code change; each heavier job only when the files it tests change (the `changes` job).
 #   full   every Linux tier on every code change, as before the light tier.
-# `main` runs the Linux tiers plus macOS and npm 10.9 (Windows is off for now). The Node 22.13 floor and the
+# `main` runs the Linux tiers plus macOS and npm 10.9 (Windows is off for now). The Node 22.16 floor and the
 # coverage report run on nightly, workflow_dispatch, release.yml's call and a PR labeled
 # `ci:full` (ci-full.yml): newest Node already ran on the PR, and coverage is report-only.
 #
@@ -299,7 +299,7 @@ jobs:
           done
 
   # The unit and plan files on the newest Node that engines.node allows, in four shards (a 2-vCPU
-  # runner runs one test file at a time). The engines floor, Node 22.13, runs in extended.yml.
+  # runner runs one test file at a time). The engines floor, Node 22.16, runs in extended.yml.
   unit:
     name: unit and plan (${{ matrix.shard }})
     needs: changes
@@ -656,7 +656,7 @@ jobs:
           pnpm pack --pack-destination "$RUNNER_TEMP/dry-run"
           npm publish --dry-run --access public --tag ci "$RUNNER_TEMP"/dry-run/*.tgz
 
-  # macOS on every full run (Windows is off for now). The Node 22.13 floor is nightly / dispatch /
+  # macOS on every full run (Windows is off for now). The Node 22.16 floor is nightly / dispatch /
   # release / ci:full: every PR already ran the newest Node that engines allow.
   extended:
     name: extended
