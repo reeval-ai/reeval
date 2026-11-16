@@ -1908,6 +1908,42 @@ describe("a cloud run's files, downloaded with --download", () => {
     }
   })
 
+  test("a downloaded run lands in defaultProfile.cloud's history folder", async () => {
+    const p = await platform()
+    try {
+      const dir = await fixtureProject()
+      const config = join(dir, 'reeval.config.ts')
+      writeFileSync(
+        config,
+        readFileSync(config, 'utf8').replace(
+          'defineConfig({',
+          `defineConfig({
+  record: 'always',
+  profiles: {
+    here: {},
+    fan: { history: { store: { kind: 'local', dir: './fan-history' } } },
+  },
+  defaultProfile: { local: 'here', cloud: 'fan' },`,
+        ),
+      )
+      const r = await runCli(dir, ['run', '--cloud', '--download'], { env: { ...env(p), CI: '' } })
+      assert.equal(r.code, 0, r.stdout + r.stderr)
+      const { runId } = recordOf(dir)
+      assert.match(r.stdout, new RegExp(`recorded in fan-history/${runId}\\.json`))
+      const { rmSync } = await import('node:fs')
+      rmSync(join(dir, '.reeval'), { recursive: true })
+      rmSync(join(dir, 'fan-history'), { recursive: true })
+      const events = `${p.base}/api/runs/run_1/events`
+      const attach = await runCli(dir, ['attach', '--download', events], {
+        env: { ...env(p), CI: '' },
+      })
+      assert.equal(attach.code, 0, attach.stdout + attach.stderr)
+      assert.match(attach.stdout, new RegExp(`recorded in fan-history/${runId}\\.json`))
+    } finally {
+      await p.close()
+    }
+  })
+
   test('a history folder at the project root takes only runs', async () => {
     const p = await platform()
     try {

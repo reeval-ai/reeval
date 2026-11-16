@@ -1107,7 +1107,7 @@ async function cloudDownload(
   const path = requireConfig(configPath)
   const named = profile ?? (process.env.REEVAL_PROFILE || undefined)
   const loaded = await loadConfig(path, 'run', named)
-  const picked = selectProfile(loaded, profile)
+  const picked = selectProfile(loaded, profile, process.env, true)
   const { root, history } = withProfileHistory(loaded, picked)
   const auth = await cloud.cloudAuth(base)
   return {
@@ -1671,7 +1671,7 @@ async function cloudContinue(
       ))
     // The history a downloaded run was filed in is its own profile's, while the config has it.
     const own = origin?.profile && config.profiles[origin.profile] ? origin.profile : undefined
-    const picked = selectProfile(config, flags.profile ?? own)
+    const picked = selectProfile(config, flags.profile ?? own, process.env, true)
     const { root, history } = withProfileHistory(config, picked)
     if (flags.download) download = { root, history, ...(picked ? { profile: picked.name } : {}) }
   }

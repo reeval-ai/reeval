@@ -2294,6 +2294,10 @@ export const CASES: Record<string, Case[]> = {
     ['yaml: a typo in debug', yaml('debug:\n  keepRuns: 3\n')],
     ['config: cloud not a boolean', config({ cloud: 'yes' })],
     ['config: a profile cloud not a boolean', config({ profiles: { ci: { cloud: 1 } } })],
+    [
+      'config: defaultProfile.cloud turning the cloud off',
+      config({ profiles: { fan: { cloud: false } }, defaultProfile: { cloud: 'fan' } }),
+    ],
     ['yaml: cloud not a boolean', yaml('cloud: "yes"\n')],
     ['yaml: a profile cloud not a boolean', yaml('profiles:\n  ci:\n    cloud: 1\n')],
     ['yaml: defaultProfile null', yaml('defaultProfile:\n')],
@@ -2373,6 +2377,10 @@ export const CASES: Record<string, Case[]> = {
     ],
     ['yaml: a profile null', yaml('profiles:\n  pr:\n')],
     ['yaml: defaultProfile not in profiles', yaml('defaultProfile: { ci: pr }\n')],
+    [
+      'yaml: defaultProfile.cloud turning the cloud off',
+      yaml('profiles:\n  fan: { cloud: false }\ndefaultProfile: { cloud: fan }\n'),
+    ],
     [
       'yaml: analysis fake with a typo',
       yaml('analysis:\n  model: { kind: fake-analysis, votes: tie }\n'),
