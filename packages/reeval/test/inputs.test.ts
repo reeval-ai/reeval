@@ -8,6 +8,7 @@ import { loadEnvFiles } from '../src/env.ts'
 import { environmentInputs, inputPath } from '../src/inputs.ts'
 import { trackLoad } from '../src/inputs-load.ts'
 import { asOwnReads } from '../src/own-reads.ts'
+import { pinStartEnv } from '../src/startup.ts'
 import type { EnvironmentLayer, LocalInput } from '../src/types.ts'
 import { tempDir } from './helpers.ts'
 
@@ -255,7 +256,7 @@ describe('trackLoad', () => {
     assert.equal(tracked.stop(main, 'eval').length, 4, 'a read after stop is not recorded')
   })
 
-  test("leaves loadEnvFiles' reads to the files it returns, which a runtime that doesn't sync fs's named exports gives alike", () => {
+  test('records none of the .env files loadEnvFiles reads as its own, and loadEnvFiles returns them', () => {
     const root = tree({
       'reeval.config.ts': '',
       '.env': 'INPUTS_TEST_ENV=from-env\n',
@@ -272,6 +273,7 @@ describe('trackLoad', () => {
     } finally {
       delete process.env.INPUTS_TEST_ENV
       delete process.env.INPUTS_TEST_LOCAL
+      pinStartEnv()
     }
   })
 })
