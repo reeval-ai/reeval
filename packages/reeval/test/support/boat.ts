@@ -330,8 +330,9 @@ export async function fakeBoat(
       },
     )
   })
-  // Only the client closes an idle connection: one the server timed out as a busy CLI reused it
-  // would fail that request with ECONNRESET.
+  // Only the client closes an idle connection. The server shares the test process, whose
+  // synchronous calls can stall it past a keep-alive timeout; it would then close a connection
+  // with the client's next request already waiting on it, which fails with ECONNRESET.
   server.keepAliveTimeout = 0
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
   const { port } = server.address() as AddressInfo
