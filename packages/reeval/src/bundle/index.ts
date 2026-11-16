@@ -16,6 +16,7 @@ import {
   symlink,
   writeFile,
 } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import {
   basename,
@@ -1274,6 +1275,12 @@ async function install(
  * directory or one above it in the bundle (a workspace member's or the root's).
  */
 async function useRunningReeval(project: string, root: string): Promise<void> {
+  if (COMPILED) {
+    throw new UsageError(
+      'The bundle carries its own reeval, which runs only from an installed reeval package, not a reeval binary.',
+    )
+  }
+  const own = await realpath(PACKAGE_DIR)
   for (const name of PACKAGE_NAMES) {
     for (let at = project; within(root, at); at = dirname(at)) {
       const installed = join(at, 'node_modules', ...name.split('/'))
@@ -1281,6 +1288,17 @@ async function useRunningReeval(project: string, root: string): Promise<void> {
       await rm(installed, { recursive: true, force: true })
       await symlink(PACKAGE_DIR, installed, 'junction')
       break
+    }
+    let resolved: string
+    try {
+      resolved = createRequire(join(project, 'noop.js')).resolve(`${name}/package.json`)
+    } catch {
+      continue
+    }
+    if ((await realpath(dirname(resolved))) !== own) {
+      throw new UsageError(
+        `The bundle carries its own reeval, but its project resolves ${name} at ${dirname(resolved)}, which reeval couldn't point at the one it carries, so nothing ran.`,
+      )
     }
   }
 }
