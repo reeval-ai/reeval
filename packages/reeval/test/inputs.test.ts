@@ -4,9 +4,11 @@ import assert from 'node:assert/strict'
 import fs, { mkdirSync, symlinkSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { describe, test } from 'node:test'
+import { loadEnvFiles } from '../src/env.ts'
 import { environmentInputs, inputPath } from '../src/inputs.ts'
 import { trackLoad } from '../src/inputs-load.ts'
 import { asOwnReads } from '../src/own-reads.ts'
+import { pinStartEnv } from '../src/startup.ts'
 import type { EnvironmentLayer, LocalInput } from '../src/types.ts'
 import { tempDir } from './helpers.ts'
 
@@ -252,5 +254,26 @@ describe('trackLoad', () => {
     assert.equal(readFileSync, before[0], 'the ESM view of fs is synced back too')
     fs.readFileSync(join(root, 'own.json'))
     assert.equal(tracked.stop(main, 'eval').length, 4, 'a read after stop is not recorded')
+  })
+
+  test('records none of the .env files loadEnvFiles reads as its own, and loadEnvFiles returns them', () => {
+    const root = tree({
+      'reeval.config.ts': '',
+      '.env': 'INPUTS_TEST_ENV=from-env\n',
+      '.env.local': 'INPUTS_TEST_LOCAL=from-local\n',
+    })
+    const config = join(root, 'reeval.config.ts')
+    const tracked = trackLoad(root)
+    try {
+      assert.deepEqual(
+        asOwnReads(() => loadEnvFiles(config)),
+        [join(root, '.env.local'), join(root, '.env')],
+      )
+      assert.deepEqual(tracked.stop(config, 'config'), [{ path: config, kind: 'config' }])
+    } finally {
+      delete process.env.INPUTS_TEST_ENV
+      delete process.env.INPUTS_TEST_LOCAL
+      pinStartEnv()
+    }
   })
 })
