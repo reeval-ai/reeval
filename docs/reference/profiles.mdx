@@ -176,8 +176,8 @@ For more information about tags on a group or evaluation, see [Options reference
 
 `reeval run` and `reeval image build` read `--profile`, then `REEVAL_PROFILE`, then `defaultProfile`.
 
-<Property name="defaultProfile" type="{ ci?: string, local?: string }" optional>
-  `ci` applies when `CI` is set to anything but `false`. `local` applies when `CI` is unset or `false`. An unset matching field selects no profile.
+<Property name="defaultProfile" type="{ ci?: string, local?: string, cloud?: string }" optional>
+  `cloud` applies when `--cloud` or the config's `cloud` sends the run to the cloud, and wins over `ci` and `local`. `ci` applies when `CI` is set to anything but `false`. `local` applies when `CI` is unset or `false`. An unset matching field selects no profile.
 </Property>
 
 A `defaultProfile` name that is not a profile exits with code 2 when the config loads.

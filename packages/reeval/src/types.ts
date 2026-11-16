@@ -2588,8 +2588,11 @@ export type ReevalConfig = {
   budget?: Budget
   /** Named presets of `defaults`, `limit`, `judge`, `budget`, `record` and `tags`. */
   profiles?: Record<string, Profile>
-  /** The profile when neither `--profile` nor `REEVAL_PROFILE` names one: `ci` when `CI` is set. */
-  defaultProfile?: { ci?: string; local?: string }
+  /**
+   * The profile when neither `--profile` nor `REEVAL_PROFILE` names one: `cloud` for a run `--cloud`
+   * or the config's `cloud` sends to the cloud, else `ci` when `CI` is set, else `local`.
+   */
+  defaultProfile?: { ci?: string; local?: string; cloud?: string }
   /** `unbrokered: 'error'` refuses Docker secrets without `hosts`, and credential-like MCP headers and `env` values written as plain strings, instead of warning (default `'warn'`). */
   secrets?: { unbrokered?: 'warn' | 'error' }
   /**
@@ -2793,7 +2796,7 @@ export type ResolvedConfig = {
   profileHistory: Record<string, ResolvedHistory>
   budget: Budget
   profiles: Record<string, Omit<Profile, 'history'>>
-  defaultProfile: { ci?: string; local?: string }
+  defaultProfile: { ci?: string; local?: string; cloud?: string }
   secrets: { unbrokered: 'warn' | 'error' }
   debug: { keep: number; traceBufferBytes: number }
   analysis: AnalysisConfig & {

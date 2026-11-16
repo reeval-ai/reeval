@@ -544,6 +544,32 @@ describe('reeval run on the cloud platform', () => {
     }
   })
 
+  test('a cloud run takes defaultProfile.cloud, and a run here keeps defaultProfile.local', async () => {
+    const p = await platform()
+    try {
+      const dir = await fixtureProject()
+      const config = join(dir, 'reeval.config.ts')
+      writeFileSync(
+        config,
+        readFileSync(config, 'utf8').replace(
+          'defineConfig({',
+          `defineConfig({
+  profiles: { here: {}, fan: {} },
+  defaultProfile: { local: 'here', cloud: 'fan' },`,
+        ),
+      )
+      const env = { REEVAL_CLOUD_URL: p.base, REEVAL_TOKEN: 'cloud-test-token', CI: '' }
+      const cloud = await runCli(dir, ['run', '--cloud', '--dry-run'], { env })
+      assert.equal(cloud.code, 0, cloud.stdout + cloud.stderr)
+      assert.match(cloud.stdout, /fan \(auto: cloud run\)/)
+      const here = await runCli(dir, ['run', '--dry-run'], { env })
+      assert.equal(here.code, 0, here.stdout + here.stderr)
+      assert.match(here.stdout, /here \(default\)/)
+    } finally {
+      await p.close()
+    }
+  })
+
   test('creates the run in the project reeval link linked', async () => {
     const p = await platform()
     try {
