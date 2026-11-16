@@ -5,7 +5,18 @@
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { cpSync, existsSync, mkdirSync, renameSync, rmSync, statSync, utimesSync } from 'node:fs'
-import { lstat, mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises'
+import {
+  lstat,
+  mkdtemp,
+  readdir,
+  readFile,
+  realpath,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import {
   basename,
@@ -35,7 +46,14 @@ import type { GitInfo } from '../history/types.ts'
 import { RUN_ID } from '../ids.ts'
 import { PreflightInfraError } from '../preflight.ts'
 import { savedFilters, stagingInUse } from '../resume.ts'
-import { COMPILED, DIST_DIR, PACKAGE_DIR, PACKAGE_VERSION, reevalCommand } from '../root.ts'
+import {
+  COMPILED,
+  DIST_DIR,
+  PACKAGE_DIR,
+  PACKAGE_NAMES,
+  PACKAGE_VERSION,
+  reevalCommand,
+} from '../root.ts'
 import { withoutBom } from '../text.ts'
 import { NewerSchemaError, readableBundleManifest } from '../view/record.ts'
 import {
@@ -997,6 +1015,7 @@ export async function openBundle(file: string, log: (line: string) => void): Pro
     // own, with no commits, as a fresh clone's top is.
     await git(dir, ['init', '-q']).catch(() => {})
     await install(manifest, dir, log)
+    if (manifest.devCli) await useRunningReeval(project, dir)
     // A `uv run` here, such as the Python runner's in the dry run and in the run's workers, would
     // sync again and build the project, whose sources aren't here; the install above synced every
     // dependency of the uv project the bundle's project is in.
@@ -1245,6 +1264,40 @@ async function install(
       const said = `${result.stderr}\n${result.stdout}`.trim().split('\n').slice(-20).join('\n')
       throw new PreflightInfraError(
         `${shown} failed (exit ${result.exitCode}) installing from ${f.path}, so nothing ran:\n${said}`,
+      )
+    }
+  }
+}
+
+/**
+ * A bundle that carries its own reeval runs its eval files on the reeval running it, not on the
+ * release its lockfile installed: the `node_modules/reeval` the project resolves, in its own
+ * directory or one above it in the bundle (a workspace member's or the root's).
+ */
+async function useRunningReeval(project: string, root: string): Promise<void> {
+  if (COMPILED) {
+    throw new UsageError(
+      'The bundle carries its own reeval, which runs only from an installed reeval package, not a reeval binary.',
+    )
+  }
+  const own = await realpath(PACKAGE_DIR)
+  for (const name of PACKAGE_NAMES) {
+    for (let at = project; within(root, at); at = dirname(at)) {
+      const installed = join(at, 'node_modules', ...name.split('/'))
+      if (!(await lstat(installed).catch(() => null))) continue
+      await rm(installed, { recursive: true, force: true })
+      await symlink(PACKAGE_DIR, installed, 'junction')
+      break
+    }
+    let resolved: string
+    try {
+      resolved = createRequire(join(project, 'noop.js')).resolve(`${name}/package.json`)
+    } catch {
+      continue
+    }
+    if ((await realpath(dirname(resolved))) !== own) {
+      throw new UsageError(
+        `The bundle carries its own reeval, but its project resolves ${name} at ${dirname(resolved)}, which reeval couldn't point at the one it carries, so nothing ran.`,
       )
     }
   }
