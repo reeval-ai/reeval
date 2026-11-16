@@ -1014,6 +1014,7 @@ export async function openBundle(file: string, log: (line: string) => void): Pro
     // own, with no commits, as a fresh clone's top is.
     await git(dir, ['init', '-q']).catch(() => {})
     await install(manifest, dir, log)
+    if (manifest.devCli) await useRunningReeval(project, dir)
     // A `uv run` here, such as the Python runner's in the dry run and in the run's workers, would
     // sync again and build the project, whose sources aren't here; the install above synced every
     // dependency of the uv project the bundle's project is in.
@@ -1264,19 +1265,22 @@ async function install(
         `${shown} failed (exit ${result.exitCode}) installing from ${f.path}, so nothing ran:\n${said}`,
       )
     }
-    if (manifest.devCli) await useRunningReeval(at)
   }
 }
 
 /**
  * A bundle that carries its own reeval runs its eval files on the reeval running it, not on the
- * release its lockfile installed, which the workers would otherwise load.
+ * release its lockfile installed: the `node_modules/reeval` the project resolves, in its own
+ * directory or one above it in the bundle (a workspace member's or the root's).
  */
-async function useRunningReeval(at: string): Promise<void> {
+async function useRunningReeval(project: string, root: string): Promise<void> {
   for (const name of PACKAGE_NAMES) {
-    const installed = join(at, 'node_modules', ...name.split('/'))
-    if (!(await lstat(installed).catch(() => null))) continue
-    await rm(installed, { recursive: true, force: true })
-    await symlink(PACKAGE_DIR, installed, 'junction')
+    for (let at = project; within(root, at); at = dirname(at)) {
+      const installed = join(at, 'node_modules', ...name.split('/'))
+      if (!(await lstat(installed).catch(() => null))) continue
+      await rm(installed, { recursive: true, force: true })
+      await symlink(PACKAGE_DIR, installed, 'junction')
+      break
+    }
   }
 }

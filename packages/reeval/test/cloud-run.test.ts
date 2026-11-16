@@ -2,6 +2,7 @@
 // `reeval run --bundle` as the platform's machine would, and serves its event stream, which the
 // cloud run follows to the run's exit code.
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import {
   cpSync,
@@ -534,23 +535,48 @@ describe('reeval run on the cloud platform', () => {
     }
   })
 
-  test('REEVAL_DEV_CLI=1 carries the running reeval, which runs the evals over the one the lockfile installs', async () => {
-    const dir = await fixtureProject()
+  /**
+   * A project whose lockfile's install leaves a stale `reeval` (one that answers the handshake in
+   * another protocol) where the project resolves it: beside it, or, with `member`, in a workspace
+   * member under the repository's root lockfile.
+   */
+  async function staleReevalProject(member?: string) {
+    const project = await fixtureProject()
+    const root = member ? tempDir('cloud-repo') : project
+    const dir = member ? join(root, member) : project
+    if (member) {
+      mkdirSync(dirname(dir), { recursive: true })
+      cpSync(project, dir, { recursive: true })
+      writeFileSync(join(root, '.gitignore'), 'node_modules\n.reeval/*\n!.reeval/project.json\n')
+    }
+    const at = member ? `${member}/node_modules/reeval` : 'node_modules/reeval'
     const stale = [
       "const fs=require('fs')",
-      "fs.mkdirSync('node_modules/reeval/dist',{recursive:true})",
-      "fs.writeFileSync('node_modules/reeval/package.json',JSON.stringify({name:'reeval',version:'0.0.1'}))",
-      `fs.writeFileSync('node_modules/reeval/dist/cli.js',Buffer.from('${Buffer.from("process.send({ t: 'hello', protocol: 0 })").toString('base64')}','base64'))`,
+      `fs.mkdirSync('${at}/dist',{recursive:true})`,
+      `fs.writeFileSync('${at}/package.json',JSON.stringify({name:'reeval',version:'0.0.1'}))`,
+      `fs.writeFileSync('${at}/dist/cli.js',Buffer.from('${Buffer.from("process.send({ t: 'hello', protocol: 0 })").toString('base64')}','base64'))`,
     ].join(';')
     const pkg = { name: 'cloud', version: '1.0.0', private: true }
     writeFileSync(
-      join(dir, 'package.json'),
+      join(root, 'package.json'),
       `${JSON.stringify({ ...pkg, scripts: { postinstall: `node -e "${stale}"` } })}\n`,
     )
     writeFileSync(
-      join(dir, 'package-lock.json'),
+      join(root, 'package-lock.json'),
       `${JSON.stringify({ ...pkg, lockfileVersion: 3, requires: true, packages: { '': pkg } })}\n`,
     )
+    if (member) {
+      const git = (...args: string[]) =>
+        assert.equal(spawnSync('git', args, { cwd: root }).status, 0, `git ${args.join(' ')}`)
+      git('init', '-q')
+      git('add', '.')
+      git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init')
+    }
+    return dir
+  }
+
+  test('REEVAL_DEV_CLI=1 carries the running reeval, which runs the evals over the one the lockfile installs', async () => {
+    const dir = await staleReevalProject()
     const p = await platform()
     try {
       const r = await runCli(dir, ['run', '--cloud'], {
@@ -574,6 +600,27 @@ describe('reeval run on the cloud platform', () => {
       const { name, version } = JSON.parse(pkg.data.toString('utf8'))
       const own = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8'))
       assert.deepEqual([name, version], [own.name, own.version])
+    } finally {
+      await p.close()
+    }
+  })
+
+  test("REEVAL_DEV_CLI=1 replaces a workspace member's reeval under the repository's root lockfile", async () => {
+    const dir = await staleReevalProject('apps/evals')
+    const p = await platform()
+    try {
+      const r = await runCli(dir, ['run', '--cloud'], {
+        env: { REEVAL_CLOUD_URL: p.base, REEVAL_TOKEN: 'cloud-test-token', REEVAL_DEV_CLI: '1' },
+      })
+      assert.equal(r.code, 0, r.stdout + r.stderr)
+      const entries = readTar(gunzipSync(p.uploaded ?? Buffer.alloc(0)))
+      const manifestEntry = entries.find((e) => e.path === 'manifest.json')
+      assert.ok(manifestEntry?.type === 'file')
+      const manifest = JSON.parse(manifestEntry.data.toString('utf8'))
+      assert.deepEqual(
+        [manifest.project, manifest.devCli],
+        ['apps/evals', '.reeval-dev/reeval.tgz'],
+      )
     } finally {
       await p.close()
     }
