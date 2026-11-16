@@ -336,7 +336,7 @@ export async function imageStages(target: ImageTarget, root: string): Promise<St
     stages.push({
       what: 'base',
       ref: imageFor(harness),
-      action: "reeval's image: built when missing or when its base changed",
+      action: "reeval's image: pulled or built when missing or when its key changed",
       status: base.status,
       detail: base.detail,
     })

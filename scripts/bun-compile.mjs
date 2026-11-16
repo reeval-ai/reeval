@@ -61,6 +61,7 @@ if (!existsSync(cli)) fail('no dist/cli.js: run pnpm build first')
 // What the binary embeds, laid out as in the package; src/root.ts finds it there when compiled.
 const stage = mkdtempSync(join(tmpdir(), 'reeval-bun-stage-'))
 const own = ['package.json', 'docker', 'bin', 'assets', 'skills', 'dist/bridge']
+if (existsSync(join(pkg, 'dist/image-digests.json'))) own.push('dist/image-digests.json')
 for (const path of own) cpSync(join(pkg, path), join(stage, path), { recursive: true })
 const require = createRequire(join(pkg, 'package.json'))
 const jiti = dirname(require.resolve('jiti/package.json'))

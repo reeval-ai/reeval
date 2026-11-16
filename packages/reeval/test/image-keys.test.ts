@@ -128,6 +128,7 @@ function world() {
           push?: boolean
           refresh?: 'force'
           log?: (line: string) => void
+          digests?: () => Record<string, string>
         } = {},
       ) => {
         const saved = { ...process.env }
@@ -244,36 +245,60 @@ describe('sandbox image tags are content keys', () => {
     assert.deepEqual(e.builds(), [local.ref])
   })
 
-  test("without --registry, reeval's image comes from reeval's registry, and is built when it isn't there", async () => {
+  test("without --registry, reeval's image comes from reeval's registry by its pinned digest, or is built", async () => {
     const { machine, publish } = world()
     const key = reevalImageKey(harness, installRecipe)
     const install = ['echo hi']
-    // The fake docker can't bake a harness, so the build it falls back to fails here.
-    const lines: string[] = []
-    await assert.rejects(machine('a').prepare({ install }, { log: (l) => lines.push(l) }), {
-      name: 'ImageBuildError',
-    })
-    assert.ok(
-      lines.some(
-        (l) => l.includes(` ${DEFAULT_REGISTRY}/`) && l.includes(`building ${reevalImage}`),
-      ),
-      lines.join('\n'),
-    )
-
-    publish(registryRef(DEFAULT_REGISTRY, { ref: reevalImage, key }), {
+    const remote = registryRef(DEFAULT_REGISTRY, { ref: reevalImage, key })
+    const digest = `sha256:${'d'.repeat(64)}`
+    const labels = {
       [LABEL.context]: contextHash(),
       [LABEL.agentVersion]: '1.0.0',
       [LABEL.harness]: harnessLabel(harness),
       [LABEL.key]: key,
-    })
+    }
+    publish(remote, labels)
+    publish(`${remote.slice(0, remote.lastIndexOf(':'))}@${digest}`, labels)
+    // The fake docker can't bake a harness, so each build it falls back to fails here.
+    const fallsBack = async (
+      name: string,
+      digests: Record<string, string>,
+      own: Record<string, string> = {},
+    ) => {
+      const lines: string[] = []
+      await assert.rejects(
+        machine(name, own).prepare(
+          { install },
+          { digests: () => digests, log: (l) => lines.push(l) },
+        ),
+        { name: 'ImageBuildError' },
+      )
+      return lines
+    }
+
     const b = machine('b')
-    await b.prepare({ install })
+    await b.prepare({ install }, { digests: () => ({ [remote]: digest }) })
     assert.ok(b.has(reevalImage))
     assert.deepEqual(
       b.builds(),
       [installLayerTag({ key }, [{ run: 'echo hi' }])],
       'only the install layer',
     )
+
+    // Canary: the tag alone isn't trusted, whatever it holds.
+    const unpinned = await fallsBack('a', {})
+    assert.ok(
+      unpinned.some((l) => l.includes('no digest pinned') && l.includes(remote)),
+      unpinned.join('\n'),
+    )
+    const moved = await fallsBack('c', { [remote]: `sha256:${'e'.repeat(64)}` })
+    assert.ok(
+      moved.some((l) => l.startsWith(`Not using ${remote}`)),
+      moved.join('\n'),
+    )
+    // Canary: REEVAL_DEFAULT_REGISTRY=none never asks the registry.
+    const off = await fallsBack('d', { [remote]: digest }, { REEVAL_DEFAULT_REGISTRY: 'none' })
+    assert.ok(!off.some((l) => l.includes(DEFAULT_REGISTRY)), off.join('\n'))
   })
 
   test("the registry tag pins content the local tag doesn't", () => {

@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 import { setupOf } from '@reeval/agents'
 import {
@@ -34,6 +34,7 @@ import {
 import '../debug/docker.ts'
 import { buildSteps, pluginBuildId, pluginCall } from '../environment/plugins.ts'
 import { stepCommand } from '../environment.ts'
+import { ownFile } from '../root.ts'
 import type {
   AttemptImage,
   DockerSandboxDescriptor,
@@ -75,6 +76,8 @@ export type Builds = {
   push: boolean
   /** Pushes a layer to {@link registry} once per run. */
   pushOnce: (layer: Layer, signal: AbortSignal) => Promise<void>
+  /** The digest each {@link DEFAULT_REGISTRY} ref is pulled by: the ones this reeval pins. */
+  digests: () => Readonly<Record<string, string>>
 }
 
 export type Refresh = 'none' | 'check' | 'force'
@@ -101,6 +104,7 @@ export function createBuilds(options: Partial<Omit<Builds, 'once' | 'pushOnce'>>
     engine,
     registry,
     push: !!options.push && registry !== null,
+    digests: options.digests ?? defaultDigests,
     pushOnce: (layer, signal) => {
       let done = pushes.get(layer.ref)
       if (!done && registry && !onlyHere(layer)) {
@@ -116,9 +120,25 @@ export function createBuilds(options: Partial<Omit<Builds, 'once' | 'pushOnce'>>
 
 /**
  * Where `images.yml` publishes reeval's image for each harness, which a run pulls when no
- * `--registry` names another.
+ * `--registry` names another, unless `REEVAL_DEFAULT_REGISTRY=none`.
  */
 export const DEFAULT_REGISTRY = 'ghcr.io/reeval-ai/sandbox'
+
+let pinned: Record<string, string> | undefined
+/**
+ * The digest each of {@link DEFAULT_REGISTRY}'s refs was published as, which the release build
+ * writes (`pnpm images --registry … --digests`). A build without them pulls nothing from it.
+ */
+function defaultDigests(): Record<string, string> {
+  if (!pinned) {
+    try {
+      pinned = JSON.parse(readFileSync(ownFile('dist/image-digests.json'), 'utf8'))
+    } catch {
+      pinned = {}
+    }
+  }
+  return pinned ?? {}
+}
 
 /** A layer only this machine can name, or one built on such a layer: never pulled or pushed. */
 const onlyHere = (layer: Layer) => !!layer.local || isLocalKey(layer.key)
@@ -134,7 +154,11 @@ async function pulled(
   registry = b.registry,
 ): Promise<ImageInfo | null> {
   if (!registry || b.refresh === 'force' || onlyHere(layer)) return null
-  const r = await pullLayer(registry, layer, { engine: b.engine, signal })
+  const r = await pullLayer(registry, layer, {
+    engine: b.engine,
+    signal,
+    ...(registry === DEFAULT_REGISTRY ? { digests: b.digests() } : {}),
+  })
   if (!r.pulled) {
     b.log(`Not using ${r.remote} (${r.reason}): building ${layer.ref}`)
     return null
@@ -164,7 +188,7 @@ const built = async (ref: string, engine: Engine) => {
 
 /**
  * reeval's image for the harness: pulled or built when it's missing, or when its key changed. It's
- * pulled from `--registry`, or else from {@link DEFAULT_REGISTRY}.
+ * pulled from `--registry`, or else from {@link DEFAULT_REGISTRY}, by a digest this reeval pins.
  */
 export const reevalImage = (
   harness: BakedHarness,
@@ -179,7 +203,8 @@ export const reevalImage = (
     const current = (info: ImageInfo | null) => info?.labels[LABEL.key] === key
     const info = await imageInfo(ref, engine)
     if (info && current(info) && b.refresh !== 'force') return info
-    const fetched = await pulled({ ref, key }, b, signal, b.registry ?? DEFAULT_REGISTRY)
+    const fallback = process.env.REEVAL_DEFAULT_REGISTRY === 'none' ? null : DEFAULT_REGISTRY
+    const fetched = await pulled({ ref, key }, b, signal, b.registry ?? fallback)
     if (fetched && current(fetched)) return fetched
     b.log(
       info && !current(info) ? `Rebuilding ${ref}: reeval's base image changed` : `Building ${ref}`,

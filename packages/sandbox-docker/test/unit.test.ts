@@ -70,6 +70,7 @@ import {
   podmanHostEnv,
 } from '../src/engine.ts'
 import { DEFAULT_IMAGE, HARNESS_PACKAGES, harnessLabel, imageFor } from '../src/image.ts'
+import { pullLayer, registryRef } from '../src/registry.ts'
 import { memorySwap } from '../src/session.ts'
 import { type DockerCommand, onDockerCommand, traceDocker } from '../src/trace.ts'
 
@@ -128,6 +129,48 @@ test("dockerState: running, down, Windows containers or missing, from the CLI's 
   } finally {
     process.env.PATH = path
     delete process.env.FAKE_DOCKER_INFO
+  }
+})
+
+test('a pull that stalls is given up on, and one by digest names the digest', async () => {
+  const bin = mkdtempSync(join(tmpdir(), 'reeval-docker-pull-'))
+  const calls = join(bin, 'calls')
+  writeFileSync(
+    join(bin, 'docker.js'),
+    `require('node:fs').appendFileSync(${JSON.stringify(calls)}, process.argv.slice(2).join(' ') + '\\n')
+if (process.argv[2] === 'pull') setInterval(() => {}, 1000)
+else process.exit(1)
+`,
+  )
+  writeFileSync(join(bin, 'docker'), `#!/bin/sh\nexec node "$(dirname "$0")/docker.js" "$@"\n`)
+  chmodSync(join(bin, 'docker'), 0o755)
+  writeFileSync(join(bin, 'docker.cmd'), '@node "%~dp0docker.js" %*\r\n')
+  const path = process.env.PATH
+  process.env.PATH = `${bin}${delimiter}${path}`
+  try {
+    const layer = { ref: 'reeval-sandbox:cursor-1', key: 'reeval-sandbox:cursor-1+k' }
+    const remote = registryRef('registry.test/r', layer)
+    const digest = `sha256:${'a'.repeat(64)}`
+    const r = await pullLayer('registry.test/r', layer, {
+      digests: { [remote]: digest },
+      timeoutMs: 300,
+    })
+    assert.deepEqual(r, { pulled: false, remote, reason: 'the pull took over 0.3 s' })
+    const pulls = readFileSync(calls, 'utf8')
+      .split('\n')
+      .filter((l) => l.startsWith('pull'))
+    assert.deepEqual(pulls, [`pull --quiet ${remote.slice(0, remote.lastIndexOf(':'))}@${digest}`])
+    // Canary: a ref with no pinned digest isn't pulled at all.
+    const unpinned = await pullLayer('registry.test/r', layer, { digests: {}, timeoutMs: 300 })
+    assert.equal(unpinned.pulled, false)
+    assert.equal(
+      readFileSync(calls, 'utf8')
+        .split('\n')
+        .filter((l) => l.startsWith('pull')).length,
+      1,
+    )
+  } finally {
+    process.env.PATH = path
   }
 })
 
