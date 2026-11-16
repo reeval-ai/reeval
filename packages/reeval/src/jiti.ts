@@ -16,6 +16,11 @@ export const transformedFiles = new Set<string>()
  * jiti's own Babel transform. jiti requires it lazily from beside its code, which a compiled reeval
  * doesn't have, so reeval requires the same file: from the jiti package on disk, or, compiled, from
  * the copy embedded in it (`vendor/jiti/babel.cjs`), copied out to disk.
+ *
+ * Babel replaces `Error.prepareStackTrace` for the whole process on its first transform, with a
+ * hook that hands every stack to the one it replaced. Bun's own throws for an object that isn't
+ * an Error, which `Error.captureStackTrace(this)` in a plain constructor passes (follow-redirects,
+ * under `@daytona/sdk`), so each transform puts back the `Error.prepareStackTrace` it found.
  */
 export const jitiTransform: Transform = (options) => {
   if (options.filename) transformedFiles.add(options.filename)
@@ -25,7 +30,12 @@ export const jitiTransform: Transform = (options) => {
       : join(dirname(ownRequire.resolve('jiti/package.json')), 'dist/babel.cjs')
     babel = createRequire(file)(file) as Transform
   }
-  return babel(options)
+  const prepareStackTrace = Error.prepareStackTrace
+  try {
+    return babel(options)
+  } finally {
+    Error.prepareStackTrace = prepareStackTrace
+  }
 }
 
 /**

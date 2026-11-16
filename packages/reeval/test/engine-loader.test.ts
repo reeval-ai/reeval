@@ -1,9 +1,11 @@
 // Finding eval files (engine/files.ts) and loading them (engine/loader.ts): TypeScript, ESM and
 // CommonJS mixes through jiti, tsconfig checks, and stacks mapped back to the sources.
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, sep } from 'node:path'
 import { describe, test } from 'node:test'
+import { pathToFileURL } from 'node:url'
 import { filterFiles, findEvalFiles, matchesFilter } from '../src/engine/files.ts'
 import {
   checkTsconfig,
@@ -170,6 +172,25 @@ export const out = { a, fromB: fromB(), cjs, named, data, m, c, waited, req: req
       loadEvalFile(join(other, 'evals/nothing.eval.ts'), other),
       (e) => e === undefined,
     )
+  })
+
+  test("loading leaves Error.prepareStackTrace as it was: Babel's hook breaks Bun's", () => {
+    // Babel installs its hook once per process, so this needs a process where nothing has loaded.
+    const root = tree({ 'evals/x.eval.ts': 'export const x: number = 1\n' })
+    const loader = pathToFileURL(join(import.meta.dirname, '../src/engine/loader.ts')).href
+    const script = `import { loadEvalFile } from ${JSON.stringify(loader)}
+const own = () => 'own'
+Error.prepareStackTrace = own
+await loadEvalFile(${JSON.stringify(join(root, 'evals/x.eval.ts'))}, ${JSON.stringify(root)})
+process.stdout.write(String(Error.prepareStackTrace === own))`
+    const r = spawnSync(
+      process.execPath,
+      ['--experimental-strip-types', '--no-warnings', '--input-type=module', '-e', script],
+      { encoding: 'utf8', timeout: 60_000 },
+    )
+    assert.equal(r.stderr, '')
+    assert.equal(r.status, 0)
+    assert.equal(r.stdout, 'true')
   })
 
   test('syntaxError reads only jiti parse errors, and still reports one whose file is gone', () => {
