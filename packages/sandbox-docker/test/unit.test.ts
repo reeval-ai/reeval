@@ -21,11 +21,13 @@ import {
   dockerfileFinalBase,
   dockerfileKey,
   dockerfileTag,
+  HARNESS_SDK_VERSION,
   harnessImageFor,
   installLayerTag,
   installScript,
   NODE_IMAGE,
   pluginBuildScript,
+  reevalImageKey,
   sourceTreeHash,
   versionLabel,
 } from '../src/build-image.ts'
@@ -1247,6 +1249,14 @@ describe('package boundary', () => {
       assert.equal(agents.dependencies[name], expected, name)
       assert.equal(pkg.dependencies[name], undefined, `${name} is @reeval/agents' to install`)
     }
+    assert.equal(pkg.dependencies['@ai-sdk/harness'], HARNESS_SDK_VERSION)
+  })
+
+  test("reeval's image key changes with the adapter's install recipe, at the same version", () => {
+    const key = reevalImageKey('cursor', 'a')
+    assert.equal(reevalImageKey('cursor', 'a'), key)
+    assert.notEqual(reevalImageKey('cursor', 'b'), key)
+    assert.ok(key.startsWith(`${imageFor('cursor')}+`))
   })
 
   test('each harness has its own image, tagged and labeled with its adapter version', () => {
@@ -1389,37 +1399,40 @@ describe('image recipes', () => {
     writeFileSync(join(dir, 'tool.sh'), 'echo 1\n')
     writeFileSync(join(dir, '.dockerignore'), 'scratch\nDockerfile\n')
     mkdirSync(join(dir, 'scratch'))
-    const first = dockerfileTag(file, 'cursor')
+    const first = dockerfileTag(file, 'cursor', 'recipe')
     assert.match(first.tag, /^reeval-dockerfile:reeval-recipe-[a-z0-9]+-[0-9a-f]{16}$/)
     assert.deepEqual(contextFiles(dir, file), ['.dockerignore', 'Dockerfile', 'tool.sh'])
     writeFileSync(join(dir, 'scratch', 'notes.txt'), 'ignored')
     assert.equal(
-      dockerfileTag(file, 'cursor').tag,
+      dockerfileTag(file, 'cursor', 'recipe').tag,
       first.tag,
       'ignored files do not change the hash',
     )
     writeFileSync(join(dir, 'tool.sh'), 'echo 2\n')
-    const edited = dockerfileTag(file, 'cursor')
+    const edited = dockerfileTag(file, 'cursor', 'recipe')
     assert.notEqual(edited.tag, first.tag, 'a context file changes the hash')
     writeFileSync(file, 'FROM debian:bookworm-slim\nCOPY tool.sh /usr/local/bin/tool\nRUN true\n')
     assert.notEqual(
-      dockerfileTag(file, 'cursor').tag,
+      dockerfileTag(file, 'cursor', 'recipe').tag,
       edited.tag,
       'the Dockerfile changes the hash',
     )
     const named = join(dir, 'python.Dockerfile')
     writeFileSync(named, 'FROM python:3.12-slim\n')
-    assert.match(dockerfileTag(named, 'cursor').tag, /^reeval-dockerfile:python-dockerfile-/)
+    assert.match(
+      dockerfileTag(named, 'cursor', 'recipe').tag,
+      /^reeval-dockerfile:python-dockerfile-/,
+    )
     assert.equal(
-      dockerfileTag(file, 'claude-code').tag,
-      dockerfileTag(file, 'cursor').tag,
+      dockerfileTag(file, 'claude-code', 'recipe').tag,
+      dockerfileTag(file, 'cursor', 'recipe').tag,
       'a Dockerfile without REEVAL_BASE builds the same for every harness (each gets its CLI baked on)',
     )
     const onReeval = join(dir, 'reeval.Dockerfile')
     writeFileSync(onReeval, 'ARG REEVAL_BASE\nFROM $REEVAL_BASE\n')
     assert.notEqual(
-      dockerfileTag(onReeval, 'claude-code').tag,
-      dockerfileTag(onReeval, 'cursor').tag,
+      dockerfileTag(onReeval, 'claude-code', 'recipe').tag,
+      dockerfileTag(onReeval, 'cursor', 'recipe').tag,
       "REEVAL_BASE is the harness's image, so each harness builds its own",
     )
   })

@@ -28,6 +28,7 @@ export {
   dockerfileKey,
   dockerfileTag,
   fromImageKey,
+  HARNESS_SDK_VERSION,
   harnessImageFor,
   type InstallStep,
   imageKey,

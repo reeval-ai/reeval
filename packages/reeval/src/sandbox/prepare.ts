@@ -7,7 +7,6 @@ import {
   buildImage,
   buildInstallLayer,
   buildPluginLayer,
-  contextHash,
   dockerfileBases,
   dockerfileKey,
   dockerfileTag,
@@ -43,7 +42,7 @@ import type {
   PluginSource,
 } from '../types.ts'
 import { PrepareError } from './provider.ts'
-import { bakedKey, installLayer, installSteps, pluginLayer } from './recipe.ts'
+import { bakedKey, harnessRecipe, installLayer, installSteps, pluginLayer } from './recipe.ts'
 
 /** Whose CLI a harness's image carries. The fake harness runs in its `layout`'s, else Cursor's. */
 export const imageHarness = (harness: HarnessDescriptor): BakedHarness =>
@@ -153,8 +152,7 @@ const built = async (ref: string, engine: Engine) => {
 }
 
 /**
- * reeval's image for the harness: pulled or built when it's missing, or when reeval's base context
- * changed.
+ * reeval's image for the harness: pulled or built when it's missing, or when its key changed.
  */
 export const reevalImage = (
   harness: BakedHarness,
@@ -164,11 +162,12 @@ export const reevalImage = (
 ) => {
   const ref = imageFor(harness)
   const { engine } = b
-  const current = (info: ImageInfo | null) => info?.labels[LABEL.context] === contextHash()
   return b.once(ref, async () => {
+    const key = reevalImageKey(harness, await harnessRecipe(harness))
+    const current = (info: ImageInfo | null) => info?.labels[LABEL.key] === key
     const info = await imageInfo(ref, engine)
     if (info && current(info) && b.refresh !== 'force') return info
-    const fetched = await pulled({ ref, key: reevalImageKey(harness) }, b, signal)
+    const fetched = await pulled({ ref, key }, b, signal)
     if (fetched && current(fetched)) return fetched
     b.log(
       info && !current(info) ? `Rebuilding ${ref}: reeval's base image changed` : `Building ${ref}`,
@@ -268,11 +267,12 @@ async function harnessBase(
   if (sandbox.dockerfile) {
     const path = sandbox.dockerfile
     const layers: Layer[] = []
+    const recipe = await harnessRecipe(harness)
     if (usesReevalBase(path)) {
       await reevalImage(harness, root, signal, b)
-      layers.push({ ref: imageFor(harness), key: reevalImageKey(harness) })
+      layers.push({ ref: imageFor(harness), key: reevalImageKey(harness, recipe) })
     }
-    const { tag, sha256 } = dockerfileTag(path, harness)
+    const { tag, sha256 } = dockerfileTag(path, harness, recipe)
     const dockerfile = { path: projectPath(root, path), sha256 }
     const info = await b.once(tag, async () => {
       const cached = b.refresh === 'force' ? null : await imageInfo(tag, engine)
@@ -297,6 +297,7 @@ async function harnessBase(
       await b.retry(() =>
         buildDockerfile(path, {
           harness,
+          recipe,
           name: dockerfile.path,
           signal,
           output,
@@ -318,7 +319,10 @@ async function harnessBase(
     const baked = await bake(tag, bakedKey(harness, tag, key))
     return { ...baked, dockerfile, layers: [...layers, baked] }
   }
-  const base = { ref: imageFor(harness), key: reevalImageKey(harness) }
+  const base = {
+    ref: imageFor(harness),
+    key: reevalImageKey(harness, await harnessRecipe(harness)),
+  }
   const info = await reevalImage(harness, root, signal, b)
   return { ...base, info, dockerfile: null, layers: [base] }
 }

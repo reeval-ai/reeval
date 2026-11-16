@@ -13,14 +13,14 @@ image docker · cursor · 1 evals
 image docker · antigravity · 2 evals
   base  reeval-sandbox:antigravity-0.1.17  (reeval's image: built when missing or when its base changed)
 image docker:tools · cursor · 1 evals
-  dockerfile docker/tools/Dockerfile  reeval-dockerfile:tools-34f7d1d5c037d26c  (docker build (layer cache), tagged by content hash)
-  harness                             reeval-dockerfile:tools-34f7d1d5c037d26c  (inherited: FROM ${REEVAL_BASE}, which is reeval-sandbox:cursor-0.1.9)
+  dockerfile docker/tools/Dockerfile  reeval-dockerfile:tools-973d3996fce9fbbb  (docker build (layer cache), tagged by content hash)
+  harness                             reeval-dockerfile:tools-973d3996fce9fbbb  (inherited: FROM ${REEVAL_BASE}, which is reeval-sandbox:cursor-0.1.9)
 image docker:tools · antigravity · 1 evals
-  dockerfile docker/tools/Dockerfile  reeval-dockerfile:tools-43a9e83675d61d6b  (docker build (layer cache), tagged by content hash)
-  harness                             reeval-dockerfile:tools-43a9e83675d61d6b  (inherited: FROM ${REEVAL_BASE}, which is reeval-sandbox:antigravity-0.1.17)
+  dockerfile docker/tools/Dockerfile  reeval-dockerfile:tools-34cb1213bf778349  (docker build (layer cache), tagged by content hash)
+  harness                             reeval-dockerfile:tools-34cb1213bf778349  (inherited: FROM ${REEVAL_BASE}, which is reeval-sandbox:antigravity-0.1.17)
 image docker:tools · claude-code · 1 evals
-  dockerfile docker/tools/Dockerfile  reeval-dockerfile:tools-dc1d17a43de8c388  (docker build (layer cache), tagged by content hash)
-  harness                             reeval-dockerfile:tools-dc1d17a43de8c388  (inherited: FROM ${REEVAL_BASE}, which is reeval-sandbox:claude-code-1.0.176-patch.d9876e51)
+  dockerfile docker/tools/Dockerfile  reeval-dockerfile:tools-6d6fec342359cad1  (docker build (layer cache), tagged by content hash)
+  harness                             reeval-dockerfile:tools-6d6fec342359cad1  (inherited: FROM ${REEVAL_BASE}, which is reeval-sandbox:claude-code-1.0.176-patch.423f52e6)
 image docker:python:3.12-slim · cursor · 1 evals
   from python:3.12-slim  reeval-sandbox:cursor-0.1.9-python-3-12-slim-63a9deef  (Node, git and the harness bootstrap on top; reeval image build refreshes a moved tag)
 image docker:python:3.12-slim · antigravity · 1 evals

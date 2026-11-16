@@ -34,6 +34,8 @@ import { createDockerSession, type DockerSession } from './session.ts'
 export const PNPM_VERSION = '10.33.3'
 /** Pinned so evals' installs don't move with the Node image's bundled npm. */
 const NPM_VERSION = '11.20.0'
+/** The `@ai-sdk/harness` that bakes each image, which a test holds to this package's pin. */
+export const HARNESS_SDK_VERSION = '1.0.172'
 
 const sha256 = (text: string) => createHash('sha256').update(text).digest('hex')
 
@@ -316,12 +318,13 @@ const removeQuietly = async (ref: string, engine?: Engine) => {
 }
 
 /**
- * The hash of reeval's base image build context and {@link BAKE_REVISION}, which its images carry
- * as a label.
+ * The hash of reeval's base image build context, the npm and pnpm it installs, the
+ * `@ai-sdk/harness` that bakes on it and {@link BAKE_REVISION}, which its images carry as a label.
  */
 export function contextHash(): string {
   const hash = createHash('sha256')
   hash.update(`bake ${BAKE_REVISION}\0`)
+  hash.update(`npm ${NPM_VERSION}\0pnpm ${PNPM_VERSION}\0harness ${HARNESS_SDK_VERSION}\0`)
   for (const path of contextFiles(DOCKER_CONTEXT, join(DOCKER_CONTEXT, 'Dockerfile'))) {
     hash.update(`${path}\0`)
     hash.update(readFileSync(join(DOCKER_CONTEXT, path)))
@@ -343,10 +346,12 @@ export type Layer = {
 }
 
 /**
- * reeval's image for a harness: its tag (the adapter) and its base's build context, whose `FROM` is
- * pinned by digest.
+ * reeval's image for a harness: its tag (the adapter), its base's {@link contextHash}, whose `FROM`
+ * is pinned by digest, and the adapter's {@link bakedRecipe}, which changes with what the bootstrap
+ * installs even when the adapter's version doesn't.
  */
-export const reevalImageKey = (harness: BakedHarness) => `${imageFor(harness)}+${contextHash()}`
+export const reevalImageKey = (harness: BakedHarness, recipe: string) =>
+  `${imageFor(harness)}+${contextHash()}+${recipe}`
 
 /**
  * A harness baked onto `from`: its tag and what `from` named when it was built, a registry digest
@@ -406,7 +411,11 @@ export async function buildImage(
   const shared = !!resolved && 'local' in resolved && !resolved.local
   const key =
     options.key ??
-    (from ? (digest && shared ? fromImageKey(target, digest) : '') : reevalImageKey(harness))
+    (from
+      ? digest && shared
+        ? fromImageKey(target, digest)
+        : ''
+      : reevalImageKey(harness, await bakedRecipe(bootstrap)))
   const previous = [
     (await imageInfo(target, engine))?.id,
     from ? null : (await imageInfo(base, engine))?.id,
@@ -813,14 +822,16 @@ export const usesReevalBase = (dockerfile: string) =>
  * of its build context (its directory, less `.dockerignore`) and, for a Dockerfile `FROM
  * ${REEVAL_BASE}`, the {@link reevalImageKey} of the harness's image it names, so an edit to any of
  * them, or a new reeval base, builds anew, and the same files give the same tag on any machine. What
- * its other bases' tags name is in its key ({@link dockerfileKey}), not its tag.
+ * its other bases' tags name is in its key ({@link dockerfileKey}), not its tag. `recipe` is the
+ * harness's {@link bakedRecipe}.
  */
 export function dockerfileTag(
   dockerfile: string,
   harness: BakedHarness,
+  recipe: string,
 ): { tag: string; sha256: string } {
   const context = dirname(dockerfile)
-  const base = usesReevalBase(dockerfile) ? reevalImageKey(harness) : ''
+  const base = usesReevalBase(dockerfile) ? reevalImageKey(harness, recipe) : ''
   const hash = createHash('sha256').update(`${REEVAL_BASE_ARG}=${base}\0`)
   for (const path of contextFiles(context, dockerfile)) {
     const full = join(context, path)
@@ -911,6 +922,8 @@ export async function buildDockerfile(
   dockerfile: string,
   options: {
     harness: BakedHarness
+    /** The harness's {@link bakedRecipe}. */
+    recipe: string
     name?: string
     signal?: AbortSignal
     output?: BuildOutput
@@ -923,7 +936,7 @@ export async function buildDockerfile(
   },
 ): Promise<string> {
   const { harness, signal, engine } = options
-  const { tag } = dockerfileTag(dockerfile, harness)
+  const { tag } = dockerfileTag(dockerfile, harness, options.recipe)
   const previous = (await imageInfo(tag, engine))?.id
   if (previous && !options.force) return tag
   const build = await docker(

@@ -206,13 +206,17 @@ describe('contextFiles', () => {
 
   test('editing a re-included file changes the Dockerfile tag', () => {
     const { dir, file } = context(CASES[0] as Case)
-    const first = dockerfileTag(file, 'cursor').tag
+    const first = dockerfileTag(file, 'cursor', 'recipe').tag
     writeFileSync(join(dir, 'dir', 'keep.txt'), 'v2\n')
-    assert.notEqual(dockerfileTag(file, 'cursor').tag, first)
+    assert.notEqual(dockerfileTag(file, 'cursor', 'recipe').tag, first)
     writeFileSync(join(dir, 'dir', 'drop.txt'), 'v2\n')
-    const edited = dockerfileTag(file, 'cursor').tag
+    const edited = dockerfileTag(file, 'cursor', 'recipe').tag
     writeFileSync(join(dir, 'dir', 'drop.txt'), 'v3\n')
-    assert.equal(dockerfileTag(file, 'cursor').tag, edited, 'an excluded file is not hashed')
+    assert.equal(
+      dockerfileTag(file, 'cursor', 'recipe').tag,
+      edited,
+      'an excluded file is not hashed',
+    )
     rmSync(dir, { recursive: true, force: true })
   })
 })

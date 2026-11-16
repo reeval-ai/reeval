@@ -21,7 +21,7 @@ import {
   registryRef,
 } from '@reeval/sandbox-docker'
 import { createBuilds, prepareImage } from '../src/sandbox/prepare.ts'
-import { imageRecipeKey } from '../src/sandbox/recipe.ts'
+import { harnessRecipe, imageRecipeKey } from '../src/sandbox/recipe.ts'
 import type { DockerSandboxDescriptor } from '../src/types.ts'
 import { fakeConfig, project, runCli, tempDir } from './helpers.ts'
 
@@ -82,6 +82,7 @@ if (args[0] === 'image' && args[1] === 'inspect') {
 `
 
 const harness = 'cursor'
+const installRecipe = await harnessRecipe(harness)
 const reevalImage = imageFor(harness)
 
 function world() {
@@ -113,7 +114,7 @@ function world() {
           [LABEL.context]: contextHash(),
           [LABEL.agentVersion]: '1.0.0',
           [LABEL.harness]: harnessLabel(harness),
-          [LABEL.key]: reevalImageKey(harness),
+          [LABEL.key]: reevalImageKey(harness, installRecipe),
         }),
       builds: () => {
         const log = join(state, `${name}-builds.log`)
@@ -271,7 +272,7 @@ describe('sandbox image tags are content keys', () => {
     const registry = 'localhost:5000/reeval'
     const platformTag = PLATFORM.replace('/', '-')
     for (const layer of [
-      { ref: reevalImage, key: reevalImageKey(harness) },
+      { ref: reevalImage, key: reevalImageKey(harness, installRecipe) },
       { ref: 'reeval-install:0123456789abcdef', key: 'reeval-install:0123456789abcdef' },
     ]) {
       const here = registryRef(registry, layer)
@@ -491,7 +492,7 @@ describe('imageRecipeKey: the key prepareImage builds, named from the recipe alo
     }
     for (const [what, sandbox] of Object.entries(recipes)) {
       if (sandbox.dockerfile === onNode) {
-        const { tag } = dockerfileTag(onNode, harness)
+        const { tag } = dockerfileTag(onNode, harness, installRecipe)
         a.seed(harnessImageFor(harness, tag), { [LABEL.agentVersion]: '1.0.0' })
       }
       const prepared = await a.prepare(sandbox)
@@ -516,8 +517,8 @@ describe('imageRecipeKey: the key prepareImage builds, named from the recipe alo
     assert.deepEqual(
       onNodeRecipe.layers.map((l) => l.ref),
       [
-        dockerfileTag(onNode, harness).tag,
-        harnessImageFor(harness, dockerfileTag(onNode, harness).tag),
+        dockerfileTag(onNode, harness, installRecipe).tag,
+        harnessImageFor(harness, dockerfileTag(onNode, harness, installRecipe).tag),
       ],
     )
     const onBaseRecipe = await imageRecipeKey({ dockerfile: onReevalBase }, harness, {
@@ -526,7 +527,7 @@ describe('imageRecipeKey: the key prepareImage builds, named from the recipe alo
     assert.ok('key' in onBaseRecipe)
     assert.deepEqual(
       onBaseRecipe.layers.map((l) => l.ref),
-      [reevalImage, dockerfileTag(onReevalBase, harness).tag],
+      [reevalImage, dockerfileTag(onReevalBase, harness, installRecipe).tag],
       'built on the harness image: nothing baked on',
     )
   })
@@ -545,8 +546,11 @@ describe('imageRecipeKey: the key prepareImage builds, named from the recipe alo
     })
     assert.ok('key' in recipe)
     const [base, install, one, two] = recipe.layers
-    assert.equal(base?.key, reevalImageKey(harness))
-    assert.equal(install?.ref, installLayerTag({ key: reevalImageKey(harness) }, [{ run: 'true' }]))
+    assert.equal(base?.key, reevalImageKey(harness, installRecipe))
+    assert.equal(
+      install?.ref,
+      installLayerTag({ key: reevalImageKey(harness, installRecipe) }, [{ run: 'true' }]),
+    )
     assert.equal(one?.ref, pluginLayerTag({ key: install?.key ?? '' }, spec('a')))
     assert.equal(two?.ref, pluginLayerTag({ key: one?.key ?? '' }, spec('b')))
     assert.equal(recipe.key, two?.key)
@@ -603,4 +607,17 @@ describe('--registry and --push', () => {
     const ok = await runCli(p.dir, ['run', '--dry-run', '--registry', 'localhost:5000/reeval'])
     assert.equal(ok.code, 0, ok.stdout + ok.stderr)
   })
+})
+
+test("the bundle ships the patched Claude Code bridge byte for byte, so its image key is the workspace's", () => {
+  const bundled = new URL('../dist/bridge/', import.meta.url)
+  const workspace = new URL('./bridge/', import.meta.resolve('@ai-sdk/harness-claude-code'))
+  const files = readdirSync(bundled)
+  assert.ok(files.includes('index.mjs'))
+  for (const file of files) {
+    assert.ok(
+      readFileSync(new URL(file, bundled)).equals(readFileSync(new URL(file, workspace))),
+      `dist/bridge/${file} differs from the adapter's`,
+    )
+  }
 })

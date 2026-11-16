@@ -1,5 +1,7 @@
+import { setupOf } from '@reeval/agents'
 import {
   type BakedHarness,
+  bakedRecipe,
   dockerfileBases,
   dockerfileFinalBase,
   dockerfileKey,
@@ -101,6 +103,18 @@ export const registryResolver =
   (ref, signal) =>
     registryDigest(ref, { signal, credential })
 
+const recipes = new Map<BakedHarness, Promise<string>>()
+/** The {@link bakedRecipe} of the harness's install, which its image keys hash. */
+export function harnessRecipe(harness: BakedHarness): Promise<string> {
+  let recipe = recipes.get(harness)
+  if (!recipe) {
+    recipe = bakedRecipe(setupOf(harness))
+    recipes.set(harness, recipe)
+    recipe.catch(() => recipes.delete(harness))
+  }
+  return recipe
+}
+
 /**
  * The content key of the image an attempt on `harness` starts from, from the recipe alone and
  * what its bases name in their registries now, with no container engine: the key `prepareImage`
@@ -134,7 +148,10 @@ export async function imageRecipeKey(
     })
   } else if (recipe.dockerfile) {
     const path = recipe.dockerfile
-    if (usesReevalBase(path)) layers.push({ ref: imageFor(harness), key: reevalImageKey(harness) })
+    const baked = await harnessRecipe(harness)
+    if (usesReevalBase(path)) {
+      layers.push({ ref: imageFor(harness), key: reevalImageKey(harness, baked) })
+    }
     const { bases, opaque } = dockerfileBases(path)
     if (opaque) {
       return {
@@ -147,14 +164,17 @@ export async function imageRecipeKey(
       if ('error' in now) return { unresolved: { ref, reason: now.error } }
       named.push({ ref, digest: now.digest })
     }
-    const { tag } = dockerfileTag(path, harness)
+    const { tag } = dockerfileTag(path, harness, baked)
     const key = dockerfileKey(tag, named)
     layers.push({ ref: tag, key })
     if (dockerfileBakes(path, harness)) {
       layers.push({ ref: harnessImageFor(harness, tag), key: bakedKey(harness, tag, key) })
     }
   } else {
-    layers.push({ ref: imageFor(harness), key: reevalImageKey(harness) })
+    layers.push({
+      ref: imageFor(harness),
+      key: reevalImageKey(harness, await harnessRecipe(harness)),
+    })
   }
   const steps = installSteps(recipe)
   if (steps.length) layers.push(installLayer(layers.at(-1) as Layer, steps, false))
