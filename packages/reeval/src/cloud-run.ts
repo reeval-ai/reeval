@@ -11,7 +11,7 @@ import type { LinkedProject } from './cloud-project.ts'
 import type { PlannedItem } from './engine/node.ts'
 import { UsageError } from './errors.ts'
 import { displayUrl, EventStreamError, type FollowOptions } from './events.ts'
-import { ROUTED_KEYS } from './judge/index.ts'
+import { DIRECT_PROVIDERS, ROUTED_KEYS } from './judge/index.ts'
 import { CLOUD_TOKEN_VAR, type CloudToken, cloudToken } from './login/credentials.ts'
 import type { PlanDocument } from './plan.ts'
 import { stripCredentials } from './redact.ts'
@@ -695,7 +695,9 @@ export async function checkCloudSecrets(options: {
       .map((names) => names.join(' or ')),
   ]
   if (missing.length || gateways.length) {
-    const settable = missing.filter((name) => !reserved.has(name))
+    const providerOf = new Map(Object.entries(DIRECT_PROVIDERS).map(([p, { key }]) => [key, p]))
+    const providers = missing.filter((name) => !reserved.has(name) && providerOf.has(name))
+    const settable = missing.filter((name) => !reserved.has(name) && !providerOf.has(name))
     const refused = missing.filter((name) => reserved.has(name))
     const what = [
       missing.length && (missing.length === 1 ? 'a secret' : `${missing.length} secrets`),
@@ -709,6 +711,12 @@ export async function checkCloudSecrets(options: {
       parts.push(
         list(gateways.map((g) => `${g}(): reeval cloud gateway set ${g}`)),
         `Add ${gateways.length === 1 ? 'its key' : 'each key'} with that command, or take ${gateways.length === 1 ? 'it' : 'them'} out of the gateway list.`,
+      )
+    }
+    if (providers.length) {
+      parts.push(
+        list(providers.map((name) => `${name}: reeval cloud provider set ${providerOf.get(name)}`)),
+        `Add ${providers.length === 1 ? 'its key' : 'each key'} for the whole org with that command, which reads it from stdin or a prompt.${settable.length ? '' : ' Then run again.'}`,
       )
     }
     if (settable.length) {
