@@ -220,7 +220,10 @@ export const CLOUD_MACHINE: MachineProvider<CloudSandboxDescriptor> = {
         s.reuse ?? false,
         s.attemptsPerMachine ?? 1,
         s.maxConcurrent ?? null,
-        inImage(s),
+        s.image ?? null,
+        s.from ?? null,
+        s.dockerfile ?? null,
+        s.install ?? null,
       ]),
     // Every cloud VM of the run is on one service.
     account: () => '',

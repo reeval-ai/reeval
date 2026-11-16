@@ -745,14 +745,51 @@ export const daytonaProvider = (): SandboxProvider<DaytonaSandboxDescriptor> => 
   },
 })
 
-/** cloud()'s VMs have nothing to build either: `prepare` checks the service, per size. */
+/**
+ * cloud()'s VMs build nothing before the run, each preparing a recipe's image as it starts:
+ * `prepare` checks the service, per size, and that the registry answers for the `image` or `from`
+ * each machine pulls.
+ */
 export const cloudProvider = (): SandboxProvider<CloudSandboxDescriptor> => ({
   kind: 'cloud',
   check: async () => {},
-  key: (sandbox) => JSON.stringify({ size: sandbox.size ?? 'small' }),
+  key: (sandbox) =>
+    JSON.stringify({
+      size: sandbox.size ?? 'small',
+      ...(sandbox.image && { image: sandbox.image }),
+      ...(sandbox.from && { from: sandbox.from }),
+    }),
   async prepare(sandbox, _harness, ctx) {
     const { checkCloud } = await import('./cloud.ts')
     await checkCloud(sandbox, ctx.root)
+    const refs = [sandbox.image, sandbox.from].filter((ref) => ref !== undefined)
+    if (!refs.length) return null
+    const { registryResolver } = await import('./recipe.ts')
+    const resolve = registryResolver()
+    const failure = (ref: string, transient: boolean, message: string) =>
+      new PrepareError({
+        class: transient ? 'transient' : 'config',
+        stage: 'cloud',
+        ref,
+        cause: null,
+        log: null,
+        ...(!transient && { usage: true }),
+        message,
+      })
+    for (const ref of refs) {
+      await ctx.retry(async () => {
+        const now = await resolve(ref, ctx.signal)
+        if (!('error' in now)) return
+        if (now.error.startsWith("couldn't reach ") || isTransient(now.error)) {
+          throw failure(ref, true, `cloud() couldn't look up ${ref} in its registry: ${now.error}`)
+        }
+        throw failure(
+          ref,
+          false,
+          `cloud() pulls ${ref} from its registry onto each machine, but the registry doesn't answer for it: ${now.error}. Push it to a registry the machines can pull from.`,
+        )
+      })
+    }
     return null
   },
   classify: (error) => {

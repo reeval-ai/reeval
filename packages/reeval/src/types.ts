@@ -1329,7 +1329,8 @@ export type CloudSandboxDescriptor = {
   /**
    * An image that already has the harness baked in, pulled from its registry. With any of
    * `image`, `from`, `dockerfile` or `install`, each attempt runs in a container of the recipe's
-   * image, which its VM pulls or builds as `docker()` does locally, once per VM.
+   * image, which each VM pulls or builds as `docker()` does locally as its first attempt starts:
+   * without `reuse`, that's every attempt.
    */
   image?: string
   /** A Debian or Ubuntu based toolchain image; reeval bakes Node and the harness on top. */

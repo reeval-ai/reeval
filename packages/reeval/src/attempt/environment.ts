@@ -108,7 +108,10 @@ export async function prepareEnvironment(
       )
     }
     const from = vm?.ref ?? ('image' in spec.sandbox ? spec.sandbox.image : undefined)
-    if (!base)
+    const s = spec.sandbox
+    if (s.kind === 'cloud' && (s.image || s.from || s.dockerfile || s.install?.length)) {
+      debugLog('image', `each machine prepares the recipe's image as its attempt starts`)
+    } else if (!base)
       debugLog(
         'image',
         `${from ?? 'none recorded'}${vm?.digest ? ` (${vm.digest})` : ''} · ${kind.helpers[0]}() checked it before the run and starts each attempt from ${baked ? `${baked}, which has the harness baked in` : 'it'}`,

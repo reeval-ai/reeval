@@ -1898,7 +1898,7 @@
           "type": "string"
         },
         "image": {
-          "description": "An image that already has the harness baked in, pulled from its registry. With any of `image`, `from`, `dockerfile` or `install`, each attempt runs in a container of the recipe's image, which its VM pulls or builds as `docker()` does locally, once per VM.",
+          "description": "An image that already has the harness baked in, pulled from its registry. With any of `image`, `from`, `dockerfile` or `install`, each attempt runs in a container of the recipe's image, which each VM pulls or builds as `docker()` does locally as its first attempt starts: without `reuse`, that's every attempt.",
           "type": "string"
         },
         "install": {

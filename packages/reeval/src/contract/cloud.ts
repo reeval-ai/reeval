@@ -83,7 +83,9 @@ function explain(issue: Issue, value: unknown): string {
     const near = closest(key, ORDER)
     return `Unknown cloud() option "${key}".${near ? ` Did you mean "${near}"?` : ''}`
   }
-  if (issue.code === 'custom') return recipeMessage('cloud', (issue as { params?: unknown }).params)
+  if (issue.code === 'custom') {
+    return recipeMessage('cloud', (issue as { params?: unknown }).params, false)
+  }
   const key = String(issue.path[0])
   const v = options[key]
   if (key === 'install' && issue.path.length > 1) {

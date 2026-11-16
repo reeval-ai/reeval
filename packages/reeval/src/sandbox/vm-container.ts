@@ -1,5 +1,5 @@
-// An attempt on a pooled VM in a container of an image recipe's image, which the VM started from a
-// saved snapshot holding, or which the VM's Docker pulls or builds: the VM's docker CLI, over SSH,
+// An attempt on a pooled VM in a container of an image recipe's image, one that the saved snapshot
+// the VM started from holds, or that the VM's Docker pulls or builds: the VM's docker CLI, over SSH,
 // runs it as `docker()` runs one locally, so the egress gateway is its only way out and each
 // attempt on a shared machine has a network of its own. A slot's reset is the next attempt's new
 // container.
@@ -10,10 +10,16 @@ import { docker, dockerCapacity, type RemoteEngine, sshArgv } from '@reeval/sand
 import { run, unsetOtel } from '@reeval/sandbox-docker/process'
 import { attemptDebug } from '../debug/attempt.ts'
 import { registerSecret } from '../redact.ts'
-import type { BoatSandboxDescriptor, CloudSandboxDescriptor, SandboxBase } from '../types.ts'
+import type {
+  AttemptImage,
+  BoatSandboxDescriptor,
+  CloudSandboxDescriptor,
+  SandboxBase,
+} from '../types.ts'
 import { containerSandbox } from './docker.ts'
 import type { SandboxOptions } from './index.ts'
 import { leaseMachine } from './machine-service.ts'
+import { PrepareError } from './provider.ts'
 import { type PooledSshMachine, TTL_MARGIN_S } from './ssh-pool.ts'
 import { InfraError, type NetworkSandbox } from './types.ts'
 
@@ -26,14 +32,21 @@ const SETUP_TRIES = 3
 /** Where a machine's image comes from: the snapshot it starts from, and how its Docker gets it. */
 export type VmImageSource = {
   snapshot?: string
-  /** Has the image in the machine's Docker and returns its ref; a reused machine may have it. */
-  ready(engine: RemoteEngine, signal: AbortSignal): Promise<string>
+  /**
+   * Has the image in the machine's Docker and returns its ref, with the image as the record has it
+   * when no preflight prepared it; a reused machine may have it already.
+   */
+  ready(
+    engine: RemoteEngine,
+    machine: PooledSshMachine,
+    signal: AbortSignal,
+  ): Promise<{ ref: string; image?: AttemptImage }>
 }
 
 /** The image `base`'s snapshot holds, which its machine's Docker has once it has booted. */
 export const fromSnapshot = (base: SandboxBase): VmImageSource => ({
   snapshot: base.snapshot,
-  async ready(engine, signal) {
+  async ready(engine, _machine, signal) {
     const waited = await untilImage(engine, base.image, signal)
     if (waited >= 1000) {
       attemptDebug()?.log(
@@ -41,7 +54,7 @@ export const fromSnapshot = (base: SandboxBase): VmImageSource => ({
         `${base.image} ready in its Docker after ${Math.round(waited / 1000)}s`,
       )
     }
-    return base.image
+    return { ref: base.image }
   },
 })
 
@@ -144,12 +157,14 @@ export async function createVmContainerSandbox(
       await rm(dir, { recursive: true, force: true })
       await lease.release(broken)
     }
-    let image: string
+    let image: { ref: string; image?: AttemptImage }
     try {
-      image = await source.ready(engine, options.signal)
+      image = await source.ready(engine, info, options.signal)
     } catch (error) {
-      await done(true)
-      if (options.signal.aborted || !lease.reused || tries >= SETUP_TRIES) throw error
+      // A recipe that can't build is the eval's to fix, not the machine's fault.
+      const config = error instanceof PrepareError && error.failure.class === 'config'
+      await done(!config)
+      if (config || options.signal.aborted || !lease.reused || tries >= SETUP_TRIES) throw error
       debug?.log('container', `${info.id} slot ${lease.slot}: ${(error as Error).message}`)
       continue
     }
@@ -159,7 +174,7 @@ export async function createVmContainerSandbox(
       const capacity = await dockerCapacity(engine)
       const slots = info.attemptsPerMachine ?? descriptor.attemptsPerMachine ?? 1
       sandbox = await containerSandbox(options, {
-        image,
+        image: image.ref,
         engine,
         fn: o.fn,
         limits: capacity
@@ -184,6 +199,7 @@ export async function createVmContainerSandbox(
     let destroyed: Promise<void> | undefined
     return {
       ...sandbox,
+      ...(image.image && { image: image.image }),
       destroy: () => {
         destroyed ??= (async () => {
           await destroy()

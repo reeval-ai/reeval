@@ -3,7 +3,7 @@ import { AgentError } from '@reeval/agents'
 import type { EgressTraffic, NetworkPolicy, Substitution } from '@reeval/sandbox-docker'
 import type { SecretWarning } from '../history/types.ts'
 import type { ModelCall } from '../model-calls.ts'
-import type { ExecResult } from '../types.ts'
+import type { AttemptImage, ExecResult } from '../types.ts'
 import type { ResourceMeter } from './resources.ts'
 
 export type ExecOptions = { signal?: AbortSignal; env?: Record<string, string>; cwd?: string }
@@ -75,6 +75,8 @@ export interface Sandbox {
    * can be read, such as the fake sandbox on the host.
    */
   meter?(): ResourceMeter
+  /** The image the sandbox prepared on its machine as it started, where preflight prepared none. */
+  readonly image?: AttemptImage
   /** Idempotent, never throws. */
   destroy(): Promise<void>
   /**
