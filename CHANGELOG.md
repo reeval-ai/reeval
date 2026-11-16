@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.30.1](https://github.com/reeval-ai/reeval/compare/v0.30.0...v0.30.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **bundle:** record the same load inputs on Node and the compiled binary ([#1048](https://github.com/reeval-ai/reeval/issues/1048)) ([f912e44](https://github.com/reeval-ai/reeval/commit/f912e44ee21cefd012edfe8076711f194b6641f1))
+
 ## [0.30.0](https://github.com/reeval-ai/reeval/compare/v0.29.5...v0.30.0) (2026-11-16)
 
 
