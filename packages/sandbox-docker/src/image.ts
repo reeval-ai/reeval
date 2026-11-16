@@ -112,7 +112,7 @@ export const LABEL = {
   owner: 'ai.reeval.owner',
   agentVersion: 'ai.reeval.agent-version',
   harness: 'ai.reeval.harness',
-  /** On reeval's own images: the hash of the base image's build context, to tell a stale one. */
+  /** On reeval's own images: the hash of the base image's build context it was built from. */
   context: 'ai.reeval.context',
   /** On a `from` image: the digest (or, for a local-only base, the image id) it was built on. */
   fromDigest: 'ai.reeval.from-digest',

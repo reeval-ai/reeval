@@ -32,11 +32,13 @@ const fail = (message, code = 1) => {
 const unknown = asked.filter((h) => !BAKED_HARNESSES.includes(h))
 if (unknown.length)
   fail(`Unknown harness ${unknown.join(', ')}. Use ${BAKED_HARNESSES.join(', ')}.`, 2)
-if (values.push && !values.registry) fail('--push needs --registry', 2)
+if (!values.push !== !values.registry) fail('--registry and --push go together', 2)
 const problem = values.registry && registryProblem(values.registry)
 if (problem) fail(problem, 2)
 
 const platform = values.push ? await enginePlatform() : null
+// One harness failing still builds the others, so a publish leaves as few gaps as it can.
+let failed = 0
 for (const harness of asked.length ? asked : BAKED_HARNESSES) {
   const bootstrap = setupOf(harness)
   const layer = {
@@ -56,6 +58,8 @@ for (const harness of asked.length ? asked : BAKED_HARNESSES) {
     await buildImage(console.log, { harness, bootstrap })
     if (values.push) console.log(`Pushed ${await pushLayer(values.registry, layer)}`)
   } catch (e) {
-    fail(e instanceof Error ? e.message : String(e))
+    console.error(e instanceof Error ? e.message : String(e))
+    failed++
   }
 }
+if (failed) fail(`${failed} image${failed === 1 ? '' : 's'} failed`)
