@@ -2898,8 +2898,13 @@ test('selectProfile: --profile, then REEVAL_PROFILE, then defaultProfile', () =>
   const config = resolveConfig(
     {
       budget: { attempts: 50 },
-      defaultProfile: { ci: 'pr', local: 'dev' },
-      profiles: { pr: { budget: { duration: '1h' } }, dev: {}, nightly: { record: 'always' } },
+      defaultProfile: { ci: 'pr', local: 'dev', cloud: 'fan' },
+      profiles: {
+        pr: { budget: { duration: '1h' } },
+        dev: {},
+        nightly: { record: 'always' },
+        fan: {},
+      },
     },
     '/p',
   )
@@ -2911,9 +2916,19 @@ test('selectProfile: --profile, then REEVAL_PROFILE, then defaultProfile', () =>
     ['pr', 'auto: CI is set', { attempts: 50, duration: '1h' }],
   )
   assert.equal(selectProfile(config, undefined, {})?.reason, 'default')
+  const cloud = selectProfile(config, undefined, { CI: 'true' }, true)
+  assert.deepEqual([cloud?.name, cloud?.reason], ['fan', 'auto: cloud run'])
+  assert.equal(selectProfile(config, undefined, { REEVAL_PROFILE: 'dev' }, true)?.name, 'dev')
+  assert.equal(selectProfile(config, 'nightly', {}, true)?.name, 'nightly')
+  const noCloud = resolveConfig({ defaultProfile: { local: 'dev' }, profiles: { dev: {} } }, '/p')
+  assert.equal(selectProfile(noCloud, undefined, {}, true)?.name, 'dev')
+  assert.throws(
+    () => resolveConfig({ defaultProfile: { cloud: 'gone' }, profiles: { dev: {} } }, '/p'),
+    /defaultProfile\.cloud in reeval\.config\.ts names "gone", which isn't a profile/,
+  )
   assert.throws(
     () => selectProfile(config, 'nope', {}),
-    /Unknown profile "nope"\. Profiles in reeval\.config\.ts: pr, dev, nightly\./,
+    /Unknown profile "nope"\. Profiles in reeval\.config\.ts: pr, dev, nightly, fan\./,
   )
 })
 

@@ -5,7 +5,7 @@ import { inspect } from 'node:util'
 import { detectAgent } from 'std-env'
 import { parseCli } from './cli-parse.ts'
 import { commandHelpText, type Flags, helpText } from './cli-spec.ts'
-import { type RunTarget, wantsCloud } from './cloud-run.ts'
+import { cloudAsked, type RunTarget, wantsCloud } from './cloud-run.ts'
 import type { EvalQuestions, questionRunner } from './compare/questions.ts'
 import {
   configLabel,
@@ -1114,7 +1114,7 @@ async function cloudDownload(
   const path = requireConfig(configPath)
   const named = profile ?? (process.env.REEVAL_PROFILE || undefined)
   const loaded = await loadConfig(path, 'run', named)
-  const picked = selectProfile(loaded, profile)
+  const picked = selectProfile(loaded, profile, process.env, true)
   const { root, history } = withProfileHistory(loaded, picked)
   const auth = await cloud.cloudAuth(base)
   return {
@@ -1724,7 +1724,7 @@ async function cloudContinue(
       ))
     // The history a downloaded run was filed in is its own profile's, while the config has it.
     const own = origin?.profile && config.profiles[origin.profile] ? origin.profile : undefined
-    const picked = selectProfile(config, flags.profile ?? own)
+    const picked = selectProfile(config, flags.profile ?? own, process.env, true)
     const { root, history } = withProfileHistory(config, picked)
     if (flags.download) download = { root, history, ...(picked ? { profile: picked.name } : {}) }
   }
@@ -1761,7 +1761,8 @@ async function cloudContinuation(flags: Flags, path: string, runId: string, bund
   const named = flags.profile ?? origin.profile ?? (process.env.REEVAL_PROFILE || undefined)
   const loaded = await loadConfig(path, 'run', named)
   const own = origin.profile && loaded.profiles[origin.profile] ? origin.profile : undefined
-  if (!wantsCloud(flags, loaded, selectProfile(loaded, flags.profile ?? own))) return null
+  const picked = selectProfile(loaded, flags.profile ?? own, process.env, cloudAsked(flags, loaded))
+  if (!wantsCloud(flags, loaded, picked)) return null
   return {
     cloud: { config: loaded, origin },
     runId: undefined,
@@ -1801,7 +1802,8 @@ async function resumedRun(
       'run',
       flags.profile ?? (process.env.REEVAL_PROFILE || undefined),
     )
-    if (!wantsCloud(flags, loaded, selectProfile(loaded, flags.profile))) throw error
+    const picked = selectProfile(loaded, flags.profile, process.env, cloudAsked(flags, loaded))
+    if (!wantsCloud(flags, loaded, picked)) throw error
     return {
       cloud: { config: loaded, origin: null },
       runId: undefined,
@@ -1931,7 +1933,9 @@ async function prepareRun(
       `run ${profileOf} was started with profile ${flags.profile}, which ${loaded.file} no longer defines. Put it back to resume the run, or start a new run without --resume.`,
     )
   }
-  const profile = noProfile ? null : selectProfile(loaded, flags.profile)
+  const profile = noProfile
+    ? null
+    : selectProfile(loaded, flags.profile, process.env, cloudAsked(flags, loaded))
   const config = withProfileHistory(loaded, profile)
   const recording =
     flags.record ||

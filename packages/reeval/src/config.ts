@@ -586,15 +586,21 @@ export function checkGateways(value: unknown, where: string, file: string): Gate
     : [...out, { kind: 'direct' }]
 }
 
-/** `--profile`, then `REEVAL_PROFILE`, then `defaultProfile.ci` in CI (or `.local`), then none. */
+/**
+ * `--profile`, then `REEVAL_PROFILE`, then `defaultProfile.cloud` for a run going to the cloud, then
+ * `defaultProfile.ci` in CI (or `.local`), then none.
+ */
 export function selectProfile(
   config: ResolvedConfig,
   flag: string | undefined,
   env = process.env,
+  cloud = false,
 ): ResolvedProfile | null {
   const pick = (): [string, string] | null => {
     if (flag) return [flag, '--profile']
     if (env.REEVAL_PROFILE) return [env.REEVAL_PROFILE, 'REEVAL_PROFILE']
+    if (cloud && config.defaultProfile.cloud)
+      return [config.defaultProfile.cloud, 'auto: cloud run']
     const ci = inCI(env)
     if (ci && config.defaultProfile.ci) return [config.defaultProfile.ci, 'auto: CI is set']
     if (!ci && config.defaultProfile.local) return [config.defaultProfile.local, 'default']
@@ -694,8 +700,8 @@ export function resolveConfig(
     }
   }
   const defaultProfile = user.defaultProfile ?? {}
-  unknownKey(defaultProfile, ['ci', 'local'], 'defaultProfile', file)
-  for (const key of ['ci', 'local'] as const) {
+  unknownKey(defaultProfile, ['ci', 'local', 'cloud'], 'defaultProfile', file)
+  for (const key of ['ci', 'local', 'cloud'] as const) {
     const name = defaultProfile[key]
     if (name !== undefined && !profiles[name]) {
       const names = Object.keys(profiles)
@@ -703,6 +709,12 @@ export function resolveConfig(
         `defaultProfile.${key} in ${file} names "${name}", which isn't a profile (${names.length ? `profiles: ${names.join(', ')}` : 'it defines none'}). Add it under profiles, or name one that's there.`,
       )
     }
+  }
+  const cloudDefault = defaultProfile.cloud
+  if (cloudDefault !== undefined && profiles[cloudDefault]?.cloud === false) {
+    throw new UsageError(
+      `defaultProfile.cloud in ${file} names "${cloudDefault}", whose cloud: false would keep a run the config's cloud: true sends to the cloud on this machine. Name a profile that leaves the cloud on, or take cloud: false out of it.`,
+    )
   }
   return {
     root,

@@ -65,6 +65,13 @@ export function wantsCloud(
 }
 
 /**
+ * Whether `--cloud` or the config's `cloud` sends the run to the cloud, before a profile is picked:
+ * what picks `defaultProfile.cloud`.
+ */
+export const cloudAsked = (flags: Flags, config: Pick<ResolvedConfig, 'cloud'>) =>
+  !flags.local && (!!flags.cloud || config.cloud)
+
+/**
  * The run flags a cloud run takes: the ones its bundle carries (filters aside), `--resume` and the
  * ones that only change how this terminal shows it. `--json` only with `--dry-run`.
  */

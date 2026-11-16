@@ -2521,6 +2521,9 @@
             "ci": {
               "type": "string"
             },
+            "cloud": {
+              "type": "string"
+            },
             "local": {
               "type": "string"
             }

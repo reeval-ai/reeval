@@ -192,7 +192,11 @@ export const reevalConfigDataSchema = z.strictObject({
   budget: budgetSchema.optional(),
   profiles: z.record(z.string(), profileDataSchema).optional(),
   defaultProfile: z
-    .strictObject({ ci: z.string().optional(), local: z.string().optional() })
+    .strictObject({
+      ci: z.string().optional(),
+      local: z.string().optional(),
+      cloud: z.string().optional(),
+    })
     .optional(),
   secrets: z.strictObject({ unbrokered: z.enum(['warn', 'error']).optional() }).optional(),
   debug: z
