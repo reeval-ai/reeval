@@ -267,6 +267,8 @@ export async function capturePage(
   const fake = a.spec.sandbox.kind === 'fake'
   const use = resolveUse(a, resolved, fake)
   a.captureNames.add(resolved.name)
+  // `timeout` is the page's alone: a fresh host's browser download comes first.
+  const bin = fake ? '' : await browserBinary(a)
   const started = Date.now()
   const remaining = () => Math.max(0, resolved.timeoutMs - (Date.now() - started))
   let moves = 0
@@ -298,6 +300,7 @@ export async function capturePage(
       }
     : await shot(
         a,
+        bin,
         origin,
         url,
         { ...resolved, use },
@@ -397,8 +400,27 @@ function tracePage(name: string, page: CapturePage) {
   for (const line of pageLines(page)) debugLog('check', `capture "${name}" ${line}`)
 }
 
+async function browserBinary(a: Attempt): Promise<string> {
+  const cache = cacheDir()
+  const began = Date.now()
+  let downloaded = false
+  const bin = await ensureChrome(cache, {
+    cacheLabel: cacheLabel(cache),
+    signal: a.signal,
+    onProgress: (p) => {
+      downloaded = true
+      a.report({ kind: 'browser-download', ...p })
+    },
+  })
+  if (downloaded) {
+    debugLog('check', `c.capture: downloaded chrome-headless-shell in ${Date.now() - began}ms`)
+  }
+  return bin
+}
+
 async function shot(
   a: Attempt,
+  bin: string,
   origin: string,
   url: string,
   resolved: ResolvedCaptureCall & { use?: CaptureUse },
@@ -407,12 +429,6 @@ async function shot(
   tunnel: (port: number) => Promise<string>,
   onStep: (shot: StepShot) => string,
 ): Promise<{ png: Buffer; page: CapturePage }> {
-  const cache = cacheDir()
-  const bin = await ensureChrome(cache, {
-    cacheLabel: cacheLabel(cache),
-    signal: a.signal,
-    onProgress: (p) => a.report({ kind: 'browser-download', ...p }),
-  })
   // The browser runs on the host: the page's own loopback requests (an emulator, an API on
   // another port) mean the sandbox's, so they go through its tunnels.
   const proxy = await startLoopbackProxy({ tunnel, direct: [Number(new URL(url).port)] })

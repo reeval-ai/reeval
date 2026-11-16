@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import http from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { deflateRawSync } from 'node:zlib'
-import { msysTreeKill } from '../src/attempt/capture.ts'
+import { capturePage, msysTreeKill } from '../src/attempt/capture.ts'
+import type { Attempt } from '../src/attempt/state.ts'
 import { fakeInstructions } from '../src/capture/fake-instructions.ts'
 import {
   cacheLabel,
@@ -266,6 +269,61 @@ test('ensureChrome skips download when the binary is cached', async () => {
   })
   assert.equal(found, bin)
   assert.equal(progress, 0)
+})
+
+test("c.capture()'s timeout starts once a downloaded browser is in hand", {
+  skip: process.platform === 'win32' && 'the fake browser is a script with a shebang',
+}, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'reeval-capture-download-'))
+  const script = Buffer.from('#!/usr/bin/env node\nsetTimeout(() => {}, 30_000)\n')
+  const name = Buffer.from('chrome-headless-shell-linux64/chrome-headless-shell')
+  const zip = Buffer.alloc(30 + name.length + script.length)
+  zip.writeUInt32LE(0x04034b50, 0)
+  zip.writeUInt32LE(script.length, 18)
+  zip.writeUInt16LE(name.length, 26)
+  name.copy(zip, 30)
+  script.copy(zip, 30 + name.length)
+  const site = http.createServer((_req, res) => res.end('ok'))
+  await new Promise<void>((ok) => site.listen(0, '127.0.0.1', ok))
+  const origin = `http://127.0.0.1:${(site.address() as AddressInfo).port}`
+  const realFetch = globalThis.fetch
+  let downloaded = 0
+  globalThis.fetch = async (input, init) => {
+    if (!String(input).startsWith('https://storage.googleapis.com/')) {
+      return realFetch(input, init)
+    }
+    await new Promise((r) => setTimeout(r, 1_500))
+    downloaded = Date.now()
+    return new Response(zip)
+  }
+  const cacheHome = process.env.XDG_CACHE_HOME
+  process.env.XDG_CACHE_HOME = dir
+  const box = { getPortEndpoint: async () => ({ url: origin }) }
+  const a = {
+    spec: { capture: {}, sandbox: { kind: 'docker' } },
+    captureNames: new Set<string>(),
+    start: async () => [box],
+    signal: new AbortController().signal,
+    report: () => {},
+    record: {},
+  } as unknown as Attempt
+  try {
+    const error = await capturePage(a, 3000, { name: 'home', timeout: '1s' }).then(
+      () => undefined,
+      (e: Error) => e,
+    )
+    const failed = Date.now()
+    assert.match(String(error), /did not open a DevTools port/)
+    const browserMs = failed - downloaded
+    assert.ok(browserMs >= 950, `the browser had ${browserMs}ms of the capture's 1s`)
+  } finally {
+    globalThis.fetch = realFetch
+    if (cacheHome === undefined) delete process.env.XDG_CACHE_HOME
+    else process.env.XDG_CACHE_HOME = cacheHome
+    site.closeAllConnections()
+    site.close()
+    rmSync(dir, { recursive: true, force: true })
+  }
 })
 
 test('unzip reads store and deflate entries', () => {
