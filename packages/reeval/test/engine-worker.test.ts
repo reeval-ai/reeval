@@ -143,6 +143,53 @@ registerTest('todo', { mode: 'todo' }, async () => {})
     })
   })
 
+  test("records each loaded file's package scope, whether or not this runtime's resolution reads it", async () => {
+    const c = fakeChannel()
+    startWorker(c.channel)
+    const shared = tempDir('shared')
+    writeFileSync(join(shared, 'package.json'), '{ "imports": { "#t": "./t.ts" } }\n')
+    writeFileSync(join(shared, 's.ts'), "export { T as S } from '#t'\n")
+    writeFileSync(join(shared, 't.ts'), "export const T: string = 's'\n")
+    const { root, file, run } = evalFile(`
+import { readFileSync } from 'node:fs'
+import dep from 'dep'
+import { H } from '#h'
+import { S } from '${join(shared, 's.ts')}'
+readFileSync(new URL('../fixture/package.json', import.meta.url))
+registerTest(dep + H + S, { mode: 'run', attempt: { name: 'a' } }, async () => {})
+`)
+    writeFileSync(join(root, 'package.json'), '{ "name": "project" }\n')
+    writeFileSync(join(root, 'evals/package.json'), '{ "imports": { "#h": "./lib/h.ts" } }\n')
+    mkdirSync(join(root, 'evals/lib'))
+    writeFileSync(join(root, 'evals/lib/h.ts'), "export const H: string = 'h'\n")
+    writeFileSync(join(root, 'evals/lib/package.json'), '{}\n')
+    mkdirSync(join(root, 'node_modules/dep'), { recursive: true })
+    writeFileSync(
+      join(root, 'node_modules/dep/package.json'),
+      '{ "name": "dep", "main": "index.js" }\n',
+    )
+    writeFileSync(join(root, 'node_modules/dep/index.js'), "module.exports = 'a'\n")
+    mkdirSync(join(root, 'fixture'))
+    writeFileSync(join(root, 'fixture/package.json'), '{}\n')
+    c.send({ t: 'init', run: { ...run, inputs: true }, file, select: null })
+    await c.exit
+    assert.deepEqual((c.sent[1] as { tests: Array<{ attempt?: unknown }> }).tests[0]?.attempt, {
+      name: 'a',
+      inputs: [
+        { path: file, kind: 'eval' },
+        ...[
+          { path: join(root, 'evals/lib/h.ts'), kind: 'module' },
+          { path: join(root, 'evals/lib/package.json'), kind: 'read' },
+          { path: join(root, 'evals/package.json'), kind: 'read' },
+          { path: join(root, 'fixture/package.json'), kind: 'read' },
+          { path: join(shared, 'package.json'), kind: 'read' },
+          { path: join(shared, 's.ts'), kind: 'module' },
+          { path: join(shared, 't.ts'), kind: 'module' },
+        ].sort((a, b) => (a.path < b.path ? -1 : 1)),
+      ],
+    })
+  })
+
   test('runs a selection, asking the main process for leases over the channel', async () => {
     const c = fakeChannel()
     startWorker(c.channel)

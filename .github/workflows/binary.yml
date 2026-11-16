@@ -43,6 +43,7 @@ on:
       - packages/reeval/src/root.ts
       - packages/reeval/src/bin.ts
       - packages/reeval/src/jiti.ts
+      - packages/reeval/src/inputs-load.ts
       - packages/reeval/src/engine/pool.ts
       - packages/reeval/src/engine/worker-entry.ts
       - packages/reeval/src/studio/index.ts

@@ -176,7 +176,7 @@ node scripts/bun-compile.mjs # optional, local: bun build --compile still makes 
 
 reeval runs on Node only. `scripts/bun-compile.mjs` (it needs `bun` on your PATH, and `pnpm build`)
 compiles `dist/` into `packages/reeval/reeval` with reeval's own files embedded (`--asset`:
-`package.json`, `docker/`, `bin/`, `assets/`, the Claude Code bridge, jiti's Babel build
+`package.json`, `docker/`, `bin/`, `assets/`, the Claude Code bridge, jiti's factory and Babel build
 and a `versions.json` of the bundled dependencies). It copies the binary into an empty directory
 and checks it plans and runs a copy of `examples/with-skill-lift` with no `node_modules` as Node does,
 answers `reeval query`, and, with Docker, runs an egress fixture. Compiled,

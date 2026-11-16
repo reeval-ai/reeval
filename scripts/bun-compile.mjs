@@ -67,6 +67,7 @@ const require = createRequire(join(pkg, 'package.json'))
 const jiti = dirname(require.resolve('jiti/package.json'))
 mkdirSync(join(stage, 'vendor/jiti'), { recursive: true })
 cpSync(join(jiti, 'dist/babel.cjs'), join(stage, 'vendor/jiti/babel.cjs'))
+cpSync(join(jiti, 'dist/jiti.cjs'), join(stage, 'vendor/jiti/jiti.cjs'))
 const manifest = JSON.parse(readFileSync(join(pkg, 'package.json'), 'utf8'))
 const versions = Object.fromEntries(
   Object.keys(manifest.dependencies).map((name) => [
@@ -145,15 +146,26 @@ function project(dir, link) {
     recursive: true,
     filter: (src) => !/[/\\](node_modules|\.reeval)([/\\]|$)/.test(src.slice(dir.length)),
   })
-  // An example imports the shared ../profiles.ts; a copy takes its own, as the README says.
+  // An example imports the shared ../profiles.ts; a copy takes its own, as the README says, here
+  // through an `imports` map and in a package scope of its own, which both runtimes have to record.
   const profiles = join(dir, '../profiles.ts')
   if (existsSync(profiles)) {
-    cpSync(profiles, join(copy, 'profiles.ts'))
+    mkdirSync(join(copy, 'shared'))
+    cpSync(profiles, join(copy, 'shared/profiles.ts'))
+    writeFileSync(join(copy, 'shared/package.json'), '{ "type": "module" }\n')
+    const manifest = join(copy, 'package.json')
+    const json = JSON.parse(readFileSync(manifest, 'utf8'))
+    json.imports = { '#profiles': './shared/profiles.ts', '#seed': './shared/seed.ts' }
+    writeFileSync(join(copy, 'shared/seed.ts'), 'export const SEED: number = 1\n')
+    writeFileSync(manifest, JSON.stringify(json, null, 2))
     const config = join(copy, 'reeval.config.ts')
-    writeFileSync(
-      config,
-      readFileSync(config, 'utf8').replace("'../profiles.ts'", "'./profiles.ts'"),
-    )
+    writeFileSync(config, readFileSync(config, 'utf8').replace("'../profiles.ts'", "'#profiles'"))
+    // An eval file loads asynchronously, apart from the config, and a module importing nothing
+    // is one Bun could load itself.
+    for (const file of readdirSync(copy).filter((f) => f.endsWith('.eval.ts'))) {
+      const path = join(copy, file)
+      writeFileSync(path, `import '#seed'\n${readFileSync(path, 'utf8')}`)
+    }
   }
   if (link) {
     mkdirSync(join(copy, 'node_modules'))
@@ -198,6 +210,14 @@ check(
   planBin.status === 0 && JSON.stringify(planned(planBin)) === JSON.stringify(planned(planNode)),
   why(planBin),
 )
+const inputs = (r) => JSON.stringify(r.status === 0 ? JSON.parse(r.stdout).inputs : null)
+check('the same inputs', inputs(planBin) === inputs(planNode), `${inputs(planBin)}`)
+const planBinInstalled = compiled(withNode, ['run', '--dry-run', '--json'])
+check(
+  'the same inputs with reeval installed',
+  inputs(planBinInstalled) === inputs(planNode),
+  inputs(planBinInstalled),
+)
 const runNode = node(withNode, ['run'])
 const runBin = compiled(example, ['run'])
 check(
@@ -207,6 +227,29 @@ check(
     outcome(runBin) === outcome(runNode),
   outcome(runBin) ?? (runBin.stdout + runBin.stderr).trim().slice(-600),
 )
+// Each runtime runs the other's bundle. Node's extracts under withNode, whose node_modules has reeval.
+const nodeBundle = join(alone, 'node.bundle.tar.gz')
+const binBundle = join(alone, 'bin.bundle.tar.gz')
+const bundled = [
+  node(withNode, ['bundle', '--out', nodeBundle]),
+  compiled(example, ['bundle', '--out', binBundle]),
+]
+mkdirSync(join(withNode, 'tmp'))
+for (const [name, r] of [
+  ["the compiled reeval runs Node's bundle", compiled(alone, ['run', '--bundle', nodeBundle])],
+  [
+    "Node runs the compiled reeval's bundle",
+    node(withNode, ['run', '--bundle', binBundle], { TMPDIR: join(withNode, 'tmp') }),
+  ],
+]) {
+  check(
+    name,
+    bundled.every((b) => b.status === 0) &&
+      r.status === runNode.status &&
+      outcome(r) === outcome(runNode),
+    outcome(r) ?? why(bundled.find((b) => b.status !== 0) ?? r),
+  )
+}
 const query = compiled(example, ['query', 'effort', '--json'])
 check('reeval query (node:sqlite)', query.status === 0, why(query))
 

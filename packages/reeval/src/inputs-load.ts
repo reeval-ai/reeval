@@ -4,7 +4,7 @@
 // file that exists count: a stat, a directory listing or a read through a descriptor isn't seen.
 import fs, { statSync } from 'node:fs'
 import { createRequire, syncBuiltinESMExports } from 'node:module'
-import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { transformedFiles } from './jiti.ts'
 import { ownReads } from './own-reads.ts'
@@ -28,6 +28,16 @@ function ignored(path: string, root: string): boolean {
   return ['/proc/', '/sys/', '/dev/'].some((p) => path.startsWith(p))
 }
 
+/** The nearest `package.json` above `file`, short of a `node_modules` directory. */
+function packageScope(file: string): string | undefined {
+  for (let dir = dirname(file); basename(dir) !== 'node_modules'; dir = dirname(dir)) {
+    const path = join(dir, 'package.json')
+    if (statSync(path, { throwIfNoEntry: false })?.isFile()) return path
+    if (dirname(dir) === dir) return undefined
+  }
+  return undefined
+}
+
 const TSCONFIG = /^(?:tsconfig|jsconfig)(?:\.[\w.-]+)?\.json$/
 
 /** A file in jiti's fs cache (`<tmp>/jiti/`), which it reads right after the module's source. */
@@ -41,6 +51,12 @@ const jitiCached = (path: string) =>
  * `main`, the file the load is for, comes first as `mainKind`. What reeval reads for itself
  * (`asOwnReads`) isn't recorded. A plain CommonJS module jiti loads
  * without its module cache (the config's) isn't transformed, so it counts as a `read`.
+ *
+ * The nearest `package.json` above `main` and each module, its package scope, is a `read` whether
+ * or not the load read it: resolving a bare import reads it only on some runtimes (a compiled
+ * reeval answers its own imports without it), and a bundle made on one has to plan alike on the
+ * other. A scope in a directory above `root` is left out, as a bundle carries every `package.json`
+ * from `root` up to its own root.
  */
 export function trackLoad(root: string) {
   const reads = new Set<string>()
@@ -83,9 +99,18 @@ export function trackLoad(root: string) {
         ...[...transformedFiles].filter((f) => !transformed.has(f)),
         ...Object.keys(cache).filter((f) => !required.has(f)),
       ])
+      const scopes = new Set([main, ...modules].map((f) => packageScope(resolve(f))))
+      const above = (path: string) => {
+        const down = relative(dirname(path), resolve(root))
+        return down !== '' && !down.startsWith('..') && !isAbsolute(down)
+      }
       const out: LocalInput[] = [{ path: main, kind: mainKind }]
-      for (const path of [...reads].sort()) {
+      const all = new Set(reads)
+      for (const scope of scopes)
+        if (scope && !above(scope) && !ignored(scope, root)) all.add(scope)
+      for (const path of [...all].sort()) {
         if (path === main || !statSync(path, { throwIfNoEntry: false })?.isFile()) continue
+        if (scopes.has(path) && above(path)) continue
         const name = basename(path)
         const kind = modules.has(path)
           ? 'module'
