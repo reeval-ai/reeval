@@ -496,6 +496,8 @@ describe('reeval run on the cloud platform', () => {
         r.stdout,
       )
       assert.match(r.stdout, /1 passed/)
+      assert.doesNotMatch(r.stdout, /Waiting for the cloud run/, 'no spinner off a terminal')
+      assert.ok(!r.stdout.includes('\x1b['), 'nor a cursor move')
       assert.deepEqual(
         p.seen.filter((s) => s.path !== '/ingest').map((s) => `${s.method} ${s.path}`),
         [

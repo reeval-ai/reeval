@@ -101,7 +101,8 @@ export function rowsOf(line: string, columns: number): number {
 /**
  * Before the list is up, the sandbox prepare step: the glyph of its `◆  Preparing…` line spins in
  * place (the cursor goes up to it and back) until each sandbox is ready or failed, then settles to
- * `◆`. What prints under it is kept and measured in rows as the terminal placed it, so a wide
+ * `◆`; and a follower's wait for a cloud run's first line, which `dismiss` ends. What
+ * prints under it is kept and measured in rows as the terminal placed it, so a wide
  * character still finds the step line. Once the step line would be out of reach, or the width
  * changes (some terminals reflow what they show, some don't, so its row is unknown), it stops
  * without drawing.
@@ -112,6 +113,8 @@ export class StepSpinner {
   readonly #size: () => { rows: number; columns: number }
   #timer: NodeJS.Timeout | undefined
   #frame = 0
+  /** The step line as `start` wrote it. */
+  #step = ''
   /** The step line and everything printed under it since. */
   #text = ''
   /** The width `#text` was printed at. */
@@ -139,6 +142,7 @@ export class StepSpinner {
   /** The step line was just written as `text`; it spins until `targets` have reported. */
   start(text: string, targets: number) {
     this.settle()
+    this.#step = text
     this.#text = text
     this.#columns = this.#size().columns
     this.#pending = targets
@@ -181,6 +185,14 @@ export class StepSpinner {
     this.#draw('◆')
     clearInterval(this.#timer)
     this.#timer = undefined
+  }
+
+  /** Stops it: the step line goes when nothing printed under it, else it settles to `◆`. */
+  dismiss() {
+    if (!this.#timer || this.#text !== this.#step || !this.#reachable()) return this.settle()
+    clearInterval(this.#timer)
+    this.#timer = undefined
+    this.#write(`\x1b[${this.#up()}A\r\x1b[J`)
   }
 }
 

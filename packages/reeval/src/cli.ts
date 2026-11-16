@@ -1031,7 +1031,8 @@ async function attachCommand(
   let detached = false
   let code: number
   let read: Awaited<ReturnType<typeof cloud.afterLostStream>>['read'] | undefined
-  const log = (line: string) => console.log(dim(line))
+  const follower = cloudRun ? await cloudFollower(flags) : undefined
+  const log = follower?.log ?? ((line: string) => console.log(dim(line)))
   const followed = new AbortController()
   if (cloudRun) {
     cloud
@@ -1039,7 +1040,7 @@ async function attachCommand(
       .catch(() => {})
   }
   try {
-    code = await attachHere(flags, {
+    code = await (follower?.follow ?? ((options) => attachHere(flags, options)))({
       source,
       ...(root === undefined ? {} : { root }),
       ...(follow ? { follow } : {}),
@@ -1128,7 +1129,7 @@ async function attachHere(
   flags: Flags,
   options: Pick<
     import('./attach.ts').AttachOptions,
-    'source' | 'root' | 'follow' | 'onDetach' | 'cancelHint' | 'resumedAfter'
+    'source' | 'root' | 'follow' | 'onDetach' | 'cancelHint' | 'resumedAfter' | 'onFirstLine'
   >,
 ): Promise<number> {
   const { attach } = await import('./attach.ts')
@@ -1153,6 +1154,51 @@ async function attachHere(
         stdinTTY: !!process.stdin.isTTY,
       }),
   })
+}
+
+/**
+ * A cloud run's follower: on a terminal with a status line, `◆  Waiting for the cloud run to
+ * start...` spins as the prepare step does from the follow until the run's stream sends its first
+ * line, with the lines `log` prints under it; elsewhere `log` only prints and `follow` only attaches.
+ * A resume's stream replays the earlier segments' lines first, so it gets no spinner.
+ */
+async function cloudFollower(flags: Flags) {
+  const output = resolveOutput({
+    flags: { ui: flags.ui, outputLogs: flags['output-logs'] },
+    env: process.env,
+    isTTY: !!process.stdout.isTTY,
+    agent: detectAgent().name,
+    stdinTTY: !!process.stdin.isTTY,
+  })
+  const { StepSpinner } = await import('./ui/tty.ts')
+  const depth = process.stdout.isTTY ? process.stdout.getColorDepth() : 4
+  const c = colors(output.color, depth >= 24 ? 24 : depth >= 8 ? 8 : 4)
+  const spinner =
+    output.statusLine && !process.env.REEVAL_DEBUG
+      ? new StepSpinner(
+          (text) => process.stdout.write(text),
+          c,
+          () => ({ rows: process.stdout.rows || 24, columns: process.stdout.columns || 80 }),
+        )
+      : undefined
+  return {
+    log: (line: string) => {
+      const text = `${dim(line)}\n`
+      spinner?.before(text)
+      process.stdout.write(text)
+    },
+    follow: async (options: Parameters<typeof attachHere>[1]) => {
+      if (!spinner || options.resumedAfter) return attachHere(flags, options)
+      const step = `  ${c.teal('◆')}  Waiting for the cloud run to start...\n`
+      process.stdout.write(step)
+      spinner.start(step, 1)
+      try {
+        return await attachHere(flags, { ...options, onFirstLine: () => spinner.dismiss() })
+      } finally {
+        spinner.dismiss()
+      }
+    },
+  }
 }
 
 /**
@@ -1240,14 +1286,15 @@ async function cloudTarget(
   if (setup.recording) {
     console.log(dim("record: a cloud run isn't recorded into this machine's history"))
   }
+  const follower = await cloudFollower(flags)
   const exit = await cloud.runCloud({
     base,
     bundle: made,
     project,
-    log: (line) => console.log(dim(line)),
+    log: follower.log,
     ...(process.stdin.isTTY && process.stdout.isTTY && { confirm }),
     ...(flags.force && { force: true }),
-    follow: (options) => attachHere(flags, options),
+    follow: follower.follow,
     ...(flags.download && {
       download: {
         root: setup.config.root,
@@ -1682,13 +1729,14 @@ async function cloudContinue(
     if (flags.download) download = { root, history, ...(picked ? { profile: picked.name } : {}) }
   }
   if (origin) console.log(dim(`run ${origin.runId} is cloud run ${origin.cloudRunId}'s download`))
+  const follower = await cloudFollower(flags)
   return cloud.resumeCloud({
     base,
     run: origin?.cloudRunId ?? ref,
     checkout: configPath !== undefined,
     lookedHere: !!found && !origin,
-    log: (line) => console.log(dim(line)),
-    follow: (options) => attachHere(flags, options),
+    log: follower.log,
+    follow: follower.follow,
     ...(download && { download }),
   })
 }
