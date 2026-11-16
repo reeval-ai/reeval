@@ -143,6 +143,35 @@ registerTest('todo', { mode: 'todo' }, async () => {})
     })
   })
 
+  test("leaves out a package scope's package.json, which only some runtimes' resolution reads", async () => {
+    const c = fakeChannel()
+    startWorker(c.channel)
+    const { root, file, run } = evalFile(`
+import { readFileSync } from 'node:fs'
+import dep from 'dep'
+readFileSync(new URL('../fixture/package.json', import.meta.url))
+registerTest(dep, { mode: 'run', attempt: { name: 'a' } }, async () => {})
+`)
+    writeFileSync(join(root, 'package.json'), '{ "name": "project" }\n')
+    mkdirSync(join(root, 'node_modules/dep'), { recursive: true })
+    writeFileSync(
+      join(root, 'node_modules/dep/package.json'),
+      '{ "name": "dep", "main": "index.js" }\n',
+    )
+    writeFileSync(join(root, 'node_modules/dep/index.js'), "module.exports = 'a'\n")
+    mkdirSync(join(root, 'fixture'))
+    writeFileSync(join(root, 'fixture/package.json'), '{}\n')
+    c.send({ t: 'init', run: { ...run, inputs: true }, file, select: null })
+    await c.exit
+    assert.deepEqual((c.sent[1] as { tests: Array<{ attempt?: unknown }> }).tests[0]?.attempt, {
+      name: 'a',
+      inputs: [
+        { path: file, kind: 'eval' },
+        { path: join(root, 'fixture/package.json'), kind: 'read' },
+      ],
+    })
+  })
+
   test('runs a selection, asking the main process for leases over the channel', async () => {
     const c = fakeChannel()
     startWorker(c.channel)

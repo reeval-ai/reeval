@@ -41,6 +41,10 @@ const jitiCached = (path: string) =>
  * `main`, the file the load is for, comes first as `mainKind`. What reeval reads for itself
  * (`asOwnReads`) isn't recorded. A plain CommonJS module jiti loads
  * without its module cache (the config's) isn't transformed, so it counts as a `read`.
+ *
+ * A `package.json` above `main` or a module is its package scope, which resolving a bare import
+ * reads only on some runtimes (a compiled reeval answers its own imports without it), so it isn't
+ * recorded: a bundle made on one runtime has to plan alike on the other.
  */
 export function trackLoad(root: string) {
   const reads = new Set<string>()
@@ -83,10 +87,14 @@ export function trackLoad(root: string) {
         ...[...transformedFiles].filter((f) => !transformed.has(f)),
         ...Object.keys(cache).filter((f) => !required.has(f)),
       ])
+      const loaded = [main, ...modules]
       const out: LocalInput[] = [{ path: main, kind: mainKind }]
       for (const path of [...reads].sort()) {
         if (path === main || !statSync(path, { throwIfNoEntry: false })?.isFile()) continue
         const name = basename(path)
+        if (name === 'package.json' && loaded.some((f) => f.startsWith(dirname(path) + sep))) {
+          continue
+        }
         const kind = modules.has(path)
           ? 'module'
           : TSCONFIG.test(name)

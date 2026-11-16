@@ -67,6 +67,7 @@ const require = createRequire(join(pkg, 'package.json'))
 const jiti = dirname(require.resolve('jiti/package.json'))
 mkdirSync(join(stage, 'vendor/jiti'), { recursive: true })
 cpSync(join(jiti, 'dist/babel.cjs'), join(stage, 'vendor/jiti/babel.cjs'))
+cpSync(join(jiti, 'dist/jiti.cjs'), join(stage, 'vendor/jiti/jiti.cjs'))
 const manifest = JSON.parse(readFileSync(join(pkg, 'package.json'), 'utf8'))
 const versions = Object.fromEntries(
   Object.keys(manifest.dependencies).map((name) => [
@@ -198,6 +199,8 @@ check(
   planBin.status === 0 && JSON.stringify(planned(planBin)) === JSON.stringify(planned(planNode)),
   why(planBin),
 )
+const inputs = (r) => JSON.stringify(r.status === 0 ? JSON.parse(r.stdout).inputs : null)
+check('the same inputs', inputs(planBin) === inputs(planNode), `${inputs(planBin)}`)
 const runNode = node(withNode, ['run'])
 const runBin = compiled(example, ['run'])
 check(
@@ -207,6 +210,29 @@ check(
     outcome(runBin) === outcome(runNode),
   outcome(runBin) ?? (runBin.stdout + runBin.stderr).trim().slice(-600),
 )
+// Each runtime runs the other's bundle. Node's extracts under withNode, whose node_modules has reeval.
+const nodeBundle = join(alone, 'node.bundle.tar.gz')
+const binBundle = join(alone, 'bin.bundle.tar.gz')
+const bundled = [
+  node(withNode, ['bundle', '--out', nodeBundle]),
+  compiled(example, ['bundle', '--out', binBundle]),
+]
+mkdirSync(join(withNode, 'tmp'))
+for (const [name, r] of [
+  ["the compiled reeval runs Node's bundle", compiled(alone, ['run', '--bundle', nodeBundle])],
+  [
+    "Node runs the compiled reeval's bundle",
+    node(withNode, ['run', '--bundle', binBundle], { TMPDIR: join(withNode, 'tmp') }),
+  ],
+]) {
+  check(
+    name,
+    bundled.every((b) => b.status === 0) &&
+      r.status === runNode.status &&
+      outcome(r) === outcome(runNode),
+    outcome(r) ?? why(bundled.find((b) => b.status !== 0) ?? r),
+  )
+}
 const query = compiled(example, ['query', 'effort', '--json'])
 check('reeval query (node:sqlite)', query.status === 0, why(query))
 

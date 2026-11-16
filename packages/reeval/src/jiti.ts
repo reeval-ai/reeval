@@ -1,8 +1,8 @@
 // jiti as reeval uses it, for the config and eval files.
 
-import { createRequire } from 'node:module'
+import { createRequire, isBuiltin } from 'node:module'
 import { dirname, join } from 'node:path'
-import { createJiti, type Jiti, type JitiOptions } from 'jiti'
+import type { Jiti, JitiOptions } from 'jiti'
 import { COMPILED, ownDir, ownRequire, PACKAGE_NAMES } from './root.ts'
 
 type Transform = NonNullable<JitiOptions['transform']>
@@ -38,17 +38,56 @@ export const jitiTransform: Transform = (options) => {
   }
 }
 
+type CreateJiti = (
+  id: string,
+  options: JitiOptions,
+  parent: {
+    onError: (error: unknown) => never
+    nativeImport: (id: string) => Promise<unknown>
+    createRequire: typeof createRequire
+  },
+) => Jiti
+
+let factory: CreateJiti | undefined
+
+/**
+ * jiti's factory, which its entry points wrap, from the jiti package on disk or, compiled, the
+ * copy embedded in it (`vendor/jiti/jiti.cjs`), as {@link jitiTransform} finds Babel.
+ */
+function jitiFactory(): CreateJiti {
+  if (!factory) {
+    const file = COMPILED
+      ? join(ownDir('vendor/jiti'), 'jiti.cjs')
+      : join(dirname(ownRequire.resolve('jiti/package.json')), 'dist/jiti.cjs')
+    factory = createRequire(file)(file) as CreateJiti
+  }
+  return factory
+}
+
+/**
+ * How jiti imports a module it doesn't transform. A builtin is `require`'s object rather than its
+ * ESM namespace, which Bun doesn't sync with it, so `trackLoad`'s wrapped `fs` sees a named
+ * `node:fs` import's reads on Bun as on Node.
+ */
+const nativeImport = (id: string) => (isBuiltin(id) ? Promise.resolve(ownRequire(id)) : import(id))
+
 /**
  * A jiti that imports from `id`. Compiled, a file's imports of reeval itself get this reeval's own
  * modules: a copy on disk would register evals, and hold state, the executable can't see.
  */
 export async function reevalJiti(id: string, options: JitiOptions = {}): Promise<Jiti> {
   const virtualModules = COMPILED ? await ownModules() : undefined
-  return createJiti(id, {
-    transform: jitiTransform,
-    ...options,
-    ...(virtualModules && { virtualModules }),
-  })
+  return jitiFactory()(
+    id,
+    { transform: jitiTransform, ...options, ...(virtualModules && { virtualModules }) },
+    {
+      onError: (error) => {
+        throw error
+      },
+      nativeImport,
+      createRequire,
+    },
+  )
 }
 
 async function ownModules(): Promise<Record<string, unknown>> {
