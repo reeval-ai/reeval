@@ -91,6 +91,8 @@ export type SandboxHooks<D extends SandboxDescriptor> = {
   slotsPerMachine?(sandbox: D): number
   /** Whether each attempt on a shared machine has a network of its own, so no port collides. */
   slotNetworks?(sandbox: D): boolean
+  /** Whether each machine prepares `sandbox`'s image as its attempt starts, none before the run. */
+  preparesImage?(sandbox: D): boolean
   /** What `sandbox` can do, when its options change what its kind can. */
   capabilitiesFor?(sandbox: D): SandboxCapabilities
   /**

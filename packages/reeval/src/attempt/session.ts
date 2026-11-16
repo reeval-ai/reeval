@@ -589,6 +589,14 @@ export async function startSession(
   })
   a.sandbox = box
   a.meter = box.meter?.()
+  if (box.image) {
+    a.record.image = box.image
+    const { ref, id, base, agentCli } = box.image
+    debugLog(
+      'image',
+      `ready ${ref} (${id.replace(/^sha256:/, '').slice(0, 12)}) · prepared on its machine${ref !== base ? ` · on ${base}` : ''}${agentCli ? ` · agent CLI ${agentCli}` : ''}`,
+    )
+  }
   if (!capabilitiesOf(spec.sandbox).isolated) {
     debugLog(
       'container',

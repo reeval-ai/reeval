@@ -78,19 +78,20 @@ export const TART_MACHINE: MachineProvider<TartSandboxDescriptor> = {
  */
 const BOAT_EGRESS: EgressCapabilities = { enforce: 'none', record: true, switches: false }
 
-/** A Boat sandbox with an image recipe, whose attempts each run in a container of the image. */
-const inImage = (s: BoatSandboxDescriptor) =>
+/** A sandbox with an image recipe, whose attempts each run in a container of the image. */
+const inImage = (s: BoatSandboxDescriptor | CloudSandboxDescriptor) =>
   !!(s.image || s.from || s.dockerfile || s.install?.length)
+
+/** A container in the VM's Docker, as `docker()` runs one: the gateway can be its only way out. */
+const inContainer = (s: BoatSandboxDescriptor | CloudSandboxDescriptor) =>
+  inImage(s) ? { egress: DOCKER_EGRESS, processTable: true, listeners: 'proc' as const } : null
 
 export const BOAT_MACHINE: MachineProvider<BoatSandboxDescriptor> = {
   kind: 'boat',
   helpers: ['boat'],
   os: 'linux',
   capabilities: { egress: BOAT_EGRESS, processTable: true, listeners: 'proc' },
-  // A container in the VM's Docker, as `docker()` runs one: its networks detach, so the gateway
-  // can be its only way out.
-  sandboxCapabilities: (s) =>
-    inImage(s) ? { egress: DOCKER_EGRESS, processTable: true, listeners: 'proc' } : null,
+  sandboxCapabilities: inContainer,
   id: (s) => recipeId(`boat${s.type ? `:${s.type}` : ''}`, s),
   hostPaths: { dockerfile: 'file' },
   async create(sandbox, options) {
@@ -201,8 +202,9 @@ export const CLOUD_MACHINE: MachineProvider<CloudSandboxDescriptor> = {
   internal: true,
   os: 'linux',
   capabilities: { egress: CLOUD_EGRESS, processTable: true, listeners: 'proc' },
-  id: (s) => (s.size ? `cloud:${s.size}` : 'cloud'),
-  hostPaths: {},
+  sandboxCapabilities: inContainer,
+  id: (s) => recipeId(s.size ? `cloud:${s.size}` : 'cloud', s),
+  hostPaths: { dockerfile: 'file' },
   async create(sandbox, options) {
     const { createCloudSandbox } = await import('./cloud.ts')
     return createCloudSandbox(sandbox, options)
@@ -218,6 +220,10 @@ export const CLOUD_MACHINE: MachineProvider<CloudSandboxDescriptor> = {
         s.reuse ?? false,
         s.attemptsPerMachine ?? 1,
         s.maxConcurrent ?? null,
+        s.image ?? null,
+        s.from ?? null,
+        s.dockerfile ?? null,
+        s.install ?? null,
       ]),
     // Every cloud VM of the run is on one service.
     account: () => '',
@@ -236,6 +242,8 @@ export const CLOUD_MACHINE: MachineProvider<CloudSandboxDescriptor> = {
     { names: ['REEVAL_VM_TOKEN'], line: 'REEVAL_VM_TOKEN (for cloud())', cloudSets: true },
   ],
   slotsPerMachine: (s) => s.attemptsPerMachine ?? 1,
+  slotNetworks: inImage,
+  preparesImage: inImage,
   async doctor(sandboxes, ctx) {
     const { cloudDoctor } = await import('./cloud.ts')
     return cloudDoctor(sandboxes, ctx)

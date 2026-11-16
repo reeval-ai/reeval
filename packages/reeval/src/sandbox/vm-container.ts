@@ -1,7 +1,8 @@
-// An attempt on a pooled VM that started from a saved snapshot, in a container of the image the
-// snapshot holds: the VM's docker CLI, over SSH, runs it as `docker()` runs one locally, so the
-// egress gateway is its only way out and each attempt on a shared machine has a network of its
-// own. A slot's reset is the next attempt's new container.
+// An attempt on a pooled VM in a container of an image recipe's image, one that the saved snapshot
+// the VM started from holds, or that the VM's Docker pulls or builds: the VM's docker CLI, over SSH,
+// runs it as `docker()` runs one locally, so the egress gateway is its only way out and each
+// attempt on a shared machine has a network of its own. A slot's reset is the next attempt's new
+// container.
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -9,10 +10,16 @@ import { docker, dockerCapacity, type RemoteEngine, sshArgv } from '@reeval/sand
 import { run, unsetOtel } from '@reeval/sandbox-docker/process'
 import { attemptDebug } from '../debug/attempt.ts'
 import { registerSecret } from '../redact.ts'
-import type { BoatSandboxDescriptor, SandboxBase } from '../types.ts'
+import type {
+  AttemptImage,
+  BoatSandboxDescriptor,
+  CloudSandboxDescriptor,
+  SandboxBase,
+} from '../types.ts'
 import { containerSandbox } from './docker.ts'
 import type { SandboxOptions } from './index.ts'
 import { leaseMachine } from './machine-service.ts'
+import { PrepareError } from './provider.ts'
 import { type PooledSshMachine, TTL_MARGIN_S } from './ssh-pool.ts'
 import { InfraError, type NetworkSandbox } from './types.ts'
 
@@ -21,6 +28,35 @@ const IMAGE_WAIT_MS = 4 * 60_000
 const IMAGE_POLL_MS = 2_000
 /** How many machines an attempt tries when a reused one's Docker doesn't answer. */
 const SETUP_TRIES = 3
+
+/** Where a machine's image comes from: the snapshot it starts from, and how its Docker gets it. */
+export type VmImageSource = {
+  snapshot?: string
+  /**
+   * Has the image in the machine's Docker and returns its ref, with the image as the record has it
+   * when no preflight prepared it; a reused machine may have it already.
+   */
+  ready(
+    engine: RemoteEngine,
+    machine: PooledSshMachine,
+    signal: AbortSignal,
+  ): Promise<{ ref: string; image?: AttemptImage }>
+}
+
+/** The image `base`'s snapshot holds, which its machine's Docker has once it has booted. */
+export const fromSnapshot = (base: SandboxBase): VmImageSource => ({
+  snapshot: base.snapshot,
+  async ready(engine, _machine, signal) {
+    const waited = await untilImage(engine, base.image, signal)
+    if (waited >= 1000) {
+      attemptDebug()?.log(
+        'container',
+        `${base.image} ready in its Docker after ${Math.round(waited / 1000)}s`,
+      )
+    }
+    return { ref: base.image }
+  },
+})
 
 export type VmContainerOptions = {
   /** How messages name the sandbox: `boat`. */
@@ -68,13 +104,12 @@ async function closeConnection(engine: RemoteEngine): Promise<void> {
 }
 
 /**
- * One attempt in a container of `base`'s image on a slot of `descriptor`'s pool, whose machines
- * start from `base`'s snapshot. A reused machine whose Docker doesn't have the image is dropped
- * and another leased, up to 3 times.
+ * One attempt in a container of `source`'s image on a slot of `descriptor`'s pool. A reused
+ * machine whose Docker can't get the image is dropped and another leased, up to 3 times.
  */
 export async function createVmContainerSandbox(
-  descriptor: BoatSandboxDescriptor,
-  base: SandboxBase,
+  descriptor: BoatSandboxDescriptor | CloudSandboxDescriptor,
+  source: VmImageSource,
   options: SandboxOptions,
   o: VmContainerOptions,
 ): Promise<NetworkSandbox> {
@@ -88,7 +123,7 @@ export async function createVmContainerSandbox(
         ...(options.attempt !== undefined && { attempt: options.attempt }),
         root: process.cwd(),
         ttlSeconds: Math.ceil(options.timeoutMs / 1000) + TTL_MARGIN_S,
-        image: base.snapshot,
+        ...(source.snapshot && { image: source.snapshot }),
       },
       options.signal,
     ).catch(async (error: unknown) => {
@@ -101,7 +136,7 @@ export async function createVmContainerSandbox(
     debug?.log(
       'container',
       lease.start
-        ? `created ${info.id} (${info.name}, ${info.size}) from snapshot ${base.snapshot} in ${lease.start.ms}ms; slot ${lease.slot}`
+        ? `created ${info.id} (${info.name}, ${info.size})${source.snapshot ? ` from snapshot ${source.snapshot}` : ''} in ${lease.start.ms}ms; slot ${lease.slot}`
         : `${lease.reused ? 'reused' : 'shared'} ${info.id} (${info.name}, ${info.size}); slot ${lease.slot}${lease.reused ? `, its attempt ${lease.reused + 1}` : ''}`,
     )
     const engine: RemoteEngine = {
@@ -122,17 +157,14 @@ export async function createVmContainerSandbox(
       await rm(dir, { recursive: true, force: true })
       await lease.release(broken)
     }
+    let image: { ref: string; image?: AttemptImage }
     try {
-      const waited = await untilImage(engine, base.image, options.signal)
-      if (waited >= 1000) {
-        debug?.log(
-          'container',
-          `${base.image} ready in its Docker after ${Math.round(waited / 1000)}s`,
-        )
-      }
+      image = await source.ready(engine, info, options.signal)
     } catch (error) {
-      await done(true)
-      if (options.signal.aborted || !lease.reused || tries >= SETUP_TRIES) throw error
+      // A recipe that can't build is the eval's to fix, not the machine's fault.
+      const config = error instanceof PrepareError && error.failure.class === 'config'
+      await done(!config)
+      if (config || options.signal.aborted || !lease.reused || tries >= SETUP_TRIES) throw error
       debug?.log('container', `${info.id} slot ${lease.slot}: ${(error as Error).message}`)
       continue
     }
@@ -140,9 +172,9 @@ export async function createVmContainerSandbox(
     try {
       // The machine's slots share it evenly.
       const capacity = await dockerCapacity(engine)
-      const slots = descriptor.attemptsPerMachine ?? 1
+      const slots = info.attemptsPerMachine ?? descriptor.attemptsPerMachine ?? 1
       sandbox = await containerSandbox(options, {
-        image: base.image,
+        image: image.ref,
         engine,
         fn: o.fn,
         limits: capacity
@@ -153,7 +185,7 @@ export async function createVmContainerSandbox(
           : {},
         machine: {
           sandbox: o.sandbox,
-          size: descriptor.type ?? o.size,
+          size: info.size || o.size,
           id: info.id,
           name: info.name,
         },
@@ -167,6 +199,7 @@ export async function createVmContainerSandbox(
     let destroyed: Promise<void> | undefined
     return {
       ...sandbox,
+      ...(image.image && { image: image.image }),
       destroy: () => {
         destroyed ??= (async () => {
           await destroy()

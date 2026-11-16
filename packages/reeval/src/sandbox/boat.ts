@@ -598,8 +598,8 @@ export async function createBoatSandbox(
     if (!options.base) {
       throw new InfraError("The boat() sandbox's image wasn't prepared before the run started")
     }
-    const { createVmContainerSandbox } = await import('./vm-container.ts')
-    return createVmContainerSandbox(descriptor, options.base, options, {
+    const { createVmContainerSandbox, fromSnapshot } = await import('./vm-container.ts')
+    return createVmContainerSandbox(descriptor, fromSnapshot(options.base), options, {
       fn: 'boat',
       sandbox: 'boat',
       size: 'small',

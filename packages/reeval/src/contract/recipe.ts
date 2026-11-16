@@ -1,5 +1,5 @@
 // An image recipe's fields, shared by every sandbox that builds an image: `docker()`, `podman()`,
-// `daytona()` and `boat()`. Each one's refusals name the function the user called.
+// `daytona()`, `boat()` and `cloud()`. Each one's refusals name the function the user called.
 import { z } from 'zod'
 import { closest, durationProblem, durationSchema, got, nonEmpty } from './shared.ts'
 
@@ -29,10 +29,12 @@ export function oneRecipe(value: Record<string, unknown>, ctx: z.RefinementCtx):
 }
 
 /** The sentence for a recipe's `oneRecipe` issue. */
-export function recipeMessage(fn: string, params: unknown): string {
+export function recipeMessage(fn: string, params: unknown, dockerfile = true): string {
   const { bases } = (params ?? {}) as { bases?: string[] }
+  const image = 'image (has the harness)'
+  const from = 'from (a toolchain image reeval bakes the harness onto)'
   return bases
-    ? `${fn}() takes one base image, but got ${bases.join(' and ')}. Use image (has the harness), from (a toolchain image reeval bakes the harness onto) or dockerfile.`
+    ? `${fn}() takes one base image, but got ${bases.join(' and ')}. Use ${dockerfile ? `${image}, ${from} or dockerfile` : `${image} or ${from}`}.`
     : `${fn}() takes dockerfile or install, not both: put the install commands in the Dockerfile as RUN lines, so there's one recipe for the image.`
 }
 

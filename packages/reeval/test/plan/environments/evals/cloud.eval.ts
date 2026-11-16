@@ -11,6 +11,9 @@ const shared = defineEnvironment('shared', {
   sandbox: cloud({ size: 'large', reuse: true, attemptsPerMachine: 2, maxConcurrent: 4 }),
   egress: 'allow-all',
 })
+const python = defineEnvironment('python', {
+  sandbox: cloud({ from: 'python:3.12', install: [{ run: 'pip install pytest' }] }),
+})
 
 evaluate('cloud', { environments: small }, async () => {})
 evaluate('cloud medium', { environments: medium }, async () => {})
@@ -24,3 +27,4 @@ evaluate(
   { environments: small, harnesses: cursor({ model: 'composer-2.5' }) },
   async () => {},
 )
+evaluate('cloud in an image', { environments: python }, async () => {})

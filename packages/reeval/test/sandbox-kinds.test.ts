@@ -429,7 +429,7 @@ describe('machine providers', () => {
     ]
     for (const file of files) {
       const text = readFileSync(`${src}${file}`, 'utf8')
-      assert.doesNotMatch(text, /\.kind [!=]== '(tart|boat)'/, file)
+      assert.doesNotMatch(text, /\.kind [!=]== '(tart|boat|daytona|cloud)'/, file)
     }
   })
 })

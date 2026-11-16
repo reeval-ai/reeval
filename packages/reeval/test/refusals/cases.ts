@@ -926,6 +926,9 @@ export const CASES: Record<string, Case[]> = {
     ['cloud() type, a boat() option', any(cloud, { type: 'large' })],
     ['cloud() apiKey', any(cloud, { apiKey: 'k' })],
     ['cloud() attemptsPerMachine over 8', any(cloud, { attemptsPerMachine: 9 })],
+    ['cloud() image and from', any(cloud, { image: 'acme/agent:1', from: 'python:3.12' })],
+    ['cloud() install empty', any(cloud, { install: [] })],
+    ['cloud() dockerfile', any(cloud, { dockerfile: 'Dockerfile' })],
     [
       'opencode mcp: {file:} in an arg',
       mcpOn(OPENCODE, ({ mcp }) => ({

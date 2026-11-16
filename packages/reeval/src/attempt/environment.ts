@@ -108,7 +108,9 @@ export async function prepareEnvironment(
       )
     }
     const from = vm?.ref ?? ('image' in spec.sandbox ? spec.sandbox.image : undefined)
-    if (!base)
+    if (kind.preparesImage?.(spec.sandbox)) {
+      debugLog('image', `each machine prepares the recipe's image as its attempt starts`)
+    } else if (!base)
       debugLog(
         'image',
         `${from ?? 'none recorded'}${vm?.digest ? ` (${vm.digest})` : ''} · ${kind.helpers[0]}() checked it before the run and starts each attempt from ${baked ? `${baked}, which has the harness baked in` : 'it'}`,

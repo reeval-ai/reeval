@@ -282,6 +282,17 @@ after(async () => {
   await vmService.close()
   await boatApi.close()
 })
+/** The fake VM service `cloud-image` runs through, whose every VM has the host's Docker. */
+let dockerBoatApi: FakeBoat
+let dockerVmService: FakeVmService
+before(async () => {
+  dockerBoatApi = await fakeBoat(startBoatDockerVm)
+  dockerVmService = await fakeVmService(dockerBoatApi, { maxLive: 10, maxStarts: 100 })
+})
+after(async () => {
+  await dockerVmService.close()
+  await dockerBoatApi.close()
+})
 /** A `boat-*` fixture's host: reeval pointed at the fake API, the VM image built. */
 const onFakeBoat: Pick<Feature, 'sandbox' | 'hostEnv' | 'prepare'> = {
   sandbox: 'boat',
@@ -1536,6 +1547,48 @@ export const features: Feature[] = [
       execFileSync('docker', ['image', 'rm', '--force', `reeval-vm-image:${key}`], {
         stdio: 'ignore',
       })
+    },
+  },
+  {
+    dir: 'sandbox/cloud-image',
+    tiers: ['docker'],
+    env: 'closed',
+    canaryEnv: 'open',
+    sandbox: `cloud${installId(['echo baked-by-cloud-image > /etc/reeval-recipe'])}`,
+    hostEnv: () => ({
+      REEVAL_VM_URL: dockerVmService.url,
+      REEVAL_VM_TOKEN: dockerVmService.token,
+      ...egressEnv(),
+    }),
+    prepare: () => buildSshVmImage(['boat', 'boat-docker']),
+    canary: /expected '200 exit=0' to match/,
+    record: ({ run }) => {
+      const prefix = runPrefix(CLOUD_VM, run.runId)
+      assert.deepEqual(
+        dockerBoatApi.live().filter((name) => name.startsWith(prefix)),
+        [],
+        'every VM of the run is deleted',
+      )
+      const creates = dockerBoatApi.requests.filter(
+        (q) => q.call === 'POST /sandboxes' && String(q.body?.name).startsWith(prefix),
+      )
+      assert.ok(creates.length > 0, 'the run created its VMs on the service')
+      for (const q of creates) assert.equal(q.body?.from, undefined, 'no snapshot to start from')
+      const attempt = landed(run)
+      assert.equal(attempt?.resources?.scope, 'container', JSON.stringify(attempt?.resources))
+      assert.equal(attempt?.resources?.machine.sandbox, 'cloud')
+      assert.equal(attempt?.resources?.machine.size, 'small')
+      const image = run.stack.images.find((i) => i.id === attempt?.imageId)
+      assert.match(image?.ref ?? '', /^reeval-install:/, JSON.stringify(run.stack.images))
+      assert.deepEqual(image?.install, ['echo baked-by-cloud-image > /etc/reeval-recipe'])
+      assert.deepEqual(attempt?.egress?.blocked, [
+        {
+          host: egressTarget.host,
+          port: egressTarget.port,
+          connections: 1,
+          reason: 'the policy denies all egress',
+        },
+      ])
     },
   },
   {
@@ -5697,6 +5750,57 @@ describe('feature fixtures on the loopback', { concurrency: 1 }, () =>
 )
 // Real attempts run one at a time, each within its own timeout.
 describe('feature fixtures on real Cursor', { concurrency: 1 }, () => fixtureTests(['real']))
+
+test("cloud(): a recipe that doesn't build fails its attempts as config, building once and keeping the VM", {
+  skip: skipTier('docker'),
+  timeout: 240_000,
+}, async () => {
+  buildSshVmImage(['boat', 'boat-docker'])
+  const p = await project('cloud-recipe-fails', {
+    'reeval.config.ts': `
+import { defineConfig } from 'reeval'
+import { fakeHarness } from 'reeval/harness'
+import { cloud } from 'reeval/internal/vm'
+export default defineConfig({
+  harnesses: fakeHarness({ script: [[{ exec: 'true' }]] }),
+  sandbox: cloud({ install: ['echo no such package >&2; exit 7'], reuse: true }),
+  runs: 2,
+  concurrency: 1,
+})
+`,
+    'evals/a.eval.ts': `
+import { evaluate } from 'reeval'
+evaluate('broken', async (c) => {
+  await c.send('hi')
+})
+`,
+  })
+  const r = await runCli(p.dir, ['run'], {
+    env: { REEVAL_VM_URL: dockerVmService.url, REEVAL_VM_TOKEN: dockerVmService.token },
+    timeoutMs: 210_000,
+  })
+  assert.equal(r.code, 3, r.stdout + r.stderr)
+  const { run } = readRun(p.dir)
+  const attempts = run.evals.flatMap((e) => e.attempts)
+  assert.equal(attempts.length, 2)
+  for (const a of attempts) {
+    assert.equal(a.error?.prepare?.class, 'config', JSON.stringify(a.error))
+    assert.equal(a.error?.prepare?.stage, 'install')
+    assert.match(String(a.error?.message), /^cloud VM bx_\w+ couldn't prepare the sandbox image: /)
+  }
+  const builds = debugLogs(p.dir).filter((log) => log.some((l) => /Installing 1 command/.test(l)))
+  assert.equal(builds.length, 1, 'the second attempt fails without building again')
+  const prefix = runPrefix(CLOUD_VM, run.runId)
+  const creates = dockerBoatApi.requests.filter(
+    (q) => q.call === 'POST /sandboxes' && String(q.body?.name).startsWith(prefix),
+  )
+  assert.equal(creates.length, 1, "the recipe's failure doesn't take the VM out of the pool")
+  assert.deepEqual(
+    dockerBoatApi.live().filter((name) => name.startsWith(prefix)),
+    [],
+    'every VM of the run is deleted',
+  )
+})
 
 test("boat(): a harness install that fails is the attempt's infra error, and its VM is deleted", {
   skip: skipTier('docker'),
