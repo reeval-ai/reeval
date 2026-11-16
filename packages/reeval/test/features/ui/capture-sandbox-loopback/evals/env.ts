@@ -65,6 +65,10 @@ for (const host of ['127.0.0.1', 'localhost', '[::1]']) fetch('http://' + host +
 new WebSocket('ws://localhost:' + port + '/')
 fetch('http://' + q.get('host') + '/', { mode: 'no-cors' }).then(() => note('host'), () => note('no-host'))
 fetch('http://127.0.0.1:9097/', { mode: 'no-cors' }).then(() => note('answered'), () => note('refused'))
+// The load event waits for this image, which /state holds until the six notes are in.
+const gate = document.createElement('img')
+gate.src = 'http://127.0.0.1:' + port + '/state'
+document.body.append(gate)
 </script>
 \`
 http
