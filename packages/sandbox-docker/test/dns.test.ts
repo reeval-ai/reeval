@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict'
 import { createSocket } from 'node:dgram'
+import { mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { after, before, describe, test } from 'node:test'
 import { resolverLookup } from '../src/egress/policy.ts'
 
@@ -44,6 +47,8 @@ function dnsServer() {
 describe('resolverLookup', () => {
   const server = dnsServer()
   let servers: string[]
+  const hostsFile = join(mkdtempSync(join(tmpdir(), 'reeval-dns-')), 'hosts')
+  writeFileSync(hostsFile, '127.0.0.1 localhost\n10.1.2.3 internal.corp alias.corp # a comment\n')
   before(async () => {
     await new Promise<void>((resolve) => server.socket.bind(0, '127.0.0.1', resolve))
     servers = [`127.0.0.1:${server.socket.address().port}`]
@@ -51,7 +56,7 @@ describe('resolverLookup', () => {
   after(() => server.socket.close())
 
   test("a name whose lookups hang doesn't hold up another name's", async () => {
-    const lookup = resolverLookup({ servers, timeoutMs: 1500, tries: 1 })
+    const lookup = resolverLookup({ servers, hostsFile, timeoutMs: 1500, tries: 1 })
     // More hanging lookups than libuv's four threads, which getaddrinfo would share.
     const hanging = Array.from({ length: 8 }, () => lookup('hang.test').catch((e: Error) => e))
     const started = Date.now()
@@ -63,7 +68,7 @@ describe('resolverLookup', () => {
   })
 
   test("a name that doesn't exist is refused from the cache; a timeout or SERVFAIL isn't cached", async () => {
-    const lookup = resolverLookup({ servers, timeoutMs: 500, tries: 1 })
+    const lookup = resolverLookup({ servers, hostsFile, timeoutMs: 500, tries: 1 })
     const count = (name: string) => server.asked.filter((n) => n === name).length
     const before = count('missing.test')
     await assert.rejects(lookup('missing.test'), { code: 'ENOTFOUND' })
@@ -71,7 +76,7 @@ describe('resolverLookup', () => {
     assert.ok(asked > 0)
     await assert.rejects(lookup('missing.test'), { code: 'ENOTFOUND' })
     assert.equal(count('missing.test') - before, asked)
-    // Twin: a lookup that timed out asks the servers again.
+    // Twin: a lookup that timed out asks the servers again: one datagram per query at `tries: 1`.
     const hung = count('hang.test')
     await assert.rejects(lookup('hang.test'), { code: 'ETIMEOUT' })
     await assert.rejects(lookup('hang.test'), { code: 'ETIMEOUT' })
@@ -82,13 +87,27 @@ describe('resolverLookup', () => {
     assert.ok(count('servfail.test') - failing >= 4)
   })
 
-  test('localhost names and unreachable servers go to the fallback', async () => {
+  test('names only the OS resolves, and unreachable servers, go to the fallback', async () => {
     const fallback = async (host: string) => [`fallback:${host}`]
-    const lookup = resolverLookup({ servers, fallback })
-    assert.deepEqual(await lookup('localhost'), ['fallback:localhost'])
-    assert.deepEqual(await lookup('api.localhost'), ['fallback:api.localhost'])
-    // Nothing listens on port 9 over TCP, and a refused UDP query answers ECONNREFUSED.
-    const nowhere = resolverLookup({ servers: ['127.0.0.1:9'], fallback, timeoutMs: 500, tries: 1 })
+    const lookup = resolverLookup({ servers, hostsFile, fallback })
+    for (const name of [
+      'localhost',
+      'api.localhost',
+      'internal.corp',
+      'ALIAS.corp.',
+      'minio',
+      '127.1',
+    ]) {
+      assert.deepEqual(await lookup(name), [`fallback:${name.toLowerCase().replace(/\.$/, '')}`])
+    }
+    // Nothing listens on UDP port 9, so the query is refused with ECONNREFUSED.
+    const nowhere = resolverLookup({
+      servers: ['127.0.0.1:9'],
+      hostsFile,
+      fallback,
+      timeoutMs: 500,
+      tries: 1,
+    })
     assert.deepEqual(await nowhere('example.test'), ['fallback:example.test'])
     // Twin: a name the servers answer, or fail to resolve, never reaches the fallback.
     assert.deepEqual(await lookup('fast.test'), ['93.184.216.34'])

@@ -1,4 +1,5 @@
 import { lookup as dnsLookup, Resolver } from 'node:dns/promises'
+import { readFileSync } from 'node:fs'
 import { BlockList, isIP } from 'node:net'
 import type { HarnessV1NetworkPolicy } from '@ai-sdk/harness'
 import type { BakedHarness } from '../image.ts'
@@ -188,8 +189,28 @@ export type ResolverLookupOptions = {
   tries?: number
   /** How long a name the servers said doesn't exist is refused without asking again. */
   negativeTtlMs?: number
-  /** Asked for `localhost` names and when the servers refuse the connection (none listening). */
+  /** Its names, read once, go to `fallback`. */
+  hostsFile?: string
+  /**
+   * Asked for the names only the OS resolves (`localhost`, the hosts file's, a single label its
+   * search domains complete, an IPv4 shorthand such as `127.1`) and when the servers refuse the
+   * connection (none listening).
+   */
   fallback?: Lookup
+}
+
+/** The host names a hosts file lists, or none when it can't be read. */
+function hostsNames(file: string): Set<string> {
+  let text: string
+  try {
+    text = readFileSync(file, 'utf8')
+  } catch {
+    return new Set()
+  }
+  const names = text
+    .split('\n')
+    .flatMap((line) => line.replace(/#.*/, '').trim().split(/\s+/).slice(1))
+  return new Set(names.map(normalize))
 }
 
 /**
@@ -198,21 +219,32 @@ export type ResolverLookupOptions = {
  * 20 s) would otherwise hold a thread, and four of them stall every attempt's CONNECT in the
  * process. A name the servers said doesn't exist is refused from a cache for a while, since the
  * tools that probe metadata hosts probe them again and again; any other failure (a timeout, a
- * SERVFAIL) fails fast but isn't cached, so a DNS blip doesn't refuse a real host. Only servers
- * that refuse the connection send a name to `getaddrinfo`. c-ares doesn't read the hosts file, so
- * `localhost` names go to the OS.
+ * SERVFAIL) fails fast but isn't cached, so a DNS blip doesn't refuse a real host. c-ares reads
+ * neither the hosts file nor the search domains, so the names those resolve go to `getaddrinfo`,
+ * as do all names when the servers refuse the connection.
  */
 export function resolverLookup(options: ResolverLookupOptions = {}): Lookup {
   const resolver = new Resolver({ timeout: options.timeoutMs ?? 2000, tries: options.tries ?? 2 })
   if (options.servers) resolver.setServers(options.servers)
   const fallback = options.fallback ?? osLookup
-  const ttl = options.negativeTtlMs ?? 30_000
+  const ttl = options.negativeTtlMs ?? 10_000
+  let hosts: Set<string> | undefined
   const failed = new Map<string, { error: Error; until: number }>()
   return async (host) => {
     const name = normalize(host)
-    if (name === 'localhost' || name.endsWith('.localhost')) return fallback(name)
+    hosts ??= hostsNames(options.hostsFile ?? '/etc/hosts')
+    if (
+      name === 'localhost' ||
+      name.endsWith('.localhost') ||
+      !name.includes('.') ||
+      /^[\d.]+$/.test(name) ||
+      hosts.has(name)
+    ) {
+      return fallback(name)
+    }
     const known = failed.get(name)
     if (known && known.until > Date.now()) throw known.error
+    if (known) failed.delete(name)
     const answers = await Promise.allSettled([resolver.resolve4(name), resolver.resolve6(name)])
     const addresses = answers.flatMap((a) => (a.status === 'fulfilled' ? a.value : []))
     if (addresses.length) return addresses
@@ -226,14 +258,15 @@ export function resolverLookup(options: ResolverLookupOptions = {}): Lookup {
       errors[0] ??
       (new Error(`${name} has no addresses`) as NodeJS.ErrnoException)
     if (NO_SUCH_NAME.has(error.code ?? '')) {
-      if (failed.size >= 1000) failed.clear()
+      if (failed.size >= 1000) failed.delete(failed.keys().next().value as string)
       failed.set(name, { error, until: Date.now() + ttl })
     }
     throw error
   }
 }
 
-const defaultLookup = resolverLookup()
+/** On Linux, where a VM's resolver can hang on a metadata host; elsewhere the OS's own resolvers (split DNS, mDNS) answer names c-ares can't. */
+const defaultLookup = process.platform === 'linux' ? resolverLookup() : osLookup
 
 export type PolicyOptions = { lookup?: Lookup; allowLoopback?: boolean }
 
