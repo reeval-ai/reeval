@@ -3,7 +3,8 @@
 # *.eval.py with it on Python 3.11 to 3.14 with only uv besides (scripts/binary-python-smoke.mjs),
 # through reeval-python's `reeval` command too, which downloads the binary (or finds it in a
 # platform wheel, scripts/python-wheels.py). Then it installs it with scripts/install.sh or
-# install.ps1 from those files. Uploads the binaries and SHA256SUMS as one artifact,
+# install.ps1 from those files. Uploads the binaries, a zstd copy of each
+# (`reeval-<version>-<target>.zst`) and SHA256SUMS, which lists both, as one artifact,
 # `reeval-<version>-binaries`, which release.yml uploads to the release; reeval-python's sdist and
 # pure wheel as `reeval-python-dist`, which release.yml publishes to PyPI; and its platform wheels
 # as `reeval-python-platform-wheels`, for the smoke only.
@@ -118,6 +119,11 @@ jobs:
             echo "::endgroup::"
           done
           cd out
+          # A zstd copy of each binary beside it, reeval-<version>-<target>.zst (no .exe).
+          for f in reeval-*; do
+            zstd -19 -T0 -q "$f" -o "${f%.exe}.zst"
+            zstd -dc "${f%.exe}.zst" | cmp - "$f"
+          done
           sha256sum reeval-* > SHA256SUMS
           {
             echo "| Binary | Size |"
