@@ -5,6 +5,13 @@ import { z } from 'zod'
 import { UsageError } from '../errors.ts'
 import type { CloudMachineSize, CloudSandboxDescriptor } from '../types.ts'
 import { BOAT_ATTEMPTS_PER_MACHINE_MAX } from './boat.ts'
+import {
+  installMessage,
+  oneRecipe,
+  recipeFieldMessage,
+  recipeFields,
+  recipeMessage,
+} from './recipe.ts'
 import { type Assert, closest, got, type Issue, nonEmpty, refusal, type Same } from './shared.ts'
 
 export const CLOUD_SIZES = ['small', 'medium', 'large', 'xlarge'] as const
@@ -14,25 +21,23 @@ export const CLOUD_ATTEMPTS_PER_MACHINE_MAX = BOAT_ATTEMPTS_PER_MACHINE_MAX
 const sizeSchema = z.enum(CLOUD_SIZES)
 const attemptsSchema = z.number().int().min(1).max(CLOUD_ATTEMPTS_PER_MACHINE_MAX)
 
-export const cloudSandboxSchema = z.strictObject({
-  kind: z.literal('cloud'),
+const fields = {
   id: nonEmpty().optional(),
   size: sizeSchema.optional(),
+  ...recipeFields,
   maxConcurrent: z.number().optional(),
   reuse: z.boolean().optional(),
   attemptsPerMachine: attemptsSchema.optional(),
-})
+}
+
+export const cloudSandboxSchema = z
+  .strictObject({ kind: z.literal('cloud'), ...fields, dockerfile: nonEmpty().optional() })
+  .superRefine(oneRecipe)
 
 /** `cloud()`'s argument. */
-export type CloudOptions = Omit<CloudSandboxDescriptor, 'kind'>
+export type CloudOptions = Omit<CloudSandboxDescriptor, 'kind' | 'dockerfile'>
 
-export const cloudOptionsSchema = z.strictObject({
-  id: nonEmpty().optional(),
-  size: sizeSchema.optional(),
-  maxConcurrent: z.number().optional(),
-  reuse: z.boolean().optional(),
-  attemptsPerMachine: attemptsSchema.optional(),
-})
+export const cloudOptionsSchema = z.strictObject(fields).superRefine(oneRecipe)
 
 export type _SameAsSchema = [
   Assert<Same<z.infer<typeof cloudSandboxSchema>, CloudSandboxDescriptor>>,
@@ -43,14 +48,10 @@ export type _SameAsSchema = [
 
 const SIZES =
   "pick a machine size with size: 'small' (2 vCPUs, 4 GB), 'medium', 'large' or 'xlarge'"
-const BASE = 'cloud VMs start from Ubuntu 24.04, and the harness installs as the attempt starts'
 
 /** Docker's options, which a cloud VM doesn't have, and what to do instead. */
 const NOT_CLOUD: Record<string, string> = {
-  image: BASE,
-  from: `${BASE}; run your toolchain's installs in the environment's setup`,
-  dockerfile: `${BASE}; run your toolchain's installs in the environment's setup`,
-  install: "run them in the environment's setup, which runs in the VM before the agent starts",
+  dockerfile: 'name an image, from or install instead',
   root: 'the agent, setup steps and checks run as the unprivileged reeval user, and a cloud VM has no root mode',
   capabilities: 'a VM has no container capabilities to add',
   memory: SIZES,
@@ -63,7 +64,16 @@ const NOT_CLOUD: Record<string, string> = {
   prefix: 'reeval names its VMs itself',
 }
 
-const ORDER = ['id', 'size', 'maxConcurrent', 'reuse', 'attemptsPerMachine']
+const ORDER = [
+  'id',
+  'size',
+  'image',
+  'from',
+  'install',
+  'maxConcurrent',
+  'reuse',
+  'attemptsPerMachine',
+]
 
 function explain(issue: Issue, value: unknown): string {
   const options = (value ?? {}) as Record<string, unknown>
@@ -73,8 +83,14 @@ function explain(issue: Issue, value: unknown): string {
     const near = closest(key, ORDER)
     return `Unknown cloud() option "${key}".${near ? ` Did you mean "${near}"?` : ''}`
   }
+  if (issue.code === 'custom') return recipeMessage('cloud', (issue as { params?: unknown }).params)
   const key = String(issue.path[0])
   const v = options[key]
+  if (key === 'install' && issue.path.length > 1) {
+    return installMessage('cloud', (v as unknown[])[issue.path[1] as number])
+  }
+  const recipe = recipeFieldMessage('cloud', key, v)
+  if (recipe) return recipe
   switch (key) {
     case 'size':
       return `cloud({ size }) is one of ${CLOUD_SIZES.map((t) => `'${t}'`).join(', ')} (got ${got(v)})`
@@ -102,6 +118,16 @@ export function checkCloudOptions(options: unknown): void {
 /** What's wrong with a cloud descriptor from any source, or undefined; `maxConcurrent` is left out. */
 export const cloudProblem = (value: CloudSandboxDescriptor) =>
   refusal(cloudSandboxSchema, value, explain, {
-    order: ['kind', 'id', 'size', 'reuse', 'attemptsPerMachine'],
+    order: [
+      'kind',
+      'id',
+      'size',
+      'image',
+      'from',
+      'dockerfile',
+      'install',
+      'reuse',
+      'attemptsPerMachine',
+    ],
     skip: ['maxConcurrent'],
   })

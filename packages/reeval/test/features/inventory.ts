@@ -1274,6 +1274,14 @@ export const inventory: InventoryFeature[] = [
     ],
   },
   {
+    id: 'cloud.image',
+    area: 'Sandbox',
+    name: "`cloud({ image, from, install })` (internal): each attempt in a container of the recipe's image in its VM's Docker, which pulls or builds it as `docker()` does locally, under any egress policy",
+    fixtures: ['sandbox/cloud-image'],
+    plan: ['environments/cloud'],
+    unit: ['reeval/test/refusals.test.ts'],
+  },
+  {
     id: 'sandbox.vm-identity',
     area: 'Sandbox',
     name: "A VM attempt's record names its VM (`resources.machine.id` and `name`: Boat's or Daytona's sandbox, Tart's VM), and `REEVAL_SANDBOX_LABELS` adds labels to reeval's own on every VM `boat()` and `daytona()` create, refused before any starts when a provider would refuse them",

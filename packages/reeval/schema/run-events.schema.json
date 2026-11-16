@@ -1885,9 +1885,28 @@
           "description": "The attempts one machine runs at once, each as a user of its own, as `boat({ attemptsPerMachine })` does. Default 1.",
           "type": "number"
         },
-        "id": {
-          "description": "Cell id; defaults to `cloud`, or `cloud:<size>` with a `size`.",
+        "dockerfile": {
+          "description": "An absolute path to a Dockerfile, built from its directory with `REEVAL_BASE` set.",
           "type": "string"
+        },
+        "from": {
+          "description": "A Debian or Ubuntu based toolchain image; reeval bakes Node and the harness on top.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Cell id; defaults to `cloud`, or `cloud:<size>` with a `size`, plus `:<image>` with an image recipe, and an install hash.",
+          "type": "string"
+        },
+        "image": {
+          "description": "An image that already has the harness baked in, pulled from its registry. With any of `image`, `from`, `dockerfile` or `install`, each attempt runs in a container of the recipe's image, which its VM pulls or builds as `docker()` does locally, once per VM.",
+          "type": "string"
+        },
+        "install": {
+          "description": "Baked onto the sandbox image in one build container: in order, no secrets, no workspace.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InstallStep"
+          }
         },
         "kind": {
           "const": "cloud"

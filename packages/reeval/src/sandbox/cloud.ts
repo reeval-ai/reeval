@@ -22,6 +22,7 @@ import type { DoctorContext } from './kinds.ts'
 import type { OpenPool } from './machine-service.ts'
 import { optionalPeer } from './optional-peer.ts'
 import { PrepareError } from './provider.ts'
+import { recipeOf } from './recipe.ts'
 import { createPooledSshSandbox } from './ssh-pool.ts'
 import type { NetworkSandbox } from './types.ts'
 
@@ -140,10 +141,26 @@ export async function cloudClient(projectRoot?: string): Promise<BoatClient> {
 export const openCloudPool: OpenPool<CloudSandboxDescriptor> = async (sandbox, o) =>
   openVmPool(CLOUD, cloudSpec(sandbox), await cloudClient(o.root), o.runId)
 
-export function createCloudSandbox(
+export async function createCloudSandbox(
   descriptor: CloudSandboxDescriptor,
   options: SandboxOptions,
 ): Promise<NetworkSandbox> {
+  const recipe = recipeOf(descriptor)
+  if (recipe) {
+    const { createVmContainerSandbox } = await import('./vm-container.ts')
+    const { imageOnMachine } = await import('./machine-image.ts')
+    return createVmContainerSandbox(
+      descriptor,
+      { ready: (engine, signal) => imageOnMachine(recipe, options, engine, signal) },
+      options,
+      {
+        fn: 'cloud',
+        sandbox: CLOUD.kind,
+        size: descriptor.size ?? 'small',
+        description: (info) => `cloud VM ${info.id} (${info.size})`,
+      },
+    )
+  }
   return createPooledSshSandbox(descriptor, options, {
     helper: CLOUD.helper,
     sandbox: CLOUD.kind,

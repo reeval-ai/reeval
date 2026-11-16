@@ -1319,10 +1319,25 @@ export type CloudMachineSize = 'small' | 'medium' | 'large' | 'xlarge'
  */
 export type CloudSandboxDescriptor = {
   kind: 'cloud'
-  /** Cell id; defaults to `cloud`, or `cloud:<size>` with a `size`. */
+  /**
+   * Cell id; defaults to `cloud`, or `cloud:<size>` with a `size`, plus `:<image>` with an image
+   * recipe, and an install hash.
+   */
   id?: string
   /** The machine size. Default `small`. */
   size?: CloudMachineSize
+  /**
+   * An image that already has the harness baked in, pulled from its registry. With any of
+   * `image`, `from`, `dockerfile` or `install`, each attempt runs in a container of the recipe's
+   * image, which its VM pulls or builds as `docker()` does locally, once per VM.
+   */
+  image?: string
+  /** A Debian or Ubuntu based toolchain image; reeval bakes Node and the harness on top. */
+  from?: string
+  /** An absolute path to a Dockerfile, built from its directory with `REEVAL_BASE` set. */
+  dockerfile?: string
+  /** Baked onto the sandbox image in one build container: in order, no secrets, no workspace. */
+  install?: InstallStep[]
   /** The most attempts on cloud VMs at once, across the run: machines times `attemptsPerMachine`. */
   maxConcurrent?: number
   /**

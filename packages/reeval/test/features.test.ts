@@ -282,6 +282,17 @@ after(async () => {
   await vmService.close()
   await boatApi.close()
 })
+/** The fake VM service `cloud-image` runs through, whose every VM has the host's Docker. */
+let dockerBoatApi: FakeBoat
+let dockerVmService: FakeVmService
+before(async () => {
+  dockerBoatApi = await fakeBoat(startBoatDockerVm)
+  dockerVmService = await fakeVmService(dockerBoatApi, { maxLive: 10, maxStarts: 100 })
+})
+after(async () => {
+  await dockerVmService.close()
+  await dockerBoatApi.close()
+})
 /** A `boat-*` fixture's host: reeval pointed at the fake API, the VM image built. */
 const onFakeBoat: Pick<Feature, 'sandbox' | 'hostEnv' | 'prepare'> = {
   sandbox: 'boat',
@@ -1536,6 +1547,45 @@ export const features: Feature[] = [
       execFileSync('docker', ['image', 'rm', '--force', `reeval-vm-image:${key}`], {
         stdio: 'ignore',
       })
+    },
+  },
+  {
+    dir: 'sandbox/cloud-image',
+    tiers: ['docker'],
+    env: 'closed',
+    canaryEnv: 'open',
+    sandbox: `cloud${installId(['echo baked-by-cloud-image > /etc/reeval-recipe'])}`,
+    hostEnv: () => ({
+      REEVAL_VM_URL: dockerVmService.url,
+      REEVAL_VM_TOKEN: dockerVmService.token,
+      ...egressEnv(),
+    }),
+    prepare: () => buildSshVmImage(['boat', 'boat-docker']),
+    canary: /expected '200 exit=0' to match/,
+    record: ({ run }) => {
+      const prefix = runPrefix(CLOUD_VM, run.runId)
+      assert.deepEqual(
+        dockerBoatApi.live().filter((name) => name.startsWith(prefix)),
+        [],
+        'every VM of the run is deleted',
+      )
+      const creates = dockerBoatApi.requests.filter(
+        (q) => q.call === 'POST /sandboxes' && String(q.body?.name).startsWith(prefix),
+      )
+      assert.ok(creates.length > 0, 'the run created its VMs on the service')
+      for (const q of creates) assert.equal(q.body?.from, undefined, 'no snapshot to start from')
+      const attempt = landed(run)
+      assert.equal(attempt?.resources?.scope, 'container', JSON.stringify(attempt?.resources))
+      assert.equal(attempt?.resources?.machine.sandbox, 'cloud')
+      assert.equal(attempt?.resources?.machine.size, 'small')
+      assert.deepEqual(attempt?.egress?.blocked, [
+        {
+          host: egressTarget.host,
+          port: egressTarget.port,
+          connections: 1,
+          reason: 'the policy denies all egress',
+        },
+      ])
     },
   },
   {
