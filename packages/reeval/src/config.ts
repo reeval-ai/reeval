@@ -713,7 +713,7 @@ export function resolveConfig(
   const cloudDefault = defaultProfile.cloud
   if (cloudDefault !== undefined && profiles[cloudDefault]?.cloud === false) {
     throw new UsageError(
-      `defaultProfile.cloud in ${file} names "${cloudDefault}", whose cloud: false would keep every cloud run on this machine. Name a profile that leaves the cloud on, or take cloud: false out of it.`,
+      `defaultProfile.cloud in ${file} names "${cloudDefault}", whose cloud: false would keep a run the config's cloud: true sends to the cloud on this machine. Name a profile that leaves the cloud on, or take cloud: false out of it.`,
     )
   }
   return {
