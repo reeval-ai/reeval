@@ -60,6 +60,8 @@ export type Prices =
   | {
       /** models.dev's; empty when it couldn't be reached and a file supplied prices. */
       table: Record<string, Price>
+      /** models.dev's long-prompt prices, under `table`'s ids; absent from an older cached copy. */
+      tiers?: Record<string, Tier[]>
       /** The `REEVAL_PRICES` file's, which win over models.dev's; null without one. */
       overlay: Record<string, Price> | null
       /** That file, from the working directory; null without one. */
@@ -68,9 +70,14 @@ export type Prices =
     }
   | { table: null; why: string }
 
+/** The price of a request whose prompt (input, cache reads and writes) is over `size` tokens. */
+export type Tier = { size: number; price: Price }
+
 const usd = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n) && n >= 0
 const isPrice = (p: unknown): p is Price =>
   Array.isArray(p) && (p.length === 4 || p.length === 5) && p.every(usd)
+const isTiers = (t: unknown): t is Tier[] =>
+  Array.isArray(t) && t.every((x) => isObject(x) && tokens(x.size) && isPrice(x.price))
 
 /** Null without an input and output price, or with any field that isn't a USD amount. */
 function priceOf(c: Cost | null | undefined): Price | null {
@@ -126,6 +133,7 @@ function limitsOf(model: Record<string, unknown>): ModelLimits | null {
 function tableOf(catalog: unknown): Required<Omit<Cached, 'fetchedAt'>> {
   const table = new Map<string, Price>()
   const limits = new Map<string, ModelLimits>()
+  const tiers = new Map<string, Tier[]>()
   for (const provider of [...PROVIDERS, ...GATEWAYS]) {
     const entry = isObject(catalog) && Object.hasOwn(catalog, provider) ? catalog[provider] : null
     const models = isObject(entry) && isObject(entry.models) ? entry.models : {}
@@ -134,12 +142,33 @@ function tableOf(catalog: unknown): Required<Omit<Cached, 'fetchedAt'>> {
       const price = priceOf(model.cost as Cost)
       const limit = limitsOf(model)
       const key = id.toLowerCase()
-      if (price && !table.has(key)) table.set(key, price)
+      if (price && !table.has(key)) {
+        table.set(key, price)
+        const tiered = tiersOf(model.cost)
+        if (tiered.length) tiers.set(key, tiered)
+      }
       if (limit && !limits.has(key)) limits.set(key, limit)
     }
   }
   if (!table.size) throw new BadAnswer('answered without prices')
-  return { table: Object.fromEntries(table), limits: Object.fromEntries(limits) }
+  return {
+    table: Object.fromEntries(table),
+    limits: Object.fromEntries(limits),
+    tiers: Object.fromEntries(tiers),
+  }
+}
+
+/** models.dev's `cost.tiers` by prompt length, smallest first, each field it omits the base's. */
+function tiersOf(cost: unknown): Tier[] {
+  if (!isObject(cost) || !Array.isArray(cost.tiers)) return []
+  return cost.tiers
+    .filter(isObject)
+    .flatMap(({ tier, ...rates }) => {
+      const size = isObject(tier) && tier.type === 'context' ? tier.size : null
+      const price = priceOf({ ...cost, ...rates } as Cost)
+      return tokens(size) && price ? [{ size, price }] : []
+    })
+    .sort((a, b) => a.size - b.size)
 }
 
 type Cached = {
@@ -147,6 +176,8 @@ type Cached = {
   table: Record<string, Price>
   /** Absent from a copy an older reeval wrote, which a fetch then replaces. */
   limits?: Record<string, ModelLimits>
+  /** Absent from a copy an older reeval wrote, which prices every request at its base price. */
+  tiers?: Record<string, Tier[]>
 }
 const cacheFile = () => join(cacheDir(), 'models-dev-prices.json')
 const failedFile = () => join(cacheDir(), 'models-dev-failed.json')
@@ -164,6 +195,9 @@ async function readCached(): Promise<Cached | null> {
       fetchedAt: cached.fetchedAt,
       table: cached.table,
       ...(isObject(cached.limits) ? { limits: cached.limits } : {}),
+      ...(isObject(cached.tiers) && Object.values(cached.tiers).every(isTiers)
+        ? { tiers: cached.tiers }
+        : {}),
     }
   } catch {
     return null
@@ -243,7 +277,12 @@ async function modelsDev(
   timeoutMs: number,
   needLimits = false,
 ): Promise<
-  | { table: Record<string, Price>; limits: Record<string, ModelLimits>; modelsDev: ModelsDev }
+  | {
+      table: Record<string, Price>
+      limits: Record<string, ModelLimits>
+      tiers?: Record<string, Tier[]>
+      modelsDev: ModelsDev
+    }
   | { why: string }
 > {
   const cached = await readCached()
@@ -252,6 +291,7 @@ async function modelsDev(
     return {
       table: cached.table,
       limits: cached.limits ?? {},
+      ...(cached.tiers ? { tiers: cached.tiers } : {}),
       modelsDev: { fetchedAt: cached.fetchedAt, stale: false },
     }
   }
@@ -261,10 +301,10 @@ async function modelsDev(
   if (retryIn <= 0 || retryIn > RETRY_MS) {
     try {
       const fetchedAt = new Date(now).toISOString()
-      const { table, limits } = tableOf(await getJson(url, timeoutMs))
-      await writeCacheFile(cacheFile(), { fetchedAt, table, limits })
+      const { table, limits, tiers } = tableOf(await getJson(url, timeoutMs))
+      await writeCacheFile(cacheFile(), { fetchedAt, table, limits, tiers })
       await rm(failedFile(), { force: true }).catch(() => {})
-      return { table, limits, modelsDev: { fetchedAt, stale: false } }
+      return { table, limits, tiers, modelsDev: { fetchedAt, stale: false } }
     } catch (error) {
       why = error instanceof BadAnswer ? error.message : UNREACHABLE
       await writeCacheFile(failedFile(), { at: new Date(now).toISOString(), why })
@@ -275,6 +315,7 @@ async function modelsDev(
     return {
       table: cached.table,
       limits: cached.limits ?? {},
+      ...(cached.tiers ? { tiers: cached.tiers } : {}),
       modelsDev: { fetchedAt: cached.fetchedAt, stale: true, why },
     }
   }
@@ -335,8 +376,8 @@ export async function loadPrices(
   }
   const fetched = await modelsDev(now, source.url, source.timeoutMs)
   if ('table' in fetched) {
-    const { table, modelsDev: when } = fetched
-    return { table, overlay, file, modelsDev: when }
+    const { table, tiers, modelsDev: when } = fetched
+    return { table, ...(tiers ? { tiers } : {}), overlay, file, modelsDev: when }
   }
   if (!overlay) return { table: null, why: fetched.why }
   return { table: {}, overlay, file, modelsDev: fetched }

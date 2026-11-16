@@ -173,7 +173,8 @@ export type CostUsd = {
   usd: number
   /**
    * `reported`: what the harness (Claude Code, pi) or the gateway (OpenRouter) said it cost;
-   * `estimated`: the tokens at list prices, which leave out discounts and long-context rates.
+   * `estimated`: the tokens at list prices, which leave out discounts, and long-prompt rates on
+   * model calls whose tokens reeval didn't see one by one.
    */
   basis: 'reported' | 'estimated'
   /**

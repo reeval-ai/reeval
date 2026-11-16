@@ -9,7 +9,7 @@
       "type": "object",
       "properties": {
         "basis": {
-          "description": "`reported`: what the harness (Claude Code, pi) or the gateway (OpenRouter) said it cost; `estimated`: the tokens at list prices, which leave out discounts and long-context rates.",
+          "description": "`reported`: what the harness (Claude Code, pi) or the gateway (OpenRouter) said it cost; `estimated`: the tokens at list prices, which leave out discounts, and long-prompt rates on model calls whose tokens reeval didn't see one by one.",
           "enum": ["estimated", "reported"]
         },
         "source": {
