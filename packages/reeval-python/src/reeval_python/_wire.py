@@ -614,21 +614,21 @@ class ClaudeCodeHarnessDescriptor(TypedDict):
 
 
 # A VM per attempt from reeval's own VM service, made by `cloud()` from `reeval/internal/vm`.
-class CloudSandboxDescriptor(TypedDict):
-    # The attempts one machine runs at once, each as a user of its own, as `boat({
-    # attemptsPerMachine })` does. Default 1.
-    attemptsPerMachine: NotRequired[int]
-    # Cell id; defaults to `cloud`, or `cloud:<size>` with a `size`.
-    id: NotRequired[str]
-    kind: Literal["cloud"]
-    # The most attempts on cloud VMs at once, across the run: machines times
-    # `attemptsPerMachine`.
-    maxConcurrent: NotRequired[float]
-    # A machine takes another of the run's attempts once one ends, instead of being deleted, as
-    # `boat({ reuse })` does. Default false, one attempt per slot.
-    reuse: NotRequired[bool]
-    # The machine size. Default `small`.
-    size: NotRequired[Literal["small", "medium", "large", "xlarge"]]
+CloudSandboxDescriptor = TypedDict(
+    "CloudSandboxDescriptor",
+    {
+        "attemptsPerMachine": "NotRequired[int]",
+        "dockerfile": "NotRequired[str]",
+        "from": "NotRequired[str]",
+        "id": "NotRequired[str]",
+        "image": "NotRequired[str]",
+        "install": "NotRequired[list[InstallStep]]",
+        "kind": "Literal[\"cloud\"]",
+        "maxConcurrent": "NotRequired[float]",
+        "reuse": "NotRequired[bool]",
+        "size": "NotRequired[Literal[\"small\", \"medium\", \"large\", \"xlarge\"]]",
+    },
+)
 
 
 # OpenAI's Codex CLI through `@reeval/harness-codex` (`codex exec --json`), made by `codex()`.
