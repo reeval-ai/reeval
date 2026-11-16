@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.30.0](https://github.com/reeval-ai/reeval/compare/v0.29.5...v0.30.0) (2026-11-16)
+
+
+### Features
+
+* **bundle:** install every JavaScript lockfile with the compiled binary's own Bun ([#1046](https://github.com/reeval-ai/reeval/issues/1046)) ([dbc784a](https://github.com/reeval-ai/reeval/commit/dbc784a2c790fb50a692c4f89a51e8d07cf11be3))
+* **sandbox:** pull reeval's harness images from ghcr.io/reeval-ai/sandbox by default ([#1043](https://github.com/reeval-ai/reeval/issues/1043)) ([3d082a4](https://github.com/reeval-ai/reeval/commit/3d082a465eb66d2fea17e618230d229844e6c14e))
+
+
+### Bug Fixes
+
+* **cli:** keep Bun's Error.prepareStackTrace after loading TypeScript ([#1044](https://github.com/reeval-ai/reeval/issues/1044)) ([6f74b19](https://github.com/reeval-ai/reeval/commit/6f74b19af3e4ceca780a2aafad2090d3c5aa8ac0))
+* **cost:** count cache writes in a typical attempt and recorded costs from history ([#1038](https://github.com/reeval-ai/reeval/issues/1038)) ([a29578a](https://github.com/reeval-ai/reeval/commit/a29578a70561abcdc787b338c82ad10f729f34a1))
+* **cost:** price a past attempt's model calls at their long-prompt tier in the estimate ([#1042](https://github.com/reeval-ai/reeval/issues/1042)) ([3086659](https://github.com/reeval-ai/reeval/commit/30866598a5fd2981adaf6e7467b3b53a7ad15d79))
+* **history:** price each model call at its model's long-prompt tier ([#1039](https://github.com/reeval-ai/reeval/issues/1039)) ([372ea98](https://github.com/reeval-ai/reeval/commit/372ea988cd6dc021c966ba99f193efa60617b619))
+* **sandbox:** key reeval's images on the install recipe and publish them to GHCR ([#1041](https://github.com/reeval-ai/reeval/issues/1041)) ([bd78313](https://github.com/reeval-ai/reeval/commit/bd78313b7fa78524807e87016cefb2268cbfefe6))
+* **sandbox:** pull reeval's images by pinned digest, with an opt-out and a timeout ([#1045](https://github.com/reeval-ai/reeval/issues/1045)) ([2f03e8a](https://github.com/reeval-ai/reeval/commit/2f03e8a6b776b2ecdb125f25a38f3fe2b97e1bb4))
+
 ## [0.29.5](https://github.com/reeval-ai/reeval/compare/v0.29.4...v0.29.5) (2026-11-16)
 
 
