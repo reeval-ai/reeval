@@ -435,6 +435,12 @@ export async function afterLostStream(
     if (run?.status === 'failed') {
       throw new CloudError(`cloud run ${runId} failed${why ? `: ${why}` : ''}`)
     }
+    if (run && !ended && lost.lost) {
+      const events = new URL(`api/runs/${encodeURIComponent(runId)}/events`, base)
+      throw new EventStreamError(
+        `${lost.message}. Cloud run ${runId} goes on: reeval attach ${displayUrl(events.href)} follows it again; ${cancelHint(runId)}`,
+      )
+    }
     throw lost
   }
   if (why) log(`cloud run ${runId} ended: ${why}`)

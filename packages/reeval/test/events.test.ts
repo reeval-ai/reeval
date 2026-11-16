@@ -13,7 +13,12 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { createServer } from 'node:http'
-import type { AddressInfo } from 'node:net'
+import {
+  type AddressInfo,
+  createServer as createTcpServer,
+  type Socket,
+  connect as tcpConnect,
+} from 'node:net'
 import { hostname } from 'node:os'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
@@ -969,6 +974,94 @@ describe('attach', () => {
     }
   })
 
+  test('a viewer pings as soon as it connects', { timeout: 10_000 }, async () => {
+    const s = await scripted((ws) => {
+      ws.once('message', (data) => {
+        assert.equal(String(data), 'ping')
+        ws.send(frame(1, headerLine))
+        ws.send(frame(2, { type: 'exit', at: 2, code: 7 }))
+        ws.close(1000)
+      })
+    })
+    try {
+      const code = await attach({
+        source: s.source,
+        out: capture(),
+        output: () => output,
+        follow: { pingMs: 60_000 },
+      })
+      assert.equal(code, 7)
+    } finally {
+      await s.close()
+    }
+  })
+
+  test('a socket that hears nothing, not even a pong, is dropped and reconnected after the last line it got', {
+    timeout: 10_000,
+  }, async () => {
+    const afters: string[] = []
+    const s = await scripted((ws, after) => {
+      afters.push(after)
+      // The first connection goes silent with its socket still open, as a link that died would.
+      if (afters.length === 1) return void ws.send(frame(1, headerLine))
+      ws.send(frame(2, { type: 'exit', at: 2, code: 7 }))
+      ws.close(1000)
+    })
+    try {
+      const out = capture()
+      const code = await attach({
+        source: s.source,
+        out,
+        output: () => output,
+        follow: { pingMs: 20, deadMs: 100 },
+      })
+      assert.equal(code, 7)
+      assert.deepEqual(afters, ['0', '1'])
+      assert.match(out.text, /Lost the connection to run run-1; reconnecting/)
+    } finally {
+      await s.close()
+    }
+  })
+
+  test('reeval attach exits once it has followed a run past a link that went silent', async () => {
+    const afters: string[] = []
+    const s = await scripted((ws, after) => {
+      afters.push(after)
+      if (afters.length === 1) return void ws.send(frame(1, headerLine))
+      ws.send(frame(2, { type: 'exit', at: 2, code: 7 }))
+      ws.close(1000)
+    })
+    // Forwards each connection, but stops passing the first one's bytes after a moment without
+    // closing it, as a link that died would.
+    const held: Socket[] = []
+    const proxy = createTcpServer((client) => {
+      const upstream = tcpConnect(Number(new URL(s.source).port), '127.0.0.1')
+      client.pipe(upstream).pipe(client)
+      if (held.length) return
+      held.push(client, upstream)
+      setTimeout(() => {
+        client.unpipe(upstream)
+        upstream.unpipe(client)
+        client.pause()
+        upstream.pause()
+      }, 300)
+    })
+    await new Promise<void>((resolve) => proxy.listen(0, '127.0.0.1', resolve))
+    try {
+      const port = (proxy.address() as AddressInfo).port
+      const r = await runCli(tempDir('attach'), ['attach', `ws://127.0.0.1:${port}/events`], {
+        env: { REEVAL_TEST_FOLLOW_DEAD_MS: '800' },
+        timeoutMs: 20_000,
+      })
+      assert.equal(r.code, 7, r.stdout + r.stderr)
+      assert.deepEqual(afters, ['0', '1'])
+    } finally {
+      for (const socket of held) socket.destroy()
+      proxy.close()
+      await s.close()
+    }
+  })
+
   test('a viewer evicted as stale (1001) reconnects after the last line it got', async () => {
     const afters: string[] = []
     const s = await scripted((ws, after) => {
@@ -1201,6 +1294,30 @@ describe('heartbeats', () => {
         ),
     )
     assert.match(out.text, /No word from run run-1 for 30ms/)
+  })
+
+  test('a viewer that wakes from a sleep long past both thresholds still has the rest of the lost window', {
+    timeout: 10_000,
+  }, async () => {
+    const file = join(tempDir('events'), 'a.ndjson')
+    remote(file, heartbeat)
+    const out = capture()
+    const done = attach({
+      source: file,
+      out,
+      output: () => output,
+      follow: { pollMs: 10 },
+      silence: { stallMs: 100, lostMs: 400 },
+    })
+    await sleep(40)
+    // The whole process stops, as a laptop's lid closing would, then the run's exit line comes.
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 700)
+    setTimeout(
+      () => appendFileSync(file, `${JSON.stringify({ type: 'exit', at: 2, code: 0 })}\n`),
+      50,
+    )
+    assert.equal(await done, 0)
+    assert.match(out.text, /No word from run run-1 for 100ms[\s\S]*Run run-1 is sending again\./)
   })
 
   test('a stream without heartbeats, or a resume that writes none, is never called stalled', async () => {

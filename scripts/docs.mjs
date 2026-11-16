@@ -129,6 +129,7 @@ const INTERNAL_VARIABLES = [
 /** Read only by reeval's own test suite. */
 const TEST_VARIABLES = [
   'REEVAL_TEST_CLOUD_QUEUE_MS',
+  'REEVAL_TEST_FOLLOW_DEAD_MS',
   'REEVAL_TEST_TART_ANY_HOST',
   'REEVAL_TEST_TART_FREE_BYTES',
 ]
