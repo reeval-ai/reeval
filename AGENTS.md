@@ -190,7 +190,7 @@ cross-compiles every target on one Linux runner with Bun pinned (plus the `-base
 which the install scripts pick on a CPU without AVX2), smoke-tests each on its own OS
 with `scripts/binary-smoke.mjs` (nothing installed; Docker on linux-x64, Alpine for musl), installs
 it from those files with `scripts/install.sh` or `scripts/install.ps1` (Windows PowerShell and
-pwsh), which check the binary starts before installing it, and uploads `reeval-<version>-<os>-<arch>` plus `SHA256SUMS` as one artifact. `release.yml`
+pwsh), which check the binary starts before installing it, and uploads `reeval-<version>-<os>-<arch>`, a zstd copy of each (`reeval-<version>-<os>-<arch>.zst`) and `SHA256SUMS`, which lists both, as one artifact. `release.yml`
 calls it for each npm release and uploads that artifact to the GitHub release, which is where the
 install scripts download from.
 
