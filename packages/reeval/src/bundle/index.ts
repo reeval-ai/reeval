@@ -435,7 +435,7 @@ export async function makeBundle(
   const { plan } = planned
   const inputs = (plan.inputs ?? []).map((i) => ({
     ...i,
-    abs: isAbsolute(i.path) ? i.path : join(project, ...i.path.split('/')),
+    abs: resolve(project, i.path),
   }))
   const repositories: string[] = []
   for (const i of inputs) {

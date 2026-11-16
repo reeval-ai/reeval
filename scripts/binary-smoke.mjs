@@ -18,7 +18,6 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
-  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs'
@@ -38,8 +37,7 @@ if (positionals.length !== 1) {
 const root = fileURLToPath(new URL('..', import.meta.url))
 const { version } = JSON.parse(readFileSync(join(root, 'packages/reeval/package.json'), 'utf8'))
 
-// Windows runners' temp directory is an 8.3 short name (RUNNER~1), which git reports long.
-const alone = realpathSync.native(mkdtempSync(join(tmpdir(), 'reeval-smoke-')))
+const alone = mkdtempSync(join(tmpdir(), 'reeval-smoke-'))
 const binary = join(alone, basename(positionals[0]))
 cpSync(resolve(positionals[0]), binary)
 chmodSync(binary, 0o755)
