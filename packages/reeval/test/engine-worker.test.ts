@@ -143,6 +143,27 @@ registerTest('todo', { mode: 'todo' }, async () => {})
     })
   })
 
+  test("leaves out the tsconfig the loader checks, which jiti doesn't read: a compiled reeval doesn't see the check's reads", async () => {
+    const c = fakeChannel()
+    startWorker(c.channel)
+    const { root, file, run } = evalFile(`
+import { NAME } from './helper.ts'
+registerTest(NAME, { mode: 'run', attempt: { name: 'a' } }, async () => {})
+`)
+    writeFileSync(join(root, 'evals/helper.ts'), "export const NAME: string = 'a'\n")
+    writeFileSync(join(root, 'evals/tsconfig.json'), '{ "extends": "../tsconfig.base.json" }\n')
+    writeFileSync(join(root, 'tsconfig.base.json'), '{ "compilerOptions": { "strict": true } }\n')
+    c.send({ t: 'init', run: { ...run, inputs: true }, file, select: null })
+    await c.exit
+    assert.deepEqual((c.sent[1] as { tests: Array<{ attempt?: unknown }> }).tests[0]?.attempt, {
+      name: 'a',
+      inputs: [
+        { path: file, kind: 'eval' },
+        { path: join(root, 'evals/helper.ts'), kind: 'module' },
+      ],
+    })
+  })
+
   test("records each loaded file's package scope, whether or not this runtime's resolution reads it", async () => {
     const c = fakeChannel()
     startWorker(c.channel)

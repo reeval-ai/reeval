@@ -1,6 +1,7 @@
 // Loads an eval file in a worker: TypeScript, ESM or CommonJS, with extensionless imports, through
-// jiti. The file's tsconfig.json must load (jiti uses it like any TypeScript runner): a
-// broken one fails every eval file under it, loudly.
+// jiti. The file's tsconfig.json must load, as under any TypeScript runner: a broken one fails
+// every eval file under it, loudly. jiti itself never reads it, so the check's reads are reeval's
+// own, not the load's inputs.
 import { readFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
@@ -8,6 +9,7 @@ import { DecodedMap, getOriginalPosition } from '@vitest/utils/source-map'
 import { getTsconfig } from 'get-tsconfig'
 import { relativeFile } from '../ids.ts'
 import { reevalJiti } from '../jiti.ts'
+import { asOwnReads } from '../own-reads.ts'
 import { codeFrame } from './errors.ts'
 
 export class TsconfigError extends Error {
@@ -26,7 +28,7 @@ const INLINE_MAP =
 
 /** Imports `file` and whatever it imports. */
 export async function loadEvalFile(file: string, root: string): Promise<unknown> {
-  checkTsconfig(dirname(file), root)
+  asOwnReads(() => checkTsconfig(dirname(file), root))
   const options = { moduleCache: true, fsCache: false, sourceMaps: true }
   const base = await reevalJiti(file, options)
   const jiti = await reevalJiti(file, {
