@@ -114,6 +114,9 @@ export function createBuilds(options: Partial<Omit<Builds, 'once' | 'pushOnce'>>
   }
 }
 
+/** Where `images.yml` publishes reeval's image for each harness, which a run pulls without `--registry`. */
+export const DEFAULT_REGISTRY = 'ghcr.io/reeval-ai/sandbox'
+
 /** A layer only this machine can name, or one built on such a layer: never pulled or pushed. */
 const onlyHere = (layer: Layer) => !!layer.local || isLocalKey(layer.key)
 
@@ -121,9 +124,14 @@ const onlyHere = (layer: Layer) => !!layer.local || isLocalKey(layer.key)
  * `layer` from the run's registry, when there is one and it has it: its image, or null to build
  * it. A registry that lacks it or can't be reached only costs the build.
  */
-async function pulled(layer: Layer, b: Builds, signal: AbortSignal): Promise<ImageInfo | null> {
-  if (!b.registry || b.refresh === 'force' || onlyHere(layer)) return null
-  const r = await pullLayer(b.registry, layer, { engine: b.engine, signal })
+async function pulled(
+  layer: Layer,
+  b: Builds,
+  signal: AbortSignal,
+  registry = b.registry,
+): Promise<ImageInfo | null> {
+  if (!registry || b.refresh === 'force' || onlyHere(layer)) return null
+  const r = await pullLayer(registry, layer, { engine: b.engine, signal })
   if (!r.pulled) {
     b.log(`${r.remote} isn't in the registry (${r.reason}): building ${layer.ref}`)
     return null
@@ -152,7 +160,8 @@ const built = async (ref: string, engine: Engine) => {
 }
 
 /**
- * reeval's image for the harness: pulled or built when it's missing, or when its key changed.
+ * reeval's image for the harness: pulled or built when it's missing, or when its key changed. It's
+ * pulled from `--registry`, or else from {@link DEFAULT_REGISTRY}.
  */
 export const reevalImage = (
   harness: BakedHarness,
@@ -167,7 +176,7 @@ export const reevalImage = (
     const current = (info: ImageInfo | null) => info?.labels[LABEL.key] === key
     const info = await imageInfo(ref, engine)
     if (info && current(info) && b.refresh !== 'force') return info
-    const fetched = await pulled({ ref, key }, b, signal)
+    const fetched = await pulled({ ref, key }, b, signal, b.registry ?? DEFAULT_REGISTRY)
     if (fetched && current(fetched)) return fetched
     b.log(
       info && !current(info) ? `Rebuilding ${ref}: reeval's base image changed` : `Building ${ref}`,

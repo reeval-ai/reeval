@@ -20,7 +20,7 @@ import {
   registryProblem,
   registryRef,
 } from '@reeval/sandbox-docker'
-import { createBuilds, prepareImage } from '../src/sandbox/prepare.ts'
+import { createBuilds, DEFAULT_REGISTRY, prepareImage } from '../src/sandbox/prepare.ts'
 import { harnessRecipe, imageRecipeKey } from '../src/sandbox/recipe.ts'
 import type { DockerSandboxDescriptor } from '../src/types.ts'
 import { fakeConfig, project, runCli, tempDir } from './helpers.ts'
@@ -242,6 +242,38 @@ describe('sandbox image tags are content keys', () => {
     e.seedReeval()
     await e.prepare({ install: ['echo local'] }, { registry })
     assert.deepEqual(e.builds(), [local.ref])
+  })
+
+  test("without --registry, reeval's image comes from reeval's registry, and is built when it isn't there", async () => {
+    const { machine, publish } = world()
+    const key = reevalImageKey(harness, installRecipe)
+    const install = ['echo hi']
+    // The fake docker can't bake a harness, so the build it falls back to fails here.
+    const lines: string[] = []
+    await assert.rejects(machine('a').prepare({ install }, { log: (l) => lines.push(l) }), {
+      name: 'ImageBuildError',
+    })
+    assert.ok(
+      lines.some(
+        (l) => l.startsWith(`${DEFAULT_REGISTRY}/`) && l.includes(`building ${reevalImage}`),
+      ),
+      lines.join('\n'),
+    )
+
+    publish(registryRef(DEFAULT_REGISTRY, { ref: reevalImage, key }), {
+      [LABEL.context]: contextHash(),
+      [LABEL.agentVersion]: '1.0.0',
+      [LABEL.harness]: harnessLabel(harness),
+      [LABEL.key]: key,
+    })
+    const b = machine('b')
+    await b.prepare({ install })
+    assert.ok(b.has(reevalImage))
+    assert.deepEqual(
+      b.builds(),
+      [installLayerTag({ key }, [{ run: 'echo hi' }])],
+      'only the install layer',
+    )
   })
 
   test("the registry tag pins content the local tag doesn't", () => {

@@ -37,7 +37,8 @@ Usage:
                                 (host[:port]/path, as reeval image build --push left it) before
                                 building it; one it doesn't have, or whose key label or platform
                                 doesn't match, is built as usual. Anyone who can push there chooses
-                                what a matching image holds
+                                what a matching image holds. Without it, reeval's own image for
+                                each harness is pulled from ghcr.io/reeval-ai/sandbox
     --tag <tag>                 Only evals with this tag; !tag excludes it; repeat to combine (AND)
     --trait <key=value>         Only cells whose environment's trait is value, or lists it (with
                                 compare, the control's); repeat to combine (AND)
@@ -351,7 +352,9 @@ Usage:
                                 (host[:port]/path) before building it. Its tags hash the inputs
                                 and the platform, not this machine's image ids; a pulled image is
                                 used only when its ai.reeval.key label and platform match, so the
-                                registry is trusted with the rest. --force builds instead
+                                registry is trusted with the rest. Without it, reeval's own image
+                                for each harness is pulled from ghcr.io/reeval-ai/sandbox. --force
+                                builds instead
     --push                      With --registry, push every image reeval built or pulled for the
                                 evals there (docker or podman push; log in first). Each image
                                 holds its base in full, your own docker({ image }), from or
