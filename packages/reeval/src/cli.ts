@@ -1154,26 +1154,27 @@ async function attachHere(
  * A cloud run's follower: on a terminal with a status line, `◆  Waiting for the cloud run to
  * start...` spins as the prepare step does from the follow until the run's stream sends its first
  * line, with the lines `log` prints under it; elsewhere `log` only prints and `follow` only attaches.
+ * A resume's stream replays the earlier segments' lines first, so it gets no spinner.
  */
 async function cloudFollower(flags: Flags) {
-  const spins =
-    !process.env.REEVAL_DEBUG &&
-    resolveOutput({
-      flags: { ui: flags.ui, outputLogs: flags['output-logs'] },
-      env: process.env,
-      isTTY: !!process.stdout.isTTY,
-      agent: detectAgent().name,
-      stdinTTY: !!process.stdin.isTTY,
-    }).statusLine
+  const output = resolveOutput({
+    flags: { ui: flags.ui, outputLogs: flags['output-logs'] },
+    env: process.env,
+    isTTY: !!process.stdout.isTTY,
+    agent: detectAgent().name,
+    stdinTTY: !!process.stdin.isTTY,
+  })
   const { StepSpinner } = await import('./ui/tty.ts')
-  const c = colors(!process.env.NO_COLOR)
-  const spinner = spins
-    ? new StepSpinner(
-        (text) => process.stdout.write(text),
-        c,
-        () => ({ rows: process.stdout.rows || 24, columns: process.stdout.columns || 80 }),
-      )
-    : undefined
+  const depth = process.stdout.isTTY ? process.stdout.getColorDepth() : 4
+  const c = colors(output.color, depth >= 24 ? 24 : depth >= 8 ? 8 : 4)
+  const spinner =
+    output.statusLine && !process.env.REEVAL_DEBUG
+      ? new StepSpinner(
+          (text) => process.stdout.write(text),
+          c,
+          () => ({ rows: process.stdout.rows || 24, columns: process.stdout.columns || 80 }),
+        )
+      : undefined
   return {
     log: (line: string) => {
       const text = `${dim(line)}\n`
@@ -1181,7 +1182,7 @@ async function cloudFollower(flags: Flags) {
       process.stdout.write(text)
     },
     follow: async (options: Parameters<typeof attachHere>[1]) => {
-      if (!spinner) return attachHere(flags, options)
+      if (!spinner || options.resumedAfter) return attachHere(flags, options)
       const step = `  ${c.teal('◆')}  Waiting for the cloud run to start...\n`
       process.stdout.write(step)
       spinner.start(step, 1)
