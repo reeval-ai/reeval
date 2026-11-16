@@ -131,6 +131,106 @@ describe('priceFor', () => {
     assert.deepEqual(cost.usd, { low: 0.303, high: 2.02 })
   })
 
+  test('a typical attempt writes the cache, priced at its cache-write rate', () => {
+    const cost = planCost(
+      [
+        {
+          id: 'e',
+          cell: cell('pi:gemini-3.8-flash'),
+          harness: { kind: 'pi', model: 'gemini-3.8-flash' },
+        },
+      ],
+      [],
+      null,
+      { ...PRICES, table: { 'gemini-3.8-flash': [0, 0, 1, 0] } },
+    )
+    assert.deepEqual(cost.usd, { low: 0.03, high: 0.15 })
+  })
+
+  describe('history', () => {
+    const harness = 'cursor:my-model'
+    type Basis = 'reported' | 'estimated'
+    const past = (key: string, cost?: [number, Basis], model = 'my-model'): RunRecord =>
+      ({
+        runId: `run-${key}`,
+        evals: [
+          {
+            id: 'e',
+            cells: [{ key: cell(harness).key, harness, model }],
+            attempts: [
+              {
+                key,
+                cell: cell(harness).key,
+                outcome: 'pass',
+                usage: {
+                  input: 1_000_000,
+                  cacheRead: 0,
+                  cacheWrite: 0,
+                  output: 0,
+                  reasoning: null,
+                },
+                judgements: [],
+                ...(cost ? { cost: { usd: cost[0], basis: cost[1], source: 'x' } } : {}),
+              },
+            ],
+          },
+        ],
+      }) as unknown as RunRecord
+    const plan = (records: RunRecord[], prices: Prices = PRICES) =>
+      planCost(
+        [{ id: 'e', cell: cell(harness), harness: { kind: 'cursor', model: 'my-model' } }],
+        records,
+        null,
+        prices,
+      )
+    const listed = { ...PRICES, table: { 'my-model': [1, 1, 1, 1] as Price } }
+
+    test('a reported cost wins over the list price, and prices a model with none', () => {
+      const cost = plan([past('a', [2, 'reported']), past('b', [2, 'reported'])])
+      assert.equal(cost.cells[0]?.basis, 'history')
+      assert.deepEqual(cost.usd, { low: 1.6, high: 2.5 })
+      assert.deepEqual(cost.unpriced, [])
+      assert.equal(cost.recordedAttempts, 2)
+      assert.match(
+        costLine(cost) ?? '',
+        /from 2 past runs \(2 past attempts at their recorded cost\)/,
+      )
+      assert.deepEqual(plan([past('a', [2, 'reported'])], listed).usd, { low: 1.6, high: 2.5 })
+    })
+
+    test("an estimated cost gives way to today's list price, and stands in only without one", () => {
+      const repriced = plan([past('a', [3, 'estimated'])], listed)
+      assert.deepEqual(repriced.usd, { low: 0.8, high: 1.25 })
+      assert.equal(repriced.recordedAttempts, 0)
+      const kept = plan([past('a', [3, 'estimated'])])
+      assert.deepEqual(kept.usd, { low: 2.4, high: 3.75 })
+      assert.equal(kept.recordedAttempts, 1)
+    })
+
+    test("another model's recorded cost is not this one's", () => {
+      const swapped = [past('a', [0.1, 'reported'], 'old-model')]
+      assert.deepEqual(plan(swapped, listed).usd, { low: 0.8, high: 1.25 })
+      assert.equal(plan(swapped, listed).recordedAttempts, 0)
+      assert.equal(plan(swapped).usd, null)
+    })
+
+    test("one sample it can't price leaves the cell without dollars; without prices, tokens only", () => {
+      const partly = plan([past('a', [2, 'reported']), past('b')])
+      assert.equal(partly.usd, null)
+      assert.equal(partly.recordedAttempts, 0)
+      assert.deepEqual(partly.unpriced, [
+        { model: 'my-model', tokens: { low: 800_000, high: 1_250_000 } },
+      ])
+      assert.deepEqual(plan([past('a', [2, 'reported']), past('b')], listed).usd, {
+        low: 1.2,
+        high: 1.875,
+      })
+      const off = plan([past('a', [2, 'reported'])], { table: null, why: 'REEVAL_PRICES=none' })
+      assert.equal(off.usd, null)
+      assert.equal(off.recordedAttempts, 0)
+    })
+  })
+
   test('without prices, the estimate is tokens alone and says why', () => {
     const cost = planCost(
       [
@@ -180,6 +280,7 @@ describe('costLine', () => {
     attempts: { history: 0, typical: 6, free: 0 },
     pastRuns: 0,
     pastAttempts: 0,
+    recordedAttempts: 0,
     unpriced: [],
     prices: { modelsDev: { fetchedAt: '2026-10-23T00:00:00Z', stale: false }, file: null },
     cells: [],

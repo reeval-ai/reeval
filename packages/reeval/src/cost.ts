@@ -1,8 +1,9 @@
 // What a planned run should cost: each attempt's tokens from the same eval and cell in recent
-// history, else a typical coding attempt's, plus its judge calls, as a range. Priced at the list
-// prices loaded for the view (prices.ts), or tokens only without them. An estimate for deciding
-// whether to run, never a bill: it ignores subscriptions, negotiated prices and retries, and
-// leaves out of the dollars any model it has no price for.
+// history, else a typical coding attempt's, plus its judge calls, as a range. Priced at the cost
+// a harness or gateway reported for a past attempt on the same model, else at the list prices
+// loaded for the view (prices.ts), else at the cost its record estimated; tokens only without
+// prices. An estimate for deciding whether to run, never a bill: it ignores subscriptions,
+// negotiated prices and retries, and leaves out of the dollars any model it can't price.
 import type { RunRecord } from './history/types.ts'
 import type { ModelsDev, Price, Prices, Tier } from './prices.ts'
 import { quantile } from './stats.ts'
@@ -11,7 +12,7 @@ import type { Cell, HarnessDescriptor, TokenUsage } from './types.ts'
 import { totalTokens } from './usage.ts'
 
 export type Range = { low: number; high: number }
-/** Tokens, and USD where every model in it has a price; `usd` is null otherwise. */
+/** Tokens, and USD where every attempt in it could be priced; `usd` is null otherwise. */
 export type CostPart = { tokens: Range; usd: Range | null }
 
 /** Where a cell's agent tokens came from: its own past attempts, a typical attempt, or none. */
@@ -47,7 +48,9 @@ export type PlanCost = {
   /** Recorded runs, and attempts in them, whose tokens fed the estimate. */
   pastRuns: number
   pastAttempts: number
-  /** Models with no price in the loaded prices, and their tokens, which `usd` leaves out. */
+  /** Those past attempts priced at the cost their record holds rather than at list prices. */
+  recordedAttempts: number
+  /** Models it couldn't price, and their tokens, which `usd` leaves out. */
   unpriced: { model: string; tokens: Range }[]
   /**
    * Where the prices came from: models.dev (or why not), under the `REEVAL_PRICES` file's; or why
@@ -64,10 +67,13 @@ type Tokens = Pick<TokenUsage, 'input' | 'cacheRead' | 'cacheWrite' | 'output'> 
 /**
  * A medium coding attempt re-sends its context on every step, mostly from cache: about 300k
  * prompt tokens at the low end and 2M at the high, against a median of about 1M over real ones.
+ * The cache is written at least once with the agent's system prompt and tools (about 30k on
+ * Claude Code) and then with each step's new context, which where the cache write has its own
+ * price (Anthropic's, OpenAI's newer models) is most of a short attempt's cost.
  */
 export const TYPICAL_ATTEMPT: { low: Tokens; high: Tokens } = {
-  low: { input: 15_000, cacheRead: 285_000, cacheWrite: 0, output: 3_000 },
-  high: { input: 100_000, cacheRead: 1_900_000, cacheWrite: 0, output: 20_000 },
+  low: { input: 15_000, cacheRead: 255_000, cacheWrite: 30_000, output: 3_000 },
+  high: { input: 100_000, cacheRead: 1_750_000, cacheWrite: 150_000, output: 20_000 },
 }
 
 /** One judge call: 5–60k tokens of task, output, diff and files in, a short verdict out. */
@@ -130,7 +136,15 @@ export function harnessModel(h: HarnessDescriptor): string | null {
 export const needsPrices = (harnesses: HarnessDescriptor[], judgeModel: string | null) =>
   harnesses.some((h) => h.kind !== 'fake') || (judgeModel !== null && judgeModel !== 'fake')
 
-type Sample = { usage: TokenUsage; key: string; runId: string }
+type Sample = {
+  usage: TokenUsage
+  /** The model its cell ran; undefined in a record from before cells named it. */
+  model: string | undefined
+  reported: number | undefined
+  estimated: number | undefined
+  key: string
+  runId: string
+}
 type JudgeSample = { calls: number; models: string[] }
 
 const counted = (outcome: string) => outcome === 'pass' || outcome === 'fail'
@@ -151,10 +165,17 @@ function indexHistory(records: RunRecord[]) {
           models: (a.judgements ?? []).map((j) => j.model),
         })
         if (!a.usage) continue
-        const sample = { usage: a.usage, key: a.key, runId: record.runId }
+        const cell = e.cells?.find((c) => c.key === a.cell)
+        const sample: Sample = {
+          usage: a.usage,
+          model: cell?.model ?? undefined,
+          reported: a.cost?.basis === 'reported' ? a.cost.usd : a.reportedCostUsd || undefined,
+          estimated: a.cost?.basis === 'estimated' ? a.cost.usd : undefined,
+          key: a.key,
+          runId: record.runId,
+        }
         push(byCell, `${e.id}\0${a.cell}`, sample)
-        const harness = e.cells?.find((c) => c.key === a.cell)?.harness
-        if (harness) push(byHarness, `${e.id}\0${harness}`, sample)
+        if (cell?.harness) push(byHarness, `${e.id}\0${cell.harness}`, sample)
       }
     }
   }
@@ -212,6 +233,7 @@ export function planCost(
   const table = prices.table
   const cells = new Map<string, PlanCostCell>()
   const used = new Map<string, string>()
+  const recorded = new Set<string>()
   const overlay = prices.table ? prices.overlay : null
   const priced = (model: string) =>
     table && ((overlay && priceFor(model, overlay)) ?? priceFor(model, table))
@@ -252,11 +274,22 @@ export function planCost(
       const price = model ? priced(model) : null
       let agent: CostPart = { tokens: ZERO, usd: table && ZERO }
       if (basis === 'history' && samples) {
-        for (const s of samples) used.set(`${s.runId}\0${s.key}`, s.runId)
-        agent = {
-          tokens: rangeOf(samples.map((s) => totalTokens(s.usage))),
-          usd: price && rangeOf(samples.map((s) => usdOf(s.usage, price))),
-        }
+        const own: string[] = []
+        const usds = samples.map((s) => {
+          const id = `${s.runId}\0${s.key}`
+          used.set(id, s.runId)
+          const same = harness.kind !== 'fake' && s.model === harness.model
+          const reported = same ? s.reported : undefined
+          const listed = price ? usdOf(s.usage, price) : undefined
+          const estimated = same ? s.estimated : undefined
+          if (reported !== undefined || (listed === undefined && estimated !== undefined)) {
+            own.push(id)
+          }
+          return reported ?? listed ?? estimated ?? null
+        })
+        const usd = table && usds.every((n) => n !== null) ? rangeOf(usds) : null
+        if (usd) for (const id of own) recorded.add(id)
+        agent = { tokens: rangeOf(samples.map((s) => totalTokens(s.usage))), usd }
       } else if (basis === 'typical') {
         const { low, high } = TYPICAL_ATTEMPT
         agent = {
@@ -317,6 +350,7 @@ export function planCost(
     attempts: tally,
     pastRuns: new Set(used.values()).size,
     pastAttempts: used.size,
+    recordedAttempts: recorded.size,
     unpriced: [...unpriced]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([model, tokens]) => ({ model, tokens: round(tokens, 0) as Range })),
@@ -404,8 +438,11 @@ export function costLine(c: PlanCost): string | null {
   }
   const { history, typical } = c.attempts
   const runs = plural(c.pastRuns, 'past run')
-  if (typical === 0 && history > 0) parts.push(`from ${runs}`)
+  const own = c.recordedAttempts
+    ? ` (${plural(c.recordedAttempts, 'past attempt')} at ${c.recordedAttempts === 1 ? 'its' : 'their'} recorded cost)`
+    : ''
+  if (typical === 0 && history > 0) parts.push(`from ${runs}${own}`)
   else if (history === 0) parts.push('no history, rough')
-  else parts.push(`${history} of ${history + typical} attempts from ${runs}, the rest rough`)
+  else parts.push(`${history} of ${history + typical} attempts from ${runs}${own}, the rest rough`)
   return `cost  ${parts.join(' · ')}`
 }
