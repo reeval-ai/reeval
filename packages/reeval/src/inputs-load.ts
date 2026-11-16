@@ -55,7 +55,8 @@ const jitiCached = (path: string) =>
  * The nearest `package.json` above `main` and each module, its package scope, is a `read` whether
  * or not the load read it: resolving a bare import reads it only on some runtimes (a compiled
  * reeval answers its own imports without it), and a bundle made on one has to plan alike on the
- * other. A scope outside `root` is left out, as a bundle carries every `package.json` up to its root.
+ * other. A scope in a directory above `root` is left out, as a bundle carries every `package.json`
+ * from `root` up to its own root.
  */
 export function trackLoad(root: string) {
   const reads = new Set<string>()
@@ -99,13 +100,14 @@ export function trackLoad(root: string) {
         ...Object.keys(cache).filter((f) => !required.has(f)),
       ])
       const scopes = new Set([main, ...modules].map((f) => packageScope(resolve(f))))
-      const inRoot = (path: string) => path.startsWith(resolve(root) + sep) && !ignored(path, root)
+      const above = (path: string) => resolve(root).startsWith(dirname(path) + sep)
       const out: LocalInput[] = [{ path: main, kind: mainKind }]
       const all = new Set(reads)
-      for (const scope of scopes) if (scope && inRoot(scope)) all.add(scope)
+      for (const scope of scopes)
+        if (scope && !above(scope) && !ignored(scope, root)) all.add(scope)
       for (const path of [...all].sort()) {
         if (path === main || !statSync(path, { throwIfNoEntry: false })?.isFile()) continue
-        if (scopes.has(path) && !inRoot(path)) continue
+        if (scopes.has(path) && above(path)) continue
         const name = basename(path)
         const kind = modules.has(path)
           ? 'module'
