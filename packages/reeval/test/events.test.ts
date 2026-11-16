@@ -1488,9 +1488,14 @@ evaluate('slow', async (c) => {
       'a done beat as they end',
     )
     const states = beats
-      .map(({ l }) => (l.attempts ?? []).map((a) => nameOf(a.key)).join(','))
+      .map(({ l }) =>
+        (l.attempts ?? [])
+          .map((a) => nameOf(a.key))
+          .sort()
+          .join(','),
+      )
       .filter((s, i, all) => s !== all[i - 1] && s !== '')
-    // A beat can land after one attempt has started and before the other has.
+    // A beat can land after one attempt has started and before the other has, in either order.
     const both = states[0] === 'quick' || states[0] === 'slow' ? states.slice(1) : states
     assert.deepEqual(both, ['quick,slow', 'slow'])
     const end = lines.findIndex((l) => l.type === 'run-end')
