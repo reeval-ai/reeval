@@ -131,6 +131,72 @@ describe('priceFor', () => {
     assert.deepEqual(cost.usd, { low: 0.303, high: 2.02 })
   })
 
+  test('a typical attempt writes the cache, priced at its cache-write rate', () => {
+    const cost = planCost(
+      [
+        {
+          id: 'e',
+          cell: cell('pi:gemini-3.8-flash'),
+          harness: { kind: 'pi', model: 'gemini-3.8-flash' },
+        },
+      ],
+      [],
+      null,
+      { ...PRICES, table: { 'gemini-3.8-flash': [0, 0, 1, 0] } },
+    )
+    assert.deepEqual(cost.usd, { low: 0.03, high: 0.15 })
+  })
+
+  test("a past attempt's recorded cost counts as recorded, even for a model with no list price", () => {
+    const harness = 'cursor:my-model'
+    const past = (key: string, cost?: number): RunRecord =>
+      ({
+        runId: `run-${key}`,
+        evals: [
+          {
+            id: 'e',
+            cells: [{ key: cell(harness).key, harness }],
+            attempts: [
+              {
+                key,
+                cell: cell(harness).key,
+                outcome: 'pass',
+                usage: {
+                  input: 1_000_000,
+                  cacheRead: 0,
+                  cacheWrite: 0,
+                  output: 0,
+                  reasoning: null,
+                },
+                judgements: [],
+                ...(cost !== undefined
+                  ? { cost: { usd: cost, basis: 'reported', source: 'x' } }
+                  : {}),
+              },
+            ],
+          },
+        ],
+      }) as unknown as RunRecord
+    const plan = (records: RunRecord[], table: Record<string, Price>) =>
+      planCost(
+        [{ id: 'e', cell: cell(harness), harness: { kind: 'cursor', model: 'my-model' } }],
+        records,
+        null,
+        { ...PRICES, table },
+      )
+    const recorded = plan([past('a', 2), past('b', 2)], TABLE)
+    assert.equal(recorded.cells[0]?.basis, 'history')
+    assert.deepEqual(recorded.usd, { low: 1.6, high: 2.5 })
+    assert.deepEqual(recorded.unpriced, [])
+    assert.equal(
+      plan([past('a', 2), past('b')], TABLE).usd,
+      null,
+      'one unpriced sample, no dollars',
+    )
+    const mixed = plan([past('a', 2), past('b')], { 'my-model': [1, 1, 1, 1] })
+    assert.deepEqual(mixed.usd, { low: 1.2, high: 1.875 })
+  })
+
   test('without prices, the estimate is tokens alone and says why', () => {
     const cost = planCost(
       [

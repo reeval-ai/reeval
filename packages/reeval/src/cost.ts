@@ -1,8 +1,9 @@
 // What a planned run should cost: each attempt's tokens from the same eval and cell in recent
-// history, else a typical coding attempt's, plus its judge calls, as a range. Priced at the list
-// prices loaded for the view (prices.ts), or tokens only without them. An estimate for deciding
-// whether to run, never a bill: it ignores subscriptions, negotiated prices and retries, and
-// leaves out of the dollars any model it has no price for.
+// history, else a typical coding attempt's, plus its judge calls, as a range. A past attempt's
+// recorded cost counts as it was recorded, reported or estimated; the rest is priced at the
+// list prices loaded for the view (prices.ts), or tokens only without them. An estimate for
+// deciding whether to run, never a bill: it ignores subscriptions, negotiated prices and retries,
+// and leaves out of the dollars any model it has no price for.
 import type { RunRecord } from './history/types.ts'
 import type { ModelsDev, Price, Prices, Tier } from './prices.ts'
 import { quantile } from './stats.ts'
@@ -64,10 +65,13 @@ type Tokens = Pick<TokenUsage, 'input' | 'cacheRead' | 'cacheWrite' | 'output'> 
 /**
  * A medium coding attempt re-sends its context on every step, mostly from cache: about 300k
  * prompt tokens at the low end and 2M at the high, against a median of about 1M over real ones.
+ * The cache is written at least once with the agent's system prompt and tools (about 30k on
+ * Claude Code) and then with each step's new context, which on Anthropic's and OpenAI's prices is
+ * most of a short attempt's cost.
  */
 export const TYPICAL_ATTEMPT: { low: Tokens; high: Tokens } = {
-  low: { input: 15_000, cacheRead: 285_000, cacheWrite: 0, output: 3_000 },
-  high: { input: 100_000, cacheRead: 1_900_000, cacheWrite: 0, output: 20_000 },
+  low: { input: 15_000, cacheRead: 255_000, cacheWrite: 30_000, output: 3_000 },
+  high: { input: 100_000, cacheRead: 1_750_000, cacheWrite: 150_000, output: 20_000 },
 }
 
 /** One judge call: 5–60k tokens of task, output, diff and files in, a short verdict out. */
@@ -130,7 +134,7 @@ export function harnessModel(h: HarnessDescriptor): string | null {
 export const needsPrices = (harnesses: HarnessDescriptor[], judgeModel: string | null) =>
   harnesses.some((h) => h.kind !== 'fake') || (judgeModel !== null && judgeModel !== 'fake')
 
-type Sample = { usage: TokenUsage; key: string; runId: string }
+type Sample = { usage: TokenUsage; cost: number | undefined; key: string; runId: string }
 type JudgeSample = { calls: number; models: string[] }
 
 const counted = (outcome: string) => outcome === 'pass' || outcome === 'fail'
@@ -151,7 +155,7 @@ function indexHistory(records: RunRecord[]) {
           models: (a.judgements ?? []).map((j) => j.model),
         })
         if (!a.usage) continue
-        const sample = { usage: a.usage, key: a.key, runId: record.runId }
+        const sample = { usage: a.usage, cost: a.cost?.usd, key: a.key, runId: record.runId }
         push(byCell, `${e.id}\0${a.cell}`, sample)
         const harness = e.cells?.find((c) => c.key === a.cell)?.harness
         if (harness) push(byHarness, `${e.id}\0${harness}`, sample)
@@ -253,9 +257,10 @@ export function planCost(
       let agent: CostPart = { tokens: ZERO, usd: table && ZERO }
       if (basis === 'history' && samples) {
         for (const s of samples) used.set(`${s.runId}\0${s.key}`, s.runId)
+        const usds = samples.map((s) => s.cost ?? (price ? usdOf(s.usage, price) : null))
         agent = {
           tokens: rangeOf(samples.map((s) => totalTokens(s.usage))),
-          usd: price && rangeOf(samples.map((s) => usdOf(s.usage, price))),
+          usd: table && usds.every((n) => n !== null) ? rangeOf(usds) : null,
         }
       } else if (basis === 'typical') {
         const { low, high } = TYPICAL_ATTEMPT
