@@ -1109,8 +1109,8 @@ async function attemptEvidence(
         .find((m): m is string => !!m)
       const servedModel = t.model ?? fromGateway ?? null
       const effort = effortFromModelLabel(servedModel) ?? null
-      const callUsage = (t.transcript ?? []).flatMap((e) =>
-        e.type === 'model-call' && e.usage ? [e.usage] : [],
+      const calls = (t.transcript ?? []).flatMap((e) =>
+        e.type === 'model-call' && e.usage && e.role !== 'side' ? [e.usage] : [],
       )
       return {
         prompt: t.prompt,
@@ -1128,7 +1128,7 @@ async function attemptEvidence(
         ...(t.reasoningMs !== undefined ? { reasoningMs: t.reasoningMs } : {}),
         ...(t.timeSplit ? { timeSplit: t.timeSplit } : {}),
         ...(t.cost ? { cost: t.cost } : {}),
-        ...(callUsage.length ? { callUsage } : {}),
+        ...(calls.length ? { callUsage: calls } : {}),
         text: turnText(t.text),
       }
     }),

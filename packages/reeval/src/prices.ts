@@ -158,14 +158,18 @@ function tableOf(catalog: unknown): Required<Omit<Cached, 'fetchedAt'>> {
   }
 }
 
-/** models.dev's `cost.tiers` by prompt length, smallest first, each field it omits the base's. */
+/**
+ * models.dev's `cost.tiers` by prompt length, smallest first. A cache price a tier omits is the
+ * base's, and a reasoning price it omits is its own output's.
+ */
 function tiersOf(cost: unknown): Tier[] {
   if (!isObject(cost) || !Array.isArray(cost.tiers)) return []
-  return cost.tiers
+  const { reasoning: _, tiers, ...base } = cost
+  return tiers
     .filter(isObject)
     .flatMap(({ tier, ...rates }) => {
       const size = isObject(tier) && tier.type === 'context' ? tier.size : null
-      const price = priceOf({ ...cost, ...rates } as Cost)
+      const price = priceOf({ ...base, ...rates } as Cost)
       return tokens(size) && price ? [{ size, price }] : []
     })
     .sort((a, b) => a.size - b.size)
@@ -176,7 +180,7 @@ type Cached = {
   table: Record<string, Price>
   /** Absent from a copy an older reeval wrote, which a fetch then replaces. */
   limits?: Record<string, ModelLimits>
-  /** Absent from a copy an older reeval wrote, which prices every request at its base price. */
+  /** Absent from a copy an older reeval wrote, which a fetch then replaces. */
   tiers?: Record<string, Tier[]>
 }
 const cacheFile = () => join(cacheDir(), 'models-dev-prices.json')
@@ -287,11 +291,11 @@ async function modelsDev(
 > {
   const cached = await readCached()
   const age = cached ? now - Date.parse(cached.fetchedAt) : Number.NaN
-  if (cached && (cached.limits || !needLimits) && age >= 0 && age < FRESH_MS) {
+  if (cached?.tiers && (cached.limits || !needLimits) && age >= 0 && age < FRESH_MS) {
     return {
       table: cached.table,
       limits: cached.limits ?? {},
-      ...(cached.tiers ? { tiers: cached.tiers } : {}),
+      tiers: cached.tiers,
       modelsDev: { fetchedAt: cached.fetchedAt, stale: false },
     }
   }

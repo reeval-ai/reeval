@@ -55,7 +55,7 @@ const COST_CACHE = '.cache'
 export function seedModelsDev(root: string): void {
   const dir = join(root, COST_CACHE, 'reeval')
   mkdirSync(dir, { recursive: true })
-  const cached = { fetchedAt: new Date().toISOString(), table: MODELS_DEV }
+  const cached = { fetchedAt: new Date().toISOString(), table: MODELS_DEV, tiers: {} }
   writeFileSync(join(dir, 'models-dev-prices.json'), JSON.stringify(cached))
 }
 

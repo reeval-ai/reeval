@@ -432,7 +432,7 @@ describe('loadPrices', () => {
     mkdirSync(join(dir, 'reeval'), { recursive: true })
     writeFileSync(
       join(dir, 'reeval', 'models-dev-prices.json'),
-      JSON.stringify({ fetchedAt, table }),
+      JSON.stringify({ fetchedAt, table, tiers: {} }),
     )
   }
 
@@ -445,6 +445,7 @@ describe('loadPrices', () => {
     assert.equal(s.hits.length, 0)
     assert.deepEqual(prices, {
       table: TABLE,
+      tiers: {},
       overlay: null,
       file: null,
       modelsDev: { fetchedAt: '2026-10-23T06:00:00Z', stale: false },
@@ -592,8 +593,8 @@ describe('loadPrices', () => {
     assert.equal(s.hits.length, 1)
   })
 
-  test("a fetch keeps a model's long-prompt tiers, each field it omits the base's, and caches them", async (t) => {
-    const cost = { input: 0.1, output: 0.5, cache_read: 0.01, cache_write: 0.125 }
+  test("a fetch keeps a model's long-prompt tiers, with the base's cache prices and their own output's for reasoning, and caches them", async (t) => {
+    const cost = { input: 0.1, output: 0.5, cache_read: 0.01, cache_write: 0.125, reasoning: 0.4 }
     const tiers = [
       { input: 1, output: 5, tier: { type: 'context', size: 500_000 } },
       { input: 0.5, output: 2.5, cache_read: 0.05, tier: { type: 'context', size: 100_000 } },
@@ -615,6 +616,11 @@ describe('loadPrices', () => {
     const cached = await loadPrices(env, now, await refused())
     assert.deepEqual(cached.table && cached.tiers, expected)
     assert.equal(s.hits.length, 1)
+    const file = join(process.env.XDG_CACHE_HOME as string, 'reeval', 'models-dev-prices.json')
+    const { tiers: _, ...older } = JSON.parse(readFileSync(file, 'utf8'))
+    writeFileSync(file, JSON.stringify(older))
+    await loadPrices(env, now, s.source)
+    assert.equal(s.hits.length, 2, 'a cache an older reeval wrote, without tiers, is fetched again')
   })
 
   test('a malformed model entry is skipped, not the whole catalog', async (t) => {
@@ -822,6 +828,7 @@ describe('record costs', () => {
     })
     const short = { input: 2, output: 100, cacheRead: 90_000, cacheWrite: 1_000, reasoning: null }
     const long = { input: 2, output: 100, cacheRead: 120_000, cacheWrite: 1_000, reasoning: null }
+    const edge = { input: 0, output: 0, cacheRead: 100_000, cacheWrite: 0, reasoning: null }
     const sum = { input: 4, output: 200, cacheRead: 210_000, cacheWrite: 2_000, reasoning: null }
     const run = priceRecord(
       {
@@ -834,7 +841,7 @@ describe('record costs', () => {
                 cell: 'a',
                 usage: sum,
                 turns: [
-                  { usage: sum, model: 'claude-haiku-5-5', callUsage: [short, long] },
+                  { usage: sum, model: 'claude-haiku-5-5', callUsage: [short, long, edge] },
                   { usage: sum, model: 'claude-haiku-5-5' },
                 ],
                 judgements: [{ model: 'claude-haiku-5-5', usage: long }],
