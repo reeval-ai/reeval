@@ -21,15 +21,24 @@ const MACHINE_FAULT =
 const REFUSED =
   /pull access denied|manifest unknown|repository does not exist|invalid reference format/i
 
+/** A `from` that ran its bake and failed in it, not in pulling the base. */
+const FROM_FAILED = /reeval needs a Debian|did not complete successfully/
+
 /**
- * Whether the recipe caused `error`: its install or Dockerfile step failed, or a registry refused
- * its image. Anything else is the machine's, which another machine may not have.
+ * Whether the recipe caused `error`: its install or Dockerfile step failed, its `from` isn't one
+ * reeval can bake onto, or a registry refused its image. Anything else is the machine's, which
+ * another machine may not have, and so is a step that fails on a connection, which is usually
+ * the machine's network.
  */
 function recipeCaused(error: unknown, message: string): boolean {
-  const log = error instanceof ImageBuildError ? (error.failure.log ?? '') : ''
-  if (MACHINE_FAULT.test(message) || MACHINE_FAULT.test(log)) return false
+  if (MACHINE_FAULT.test(message)) return false
   if (error instanceof ImageBuildError) {
-    return error.failure.stage === 'install' || error.failure.stage === 'dockerfile'
+    const { stage } = error.failure
+    return (
+      stage === 'install' ||
+      stage === 'dockerfile' ||
+      (stage === 'from' && FROM_FAILED.test(message))
+    )
   }
   return REFUSED.test(message)
 }
