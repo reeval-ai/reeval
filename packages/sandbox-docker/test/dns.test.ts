@@ -6,8 +6,9 @@ import { resolverLookup } from '../src/egress/policy.ts'
 const A = 1
 
 /**
- * A DNS server on loopback: `fast.test` has an A record, `missing.test` doesn't exist, and
- * `hang.test` never gets an answer, like a cloud metadata host asked from a VM elsewhere.
+ * A DNS server on loopback: `fast.test` has an A record, `missing.test` doesn't exist,
+ * `servfail.test` fails upstream, and `hang.test` never gets an answer, like a cloud metadata host
+ * asked from a VM elsewhere.
  */
 function dnsServer() {
   const socket = createSocket('udp4')
@@ -30,8 +31,9 @@ function dnsServer() {
         : Buffer.alloc(0)
     const header = Buffer.alloc(12)
     query.copy(header, 0, 0, 2)
-    // A response, recursion available, NXDOMAIN for a name that doesn't exist.
-    header.writeUInt16BE(0x8180 | (name === 'missing.test' ? 3 : 0), 2)
+    const rcode = name === 'missing.test' ? 3 : name === 'servfail.test' ? 2 : 0
+    // A response with recursion available, and NXDOMAIN or SERVFAIL as the name asks.
+    header.writeUInt16BE(0x8180 | rcode, 2)
     header.writeUInt16BE(1, 4)
     header.writeUInt16BE(answer.length ? 1 : 0, 6)
     socket.send(Buffer.concat([header, question, answer]), from.port, from.address)
@@ -60,7 +62,7 @@ describe('resolverLookup', () => {
     }
   })
 
-  test("a name that doesn't exist is refused from the cache; a timeout isn't cached", async () => {
+  test("a name that doesn't exist is refused from the cache; a timeout or SERVFAIL isn't cached", async () => {
     const lookup = resolverLookup({ servers, timeoutMs: 500, tries: 1 })
     const count = (name: string) => server.asked.filter((n) => n === name).length
     const before = count('missing.test')
@@ -74,6 +76,10 @@ describe('resolverLookup', () => {
     await assert.rejects(lookup('hang.test'), { code: 'ETIMEOUT' })
     await assert.rejects(lookup('hang.test'), { code: 'ETIMEOUT' })
     assert.equal(count('hang.test') - hung, 4)
+    const failing = count('servfail.test')
+    await assert.rejects(lookup('servfail.test'), { code: 'ESERVFAIL' })
+    await assert.rejects(lookup('servfail.test'), { code: 'ESERVFAIL' })
+    assert.ok(count('servfail.test') - failing >= 4)
   })
 
   test('localhost names and unreachable servers go to the fallback', async () => {
@@ -84,7 +90,8 @@ describe('resolverLookup', () => {
     // Nothing listens on port 9 over TCP, and a refused UDP query answers ECONNREFUSED.
     const nowhere = resolverLookup({ servers: ['127.0.0.1:9'], fallback, timeoutMs: 500, tries: 1 })
     assert.deepEqual(await nowhere('example.test'), ['fallback:example.test'])
-    // Twin: a name the servers answer never reaches the fallback.
+    // Twin: a name the servers answer, or fail to resolve, never reaches the fallback.
     assert.deepEqual(await lookup('fast.test'), ['93.184.216.34'])
+    await assert.rejects(lookup('servfail.test'), { code: 'ESERVFAIL' })
   })
 })

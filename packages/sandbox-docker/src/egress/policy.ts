@@ -177,8 +177,8 @@ export const hostAllowed = (patterns: readonly string[], host: string) =>
 const osLookup: Lookup = async (host) =>
   (await dnsLookup(host, { all: true, verbatim: true })).map((a) => a.address)
 
-/** Answers that mean the name doesn't resolve, rather than that the resolver couldn't be asked. */
-const NO_ANSWER = new Set(['ENOTFOUND', 'ENODATA', 'ETIMEOUT'])
+/** The servers' answer that the name has no addresses, as opposed to a failure to answer. */
+const NO_SUCH_NAME = new Set(['ENOTFOUND', 'ENODATA'])
 
 export type ResolverLookupOptions = {
   /** The DNS servers to ask (`host` or `host:port`); the system's when unset. */
@@ -188,7 +188,7 @@ export type ResolverLookupOptions = {
   tries?: number
   /** How long a name the servers said doesn't exist is refused without asking again. */
   negativeTtlMs?: number
-  /** Asked for `localhost` names and when the servers can't be reached at all. */
+  /** Asked for `localhost` names and when the servers refuse the connection (none listening). */
   fallback?: Lookup
 }
 
@@ -197,8 +197,10 @@ export type ResolverLookupOptions = {
  * name whose lookup hangs (a cloud metadata host probed from a VM that isn't on that cloud takes
  * 20 s) would otherwise hold a thread, and four of them stall every attempt's CONNECT in the
  * process. A name the servers said doesn't exist is refused from a cache for a while, since the
- * tools that probe metadata hosts probe them again and again; a timeout isn't cached, so a DNS blip
- * doesn't refuse a real host. c-ares doesn't read the hosts file, so `localhost` names go to the OS.
+ * tools that probe metadata hosts probe them again and again; any other failure (a timeout, a
+ * SERVFAIL) fails fast but isn't cached, so a DNS blip doesn't refuse a real host. Only servers
+ * that refuse the connection send a name to `getaddrinfo`. c-ares doesn't read the hosts file, so
+ * `localhost` names go to the OS.
  */
 export function resolverLookup(options: ResolverLookupOptions = {}): Lookup {
   const resolver = new Resolver({ timeout: options.timeoutMs ?? 2000, tries: options.tries ?? 2 })
@@ -217,13 +219,16 @@ export function resolverLookup(options: ResolverLookupOptions = {}): Lookup {
     const errors = answers.flatMap((a) =>
       a.status === 'rejected' ? [a.reason as NodeJS.ErrnoException] : [],
     )
-    if (errors.some((e) => !NO_ANSWER.has(e.code ?? ''))) return fallback(name)
+    if (errors.some((e) => e.code === 'ECONNREFUSED')) return fallback(name)
     const error =
-      errors.find((e) => e.code === 'ETIMEOUT') ??
+      errors.find((e) => !NO_SUCH_NAME.has(e.code ?? '')) ??
       errors.find((e) => e.code === 'ENOTFOUND') ??
       errors[0] ??
       (new Error(`${name} has no addresses`) as NodeJS.ErrnoException)
-    if (error.code !== 'ETIMEOUT') failed.set(name, { error, until: Date.now() + ttl })
+    if (NO_SUCH_NAME.has(error.code ?? '')) {
+      if (failed.size >= 1000) failed.clear()
+      failed.set(name, { error, until: Date.now() + ttl })
+    }
     throw error
   }
 }
