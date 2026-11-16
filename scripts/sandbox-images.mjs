@@ -8,7 +8,9 @@
 //                                   the ref reeval pulls it by
 //   pnpm images --registry ghcr.io/reeval-ai/sandbox --digests packages/reeval/dist/image-digests.json
 //                                   build nothing: write the digest each image's ref has there, for
-//                                   linux/amd64 and linux/arm64, which reeval pulls the image by
+//                                   linux/amd64 and linux/arm64, which reeval pulls the image by.
+//                                   Fails when the registry doesn't answer; with --strict, also
+//                                   when an image isn't published
 import { writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { setupOf } from '../packages/agents/dist/index.js'
@@ -27,7 +29,12 @@ import {
 
 const { values, positionals: asked } = parseArgs({
   allowPositionals: true,
-  options: { registry: { type: 'string' }, push: { type: 'boolean' }, digests: { type: 'string' } },
+  options: {
+    registry: { type: 'string' },
+    push: { type: 'boolean' },
+    digests: { type: 'string' },
+    strict: { type: 'boolean' },
+  },
 })
 const fail = (message, code = 1) => {
   console.error(message)
@@ -43,7 +50,10 @@ if (!(values.push || values.digests) !== !values.registry) {
 const problem = values.registry && registryProblem(values.registry)
 if (problem) fail(problem, 2)
 
-/** The digest `ref` names in its registry, over the registry API with an anonymous token. */
+/**
+ * The digest `ref` names in its registry, over the registry API with an anonymous token, or null
+ * when the registry says it has no such ref. Any other answer throws.
+ */
 async function digestOf(ref) {
   const [, host, repository, tag] = /^([^/]+)\/(.+):([^:/]+)$/.exec(ref)
   const url = `https://${host}/v2/${repository}/manifests/${tag}`
@@ -74,11 +84,15 @@ async function digestOf(ref) {
     const { token: bearer, access_token } = await token.json()
     r = await head({ authorization: `Bearer ${bearer ?? access_token}` })
   }
-  return r.ok ? r.headers.get('docker-content-digest') : null
+  if (r.status === 404) return null
+  const digest = r.ok && r.headers.get('docker-content-digest')
+  if (!digest) throw new Error(`${ref}: the registry answered ${r.status} with no digest`)
+  return digest
 }
 
 if (values.digests) {
   const digests = {}
+  let missing = 0
   for (const harness of asked.length ? asked : BAKED_HARNESSES) {
     const layer = {
       ref: imageFor(harness),
@@ -86,11 +100,14 @@ if (values.digests) {
     }
     for (const platform of ['linux/amd64', 'linux/arm64']) {
       const remote = registryRef(values.registry, layer, platform)
-      const digest = await digestOf(remote).catch(() => null)
+      const digest = await digestOf(remote).catch((e) => fail(e.message))
       if (digest) digests[remote] = digest
+      else missing++
       console.log(`${remote}: ${digest ?? 'not published, so reeval builds it'}`)
     }
   }
+  if (values.strict && missing)
+    fail(`${missing} image${missing === 1 ? " isn't" : "s aren't"} published yet`)
   writeFileSync(values.digests, `${JSON.stringify(digests, null, 2)}\n`)
   process.exit(0)
 }
@@ -106,9 +123,16 @@ for (const harness of asked.length ? asked : BAKED_HARNESSES) {
   }
   if (values.push) {
     const remote = registryRef(values.registry, layer, platform)
-    // Any other answer builds and pushes it, which only repeats work if it was there after all.
-    if ((await docker(['manifest', 'inspect', remote])).exitCode === 0) {
+    // Only a ref the registry says it lacks is pushed: pushing a key again gives it another
+    // digest, and a released reeval pins the first.
+    const inspect = await docker(['manifest', 'inspect', remote])
+    if (inspect.exitCode === 0) {
       console.log(`${remote} is already in the registry`)
+      continue
+    }
+    if (!/manifest unknown|no such manifest/i.test(inspect.stderr.toString())) {
+      console.error(`Couldn't look up ${remote}: ${inspect.stderr.toString().trim()}`)
+      failed++
       continue
     }
   }
