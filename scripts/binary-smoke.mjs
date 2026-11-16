@@ -4,7 +4,8 @@
 //   node scripts/binary-smoke.mjs <binary> [--docker]
 //
 // From an empty directory it checks `reeval --version` against packages/reeval/package.json, then
-// plans and runs a copy of examples/with-skill-lift. Then it serves that run with `reeval studio`,
+// plans and runs a copy of examples/with-skill-lift, and plans one whose config captures a stack
+// on an object that isn't an Error. Then it serves that run with `reeval studio`,
 // pairs with it as the hosted page would and fetches the run's view. With --docker it builds the sandbox image
 // with the binary and runs one egress fixture in Docker, whose eval passes and canary fails.
 import { spawn, spawnSync } from 'node:child_process'
@@ -102,6 +103,20 @@ try {
 check(`the example plans (${evals} evals)`, plan.status === 0 && evals > 0)
 const run = reeval(example, ['run'])
 check('the example runs', run.status === 0 && /^\d+ passed$/.test(outcome(run) ?? ''))
+
+// follow-redirects, under @daytona/sdk, calls Error.captureStackTrace on an object that isn't an
+// Error, which Bun refuses while Babel's Error.prepareStackTrace hook is installed.
+const capture = project(join(root, 'examples/with-skill-lift'), 'capture')
+const captureConfig = join(capture, 'reeval.config.ts')
+writeFileSync(
+  captureConfig,
+  `function Custom(this: object) { Error.captureStackTrace(this, Custom) }
+Custom.prototype = new Error()
+new (Custom as unknown as new () => object)()
+${readFileSync(captureConfig, 'utf8')}`,
+)
+const captured = reeval(capture, ['run', '--dry-run'])
+check('a config can capture a stack on a non-Error', captured.status === 0)
 
 await serveStudio(example)
 
