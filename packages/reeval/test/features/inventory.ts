@@ -1386,7 +1386,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'sandbox.resources-sampler',
     area: 'Sandbox',
-    name: "The resources sampler is out of the agent's reach: a container's runs in a sibling container it can't see, a VM's as root",
+    name: "The resources sampler is out of a container agent's reach: it runs in a sibling container the agent can't see",
     fixtures: ['sandbox/resources-hidden'],
   },
   {

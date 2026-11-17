@@ -824,6 +824,11 @@ export const CASES: Record<string, Case[]> = {
     ['boat() root', any(boat, { root: true })],
     ['boat() as a sandbox', config({ sandbox: boat() })],
     ['boat() as an environment sandbox', env({ sandbox: boat() })],
+    ["boat() as an eval's sandbox", options({ sandbox: boat() })],
+    [
+      'boat() with maxConcurrent 0 as an environment sandbox',
+      env({ sandbox: { ...boat(), maxConcurrent: 0 } }),
+    ],
     ['docker() as a provider', config({ provider: docker() })],
     ['a provider that is not one', config({ provider: 'boat' })],
     ['boat() provider data with a typo', config({ provider: { ...boat(), tpye: 'large' } })],
@@ -879,6 +884,8 @@ export const CASES: Record<string, Case[]> = {
     ['daytona() dockerfile, a sandbox option', any(daytona, { dockerfile: './Dockerfile' })],
     ['daytona() root', any(daytona, { root: true })],
     ['daytona() as a sandbox', config({ sandbox: daytona() })],
+    ['daytona() as an environment sandbox', env({ sandbox: daytona() })],
+    ["daytona() as an eval's sandbox", options({ sandbox: daytona() })],
     [
       'claudeCode sharing a daytona() machine',
       onProvider(daytona({ attemptsPerMachine: 2 }), {

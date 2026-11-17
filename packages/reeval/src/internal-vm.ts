@@ -10,11 +10,10 @@ export type { CloudOptions } from './contract/cloud.ts'
 export type { CloudMachineSize, CloudSandboxDescriptor } from './types.ts'
 
 /**
- * One VM per attempt from the VM service at `REEVAL_VM_URL`, with the token in
- * `REEVAL_VM_TOKEN`. The agent, setup steps and checks run as an unprivileged user over SSH;
- * credentials stay on the host behind the egress gateway, as in Docker. Needs
- * `egress: 'allow-all'`, unless an image recipe (`image`, `from` or `install`) runs each attempt
- * in a container of its image in the VM's Docker, as `docker()` does, under any egress policy.
+ * VMs from the VM service at `REEVAL_VM_URL`, with the token in `REEVAL_VM_TOKEN`. Each attempt
+ * runs in a container of the sandbox's image (its recipe's, or reeval's image for the harness with
+ * none) in the VM's Docker, as `docker()` does, under any egress policy; credentials stay on the
+ * host behind the egress gateway.
  *
  * @internal Not part of reeval's public API; it may change or go away in any release.
  */

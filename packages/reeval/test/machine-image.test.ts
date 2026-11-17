@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -95,7 +95,8 @@ if [ "$1" = build ]; then
   cat >/dev/null
   echo '#5 [2/2] RUN /bin/sh -c reeval-install'
   echo '#5 0.412 installing'
-  echo 'Connection to 10.0.0.7 closed by remote host.' >&2
+  printf '\\033[31mConnection to 10.0.0.7 closed by remote host.\\033[0m\\n' >&2
+  echo 'View build details: docker-desktop://dashboard/build/default/default/abc123' >&2
   exit 255
 fi
 echo 'Error: No such image: reeval-install' >&2
@@ -112,11 +113,12 @@ exit 1
     )
     assert.ok(error instanceof ImageBuildError, String(error))
     assert.match(
-      error.message,
-      /docker build failed: Connection to 10\.0\.0\.7 closed by remote host\./,
+      error.message.split('\n')[0] ?? '',
+      /docker build failed: Connection to 10\.0\.0\.7 closed by remote host\.$/,
     )
     assert.ok(!recipeCaused(error, error.message))
   } finally {
     process.env.PATH = PATH
+    rmSync(bin, { recursive: true, force: true })
   }
 })

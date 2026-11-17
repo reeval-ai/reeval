@@ -1589,10 +1589,10 @@ function checkSandbox(value: unknown, where: string): asserts value is SandboxDe
       `sandbox in ${where} must come from ${sandboxHelpers()} (got ${JSON.stringify(value)})`,
     )
   }
-  const limit = maxConcurrentProblem(value as SandboxDescriptor, where)
-  if (limit) throw new DefinitionError(limit)
   const problem = sandboxProblem(value as SandboxDescriptor)
   if (problem) throw new DefinitionError(`sandbox in ${where}: ${problem}`)
+  const limit = maxConcurrentProblem(value as SandboxDescriptor, where)
+  if (limit) throw new DefinitionError(limit)
 }
 
 export function applied(env: Pick<Environment, 'name' | 'layers'> | undefined): AppliedEnvironment {

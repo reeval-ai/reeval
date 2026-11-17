@@ -33,7 +33,7 @@ export class ImageBuildError extends Error {
 export const OUTPUT_LINES = 8
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escapes.
-const stripAnsi = (text: string) => text.replace(/\x1b\[[0-9;]*[A-Za-z]/g, '')
+export const stripAnsi = (text: string) => text.replace(/\x1b\[[0-9;]*[A-Za-z]/g, '')
 
 export type ParsedBuild = {
   /**

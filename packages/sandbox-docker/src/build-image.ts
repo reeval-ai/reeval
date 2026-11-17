@@ -11,6 +11,7 @@ import {
   isTransient,
   outputTail,
   parseBuildOutput,
+  stripAnsi,
 } from './build-failure.ts'
 import { docker, dockerOk, type ImageInfo, imageInfo } from './docker-cli.ts'
 import { contextFiles } from './dockerignore.ts'
@@ -154,15 +155,15 @@ const clipLine = (text: string, max = 300) =>
 
 /**
  * Why a `docker build` failed, in a line: the failing step's exit, or BuildKit's (or buildah's) own
- * error. With neither, the output's last line that isn't a step's, which is where a remote
- * engine's SSH says it lost the machine.
+ * error. With neither, the output's last line that isn't a step's or Docker Desktop's link to the
+ * build, which is where a remote engine's SSH says it lost the machine.
  */
 function buildReason(error: string | null, output: string, engine?: Engine): string {
   if (!error) {
-    const last = output
+    const last = stripAnsi(output)
       .split('\n')
       .map((line) => line.trim())
-      .filter((line) => line && !/^#\d+ /.test(line))
+      .filter((line) => line && !/^#\d+ /.test(line) && !line.startsWith('View build details:'))
       .at(-1)
     const failed = `${engineSpec(engine).bin} build failed`
     return last ? `${failed}: ${clipLine(last)}` : failed

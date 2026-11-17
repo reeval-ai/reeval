@@ -717,24 +717,40 @@ for (const machine of MACHINE_PROVIDERS as readonly MachineProvider<MachineDescr
         // both around the proxy and through it.
         const listener = createServer((_, res) => res.end('reached'))
         await new Promise<void>((resolve) => listener.listen(0, '0.0.0.0', resolve))
-        const port = (listener.address() as { port: number }).port
-        const host = Object.entries(networkInterfaces())
-          .filter(([name]) => !/^(docker|br-|veth)/.test(name))
-          .flatMap(([, list]) => list ?? [])
-          .find((a) => a.family === 'IPv4' && !a.internal)?.address
-        const closed = await create(`${runId}-deny`, { egress: { policy: 'deny-all', auto: [] } })
         try {
+          const port = (listener.address() as { port: number }).port
+          const host = Object.entries(networkInterfaces())
+            .filter(([name]) => !/^(docker|br-|veth)/.test(name))
+            .flatMap(([, list]) => list ?? [])
+            .find((a) => a.family === 'IPv4' && !a.internal)?.address
+          assert.ok(host, 'no host address the machine can reach to probe')
           const target = `http://${host}:${port}/`
-          const direct = await closed.exec(
-            `curl -s -m 5 -o /dev/null -w '%{http_code}' --noproxy '*' ${target}`,
-          )
-          assert.notEqual(direct.exitCode, 0, `a direct connection got out: ${direct.stdout}`)
-          const proxied = await closed.exec(
-            `curl -s -m 10 -o /dev/null -w '%{http_code}' ${target}`,
-          )
-          assert.notEqual(proxied.stdout, '200', 'deny-all let a request through the proxy')
+          // Without a policy, the machine reaches the listener, so deny-all's refusal is its own.
+          const open = await create(`${runId}-allow`, {
+            egress: { policy: 'allow-all', auto: [] },
+          })
+          try {
+            const reached = await open.exec(`curl -s -m 10 --noproxy '*' ${target}`)
+            assert.equal(reached.stdout, 'reached', `allow-all didn't reach ${target}`)
+          } finally {
+            await open.destroy()
+          }
+          const closed = await create(`${runId}-deny`, {
+            egress: { policy: 'deny-all', auto: [] },
+          })
+          try {
+            const direct = await closed.exec(
+              `curl -s -m 5 -o /dev/null -w '%{http_code}' --noproxy '*' ${target}`,
+            )
+            assert.notEqual(direct.exitCode, 0, `a direct connection got out: ${direct.stdout}`)
+            const proxied = await closed.exec(
+              `curl -s -m 10 -o /dev/null -w '%{http_code}' ${target}`,
+            )
+            assert.notEqual(proxied.stdout, '200', 'deny-all let a request through the proxy')
+          } finally {
+            await closed.destroy()
+          }
         } finally {
-          await closed.destroy()
           listener.close()
         }
       })
