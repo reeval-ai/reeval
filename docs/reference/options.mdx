@@ -776,7 +776,7 @@ For more information about screenshots, see [Check an app](/evaluations/task/app
 `concurrency` is the most attempts that run in parallel.
 
 <Property name="concurrency" type="number" optional>
-  A whole number of at least 1, below `--concurrency` and `REEVAL_CONCURRENCY`. The default is at least 1 and otherwise the smallest of 8, the CPU count, and the whole gigabytes of memory; on `boat()`, the attempts its VMs can run at once.
+  A whole number of at least 1, below `--concurrency` and `REEVAL_CONCURRENCY`. The default is at least 1 and otherwise the smallest of 8, the CPU count, and the whole gigabytes of memory; on `boat()`, the attempts its VMs can run at once. A cloud run ignores it, and the cloud decides how many of its attempts run at once.
 </Property>
 
 ## `record`

@@ -436,7 +436,8 @@ async function run(argv: string[]): Promise<number> {
 
 /**
  * `reeval run --bundle`: the bundle's own filters, profile, tags, traits and runs, from the
- * project it extracts to. Other run flags (`--json`, `--record`, `--concurrency`, …) apply as given.
+ * project it extracts to. Other run flags (`--json`, `--record`, …) apply as given, but
+ * `--concurrency` on a cloud run, whose width is the cloud's.
  * With `--resume <id>`, the run's state moves from the current directory's `.reeval/` into the
  * extracted project's, and the run continues there.
  */
@@ -1279,6 +1280,16 @@ async function cloudTarget(
     }
   }
   const { made } = result
+  const given = process.env.REEVAL_CONCURRENCY
+    ? 'REEVAL_CONCURRENCY'
+    : setup.config.concurrency !== undefined && `concurrency in ${setup.configFile}`
+  if (given && !(setup.profile?.provider ?? setup.config.provider) && !setup.json) {
+    console.log(
+      dim(
+        `${given} applies to runs here: a cloud run runs as many attempts at once as the cloud gives it`,
+      ),
+    )
+  }
   if (!base) {
     const line = await cloud.cloudLine(made.plan, 'target  cloud')
     return { target: { kind: 'cloud' }, detail: line }
@@ -1954,13 +1965,15 @@ async function prepareRun(
       throw new UsageError(`--runs must be a whole number of at least 1 (got ${flags.runs})`)
     }
   }
-  const sandboxes = [
+  const written = [
     ...(config.environments.length ? config.environments : [undefined]).map((e) =>
       environmentSandbox(e, config.sandbox),
     ),
     ...(profile ? [profileSandbox(config, profile.defaults)] : []),
-  ].map((s) => placedSandbox(s, config, profile))
+  ]
+  const sandboxes = written.map((s) => placedSandbox(s, config, profile))
   const concurrency = givenConcurrency(config, flags.concurrency)
+  const provider = profile?.provider ?? config.provider
   const registry = await registryFlag(flags)
   return {
     output,
@@ -1974,10 +1987,28 @@ async function prepareRun(
      * The run's concurrency. Without one given, it's sized from where the first sandbox that
      * runs off the host runs (the Docker or Podman VM, the Boat account) when it answers, as a
      * real run is, so --dry-run shows the same; a resume reads it once the stopped run's
-     * sandboxes are gone, since they count against it.
+     * sandboxes are gone, since they count against it. A cloud run's is the cloud's, whatever was
+     * given: what the cloud lets it run at once where it runs, and moot where it's bundled.
      */
-    sizeRun: async () =>
-      concurrency ?? defaultConcurrency((await sandboxCapacity(sandboxes)) ?? hostCapacity()),
+    sizeRun: async () => {
+      if (process.env[PLAN_TARGET] === 'cloud' && !provider) {
+        if (!process.env.REEVAL_VM_URL) return 1
+        // A sandbox no cloud run takes refuses only the evals that use it, in their plan, so it
+        // sizes the run as a default one would.
+        const { docker } = await import('./sandbox.ts')
+        const { CloudUnsupported } = await import('./sandbox/place.ts')
+        const onCloud = written.map((s) => {
+          try {
+            return placedSandbox(s, config, profile, 'cloud')
+          } catch (error) {
+            if (!(error instanceof CloudUnsupported)) throw error
+            return placedSandbox(docker(), config, profile, 'cloud')
+          }
+        })
+        return defaultConcurrency((await sandboxCapacity(onCloud)) ?? hostCapacity())
+      }
+      return concurrency ?? defaultConcurrency((await sandboxCapacity(sandboxes)) ?? hostCapacity())
+    },
     budget: profile?.budget ?? config.budget,
     record: profile?.record ?? config.record,
     /** Whether the run is recorded into the history once it ends. */
