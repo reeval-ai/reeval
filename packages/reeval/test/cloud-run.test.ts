@@ -488,10 +488,15 @@ describe('reeval run on the cloud platform', () => {
     try {
       const dir = await fixtureProject()
       const r = await runCli(dir, ['run', '--cloud'], {
-        env: { REEVAL_CLOUD_URL: p.base, REEVAL_TOKEN: 'cloud-test-token' },
+        env: {
+          REEVAL_CLOUD_URL: p.base,
+          REEVAL_TOKEN: 'cloud-test-token',
+          REEVAL_CONCURRENCY: '3',
+        },
       })
       assert.equal(r.code, 0, r.stdout + r.stderr)
       assert.match(r.stdout, /Running in the cloud \(1 attempt\), --local to run here/)
+      assert.match(r.stdout, /REEVAL_CONCURRENCY applies to runs here: a cloud run runs as many/)
       assert.ok(
         r.stdout.includes(`Started cloud run ${id}; reeval attach ${id} follows it`),
         r.stdout,

@@ -1279,6 +1279,16 @@ async function cloudTarget(
     }
   }
   const { made } = result
+  const given = process.env.REEVAL_CONCURRENCY
+    ? 'REEVAL_CONCURRENCY'
+    : setup.config.concurrency !== undefined && `concurrency in ${setup.configFile}`
+  if (given && !(setup.profile?.provider ?? setup.config.provider) && !setup.json) {
+    console.log(
+      dim(
+        `${given} applies to runs here: a cloud run runs as many attempts at once as the cloud gives it`,
+      ),
+    )
+  }
   if (!base) {
     const line = await cloud.cloudLine(made.plan, 'target  cloud')
     return { target: { kind: 'cloud' }, detail: line }
@@ -1370,19 +1380,7 @@ async function runCommand(
   }
   const cloud = bundled ? undefined : await cloudTarget(runFlags, setup, filters, configPath)
   if (cloud && 'exit' in cloud) return cloud.exit
-  if (cloud && cloud.target.kind !== 'local') {
-    process.env[PLAN_TARGET] = 'cloud'
-    const given = process.env.REEVAL_CONCURRENCY
-      ? 'REEVAL_CONCURRENCY'
-      : setup.config.concurrency !== undefined && `concurrency in ${setup.configFile}`
-    if (given && !(setup.profile?.provider ?? setup.config.provider) && !setup.json) {
-      console.log(
-        dim(
-          `${given} applies to runs here: a cloud run runs as many attempts at once as the cloud gives it`,
-        ),
-      )
-    }
-  }
+  if (cloud && cloud.target.kind !== 'local') process.env[PLAN_TARGET] = 'cloud'
   const explicit = runFlags.concurrency ?? (process.env.REEVAL_CONCURRENCY || undefined)
   const ctx = await startRun(setup, bundled)
   const startedWith: RunInvocation | undefined = resumed
