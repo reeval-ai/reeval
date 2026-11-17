@@ -1,0 +1,43 @@
+# Publishes every pushed commit's reeval to pkg.pr.new, a preview build with no release:
+#   npx https://pkg.pr.new/reeval-ai/reeval/reeval@<sha> run
+# It's the tarball ci.yml's packed install publishes, as version 0.0.0-preview-<sha>, so no
+# lockfile mistakes it for a release, and a bundle it makes names the commit it was built from.
+# Needs the pkg.pr.new GitHub App on the repository.
+name: preview
+
+on:
+  pull_request:
+  push:
+    branches: ['**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-${{ github.event_name }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: pkg.pr.new
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      # A pull request's own head, not the merge commit pull_request checks out by default, as
+      # pkg.pr.new names it.
+      SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.SHA }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm build
+      - run: |
+          node scripts/sandbox-images.mjs --registry ghcr.io/reeval-ai/sandbox \
+            --digests packages/reeval/dist/image-digests.json
+      - working-directory: packages/reeval
+        run: |
+          npm version --no-git-tag-version "0.0.0-preview-${SHA::7}"
+          pnpm pack --pack-destination "$RUNNER_TEMP/preview"
+      - run: pnpm exec pkg-pr-new publish --bin --commentWithSha --no-template "$RUNNER_TEMP"/preview/*.tgz

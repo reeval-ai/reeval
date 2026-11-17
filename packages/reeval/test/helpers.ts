@@ -162,6 +162,8 @@ export type CliOptions = {
   graceMs?: number
   /** Written to the CLI's stdin, which is then closed. */
   input?: string
+  /** Another build's `dist/cli.js` to run instead of this package's. */
+  cli?: string
 }
 
 /**
@@ -181,7 +183,7 @@ export function runCli(
     // Detached, so the tests can signal its whole process group as a terminal would. Not on
     // Windows, which stops it with killTree and where detached gives each CLI its own console:
     // dozens at once can leave one alive long after it has printed everything.
-    const child = spawn(process.execPath, [cli, ...args], {
+    const child = spawn(process.execPath, [opts.cli ?? cli, ...args], {
       cwd,
       env: { ...baseEnv, ...opts.env },
       detached: process.platform !== 'win32',

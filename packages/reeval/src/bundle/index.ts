@@ -1022,7 +1022,9 @@ export async function openBundle(file: string, log: (line: string) => void): Pro
     // own, with no commits, as a fresh clone's top is.
     await git(dir, ['init', '-q']).catch(() => {})
     await install(manifest, dir, log)
-    if (manifest.devCli) await useRunningReeval(project, dir)
+    if (manifest.devCli || PREVIEW_VERSION.test(PACKAGE_VERSION)) {
+      await useRunningReeval(project, dir)
+    }
     // A `uv run` here, such as the Python runner's in the dry run and in the run's workers, would
     // sync again and build the project, whose sources aren't here; the install above synced every
     // dependency of the uv project the bundle's project is in.
@@ -1277,14 +1279,21 @@ async function install(
 }
 
 /**
- * A bundle that carries its own reeval runs its eval files on the reeval running it, not on the
- * release its lockfile installed: the `node_modules/reeval` the project resolves, in its own
- * directory or one above it in the bundle (a workspace member's or the root's).
+ * The version `.github/workflows/preview.yml` gives a pkg.pr.new preview build, which no release
+ * a lockfile installs has: `0.0.0-preview-<sha>`.
+ */
+const PREVIEW_VERSION = /^0\.0\.0-preview-[0-9a-f]+$/
+
+/**
+ * A bundle that carries its own reeval, or one a preview build runs, runs its eval files on the
+ * reeval running it, not on the release its lockfile installed: the `node_modules/reeval` the
+ * project resolves, in its own directory or one above it in the bundle (a workspace member's or
+ * the root's).
  */
 async function useRunningReeval(project: string, root: string): Promise<void> {
   if (COMPILED) {
     throw new UsageError(
-      'The bundle carries its own reeval, which runs only from an installed reeval package, not a reeval binary.',
+      'The bundle runs on its own reeval, which runs only from an installed reeval package, not a reeval binary.',
     )
   }
   const own = await realpath(PACKAGE_DIR)
@@ -1304,7 +1313,7 @@ async function useRunningReeval(project: string, root: string): Promise<void> {
     }
     if ((await realpath(dirname(resolved))) !== own) {
       throw new UsageError(
-        `The bundle carries its own reeval, but its project resolves ${name} at ${dirname(resolved)}, which reeval couldn't point at the one it carries, so nothing ran.`,
+        `The bundle runs on its own reeval, but its project resolves ${name} at ${dirname(resolved)}, which reeval couldn't point at the one it carries, so nothing ran.`,
       )
     }
   }

@@ -30,6 +30,9 @@ importers:
       knip:
         specifier: 6.44.2
         version: 6.44.2
+      pkg-pr-new:
+        specifier: 0.0.94
+        version: 0.0.94
       reeval:
         specifier: workspace:*
         version: link:packages/reeval
@@ -2924,6 +2927,10 @@ packages:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
 
+  pkg-pr-new@0.0.94:
+    resolution: {integrity: sha512-+s3ZZl1Vt3wHfsIRH+chHG6/3wsu1N+Z5jitNYAPc0GGCYR8xmju34UShzTAMosi4WAYFCXvp80LZZc/fXSdpQ==}
+    hasBin: true
+
   protobufjs@7.6.6:
     resolution: {integrity: sha512-dYDWdjSl5RNb7SgPxGQcRU+GtvP7s2fpkrY0r432PcOIaZ0/rBcxEZnQN67iJhFuQiVw754JDoPruPCNdGsbjg==}
     engines: {node: '>=12.0.0'}
@@ -5218,6 +5225,8 @@ snapshots:
   picomatch@4.0.7: {}
 
   pkce-challenge@5.0.1: {}
+
+  pkg-pr-new@0.0.94: {}
 
   protobufjs@7.6.6:
     dependencies:
