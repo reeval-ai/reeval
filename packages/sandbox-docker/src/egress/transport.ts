@@ -1,8 +1,10 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process'
 import { lstatSync, mkdirSync } from 'node:fs'
+import type { Socket } from 'node:net'
 import { dirname } from 'node:path'
+import type { Readable, Writable } from 'node:stream'
 import { docker } from '../docker-cli.ts'
-import type { Engine } from '../engine.ts'
+import { type Engine, isRemoteEngine, type LocalEngine } from '../engine.ts'
 import { type RunResult, run, shellQuote, unsetOtel } from '../process.ts'
 import { engineLabel, hostCommand } from '../remote-engine.ts'
 import { traceDocker } from '../trace.ts'
@@ -10,27 +12,38 @@ import { traceDocker } from '../trace.ts'
 /** How a host command ended, as a debug trace records it. */
 export type ExecEnd = Parameters<typeof traceDocker>[2]
 
+/** A process a transport started in a sandbox, its stdin, stdout and stderr piped to this one. */
+export interface ExecProcess {
+  readonly stdin: Writable
+  readonly stdout: Readable
+  readonly stderr: Readable
+  readonly pid?: number | undefined
+  /** Ends it at once, as far as the transport reaches: see {@link ExecTransport.orphans}. */
+  kill(): void
+  /** Lets this process exit while it runs on. */
+  unref(): void
+  once(event: 'close', listener: (code: number | null) => void): this
+  once(event: 'error', listener: (error: Error) => void): this
+}
+
 /**
- * How the egress gateway runs a process inside a sandbox, with its stdin, stdout and stderr piped
- * to this process: `docker exec -i` for a container, `tart exec -i` or `ssh -T` for a VM.
+ * How reeval runs a process inside a sandbox, with its stdin, stdout and stderr piped to this
+ * process, whatever reaches the sandbox: a host program (`docker exec -i`, `tart exec -i`,
+ * `ssh -T`, see {@link argvTransport}) or a provider's API. `command` is the argv in the sandbox.
  *
- * The process runs as root, whoever the sandbox runs as: the sandbox user can't signal, trace or
- * replace the forwarder, or change the CA the gateway installed.
+ * The egress gateway's transport runs as root, whoever the sandbox runs as: the sandbox user can't
+ * signal, trace or replace the forwarder, or change the CA the gateway installed.
  */
 export type ExecTransport = {
-  /** The host argv, program first, that runs `command` in the sandbox as root with stdin open. */
-  argv(command: readonly string[]): string[]
-  /** Variables the host program runs with, over this process's. Never credentials in `argv`. */
-  env?: NodeJS.ProcessEnv
-  /** Runs `command` to its end with `input` on stdin; running `argv(command)` unless set. */
-  run?(
+  /** Starts `command` in the sandbox and leaves it running. */
+  spawn(command: readonly string[]): ExecProcess
+  /** Runs `command` to its end with `input` on stdin. */
+  run(
     command: readonly string[],
-    options: { input: string; signal?: AbortSignal },
+    options: { input: string | Uint8Array; signal?: AbortSignal | undefined },
   ): Promise<RunResult<Buffer>>
-  /** Called as each host command this transport started ends, for debug traces. */
-  trace?(argv: readonly string[], startedAt: number, end: ExecEnd): void
   /**
-   * Killing the host program can leave its process running in the sandbox, where the sandbox
+   * Killing what reaches the sandbox can leave its process running there, where the sandbox
    * outlives it (`tart exec`, `ssh`), so the gateway stops its forwarder there itself: any left
    * from an earlier gateway before it starts one, and its own when it closes. A container's
    * forwarder goes with the container.
@@ -38,49 +51,88 @@ export type ExecTransport = {
   orphans?: boolean
 }
 
-/** Runs `command` in the sandbox to its end. */
-export async function execRun(
-  transport: ExecTransport,
-  command: readonly string[],
-  options: { input: string; signal?: AbortSignal },
-): Promise<RunResult<Buffer>> {
-  if (transport.run) return transport.run(command, options)
-  const [bin = '', ...args] = transport.argv(command)
-  const startedAt = Date.now()
-  try {
-    const r = await run(bin, args, {
-      ...options,
-      env: { ...unsetOtel(), ...transport.env },
-      binary: true,
-    })
-    transport.trace?.([bin, ...args], startedAt, { ...r, stdin: options.input.length })
-    return r
-  } catch (error) {
-    transport.trace?.([bin, ...args], startedAt, { error })
-    throw error
+/** A host program that runs a command in the sandbox, which {@link argvTransport} makes a transport. */
+export type HostProgram = {
+  /** The host argv, program first, that runs `command` in the sandbox with stdin open. */
+  argv(command: readonly string[]): string[]
+  /** Variables the host program runs with, over this process's. Never credentials in `argv`. */
+  env?: NodeJS.ProcessEnv
+  /** Runs `command` to its end with `input` on stdin; running `argv(command)` unless set. */
+  run?: ExecTransport['run']
+  /** Called as each host command this transport started ends, for debug traces. */
+  trace?(argv: readonly string[], startedAt: number, end: ExecEnd): void
+  orphans?: boolean
+}
+
+export type ArgvTransport = ExecTransport & Pick<HostProgram, 'argv'>
+
+/** A host child process as an {@link ExecProcess}; `kill` sends it SIGKILL. */
+export function hostProcess(child: ChildProcessWithoutNullStreams): ExecProcess {
+  return {
+    stdin: child.stdin,
+    stdout: child.stdout,
+    stderr: child.stderr,
+    pid: child.pid,
+    kill: () => {
+      child.kill('SIGKILL')
+    },
+    unref() {
+      child.unref()
+      for (const pipe of [child.stdin, child.stdout, child.stderr]) (pipe as Socket).unref?.()
+    },
+    once(event: 'close' | 'error', listener: (arg: never) => void) {
+      child.once(event, listener as (...args: unknown[]) => void)
+      return this
+    },
   }
 }
 
-/** Starts `command` in the sandbox and leaves it running, its stdio piped. */
-export function execSpawn(
-  transport: ExecTransport,
-  command: readonly string[],
-): ChildProcessWithoutNullStreams {
-  const argv = transport.argv(command)
-  const [bin = '', ...args] = argv
-  const startedAt = Date.now()
-  // Own process group, like every docker call: reeval handles Ctrl-C and tears the gateway down.
-  const child = spawn(bin, args, {
-    stdio: 'pipe',
-    detached: true,
-    env: { ...process.env, ...unsetOtel(), ...transport.env },
-  })
+/** The transport a host program makes: each command is one run of it. */
+export function argvTransport(host: HostProgram): ArgvTransport {
+  return {
+    argv: host.argv,
+    ...(host.orphans && { orphans: true }),
+    run:
+      host.run ??
+      (async (command, options) => {
+        const [bin = '', ...args] = host.argv(command)
+        const startedAt = Date.now()
+        try {
+          const r = await run(bin, args, {
+            ...options,
+            env: { ...unsetOtel(), ...host.env },
+            binary: true,
+          })
+          host.trace?.([bin, ...args], startedAt, { ...r, stdin: options.input.length })
+          return r
+        } catch (error) {
+          host.trace?.([bin, ...args], startedAt, { error })
+          throw error
+        }
+      }),
+    spawn(command) {
+      const argv = host.argv(command)
+      const [bin = '', ...args] = argv
+      const startedAt = Date.now()
+      // Own process group, like every docker call: reeval handles Ctrl-C and tears the gateway down.
+      const child = spawn(bin, args, {
+        stdio: 'pipe',
+        detached: true,
+        env: { ...process.env, ...unsetOtel(), ...host.env },
+      })
+      if (host.trace) traceEnd(child, (end) => host.trace?.(argv, startedAt, end))
+      return hostProcess(child)
+    },
+  }
+}
+
+/** Calls `done` as `child` ends, with its stderr. */
+function traceEnd(child: Pick<ExecProcess, 'stderr' | 'once'>, done: (end: ExecEnd) => void) {
   let stderr = ''
   child.stderr.on('data', (d) => {
     stderr += d
   })
-  child.once('close', (code) => transport.trace?.(argv, startedAt, { exitCode: code, stderr }))
-  return child
+  child.once('close', (code) => done({ exitCode: code, stderr }))
 }
 
 /** What every `ssh` reeval runs passes: no prompt, a dropped connection noticed within a minute. */
@@ -201,17 +253,18 @@ export const asRootPrefix = (target: Pick<SshTarget, 'loginRoot'>) =>
   target.loginRoot ? '' : 'sudo -n -- '
 
 /** `ssh -T` into a VM, as root through `sudo -n` (with sudo's own `secure_path`) or as its login. */
-export function sshTransport(target: SshTarget): ExecTransport {
-  return {
+export function sshTransport(target: SshTarget): ArgvTransport {
+  return argvTransport({
     argv: (command) =>
       sshArgv(target, `${asRootPrefix(target)}${command.map(shellQuote).join(' ')}`),
     trace: (argv, startedAt, end) => traceDocker(argv.slice(1), startedAt, end, 'ssh'),
-  }
+  })
 }
 
 /** `docker exec` (or `podman exec`) into a running container, as root. */
+export function containerTransport(containerId: string, engine?: LocalEngine): ArgvTransport
+export function containerTransport(containerId: string, engine?: Engine): ExecTransport
 export function containerTransport(containerId: string, engine?: Engine): ExecTransport {
-  const sent = new WeakMap<readonly string[], readonly string[]>()
   const exec = (command: readonly string[]) => [
     'exec',
     '--interactive',
@@ -220,7 +273,21 @@ export function containerTransport(containerId: string, engine?: Engine): ExecTr
     containerId,
     ...command,
   ]
-  return {
+  const run: ExecTransport['run'] = (command, { input, signal }) =>
+    docker(exec(command), { input, ...(signal && { signal }), engine })
+  if (isRemoteEngine(engine)) {
+    return {
+      run,
+      spawn(command) {
+        const startedAt = Date.now()
+        const child = engine.transport.spawn(['docker', ...exec(command)])
+        traceEnd(child, (end) => traceDocker(exec(command), startedAt, end, engineLabel(engine)))
+        return child
+      },
+    }
+  }
+  const sent = new WeakMap<readonly string[], readonly string[]>()
+  return argvTransport({
     argv: (command) => {
       const host = hostCommand(engine, exec(command))
       const argv = [host.bin, ...host.args]
@@ -228,8 +295,8 @@ export function containerTransport(containerId: string, engine?: Engine): ExecTr
       return argv
     },
     env: hostCommand(engine, []).env,
-    run: (command, { input, signal }) => docker(exec(command), { input, signal, engine }),
+    run,
     trace: (argv, startedAt, end) =>
       traceDocker(sent.get(argv) ?? argv.slice(1), startedAt, end, engineLabel(engine)),
-  }
+  })
 }

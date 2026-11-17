@@ -4,6 +4,7 @@ import { type ChildProcess, spawn } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import { posix } from 'node:path'
 import {
+  argvTransport,
   CA_PATH,
   type DockerSession,
   darwinShell,
@@ -131,19 +132,20 @@ const runIn = (
  * the real credentials, which never leave the host, are out of its reach. Killing `tart exec` or
  * `ssh` can leave them running in the VM, so the gateway stops its forwarder itself.
  */
-export const rootTransport = (guest: Guest): ExecTransport => ({
-  argv: (command) =>
-    guest.argv([
-      'sudo',
-      '-n',
-      '/bin/sh',
-      '-c',
-      `PATH=${GUEST_PATH}:$PATH; exec "$@"`,
-      'sh',
-      ...command,
-    ]),
-  orphans: true,
-})
+export const rootTransport = (guest: Guest): ExecTransport =>
+  argvTransport({
+    argv: (command) =>
+      guest.argv([
+        'sudo',
+        '-n',
+        '/bin/sh',
+        '-c',
+        `PATH=${GUEST_PATH}:$PATH; exec "$@"`,
+        'sh',
+        ...command,
+      ]),
+    orphans: true,
+  })
 
 const sleep = (ms: number, signal: AbortSignal) =>
   new Promise<void>((resolve, reject) => {

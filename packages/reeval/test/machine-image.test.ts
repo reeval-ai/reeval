@@ -8,25 +8,26 @@ import {
   ImageBuildError,
   type ImageStage,
   type RemoteEngine,
+  sshEngine,
 } from '@reeval/sandbox-docker'
 import { imageOnMachine, recipeCaused } from '../src/sandbox/machine-image.ts'
 import { PrepareError } from '../src/sandbox/provider.ts'
 import { InfraError } from '../src/sandbox/types.ts'
 
 /** A machine whose SSH refuses every connection. */
-const unreachable = (id: string): RemoteEngine => ({
-  kind: 'ssh',
-  target: {
-    host: '127.0.0.1',
-    port: 1,
-    user: 'reeval',
-    identityFile: join(tmpdir(), 'no-such-key'),
-    knownHostsFile: '/dev/null',
-    hostKeyAlias: id,
-    controlPath: join(mkdtempSync(join(tmpdir(), 'reeval-mi-')), 'cm'),
-  },
-  description: id,
-})
+const unreachable = (id: string): RemoteEngine =>
+  sshEngine(
+    {
+      host: '127.0.0.1',
+      port: 1,
+      user: 'reeval',
+      identityFile: join(tmpdir(), 'no-such-key'),
+      knownHostsFile: '/dev/null',
+      hostKeyAlias: id,
+      controlPath: join(mkdtempSync(join(tmpdir(), 'reeval-mi-')), 'cm'),
+    },
+    id,
+  )
 
 test("a machine that can't be reached is its own infra error, not the recipe's", async () => {
   const recipe = { install: ['true'] }

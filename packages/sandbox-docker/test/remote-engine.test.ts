@@ -10,9 +10,14 @@ import { join } from 'node:path'
 import { after, describe, test } from 'node:test'
 import { docker, removeContainerDetached, sweepLabelDetached } from '../src/docker-cli.ts'
 import { containerTransport } from '../src/egress/transport.ts'
-import type { RemoteEngine } from '../src/engine.ts'
 import { DEFAULT_IMAGE } from '../src/image.ts'
-import { hostCommand, isSshFailure, remoteBuild } from '../src/remote-engine.ts'
+import {
+  hostCommand,
+  isSshFailure,
+  remoteBuild,
+  remoteCommand,
+  sshEngine,
+} from '../src/remote-engine.ts'
 import { createDockerSession } from '../src/session.ts'
 import { readTar } from '../src/tarball.ts'
 import { ENGINE, REQUIRE_ENGINE } from './engine.ts'
@@ -67,7 +72,7 @@ const target = {
   knownHostsFile: join(dir, 'known_hosts'),
   hostKeyAlias: 'vm-test',
 }
-const remote: RemoteEngine = { kind: 'ssh', target, description: 'the test VM' }
+const remote = sshEngine(target, 'the test VM')
 
 describe('hostCommand', () => {
   test('locally it is the CLI; remotely ssh to it, the environment on stdin and never in argv', () => {
@@ -75,23 +80,23 @@ describe('hostCommand', () => {
       bin: 'docker',
       args: ['ps'],
       env: { A: '1' },
-      preamble: null,
     })
-    const plain = hostCommand(remote, ['image', 'inspect', "it's $HOME"])
-    assert.equal(plain.bin, 'ssh')
-    assert.equal(plain.args.at(-1), `exec 'docker' 'image' 'inspect' 'it'\\''s $HOME'`)
+    const plain = remoteCommand(['image', 'inspect', "it's $HOME"])
+    assert.equal(
+      remote.transport.argv(plain.command).at(-1),
+      `exec 'docker' 'image' 'inspect' 'it'\\''s $HOME'`,
+    )
     assert.equal(plain.preamble, null)
     const secret = 'hunter2 \'"$(x)'
-    const withEnv = hostCommand(remote, ['run', '--env', 'TOKEN', 'img'], { TOKEN: secret })
-    assert.ok(!withEnv.args.join(' ').includes('hunter2'), 'no value in argv')
-    assert.deepEqual(withEnv.env, {})
+    const withEnv = remoteCommand(['run', '--env', 'TOKEN', 'img'], { TOKEN: secret })
+    assert.ok(!withEnv.command.join(' ').includes('hunter2'), 'no value in argv')
     const line = withEnv.preamble?.toString('utf8') ?? ''
     assert.match(line, /^[A-Za-z0-9+/=]+\n$/)
     assert.equal(
       Buffer.from(line.trim(), 'base64').toString('utf8'),
       `export TOKEN='hunter2 '\\''"$(x)'`,
     )
-    assert.throws(() => hostCommand(remote, ['ps'], { 'A;B': '1' }), /isn't a variable name/)
+    assert.throws(() => remoteCommand(['ps'], { 'A;B': '1' }), /isn't a variable name/)
   })
 
   test('only ssh failing to connect to the machine is ssh failing before the command ran', () => {
@@ -294,7 +299,7 @@ describe('docker() on a remote engine', () => {
     assert.equal(r.exitCode, 255)
     assert.equal(readFileSync(runs, 'utf8'), 'ran\n', 'ran once')
     const transport = containerTransport('c', remote)
-    await transport.run?.([message], { input: Buffer.alloc(0) })
+    await transport.run([message], { input: Buffer.alloc(0) })
     assert.equal(readFileSync(runs, 'utf8'), 'ran\nran\n')
   })
 

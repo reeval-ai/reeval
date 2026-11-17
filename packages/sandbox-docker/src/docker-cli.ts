@@ -1,13 +1,20 @@
 import { spawn } from 'node:child_process'
-import { sshArgv } from './egress/transport.ts'
-import { type Engine, engineEnv, engineSpec, isRemoteEngine, normalizeImageId } from './engine.ts'
+import {
+  type Engine,
+  engineEnv,
+  engineSpec,
+  isRemoteEngine,
+  normalizeImageId,
+  type RemoteEngine,
+} from './engine.ts'
 import { shellQuote as q, type RunResult, run, unsetOtel } from './process.ts'
 import {
   engineLabel,
   hostCommand,
-  isSshFailure,
   remoteBuild,
+  remoteCommand,
   retriesSafely,
+  spawnEngine,
 } from './remote-engine.ts'
 import { traceDocker } from './trace.ts'
 
@@ -78,21 +85,23 @@ export async function docker(args: string[], options: DockerOptions = {}): Promi
   const { engine, signal } = options
   const remote = isRemoteEngine(engine)
   const call = remote ? remoteBuild(args, options.input) : { args, input: options.input }
-  const command = hostCommand(engine, call.args, options.env)
-  const input = command.preamble
-    ? Buffer.concat([command.preamble, Buffer.from(call.input ?? '')])
-    : call.input
+  const start = remote
+    ? remoteRun(engine, call, options.env, signal)
+    : () => {
+        const command = hostCommand(engine, call.args, options.env)
+        return run(command.bin, command.args, {
+          env: command.env,
+          binary: true,
+          ...(call.input !== undefined ? { input: call.input } : {}),
+          ...(signal ? { signal } : {}),
+        })
+      }
   const bin = engineLabel(engine)
   const stdin = call.input?.length ?? 0
   const once = async () => {
     const startedAt = Date.now()
     try {
-      const r = await run(command.bin, command.args, {
-        env: command.env,
-        binary: true,
-        ...(input !== undefined ? { input } : {}),
-        ...(signal ? { signal } : {}),
-      })
+      const r = await start()
       traceDocker(call.args, startedAt, { ...r, stdin }, bin)
       return r
     } catch (error) {
@@ -101,11 +110,22 @@ export async function docker(args: string[], options: DockerOptions = {}): Promi
     }
   }
   if (remote) {
-    if (!retriesSafely(call.args)) return once()
-    const { target } = engine
-    return retryConnection(once, { signal, failed: (r) => isSshFailure(r, target) })
+    if (!retriesSafely(call.args) || !engine.unreached) return once()
+    return retryConnection(once, { signal, failed: (r) => engine.unreached?.(r) ?? false })
   }
   return engine === 'podman' ? retryConnection(once, { signal }) : once()
+}
+
+/** Runs the CLI through a remote engine's transport, its environment first on stdin. */
+function remoteRun(
+  engine: RemoteEngine,
+  call: { args: string[]; input: Uint8Array | string | undefined },
+  env: Record<string, string> | undefined,
+  signal: AbortSignal | undefined,
+): () => Promise<DockerResult> {
+  const { command, preamble } = remoteCommand(call.args, env)
+  const input = preamble ? Buffer.concat([preamble, Buffer.from(call.input ?? '')]) : call.input
+  return () => engine.transport.run(command, { input: input ?? '', signal })
 }
 
 export async function dockerOk(args: string[], opts?: DockerOptions) {
@@ -135,9 +155,6 @@ export async function removeContainerDetached(
   const { rmForce } = engineSpec(engine)
   const { delays = REMOVAL_RETRY_MS, wait = sleep } = options
   const args = [...rmForce, id]
-  const command = hostCommand(engine, args)
-  const bin = command.bin
-  const env = { ...process.env, ...command.env }
   const once = () =>
     new Promise<{ exitCode: number | null; stderr: string }>((resolve) => {
       // A detached child doesn't keep the event loop alive on its own.
@@ -152,20 +169,16 @@ export async function removeContainerDetached(
         traceDocker(args, startedAt, { exitCode, stderr }, engineLabel(engine))
         resolve({ exitCode, stderr })
       }
-      const child = spawn(bin, command.args, {
-        detached: true,
-        stdio: ['ignore', 'ignore', 'pipe'],
-        windowsHide: true,
-        env,
-      })
+      const child = spawnEngine(engine, args)
+      child.stdout.resume()
       child.stderr.on('data', (d) => {
         stderr += d
       })
-      child.on('error', (error) => {
+      child.once('error', (error) => {
         stderr += String(error)
         done(null)
       })
-      child.on('close', done)
+      child.once('close', done)
     })
   let r = await once()
   for (const ms of delays) {
@@ -186,14 +199,12 @@ export function sweepLabelDetached(label: string, seconds = 15, engine?: Engine)
   if (isRemoteEngine(engine)) {
     const filter = q(`label=${label}`)
     const loop = `for i in $(seq ${Math.max(1, Math.floor(seconds))}); do ids=$(docker ps -aq --filter ${filter}); [ -z "$ids" ] || docker ${rmForce.join(' ')} $ids >/dev/null 2>&1; sleep 1; done`
-    const [ssh = 'ssh', ...rest] = sshArgv(engine.target, `sh -c ${q(loop)}`)
-    const child = spawn(ssh, rest, {
-      detached: true,
-      stdio: 'ignore',
-      windowsHide: true,
-      env: { ...process.env, ...unsetOtel() },
-    })
-    child.on('error', () => {})
+    const child = engine.transport.spawn(['sh', '-c', loop])
+    child.once('error', () => {})
+    child.stdin.on('error', () => {})
+    child.stdin.end()
+    child.stdout.resume()
+    child.stderr.resume()
     child.unref()
     return
   }

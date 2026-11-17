@@ -5,7 +5,13 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import { docker, dockerfileTag, isTransient, type RemoteEngine } from '@reeval/sandbox-docker'
+import {
+  docker,
+  dockerfileTag,
+  isTransient,
+  type RemoteEngine,
+  sshEngine,
+} from '@reeval/sandbox-docker'
 import { VmApiError } from '@reeval/vm-api'
 import type { BoatSavedSnapshot } from '@reeval/vm-api/boat'
 import { pluginBuildId } from '../environment/plugins.ts'
@@ -286,9 +292,8 @@ export async function boatImage(
   })
   const started = Date.now()
   try {
-    const engine: RemoteEngine = {
-      kind: 'ssh',
-      target: {
+    const engine = sshEngine(
+      {
         host: vm.info.host,
         port: vm.info.port,
         user: vm.info.user,
@@ -297,8 +302,8 @@ export async function boatImage(
         hostKeyAlias: vm.id,
         controlPath: join(vm.dir, 'cm'),
       },
-      description: `boat build VM ${vm.id}`,
-    }
+      `boat build VM ${vm.id}`,
+    )
     ctx.log(`Building Boat snapshot ${name} on ${engine.description}`)
     const builds = createBuilds({ retry: ctx.retry, log: ctx.log, engine })
     if (recipe.image) {

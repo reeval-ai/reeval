@@ -8,7 +8,7 @@ import type { NetworkPolicy } from './policy.ts'
 import { createEgressProxy, type EgressProxyOptions, type EgressTraffic } from './proxy.ts'
 import type { RequestTransformation } from './rules.ts'
 import type { Substitution } from './substitution.ts'
-import { type ExecTransport, execRun, execSpawn } from './transport.ts'
+import type { ExecTransport } from './transport.ts'
 
 /** Where the forwarder listens inside the sandbox; every exec gets it as its HTTP(S) proxy. */
 export const PROXY_PORT = BASE_PROXY_PORT
@@ -82,21 +82,22 @@ function forwarderCommand(transport: ExecTransport, tag: string, port: number): 
  * may since be another process's.
  */
 const killForwarders = (transport: ExecTransport, glob: string, signal?: AbortSignal) =>
-  execRun(
-    transport,
-    [
-      'sh',
-      '-c',
-      `for f in ${PID_FILE}-${glob}.pid; do [ -f "$f" ] || continue; p=$(cat "$f"); rm -f "$f"
+  transport
+    .run(
+      [
+        'sh',
+        '-c',
+        `for f in ${PID_FILE}-${glob}.pid; do [ -f "$f" ] || continue; p=$(cat "$f"); rm -f "$f"
 case $p in ''|0|1|*[!0-9]*) continue ;; esac
 case $(ps -p "$p" -o command= 2>/dev/null) in *'node -e'*) kill -9 "$p" 2>/dev/null ;; esac
 done; true`,
-    ],
-    { input: '', signal },
-  ).then(
-    () => {},
-    () => {},
-  )
+      ],
+      { input: '', signal },
+    )
+    .then(
+      () => {},
+      () => {},
+    )
 
 const installCa = (
   transport: ExecTransport,
@@ -109,13 +110,13 @@ const installCa = (
     'command -v update-ca-certificates >/dev/null && update-ca-certificates >/dev/null 2>&1'
   if (!o.shared) {
     const install = `umask 022 && mkdir -p "$(dirname ${o.caPath})" && cat > ${o.caPath} && { ${rebuild} && ${inBundle} && echo ${BUNDLED}; true; }`
-    return execRun(transport, ['sh', '-c', install], { input: cert, signal })
+    return transport.run(['sh', '-c', install], { input: cert, signal })
   }
   // Each gateway's file lands whole before the lock, so one rebuild takes in every gateway that
   // started meanwhile, and those find their CA in the bundle without a rebuild of their own.
   const bundle = `{ ${inBundle} || { ${rebuild}; }; } && ${inBundle} && echo ${BUNDLED}; true`
   const install = `umask 022 && mkdir -p "$(dirname ${o.caPath})" && cat > ${o.caPath}.$$ && mv ${o.caPath}.$$ ${o.caPath} && flock ${CA_LOCK} sh -c '${bundle}'`
-  return execRun(transport, ['sh', '-c', install], { input: cert, signal })
+  return transport.run(['sh', '-c', install], { input: cert, signal })
 }
 
 /**
@@ -146,7 +147,7 @@ export async function startGateway(
   signal?.throwIfAborted()
   const tag = `${place.tag}${randomBytes(6).toString('hex')}`
   const proxy = createEgressProxy({ ...proxyOptions, ca })
-  const child = execSpawn(transport, forwarderCommand(transport, tag, port))
+  const child = transport.spawn(forwarderCommand(transport, tag, port))
   let stderr = ''
   child.stderr.on('data', (d) => {
     stderr += d
@@ -174,7 +175,7 @@ export async function startGateway(
     onError: (message) => {
       if (!started) return
       stop(`the forwarder's output broke the protocol: ${message}`)
-      child.kill('SIGKILL')
+      child.kill()
     },
   })
   const ready = {} as { promise: Promise<void>; resolve(): void; reject(error: unknown): void }
@@ -209,7 +210,7 @@ export async function startGateway(
   const close = () => {
     if (teardown) return teardown
     closed = true
-    child.kill('SIGKILL')
+    child.kill()
     mux.destroy()
     proxy.close()
     for (const l of listeners.values()) void l.then((s) => s.close())

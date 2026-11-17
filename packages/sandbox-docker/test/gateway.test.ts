@@ -19,11 +19,10 @@ import { dirname, join } from 'node:path'
 import { describe, test } from 'node:test'
 import { PROXY_PORT, startGateway } from '../src/egress/gateway.ts'
 import {
+  argvTransport,
   containerTransport,
   controlPathFits,
   type ExecEnd,
-  type ExecTransport,
-  execRun,
   sshArgv,
   sshTransport,
 } from '../src/egress/transport.ts'
@@ -37,16 +36,16 @@ function localTransport(
 ) {
   const runs: { command: readonly string[]; input: string }[] = []
   const traced: Traced[] = []
-  const transport: ExecTransport = {
+  const transport = argvTransport({
     argv: (command) =>
       command[0] === 'node' ? [process.execPath, ...forwarder, ...command.slice(1)] : [...command],
     env: { REEVAL_FAKE_TRANSPORT: '1' },
     run: async (command, { input }) => {
-      runs.push({ command, input })
+      runs.push({ command, input: String(input) })
       return { stdout: Buffer.from(answer.stdout ?? ''), stderr: answer.stderr ?? '', ...answer }
     },
     trace: (argv, _startedAt, end) => traced.push({ argv, end }),
-  }
+  })
   return { transport, runs, traced }
 }
 
@@ -192,7 +191,7 @@ describe('a transport that orphans its processes', { timeout: 30_000 }, () => {
   // Killing the host's `sh` leaves the forwarder it started in the background running, as killing
   // `tart exec` or `ssh` can leave it in the VM; `run` runs the gateway's own commands for real.
   // dash gives a background job /dev/null as stdin, so the forwarder reads its own through fd 3.
-  const orphaning: ExecTransport = {
+  const orphaning = argvTransport({
     argv: (command) => ['sh', '-c', 'exec 3<&0; "$@" <&3 & wait', 'sh', ...command],
     env: { PATH: `${dirname(process.execPath)}:${process.env.PATH ?? ''}` },
     run: async (command, { input }) => {
@@ -203,7 +202,7 @@ describe('a transport that orphans its processes', { timeout: 30_000 }, () => {
       return { exitCode: r.status ?? 1, stdout: r.stdout, stderr: r.stderr.toString() }
     },
     orphans: true,
-  }
+  })
 
   test('stops a forwarder an earlier gateway left, then its own once it closes', async () => {
     const stale = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], {
@@ -257,18 +256,14 @@ describe('a transport that orphans its processes', { timeout: 30_000 }, () => {
   })
 })
 
-describe('execRun', () => {
-  test('runs the argv the transport gives, with stdin, and traces it', async () => {
+describe('argvTransport', () => {
+  test('runs the argv the host program gives, with stdin, and traces it', async () => {
     const traced: Traced[] = []
-    const r = await execRun(
-      {
-        argv: (command) => ['sh', '-c', 'printf "%s:" "$REEVAL_T"; cat', '--', ...command],
-        env: { REEVAL_T: 'env' },
-        trace: (argv, _startedAt, end) => traced.push({ argv, end }),
-      },
-      ['ignored'],
-      { input: 'stdin' },
-    )
+    const r = await argvTransport({
+      argv: (command) => ['sh', '-c', 'printf "%s:" "$REEVAL_T"; cat', '--', ...command],
+      env: { REEVAL_T: 'env' },
+      trace: (argv, _startedAt, end) => traced.push({ argv, end }),
+    }).run(['ignored'], { input: 'stdin' })
     assert.equal(r.exitCode, 0)
     assert.equal(r.stdout.toString(), 'env:stdin')
     assert.equal(traced.length, 1)

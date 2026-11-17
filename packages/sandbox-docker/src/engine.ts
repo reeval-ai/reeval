@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { SshTarget } from './egress/transport.ts'
+import type { ExecTransport } from './egress/transport.ts'
 
 /**
  * A container CLI on this machine. Podman takes Docker's commands, so one core drives both;
@@ -12,16 +12,20 @@ import type { SshTarget } from './egress/transport.ts'
 export type LocalEngine = 'docker' | 'podman'
 
 /**
- * Docker on another machine, whose CLI runs over its SSH as the login user (who must be able to
- * reach the daemon). A command's input and environment go on its stdin, and a build context on
- * this machine goes as a tar there too, so nothing but the command's arguments is in argv.
- * Ending a command here ends its ssh, which doesn't stop a CLI already running on the machine.
+ * Docker on another machine, whose CLI runs through {@link RemoteEngine.transport} as a user who
+ * can reach the daemon: over its SSH as the login user, for one `sshEngine` makes. A command's
+ * input and environment go on its stdin, and a build context on this machine goes as a tar there
+ * too, so nothing but the command's arguments is in its argv. Ending a command here may not stop a
+ * CLI already running on the machine.
  */
 export type RemoteEngine = {
-  kind: 'ssh'
-  target: SshTarget
+  transport: ExecTransport
   /** How messages name the machine: `boat sandbox bx_… (small)`. */
   description: string
+  /** Whether a command failed before it reached the machine, so running it again is safe. */
+  unreached?(r: { exitCode: number | null; stderr: string }): boolean
+  /** Ends what the engine's commands shared, such as an SSH connection. */
+  close?(): Promise<void>
 }
 
 /** The container CLI a sandbox's images and containers are made with. */

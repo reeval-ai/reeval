@@ -1,22 +1,33 @@
-import { type ChildProcessByStdio, spawn } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { lstatSync, readFileSync, readlinkSync, statSync } from 'node:fs'
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
-import type { Readable } from 'node:stream'
 import { contextFiles } from './dockerignore.ts'
-import { sshArgv } from './egress/transport.ts'
-import { type Engine, engineEnv, engineSpec, isRemoteEngine } from './engine.ts'
-import { shellQuote as q, unsetOtel } from './process.ts'
+import {
+  type ArgvTransport,
+  argvTransport,
+  type ExecProcess,
+  hostProcess,
+  type SshTarget,
+  sshArgv,
+} from './egress/transport.ts'
+import {
+  type Engine,
+  engineEnv,
+  engineSpec,
+  isRemoteEngine,
+  type LocalEngine,
+  type RemoteEngine,
+} from './engine.ts'
+import { shellQuote as q, run, unsetOtel } from './process.ts'
 import { type TarEntry, writeTar } from './tarball.ts'
 
-/** How a command on an engine runs on this machine. */
+/** How a command on a local engine runs on this machine. */
 export type EngineCommand = {
   bin: string
   args: string[]
   /** Merged over `process.env` for the host process; the host's `OTEL_*` unset. */
   env: NodeJS.ProcessEnv
-  /** Written to the process's stdin before anything else: the remote environment. */
-  preamble: Buffer | null
 }
 
 /**
@@ -28,59 +39,84 @@ const WITH_ENV =
   'IFS= read -r reeval_env || exit 125; reeval_env=$(printf %s "$reeval_env" | base64 -d) || exit 125; eval "$reeval_env" || exit 125; unset reeval_env; exec "$@"'
 
 /**
- * How to run the engine's CLI with `args`: the CLI itself here, or ssh to it on a remote engine.
- * `env` reaches the CLI's environment, never argv: on a remote engine it's the {@link
- * EngineCommand.preamble}.
+ * How to run the CLI of a local engine with `args`. `env` reaches the CLI's environment, never
+ * argv.
  */
 export function hostCommand(
-  engine: Engine | undefined,
+  engine: LocalEngine | undefined,
   args: readonly string[],
   env: Record<string, string> = {},
 ): EngineCommand {
-  if (!isRemoteEngine(engine)) {
-    return {
-      bin: engineSpec(engine).bin,
-      args: [...args],
-      env: { ...unsetOtel(), ...engineEnv(engine), ...env },
-      preamble: null,
-    }
-  }
-  const docker = ['docker', ...args].map(q).join(' ')
-  const names = Object.keys(env)
-  for (const name of names) {
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) throw new Error(`${name} isn't a variable name`)
-  }
-  const remote = names.length ? `sh -c ${q(WITH_ENV)} sh ${docker}` : `exec ${docker}`
-  const [bin = 'ssh', ...rest] = sshArgv(engine.target, remote)
-  const exports = names.map((name) => `export ${name}=${q(env[name] ?? '')}`).join('\n')
   return {
-    bin,
-    args: rest,
-    env: unsetOtel(),
-    preamble: names.length ? Buffer.from(`${Buffer.from(exports).toString('base64')}\n`) : null,
+    bin: engineSpec(engine).bin,
+    args: [...args],
+    env: { ...unsetOtel(), ...engineEnv(engine), ...env },
   }
 }
 
 /**
- * Spawns the engine's CLI with `args` in its own process group, its output piped and no stdin of
- * its own; on a remote engine stdin carries only the environment.
+ * The command a remote engine's transport runs for the CLI with `args`. `env` goes in the
+ * `preamble`, which is written to its stdin before anything else, never in argv.
+ */
+export function remoteCommand(
+  args: readonly string[],
+  env: Record<string, string> = {},
+): { command: string[]; preamble: Buffer | null } {
+  const names = Object.keys(env)
+  for (const name of names) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) throw new Error(`${name} isn't a variable name`)
+  }
+  const exports = names.map((name) => `export ${name}=${q(env[name] ?? '')}`).join('\n')
+  return {
+    command: names.length ? ['sh', '-c', WITH_ENV, 'sh', 'docker', ...args] : ['docker', ...args],
+    preamble: names.length ? Buffer.from(`${Buffer.from(exports).toString('base64')}\n`) : null,
+  }
+}
+
+/** Docker on `target`, its CLI run over SSH as the login user. */
+export function sshEngine(
+  target: SshTarget,
+  description: string,
+): RemoteEngine & { transport: ArgvTransport } {
+  return {
+    transport: argvTransport({
+      argv: (command) => sshArgv(target, `exec ${command.map(q).join(' ')}`),
+    }),
+    description,
+    unreached: (r) => isSshFailure(r, target),
+    async close() {
+      const [bin = 'ssh', ...args] = sshArgv(target, '')
+      await run(bin, ['-O', 'exit', ...args.slice(0, -1)], { env: unsetOtel() }).catch(() => {})
+    },
+  }
+}
+
+/**
+ * Spawns the engine's CLI with `args`, locally in its own process group, its output piped and its
+ * stdin closed once the remote environment, if any, is written.
  */
 export function spawnEngine(
   engine: Engine | undefined,
   args: readonly string[],
   env: Record<string, string> = {},
-): ChildProcessByStdio<null, Readable, Readable> {
+): ExecProcess {
+  if (isRemoteEngine(engine)) {
+    const { command, preamble } = remoteCommand(args, env)
+    const child = engine.transport.spawn(command)
+    child.stdin.on('error', () => {})
+    child.stdin.end(preamble ?? undefined)
+    return child
+  }
   const command = hostCommand(engine, args, env)
   const child = spawn(command.bin, command.args, {
-    stdio: [command.preamble ? 'pipe' : 'ignore', 'pipe', 'pipe'],
+    stdio: 'pipe',
     detached: true,
+    windowsHide: true,
     env: { ...process.env, ...command.env },
   })
-  if (command.preamble && child.stdin) {
-    child.stdin.on('error', () => {})
-    child.stdin.end(command.preamble)
-  }
-  return child as unknown as ChildProcessByStdio<null, Readable, Readable>
+  child.stdin.on('error', () => {})
+  child.stdin.end()
+  return hostProcess(child)
 }
 
 const literal = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
