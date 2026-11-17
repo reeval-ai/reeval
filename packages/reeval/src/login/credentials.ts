@@ -125,6 +125,17 @@ export async function storedLogin(
   return (await storedLogins(base, env))[0] ?? null
 }
 
+/** Who `reeval login` signed in as on the platform, from the file alone: no keychain or network. */
+export async function storedUser(
+  base: URL,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<SignedInUser | null> {
+  const doc = await readCredentials(env)
+  const keys = keysOf(doc, base)
+  const key = keys.find((k) => k === platformKey(base)) ?? keys[0]
+  return (key && doc.logins[key]?.user) || null
+}
+
 /**
  * Stores the platform's sign-in, replacing any it had: the token in the keychain when it takes
  * it, else in the file. Returns where the token went, as `reeval login` names it.

@@ -15,6 +15,7 @@ import {
   helpText,
 } from '../src/cli-spec.ts'
 import { UsageError } from '../src/config.ts'
+import { homeScreen } from '../src/home.ts'
 import { fakeConfig, pkgRoot, project, runCli } from './helpers.ts'
 
 const GOLDEN = join(pkgRoot, 'test/fixtures/cli/help.golden.txt')
@@ -73,7 +74,7 @@ describe('cli', () => {
     assert.match(build, /^ {2}reeval image build \[filter\.\.\.\]$/m)
     assert.match(build, /--force/)
     assert.doesNotMatch(build, /^ {2}reeval (run|init)\b/m)
-    assert.match(build, /^Options: --config <path>/m)
+    assert.doesNotMatch(build, /Exit codes|--config|latest~N/)
     assert.doesNotMatch(build, /^ {2}reeval image (list|clean)/m)
     const image = commandHelpText('V', ['image'])
     for (const sub of ['build', 'list']) {
@@ -89,11 +90,60 @@ describe('cli', () => {
     assert.equal(commandHelpText('V', ['bogus']), helpText('V'))
   })
 
-  test('reeval alone prints the help and exits 2; --version prints the version', async () => {
+  test('only the commands that take a run say how to name one', () => {
+    const ref = /^A run is latest, latest~N, /m
+    for (const path of [['show'], ['compare'], ['analyze'], ['studio'], ['studio', 'share']]) {
+      assert.match(commandHelpText('V', path), ref, path.join(' '))
+    }
+    for (const path of [['run'], ['doctor'], ['image', 'build'], ['query']]) {
+      assert.doesNotMatch(commandHelpText('V', path), ref, path.join(' '))
+    }
+    assert.doesNotMatch(helpText('V'), /latest~N|Exit codes/)
+    assert.match(helpText('V'), /^Global options:\n {2}--config <path> /m)
+  })
+
+  test('the home screen shows the mark only on a wide enough terminal', () => {
+    const status = { signedIn: 'ada@example.com', config: null }
+    const wide = homeScreen('1.2.3', status, { tty: true, color: false, columns: 100 })
+    assert.match(wide, /^▄████▀▀█+▄ {4}reeval v1\.2\.3$/m)
+    assert.match(wide, /^███ .* {4}Signed in {2}ada@example\.com$/m)
+    assert.match(wide, /^ {2}reeval init {6}Set up a project here$/m)
+    assert.match(wide, /\nRun reeval --help to see every command$/)
+    for (const term of [
+      { tty: true, color: false, columns: 60 },
+      { tty: false, color: false, columns: 200 },
+    ]) {
+      const plain = homeScreen('1.2.3', status, term)
+      assert.doesNotMatch(plain, /█/)
+      assert.match(plain, /^reeval v1\.2\.3\nEval runner for coding agents\n/)
+    }
+    assert.ok(!wide.includes('\x1b['))
+    assert.ok(
+      homeScreen('1.2.3', status, { tty: true, color: true, columns: 100 }).includes('\x1b['),
+    )
+  })
+
+  test('reeval alone prints the home screen and exits 0; --version prints the version', async () => {
     const p = await project('cli-bare', { 'reeval.config.ts': fakeConfig() })
-    const bare = await runCli(p.dir, [])
-    assert.equal(bare.code, 2)
-    assert.match(bare.stdout, /^reeval \S+ — eval runner for coding agents\n/)
+    const bare = await runCli(p.dir, [], { env: { XDG_CONFIG_HOME: p.dir } })
+    assert.equal(bare.code, 0, bare.stderr)
+    assert.equal(
+      bare.stdout,
+      `reeval v${version}
+Eval runner for coding agents
+
+Signed in  no (reeval login)
+Project    reeval.config.ts
+
+Try next
+  reeval run       Run the evals
+  reeval show      The latest run's results
+  reeval studio    Browse your runs in the studio
+  reeval doctor    Check Docker, images and keys
+
+Run reeval --help to see every command
+`,
+    )
     for (const argv of [['--version'], ['run', '--version'], ['--version', '--help']]) {
       const r = await runCli(p.dir, argv)
       assert.equal(r.code, 0, argv.join(' '))
