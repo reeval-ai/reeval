@@ -45,6 +45,41 @@ const slices = (trace: RunTrace, lane: number | 'run') =>
     .filter((e) => e.ph === 'X' && (lane === 'run' ? e.pid === 1 : e.pid === 2 && e.tid === lane))
     .map((e) => `${e.name} ${e.ts / 1e6}+${(e.dur as number) / 1e6}`)
 
+const liveId = '20261102T180000Z_abc1234_elliot_k3f9'
+
+function stageLive(dir: string) {
+  const staging = join(dir, '.reeval', 'staging', liveId)
+  mkdirSync(staging, { recursive: true })
+  const now = new Date().toISOString()
+  writeFileSync(
+    join(staging, 'live.json'),
+    JSON.stringify({
+      schemaVersion: 1,
+      runId: liveId,
+      startedAt: now,
+      pid: process.pid,
+      host: hostname(),
+      heartbeatAt: now,
+      phase: 'running',
+      planned: 1,
+      counts: { done: 0, passed: 0, failed: 0, errored: 0, skipped: 0, running: 1 },
+      attempts: [
+        {
+          key: 'e # fake/default/fake#1',
+          evalId: 'e',
+          name: 'e',
+          file: 'e.eval.ts',
+          cell: 'fake/default/fake',
+          n: 1,
+          status: 'queued',
+          startedAt: null,
+          durationMs: null,
+        },
+      ],
+    }),
+  )
+}
+
 describe('reeval show --trace', () => {
   test('lays attempts out in lanes by overlap, leaving out the ones that never started', () => {
     const trace = runTrace(
@@ -179,37 +214,7 @@ evaluate('a', async (c) => {
     assert.notEqual(both.code, 0)
     assert.match(both.stderr, /--trace, --json or --md, one at a time/)
 
-    const liveId = '20261102T180000Z_abc1234_elliot_k3f9'
-    const staging = join(p.dir, '.reeval', 'staging', liveId)
-    mkdirSync(staging, { recursive: true })
-    const now = new Date().toISOString()
-    writeFileSync(
-      join(staging, 'live.json'),
-      JSON.stringify({
-        schemaVersion: 1,
-        runId: liveId,
-        startedAt: now,
-        pid: process.pid,
-        host: hostname(),
-        heartbeatAt: now,
-        phase: 'running',
-        planned: 1,
-        counts: { done: 0, passed: 0, failed: 0, errored: 0, skipped: 0, running: 1 },
-        attempts: [
-          {
-            key: 'e # fake/default/fake#1',
-            evalId: 'e',
-            name: 'e',
-            file: 'e.eval.ts',
-            cell: 'fake/default/fake',
-            n: 1,
-            status: 'queued',
-            startedAt: null,
-            durationMs: null,
-          },
-        ],
-      }),
-    )
+    stageLive(p.dir)
     const live = await runCli(p.dir, ['show', liveId.slice(0, 16), '--trace'])
     assert.notEqual(live.code, 0)
     assert.match(
@@ -225,6 +230,19 @@ evaluate('a', async (c) => {
         `note: ${liveId} is still running \\(0 of 1 attempts finished\\); reeval show reads the newest finished run`,
       ),
     )
+    assert.match((await runCli(p.dir, ['show', 'latest'])).stderr, /note: .* is still running/)
     assert.doesNotMatch((await runCli(p.dir, ['show', run.runId])).stderr, /still running/)
+  })
+
+  test('refuses to show a run while the only one is still running', async () => {
+    const p = await project('show-live-only', { 'reeval.config.ts': fakeConfig() })
+    stageLive(p.dir)
+    const shown = await runCli(p.dir, ['show'])
+    assert.notEqual(shown.code, 0)
+    assert.match(
+      shown.stderr,
+      new RegExp(`${liveId} is still running: .*reeval studio shows it live`),
+    )
+    assert.doesNotMatch(shown.stderr, /No runs yet|note:/)
   })
 })
