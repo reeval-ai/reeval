@@ -103,24 +103,33 @@ describe('cli', () => {
   })
 
   test('the home screen shows the mark only on a wide enough terminal', () => {
-    const status = { signedIn: 'ada@example.com', config: null }
+    const status = { signedIn: { email: 'ada@example.com' }, project: 'prj_1', config: false }
     const wide = homeScreen('1.2.3', status, { tty: true, color: false, columns: 100 })
-    assert.match(wide, /^▄████▀▀█+▄ {4}reeval v1\.2\.3$/m)
-    assert.match(wide, /^███ .* {4}Signed in {2}ada@example\.com$/m)
-    assert.match(wide, /^ {2}reeval init {6}Set up a project here$/m)
+    assert.match(wide, /^███ .* {4}reeval v1\.2\.3$/m)
+    assert.match(wide, /^███ .* {4}Evaluation runner for SDKs, CLIs, MCP servers, and docs\.$/m)
+    assert.match(wide, /^ {2}Signed in as ada@example\.com\n {2}Linked to project prj_1$/m)
+    assert.match(wide, /^ {2}reeval doctor {4}Check your environment setup$/m)
     assert.match(wide, /\nRun reeval --help to see every command$/)
     for (const term of [
-      { tty: true, color: false, columns: 60 },
+      { tty: true, color: false, columns: 80 },
       { tty: false, color: false, columns: 200 },
     ]) {
       const plain = homeScreen('1.2.3', status, term)
       assert.doesNotMatch(plain, /█/)
-      assert.match(plain, /^reeval v1\.2\.3\nEval runner for coding agents\n/)
+      assert.match(
+        plain,
+        /^reeval v1\.2\.3\nEvaluation runner for SDKs, CLIs, MCP servers, and docs\.\n/,
+      )
     }
     assert.ok(!wide.includes('\x1b['))
     assert.ok(
       homeScreen('1.2.3', status, { tty: true, color: true, columns: 100 }).includes('\x1b['),
     )
+    const term = { tty: false, color: false, columns: 80 }
+    const token = homeScreen('1', { ...status, signedIn: { token: true } }, term)
+    assert.match(token, /^ {2}Signed in with REEVAL_TOKEN$/m)
+    const noEmail = homeScreen('1', { ...status, signedIn: { email: null } }, term)
+    assert.match(noEmail, /^ {2}Signed in \(no email stored locally\)$/m)
   })
 
   test('reeval alone prints the home screen and exits 0; --version prints the version', async () => {
@@ -130,16 +139,16 @@ describe('cli', () => {
     assert.equal(
       bare.stdout,
       `reeval v${version}
-Eval runner for coding agents
+Evaluation runner for SDKs, CLIs, MCP servers, and docs.
 
-Signed in  no (reeval login)
-Project    reeval.config.ts
+  Not signed in        reeval login
+  No project linked    reeval link
 
 Try next
-  reeval run       Run the evals
-  reeval show      The latest run's results
-  reeval studio    Browse your runs in the studio
-  reeval doctor    Check Docker, images and keys
+  reeval run           Run the evals
+  reeval show          The latest run's results
+  reeval studio        Browse your runs in the studio
+  reeval doctor        Check your environment setup
 
 Run reeval --help to see every command
 `,
