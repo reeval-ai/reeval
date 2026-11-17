@@ -84,12 +84,12 @@ describe('reeval doctor checks', () => {
     const p = await project('doctor-boat', {
       'reeval.config.ts': `import { defineConfig } from 'reeval'
 import { cursor } from 'reeval/harness'
-import { boat, createBoat } from 'reeval/sandbox/boat'
+import { boat, createBoat } from 'reeval/provider/boat'
 export default defineConfig({
   harnesses: cursor({ model: 'composer-2.5' }),
-  sandbox: boat(),
+  provider: boat(),
   egress: 'allow-all',
-  profiles: { team: { defaults: { sandbox: createBoat({ apiKey: { kind: 'secret', from: 'TEAM_BOAT_KEY' } })() } } },
+  profiles: { team: { provider: createBoat({ apiKey: { kind: 'secret', from: 'TEAM_BOAT_KEY' } })() } },
 })
 `,
     })
@@ -155,10 +155,10 @@ export default defineConfig({
           await project('doctor-daytona', {
             'reeval.config.ts': `import { defineConfig } from 'reeval'
 import { cursor } from 'reeval/harness'
-import { daytona } from 'reeval/sandbox/daytona'
+import { daytona } from 'reeval/provider/daytona'
 export default defineConfig({
   harnesses: cursor({ model: 'composer-2.5' }),
-  sandbox: daytona(),
+  provider: daytona(),
   egress: 'allow-all',
 })
 `,

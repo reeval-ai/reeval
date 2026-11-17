@@ -7,6 +7,7 @@ import { type AddressInfo, createServer, type Socket } from 'node:net'
 import { join } from 'node:path'
 import { after, before, describe, test } from 'node:test'
 import { type DockerSession, PNPM_VERSION } from '@reeval/sandbox-docker'
+import { fakeHarness } from '../src/harness.ts'
 import {
   boatCapacity,
   checkBoat,
@@ -15,11 +16,12 @@ import {
   removeRunSandboxes,
   runPrefix,
 } from '../src/sandbox/boat.ts'
+import { snapshotName, vmImageKey } from '../src/sandbox/boat-images.ts'
 import { type HarnessBake, installHarness } from '../src/sandbox/harness-install.ts'
 import { sandboxLabels } from '../src/sandbox/labels.ts'
-import { boat, createBoat } from '../src/sandbox-boat.ts'
 import { project, readRun, runCli, tempDir } from './helpers.ts'
 import { type FakeBoat, fakeBoat, NO_ROUTE_IP, unreachableMachines } from './support/boat.ts'
+import { boatSandbox as boat, createBoatSandbox as createBoat } from './support/machines.ts'
 import { SEEDED_RUN_ID, writeStoppedStaging } from './support/resume.ts'
 
 let api: FakeBoat
@@ -265,20 +267,19 @@ describe('--resume of a stopped run', () => {
   })
   after(() => down.close())
 
-  const evalFile = (options: string) => `
+  const evalFile = `
 import { evaluate } from 'reeval'
-import { createBoat } from 'reeval/sandbox/boat'
-evaluate('reaches', ${options}async (c) => {
+evaluate('reaches', async (c) => {
   await c.exec('true')
 })
 `
-  const config = (sandbox: string) => `
+  const config = (provider: string) => `
 import { defineConfig } from 'reeval'
 import { fakeHarness } from 'reeval/harness'
-import { boat } from 'reeval/sandbox/boat'
+import { createBoat } from 'reeval/provider/boat'
 export default defineConfig({
   harnesses: fakeHarness({ script: [[{ exec: 'true' }]] }),
-  ${sandbox}
+  provider: ${provider},
   egress: 'allow-all',
 })
 `
@@ -310,19 +311,19 @@ export default defineConfig({
     const left = `${runPrefix(boat(), SEEDED_RUN_ID)}dead00`
     const { calls, deleted } = await resume(
       'boat-resume-config',
-      { 'reeval.config.ts': config('sandbox: boat(),'), 'evals/a.eval.ts': evalFile('') },
+      { 'reeval.config.ts': config('createBoat()()'), 'evals/a.eval.ts': evalFile },
       left,
     )
     assert.ok(deleted < calls.indexOf('GET /limits'), calls.join('\n'))
   })
 
-  test("deletes an eval's own Boat VMs it left before any attempt starts", async () => {
+  test("deletes a profile's Boat VMs it left before any attempt starts", async () => {
     const left = `${runPrefix(createBoat({ prefix: 'own' })(), SEEDED_RUN_ID)}dead00`
     await resume(
-      'boat-resume-eval',
+      'boat-resume-profile',
       {
-        'reeval.config.ts': config(''),
-        'evals/a.eval.ts': evalFile(`{ sandbox: createBoat({ prefix: 'own' })() }, `),
+        'reeval.config.ts': config("createBoat({ prefix: 'own' })()"),
+        'evals/a.eval.ts': evalFile,
       },
       left,
     )
@@ -361,10 +362,10 @@ describe('an attempt on a sandbox it cannot reach', () => {
     'reeval.config.ts': `
 import { defineConfig } from 'reeval'
 import { fakeHarness } from 'reeval/harness'
-import { boat } from 'reeval/sandbox/boat'
+import { boat } from 'reeval/provider/boat'
 export default defineConfig({
   harnesses: fakeHarness({ script: [[{ exec: 'true' }]] }),
-  sandbox: boat(),
+  provider: boat(),
   egress: 'allow-all',
 })
 `,
@@ -378,6 +379,11 @@ evaluate('reaches', async (c) => {
 
   test('fails as infra, and its sandbox is deleted', async () => {
     const p = await project('boat-unreachable', files)
+    // reeval's image is saved already, so the attempt's own machine is the first to start.
+    const harness = fakeHarness({ script: [[{ exec: 'true' }]] })
+    const { key } = await vmImageKey({}, harness, { root: p.dir })
+    const saved = snapshotName('reeval', key)
+    api.snapshots.set(saved, { name: saved, status: 'ready', sourceSandboxId: 'bx_seed', polls: 0 })
     api.requests.length = 0
     const r = await runCli(p.dir, ['run'], {
       env: {

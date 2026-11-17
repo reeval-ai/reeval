@@ -11,7 +11,7 @@ import { randomBytes } from 'node:crypto'
 import { createServer, type IncomingMessage, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { boatClient, runPrefix } from '../../src/sandbox/boat.ts'
-import { boat } from '../../src/sandbox-boat.ts'
+import { boatSandbox as boat } from './machines.ts'
 import type { SshVm } from './ssh-vm.ts'
 
 export type Machines = (name: string) => Promise<SshVm>

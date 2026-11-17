@@ -8,7 +8,8 @@ import { configPathFor, loadConfig } from '../config.ts'
 import { attemptDebugDir, parseAttemptKey } from '../debug/files.ts'
 import type { DoctorReport } from '../doctor.ts'
 import { inCI, loadEnvFiles } from '../env.ts'
-import { environmentSandbox, profileSandbox } from '../environment.ts'
+import { environmentSandbox, placedSandbox, profileSandbox } from '../environment.ts'
+import { UsageError } from '../errors.ts'
 import type { AttemptRecord, RunRecord } from '../history/types.ts'
 import { SECRET_NAME } from '../redact.ts'
 import { PACKAGE_VERSION } from '../root.ts'
@@ -70,17 +71,27 @@ export function packageManager(
   }
 }
 
+/** The kind `sandbox` runs as; a sandbox its provider refuses keeps its own, so the report still lands. */
+function placedKind(...args: Parameters<typeof placedSandbox>): string {
+  try {
+    return placedSandbox(...args).kind
+  } catch (error) {
+    if (error instanceof UsageError) return args[0].kind
+    throw error
+  }
+}
+
 /** The config's keys and the kinds it uses; no value, model or path from it. */
 export function configShape(config: ResolvedConfig): NonNullable<ReportBundle['config']> {
   const harnesses = new Set(config.harness.map((h) => h.kind))
   const sandboxes = new Set(
-    (config.environments.length ? config.environments : [undefined]).map(
-      (e) => environmentSandbox(e, config.sandbox).kind,
+    (config.environments.length ? config.environments : [undefined]).map((e) =>
+      placedKind(environmentSandbox(e, config.sandbox), config),
     ),
   )
   for (const profile of Object.values(config.profiles)) {
     for (const h of [profile.defaults?.harnesses ?? []].flat()) harnesses.add(h.kind)
-    sandboxes.add(profileSandbox(config, profile.defaults).kind)
+    sandboxes.add(placedKind(profileSandbox(config, profile.defaults), config, profile))
   }
   return {
     file: config.file,

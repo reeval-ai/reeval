@@ -28,7 +28,7 @@ import {
 } from './egress.ts'
 import { DEFAULT_EXCLUDE, findEvalFiles } from './engine/files.ts'
 import { loadEnvFiles } from './env.ts'
-import { environmentSandbox, NO_ENVIRONMENT, profileSandbox } from './environment.ts'
+import { environmentSandbox, NO_ENVIRONMENT, placedSandbox, profileSandbox } from './environment.ts'
 import {
   fellBackToDirect,
   gatewayScope,
@@ -283,16 +283,16 @@ export function configuredUses(config: ResolvedConfig) {
     config.harness.flatMap((harness) =>
       (config.environments.length ? config.environments : [undefined]).map((e) => ({
         harness: routedHarness(harness, config.gateway),
-        sandbox: environmentSandbox(e, config.sandbox),
+        sandbox: placedSandbox(environmentSandbox(e, config.sandbox), config),
       })),
     )
   for (const [name, profile] of Object.entries(config.profiles)) {
     const harnesses = profile.defaults?.harnesses
       ? [profile.defaults.harnesses].flat()
-      : profile.defaults?.environments || profile.defaults?.sandbox
+      : profile.defaults?.environments || profile.defaults?.sandbox || profile.provider
         ? config.harness
         : []
-    const sandbox = profileSandbox(config, profile.defaults)
+    const sandbox = placedSandbox(profileSandbox(config, profile.defaults), config, profile)
     const gateways = profile.gateway ?? config.gateway
     for (const harness of harnesses) {
       uses.push({ harness: routedHarness(harness, gateways), sandbox, profile: name })

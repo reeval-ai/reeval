@@ -2,7 +2,9 @@ import { existsSync, readFileSync } from 'node:fs'
 import { availableParallelism, totalmem } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { parseDocument } from 'yaml'
+import { boatProviderProblem } from './contract/boat.ts'
 import { configDataProblem } from './contract/config.ts'
+import { daytonaProviderProblem } from './contract/daytona.ts'
 import { GATEWAY_NAMES, gatewayDescriptorSchema } from './contract/gateway.ts'
 import { judgeProblem } from './contract/judge.ts'
 import { closest, oneOf } from './contract/shared.ts'
@@ -41,7 +43,7 @@ import { isObjectLike } from './object.ts'
 import { checkHarnesses, checkOptions, mergeSnapshot, profileJudge } from './options.ts'
 import { badCharacterAt } from './redact.ts'
 import { ownFileURL } from './root.ts'
-import { type Credential, sandboxKind } from './sandbox/kinds.ts'
+import { type Credential, isSandboxKind, sandboxKind } from './sandbox/kinds.ts'
 import { docker } from './sandbox.ts'
 import { resolveHistory } from './store/resolve.ts'
 import type {
@@ -91,6 +93,7 @@ const CONFIG_KEYS = [
   'debug',
   'analysis',
   'cloud',
+  'provider',
 ]
 const PROFILE_KEYS = [
   'defaults',
@@ -102,6 +105,7 @@ const PROFILE_KEYS = [
   'gateway',
   'history',
   'cloud',
+  'provider',
 ]
 const DEFAULTS_KEYS = [
   'harnesses',
@@ -498,6 +502,7 @@ function checkProfile(name: string, profile: unknown, file: string): Profile {
       `${where}.cloud in ${file} is true or false (got ${JSON.stringify(p.cloud)})`,
     )
   }
+  if (p.provider !== undefined) checkProvider(p.provider, `${where}.provider`, file)
   if (p.judge !== undefined) resolveJudge(p.judge, file, `${where}.judge`)
   checkBudget(p.budget, `${where}.budget`, file)
   if (p.gateway !== undefined)
@@ -627,6 +632,7 @@ export function selectProfile(
     ...(profile.record ? { record: profile.record } : {}),
     ...(profile.gateway ? { gateway: profile.gateway } : {}),
     ...(profile.cloud !== undefined ? { cloud: profile.cloud } : {}),
+    ...(profile.provider !== undefined ? { provider: profile.provider } : {}),
     ...(config.profileHistory[name] ? { history: config.profileHistory[name] } : {}),
   }
 }
@@ -673,6 +679,7 @@ export function resolveConfig(
   if (user.cloud !== undefined && typeof user.cloud !== 'boolean') {
     throw new UsageError(`cloud in ${file} is true or false (got ${JSON.stringify(user.cloud)})`)
   }
+  if (user.provider !== undefined) checkProvider(user.provider, 'provider', file)
   const historyDefault = join(evalRoot(include), '.history')
   const history = resolveHistory(user.history, 'history', file, root, historyDefault)
   const harness = user.harnesses === undefined ? [DEFAULT_HARNESS] : [user.harnesses].flat()
@@ -750,7 +757,25 @@ export function resolveConfig(
       user.gateway === undefined ? DEFAULT_GATEWAYS : checkGateways(user.gateway, 'gateway', file),
     gatewaySet: user.gateway !== undefined,
     cloud: user.cloud ?? false,
+    ...(user.provider !== undefined ? { provider: user.provider } : {}),
   }
+}
+
+const PROVIDER_EXAMPLE = "provider: boat() (from 'reeval/provider/boat') or daytona()"
+
+/** A `provider`: `boat()`'s or `daytona()`'s descriptor, checked. */
+function checkProvider(value: unknown, where: string, file: string): void {
+  const kind = (value as { kind?: unknown } | null)?.kind
+  if (kind !== 'boat' && kind !== 'daytona') {
+    const sandbox = isSandboxKind(kind)
+      ? ` ${String(kind)}() is a sandbox: it goes in sandbox.`
+      : ''
+    throw new UsageError(
+      `${where} in ${file} takes a provider, ${PROVIDER_EXAMPLE} (got ${JSON.stringify(value)}).${sandbox}`,
+    )
+  }
+  const problem = kind === 'boat' ? boatProviderProblem(value) : daytonaProviderProblem(value)
+  if (problem) throw new UsageError(`${where} in ${file}: ${problem}`)
 }
 
 export const ANALYSIS_DEFAULTS = {

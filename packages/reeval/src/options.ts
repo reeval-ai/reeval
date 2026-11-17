@@ -1100,10 +1100,11 @@ export function expand(
 ): PlannedAttempt[] {
   const { compare } = resolved
   // The cell keeps the sandbox's id as written, wherever it's placed.
-  const placed = (env: AppliedEnvironment) => {
+  const sandboxFor = (env: AppliedEnvironment) => {
     const sandbox = attemptSandbox(resolved, env)
     const sid = sandboxId(sandbox)
-    return { sid, sandbox: placeSandbox ? { ...placeSandbox(sandbox), id: sid } : sandbox }
+    const placed = placeSandbox?.(sandbox) ?? sandbox
+    return { sid, sandbox: placed === sandbox ? sandbox : { ...placed, id: sid } }
   }
   // An environment from another level is not applied beside a compare's control.
   const own: Array<Environment | undefined> = compare
@@ -1124,7 +1125,7 @@ export function expand(
       cell: Cell
       gate: CellGate
     }> = controls.map((env) => {
-      const { sandbox, sid } = placed(env)
+      const { sandbox, sid } = sandboxFor(env)
       return {
         env,
         sandbox,
@@ -1144,7 +1145,7 @@ export function expand(
     if (compare && (!compare.harnesses || compare.harnesses.includes(hid))) {
       for (const v of compare.variants) {
         const env = applied(v)
-        const { sandbox, sid } = placed(env)
+        const { sandbox, sid } = sandboxFor(env)
         cells.push({
           env,
           sandbox,

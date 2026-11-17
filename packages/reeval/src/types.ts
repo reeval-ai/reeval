@@ -1208,7 +1208,11 @@ export type TartHost =
 export type BoatMachineType = 'small' | 'default' | 'large' | 'xlarge'
 /** The host variable holding a Boat API key, made by `secret.fromEnv`. */
 export type BoatApiKey = { kind: 'secret'; from: string }
-/** A boat.dev VM per attempt, made by `boat()` from `reeval/sandbox/boat`. */
+/**
+ * A sandbox placed on boat.dev machines: a `docker()` sandbox on the `boat()` provider.
+ *
+ * @internal Not part of reeval's public API: `place()` makes it from the sandbox and provider.
+ */
 export type BoatSandboxDescriptor = {
   kind: 'boat'
   /**
@@ -1240,6 +1244,8 @@ export type BoatSandboxDescriptor = {
   dockerfile?: string
   /** Baked onto the sandbox image in one build container: in order, no secrets, no workspace. */
   install?: InstallStep[]
+  /** With no recipe, each attempt runs in a container of reeval's sandbox image for its harness. */
+  reevalImage?: true
   /** The most attempts on Boat at once, across the run: machines times `attemptsPerMachine`. */
   maxConcurrent?: number
   /**
@@ -1264,7 +1270,11 @@ export type BoatSandboxDescriptor = {
 export type DaytonaSize = 'small' | 'medium' | 'large'
 /** The host variable holding a Daytona API key, made by `secret.fromEnv`. */
 export type DaytonaApiKey = { kind: 'secret'; from: string }
-/** A Daytona sandbox per attempt, made by `daytona()` from `reeval/sandbox/daytona`. */
+/**
+ * A sandbox placed on Daytona: a `docker()` sandbox on the `daytona()` provider.
+ *
+ * @internal Not part of reeval's public API: `place()` makes it from the sandbox and provider.
+ */
 export type DaytonaSandboxDescriptor = {
   kind: 'daytona'
   /** Cell id; defaults to `daytona`, or `daytona:<image>` for a recipe as for `docker()`, then `:<size>` with a `size`. */
@@ -1295,6 +1305,8 @@ export type DaytonaSandboxDescriptor = {
   dockerfile?: string
   /** Baked into the image in order, on `from` or reeval's sandbox image: no secrets, no workspace. */
   install?: InstallStep[]
+  /** With no recipe, each sandbox starts from reeval's sandbox image for its harness. */
+  reevalImage?: true
   /** The sandbox size. Default `medium`. */
   size?: DaytonaSize
   /** The most attempts on Daytona at once, across the run: machines times `attemptsPerMachine`. */
@@ -1310,6 +1322,69 @@ export type DaytonaSandboxDescriptor = {
    */
   attemptsPerMachine?: number
 }
+/**
+ * boat.dev machines that run each attempt's sandbox, made by `boat()` from
+ * `reeval/provider/boat`.
+ */
+export type BoatProviderDescriptor = {
+  kind: 'boat'
+  /** The host variable with the Boat API key, read on the host only. */
+  apiKey: BoatApiKey
+  /**
+   * The start of every machine name reeval gives Boat, so a run's cleanup finds only its own:
+   * lowercase letters, digits and dashes.
+   */
+  prefix: string
+  /** The machine size. Default `small`. */
+  type?: BoatMachineType
+  /**
+   * The most attempts on Boat at once, across the run: machines times `attemptsPerMachine`.
+   * The sandbox's `maxConcurrent` when unset.
+   */
+  maxConcurrent?: number
+  /**
+   * A machine takes another of the run's attempts once one ends, instead of being deleted.
+   * Default false, one attempt per slot.
+   */
+  reuse?: boolean
+  /**
+   * The attempts one machine runs at once, each in a container with a network of its own.
+   * Default 1.
+   */
+  attemptsPerMachine?: number
+}
+/**
+ * Daytona sandboxes that run each attempt's sandbox, made by `daytona()` from
+ * `reeval/provider/daytona`.
+ */
+export type DaytonaProviderDescriptor = {
+  kind: 'daytona'
+  /** The host variable with the Daytona API key, read on the host only. */
+  apiKey: DaytonaApiKey
+  /**
+   * The start of every sandbox name reeval gives Daytona, so a run's cleanup finds only its own:
+   * lowercase letters, digits and dashes.
+   */
+  prefix: string
+  /** The sandbox size. Default `medium`. */
+  size?: DaytonaSize
+  /**
+   * The most attempts on Daytona at once, across the run: machines times `attemptsPerMachine`.
+   * The sandbox's `maxConcurrent` when unset.
+   */
+  maxConcurrent?: number
+  /**
+   * A machine takes another of the run's attempts once one ends, instead of being deleted, as
+   * `boat({ reuse })` does. Default false, one attempt per slot.
+   */
+  reuse?: boolean
+  /**
+   * The attempts one machine runs at once, as `boat({ attemptsPerMachine })` does. Default 1.
+   */
+  attemptsPerMachine?: number
+}
+/** The machines a run's sandboxes run on, made by `boat()` or `daytona()`. */
+export type ProviderDescriptor = BoatProviderDescriptor | DaytonaProviderDescriptor
 /** A cloud VM's size: `small` is 2 vCPUs and 4 GB. @internal */
 export type CloudMachineSize = 'small' | 'medium' | 'large' | 'xlarge'
 /**
@@ -2489,6 +2564,8 @@ export type Profile = {
   gateway?: GatewayDescriptor[]
   /** Replaces the config's `cloud` for this profile's runs. */
   cloud?: boolean
+  /** Replaces the config's `provider` for this profile's runs. */
+  provider?: ProviderDescriptor
 }
 
 /** A canned analysis for tests; see `fakeAnalysis()` in `reeval/judge`. */
@@ -2650,6 +2727,11 @@ export type ReevalConfig = {
    * `--cloud` and `--local` override it, and a profile's `cloud` replaces it. Default `false`.
    */
   cloud?: boolean
+  /**
+   * The machines every attempt's sandbox runs on: `boat()` or `daytona()`, a container of the
+   * sandbox's image on each. This machine when unset. A profile's `provider` replaces it.
+   */
+  provider?: ProviderDescriptor
 }
 
 /** `fakeJudge()` as data: the score every call gets. */
@@ -2765,6 +2847,8 @@ export type ResolvedProfile = {
   gateway?: GatewayDescriptor[]
   /** The profile's own `cloud`, which replaces the config's. */
   cloud?: boolean
+  /** The profile's own `provider`, which replaces the config's. */
+  provider?: ProviderDescriptor
   /** The profile's `history` merged over the config's, when it sets one. */
   history?: ResolvedHistory
 }
@@ -2848,6 +2932,8 @@ export type ResolvedConfig = {
   /** Whether the config sets `gateway`, so the plan shows where each cell resolved. */
   gatewaySet: boolean
   cloud: boolean
+  /** The machines every attempt's sandbox runs on; this machine when unset. */
+  provider?: ProviderDescriptor
 }
 
 export type Outcome = 'pass' | 'fail' | 'infra_error' | 'skipped'

@@ -30,7 +30,7 @@ import { ciRunner, directOnCloud, isDirect, rootlessPodmanSwitch, setupEgress } 
 import { budgetMarker } from './engine/budget.ts'
 import type { CollectedPlan, EngineRun, PlannedItem } from './engine/node.ts'
 import { inCI, loadEnvFiles } from './env.ts'
-import { environmentSandbox, profileSandbox, workspaceLabel } from './environment.ts'
+import { environmentSandbox, placedSandbox, profileSandbox, workspaceLabel } from './environment.ts'
 import {
   ATTEMPTS_HEARTBEAT_MS,
   ATTEMPTS_HEARTBEAT_RANGE,
@@ -665,7 +665,7 @@ async function imageBuildCommand(
   const snapshots = vmImageTargets(uses)
   if (targets.length === 0 && vms.length === 0 && snapshots.length === 0) {
     console.log(
-      'No eval runs in a Docker or Tart sandbox, or a boat() or daytona() sandbox with an image recipe, so there are no images to build or pull.',
+      'No eval runs in a Docker or Tart sandbox, so there are no images to build or pull.',
     )
     return EXIT.ok
   }
@@ -828,9 +828,7 @@ async function imageListCommand(
   const { root, uses } = await imageUses(flags, configPath, filters)
   const accounts = vm.vmAccounts(uses)
   if (!accounts.length) {
-    console.log(
-      'No eval runs in a boat() or daytona() sandbox, so there are no image snapshots to list.',
-    )
+    console.log('No eval runs on boat() or daytona(), so there are no image snapshots to list.')
     return EXIT.ok
   }
   const [{ snapshots, failed }, { usedBy }] = await Promise.all([
@@ -912,7 +910,7 @@ async function imageCleanCommand(flags: Flags, configPath: string | undefined): 
   const accounts = vm.vmAccounts(uses).filter((a) => !provider || a.provider === provider)
   if (!accounts.length) {
     console.log(
-      `No eval runs in a ${provider ? `${provider}()` : 'boat() or daytona()'} sandbox, so there are no image snapshots to clean.`,
+      `No eval runs on ${provider ? `${provider}()` : 'boat() or daytona()'}, so there are no image snapshots to clean.`,
     )
     return EXIT.ok
   }
@@ -1961,7 +1959,7 @@ async function prepareRun(
       environmentSandbox(e, config.sandbox),
     ),
     ...(profile ? [profileSandbox(config, profile.defaults)] : []),
-  ]
+  ].map((s) => placedSandbox(s, config, profile))
   const concurrency = givenConcurrency(config, flags.concurrency)
   const registry = await registryFlag(flags)
   return {

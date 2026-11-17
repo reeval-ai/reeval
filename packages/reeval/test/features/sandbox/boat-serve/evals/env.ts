@@ -1,7 +1,7 @@
 import { defineEnvironment } from 'reeval'
-import { boat } from 'reeval/sandbox/boat'
+import { docker } from 'reeval/sandbox'
 
-export const vm = defineEnvironment('vm', { sandbox: boat(), egress: 'allow-all' })
+export const vm = defineEnvironment('vm', { sandbox: docker(), egress: 'allow-all' })
 
 /** A server on PORT that answers `ok`. */
 export const server = `node -e "require('http').createServer((q, s) => s.end('ok')).listen(process.env.PORT)"`

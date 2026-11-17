@@ -107,7 +107,7 @@ export type SandboxHooks<D extends SandboxDescriptor> = {
 export type SandboxKind<D extends SandboxDescriptor = SandboxDescriptor> = SandboxHooks<D> & {
   /** The helpers that make it, as messages name them: `docker`, then `podman`. */
   helpers: readonly string[]
-  /** Left out of the helpers messages and the docs list, since it isn't public API. */
+  /** Left out of the helpers messages and the docs list: no public helper makes it as a sandbox. */
   internal?: true
   capabilities: SandboxCapabilities
   /** The provider that prepares and runs it, which keys preflight and `maxConcurrent`. */

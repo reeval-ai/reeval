@@ -1,7 +1,8 @@
 import { defineConfig } from 'reeval'
 import { fakeHarness } from 'reeval/harness'
+import { daytona } from 'reeval/provider/daytona'
 
-// Docker tier only: daytona({ from, install }) on the fake Daytona API, which builds the image
+// Docker tier only: docker({ from, install }) on daytona(), the fake Daytona API, which builds the image
 // reeval generates and starts each sandbox from its snapshot, logging in as root; both attempts
 // share one machine, each slot restoring the image's copy of the home. The bootstrap
 // says whether it ran in the image, before the install, or in the attempt, after it. As the agent:
@@ -18,4 +19,5 @@ export default defineConfig({
       ],
     ],
   }),
+  provider: daytona({ attemptsPerMachine: 2 }),
 })

@@ -1,7 +1,7 @@
 import { defineEnvironment, type Turn } from 'reeval'
-import { daytona } from 'reeval/sandbox/daytona'
+import { docker } from 'reeval/sandbox'
 
-export const vm = defineEnvironment('vm', { sandbox: daytona(), egress: 'allow-all' })
+export const vm = defineEnvironment('vm', { sandbox: docker(), egress: 'allow-all' })
 
 /** What the scripted agent's shell command printed, one entry per line. */
 export const agentSaw = (turn: Turn) =>

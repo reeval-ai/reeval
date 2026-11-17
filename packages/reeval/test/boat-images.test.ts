@@ -12,10 +12,10 @@ import { snapshotName, vmImageKey, vmImageRef } from '../src/sandbox/boat-images
 import type { PrepareContext } from '../src/sandbox/provider.ts'
 import { boatProvider } from '../src/sandbox/providers.ts'
 import type { ResolveDigest } from '../src/sandbox/recipe.ts'
-import { boat } from '../src/sandbox-boat.ts'
 import type { HarnessDescriptor } from '../src/types.ts'
 import { tempDir } from './helpers.ts'
 import { type FakeBoat, fakeBoat, unreachableMachines } from './support/boat.ts'
+import { boatSandbox as boat } from './support/machines.ts'
 import { buildSshVmImage, sshVmContainer, startBoatDockerVm } from './support/ssh-vm.ts'
 
 const harness: HarnessDescriptor = { kind: 'fake' }

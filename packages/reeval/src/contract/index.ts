@@ -2,7 +2,7 @@
 // each a Zod schema that validates it and gives its JSON Schema, described by the TSDoc of the
 // hand-written type of the same name.
 import type { z } from 'zod'
-import { boatSandboxSchema } from './boat.ts'
+import { boatProviderSchema, boatSandboxSchema } from './boat.ts'
 import { cloudSandboxSchema } from './cloud.ts'
 import {
   analysisConfigDataSchema,
@@ -19,7 +19,7 @@ import {
   s3StoreDescriptorSchema,
   s3StoreEnvSchema,
 } from './config.ts'
-import { daytonaSandboxSchema } from './daytona.ts'
+import { daytonaProviderSchema, daytonaSandboxSchema } from './daytona.ts'
 import {
   declarationTreeSchema,
   declaredEvalSchema,
@@ -101,6 +101,8 @@ export const CONTRACT_SCHEMAS: Record<string, z.ZodType> = {
   BoatSandboxDescriptor: boatSandboxSchema,
   DaytonaSandboxDescriptor: daytonaSandboxSchema,
   CloudSandboxDescriptor: cloudSandboxSchema,
+  BoatProviderDescriptor: boatProviderSchema,
+  DaytonaProviderDescriptor: daytonaProviderSchema,
   InstallStep: installStepSchema,
   HarnessDescriptor: harnessDescriptorSchema,
   FakeHarnessDescriptor: fakeHarnessSchema,

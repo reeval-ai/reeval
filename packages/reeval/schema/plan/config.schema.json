@@ -90,8 +90,63 @@
       },
       "required": ["from", "kind"]
     },
+    "BoatProviderDescriptor": {
+      "description": "boat.dev machines that run each attempt's sandbox, made by `boat()` from `reeval/provider/boat`.",
+      "type": "object",
+      "properties": {
+        "apiKey": {
+          "description": "The host variable with the Boat API key, read on the host only.",
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+            },
+            "kind": {
+              "type": "string",
+              "const": "secret"
+            }
+          },
+          "required": ["from", "kind"],
+          "additionalProperties": false
+        },
+        "attemptsPerMachine": {
+          "description": "The attempts one machine runs at once, each in a container with a network of its own. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "kind": {
+          "type": "string",
+          "const": "boat"
+        },
+        "maxConcurrent": {
+          "description": "The most attempts on Boat at once, across the run: machines times `attemptsPerMachine`. The sandbox's `maxConcurrent` when unset.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "prefix": {
+          "description": "The start of every machine name reeval gives Boat, so a run's cleanup finds only its own: lowercase letters, digits and dashes.",
+          "type": "string",
+          "maxLength": 32,
+          "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+        },
+        "reuse": {
+          "description": "A machine takes another of the run's attempts once one ends, instead of being deleted. Default false, one attempt per slot.",
+          "type": "boolean"
+        },
+        "type": {
+          "description": "The machine size. Default `small`.",
+          "type": "string",
+          "enum": ["small", "default", "large", "xlarge"]
+        }
+      },
+      "required": ["apiKey", "kind", "prefix"],
+      "additionalProperties": false
+    },
     "BoatSandboxDescriptor": {
-      "description": "A boat.dev VM per attempt, made by `boat()` from `reeval/sandbox/boat`.",
+      "description": "A sandbox placed on boat.dev machines: a `docker()` sandbox on the `boat()` provider.",
       "type": "object",
       "properties": {
         "apiKey": {
@@ -150,13 +205,20 @@
         },
         "maxConcurrent": {
           "description": "The most attempts on Boat at once, across the run: machines times `attemptsPerMachine`.",
-          "type": "number"
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
         },
         "prefix": {
           "description": "The start of every sandbox name reeval gives Boat, so a run's cleanup finds only its own: lowercase letters, digits and dashes.",
           "type": "string",
           "maxLength": 32,
           "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+        },
+        "reevalImage": {
+          "description": "With no recipe, each attempt runs in a container of reeval's sandbox image for its harness.",
+          "type": "boolean",
+          "const": true
         },
         "reuse": {
           "description": "A machine takes another of the run's attempts once one ends, instead of being deleted: its user's processes, cron jobs and files are removed and its home put back as it was after the harness installed, which isn't installed again. Default false, one attempt per slot.",
@@ -557,8 +619,63 @@
       },
       "required": ["from", "kind"]
     },
+    "DaytonaProviderDescriptor": {
+      "description": "Daytona sandboxes that run each attempt's sandbox, made by `daytona()` from `reeval/provider/daytona`.",
+      "type": "object",
+      "properties": {
+        "apiKey": {
+          "description": "The host variable with the Daytona API key, read on the host only.",
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+            },
+            "kind": {
+              "type": "string",
+              "const": "secret"
+            }
+          },
+          "required": ["from", "kind"],
+          "additionalProperties": false
+        },
+        "attemptsPerMachine": {
+          "description": "The attempts one machine runs at once, as `boat({ attemptsPerMachine })` does. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "kind": {
+          "type": "string",
+          "const": "daytona"
+        },
+        "maxConcurrent": {
+          "description": "The most attempts on Daytona at once, across the run: machines times `attemptsPerMachine`. The sandbox's `maxConcurrent` when unset.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "prefix": {
+          "description": "The start of every sandbox name reeval gives Daytona, so a run's cleanup finds only its own: lowercase letters, digits and dashes.",
+          "type": "string",
+          "maxLength": 32,
+          "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+        },
+        "reuse": {
+          "description": "A machine takes another of the run's attempts once one ends, instead of being deleted, as `boat({ reuse })` does. Default false, one attempt per slot.",
+          "type": "boolean"
+        },
+        "size": {
+          "description": "The sandbox size. Default `medium`.",
+          "type": "string",
+          "enum": ["small", "medium", "large"]
+        }
+      },
+      "required": ["apiKey", "kind", "prefix"],
+      "additionalProperties": false
+    },
     "DaytonaSandboxDescriptor": {
-      "description": "A Daytona sandbox per attempt, made by `daytona()` from `reeval/sandbox/daytona`.",
+      "description": "A sandbox placed on Daytona: a `docker()` sandbox on the `daytona()` provider.",
       "type": "object",
       "properties": {
         "apiKey": {
@@ -617,13 +734,20 @@
         },
         "maxConcurrent": {
           "description": "The most attempts on Daytona at once, across the run: machines times `attemptsPerMachine`.",
-          "type": "number"
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
         },
         "prefix": {
           "description": "The start of every sandbox name reeval gives Daytona, so a run's cleanup finds only its own: lowercase letters, digits and dashes.",
           "type": "string",
           "maxLength": 32,
           "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+        },
+        "reevalImage": {
+          "description": "With no recipe, each sandbox starts from reeval's sandbox image for its harness.",
+          "type": "boolean",
+          "const": true
         },
         "reuse": {
           "description": "A machine takes another of the run's attempts once one ends, instead of being deleted, as `boat({ reuse })` does. Default false, one attempt per slot.",
@@ -2436,6 +2560,17 @@
           "description": "Caps over every eval, which only narrow; `pin` on a group or eval skips them.",
           "$ref": "#/$defs/ProfileLimit"
         },
+        "provider": {
+          "description": "Replaces the config's `provider` for this profile's runs.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BoatProviderDescriptor"
+            },
+            {
+              "$ref": "#/$defs/DaytonaProviderDescriptor"
+            }
+          ]
+        },
         "record": {
           "description": "When this profile's runs are copied into the history folder.",
           "type": "string",
@@ -2783,6 +2918,17 @@
           "additionalProperties": {
             "$ref": "#/$defs/ProfileData"
           }
+        },
+        "provider": {
+          "description": "The machines every attempt's sandbox runs on: `boat()` or `daytona()`, a container of the sandbox's image on each. This machine when unset. A profile's `provider` replaces it.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BoatProviderDescriptor"
+            },
+            {
+              "$ref": "#/$defs/DaytonaProviderDescriptor"
+            }
+          ]
         },
         "question": {
           "description": "Defaults for every question: the model that answers it and what it's shown of each attempt. Merged down the cascade.",

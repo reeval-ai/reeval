@@ -1173,16 +1173,33 @@ export const inventory: InventoryFeature[] = [
     ],
   },
   {
+    id: 'provider',
+    area: 'Sandbox',
+    name: "`provider: boat()` or `daytona()` in the config or a profile (a profile's replaces the config's): every `docker()` sandbox of the run goes on the provider's machines as the same cell, its image recipe carried, or reeval's image for the harness without one; `fakeSandbox()` stays on this machine, and `podman()`, `tart()`, a docker option the machine can't honor, or a provider as a sandbox are refused",
+    fixtures: ['sandbox/boat-session', 'sandbox/daytona-session'],
+    plan: [
+      'providers/none',
+      'providers/boat',
+      'providers/boat-large',
+      'providers/boat-pooled',
+      'providers/boat-deny-all',
+      'providers/daytona',
+      'providers/daytona-shared',
+      'providers/config-provider',
+      'providers/profile-provider',
+    ],
+    unit: [
+      'reeval/test/place.test.ts',
+      'reeval/test/refusals.test.ts',
+      'reeval/test/doctor.test.ts',
+    ],
+  },
+  {
     id: 'boat.sandbox',
     area: 'Sandbox',
-    name: "`boat()` and `createBoat({ apiKey, prefix })`: a boat.dev VM per attempt over SSH (to the VM's own address on port 22, else Boat's public endpoint), under `allow-all`, on every real harness, whose CLI it installs as the VM starts, before the harness's start is timed",
-    fixtures: [
-      'sandbox/boat-session',
-      'sandbox/boat-brokered',
-      'sandbox/boat-installs-harness',
-      'sandbox/boat-serve',
-    ],
-    plan: ['environments/boat'],
+    name: "`boat()` and `createBoat({ apiKey, prefix })`: a boat.dev VM per attempt over SSH (to the VM's own address on port 22, else Boat's public endpoint), on every real harness, the attempt in a container of its `docker()` image or reeval's image for its harness, built once into a saved snapshot",
+    fixtures: ['sandbox/boat-session', 'sandbox/boat-brokered', 'sandbox/boat-serve'],
+    plan: ['providers/boat'],
     unit: [
       'reeval/test/sandbox-start.test.ts',
       'reeval/test/sandbox-provider-conformance.test.ts',
@@ -1201,13 +1218,9 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'boat.pool',
     area: 'Sandbox',
-    name: "`boat({ reuse, attemptsPerMachine })`: the run's machine pool, shared by every eval file's attempts, starting machines within Boat's limits, which the pools of every machine size and image on one account share (a 429 holds every start on the account for its `Retry-After`, then retries, and a pool that needs a machine when the account has none to spare has the machine idle longest in another pool removed), handing a finished attempt's machine to the next with its slot reset, running up to `attemptsPerMachine` attempts at once on a machine as their own users, installing the harness's CLI once per machine and copying it into each slot's home, and deleting every machine when the run ends; refused for a harness whose bridge listens on a fixed port, unless the sandbox has an image recipe",
-    fixtures: [
-      'sandbox/boat-pool-reuse',
-      'sandbox/boat-shared-machine',
-      'sandbox/boat-shared-install',
-    ],
-    plan: ['environments/boat'],
+    name: "`boat({ reuse, attemptsPerMachine })`: the run's machine pool, shared by every eval file's attempts, starting machines within Boat's limits, which the pools of every machine size and image on one account share (a 429 holds every start on the account for its `Retry-After`, then retries, and a pool that needs a machine when the account has none to spare has the machine idle longest in another pool removed), handing a finished attempt's machine to the next with its slot reset, running up to `attemptsPerMachine` attempts at once on a machine, each in its own container, and deleting every machine when the run ends",
+    fixtures: ['sandbox/boat-pool-reuse', 'sandbox/boat-shared-machine'],
+    plan: ['providers/boat-pooled'],
     unit: [
       'reeval/test/machine-pool.test.ts',
       'reeval/test/machine-service.test.ts',
@@ -1221,9 +1234,9 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'boat.image',
     area: 'Sandbox',
-    name: "`boat({ image, from, dockerfile, install })`: preflight builds the recipe's image once into a Boat saved snapshot named by its content key, reused by later runs, and each attempt runs in a container of the image on a VM started from the snapshot, where every egress policy is enforced and attempts sharing a machine each have their own network; the record names the snapshot and image in `sandboxBase`",
+    name: "`docker({ image, from, dockerfile, install })` on `boat()`: preflight builds the recipe's image once into a Boat saved snapshot named by its content key, reused by later runs, and each attempt runs in a container of the image on a VM started from the snapshot, where every egress policy is enforced and attempts sharing a machine each have their own network; the record names the snapshot and image in `sandboxBase`",
     fixtures: ['sandbox/boat-image'],
-    plan: ['environments/boat'],
+    plan: ['providers/config-provider'],
     unit: [
       'reeval/test/boat-images.test.ts',
       'reeval/test/machine-service.test.ts',
@@ -1234,14 +1247,14 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'daytona.sandbox',
     area: 'Sandbox',
-    name: "`daytona()` and `createDaytona({ apiKey, prefix })`: a Daytona sandbox of a default snapshot's `size` per attempt, over Daytona's SSH gateway with a token per machine, under `allow-all`, labeled with the run and deleted when it ends, with a TTL past the attempt in case it never is; its machine pool is `boat()`'s (`reuse`, `attemptsPerMachine`, a 429 holding every start for its `Retry-After`), capped by `maxConcurrent` alone",
+    name: "`daytona()` and `createDaytona({ apiKey, prefix })`: a Daytona sandbox of `size` per attempt, started from a snapshot of reeval's image for the harness, over Daytona's SSH gateway with a token per machine, under `allow-all`, labeled with the run and deleted when it ends, with a TTL past the attempt in case it never is; its machine pool is `boat()`'s (`reuse`, `attemptsPerMachine`, a 429 holding every start for its `Retry-After`), capped by `maxConcurrent` alone",
     fixtures: [
       'sandbox/daytona-session',
       'sandbox/daytona-resources',
       'sandbox/daytona-pool-reuse',
       'sandbox/daytona-shared-machine',
     ],
-    plan: ['environments/daytona'],
+    plan: ['providers/daytona', 'providers/daytona-shared'],
     unit: [
       'reeval/test/daytona.test.ts',
       'reeval/test/vm-api.test.ts',
@@ -1254,16 +1267,21 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'daytona.images',
     area: 'Sandbox',
-    name: "`daytona({ image, from, dockerfile, install })`: preflight generates one Dockerfile (reeval's toolchain on the base, the harness's bootstrap as steps run by the sandbox user, the install and a home copy for shared slots) and has Daytona build it into a snapshot named by its content key, waiting on one being built, activating an inactive one and rebuilding a failed one once, or, when the key can't make snapshots, builds it once in a sandbox that stops idle and is deleted, for every create to build from Daytona's cache; each sandbox logs in as root and runs the agent as `reeval`, with the harness already installed",
+    name: "`docker({ image, from, dockerfile, install })` on `daytona()`: preflight generates one Dockerfile (reeval's toolchain on the base, the harness's bootstrap as steps run by the sandbox user, the install and a home copy for shared slots) and has Daytona build it into a snapshot named by its content key, waiting on one being built, activating an inactive one and rebuilding a failed one once, or, when the key can't make snapshots, builds it once in a sandbox that stops idle and is deleted, for every create to build from Daytona's cache; each sandbox logs in as root and runs the agent as `reeval`, with the harness already installed",
     fixtures: ['sandbox/daytona-image'],
-    plan: ['environments/daytona'],
+    plan: ['providers/daytona'],
     unit: ['reeval/test/daytona-image.test.ts', 'reeval/test/refusals.test.ts'],
   },
   {
     id: 'cloud.sandbox',
     area: 'Sandbox',
-    name: "`cloud({ size, reuse, attemptsPerMachine, maxConcurrent })` (internal, `reeval/internal/vm`): a VM per attempt from the VM service at `REEVAL_VM_URL`, on `boat()`'s pool, over SSH, under `allow-all`, labeled, deleted when it ends, and recorded as `cloud` with no message, record field or log naming the upstream",
-    fixtures: ['sandbox/cloud-session', 'sandbox/cloud-shared-machine'],
+    name: "`cloud({ size, reuse, attemptsPerMachine, maxConcurrent })` (internal, `reeval/internal/vm`): a VM per attempt from the VM service at `REEVAL_VM_URL`, on `boat()`'s pool, over SSH, under `allow-all`, whose harness CLI it installs as the VM starts, before the harness's start is timed, once per machine for slots sharing one, labeled, deleted when it ends, and recorded as `cloud` with no message, record field or log naming the upstream",
+    fixtures: [
+      'sandbox/cloud-session',
+      'sandbox/cloud-shared-machine',
+      'sandbox/cloud-installs-harness',
+      'sandbox/cloud-shared-install',
+    ],
     plan: ['environments/cloud'],
     unit: [
       'reeval/test/cloud.test.ts',
@@ -1373,7 +1391,7 @@ export const inventory: InventoryFeature[] = [
     id: 'sandbox.resources-sampler',
     area: 'Sandbox',
     name: "The resources sampler is out of the agent's reach: a container's runs in a sibling container it can't see, a VM's as root",
-    fixtures: ['sandbox/resources-hidden', 'sandbox/boat-resources-root'],
+    fixtures: ['sandbox/resources-hidden', 'sandbox/cloud-resources-root'],
   },
   {
     id: 'docker.from',

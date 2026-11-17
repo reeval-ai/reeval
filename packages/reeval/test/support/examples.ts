@@ -160,9 +160,12 @@ export const EXAMPLES: Record<string, Example> = {
   'with-dockerfile': { run: { needs: 'Docker' }, ...ownSandbox('docker:sqlite') },
   'with-python-image': { run: { needs: 'Docker' }, ...ownSandbox('python') },
   'with-dart': {
-    run: { needs: 'BOAT_API_KEY and DAYTONA_API_KEY' },
-    plain: { harness: ['fake'], sandbox: ['boat:dart:3.5', 'daytona:dart:3.5'] },
-    shared: (h) => ({ harness: [h], sandbox: ['boat:dart:3.5', 'daytona:dart:3.5'] }),
+    run: { needs: 'Docker, or BOAT_API_KEY or DAYTONA_API_KEY' },
+    ...ownSandbox('docker:dart:3.5'),
+    profiles: {
+      boat: { harness: ['fake'], sandbox: ['docker:dart:3.5'] },
+      daytona: { harness: ['fake'], sandbox: ['docker:dart:3.5'] },
+    },
   },
   'with-podman': { run: { needs: 'Podman' }, ...ownSandbox('podman') },
   'with-resource-limits': { run: { needs: 'Docker' }, plain: fakeInDocker },

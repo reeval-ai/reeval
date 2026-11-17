@@ -1,8 +1,8 @@
 import { defineEnvironment, type Turn } from 'reeval'
-import { boat } from 'reeval/sandbox/boat'
+import { docker } from 'reeval/sandbox'
 
 export const keys = defineEnvironment('keys', ({ secret }) => ({
-  sandbox: boat(),
+  sandbox: docker(),
   egress: 'allow-all',
   env: { API_KEY: secret.fromEnv('REEVAL_FIXTURE_TOKEN', { hosts: ['api.example.com'] }) },
 }))

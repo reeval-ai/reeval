@@ -182,6 +182,13 @@ export function egressNeeds(planned: PlannedPhaseEgress): EgressCapabilities['en
 
 const LEVELS: EgressCapabilities['enforce'][] = ['none', 'all-or-nothing', 'allowlist']
 
+const onProvider = (s: SandboxDescriptor) => s.kind === 'boat' || s.kind === 'daytona'
+/** The sandbox in a refusal: a placed one by its provider. */
+const named = (s: SandboxDescriptor) => (onProvider(s) ? `${s.kind}()` : `the ${s.kind} sandbox`)
+/** Where else the attempt could run: off its provider, else in a sandbox that `fits`. */
+const instead = (s: SandboxDescriptor, fits: Parameters<typeof suggestedSandbox>[0]) =>
+  onProvider(s) ? `leave provider: ${s.kind}() out` : `run it in ${suggestedSandbox(fits)}`
+
 /** Why the sandbox can't enforce the attempt's policies, or undefined when it can. */
 export function unenforceable(
   planned: PlannedEgress,
@@ -190,7 +197,7 @@ export function unenforceable(
 ): string | undefined {
   if (!planned.setup) return unenforceablePhase(planned, sandbox, where, 'egress')
   if (!capabilitiesOf(sandbox).egress.switches) {
-    return `${where} runs under egress ${describeEgress(planned.setup.policy)} for setup and ${describeEgress(planned.policy)} for the agent, but the ${sandbox.kind} sandbox can't change its egress policy during an attempt. Give both phases one policy, or run it in ${suggestedSandbox((c) => c.isolated && c.egress.switches)}.`
+    return `${where} runs under egress ${describeEgress(planned.setup.policy)} for setup and ${describeEgress(planned.policy)} for the agent, but ${named(sandbox)} can't change its egress policy during an attempt. Give both phases one policy, or ${instead(sandbox, (c) => c.isolated && c.egress.switches)}.`
   }
   return (
     unenforceablePhase(planned.setup, sandbox, where, 'egress.setup') ??
@@ -209,7 +216,7 @@ function unenforceablePhase(
   // `proxy` promises the gateway is the only way out, which a sandbox of its own that enforces
   // nothing can't keep; on the host (the fake sandbox) there's no way out to close.
   if (planned.policy === 'proxy' && capabilities.isolated && can === 'none') {
-    return `${where} runs under ${key} 'proxy', where the egress gateway is the only way out, but the ${sandbox.kind} sandbox enforces no egress policy: its traffic that ignores the proxy goes out directly. Set ${key}: 'allow-all' to run it there, or run it in ${suggestedSandbox((c) => c.isolated && c.egress.enforce !== 'none')}.`
+    return `${where} runs under ${key} 'proxy', where the egress gateway is the only way out, but ${named(sandbox)} enforces no egress policy: its traffic that ignores the proxy goes out directly. Set ${key}: 'allow-all' to run it there, or ${instead(sandbox, (c) => c.isolated && c.egress.enforce !== 'none')}.`
   }
   const needs = egressNeeds(planned)
   if (LEVELS.indexOf(can) >= LEVELS.indexOf(needs)) return undefined
@@ -227,10 +234,12 @@ function unenforceablePhase(
   const enforcing = suggestedSandbox(
     (c) => LEVELS.indexOf(c.egress.enforce) >= LEVELS.indexOf(needs),
   )
-  const hint = capabilities.isolated
-    ? ''
-    : ` (its commands run on the host). ${enforcing ? `Run it in ${enforcing}, or set` : 'Set'} ${key}: 'allow-all'`
-  return `${where} runs under ${key} ${describeEgress(planned.policy)}, which needs ${what}, but the ${sandbox.kind} sandbox ${enforces}${hint}.`
+  const hint = onProvider(sandbox)
+    ? `. Set ${key}: 'allow-all', or ${instead(sandbox, () => true)}`
+    : capabilities.isolated
+      ? ''
+      : ` (its commands run on the host). ${enforcing ? `Run it in ${enforcing}, or set` : 'Set'} ${key}: 'allow-all'`
+  return `${where} runs under ${key} ${describeEgress(planned.policy)}, which needs ${what}, but ${named(sandbox)} ${enforces}${hint}.`
 }
 
 const describeEgress = (policy: EgressPolicy) =>

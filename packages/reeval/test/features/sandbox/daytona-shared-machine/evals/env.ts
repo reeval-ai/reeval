@@ -1,8 +1,8 @@
 import { defineEnvironment, type Turn } from 'reeval'
-import { daytona } from 'reeval/sandbox/daytona'
+import { docker } from 'reeval/sandbox'
 
 export const vm = defineEnvironment('vm', {
-  sandbox: daytona({ attemptsPerMachine: 2, maxConcurrent: 2 }),
+  sandbox: docker(),
   egress: 'allow-all',
 })
 

@@ -1,7 +1,7 @@
 import { defineEnvironment } from 'reeval'
-import { boat } from 'reeval/sandbox/boat'
+import { cloud } from 'reeval/internal/vm'
 
-export const vm = defineEnvironment('vm', { sandbox: boat(), egress: 'allow-all' })
+export const vm = defineEnvironment('vm', { sandbox: cloud(), egress: 'allow-all' })
 
 /**
  * After the sampler has had time to start, as the sandbox user: `none` when no process is the

@@ -24,6 +24,7 @@ import {
 } from '@reeval/sandbox-docker'
 import type { PlannedItem } from '../engine/node.ts'
 import { buildSteps, pluginBuildId, pluginBuildsLabel, pluginCall } from '../environment/plugins.ts'
+import { placedSandbox } from '../environment.ts'
 import { sandboxId, sandboxProvider } from '../options.ts'
 import type {
   AttemptImage,
@@ -110,7 +111,11 @@ export async function plannedImageUses(
         environment: p.attempt.cell.environment,
         egress: p.attempt.egress,
       }))
-    : run.config.harness.map((harness) => ({ id: '', harness, sandbox: run.config.sandbox }))
+    : run.config.harness.map((harness) => ({
+        id: '',
+        harness,
+        sandbox: placedSandbox(run.config.sandbox, run.config, run.profile),
+      }))
 }
 
 /**

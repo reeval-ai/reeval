@@ -15,10 +15,13 @@ import type {
   ProfileData,
   ProfileDefaultsData,
   ProfileLimit,
+  ProviderDescriptor,
   ReevalConfigData,
   S3StoreDescriptor,
   S3StoreEnv,
 } from '../types.ts'
+import { boatProviderSchema } from './boat.ts'
+import { daytonaProviderSchema } from './daytona.ts'
 import { environmentDataSchema, sandboxDescriptorSchema } from './environment.ts'
 import { gatewayEntryDataSchema } from './gateway.ts'
 import { harnessDescriptorSchema } from './harness.ts'
@@ -109,6 +112,8 @@ export const historyConfigDataSchema = z.strictObject({
   debugArchive: z.boolean().optional(),
 })
 
+export const providerDescriptorSchema = z.union([boatProviderSchema, daytonaProviderSchema])
+
 const recordMode = z.enum(['manual', 'ci', 'always'])
 
 export const profileDefaultsDataSchema = z.strictObject({
@@ -145,6 +150,7 @@ export const profileDataSchema = z.strictObject({
   gateway: z.array(gatewayEntryDataSchema).min(1).optional(),
   history: historyConfigDataSchema.optional(),
   cloud: z.boolean().optional(),
+  provider: providerDescriptorSchema.optional(),
 })
 
 const fakeVote = z.enum(['A', 'B', 'tie'])
@@ -208,9 +214,11 @@ export const reevalConfigDataSchema = z.strictObject({
   analysis: analysisConfigDataSchema.optional(),
   gateway: z.array(gatewayEntryDataSchema).min(1).optional(),
   cloud: z.boolean().optional(),
+  provider: providerDescriptorSchema.optional(),
 })
 
 export type _SameAsSchema = [
+  Assert<Same<z.infer<typeof providerDescriptorSchema>, ProviderDescriptor>>,
   Assert<Same<z.infer<typeof captureWindowSchema>, CaptureWindow>>,
   Assert<Same<z.infer<typeof captureOptionsSchema>, CaptureOptions>>,
   Assert<Same<z.infer<typeof budgetSchema>, Budget>>,
