@@ -4,7 +4,7 @@
 // and pools on one account sharing its machines and starts, an idle machine making way for
 // another pool's.
 import assert from 'node:assert/strict'
-import { describe, test } from 'node:test'
+import { afterEach, describe, type TestContext, test } from 'node:test'
 import {
   type GoneMachine,
   MachinePool,
@@ -41,10 +41,17 @@ type Fake = PoolProvider<{ host: string }> & {
  */
 function fakeProvider(
   answer: (n: number) => 'ok' | RateLimitError | Error | 'hang' = () => 'ok',
-  o: { startMs?: number; removeMs?: number; keepAlive?: (id: string) => void } = {},
+  o: {
+    startMs?: number
+    removeMs?: number
+    keepAlive?: (id: string) => void
+    /** The clock `tries` and `started` read: `Date.now` under mocked timers. */
+    now?: () => number
+  } = {},
 ): Fake {
   let n = 0
-  const t0 = performance.now()
+  const now = o.now ?? (() => performance.now())
+  const t0 = now()
   const live = new Set<string>()
   let peak = 0
   const fake: Fake = {
@@ -57,7 +64,7 @@ function fakeProvider(
     live: () => [...live],
     peak: () => peak,
     async start(signal) {
-      const at = performance.now() - t0
+      const at = now() - t0
       fake.tries.push(at)
       const what = answer(n++)
       if (what instanceof Error) throw what
@@ -89,14 +96,57 @@ function fakeProvider(
   return fake
 }
 
-const pool = (provider: Fake, o: Partial<PoolOptions> = {}) =>
-  new MachinePool(provider, {
+/**
+ * Every pool and account a test made, closed after it: an open one's timers would keep the
+ * process alive. A test on the fake clock closes them on it, since its timers are still mocked here.
+ */
+const open = new Set<MachinePool<unknown>>()
+const accounts = new Set<PoolAccount>()
+let clock: (<T>(work: Promise<T>) => Promise<T>) | undefined
+afterEach(async () => {
+  const pools = [...open]
+  open.clear()
+  for (const a of accounts) a.close()
+  accounts.clear()
+  const drive = clock ?? (<T>(work: Promise<T>) => work)
+  clock = undefined
+  await drive(Promise.all(pools.map((p) => p.close())))
+})
+
+const pool = (provider: Fake, o: Partial<PoolOptions> = {}) => {
+  const p = new MachinePool(provider, {
     limits: { machines: 10 },
     attemptsPerMachine: 1,
     reuse: false,
     idleMs: 60_000,
     ...o,
   })
+  open.add(p as MachinePool<unknown>)
+  return p
+}
+
+/**
+ * Mocks the clock and timers for `t`, and returns how to run `work` on it: the clock moves a
+ * millisecond at a time, each step after everything due has run, until `work` settles.
+ */
+function fakeClock(t: TestContext) {
+  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'], now: 0 })
+  const run = async <T>(work: Promise<T>, limitMs = 60_000): Promise<T> => {
+    let settled = false
+    const done = work.finally(() => {
+      settled = true
+    })
+    done.catch(() => {})
+    for (let ms = 0; !settled; ms++) {
+      if (ms > limitMs) throw new Error(`still waiting after ${limitMs}ms on the fake clock`)
+      for (let i = 0; i < 5; i++) await new Promise((r) => setImmediate(r))
+      if (!settled) t.mock.timers.tick(1)
+    }
+    return done
+  }
+  clock = run
+  return run
+}
 
 const until = async (check: () => boolean, ms = 2_000) => {
   const deadline = Date.now() + ms
@@ -157,32 +207,30 @@ describe('machine pool', () => {
     await p.close()
   })
 
-  test('holds starts to the per-minute window, sliding', async () => {
-    const provider = fakeProvider()
+  test('holds starts to the per-minute window, sliding', async (t) => {
+    const run = fakeClock(t)
+    const provider = fakeProvider(() => 'ok', { now: Date.now })
     const p = pool(provider, {
       limits: { machines: 10, startsPerMinute: 3 },
       windowsMs: { minute: 300, hour: 60_000 },
     })
-    const leases = await Promise.all(Array.from({ length: 7 }, () => p.acquire()))
-    const at = provider.tries.map((t) => Math.floor(t / 300))
-    assert.deepEqual(at, [0, 0, 0, 1, 1, 1, 2])
+    const leases = await run(Promise.all(Array.from({ length: 7 }, () => p.acquire())))
+    assert.deepEqual(provider.tries, [0, 0, 0, 300, 300, 300, 600])
     assert.equal(new Set(leases.map((l) => l.machine)).size, 7)
-    await p.close()
+    await run(p.close())
     assert.deepEqual(provider.live(), [])
   })
 
-  test('the hour window counts too', async () => {
-    const provider = fakeProvider()
+  test('the hour window counts too', async (t) => {
+    const run = fakeClock(t)
+    const provider = fakeProvider(() => 'ok', { now: Date.now })
     const p = pool(provider, {
       limits: { machines: 10, startsPerMinute: 10, startsPerHour: 2 },
       windowsMs: { minute: 50, hour: 400 },
     })
-    await Promise.all(Array.from({ length: 3 }, () => p.acquire()))
-    assert.deepEqual(
-      provider.tries.map((t) => t >= 400),
-      [false, false, true],
-    )
-    await p.close()
+    await run(Promise.all(Array.from({ length: 3 }, () => p.acquire())))
+    assert.deepEqual(provider.tries, [0, 0, 400])
+    await run(p.close())
   })
 
   test('a run-wide start limit is spent once, never refilled, and a refused start keeps its share', async () => {
@@ -615,7 +663,11 @@ describe('machine pool', () => {
 })
 
 describe('pools on one account', () => {
-  const account = (o: AccountOptions) => new PoolAccount('fake()', o)
+  const account = (o: AccountOptions) => {
+    const a = new PoolAccount('fake()', o)
+    accounts.add(a)
+    return a
+  }
 
   test('a start with no bound on its wait waits out a held window', async () => {
     const shared = account({ limits: { machines: 1, startsPerMinute: 10 } })
