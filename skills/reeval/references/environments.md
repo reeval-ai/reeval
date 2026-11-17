@@ -155,16 +155,16 @@ version tag isn't there to pin. `:latest` or no tag warns, and each attempt reco
 cloned in `vmImage`.
 
 ```ts
-import { boat, createBoat } from 'reeval/sandbox/boat'
-// one boat.dev VM per attempt, over SSH (cell id `boat`, or `boat:large`)
-defineEnvironment('vm', { sandbox: boat({ type: 'large' }), egress: 'allow-all' })
+import { boat, createBoat } from 'reeval/provider/boat'
+// in reeval.config.ts or a profile: each docker() sandbox on a boat.dev VM per attempt, over SSH
+// (the cell id stays the sandbox's, such as `docker`)
+export default defineConfig({ provider: boat({ type: 'large' }) })
 ```
 
 `boat()` needs `npm i @boatdev/sdk`, `BOAT_API_KEY` (or `createBoat({ apiKey, prefix })` for
-another account) and an OpenSSH client, and without an image plans only under
-`egress: 'allow-all'`; reeval refuses the other policies at plan time. With `image`, `from`,
-`dockerfile` or `install`, as `docker()` takes them, preflight saves the image in a Boat snapshot and each attempt runs in a
-container of it, under any egress policy.
+another account) and an OpenSSH client. Preflight saves the `docker()` sandbox's image, or reeval's
+image for the harness without `image`, `from`, `dockerfile` or `install`, in a Boat snapshot and
+each attempt runs in a container of it, under any egress policy.
 
 The agent, setup and `c.exec` run as `reeval` (home `/home/reeval`) with no capabilities; builds
 run as root. `root: true` or `capabilities` print a warning at the start of every run, so prefer

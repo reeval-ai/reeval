@@ -1,18 +1,23 @@
-// The Daytona sandbox's plain-data contract: what `daytona()` returns and what a declaration tree
-// from any language carries. The types in types.ts are the ones users hover, held to these schemas
-// by `_SameAsSchema` below.
+// The Daytona provider's plain-data contract: what `daytona()` returns and what a config from any
+// language carries, and the internal sandbox `place()` makes of a docker() on it. The types in
+// types.ts are the ones users hover, held to these schemas by `_SameAsSchema` below.
 import { z } from 'zod'
 import { UsageError } from '../errors.ts'
-import type { DaytonaApiKey, DaytonaSandboxDescriptor, DaytonaSize } from '../types.ts'
-import { BOAT_ATTEMPTS_PER_MACHINE_MAX, BOAT_PREFIX, BOAT_PREFIX_MAX } from './boat.ts'
-import { VAR } from './plain.ts'
+import type {
+  DaytonaApiKey,
+  DaytonaProviderDescriptor,
+  DaytonaSandboxDescriptor,
+  DaytonaSize,
+} from '../types.ts'
 import {
-  installMessage,
-  oneRecipe,
-  recipeFieldMessage,
-  recipeFields,
-  recipeMessage,
-} from './recipe.ts'
+  BOAT_ATTEMPTS_PER_MACHINE_MAX,
+  BOAT_PREFIX,
+  BOAT_PREFIX_MAX,
+  SANDBOX_KEYS,
+  sandboxKeyMessage,
+} from './boat.ts'
+import { VAR } from './plain.ts'
+import { oneRecipe, recipeFields } from './recipe.ts'
 import { type Assert, closest, got, type Issue, nonEmpty, refusal, type Same } from './shared.ts'
 
 /** reeval adds `-<run>-<attempt>` (16 characters) to a sandbox's prefix, as for Boat. */
@@ -27,6 +32,20 @@ const prefixSchema = z.string().max(DAYTONA_PREFIX_MAX).regex(DAYTONA_PREFIX)
 const sizeSchema = z.enum(DAYTONA_SIZES)
 const attemptsSchema = z.number().int().min(1).max(DAYTONA_ATTEMPTS_PER_MACHINE_MAX)
 
+const machineFields = {
+  size: sizeSchema.optional(),
+  maxConcurrent: z.number().int().min(1).optional(),
+  reuse: z.boolean().optional(),
+  attemptsPerMachine: attemptsSchema.optional(),
+}
+
+export const daytonaProviderSchema = z.strictObject({
+  kind: z.literal('daytona'),
+  apiKey: apiKeySchema,
+  prefix: prefixSchema,
+  ...machineFields,
+})
+
 export const daytonaSandboxSchema = z
   .strictObject({
     kind: z.literal('daytona'),
@@ -35,10 +54,8 @@ export const daytonaSandboxSchema = z
     prefix: prefixSchema,
     ...recipeFields,
     dockerfile: nonEmpty().optional(),
-    size: sizeSchema.optional(),
-    maxConcurrent: z.number().optional(),
-    reuse: z.boolean().optional(),
-    attemptsPerMachine: attemptsSchema.optional(),
+    reevalImage: z.literal(true).optional(),
+    ...machineFields,
   })
   .superRefine(oneRecipe)
 
@@ -51,34 +68,20 @@ export type CreateDaytonaOptions = {
 }
 
 /** `daytona()`'s argument. */
-export type DaytonaOptions = Omit<
-  DaytonaSandboxDescriptor,
-  'kind' | 'apiKey' | 'prefix' | 'dockerfile'
-> & {
-  /** Relative to the file that calls `daytona()`, or an absolute path or `URL`. */
-  dockerfile?: string | URL
-}
+export type DaytonaOptions = Omit<DaytonaProviderDescriptor, 'kind' | 'apiKey' | 'prefix'>
 
 export const createDaytonaOptionsSchema = z.strictObject({
   apiKey: apiKeySchema.optional(),
   prefix: prefixSchema.optional(),
 })
 
-export const daytonaOptionsSchema = z
-  .strictObject({
-    id: nonEmpty().optional(),
-    ...recipeFields,
-    dockerfile: z.union([nonEmpty(), z.instanceof(URL)]).optional(),
-    size: sizeSchema.optional(),
-    maxConcurrent: z.number().optional(),
-    reuse: z.boolean().optional(),
-    attemptsPerMachine: attemptsSchema.optional(),
-  })
-  .superRefine(oneRecipe)
+export const daytonaOptionsSchema = z.strictObject(machineFields)
 
 export type _SameAsSchema = [
   Assert<Same<z.infer<typeof daytonaSandboxSchema>, DaytonaSandboxDescriptor>>,
   Assert<Same<keyof z.infer<typeof daytonaSandboxSchema>, keyof DaytonaSandboxDescriptor>>,
+  Assert<Same<z.infer<typeof daytonaProviderSchema>, DaytonaProviderDescriptor>>,
+  Assert<Same<keyof z.infer<typeof daytonaProviderSchema>, keyof DaytonaProviderDescriptor>>,
   Assert<Same<z.infer<typeof apiKeySchema>, DaytonaApiKey>>,
   Assert<Same<z.infer<typeof sizeSchema>, DaytonaSize>>,
   Assert<Same<z.input<typeof createDaytonaOptionsSchema>, CreateDaytonaOptions>>,
@@ -100,35 +103,20 @@ const NOT_ON_DAYTONA: Record<string, string> = {
   type: SIZES,
 }
 
-const ORDER = [
-  'id',
-  'image',
-  'from',
-  'dockerfile',
-  'install',
-  'size',
-  'maxConcurrent',
-  'reuse',
-  'attemptsPerMachine',
-]
+const ORDER = ['size', 'maxConcurrent', 'reuse', 'attemptsPerMachine']
 
 function explain(fn: string) {
   return (issue: Issue, value: unknown): string => {
     const options = (value ?? {}) as Record<string, unknown>
     if (issue.code === 'unrecognized_keys' && issue.path.length === 0) {
       const key = issue.keys[0] as string
+      if (SANDBOX_KEYS.includes(key)) return sandboxKeyMessage(fn, key)
       if (NOT_ON_DAYTONA[key]) return `${fn}() doesn't take ${key}: ${NOT_ON_DAYTONA[key]}.`
       const near = closest(key, fn === 'createDaytona' ? ['apiKey', 'prefix'] : ORDER)
       return `Unknown ${fn}() option "${key}".${near ? ` Did you mean "${near}"?` : ''}`
     }
-    if (issue.path[0] === 'install' && issue.path.length > 1) {
-      return installMessage(fn, (options.install as unknown[])[issue.path[1] as number])
-    }
-    if (issue.code === 'custom') return recipeMessage(fn, issue.params)
     const key = String(issue.path[0])
     const v = options[key]
-    const recipe = recipeFieldMessage(fn, key, v)
-    if (recipe) return recipe
     switch (key) {
       case 'apiKey':
         return typeof v === 'string'
@@ -138,16 +126,14 @@ function explain(fn: string) {
         return `${fn}({ prefix }) takes lowercase letters, digits and dashes, starting and ending with a letter or digit, at most ${DAYTONA_PREFIX_MAX} characters, e.g. prefix: 'acme-evals' (got ${got(v)})`
       case 'size':
         return `${fn}({ size }) is one of ${DAYTONA_SIZES.map((t) => `'${t}'`).join(', ')} (got ${got(v)})`
-      case 'id':
-        return `${fn}({ id }) must be a non-empty string (got ${got(v)})`
       case 'maxConcurrent':
-        return `${fn}({ maxConcurrent }) takes a number (got ${got(v)})`
+        return `${fn}({ maxConcurrent }) takes a whole number of at least 1 (got ${got(v)})`
       case 'reuse':
         return `${fn}({ reuse }) is true or false (got ${got(v)})`
       case 'attemptsPerMachine':
         return `${fn}({ attemptsPerMachine }) is a whole number from 1 to ${DAYTONA_ATTEMPTS_PER_MACHINE_MAX} (got ${got(v)})`
       case 'kind':
-        return `a Daytona sandbox's kind is "daytona" (got ${got(v)})`
+        return `a Daytona provider's kind is "daytona" (got ${got(v)})`
       default:
         return `${fn}({ ${key} }) is invalid (got ${got(v)})`
     }
@@ -168,21 +154,8 @@ export function checkDaytonaOptions(options: unknown): void {
   if (problem) throw new UsageError(problem)
 }
 
-/** What's wrong with a Daytona descriptor from any source, or undefined; `maxConcurrent` is left out. */
-export const daytonaProblem = (value: DaytonaSandboxDescriptor) =>
-  refusal(daytonaSandboxSchema, value, explain('daytona'), {
-    order: [
-      'kind',
-      'apiKey',
-      'prefix',
-      'id',
-      'image',
-      'from',
-      'dockerfile',
-      'install',
-      'size',
-      'reuse',
-      'attemptsPerMachine',
-    ],
-    skip: ['maxConcurrent'],
+/** What's wrong with a Daytona provider from any source, or undefined. */
+export const daytonaProviderProblem = (value: unknown) =>
+  refusal(daytonaProviderSchema, value, explain('daytona'), {
+    order: ['kind', 'apiKey', 'prefix', ...ORDER],
   })

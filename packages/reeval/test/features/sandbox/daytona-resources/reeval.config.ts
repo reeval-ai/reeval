@@ -1,6 +1,7 @@
 import { defineConfig } from 'reeval'
 import { fakeHarness } from 'reeval/harness'
+import { daytona } from 'reeval/provider/daytona'
 
-// Docker tier only: daytona() on the fake Daytona API, whose sshd containers have a VM's /proc and
+// Docker tier only: docker() on daytona(), the fake Daytona API, whose sshd containers have a VM's /proc and
 // /sys.
-export default defineConfig({ harnesses: fakeHarness() })
+export default defineConfig({ harnesses: fakeHarness(), provider: daytona() })

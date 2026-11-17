@@ -28,7 +28,7 @@ import type { OpenPool } from './machine-service.ts'
 import { optionalPeer } from './optional-peer.ts'
 import type { PoolProvider } from './pool.ts'
 import { PrepareError } from './provider.ts'
-import { recipeOf } from './recipe.ts'
+import { machineRecipeOf } from './recipe.ts'
 import {
   createPooledSshSandbox,
   missingSshTool,
@@ -594,7 +594,7 @@ export async function createBoatSandbox(
   descriptor: BoatSandboxDescriptor,
   options: SandboxOptions,
 ): Promise<NetworkSandbox> {
-  if (recipeOf(descriptor)) {
+  if (machineRecipeOf(descriptor)) {
     if (!options.base) {
       throw new InfraError("The boat() sandbox's image wasn't prepared before the run started")
     }

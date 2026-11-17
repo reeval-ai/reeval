@@ -20,12 +20,11 @@ import type { MachineDescriptor, MachineProvider } from '../src/sandbox/machine.
 import { MACHINE_PROVIDERS } from '../src/sandbox/machines.ts'
 import { vmPrefix } from '../src/sandbox/tart.ts'
 import { hasNetworkSession, type Sandbox } from '../src/sandbox/types.ts'
-import { boat } from '../src/sandbox-boat.ts'
-import { daytona } from '../src/sandbox-daytona.ts'
 import { openSpan, type SpanInput, setLocalSpanSink, withAttemptSpan } from '../src/trace/spans.ts'
 import { type FakeBoat, fakeBoat } from './support/boat.ts'
 import { type FakeDaytona, fakeDaytona } from './support/daytona.ts'
 import { fakeTart, holdLoopback } from './support/fake-tart.ts'
+import { boatSandbox as boat, daytonaSandbox as daytona } from './support/machines.ts'
 import {
   buildSshVmImage,
   SSH_VM_IMAGE,

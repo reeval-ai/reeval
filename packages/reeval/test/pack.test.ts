@@ -172,8 +172,8 @@ const binCli =
 
 const BOAT_CONFIG = (pkg: string) => `import { defineConfig } from '${pkg}'
 import { fakeHarness } from '${pkg}/harness'
-import { boat } from '${pkg}/sandbox/boat'
-export default defineConfig({ harnesses: fakeHarness(), sandbox: boat(), egress: 'allow-all' })
+import { boat } from '${pkg}/provider/boat'
+export default defineConfig({ harnesses: fakeHarness(), provider: boat(), egress: 'allow-all' })
 `
 
 /**
@@ -394,7 +394,8 @@ test('the packed package installs into a clean project and runs reeval', {
     'index',
     'harness',
     'sandbox',
-    'sandbox/boat',
+    'provider/boat',
+    'provider/daytona',
     'store/local',
     'store/s3',
     'judge',

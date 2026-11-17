@@ -118,14 +118,16 @@ const idle = async (): Promise<SshVm> => ({
 /** A host cache of its own, so this machine's record of each snapshot's use starts empty. */
 const hostCache = () => mkdtempSync(join(tmpdir(), 'reeval-vm-cache-'))
 
-const files = (sandbox: string, imports: string) => ({
+const files = (provider: string, imports: string) => ({
   'reeval.config.ts': `
 import { defineConfig } from 'reeval'
 import { fakeHarness } from 'reeval/harness'
+import { docker } from 'reeval/sandbox'
 ${imports}
 export default defineConfig({
   harnesses: fakeHarness({ script: [[{ exec: 'true' }]] }),
-  sandbox: ${sandbox},
+  sandbox: docker({ dockerfile: './image/Dockerfile' }),
+  provider: ${provider},
   egress: 'allow-all',
 })
 `,
@@ -148,10 +150,7 @@ describe('reeval image on daytona()', () => {
   test('builds the snapshot, lists it, and clean keeps it while an environment uses it', async () => {
     const p = await project(
       'vm-images-daytona',
-      files(
-        "daytona({ dockerfile: './image/Dockerfile' })",
-        "import { daytona } from 'reeval/sandbox/daytona'",
-      ),
+      files('daytona()', "import { daytona } from 'reeval/provider/daytona'"),
     )
     const cacheHome = hostCache()
     const env = { DAYTONA_API_URL: api.url, DAYTONA_API_KEY: api.key, XDG_CACHE_HOME: cacheHome }
@@ -171,11 +170,17 @@ describe('reeval image on daytona()', () => {
 
     const built = await cli(['image', 'build'])
     assert.equal(built.code, 0, built.stdout + built.stderr)
-    assert.match(built.stdout, new RegExp(`✓ daytona.*: snapshot ${name} built in`))
+    assert.match(
+      built.stdout,
+      new RegExp(`✓ docker:image on daytona\\(\\).*: snapshot ${name} built in`),
+    )
     assert.equal(api.snapshots().find((s) => s.name === name)?.state, 'active')
 
     const again = await cli(['image', 'build'])
-    assert.match(again.stdout, new RegExp(`✓ daytona.*: snapshot ${name} saved`))
+    assert.match(
+      again.stdout,
+      new RegExp(`✓ docker:image on daytona\\(\\).*: snapshot ${name} saved`),
+    )
 
     api.seedSnapshot('reeval-img-000000000000', {
       state: 'active',
@@ -242,7 +247,10 @@ describe('reeval image on daytona()', () => {
     for (const e of doc.images) e.lastUsedAt = Date.now() - 2 * RECENT_MS
     writeFileSync(cache, JSON.stringify(doc))
     const inUse = await cli(['image', 'clean'])
-    assert.match(inUse.stdout, new RegExp(`kept daytona ${name}: used by daytona`))
+    assert.match(
+      inUse.stdout,
+      new RegExp(`kept daytona ${name}: used by docker:image on daytona\\(\\)`),
+    )
     const all = await cli(['image', 'clean', '--all', '--provider', 'daytona'])
     assert.equal(all.code, 0, all.stdout + all.stderr)
     assert.deepEqual(names(), ['reeval-img-222222222222', 'reeval-img-mine', 'someone-else'])
@@ -259,10 +267,7 @@ describe('reeval image on boat()', () => {
   test('uses a saved snapshot, and refuses a provider it has no kind for', async () => {
     const p = await project(
       'vm-images-boat',
-      files(
-        "boat({ dockerfile: './image/Dockerfile' })",
-        "import { boat } from 'reeval/sandbox/boat'",
-      ),
+      files('boat()', "import { boat } from 'reeval/provider/boat'"),
     )
     const env = { BOAT_BASE_URL: api.url, BOAT_API_KEY: api.key, XDG_CACHE_HOME: hostCache() }
     const cli = (args: string[]) => runCli(p.dir, args, { env, timeoutMs: 90_000 })
@@ -278,16 +283,18 @@ describe('reeval image on boat()', () => {
       polls: 0,
     })
     const saved = await cli(['image', 'build', '--dry-run'])
-    assert.match(saved.stdout, new RegExp(`✓ boat.* ${name} {2}\\(saved\\)`))
+    assert.match(saved.stdout, new RegExp(`✓ docker:image on boat().* ${name} {2}\\(saved\\)`))
     const built = await cli(['image', 'build'])
     assert.equal(built.code, 0, built.stdout + built.stderr)
-    assert.match(built.stdout, new RegExp(`✓ boat.*: snapshot ${name} saved`))
+    assert.match(built.stdout, new RegExp(`✓ docker:image on boat().*: snapshot ${name} saved`))
 
     const list = await cli(['image', 'list'])
     assert.equal(list.code, 0, list.stdout + list.stderr)
     assert.match(
       list.stdout,
-      new RegExp(`boat +${name} +ready +300 MB +saved .* used just now +boat`),
+      new RegExp(
+        `boat +${name} +ready +300 MB +saved .* used just now +docker:image on boat\\(\\)`,
+      ),
     )
 
     api.snapshots.set('reeval-img-000000000000', {
@@ -316,6 +323,6 @@ describe('reeval image on boat()', () => {
     assert.match(bad.stderr + bad.stdout, /--provider is boat or daytona \(got "tart"\)/)
     const none = await cli(['image', 'clean', '--provider', 'daytona'])
     assert.equal(none.code, 0)
-    assert.match(none.stdout, /No eval runs in a daytona\(\) sandbox/)
+    assert.match(none.stdout, /No eval runs on daytona\(\)/)
   })
 })

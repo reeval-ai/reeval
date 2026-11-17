@@ -34,13 +34,13 @@
       "types": "./dist/sandbox.d.ts",
       "default": "./dist/sandbox.js"
     },
-    "./sandbox/boat": {
-      "types": "./dist/sandbox/boat.d.ts",
-      "default": "./dist/sandbox/boat.js"
+    "./provider/boat": {
+      "types": "./dist/provider/boat.d.ts",
+      "default": "./dist/provider/boat.js"
     },
-    "./sandbox/daytona": {
-      "types": "./dist/sandbox/daytona.d.ts",
-      "default": "./dist/sandbox/daytona.js"
+    "./provider/daytona": {
+      "types": "./dist/provider/daytona.d.ts",
+      "default": "./dist/provider/daytona.js"
     },
     "./store/local": {
       "types": "./dist/store/local.d.ts",

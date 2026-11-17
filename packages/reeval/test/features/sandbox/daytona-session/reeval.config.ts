@@ -1,7 +1,8 @@
 import { defineConfig } from 'reeval'
 import { fakeHarness } from 'reeval/harness'
+import { daytona } from 'reeval/provider/daytona'
 
-// Docker tier only: daytona() on the fake Daytona API, whose sandboxes are sshd containers that a
+// Docker tier only: docker() on daytona(), the fake Daytona API, whose sandboxes are sshd containers that a
 // token logs in to with no key, as Daytona's SSH gateway takes one. As the agent: who and where the
 // shell runs, which node and npm it finds, and its proxy.
 export default defineConfig({
@@ -14,4 +15,5 @@ export default defineConfig({
       ],
     ],
   }),
+  provider: daytona(),
 })

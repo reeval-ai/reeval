@@ -28,13 +28,13 @@ import { kindOf, type MachineProvider } from '../src/sandbox/machine.ts'
 import { MACHINE_PROVIDERS } from '../src/sandbox/machines.ts'
 import { classifyTart, createProviders, tartHostProblem } from '../src/sandbox/providers.ts'
 import { docker, fakeSandbox, podman, tart } from '../src/sandbox.ts'
-import { boat } from '../src/sandbox-boat.ts'
 import type {
   BoatSandboxDescriptor,
   ResolvedConfig,
   SandboxDescriptor,
   TartSandboxDescriptor,
 } from '../src/types.ts'
+import { boatSandbox as boat } from './support/machines.ts'
 
 const IMAGE = 'ghcr.io/cirruslabs/macos-sequoia-base:latest'
 
@@ -56,8 +56,10 @@ describe('sandbox kinds', () => {
   })
 
   test('each kind names its helpers, and messages list every one but the internal kinds', () => {
-    assert.equal(sandboxHelpers(), 'docker(), podman(), fakeSandbox(), tart(), boat() or daytona()')
+    assert.equal(sandboxHelpers(), 'docker(), podman(), fakeSandbox() or tart()')
     assert.equal(SANDBOX_KINDS.cloud.internal, true)
+    assert.equal(SANDBOX_KINDS.boat.internal, true, 'boat() is a provider')
+    assert.equal(SANDBOX_KINDS.daytona.internal, true, 'daytona() is a provider')
     assert.doesNotMatch(
       suggestedSandbox(() => true),
       /cloud/,
@@ -191,7 +193,7 @@ describe('which sandbox a real harness runs in', () => {
   test('the fake sandbox names what it lacks and the sandbox that has it', () => {
     assert.equal(
       agentSandboxProblem(AGENTS.cursor, fakeSandbox()),
-      "The Cursor harness can't run in the fake sandbox, which has no harness session and can't keep CURSOR_API_KEY out of it: set sandbox: docker() or tart() or boat() or daytona() for this eval, or use fakeHarness() with fakeSandbox()",
+      "The Cursor harness can't run in the fake sandbox, which has no harness session and can't keep CURSOR_API_KEY out of it: set sandbox: docker() or tart() for this eval, or use fakeHarness() with fakeSandbox()",
     )
   })
 

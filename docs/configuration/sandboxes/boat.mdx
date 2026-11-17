@@ -3,17 +3,16 @@ title: "Run on Boat"
 description: "Run each attempt in its own boat.dev VM, over SSH."
 ---
 
-`boat()` returns a sandbox that runs each attempt in a fresh [boat.dev](https://boat.dev) VM. reeval creates the VM as the attempt starts, runs the agent, the setup commands, and the assertions in it over SSH, and deletes it when the attempt ends.
+`boat()` returns a provider that runs each attempt's `docker()` sandbox in a fresh [boat.dev](https://boat.dev) VM: a container of the sandbox's image, or of reeval's image for the harness without an image recipe. reeval creates the VM as the attempt starts, runs the agent, the setup commands, and the assertions in it over SSH, and deletes it when the attempt ends.
 
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
 import { cursor } from '{{ pkg }}/harness'
-import { boat } from '{{ pkg }}/sandbox/boat'
+import { boat } from '{{ pkg }}/provider/boat'
 
 export default defineConfig({
   harnesses: cursor({ model: 'composer-2.5' }),
-  sandbox: boat(),
-  egress: 'allow-all',
+  provider: boat(),
 })
 ```
 
@@ -25,23 +24,22 @@ export default defineConfig({
 - **A Boat API key in `BOAT_API_KEY`**, in the shell or the `.env.local` file. The key stays on the host.
 - **An OpenSSH client.** reeval runs every command in the VM through `ssh` on the host, with a key `ssh-keygen` makes for each attempt.
 - **reeval from npm, on Node.** The standalone `reeval` binary isn't verified with the Boat SDK yet.
-- **`egress: 'allow-all'`, without an image recipe.** The VM keeps its own network, so reeval can't enforce a restricted policy there, and refuses `proxy`, the default, at plan time. The egress gateway still brokers the harness's key. With an image recipe, each attempt runs in a container whose only way out is the gateway, and every policy is enforced.
+- **Any egress policy.** Each attempt runs in a container whose only way out is the gateway, so every policy is enforced, and the gateway brokers the harness's key.
 
 ## `boat()`
 
-`{{ pkg }}/sandbox/boat` exports `boat` and `createBoat`. `boat()` takes three options, each optional:
+`{{ pkg }}/provider/boat` exports `boat` and `createBoat`. `boat()` takes these options, each optional:
 
 ```ts title="reeval.config.ts"
-  sandbox: boat({ type: 'large', id: 'boat-large', maxConcurrent: 4 }),
+  provider: boat({ type: 'large', maxConcurrent: 4 }),
 ```
 
 | Option | What it sets |
 | :--- | :--- |
 | `type` | The machine size: `'small'` (2 vCPUs, 4 GB, the default), `'default'`, `'large'`, or `'xlarge'` |
-| `id` | The last segment of the cell key, `boat` or `boat:<type>` by default, plus `:<image>` and an install hash with an image recipe |
 | `maxConcurrent` | The most VMs reeval runs at once across the run |
 
-`boat()` refuses the `docker()` options a VM doesn't have, and names what to use instead: `type` for `memory`, `cpus`, and `swap`. It takes `image`, `from`, `dockerfile`, and `install` as `docker()` does: preflight builds the image once into a Boat saved snapshot, which later runs reuse, and each attempt runs in a container of it on a VM started from the snapshot. The agent runs as the unprivileged `reeval` user, and `root` isn't available yet.
+On `boat()`, reeval refuses the `docker()` options a VM doesn't have, and names what to use instead: `type` for `memory`, `cpus`, and `swap`. It takes `image`, `from`, `dockerfile`, and `install` from `docker()`: preflight builds the image once into a Boat saved snapshot, which later runs reuse, and each attempt runs in a container of it on a VM started from the snapshot. The cell keeps the `docker()` sandbox's key. The agent runs as the unprivileged `reeval` user, and `root` isn't available yet.
 
 ## `createBoat()`
 
@@ -49,14 +47,14 @@ export default defineConfig({
 
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
-import { createBoat } from '{{ pkg }}/sandbox/boat'
+import { createBoat } from '{{ pkg }}/provider/boat'
 
 export default defineConfig(({ secret }) => {
   const boat = createBoat({
     apiKey: secret.fromEnv('TEAM_BOAT_API_KEY'),
     prefix: 'team-evals',
   })
-  return { sandbox: boat({ type: 'large' }), egress: 'allow-all' }
+  return { provider: boat({ type: 'large' }) }
 })
 ```
 

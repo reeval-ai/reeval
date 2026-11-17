@@ -78,8 +78,8 @@ export const TART_MACHINE: MachineProvider<TartSandboxDescriptor> = {
 const BOAT_EGRESS: EgressCapabilities = { enforce: 'none', record: true, switches: false }
 
 /**
- * A sandbox with an image recipe, or marked for reeval's image, whose attempts each run in a
- * container of the image.
+ * A sandbox with an image, an image recipe or reeval's image for the harness, whose attempts each
+ * run in a container of it.
  */
 const inImage = (s: BoatSandboxDescriptor | CloudSandboxDescriptor) =>
   !!(
@@ -97,6 +97,7 @@ const inContainer = (s: BoatSandboxDescriptor | CloudSandboxDescriptor) =>
 export const BOAT_MACHINE: MachineProvider<BoatSandboxDescriptor> = {
   kind: 'boat',
   helpers: ['boat'],
+  internal: true,
   os: 'linux',
   capabilities: { egress: BOAT_EGRESS, processTable: true, listeners: 'proc' },
   sandboxCapabilities: inContainer,
@@ -154,6 +155,7 @@ const DAYTONA_EGRESS: EgressCapabilities = { enforce: 'none', record: true, swit
 export const DAYTONA_MACHINE: MachineProvider<DaytonaSandboxDescriptor> = {
   kind: 'daytona',
   helpers: ['daytona'],
+  internal: true,
   os: 'linux',
   capabilities: { egress: DAYTONA_EGRESS, processTable: true, listeners: 'proc' },
   id: (s) => {

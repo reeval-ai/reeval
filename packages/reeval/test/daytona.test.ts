@@ -15,10 +15,13 @@ import {
   sshTarget,
   whileLimited,
 } from '../src/sandbox/daytona.ts'
-import { createDaytona, daytona } from '../src/sandbox-daytona.ts'
 import { project, readRun, runCli } from './helpers.ts'
 import { unreachableMachines } from './support/boat.ts'
 import { type FakeDaytona, fakeDaytona } from './support/daytona.ts'
+import {
+  createDaytonaSandbox as createDaytona,
+  daytonaSandbox as daytona,
+} from './support/machines.ts'
 
 let api: FakeDaytona
 before(async () => {
@@ -261,10 +264,10 @@ describe('an attempt on a sandbox it cannot reach', () => {
     'reeval.config.ts': `
 import { defineConfig } from 'reeval'
 import { fakeHarness } from 'reeval/harness'
-import { daytona } from 'reeval/sandbox/daytona'
+import { daytona } from 'reeval/provider/daytona'
 export default defineConfig({
   harnesses: fakeHarness({ script: [[{ exec: 'true' }]] }),
-  sandbox: daytona(),
+  provider: daytona(),
   egress: 'allow-all',
 })
 `,

@@ -65,6 +65,7 @@ import type {
   EvalOptions,
   EvalSource,
   GroupOptions,
+  ProviderDescriptor,
   ResolvedConfig,
   ResolvedGateway,
   RunContext,
@@ -287,7 +288,7 @@ function planTests(
     ? []
     : pick(
         expand({ ...resolved, harness: routed }, vertex, (s) =>
-          place(s, ctx.target ?? 'here', where),
+          place(s, ctx.profile?.provider ?? ctx.config.provider, ctx.target ?? 'here', where),
         ),
       )
   const { caseJson, ...declared } = declaration.source
@@ -364,7 +365,18 @@ function planTests(
       "gateway: openrouter() fallbacks on: reeval's own calls may fail over to another upstream provider; the harnesses' calls take OpenRouter's own routing",
     )
   }
-  plan.notes.push(...gatewayNotes, ...pluginNotes)
+  const provider = ctx.profile?.provider ?? ctx.config.provider
+  const placedNotes = provider
+    ? [
+        ...new Set(
+          plannedAttempts
+            .filter((a) => a.sandbox.kind !== 'docker' && a.sandbox.kind !== 'fake')
+            .filter((a) => a.sandbox.kind === provider.kind)
+            .map((a) => `sandbox: ${a.cell.sandbox} on ${providerLabel(provider)}`),
+        ),
+      ]
+    : []
+  plan.notes.push(...gatewayNotes, ...pluginNotes, ...placedNotes)
   const setByOf = (planned: PlannedAttempt) => ({
     sandbox: sandboxSetBy(planned, resolved, ctx.config.file),
     harness: harnessBy,
@@ -531,4 +543,13 @@ function attemptLimits(planned: PlannedAttempt, concurrency: number): Limits {
   if (cap) limits[`sandbox:${sandboxProvider(sandbox)}`] = cap
   if (harness.maxConcurrent) limits[`harness:${harness.kind}`] = harness.maxConcurrent
   return limits
+}
+
+/** `provider` as its helper call, with the machine options it sets. */
+function providerLabel(provider: ProviderDescriptor): string {
+  const set = (['type', 'size', 'maxConcurrent', 'reuse', 'attemptsPerMachine'] as const)
+    .map((key) => [key, (provider as Partial<Record<string, unknown>>)[key]] as const)
+    .filter(([, value]) => value !== undefined)
+    .map(([key, value]) => `${key}: ${typeof value === 'string' ? `'${value}'` : String(value)}`)
+  return `${provider.kind}(${set.length ? `{ ${set.join(', ')} }` : ''})`
 }

@@ -30,7 +30,9 @@ import {
   maxConcurrentProblem,
   SANDBOX_KINDS,
   sandboxHelpers,
+  sandboxKind,
 } from './sandbox/kinds.ts'
+import { place } from './sandbox/place.ts'
 import type {
   Egress,
   Environment,
@@ -49,6 +51,7 @@ import type {
   PluginHelper,
   PluginPart,
   ProfileDefaults,
+  ProviderDescriptor,
   SandboxDescriptor,
   Secret,
   SecretHelper,
@@ -1565,6 +1568,18 @@ export const profileSandbox = (
     [defaults?.environments ?? config.environments].flat()[0],
     defaults?.sandbox ?? config.sandbox,
   )
+
+/** `sandbox` on the provider a run of `config` with `profile` uses, as its plan places it. */
+export const placedSandbox = (
+  sandbox: SandboxDescriptor,
+  config: { provider?: ProviderDescriptor | undefined; file: string },
+  profile?: { provider?: ProviderDescriptor | undefined } | null,
+): SandboxDescriptor => {
+  const placed = place(sandbox, profile?.provider ?? config.provider, 'here', config.file)
+  return placed === sandbox
+    ? placed
+    : { ...placed, id: sandbox.id ?? sandboxKind(sandbox).id(sandbox) }
+}
 
 function checkSandbox(value: unknown, where: string): asserts value is SandboxDescriptor {
   if (!isObjectLike(value) || !isSandboxKind(value.kind)) {

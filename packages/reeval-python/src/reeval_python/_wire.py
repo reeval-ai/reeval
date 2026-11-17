@@ -439,7 +439,7 @@ BoatSandboxDescriptorApiKey = TypedDict(
 )
 
 
-# A boat.dev VM per attempt, made by `boat()` from `reeval/sandbox/boat`.
+# A sandbox placed on boat.dev machines: a `docker()` sandbox on the `boat()` provider.
 BoatSandboxDescriptor = TypedDict(
     "BoatSandboxDescriptor",
     {
@@ -451,8 +451,9 @@ BoatSandboxDescriptor = TypedDict(
         "image": "NotRequired[str]",
         "install": "NotRequired[list[InstallStep]]",
         "kind": "Literal[\"boat\"]",
-        "maxConcurrent": "NotRequired[float]",
+        "maxConcurrent": "NotRequired[int]",
         "prefix": "str",
+        "reevalImage": "NotRequired[Literal[True]]",
         "reuse": "NotRequired[bool]",
         "type": "NotRequired[Literal[\"small\", \"default\", \"large\", \"xlarge\"]]",
     },
@@ -726,7 +727,7 @@ DaytonaSandboxDescriptorApiKey = TypedDict(
 )
 
 
-# A Daytona sandbox per attempt, made by `daytona()` from `reeval/sandbox/daytona`.
+# A sandbox placed on Daytona: a `docker()` sandbox on the `daytona()` provider.
 DaytonaSandboxDescriptor = TypedDict(
     "DaytonaSandboxDescriptor",
     {
@@ -738,8 +739,9 @@ DaytonaSandboxDescriptor = TypedDict(
         "image": "NotRequired[str]",
         "install": "NotRequired[list[InstallStep]]",
         "kind": "Literal[\"daytona\"]",
-        "maxConcurrent": "NotRequired[float]",
+        "maxConcurrent": "NotRequired[int]",
         "prefix": "str",
+        "reevalImage": "NotRequired[Literal[True]]",
         "reuse": "NotRequired[bool]",
         "size": "NotRequired[Literal[\"small\", \"medium\", \"large\"]]",
     },

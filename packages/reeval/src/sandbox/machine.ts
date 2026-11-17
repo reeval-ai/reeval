@@ -25,7 +25,7 @@ export interface MachineProvider<D extends MachineDescriptor> extends SandboxHoo
   kind: D['kind']
   /** The helpers that make it, as messages name them. */
   helpers: readonly string[]
-  /** Left out of the helpers messages and the docs list, since it isn't public API. */
+  /** Left out of the helpers messages and the docs list: no public helper makes it as a sandbox. */
   internal?: true
   /** The OS its machines run, which picks the harness builds their bootstraps install. */
   os: 'linux' | 'darwin'

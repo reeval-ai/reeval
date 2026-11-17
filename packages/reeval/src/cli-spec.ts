@@ -681,8 +681,8 @@ export const COMMANDS: Record<string, CommandSpec> = {
                                 disk has room for them, counting what Tart prunes from its cache
                                 (exit 3 if not), then bakes each real harness's CLI into a local copy
                                 of its image that attempts clone; runs no Docker without a Docker
-                                sandbox. Builds each boat() and daytona() image recipe into a
-                                snapshot in its account, unless one is saved already
+                                sandbox. Builds each sandbox's image on boat() or daytona() into
+                                a snapshot in its account, unless one is saved already
     --profile <name>            Plan with a profile from reeval.config.ts, as reeval run does, so its
                                 harness, sandbox and tags pick the images (also REEVAL_PROFILE)
     --force                     Rebuild every image, pulling each base again (and each tart() tag),

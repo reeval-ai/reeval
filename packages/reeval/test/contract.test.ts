@@ -3,8 +3,8 @@
 // support/harnesses.ts, the behaviors below; each behavior is its eval's outcome, its canary's
 // failure, and a host-side check of the record. The fake row runs the same suite key-free, so the
 // suite's own checks are proven on every PR's Docker job. REEVAL_CONTRACT_SANDBOX=boat runs the
-// rows in boat() instead, less the deny-all checks, and boat-image in boat() with an image recipe,
-// with them. See test/contract/README.md.
+// rows on boat()'s machines instead, and boat-image there with an image recipe. See
+// test/contract/README.md.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -34,7 +34,6 @@ import {
   harnessOf,
   keyOf,
   ON_BOAT,
-  POLICY_ENFORCED,
   reserveAttempts,
   rowEnv,
   scanTargets,
@@ -78,22 +77,18 @@ const PLUGIN_FILE =
 const evalsNamed = (run: RunRecord, name: RegExp) => run.evals.filter((e) => name.test(e.name))
 
 /**
- * The sandbox's segment of every attempt id: in boat(), the mode's name, which reeval.config.ts
- * gives `boat()` as its `id`.
+ * The sandbox's segment of every attempt id: `boat-image`, which reeval.config.ts gives its
+ * `docker()` as its `id`, else `docker`.
  */
-const SANDBOX_ID = ON_BOAT ? (process.env.REEVAL_CONTRACT_SANDBOX as string) : 'docker'
-/** Why a row in boat() skips a deny-all check. */
-const NO_POLICY =
-  'boat() without an image recipe enforces no egress policy, so its rows run allow-all'
+const SANDBOX_ID = process.env.REEVAL_CONTRACT_SANDBOX === 'boat-image' ? 'boat-image' : 'docker'
 
 /**
  * The tags a row's run leaves out: the MCP evals on a harness with no MCP client, the plugin
  * evals on a row with no plugin field, and the hook, subagent and rules ones on one whose
- * plugin parts lack them; in boat() without an image recipe, the egress evals.
+ * plugin parts lack them.
  */
 function tagsLeftOut(row: HarnessRow): string[] {
   const out = row.mcp === false ? ['mcp'] : []
-  if (!POLICY_ENFORCED) out.push('egress')
   if (!row.effort) out.push('effort')
   if (!row.reasoningModel) out.push('reasoning')
   if (!row.plugin) return [...out, 'plugin']
@@ -412,7 +407,6 @@ export const behaviors: Behavior[] = [
   {
     name: 'deny-all plus auto hosts works, a blocked host refused and recorded',
     canary: true,
-    skips: () => (POLICY_ENFORCED ? undefined : NO_POLICY),
     check(ran, row) {
       const a = checkAndCanary(ran, row, 'egress', 'closed', /expected '403 000' to match/)
       const egress = a.egress
@@ -571,8 +565,7 @@ export const behaviors: Behavior[] = [
     canary: false,
     async check(ran, row) {
       const catalog = await catalogOf(row)
-      const names = Object.keys(SIGNALS).filter((name) => POLICY_ENFORCED || name !== 'egress')
-      const failures = names.flatMap((name) =>
+      const failures = Object.keys(SIGNALS).flatMap((name) =>
         misfiled(catalog, name, transcriptOf(ran, attempt(ran, row, name, envOf[name] ?? ''))),
       )
       assert.deepEqual(failures, [], failures.join('\n'))
@@ -746,7 +739,6 @@ export const behaviors: Behavior[] = [
         )
         assert.deepEqual(elsewhere, [], `${name}: another plugin's files in the transcript`)
       }
-      if (!POLICY_ENFORCED) return
       const egress = a.egress
       assert.equal(egress?.policy, 'deny-all')
       assert.deepEqual(egress?.blocked, [], 'hosts contacted under deny-all')

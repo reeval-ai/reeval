@@ -1,5 +1,6 @@
 import { defineConfig } from 'reeval'
 import { fakeHarness } from 'reeval/harness'
+import { createDaytona } from 'reeval/provider/daytona'
 
 // Docker tier only: daytona({ reuse: true }) on the fake Daytona API, one machine at a time. As the
 // agent: whether the attempt before left a file in its home or /tmp, or a process running, then
@@ -20,4 +21,5 @@ export default defineConfig({
       ],
     ],
   }),
+  provider: createDaytona({ prefix: 'pool' })({ reuse: true, maxConcurrent: 1 }),
 })

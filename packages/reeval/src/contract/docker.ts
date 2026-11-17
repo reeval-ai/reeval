@@ -11,10 +11,8 @@ import type {
   InstallStep,
   SandboxDescriptor,
 } from '../types.ts'
-import { boatProblem } from './boat.ts'
 import { cloudProblem } from './cloud.ts'
 import { containerFieldMessage, containerFields } from './container.ts'
-import { daytonaProblem } from './daytona.ts'
 import {
   installMessage,
   type installStepSchema,
@@ -177,14 +175,17 @@ export function checkDockerOptions(options: DockerOptions, engine?: 'docker' | '
   if (problem) throw new UsageError(problem)
 }
 
+/** The sentence for a provider's descriptor where a sandbox goes. */
+export const providerAsSandbox = (kind: 'boat' | 'daytona') =>
+  `${kind}() is a provider, not a sandbox: set provider: ${kind}() in the config or a profile, and the image in docker()`
+
 /**
  * What's wrong with a sandbox descriptor of a known kind from any source (a declaration tree, a
  * config), or undefined. `maxConcurrent` is left to the check that names where it was set.
  */
 export function sandboxProblem(value: SandboxDescriptor) {
   if (value.kind === 'tart') return tartProblem(value)
-  if (value.kind === 'boat') return boatProblem(value)
-  if (value.kind === 'daytona') return daytonaProblem(value)
+  if (value.kind === 'boat' || value.kind === 'daytona') return providerAsSandbox(value.kind)
   if (value.kind === 'cloud') return cloudProblem(value)
   return value.kind === 'docker'
     ? named(

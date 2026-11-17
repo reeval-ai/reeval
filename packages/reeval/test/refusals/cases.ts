@@ -48,11 +48,11 @@ import { cloud } from '../../src/internal-vm.ts'
 import { judgeRoute } from '../../src/judge/index.ts'
 import { checkHarnesses, checkLimitHarness, checkOptions } from '../../src/options.ts'
 import { planEval } from '../../src/plan-eval.ts'
+import { boat } from '../../src/provider-boat.ts'
+import { daytona } from '../../src/provider-daytona.ts'
 import { PrepareError } from '../../src/sandbox/provider.ts'
 import { missingImagesMessage, pullSpaceMessage } from '../../src/sandbox/tart-images.ts'
 import { docker, fakeSandbox, podman, tart } from '../../src/sandbox.ts'
-import { boat } from '../../src/sandbox-boat.ts'
-import { daytona } from '../../src/sandbox-daytona.ts'
 import { readSecretsFile } from '../../src/secrets-file.ts'
 import { checkTraitKeys, traitFilters, traitFlags } from '../../src/traits.ts'
 import type {
@@ -270,6 +270,10 @@ const planned =
       { config, profile: null, runs, tags: [], concurrency: 1, file: undefined, order: 0 },
     )
   }
+/** What planning an eval refuses with `provider` in the config, over docker() unless `own` names a sandbox. */
+const onProvider = (provider: object, own: object = {}) =>
+  planned({}, { sandbox: docker(), egress: 'allow-all', ...own, provider })
+
 /** What planning an eval with `options` refuses on a cloud run. */
 const plannedOnCloud = (o: unknown) => () => {
   const config = resolveConfig({ harnesses: fakeHarness() }, DIR, 'reeval.config.ts')
@@ -784,140 +788,103 @@ export const CASES: Record<string, Case[]> = {
     ],
     [
       'claudeCode on boat()',
-      planned(
-        {},
-        {
-          harnesses: claudeCode({ model: 'claude-haiku-5-5' }),
-          sandbox: boat(),
-          egress: 'allow-all',
-        },
-      ),
+      onProvider(boat(), { harnesses: claudeCode({ model: 'claude-haiku-5-5' }) }),
     ],
-    [
-      'cursor on boat()',
-      planned(
-        {},
-        { harnesses: cursor({ model: 'composer-2.5' }), sandbox: boat(), egress: 'allow-all' },
-      ),
-    ],
+    ['cursor on boat()', onProvider(boat(), { harnesses: cursor({ model: 'composer-2.5' }) })],
     [
       'boat() with egress phases',
-      planned(
-        {},
-        {
-          harnesses: cursor({ model: 'composer-2.5' }),
-          sandbox: boat(),
-          egress: { setup: 'allow-all', agent: 'deny-all' },
-        },
-      ),
+      onProvider(boat(), {
+        harnesses: cursor({ model: 'composer-2.5' }),
+        egress: { setup: 'allow-all', agent: 'deny-all' },
+      }),
     ],
     [
-      "boat() under egress 'proxy'",
-      planned({}, { harnesses: cursor({ model: 'composer-2.5' }), sandbox: boat() }),
+      "boat() under egress 'deny-all'",
+      onProvider(boat(), { harnesses: cursor({ model: 'composer-2.5' }), egress: 'deny-all' }),
     ],
     ['boat() reuse not a boolean', any(boat, { reuse: 'yes' })],
     ['boat() attemptsPerMachine over 8', any(boat, { attemptsPerMachine: 9 })],
     ['boat() attemptsPerMachine not whole', any(boat, { attemptsPerMachine: 1.5 })],
     [
       'claudeCode sharing a boat() machine',
-      planned(
-        {},
-        {
-          harnesses: claudeCode({ model: 'claude-haiku-5-5' }),
-          sandbox: boat({ attemptsPerMachine: 2 }),
-          egress: 'allow-all',
-        },
-      ),
+      onProvider(boat({ attemptsPerMachine: 2 }), {
+        harnesses: claudeCode({ model: 'claude-haiku-5-5' }),
+      }),
     ],
     [
       'cursor sharing a boat() machine',
-      planned(
-        {},
-        {
-          harnesses: cursor({ model: 'composer-2.5' }),
-          sandbox: boat({ attemptsPerMachine: 3, reuse: true }),
-          egress: 'allow-all',
-        },
-      ),
+      onProvider(boat({ attemptsPerMachine: 3, reuse: true }), {
+        harnesses: cursor({ model: 'composer-2.5' }),
+      }),
     ],
-    ['boat() image and from', any(boat, { image: 'acme/agent:1', from: 'python:3.12' })],
-    ['boat() from with a space', any(boat, { from: 'python 3.12' })],
-    ['boat() install empty', any(boat, { install: [] })],
-    ['boat() install bad timeout', any(boat, { install: [{ run: 'make', timeout: 'soon' }] })],
-    ['boat() dockerfile missing', any(boat, { dockerfile: join(DIR, 'nope/Dockerfile') })],
-    [
-      'boat() install with a dockerfile',
-      any(boat, { dockerfile: join(DIR, 'Dockerfile'), install: ['x'] }),
-    ],
-    ['boat() install step key', any(boat, { install: [{ run: 'make', timeot: '1m' }] })],
+    ['boat() from, a sandbox option', any(boat, { from: 'python:3.12' })],
+    ['boat() image, a sandbox option', any(boat, { image: 'acme/agent:1' })],
+    ['boat() install, a sandbox option', any(boat, { install: ['make'] })],
+    ['boat() id, a sandbox option', any(boat, { id: 'large' })],
     ['boat() root', any(boat, { root: true })],
+    ['boat() as a sandbox', config({ sandbox: boat() })],
+    ['boat() as an environment sandbox', env({ sandbox: boat() })],
+    ['docker() as a provider', config({ provider: docker() })],
+    ['a provider that is not one', config({ provider: 'boat' })],
+    ['boat() provider data with a typo', config({ provider: { ...boat(), tpye: 'large' } })],
+    ["a profile's provider", config({ profiles: { pr: { provider: { kind: 'boat' } } } })],
+    ['boat() maxConcurrent 0', config({ provider: { ...boat(), maxConcurrent: 0 } })],
+    ['boat() maxConcurrent -1', config({ provider: { ...boat(), maxConcurrent: -1 } })],
+    ['daytona() maxConcurrent 1.5', config({ provider: { ...daytona(), maxConcurrent: 1.5 } })],
+    [
+      'docker({ root }) on boat()',
+      onProvider(boat(), { sandbox: docker({ root: true }), harnesses: cursor({ model: 'm' }) }),
+    ],
+    [
+      'docker({ memory, cpus }) on daytona()',
+      onProvider(daytona(), {
+        sandbox: docker({ memory: '8g', cpus: 4 }),
+        harnesses: cursor({ model: 'm' }),
+        egress: 'allow-all',
+      }),
+    ],
+    ['podman() on boat()', onProvider(boat(), { sandbox: podman() })],
+    ['tart() on boat()', onProvider(boat(), { sandbox: tart({ image: SEQUOIA }) })],
     [
       'boat() in an image with egress phases',
-      planned(
-        {},
-        {
-          harnesses: cursor({ model: 'composer-2.5' }),
-          sandbox: boat({ from: 'python:3.12-slim' }),
-          egress: { setup: 'allow-all', agent: 'deny-all' },
-        },
-      ),
+      onProvider(boat(), {
+        sandbox: docker({ from: 'python:3.12-slim' }),
+        harnesses: cursor({ model: 'composer-2.5' }),
+        egress: { setup: 'allow-all', agent: 'deny-all' },
+      }),
     ],
     [
       'claudeCode sharing a boat() machine in an image',
-      planned(
-        {},
-        {
-          harnesses: claudeCode({ model: 'claude-haiku-5-5' }),
-          sandbox: boat({ image: 'acme/agent:1', attemptsPerMachine: 2 }),
-          egress: 'deny-all',
-        },
-      ),
+      onProvider(boat({ attemptsPerMachine: 2 }), {
+        sandbox: docker({ image: 'acme/agent:1' }),
+        harnesses: claudeCode({ model: 'claude-haiku-5-5' }),
+        egress: 'deny-all',
+      }),
     ],
     [
       'cursor on daytona()',
-      planned(
-        {},
-        { harnesses: cursor({ model: 'composer-2.5' }), sandbox: daytona(), egress: 'allow-all' },
-      ),
+      onProvider(daytona(), { harnesses: cursor({ model: 'composer-2.5' }), egress: 'allow-all' }),
     ],
     [
       "daytona() under egress 'proxy'",
-      planned({}, { harnesses: cursor({ model: 'composer-2.5' }), sandbox: daytona() }),
+      onProvider(daytona(), { harnesses: cursor({ model: 'composer-2.5' }), egress: 'proxy' }),
+    ],
+    [
+      "daytona() under egress 'deny-all'",
+      onProvider(daytona(), { harnesses: cursor({ model: 'composer-2.5' }), egress: 'deny-all' }),
     ],
     ['daytona() size unknown', any(daytona, { size: 'huge' })],
     ['daytona() type, a boat() option', any(daytona, { type: 'large' })],
     ['daytona() attemptsPerMachine over 8', any(daytona, { attemptsPerMachine: 9 })],
-    ['daytona() two bases', any(daytona, { image: 'a/b:1', from: 'debian:12' })],
-    [
-      'daytona() dockerfile and install',
-      any(daytona, { dockerfile: new URL(import.meta.url), install: ['true'] }),
-    ],
-    ['daytona() dockerfile missing', any(daytona, { dockerfile: `${DIR}/nope/Dockerfile` })],
-    ['daytona() from with a space', any(daytona, { from: 'debian 12' })],
-    ['daytona() install empty', any(daytona, { install: [] })],
-    ['daytona() install step key', any(daytona, { install: [{ run: 'true', timeot: '1m' }] })],
-    [
-      'daytona() install bad timeout',
-      any(daytona, { install: [{ run: 'make', timeout: 'soon' }] }),
-    ],
+    ['daytona() dockerfile, a sandbox option', any(daytona, { dockerfile: './Dockerfile' })],
     ['daytona() root', any(daytona, { root: true })],
-    [
-      "daytona() in an image under egress 'proxy'",
-      planned(
-        {},
-        { harnesses: cursor({ model: 'composer-2.5' }), sandbox: daytona({ from: 'dart:3.5' }) },
-      ),
-    ],
+    ['daytona() as a sandbox', config({ sandbox: daytona() })],
     [
       'claudeCode sharing a daytona() machine',
-      planned(
-        {},
-        {
-          harnesses: claudeCode({ model: 'claude-haiku-5-5' }),
-          sandbox: daytona({ attemptsPerMachine: 2 }),
-          egress: 'allow-all',
-        },
-      ),
+      onProvider(daytona({ attemptsPerMachine: 2 }), {
+        harnesses: claudeCode({ model: 'claude-haiku-5-5' }),
+        egress: 'allow-all',
+      }),
     ],
     [
       'cursor on cloud()',

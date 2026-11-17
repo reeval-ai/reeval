@@ -28,6 +28,7 @@ import {
   harnessRecipe,
   imageRecipeKey,
   installSteps,
+  machineRecipeOf,
   type ResolveDigest,
   registryResolver,
 } from './recipe.ts'
@@ -151,7 +152,7 @@ export async function daytonaImage(
   o: { resolve?: ResolveDigest; signal?: AbortSignal } = {},
 ): Promise<DaytonaImage | null> {
   const { image, from, dockerfile, install } = sandbox
-  if (image === undefined && from === undefined && dockerfile === undefined && !install) return null
+  if (!machineRecipeOf(sandbox)) return null
   const bake = harnessBake(harness)
   const script = image === undefined ? await harnessScript(harness) : null
   const harnessLines = script ? asSandboxUser(script) : []

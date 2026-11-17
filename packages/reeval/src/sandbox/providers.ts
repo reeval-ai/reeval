@@ -37,7 +37,7 @@ import {
   type PrepareFailure,
   type SandboxProvider,
 } from './provider.ts'
-import { type ImageRecipe, type ResolveDigest, recipeOf } from './recipe.ts'
+import { type ImageRecipe, machineRecipeOf, type ResolveDigest } from './recipe.ts'
 import { tartBakeKey } from './tart-bake.ts'
 import { LOCAL_TART, type TartTarget } from './tart-cli.ts'
 import type { HostProbe, PreparedHost } from './tart-hosts.ts'
@@ -620,7 +620,7 @@ export const boatProvider = (
     kind: 'boat',
     check: async () => {},
     key: (sandbox, harness, plugins = []) => {
-      const recipe = recipeOf(sandbox)
+      const recipe = machineRecipeOf(sandbox)
       return JSON.stringify({
         apiKey: sandbox.apiKey.from,
         type: sandbox.type ?? 'small',
@@ -630,7 +630,7 @@ export const boatProvider = (
     async prepare(sandbox, harness, ctx, plugins = []) {
       const boat = await import('./boat.ts')
       await boat.checkBoat(sandbox, ctx.root)
-      const recipe = recipeOf(sandbox)
+      const recipe = machineRecipeOf(sandbox)
       if (!recipe) return null
       const { boatImage } = await import('./boat-images.ts')
       const identity = imageIdentity(sandbox, recipe, harness, plugins)
@@ -697,9 +697,7 @@ export const daytonaProvider = (): SandboxProvider<DaytonaSandboxDescriptor> => 
   check: async () => {},
   key: (sandbox, harness) => {
     const { image, from, dockerfile, install } = sandbox
-    if (image === undefined && from === undefined && dockerfile === undefined && !install) {
-      return JSON.stringify({ apiKey: sandbox.apiKey.from })
-    }
+    if (!machineRecipeOf(sandbox)) return JSON.stringify({ apiKey: sandbox.apiKey.from })
     const bake = harnessBake(harness)
     return JSON.stringify({
       apiKey: sandbox.apiKey.from,

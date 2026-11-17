@@ -33,6 +33,7 @@ description: "Options set how evaluations run. Each key is accepted in set place
 | [`debug`](#debug) | ✓ |  |  |  |
 | [`analysis`](#analysis) | ✓ |  |  |  |
 | [`cloud`](#cloud) | ✓ |  |  |  |
+| [`provider`](#provider) | ✓ |  |  |  |
 | [`compare`](#compare) |  |  | ✓ | ✓ |
 | [`questions`](#questions) |  |  | ✓ |  |
 | [`tags`](#tags) |  |  | ✓ |  |
@@ -164,15 +165,15 @@ Each value of `harnesses` reads the environment's `rules`, `skills`, and `mcp` s
 
 | Harness | Key | Key brokered | Rules file | Skills: workspace | Skills: home | MCP stdio | MCP `http` | MCP `sse` | Tokens | Served model | Web search events | Web fetch events | Sandbox |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| [Cursor](/configuration/agents/cursor) | `CURSOR_API_KEY` | ✓ | `AGENTS.md` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | `docker()` or `tart()` or `boat()` or `daytona()` |
-| [Claude Code](/configuration/agents/claude-code) | `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` | ✓ | `CLAUDE.md` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | `docker()` or `tart()` or `boat()` or `daytona()` |
-| [Antigravity](/configuration/agents/antigravity) | `GEMINI_API_KEY` | ✓ | `AGENTS.md` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | `docker()` or `tart()` or `boat()` or `daytona()` |
-| [OpenCode](/configuration/agents/opencode) | The model's provider's | ✓ | `AGENTS.md` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | `docker()` or `tart()` or `boat()` or `daytona()` |
-| [Goose](/configuration/agents/goose) | The model's provider's | ✓ | `AGENTS.md` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✗ | ✗ | `docker()` or `tart()` or `boat()` or `daytona()` |
-| [pi](/configuration/agents/pi) | The model's provider's | ✓ | `AGENTS.md` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✗ | ✗ | `docker()` or `tart()` or `boat()` or `daytona()` |
-| [Codex](/configuration/agents/codex) | `OPENAI_API_KEY` | ✓ | `AGENTS.md` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | `docker()` or `tart()` or `boat()` or `daytona()` |
-| [fx](/configuration/agents/fx) | The model's provider's | ✓ | `AGENTS.md` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | `docker()` or `tart()` or `boat()` or `daytona()` |
-| [Grok Build](/configuration/agents/grok-build) | `XAI_API_KEY` | ✓ | `AGENTS.md` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | `docker()` or `tart()` or `boat()` or `daytona()` |
+| [Cursor](/configuration/agents/cursor) | `CURSOR_API_KEY` | ✓ | `AGENTS.md` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | `docker()` or `tart()` |
+| [Claude Code](/configuration/agents/claude-code) | `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` | ✓ | `CLAUDE.md` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | `docker()` or `tart()` |
+| [Antigravity](/configuration/agents/antigravity) | `GEMINI_API_KEY` | ✓ | `AGENTS.md` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | `docker()` or `tart()` |
+| [OpenCode](/configuration/agents/opencode) | The model's provider's | ✓ | `AGENTS.md` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | `docker()` or `tart()` |
+| [Goose](/configuration/agents/goose) | The model's provider's | ✓ | `AGENTS.md` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✗ | ✗ | `docker()` or `tart()` |
+| [pi](/configuration/agents/pi) | The model's provider's | ✓ | `AGENTS.md` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✗ | ✗ | `docker()` or `tart()` |
+| [Codex](/configuration/agents/codex) | `OPENAI_API_KEY` | ✓ | `AGENTS.md` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | `docker()` or `tart()` |
+| [fx](/configuration/agents/fx) | The model's provider's | ✓ | `AGENTS.md` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | `docker()` or `tart()` |
+| [Grok Build](/configuration/agents/grok-build) | `XAI_API_KEY` | ✓ | `AGENTS.md` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | `docker()` or `tart()` |
 
 [//]: # (/generated:harness-matrix)
 
@@ -490,6 +491,12 @@ For more information about the matchers, see [`toHaveSearched()`](/reference/mat
 
 For more information about sandbox factories, see [Choose a sandbox](/configuration/sandboxes). For the factories' own options, see [`docker()`](#docker) and [`tart()`](#tart).
 
+## `provider`
+
+<Property name="provider" type="BoatProviderDescriptor | DaytonaProviderDescriptor" optional>
+  `boat()` or `daytona()`. Each attempt's `docker()` sandbox runs on the provider's machines, a container of its image or, without an image recipe, of reeval's image for the harness.
+</Property>
+
 ## `docker()`
 
 `docker()` and `podman()` take these options. Each limit applies to one container, and reeval passes them to the container engine's run command (`docker run` or `podman run`) as `--memory`, `--memory-swap`, `--cpus`, and `--pids-limit`. For more information, see [Docker sandbox](/configuration/sandboxes/docker).
@@ -576,30 +583,10 @@ For more information about sandbox factories, see [Choose a sandbox](/configurat
 
 ## `boat()`
 
-`boat()`, from `{{ pkg }}/sandbox/boat`, takes these options. `createBoat()` returns a `boat()` for one account and name prefix. For more information, see [Run on Boat](/configuration/sandboxes/boat).
+`boat()`, from `{{ pkg }}/provider/boat`, is a [`provider`](#provider) and takes these options. `createBoat()` returns a `boat()` for one account and name prefix. For more information, see [Run on Boat](/configuration/sandboxes/boat).
 
 <Property name="boat.type" type="'small' | 'default' | 'large' | 'xlarge'" optional>
   The VM's machine size. Defaults to `'small'`, with 2 vCPUs and 4 GB of memory.
-</Property>
-
-<Property name="boat.image" type="string" optional>
-  As `docker.image`, in a registry Boat's VMs can pull. Preflight saves it into a Boat snapshot before the run, and each attempt runs in a container of it.
-</Property>
-
-<Property name="boat.from" type="string" optional>
-  As `docker.from`, in a registry Boat's VMs can pull, built into a Boat snapshot before the run.
-</Property>
-
-<Property name="boat.dockerfile" type="string | URL" optional>
-  As `docker.dockerfile`, built into a Boat snapshot before the run.
-</Property>
-
-<Property name="boat.install" type="(string | { run: string; timeout?: Duration })[]" optional>
-  As `docker.install`, baked into the snapshot.
-</Property>
-
-<Property name="boat.id" type="string" optional>
-  The last segment of the cell key. Defaults to `boat`, or `boat:<type>` for another `type`, plus `:<image>` and an install hash with an image recipe.
 </Property>
 
 <Property name="boat.maxConcurrent" type="number" optional>
@@ -611,7 +598,7 @@ For more information about sandbox factories, see [Choose a sandbox](/configurat
 </Property>
 
 <Property name="boat.attemptsPerMachine" type="number" optional>
-  How many attempts run at once on one VM, each as its own user with its own workspace, home and egress gateway. A whole number from 1 to 8; defaults to 1. A harness whose bridge listens on a fixed port (Claude Code, OpenCode, Goose, fx and Grok Build) is refused above 1, unless the sandbox has an image recipe, whose attempts each run in a container with a network of its own.
+  How many attempts run at once on one VM, each in its own container with its own workspace, home, network and egress gateway. A whole number from 1 to 8; defaults to 1.
 </Property>
 
 <Property name="createBoat.apiKey" type="SecretRef" optional>
@@ -623,27 +610,7 @@ For more information about sandbox factories, see [Choose a sandbox](/configurat
 </Property>
 
 <Property name="daytona.size" type="'small' | 'medium' | 'large'" optional>
-  The Daytona sandbox's size: `'small'` (1 vCPU, 1 GiB), `'medium'` (2 vCPUs, 4 GiB) or `'large'` (4 vCPUs, 8 GiB), Daytona's default snapshot `daytona-<size>` without an image option. Defaults to `'medium'`. `daytona()` is from `{{ pkg }}/sandbox/daytona`.
-</Property>
-
-<Property name="daytona.image" type="string" optional>
-  As `docker.image`, in a registry Daytona can pull.
-</Property>
-
-<Property name="daytona.from" type="string" optional>
-  As `docker.from`, in a registry Daytona can pull. Daytona builds the image into a snapshot before the run.
-</Property>
-
-<Property name="daytona.dockerfile" type="string | URL" optional>
-  As `docker.dockerfile`, built by Daytona into a snapshot before the run.
-</Property>
-
-<Property name="daytona.install" type="(string | { run: string; timeout?: Duration })[]" optional>
-  As `docker.install`, baked into the snapshot.
-</Property>
-
-<Property name="daytona.id" type="string" optional>
-  The last segment of the cell key. Defaults to `daytona`, or `daytona:<image>` for an image option as for `docker.id`, then `:<size>` for a `size` you set.
+  The Daytona sandbox's size: `'small'` (1 vCPU, 1 GiB), `'medium'` (2 vCPUs, 4 GiB) or `'large'` (4 vCPUs, 8 GiB). Defaults to `'medium'`. `daytona()`, a [`provider`](#provider), is from `{{ pkg }}/provider/daytona`.
 </Property>
 
 <Property name="daytona.maxConcurrent" type="number" optional>
@@ -655,7 +622,7 @@ For more information about sandbox factories, see [Choose a sandbox](/configurat
 </Property>
 
 <Property name="daytona.attemptsPerMachine" type="number" optional>
-  How many attempts run at once on one sandbox, each as its own user, as `boat.attemptsPerMachine` does. A whole number from 1 to 8; defaults to 1.
+  How many attempts run at once on one sandbox, each as its own user with its own workspace, home and egress gateway. A whole number from 1 to 8; defaults to 1. A harness whose bridge listens on a fixed port (Claude Code, OpenCode, Goose, fx and Grok Build) is refused above 1.
 </Property>
 
 <Property name="createDaytona.apiKey" type="SecretRef" optional>
@@ -707,7 +674,7 @@ For more information about environments, see [Define an environment](/configurat
 `egress` is where the sandbox may connect. An environment accepts it too.
 
 <Property name="egress" type="'proxy' | 'allow-all' | 'deny-all' | { allow: string[] } | { setup?: EgressPolicy; agent?: EgressPolicy }" optional>
-  `'proxy'` (the default) allows any host over HTTP and HTTPS through the egress gateway, `'allow-all'` also allows raw TCP and UDP around the gateway, `'deny-all'` blocks all but the automatic hosts, and `{ allow }` adds hosts to them. `{ setup, agent }` sets one of those policies per phase: `setup` for the files and setup steps, `agent` for the harness's start, its turns and the checks. A group or an evaluation overrides the environment, which overrides the inherited policy, one phase at a time; a plain policy sets both. Only `docker()`, `podman()` and `boat()` with an image recipe switch policies during an attempt, so `tart()` and `boat()` without one refuse two different ones.
+  `'proxy'` (the default) allows any host over HTTP and HTTPS through the egress gateway, `'allow-all'` also allows raw TCP and UDP around the gateway, `'deny-all'` blocks all but the automatic hosts, and `{ allow }` adds hosts to them. `{ setup, agent }` sets one of those policies per phase: `setup` for the files and setup steps, `agent` for the harness's start, its turns and the checks. A group or an evaluation overrides the environment, which overrides the inherited policy, one phase at a time; a plain policy sets both. Only `docker()` and `podman()`, here or on `boat()`, switch policies during an attempt, so `tart()` and `docker()` on `daytona()` refuse two different ones.
 </Property>
 
 A plain `allow` entry matches that host only. A `*.` entry matches every subdomain, not the apex domain itself, and never an IP address. The gateway carries HTTP and HTTPS only, so SSH and database clients get no network under every policy but `'allow-all'`. Under `'allow-all'`, raw traffic leaves the sandbox directly, unfiltered and unrecorded, and the record marks the attempt's egress `partial`.
@@ -849,7 +816,7 @@ For more information about screenshots, see [Check an app](/evaluations/task/app
 `profiles` holds the named profiles.
 
 <Property name="profiles" type="Record<string, Profile>" optional>
-  Each name maps to an object with `defaults`, `limit`, `judge`, `budget`, `record`, `tags`, and `gateway`.
+  Each name maps to an object with `defaults`, `limit`, `judge`, `budget`, `record`, `tags`, `gateway`, and `provider`.
 </Property>
 
 For more information about each profile key, see [Profiles reference](/reference/profiles).

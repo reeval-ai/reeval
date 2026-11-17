@@ -12,9 +12,9 @@ import { NODE_IMAGE } from '../../sandbox-docker/src/build-image.ts'
 import { daytonaClient, ensureSnapshot, prepareDaytona, sdkImage } from '../src/sandbox/daytona.ts'
 import { daytonaImage, harnessScript } from '../src/sandbox/daytona-image.ts'
 import { PrepareError } from '../src/sandbox/provider.ts'
-import { daytona } from '../src/sandbox-daytona.ts'
 import type { HarnessDescriptor } from '../src/types.ts'
 import { type FakeDaytona, fakeDaytona } from './support/daytona.ts'
+import { daytonaSandbox as daytona } from './support/machines.ts'
 import type { SshVm } from './support/ssh-vm.ts'
 
 // reeval builds its `Image` through the SDK's private constructor (see sdkImage), so an SDK whose

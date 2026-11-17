@@ -1,9 +1,10 @@
 import { defineConfig } from 'reeval'
 import { fakeHarness } from 'reeval/harness'
+import { boat } from 'reeval/provider/boat'
 
 const target = `http://${process.env.REEVAL_EGRESS_TARGET}/`
 
-// Docker tier only: boat() with an image recipe on the fake Boat API, whose saved snapshots' VMs
+// Docker tier only: docker() with an image recipe on boat(), the fake Boat API, whose saved snapshots' VMs
 // run their containers on the host's Docker. As the agent: what the recipe baked, who runs the
 // shell, and the host's listener reached directly, around the proxy, then through it.
 export default defineConfig({
@@ -16,4 +17,5 @@ export default defineConfig({
       ],
     ],
   }),
+  provider: boat(),
 })

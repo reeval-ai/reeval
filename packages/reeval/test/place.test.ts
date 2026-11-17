@@ -1,8 +1,88 @@
 import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { describe, test } from 'node:test'
+import { cloud } from '../src/internal-vm.ts'
+import { boat, createBoat } from '../src/provider-boat.ts'
+import { daytona } from '../src/provider-daytona.ts'
 import { CloudUnsupported, place } from '../src/sandbox/place.ts'
 import { slotLimits } from '../src/sandbox/vm-container.ts'
+import { docker, fakeSandbox, podman, tart } from '../src/sandbox.ts'
 import type { SandboxDescriptor } from '../src/types.ts'
+
+const where = 'evals/a.eval.ts › a'
+
+describe('place()', () => {
+  test('no provider leaves every sandbox on this machine', () => {
+    for (const s of [docker(), podman(), tart({ image: 'macos' }), fakeSandbox(), cloud()]) {
+      assert.equal(place(s, undefined, 'here', where), s)
+    }
+  })
+
+  test("docker() without a recipe goes on the provider's machines in reeval's image", () => {
+    assert.deepEqual(place(docker(), boat(), 'here', where), {
+      ...boat(),
+      reevalImage: true,
+    })
+    assert.deepEqual(place(docker(), daytona({ size: 'large' }), 'here', where), {
+      ...daytona({ size: 'large' }),
+      reevalImage: true,
+    })
+  })
+
+  test('the recipe, the id and maxConcurrent carry; the provider caps first', () => {
+    const s = docker({
+      id: 'web',
+      from: 'node:24',
+      install: ['apt-get install -y jq'],
+      maxConcurrent: 2,
+    })
+    assert.deepEqual(place(s, createBoat({ prefix: 'team' })({ type: 'large' }), 'here', where), {
+      kind: 'boat',
+      apiKey: { kind: 'secret', from: 'BOAT_API_KEY' },
+      prefix: 'team',
+      type: 'large',
+      id: 'web',
+      from: 'node:24',
+      install: ['apt-get install -y jq'],
+      maxConcurrent: 2,
+    })
+    assert.equal(place(s, daytona({ maxConcurrent: 5 }), 'here', where).maxConcurrent, 5)
+    assert.deepEqual(place(docker({ image: 'ghcr.io/acme/app:1' }), daytona(), 'here', where), {
+      ...daytona(),
+      image: 'ghcr.io/acme/app:1',
+    })
+  })
+
+  test('the fake sandbox and the machine kinds pass through', () => {
+    for (const s of [fakeSandbox(), cloud()]) assert.equal(place(s, boat(), 'here', where), s)
+  })
+
+  test('podman(), tart() and options for a local container are refused', () => {
+    assert.throws(
+      () => place(podman(), boat(), 'here', where),
+      /^UsageError: evals\/a\.eval\.ts › a: boat\(\) runs docker\(\) sandboxes, not podman\(\)\.$/,
+    )
+    assert.throws(
+      () => place(tart({ image: 'macos' }), daytona(), 'here', where),
+      /daytona\(\) runs docker\(\) sandboxes, not tart\(\)\./,
+    )
+    assert.throws(
+      () => place(docker({ memory: '4g' }), boat(), 'here', where),
+      /docker\(\{ memory \}\) applies to a container on your machine, not on boat\(\): boat\(\{ type \}\) sets the machine's size\. Leave it out\.$/,
+    )
+    assert.throws(
+      () => place(docker({ memory: '4g', cpus: 2 }), boat(), 'here', where),
+      /docker\(\{ memory, cpus \}\) .* Leave them out\.$/,
+    )
+    assert.throws(
+      () => place(docker({ root: true }), boat(), 'here', where),
+      /docker\(\{ root \}\) applies to a container on your machine, not on boat\(\): the agent runs as the reeval user\. Leave it out\.$/,
+    )
+    assert.equal(
+      place(docker({ root: false, capabilities: [] }), boat(), 'here', where).kind,
+      'boat',
+    )
+  })
+})
 
 const WHERE = 'evaluate("e")'
 
@@ -13,12 +93,12 @@ test('here, every sandbox stays as written', () => {
     { kind: 'tart', image: 'macos-base' },
     { kind: 'fake' },
   ] as SandboxDescriptor[]) {
-    assert.equal(place(sandbox, 'here', WHERE), sandbox)
+    assert.equal(place(sandbox, undefined, 'here', WHERE), sandbox)
   }
 })
 
 test('on a cloud run, docker() is the same container on a VM of its own, sized by the scheduler', () => {
-  assert.deepEqual(place({ kind: 'docker', id: 'docker' }, 'cloud', WHERE), {
+  assert.deepEqual(place({ kind: 'docker', id: 'docker' }, undefined, 'cloud', WHERE), {
     kind: 'cloud',
     reevalImage: true,
   })
@@ -36,6 +116,7 @@ test('on a cloud run, docker() is the same container on a VM of its own, sized b
         pids: 512,
         maxConcurrent: 4,
       },
+      undefined,
       'cloud',
       WHERE,
     ),
@@ -59,17 +140,17 @@ test('on a cloud run, a sandbox already on VMs, or the fake one, stays as writte
     { kind: 'cloud', size: 'large' },
     { kind: 'boat', apiKey: { kind: 'secret', from: 'BOAT_API_KEY' }, prefix: 'r' },
   ] as SandboxDescriptor[]) {
-    assert.equal(place(sandbox, 'cloud', WHERE), sandbox)
+    assert.equal(place(sandbox, undefined, 'cloud', WHERE), sandbox)
   }
 })
 
 test('on a cloud run, tart() and podman() are refused, with no run here instead', () => {
   assert.throws(
-    () => place({ kind: 'tart', image: 'macos-base' }, 'cloud', WHERE),
+    () => place({ kind: 'tart', image: 'macos-base' }, undefined, 'cloud', WHERE),
     (e: unknown) => e instanceof CloudUnsupported && /^evaluate\("e"\): tart\(\)/.test(e.message),
   )
   assert.throws(
-    () => place({ kind: 'docker', engine: 'podman' }, 'cloud', WHERE),
+    () => place({ kind: 'docker', engine: 'podman' }, undefined, 'cloud', WHERE),
     (e: unknown) => e instanceof CloudUnsupported && /podman\(\)/.test(e.message),
   )
 })

@@ -239,9 +239,8 @@ export type AttemptRecord = {
    */
   vmImage?: VmImage
   /**
-   * The saved image a `boat()` attempt with an image recipe ran in: the snapshot its VM started
-   * from and the image its container ran. Absent in other sandboxes, and in attempts that didn't
-   * reach their sandbox.
+   * The saved image an attempt on `boat()` ran in: the snapshot its VM started from and the image
+   * its container ran. Absent in other sandboxes, and in attempts that didn't reach their sandbox.
    */
   sandboxBase?: SandboxBase
   /**

@@ -1,11 +1,10 @@
 import { defineEnvironment, type Turn } from 'reeval'
-import { daytona } from 'reeval/sandbox/daytona'
+import { docker } from 'reeval/sandbox'
 
 export const vm = defineEnvironment('vm', {
-  sandbox: daytona({
+  sandbox: docker({
     from: 'debian:bookworm-slim',
     install: ['echo installed > /etc/reeval-install-proof'],
-    attemptsPerMachine: 2,
   }),
   egress: 'allow-all',
 })

@@ -1,7 +1,7 @@
 import { defineEnvironment, type Turn } from 'reeval'
-import { boat } from 'reeval/sandbox/boat'
+import { docker } from 'reeval/sandbox'
 
-const sandbox = boat({ install: ['echo baked-by-boat-image > /etc/reeval-recipe'] })
+const sandbox = docker({ install: ['echo baked-by-boat-image > /etc/reeval-recipe'] })
 
 export const closed = defineEnvironment('closed', { sandbox, egress: 'deny-all' })
 export const open = defineEnvironment('open', { sandbox, egress: 'allow-all' })

@@ -1,8 +1,8 @@
 import { defineEnvironment, type Turn } from 'reeval'
-import { createBoat } from 'reeval/sandbox/boat'
+import { docker } from 'reeval/sandbox'
 
 export const vm = defineEnvironment('vm', {
-  sandbox: createBoat({ prefix: 'pool' })({ reuse: true, maxConcurrent: 1 }),
+  sandbox: docker(),
   egress: 'allow-all',
 })
 
