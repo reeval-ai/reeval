@@ -1,5 +1,6 @@
 // What bare `reeval` prints: the mark, the version, who's signed in and the project here, and a
 // few commands to try. `reeval --help` lists every command.
+import { existsSync } from 'node:fs'
 import { cloudUrl } from './cloud-run.ts'
 import { configLabel, configPathFor } from './config.ts'
 import { CLOUD_TOKEN_VAR, storedUser } from './login/credentials.ts'
@@ -43,7 +44,7 @@ export async function homeStatus(
   } catch {}
   try {
     const path = configPathFor(configFlag)
-    config = path ? configLabel(path) : null
+    config = path && existsSync(path) ? configLabel(path) : null
   } catch {}
   return { signedIn, config }
 }
