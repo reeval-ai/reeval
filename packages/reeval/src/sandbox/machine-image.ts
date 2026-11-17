@@ -17,7 +17,7 @@ const RETRY_DELAYS_MS = [2_000, 8_000]
 
 /** What a machine's fault says, wherever it surfaces: its SSH, its Docker daemon. */
 const MACHINE_FAULT =
-  /\bssh: |connection (refused|reset|closed|timed out)|broken pipe|cannot connect to the docker daemon|error during connect|is the docker daemon running/i
+  /\bssh: |connection (to \S+ )?(refused|reset|closed|timed out)|broken pipe|cannot connect to the docker daemon|error during connect|is the docker daemon running/i
 /** What a registry says when it refuses an image the recipe names. */
 const REFUSED =
   /pull access denied|manifest unknown|repository does not exist|invalid reference format/i

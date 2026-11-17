@@ -61,3 +61,17 @@ test("a failed install, Dockerfile or plugin build step is the recipe's, a lost 
   assert.ok(!recipeCaused(failed('harness'), 'exit code: 1'), 'harness')
   assert.ok(!recipeCaused(failed('plugin'), 'ssh: connect to host: connection refused'))
 })
+
+test("an SSH session the machine closed mid-step is the machine's, whatever the stage", () => {
+  const dropped = 'Connection to 10.0.0.7 closed by remote host.'
+  for (const stage of ['install', 'dockerfile', 'plugin'] as const) {
+    const error = new ImageBuildError(dropped, {
+      stage,
+      ref: 'r',
+      transient: false,
+      cause: null,
+      log: null,
+    })
+    assert.ok(!recipeCaused(error, dropped), stage)
+  }
+})
