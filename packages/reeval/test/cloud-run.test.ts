@@ -11,6 +11,7 @@ import {
   readdirSync,
   readFileSync,
   readlinkSync,
+  rmSync,
   statSync,
   symlinkSync,
   writeFileSync,
@@ -225,6 +226,8 @@ async function platform(
     provisioning?: number
     /** The run's id; not a cloud run id unless set, so hints name its URL. */
     runId?: string
+    /** The `dist/cli.js` the machine runs the bundle with, as `runCli`'s `cli`. */
+    cli?: string
   } = {},
 ) {
   const id = options.runId ?? 'run_1'
@@ -367,7 +370,7 @@ async function platform(
         vm = runCli(
           tempDir('cloud-vm'),
           ['run', '--bundle', file, '--events-url', `${base}/ingest`],
-          { env: { TMPDIR: tmp, CHECK_TOKEN: TOKEN, ...options.env } },
+          { env: { TMPDIR: tmp, CHECK_TOKEN: TOKEN, ...options.env }, cli: options.cli },
         )
       }
       return json(res, 202, run())
@@ -626,6 +629,38 @@ describe('reeval run on the cloud platform', () => {
         [manifest.project, manifest.devCli],
         ['apps/evals', '.reeval-dev/reeval.tgz'],
       )
+    } finally {
+      await p.close()
+    }
+  })
+
+  test('a preview build runs the evals over the reeval the lockfile installs', async () => {
+    const dir = await staleReevalProject()
+    const preview = tempDir('reeval-preview')
+    for (const entry of readdirSync(pkgRoot)) {
+      if (entry === 'dist') cpSync(join(pkgRoot, entry), join(preview, entry), { recursive: true })
+      else if (entry !== 'package.json') symlinkSync(join(pkgRoot, entry), join(preview, entry))
+    }
+    const own = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8'))
+    writeFileSync(
+      join(preview, 'package.json'),
+      JSON.stringify({ ...own, version: '0.0.0-preview-abc1234' }),
+    )
+    rmSync(join(dir, 'node_modules/reeval'))
+    symlinkSync(preview, join(dir, 'node_modules/reeval'), 'dir')
+    const cli = join(preview, 'dist/cli.js')
+    const p = await platform({ cli })
+    try {
+      const r = await runCli(dir, ['run', '--cloud'], {
+        env: { REEVAL_CLOUD_URL: p.base, REEVAL_TOKEN: 'cloud-test-token' },
+        cli,
+      })
+      assert.equal(r.code, 0, r.stdout + r.stderr)
+      const entries = readTar(gunzipSync(p.uploaded ?? Buffer.alloc(0)))
+      const manifestEntry = entries.find((e) => e.path === 'manifest.json')
+      assert.ok(manifestEntry?.type === 'file')
+      const manifest = JSON.parse(manifestEntry.data.toString('utf8'))
+      assert.deepEqual([manifest.reeval, manifest.devCli], ['0.0.0-preview-abc1234', undefined])
     } finally {
       await p.close()
     }
