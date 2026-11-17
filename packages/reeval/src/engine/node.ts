@@ -88,7 +88,7 @@ export async function runEngine(
   const workers = Math.max(1, Math.min(concurrency, specs.length))
   const entry = workerEntry(root, WORKER_PACKAGE_NAMES)
   const hide = [...reevalFrames(PACKAGE_DIR), ...reevalFrames(join(entry, '..', '..'))]
-  const matchesName = (e: Named) =>
+  const matchesFilters = (e: Named) =>
     (named.has(e.file) || looseFilters.some((f) => matchesFilter(e, f))) &&
     (nameFilters.length === 0 || nameFilters.some((f) => matchesFilter(e, f)))
   const run = options.run
@@ -136,6 +136,7 @@ export async function runEngine(
     )
   }
   collected.sort((a, b) => Number(a.file > b.file) - Number(a.file < b.file))
+  const matchesName = withControls(collected, matchesFilters)
 
   if (options.onPlan) {
     const plan = collectPlan(collected, matchesName, nameFilters, toCollect.length < files.length)
@@ -171,6 +172,40 @@ function identify(rel: string, test: WireTest) {
 }
 
 const skipped = (test: WireTest) => test.mode === 'skip' || test.mode === 'todo'
+
+/**
+ * `matches`, plus the control each whole variant cell it picks is measured against (the control
+ * cell on the variant's harness and sandbox), so a filter naming a variant still gets its lift.
+ */
+function withControls(collected: Collected[], matches: (e: Named) => boolean) {
+  const variants = new Map<string, { picked: number; total: number; control: string }>()
+  for (const { rel, tests } of collected) {
+    for (const test of tests) {
+      const e = identify(rel, test)
+      const cell = e.attempt?.cell
+      if (cell?.role !== 'variant') continue
+      const key = `${e.id}\0${cell.key}`
+      const v = variants.get(key) ?? {
+        picked: 0,
+        total: 0,
+        control: `${e.id}\0${cell.harness}\0${cell.sandbox}`,
+      }
+      v.total++
+      if (matches(e)) v.picked++
+      variants.set(key, v)
+    }
+  }
+  const controls = new Set(
+    [...variants.values()].filter((v) => v.picked === v.total).map((v) => v.control),
+  )
+  return (e: Named) => {
+    const cell = e.attempt?.cell
+    return (
+      matches(e) ||
+      (cell?.role === 'control' && controls.has(`${e.id}\0${cell.harness}\0${cell.sandbox}`))
+    )
+  }
+}
 
 /**
  * The attempts collected files would start, by file then as declared, and the evals left out.

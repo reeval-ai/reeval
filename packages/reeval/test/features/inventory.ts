@@ -616,14 +616,19 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'selection.filters',
     area: 'Config and selection',
-    name: 'Filters (path, eval name, cell key; the kinds narrow each other; a part naming a file but not on disk also matches names and cells); no match exits 2',
+    name: 'Filters (path, eval name, cell key; the kinds narrow each other; a part naming a file but not on disk also matches names and cells; a whole variant cell brings its control); no match exits 2',
     plan: [
       'compare/mixed-filter',
       'selection/group-and-eval-filter',
       'filters/dir-named-like-cell',
       'filters/dir-path-only',
     ],
-    unit: ['reeval/test/engine.test.ts', 'reeval/test/options.test.ts', 'reeval/test/plan.test.ts'],
+    unit: [
+      'reeval/test/engine.test.ts',
+      'reeval/test/engine-node.test.ts',
+      'reeval/test/options.test.ts',
+      'reeval/test/plan.test.ts',
+    ],
   },
 
   // Environments
@@ -2361,7 +2366,7 @@ export const inventory: InventoryFeature[] = [
     name: "The plan's verdict hints: a compare below 4 runs a cell (1 included) and a compared eval with below 6 cases will show only a direction whatever happens; a profile's `limit.runs` cut is named",
     plan: [
       'compare/verdicts',
-      'compare/verdicts-no-control',
+      'compare/verdicts-filtered',
       'compare/verdicts-some-cases',
       'compare/cases',
       'compare/study',

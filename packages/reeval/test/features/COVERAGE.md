@@ -67,7 +67,7 @@
 | A declared skip marked in the record (`evals[].skip`), told apart from an attempt that hasn't run yet by resume, show, query and the studio | ✓ 3 | — | ◐ 1 (1 without a canary) | — | — | — |
 | Traits: `--trait key=value` and a profile's `limit.traits` narrow the planned cells after `where` and the cascade by their environment's traits (with `compare`, the control's), listed in `--dry-run` apart from `where`'s pairs; a key no environment defines is refused | ✓ 3 | ✓ 4 | ● 1 | — | — | — |
 | Tags: `--tag`, `!tag` and profile tags | ✓ 1 | ✓ 1 | — | — | — | — |
-| Filters (path, eval name, cell key; the kinds narrow each other; a part naming a file but not on disk also matches names and cells); no match exits 2 | ✓ 3 | ✓ 4 | — | — | — | — |
+| Filters (path, eval name, cell key; the kinds narrow each other; a part naming a file but not on disk also matches names and cells; a whole variant cell brings its control); no match exits 2 | ✓ 4 | ✓ 4 | — | — | — | — |
 
 ## Environments
 
