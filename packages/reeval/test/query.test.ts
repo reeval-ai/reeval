@@ -802,6 +802,12 @@ evaluate('writes', { compare: { control: plain, variants: [skilled] }, runs: 2 }
     )
     const run = await runCli(p.dir, ['query', 'SELECT * FROM attempts', '--json'])
     assert.doesNotMatch(run.stderr, /note:/, 'a view not read from transcripts has no note')
+
+    assert.equal((await runCli(p.dir, ['run'])).code, 0)
+    const whole = await runCli(p.dir, ['query', 'tool_calls', '--run', readRun(p.dir).run.runId])
+    assert.equal(whole.code, 0, whole.stderr)
+    assert.doesNotMatch(whole.stderr, /note:/, '--run counts only the run it names')
+    assert.match((await runCli(p.dir, ['query', 'tool_calls'])).stderr, /covers 6 of the 8/)
   })
 
   test('failing attempts join skills by environment digest, not name', async () => {

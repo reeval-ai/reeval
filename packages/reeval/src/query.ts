@@ -138,7 +138,7 @@ function transcriptCoverage(db: HistoryDb, sql: string, run?: string): string | 
   const called = Number(row?.called ?? 0)
   const read = Number(row?.read ?? 0)
   if (read === called) return undefined
-  return `note: ${names.join(', ')} ${names.length === 1 ? 'covers' : 'cover'} ${read} of the ${called} attempts that made tool calls; the others were recorded without their transcript. history.artifacts 'evidence' (the default) keeps it only for a failed attempt; set history.artifacts: 'all' to keep every one.`
+  return `note: ${names.join(', ')} ${names.length === 1 ? 'covers' : 'cover'} ${read} of the ${called} attempts that made tool calls; the others have no transcript to read. A run recorded below history.artifacts: 'all' keeps none for a passing attempt ('evidence', the default, keeps them for failed ones only).`
 }
 
 /** The run id `ref` names in history.db: `last` (or `latest`) by started_at, an id or a unique prefix. */
