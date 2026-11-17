@@ -419,47 +419,6 @@ class AttemptStart(TypedDict):
     type: Literal["start"]
 
 
-# The host variable holding a Boat API key, made by `secret.fromEnv`.
-BoatApiKey = TypedDict(
-    "BoatApiKey",
-    {
-        "from": "str",
-        "kind": "Literal[\"secret\"]",
-    },
-)
-
-
-# The host variable with the Boat API key, read on the host only.
-BoatSandboxDescriptorApiKey = TypedDict(
-    "BoatSandboxDescriptorApiKey",
-    {
-        "from": "str",
-        "kind": "Literal[\"secret\"]",
-    },
-)
-
-
-# A sandbox placed on boat.dev machines: a `docker()` sandbox on the `boat()` provider.
-BoatSandboxDescriptor = TypedDict(
-    "BoatSandboxDescriptor",
-    {
-        "apiKey": "BoatSandboxDescriptorApiKey",
-        "attemptsPerMachine": "NotRequired[int]",
-        "dockerfile": "NotRequired[str]",
-        "from": "NotRequired[str]",
-        "id": "NotRequired[str]",
-        "image": "NotRequired[str]",
-        "install": "NotRequired[list[InstallStep]]",
-        "kind": "Literal[\"boat\"]",
-        "maxConcurrent": "NotRequired[int]",
-        "prefix": "str",
-        "reevalImage": "NotRequired[Literal[True]]",
-        "reuse": "NotRequired[bool]",
-        "type": "NotRequired[Literal[\"small\", \"default\", \"large\", \"xlarge\"]]",
-    },
-)
-
-
 class CaptureConsoleItem(TypedDict):
     level: Literal["error", "warning", "info", "log", "debug"]
     source: str
@@ -630,7 +589,6 @@ CloudSandboxDescriptor = TypedDict(
         "maxConcurrent": "NotRequired[float]",
         "memory": "NotRequired[str | int]",
         "pids": "NotRequired[int]",
-        "reevalImage": "NotRequired[Literal[True]]",
         "reuse": "NotRequired[bool]",
         "root": "NotRequired[bool]",
         "size": "NotRequired[Literal[\"small\", \"medium\", \"large\", \"xlarge\"]]",
@@ -707,47 +665,6 @@ class CursorHarnessDescriptor(TypedDict):
     startTimeout: NotRequired[Duration]
 
 
-# The host variable holding a Daytona API key, made by `secret.fromEnv`.
-DaytonaApiKey = TypedDict(
-    "DaytonaApiKey",
-    {
-        "from": "str",
-        "kind": "Literal[\"secret\"]",
-    },
-)
-
-
-# The host variable with the Daytona API key, read on the host only.
-DaytonaSandboxDescriptorApiKey = TypedDict(
-    "DaytonaSandboxDescriptorApiKey",
-    {
-        "from": "str",
-        "kind": "Literal[\"secret\"]",
-    },
-)
-
-
-# A sandbox placed on Daytona: a `docker()` sandbox on the `daytona()` provider.
-DaytonaSandboxDescriptor = TypedDict(
-    "DaytonaSandboxDescriptor",
-    {
-        "apiKey": "DaytonaSandboxDescriptorApiKey",
-        "attemptsPerMachine": "NotRequired[int]",
-        "dockerfile": "NotRequired[str]",
-        "from": "NotRequired[str]",
-        "id": "NotRequired[str]",
-        "image": "NotRequired[str]",
-        "install": "NotRequired[list[InstallStep]]",
-        "kind": "Literal[\"daytona\"]",
-        "maxConcurrent": "NotRequired[int]",
-        "prefix": "str",
-        "reevalImage": "NotRequired[Literal[True]]",
-        "reuse": "NotRequired[bool]",
-        "size": "NotRequired[Literal[\"small\", \"medium\", \"large\"]]",
-    },
-)
-
-
 # An eval file's top-level groups, evals and todos, in declaration order.
 class DeclarationTree(TypedDict):
     children: list[DeclaredNode]
@@ -795,6 +712,10 @@ DeclaredMode: TypeAlias = "Literal[\"run\", \"skip\", \"only\"]"
 
 # One node of the tree: a group, an eval or a todo.
 DeclaredNode: TypeAlias = "DeclaredEval | DeclaredGroup | DeclaredTodo"
+
+
+# A sandbox an eval, environment, profile or config sets.
+DeclaredSandbox: TypeAlias = "FakeSandboxDescriptor | DockerSandboxDescriptor | TartSandboxDescriptor | CloudSandboxDescriptor"
 
 
 # An eval's own source as the SDK that declared it reads it: sha256 (hex) of its body's source
@@ -921,7 +842,7 @@ class EnvironmentSpec(TypedDict):
     # Where the attempt runs: `docker()` or `fakeSandbox()`. A child's `extend` /
     # `extendEnvironment` replaces the parent's entirely when it sets one; install is not merged
     # onto the parent image.
-    sandbox: NotRequired[SandboxDescriptor]
+    sandbox: NotRequired[DeclaredSandbox]
     # Shell commands run in every attempt before the agent starts; a child's run after its
     # parent's.
     setup: NotRequired[list[SetupStep]]
@@ -1009,7 +930,7 @@ class EvalOptionsDataCompare(TypedDict):
     runs: NotRequired[float | EvalOptionsDataCompareRunsBestOf]
     # The default machine when the resolved environment omits `sandbox`. Cascades like
     # `harnesses`. Not an environment: it does not invent skills, files or a name.
-    sandbox: NotRequired[BoatSandboxDescriptor | CloudSandboxDescriptor | DaytonaSandboxDescriptor | DockerSandboxDescriptor | FakeSandboxDescriptor | TartSandboxDescriptor]
+    sandbox: NotRequired[CloudSandboxDescriptor | DockerSandboxDescriptor | FakeSandboxDescriptor | TartSandboxDescriptor]
     # When each attempt's workspace is copied into its directory in `.reeval/runs`: `true` after
     # the checks, `'turns'` after each `c.send` too, `false` never. Default `true`.
     snapshot: NotRequired[SnapshotOptions | Literal["turns"] | bool]
@@ -1085,7 +1006,7 @@ class EvalOptionsData2(TypedDict):
     runs: NotRequired[float | EvalOptionsData2RunsBestOf]
     # The default machine when the resolved environment omits `sandbox`. Cascades like
     # `harnesses`. Not an environment: it does not invent skills, files or a name.
-    sandbox: NotRequired[BoatSandboxDescriptor | CloudSandboxDescriptor | DaytonaSandboxDescriptor | DockerSandboxDescriptor | FakeSandboxDescriptor | TartSandboxDescriptor]
+    sandbox: NotRequired[CloudSandboxDescriptor | DockerSandboxDescriptor | FakeSandboxDescriptor | TartSandboxDescriptor]
     # When each attempt's workspace is copied into its directory in `.reeval/runs`: `true` after
     # the checks, `'turns'` after each `c.send` too, `false` never. Default `true`.
     snapshot: NotRequired[SnapshotOptions | Literal["turns"] | bool]
@@ -1817,9 +1738,6 @@ class QuestionOptions(TypedDict):
     model: NotRequired[str]
 
 
-SandboxDescriptor: TypeAlias = "FakeSandboxDescriptor | DockerSandboxDescriptor | TartSandboxDescriptor | BoatSandboxDescriptor | DaytonaSandboxDescriptor | CloudSandboxDescriptor"
-
-
 # A host environment variable, redacted everywhere reeval writes and recorded by name only. Made
 # by the `secret` helper of `defineEnvironment` and `defineConfig` callbacks.
 Secret = TypedDict(
@@ -2257,7 +2175,6 @@ WebEventType: TypeAlias = "Literal[\"web-search\", \"web-fetch\"]"
 # reeval's camelCase keys: the SDK takes each in snake_case too.
 CAMEL_KEYS: frozenset[str] = frozenset(
     {
-        "apiKey",
         "atMs",
         "attemptsPerMachine",
         "bestOf",
@@ -2286,7 +2203,6 @@ CAMEL_KEYS: frozenset[str] = frozenset(
         "preSatisfied",
         "providerOptions",
         "readFile",
-        "reevalImage",
         "refuseKey",
         "resolvedModel",
         "servedModel",

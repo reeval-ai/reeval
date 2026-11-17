@@ -422,6 +422,11 @@ export const cases: PlanCase[] = [
     name: 'profile-provider',
     args: ['--config', 'reeval.boat.config.ts', '--profile', 'daytona', 'evals/provider.eval.ts'],
   },
+  {
+    dir: 'providers',
+    name: 'fake-on-provider',
+    args: ['--config', 'reeval.boat.config.ts', 'evals/fake.eval.ts'],
+  },
   { dir: 'environments', name: 'cloud', args: ['evals/cloud.eval.ts'] },
   { dir: 'environments', name: 'extend-replace', args: ['evals/extend.eval.ts'] },
   { dir: 'environments', name: 'control-over-config', args: ['evals/compare.eval.ts'] },

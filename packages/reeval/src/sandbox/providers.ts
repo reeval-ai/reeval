@@ -620,18 +620,16 @@ export const boatProvider = (
     kind: 'boat',
     check: async () => {},
     key: (sandbox, harness, plugins = []) => {
-      const recipe = machineRecipeOf(sandbox)
       return JSON.stringify({
         apiKey: sandbox.apiKey.from,
         type: sandbox.type ?? 'small',
-        ...(recipe && { image: imageIdentity(sandbox, recipe, harness, plugins) }),
+        image: imageIdentity(sandbox, machineRecipeOf(sandbox), harness, plugins),
       })
     },
     async prepare(sandbox, harness, ctx, plugins = []) {
       const boat = await import('./boat.ts')
       await boat.checkBoat(sandbox, ctx.root)
       const recipe = machineRecipeOf(sandbox)
-      if (!recipe) return null
       const { boatImage } = await import('./boat-images.ts')
       const identity = imageIdentity(sandbox, recipe, harness, plugins)
       let image = images.get(identity)
@@ -697,7 +695,6 @@ export const daytonaProvider = (): SandboxProvider<DaytonaSandboxDescriptor> => 
   check: async () => {},
   key: (sandbox, harness) => {
     const { image, from, dockerfile, install } = sandbox
-    if (!machineRecipeOf(sandbox)) return JSON.stringify({ apiKey: sandbox.apiKey.from })
     const bake = harnessBake(harness)
     return JSON.stringify({
       apiKey: sandbox.apiKey.from,

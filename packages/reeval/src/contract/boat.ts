@@ -51,7 +51,6 @@ export const boatSandboxSchema = z
     ...machineFields,
     ...recipeFields,
     dockerfile: nonEmpty().optional(),
-    reevalImage: z.literal(true).optional(),
   })
   .superRefine(oneRecipe)
 

@@ -37,8 +37,6 @@ export interface MachineProvider<D extends MachineDescriptor> extends SandboxHoo
     /** How `c.serve` lists what listens in the machine. */
     listeners: ListenerSource
   }
-  /** What `sandbox` can do instead, when its options change it; null for {@link capabilities}. */
-  sandboxCapabilities?(sandbox: D): MachineProvider<D>['capabilities'] | null
   /** The cell id when `id` is unset. */
   id(sandbox: D): string
   /** The descriptor's host paths, which a declaration written as data makes absolute. */
@@ -49,8 +47,8 @@ export interface MachineProvider<D extends MachineDescriptor> extends SandboxHoo
   create(sandbox: D, options: SandboxOptions): Promise<Sandbox>
   /** What a container on the machine widens, for the plan's warnings; nothing when unset. */
   privileges?(sandbox: D): SandboxPrivileges
-  /** Whether `sandbox` builds a plugin's `build` into its image on the machine; never when unset. */
-  pluginBuilds?(sandbox: D): boolean
+  /** Builds a plugin's `build` into the attempt's image on the machine; never when unset. */
+  pluginBuilds?: boolean
   /**
    * How many machines the run may have at once, when the provider says, and for a pooled one the
    * attempts its pool runs at once, which is the run's default concurrency.
@@ -78,29 +76,21 @@ export interface MachineProvider<D extends MachineDescriptor> extends SandboxHoo
  * `build`, on the machine.
  */
 export function kindOf<D extends MachineDescriptor>(machine: MachineProvider<D>): SandboxKind<D> {
-  const { capacity, sandboxCapabilities, pluginBuilds } = machine
-  const full = (own: MachineProvider<D>['capabilities'], builds = false) => ({
+  const { capacity } = machine
+  const capabilities = {
     platform: machine.os,
-    ...own,
+    ...machine.capabilities,
     brokers: true,
     harnessSession: true,
     isolated: true,
     images: false,
     preflight: true,
-    pluginBuilds: builds,
-  })
-  const capabilities = full(machine.capabilities)
+    pluginBuilds: machine.pluginBuilds ?? false,
+  }
   return {
     helpers: machine.helpers,
     ...(machine.internal && { internal: true as const }),
     capabilities,
-    ...((sandboxCapabilities || pluginBuilds) && {
-      capabilitiesFor(sandbox: D) {
-        const own = sandboxCapabilities?.call(machine, sandbox)
-        const builds = pluginBuilds?.call(machine, sandbox) ?? false
-        return own || builds ? full(own ?? machine.capabilities, builds) : capabilities
-      },
-    }),
     provider: () => machine.kind,
     id: (s) => machine.id(s),
     hostPaths: machine.hostPaths,

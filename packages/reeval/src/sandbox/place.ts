@@ -1,6 +1,7 @@
 // Where an attempt's sandbox runs: `place()` puts the sandbox an eval resolved on the run's
-// provider's machines, or leaves it on the machine reeval runs on. Every attempt still runs in a
-// sandbox of its own; the provider only picks the machines.
+// provider's machines, on a cloud run's own machines, or leaves it on the machine reeval runs on.
+// Every attempt still runs in a sandbox of its own; the provider or the cloud only picks the
+// machines.
 import { UsageError } from '../errors.ts'
 import type {
   BoatSandboxDescriptor,
@@ -10,7 +11,6 @@ import type {
   ProviderDescriptor,
   SandboxDescriptor,
 } from '../types.ts'
-import { recipeOf } from './recipe.ts'
 
 /** Where the run's attempts start: this machine, or the run's own machines on a cloud run. */
 export type Target = 'here' | 'cloud'
@@ -20,17 +20,18 @@ export class CloudUnsupported extends UsageError {}
 
 /** The docker() options a provider's container takes as they are. */
 const CARRIED = new Set(['kind', 'id', 'image', 'from', 'dockerfile', 'install', 'maxConcurrent'])
-const AS_USER = new Set(['root', 'capabilities'])
+const PRIVILEGE = new Set(['root', 'capabilities'])
 /** `docker()`'s own defaults, which a provider's machines already match. */
 const isDefault = (key: string, value: unknown) =>
   (key === 'root' && value === false) ||
   (key === 'capabilities' && Array.isArray(value) && value.length === 0)
 
 /**
- * The sandbox `sandbox` runs as on `provider`'s machines, for an attempt that starts at `target`;
- * `where` names the eval in a refusal. A provider takes `docker()` sandboxes only, each a
- * container of the sandbox's image on a machine; with no recipe, reeval's sandbox image for the
- * harness. The fake sandbox and the machine kinds are placed already.
+ * The sandbox `sandbox` runs as for an attempt that starts at `target`; `where` names the eval in
+ * a refusal. With a provider, on its machines wherever the attempt starts: it takes `docker()`
+ * sandboxes only, each a container of the sandbox's image on a machine (reeval's sandbox image for
+ * the harness with no recipe). Without one, on a cloud run's machines as the same container, or
+ * here as written. The fake sandbox and the machine kinds are placed already.
  */
 export function place(
   sandbox: SandboxDescriptor,
@@ -52,9 +53,10 @@ export function place(
   if (extra.length) {
     const them = extra.length === 1 ? 'it' : 'them'
     const why = [
-      extra.some((k) => !AS_USER.has(k)) &&
+      extra.some((k) => !PRIVILEGE.has(k)) &&
         `${provider.kind === 'boat' ? 'boat({ type })' : 'daytona({ size })'} sets the machine's size`,
-      extra.some((k) => AS_USER.has(k)) && 'the agent runs as the reeval user',
+      extra.includes('root') && 'the agent runs as the reeval user',
+      extra.includes('capabilities') && `${provider.kind}() adds no capabilities`,
     ].filter(Boolean)
     throw new UsageError(
       `${where}: docker({ ${extra.join(', ')} }) applies to a container on your machine, not on ${provider.kind}(): ${why.join(', and ')}. Leave ${them} out.`,
@@ -78,20 +80,15 @@ function onCloud(sandbox: SandboxDescriptor, where: string): SandboxDescriptor {
   }
   // The scheduler sets the machine's size and how many attempts share it.
   const { kind: _, engine: __, id: ___, ...container } = sandbox
-  const placed: CloudSandboxDescriptor = { kind: 'cloud', ...container }
-  return recipeOf(container) ? placed : { ...placed, reevalImage: true }
+  return { kind: 'cloud', ...container } satisfies CloudSandboxDescriptor
 }
 
-const recipe = (s: DockerSandboxDescriptor) => {
-  const { image, from, dockerfile, install } = s
-  const own = {
-    ...(image !== undefined && { image }),
-    ...(from !== undefined && { from }),
-    ...(dockerfile !== undefined && { dockerfile }),
-    ...(install?.length && { install }),
-  }
-  return Object.keys(own).length ? own : { reevalImage: true as const }
-}
+const recipe = ({ image, from, dockerfile, install }: DockerSandboxDescriptor) => ({
+  ...(image !== undefined && { image }),
+  ...(from !== undefined && { from }),
+  ...(dockerfile !== undefined && { dockerfile }),
+  ...(install?.length && { install }),
+})
 
 function onBoat(
   s: DockerSandboxDescriptor,

@@ -369,10 +369,15 @@ function planTests(
   const placedNotes = provider
     ? [
         ...new Set(
-          plannedAttempts
-            .filter((a) => a.sandbox.kind !== 'docker' && a.sandbox.kind !== 'fake')
-            .filter((a) => a.sandbox.kind === provider.kind)
-            .map((a) => `sandbox: ${a.cell.sandbox} on ${providerLabel(provider)}`),
+          plannedAttempts.flatMap((a) =>
+            a.sandbox.kind === provider.kind
+              ? [`sandbox: ${a.cell.sandbox} on ${providerLabel(provider)}`]
+              : a.sandbox.kind === 'fake'
+                ? [
+                    `sandbox: ${a.cell.sandbox} runs on this machine; ${provider.kind}() takes docker() sandboxes`,
+                  ]
+                : [],
+          ),
         ),
       ]
     : []
@@ -545,11 +550,13 @@ function attemptLimits(planned: PlannedAttempt, concurrency: number): Limits {
   return limits
 }
 
+/** What names a provider's account rather than its machines, which its label leaves out. */
+const ACCOUNT = new Set(['kind', 'apiKey', 'prefix'])
+
 /** `provider` as its helper call, with the machine options it sets. */
 function providerLabel(provider: ProviderDescriptor): string {
-  const set = (['type', 'size', 'maxConcurrent', 'reuse', 'attemptsPerMachine'] as const)
-    .map((key) => [key, (provider as Partial<Record<string, unknown>>)[key]] as const)
-    .filter(([, value]) => value !== undefined)
+  const set = Object.entries(provider)
+    .filter(([key, value]) => !ACCOUNT.has(key) && value !== undefined)
     .map(([key, value]) => `${key}: ${typeof value === 'string' ? `'${value}'` : String(value)}`)
   return `${provider.kind}(${set.length ? `{ ${set.join(', ')} }` : ''})`
 }

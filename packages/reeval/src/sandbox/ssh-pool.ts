@@ -1,6 +1,8 @@
 // A sandbox on a pooled Linux VM a provider starts in the run's main process (machine-service.ts)
-// and an attempt reaches over SSH: `boat()`, `daytona()` and `cloud()`. The provider's pool hands out slots;
-// this sets up the attempt's slot over SSH and starts it through the shared sequence (start.ts).
+// and an attempt reaches over SSH: `daytona()`'s, started from its image. The provider's pool hands
+// out slots; this sets up the attempt's slot over SSH and starts it through the shared sequence
+// (start.ts). The SSH helpers here are also `boat()`'s and `cloud()`'s, whose attempts run in a
+// container on the VM (vm-container.ts).
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -9,11 +11,7 @@ import { run } from '@reeval/sandbox-docker/process'
 import { attemptDebug } from '../debug/attempt.ts'
 import { egressLabel } from '../egress.ts'
 import { registerSecret } from '../redact.ts'
-import type {
-  BoatSandboxDescriptor,
-  CloudSandboxDescriptor,
-  DaytonaSandboxDescriptor,
-} from '../types.ts'
+import type { DaytonaSandboxDescriptor } from '../types.ts'
 import { harnessBake } from './harness-install.ts'
 import type { SandboxOptions } from './index.ts'
 import { leaseMachine } from './machine-service.ts'
@@ -37,8 +35,6 @@ export type PooledSshMachine = {
   secretUser?: true
   /** The login user is root, with no `sudo`: a machine started from a built image. */
   loginRoot?: true
-  /** The machine's image has the harness installed in the sandbox user's home. */
-  harnessBaked?: true
   /**
    * Attempts the machine's pool runs on it at once, and whether its slots take another attempt,
    * as the pool laid them out; the descriptor's when the provider doesn't say.
@@ -66,7 +62,7 @@ const nodeForAgent = (user: string, loginRoot: boolean) =>
     `{ [ -z "$real" ] || [ -x ${AGENT_NODE}/bin/node ] || { prefix="$(dirname "$(dirname "$real")")" && rm -rf ${AGENT_NODE} && mkdir -p "$(dirname ${AGENT_NODE})" && if ${loginRoot ? `setpriv --reuid=${user} --regid=${user} --init-groups --` : `sudo -n -u ${user}`} test -x "$real"; then ln -s "$prefix" ${AGENT_NODE}; else mkdir -p ${AGENT_NODE} && cp -a "$prefix/." ${AGENT_NODE} && chmod -R a+rX ${AGENT_NODE}; fi; }; }`,
   ].join(' && ')
 
-/** The harness install a machine keeps a home for, so its slots and resets copy it: by harness. */
+/** The harness install whose home the machine's image keeps, so its slots and resets copy it. */
 const homeLabel = (options: SandboxOptions) => {
   const bake = options.harness && harnessBake(options.harness)
   return bake ? bake.label : undefined
@@ -126,11 +122,11 @@ export type PooledSshOptions = {
 
 /**
  * One attempt on a slot of `descriptor`'s pool: leases it, sets it up over SSH as its own user
- * (resetting a reused slot, copying the machine's harness install into a shared one's home) and
+ * (resetting a reused slot, copying the image's home with the harness into a shared one's) and
  * starts it. A reused slot that fails to set up is dropped and another leased, up to 3 times.
  */
 export async function createPooledSshSandbox(
-  descriptor: BoatSandboxDescriptor | DaytonaSandboxDescriptor | CloudSandboxDescriptor,
+  descriptor: DaytonaSandboxDescriptor,
   options: SandboxOptions,
   o: PooledSshOptions,
 ): Promise<NetworkSandbox> {
@@ -138,7 +134,6 @@ export async function createPooledSshSandbox(
   return startSandbox(options, {
     helper: o.helper,
     machine: { sandbox: o.sandbox, size: o.size },
-    install: true,
     networkNote: `network policy ${egressLabel(options.egress) || 'allow-all'} · the VM keeps its own network, so traffic that ignores the proxy goes out directly, unrecorded`,
     async boot() {
       for (let tries = 1; ; tries++) {
@@ -160,7 +155,7 @@ export async function createPooledSshSandbox(
         const info = lease.info as PooledSshMachine
         if (info.secretUser) registerSecret(info.user)
         const shared = (info.attemptsPerMachine ?? descriptor.attemptsPerMachine ?? 1) > 1
-        // A machine of its own that's never reused installs once anyway, so it keeps no copy.
+        // A machine of its own that's never reused has the image's home as it is.
         const label = shared || (info.reuse ?? descriptor.reuse) ? homeLabel(options) : undefined
         debug?.log(
           'container',
@@ -200,6 +195,10 @@ export async function createPooledSshSandbox(
             ...(lease.reused && { reset: true }),
             ...(label && { home: label }),
           })
+          await machine.home().catch(async (error: unknown) => {
+            await machine.close()
+            throw error
+          })
         } catch (error) {
           await rm(dir, { recursive: true, force: true })
           await lease.release(true)
@@ -215,42 +214,8 @@ export async function createPooledSshSandbox(
         return {
           vm: { id: info.id, name: info.name, size: info.size },
           ...(shared && { shared: true }),
-          // Its own slot of an image with the harness has it already; a shared or reused one restores the image's copy.
-          ...(info.harnessBaked && !label && { installed: true }),
           root: machine.root,
           ...(shared && { proxyPort: layout.proxyPort, stateDir: layout.state }),
-          ...(label && {
-            async installedElsewhere() {
-              const got = await machine.home().catch((error: unknown) => {
-                if (options.signal.aborted) throw error
-                return { restored: false, waitedMs: 0, copyFailed: (error as Error).message }
-              })
-              const { restored, waitedMs, copyFailed } = got
-              if (copyFailed && !restored) {
-                debug?.log(
-                  'container',
-                  `no home from the machine's install, so this slot installs its own: ${copyFailed}`,
-                )
-              } else if (copyFailed) {
-                debug?.log(
-                  'container',
-                  `the machine's first copy of the install didn't unpack: ${copyFailed}`,
-                )
-              }
-              if (restored) {
-                debug?.log(
-                  'container',
-                  `its home from the machine's install${waitedMs >= 1000 ? `, after waiting ${Math.round(waitedMs / 1000)}s for another slot to install it` : ''}`,
-                )
-              }
-              return restored
-            },
-            async onInstalled() {
-              await machine.snapshotHome().catch((error: unknown) => {
-                debug?.log('container', `the machine keeps no copy of the install: ${error}`)
-              })
-            },
-          }),
           session: (s) => machine.session(s),
           async destroy() {
             await machine.close()

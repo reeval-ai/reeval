@@ -208,19 +208,19 @@ export async function createVmContainerSandbox(
       continue
     }
     const { root, capabilities, limits: asked = {} } = o.container ?? {}
-    // The machine's slots share it evenly.
-    const capacity = await dockerCapacity(engine)
-    const slots = info.attemptsPerMachine ?? descriptor.attemptsPerMachine ?? 1
-    const limits = slotLimits(
-      capacity && {
-        memoryBytes: Math.floor(capacity.memoryBytes / slots),
-        cpus: Math.round((capacity.cpus / slots) * 100) / 100,
-      },
-      asked,
-      (line) => debug?.log('container', `${info.id}: the attempt's ${line}`),
-    )
     let sandbox: NetworkSandbox
     try {
+      // The machine's slots share it evenly.
+      const capacity = await dockerCapacity(engine)
+      const slots = info.attemptsPerMachine ?? descriptor.attemptsPerMachine ?? 1
+      const limits = slotLimits(
+        capacity && {
+          memoryBytes: Math.floor(capacity.memoryBytes / slots),
+          cpus: Math.round((capacity.cpus / slots) * 100) / 100,
+        },
+        asked,
+        (line) => debug?.log('container', `${info.id}: the attempt's ${line}`),
+      )
       sandbox = await containerSandbox(options, {
         image: image.ref,
         engine,

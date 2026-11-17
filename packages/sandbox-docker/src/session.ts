@@ -569,7 +569,8 @@ export async function createDockerSession(options: SessionOptions): Promise<Dock
   const nextMarker = () => `${id.slice(0, 12)}-${++execs}`
   /**
    * Killing the host's `docker exec` client doesn't stop the command in the container, so kill
-   * every process there that inherited this exec's marker: the command and all it started.
+   * every process there that inherited this exec's marker, and their process groups, which hold
+   * a child that cleared its environment: the command and all it started.
    */
   const killExec = (marker: string, asRoot = false) =>
     docker(
@@ -579,7 +580,7 @@ export async function createDockerSession(options: SessionOptions): Promise<Dock
         id,
         '/bin/sh',
         '-c',
-        `for e in /proc/[0-9]*/environ; do grep -qsxzF ${q(`${EXEC_MARKER}=${marker}`)} "$e" && kill -9 "$(basename "$(dirname "$e")")" 2>/dev/null; done; true`,
+        `gs=; for e in /proc/[0-9]*/environ; do grep -qsxzF ${q(`${EXEC_MARKER}=${marker}`)} "$e" || continue; d=\${e%/environ}; g=$(sed 's/.*) //' "$d/stat" 2>/dev/null | cut -d' ' -f3); kill -9 "\${d#/proc/}" 2>/dev/null; [ "\${g:-0}" -gt 1 ] && gs="$gs $g"; done; for g in $gs; do kill -9 "-$g" 2>/dev/null; done; true`,
       ],
       { engine },
     ).then(
@@ -587,20 +588,42 @@ export async function createDockerSession(options: SessionOptions): Promise<Dock
       () => {},
     )
 
+  /**
+   * Kills the exec as its abort fires, as well as after: on an engine over multiplexed SSH, the
+   * master holds the CLI's output open once its client is killed, so the call can't return
+   * before the command in the container has died.
+   */
+  const killOnAbort = async <T>(
+    signal: AbortSignal | undefined,
+    kill: () => Promise<void>,
+    call: () => Promise<T>,
+  ): Promise<T> => {
+    const onAbort = () => void kill()
+    signal?.addEventListener('abort', onAbort, { once: true })
+    try {
+      return await call()
+    } catch (error) {
+      if (signal?.aborted) await kill()
+      throw error
+    } finally {
+      signal?.removeEventListener('abort', onAbort)
+    }
+  }
+
   const run: HarnessV1NetworkSandboxSession['run'] = async (o) => {
     const env = envFor(o.env)
     const marker = nextMarker()
-    try {
-      const r = await docker(execArgs(o.command, marker, o.workingDirectory, env), {
-        env,
-        signal: o.abortSignal,
-        engine,
-      })
-      return { exitCode: r.exitCode, stdout: r.stdout.toString('utf8'), stderr: r.stderr }
-    } catch (error) {
-      if (o.abortSignal?.aborted) await killExec(marker)
-      throw error
-    }
+    const r = await killOnAbort(
+      o.abortSignal,
+      () => killExec(marker),
+      () =>
+        docker(execArgs(o.command, marker, o.workingDirectory, env), {
+          env,
+          signal: o.abortSignal,
+          engine,
+        }),
+    )
+    return { exitCode: r.exitCode, stdout: r.stdout.toString('utf8'), stderr: r.stderr }
   }
 
   const runPrivileged: DockerSession['runPrivileged'] = async (o) => {
@@ -620,13 +643,12 @@ export async function createDockerSession(options: SessionOptions): Promise<Dock
       '-c',
       `${EXEC_UMASK}; ${o.command}`,
     ]
-    try {
-      const r = await docker(args, { signal: o.abortSignal, engine })
-      return { exitCode: r.exitCode, stdout: r.stdout.toString('utf8'), stderr: r.stderr }
-    } catch (error) {
-      if (o.abortSignal?.aborted) await killExec(marker, true)
-      throw error
-    }
+    const r = await killOnAbort(
+      o.abortSignal,
+      () => killExec(marker, true),
+      () => docker(args, { signal: o.abortSignal, engine }),
+    )
+    return { exitCode: r.exitCode, stdout: r.stdout.toString('utf8'), stderr: r.stderr }
   }
 
   /** Runs the engine's CLI with its output streamed; `stop` ends what it started. */

@@ -1,5 +1,6 @@
 // The machine provider conformance suite: what every provider in MACHINE_PROVIDERS promises an
-// attempt, checked through its kind's `create` on the provider's fake backend. Its session runs
+// attempt, checked through its kind's `create` on the provider's fake backend, with the image
+// preflight would have prepared. Its session runs
 // commands, files and reeval's own commands as the OS profile says; an aborted command dies in the
 // machine with everything it started, however it detached; a secret in a command's variables
 // reaches no command line; the run's machines are gone after `destroy`, `cleanupRun` or an abort
@@ -7,7 +8,9 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { createServer } from 'node:http'
+import { networkInterfaces, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, before, describe, test } from 'node:test'
 import { parseProbe, probeScript } from '../src/attempt/serve.ts'
@@ -18,6 +21,9 @@ import type { SandboxOptions } from '../src/sandbox/index.ts'
 import { SANDBOX_KINDS } from '../src/sandbox/kinds.ts'
 import type { MachineDescriptor, MachineProvider } from '../src/sandbox/machine.ts'
 import { MACHINE_PROVIDERS } from '../src/sandbox/machines.ts'
+import { type PrepareTarget, removePrepared, writePrepared } from '../src/sandbox/preflight.ts'
+import type { PrepareContext, PreparedHandle } from '../src/sandbox/provider.ts'
+import { boatProvider, daytonaProvider, sandboxBase } from '../src/sandbox/providers.ts'
 import { vmPrefix } from '../src/sandbox/tart.ts'
 import { hasNetworkSession, type Sandbox } from '../src/sandbox/types.ts'
 import { openSpan, type SpanInput, setLocalSpanSink, withAttemptSpan } from '../src/trace/spans.ts'
@@ -29,6 +35,7 @@ import {
   buildSshVmImage,
   SSH_VM_IMAGE,
   SSH_VM_LABEL,
+  startBoatDockerVm,
   startDaytonaVm,
   startSshVm,
 } from './support/ssh-vm.ts'
@@ -50,7 +57,24 @@ type Backend = {
   slowBoot(): () => void
   /** Runs a root shell script in the named machine, behind reeval's back, and returns its output. */
   inMachine?(name: string, script: string): string
+  /** What an attempt of run `runId` is created with beside the suite's options: what preflight prepared. */
+  prepared?(runId: string): Partial<SandboxOptions>
+  /** Each slot of a shared machine is a user of its own on it, rather than a container of its own. */
+  slotUsers?: boolean
 }
+
+const FAKE = { kind: 'fake' } as const
+
+const prepareContext = (): PrepareContext => ({
+  root: mkdtempSync(join(tmpdir(), 'reeval-conform-')),
+  signal: AbortSignal.timeout(600_000),
+  log: () => {},
+  retry: (step) => step(),
+})
+
+let boatBase: SandboxOptions['base']
+let daytonaHandle: PreparedHandle | undefined
+const daytonaRuns = new Set<string>()
 
 const requireDocker = process.env.REEVAL_TEST_REQUIRE_DOCKER === '1'
 const sshVmReady = (() => {
@@ -122,10 +146,12 @@ const BACKENDS: Record<MachineKind, Backend> = {
   boat: {
     skip: sshVmSkip,
     async start() {
-      buildSshVmImage()
-      boatApi = await fakeBoat(startSshVm)
+      buildSshVmImage(['boat', 'boat-docker'])
+      boatApi = await fakeBoat(startSshVm, { saved: startBoatDockerVm })
       process.env.BOAT_BASE_URL = boatApi.url
       process.env.BOAT_API_KEY = boatApi.key
+      const handle = await boatProvider().prepare(boat(), FAKE, prepareContext())
+      boatBase = (handle && sandboxBase(handle)) ?? undefined
     },
     async stop() {
       await boatApi?.close()
@@ -144,12 +170,13 @@ const BACKENDS: Record<MachineKind, Backend> = {
     // A container's sshd takes seconds to answer.
     slowBoot: () => () => {},
     inMachine: inSshVm,
+    prepared: () => ({ harness: FAKE, ...(boatBase && { base: boatBase }) }),
   },
   cloud: {
     skip: sshVmSkip,
     async start() {
-      buildSshVmImage()
-      cloudApi = await fakeBoat(startSshVm)
+      buildSshVmImage(['boat', 'boat-docker'])
+      cloudApi = await fakeBoat(startBoatDockerVm)
       vmService = await fakeVmService(cloudApi, { maxLive: 10, maxStarts: 100 })
       process.env[VM_URL] = vmService.url
       process.env[VM_TOKEN] = vmService.token
@@ -173,6 +200,7 @@ const BACKENDS: Record<MachineKind, Backend> = {
     asked: (runId) => BACKENDS.cloud.machines(runId).length > 0,
     slowBoot: () => () => {},
     inMachine: inSshVm,
+    prepared: () => ({ harness: FAKE }),
   },
   daytona: {
     skip: sshVmSkip,
@@ -181,8 +209,10 @@ const BACKENDS: Record<MachineKind, Backend> = {
       daytonaApi = await fakeDaytona(startDaytonaVm)
       process.env.DAYTONA_API_URL = daytonaApi.url
       process.env.DAYTONA_API_KEY = daytonaApi.key
+      daytonaHandle = await daytonaProvider().prepare(daytona(), FAKE, prepareContext())
     },
     async stop() {
+      for (const runId of daytonaRuns) removePrepared(process.cwd(), runId)
       await daytonaApi?.close()
       for (const [name, value] of [
         ['DAYTONA_API_URL', savedDaytonaEnv.url],
@@ -208,12 +238,24 @@ const BACKENDS: Record<MachineKind, Backend> = {
       ),
     slowBoot: () => () => {},
     inMachine: inSshVm,
+    // A Daytona attempt finds its snapshot where preflight writes it for the run's workers.
+    prepared(runId) {
+      if (!daytonaRuns.has(runId) && daytonaHandle) {
+        const key = daytonaProvider().key(daytona(), FAKE)
+        const target = { kind: 'daytona', key } as PrepareTarget
+        writePrepared(process.cwd(), runId, [{ target, ok: true, handle: daytonaHandle, ms: 0 }])
+        daytonaRuns.add(runId)
+      }
+      return { harness: FAKE }
+    },
+    slotUsers: true,
   },
 }
 
 const options = (runId: string, o: Partial<SandboxOptions> = {}): SandboxOptions => ({
   runId,
-  timeoutMs: 120_000,
+  // A container on a VM lives this long, and the suite's first machine serves all of it.
+  timeoutMs: 900_000,
   signal: new AbortController().signal,
   env: {},
   egress: { policy: 'allow-all', auto: [] },
@@ -296,8 +338,10 @@ for (const machine of MACHINE_PROVIDERS as readonly MachineProvider<MachineDescr
   const backend = BACKENDS[machine.kind]
   const kind = SANDBOX_KINDS[machine.kind]
   const runId = `conform-${machine.kind}-${process.pid}`
+  const optionsFor = (id: string, o: Partial<SandboxOptions> = {}) =>
+    options(id, { ...backend.prepared?.(id), ...o })
   const create = (id = runId, o: Partial<SandboxOptions> = {}) =>
-    kind.create(backend.descriptor() as never, options(id, o))
+    kind.create(backend.descriptor() as never, optionsFor(id, o))
 
   describe(`machine provider: ${machine.kind}`, { skip: backend.skip, timeout: 300_000 }, () => {
     let box: Sandbox
@@ -539,9 +583,7 @@ for (const machine of MACHINE_PROVIDERS as readonly MachineProvider<MachineDescr
       const pooled = (o: object) => ({ ...backend.descriptor(), ...o }) as never
       test('reuse: the next attempt gets the machine with nothing the last one left', async () => {
         const id = `${runId}-reuse`
-        const harness = { kind: 'fake', bootstrap: 'echo "$$-$RANDOM" > install' } as const
-        const first = await kind.create(pooled({ reuse: true }), options(id, { harness }))
-        const install = (await first.exec('cat ~/install')).stdout
+        const first = await kind.create(pooled({ reuse: true }), optionsFor(id))
         await first.exec(
           'touch ~/left /tmp/left-$(id -un) /var/crash/left-$(id -un); n=555111; (setsid sleep $n >/dev/null 2>&1 &)',
         )
@@ -552,39 +594,39 @@ for (const machine of MACHINE_PROVIDERS as readonly MachineProvider<MachineDescr
         )
         await first.exec('ipcmk -M 4096 >/dev/null 2>&1 || true')
         await first.destroy()
-        const second = await kind.create(pooled({ reuse: true }), options(id, { harness }))
+        const second = await kind.create(pooled({ reuse: true }), optionsFor(id))
         try {
           assert.equal(backend.machines(id).length, 1, 'the second attempt reused the machine')
           const left = await second.exec(
             'sleep 1; ls ~/left /tmp/left-$(id -un) /var/crash/left-$(id -un) /tmp/hopped-$(id -un) 2>/dev/null; pgrep -u "$(id -un)" -x -f "sleep 555111"; ipcs -m 2>/dev/null | awk -v u="$(id -un)" \'$3 == u\'; true',
           )
           assert.equal(left.stdout, '', 'the reset left nothing behind')
-          const again = (await second.exec('cat ~/install')).stdout
-          assert.equal(again, install, "the home is the first attempt's install, not run again")
         } finally {
           await second.destroy()
         }
         await until('the idle machine is gone', () => backend.machines(id).length === 0, 30_000)
       })
 
-      test('attemptsPerMachine: slots share a machine as users that see none of each other', async () => {
+      test('attemptsPerMachine: slots share a machine and see none of each other', async () => {
         const id = `${runId}-shared`
         const [a, b] = await Promise.all([
-          kind.create(pooled({ attemptsPerMachine: 2 }), options(id)),
-          kind.create(pooled({ attemptsPerMachine: 2 }), options(id)),
+          kind.create(pooled({ attemptsPerMachine: 2 }), optionsFor(id)),
+          kind.create(pooled({ attemptsPerMachine: 2 }), optionsFor(id)),
         ])
         try {
           assert.equal(backend.machines(id).length, 1, 'both slots are on one machine')
-          const who = async (box: Sandbox) => (await box.exec('id -un; echo ~')).stdout
-          assert.notEqual(await who(a), await who(b))
-          assert.notEqual(a.workdir, b.workdir)
+          if (backend.slotUsers) {
+            const who = async (box: Sandbox) => (await box.exec('id -un; echo ~')).stdout
+            assert.notEqual(await who(a), await who(b))
+            assert.notEqual(a.workdir, b.workdir)
+          }
           await a.writeFile('secret.txt', 'slot a')
           await a.exec('echo slot a > ~/secret.txt')
           const peek = await b.exec(
             `cat ${a.workdir}/secret.txt 2>/dev/null; cat ~/secret.txt /home/*/secret.txt 2>/dev/null; true`,
           )
           assert.equal(peek.stdout, '', "one slot reads neither the other's workspace nor its home")
-          if (kind.capabilities.listeners === 'proc') {
+          if (backend.slotUsers && kind.capabilities.listeners === 'proc') {
             await a.exec(
               `(setsid node -e "require('net').createServer().listen(45111, '127.0.0.1')" >/dev/null 2>&1 &)`,
             )
@@ -616,131 +658,11 @@ for (const machine of MACHINE_PROVIDERS as readonly MachineProvider<MachineDescr
         await until('the shared machine is gone', () => backend.machines(id).length === 0, 30_000)
       })
 
-      test('attemptsPerMachine: one slot installs the harness, and each other slot gets its own copy', async () => {
-        const id = `${runId}-shared-install`
-        const harness = {
-          kind: 'fake',
-          bootstrap: `sleep 2; echo "$(id -un) $HOME" > installed; ln -s "$HOME/installed" link; printf '\\177ELF\\0%s' "$HOME/installed" > binary`,
-        } as const
-        const boxes = await Promise.all(
-          [0, 1, 2].map(() =>
-            kind.create(pooled({ attemptsPerMachine: 3 }), options(id, { harness })),
-          ),
-        )
-        try {
-          assert.equal(backend.machines(id).length, 1, 'the three slots are on one machine')
-          const saw = await Promise.all(
-            boxes.map(async (box) =>
-              (
-                await box.exec(
-                  'echo "$(id -un) $HOME"; cat ~/installed; stat -c %U ~/installed; readlink ~/link; stat -c %a ~; stat -c %U "$(tail -c +6 ~/binary)"',
-                )
-              ).stdout
-                .trim()
-                .split('\n'),
-            ),
-          )
-          const installers = new Set(saw.map(([, installed]) => installed?.split(' ')[0]))
-          assert.equal(installers.size, 1, `the bootstrap ran in one slot: ${[...installers]}`)
-          for (const [self = '', installed = '', owner, link, mode, binary] of saw) {
-            const [user, home] = self.split(' ')
-            assert.equal(installed.split(' ')[1], home, 'the copy names its own home')
-            assert.equal(owner, user, 'the copy is its own user')
-            assert.equal(link, `${home}/installed`, 'a link into the home points at its own')
-            assert.equal(mode, '700', 'the home stays closed to the other slots')
-            assert.equal(binary, user, "a path in a binary file leads into the slot's own home")
-          }
-        } finally {
-          await Promise.all(boxes.map((box) => box.destroy()))
-        }
-        await until('the shared machine is gone', () => backend.machines(id).length === 0, 30_000)
-      })
-
-      test("attemptsPerMachine: a slot whose copy of the machine's install won't unpack installs its own", {
-        skip: !backend.inMachine && 'no shell in the fake machine',
-      }, async () => {
-        const id = `${runId}-shared-bad-copy`
-        const harness = { kind: 'fake', bootstrap: 'echo "$(id -un)" > installed' } as const
-        const descriptor = pooled({ attemptsPerMachine: 2 })
-        const first = await kind.create(descriptor, options(id, { harness }))
-        try {
-          const [machineName = ''] = backend.machines(id)
-          backend.inMachine?.(
-            machineName,
-            'for f in /var/lib/reeval-pool/*.tar; do echo bad > "$f"; done',
-          )
-          const second = await kind.create(descriptor, options(id, { harness }))
-          try {
-            const [self, installed] = (await second.exec('id -un; cat ~/installed')).stdout
-              .trim()
-              .split('\n')
-            assert.equal(installed, self, 'the slot installed the harness itself')
-          } finally {
-            await second.destroy()
-          }
-        } finally {
-          await first.destroy()
-        }
-        await until('the shared machine is gone', () => backend.machines(id).length === 0, 30_000)
-      })
-
-      test('attemptsPerMachine: when the installing slot dies, a waiting slot installs at once', {
-        skip: !backend.inMachine && 'no shell in the fake machine',
-      }, async () => {
-        const id = `${runId}-shared-dead-installer`
-        // The first slot to install hangs; any other installs straight away.
-        const harness = {
-          kind: 'fake',
-          bootstrap:
-            'mkdir /tmp/reeval-first 2>/dev/null && sleep 600; echo "$(id -un)" > installed',
-        } as const
-        const descriptor = pooled({ attemptsPerMachine: 2 })
-        const stuck = new AbortController()
-        const boxes = [0, 1].map(() =>
-          kind.create(descriptor, options(id, { harness, signal: stuck.signal })),
-        )
-        const settledBoxes = Promise.allSettled(boxes)
-        try {
-          await until(
-            'a slot is installing',
-            () => {
-              const [machineName] = backend.machines(id)
-              if (!machineName) return false
-              try {
-                return !!backend.inMachine?.(machineName, 'pgrep -x -f "sleep 600" || true').trim()
-              } catch {
-                return false
-              }
-            },
-            60_000,
-          )
-          const [machineName = ''] = backend.machines(id)
-          // What holds the install's lock dies, as it would with the reeval that started it.
-          backend.inMachine?.(machineName, 'pkill -KILL -x cat; true')
-          const waiter = await Promise.race([
-            Promise.any(boxes),
-            new Promise<undefined>((r) => setTimeout(() => r(undefined), 20_000)),
-          ])
-          assert.ok(
-            waiter,
-            "the waiting slot was still waiting 20s after the installer's lock died",
-          )
-          const [self, installed] = (await waiter.exec('id -un; cat ~/installed')).stdout
-            .trim()
-            .split('\n')
-          assert.equal(installed, self, 'the waiting slot installed the harness itself')
-        } finally {
-          stuck.abort(new Error('canceled'))
-          for (const r of await settledBoxes) if (r.status === 'fulfilled') await r.value.destroy()
-        }
-        await until('the shared machine is gone', () => backend.machines(id).length === 0, 30_000)
-      })
-
       test("attemptsPerMachine: one slot's kill leaves the other's command of the same number running", async () => {
         const id = `${runId}-shared-kill`
         const [a, b] = await Promise.all([
-          kind.create(pooled({ attemptsPerMachine: 2 }), options(id)),
-          kind.create(pooled({ attemptsPerMachine: 2 }), options(id)),
+          kind.create(pooled({ attemptsPerMachine: 2 }), optionsFor(id)),
+          kind.create(pooled({ attemptsPerMachine: 2 }), optionsFor(id)),
         ])
         const [na, nb] = [token(), token()]
         const stop = new AbortController()
@@ -752,15 +674,16 @@ for (const machine of MACHINE_PROVIDERS as readonly MachineProvider<MachineDescr
           for (const p of [killed, kept]) p.catch(() => {})
           await until(
             'both started',
-            async () => (await sleeping(b, na)) === 1 && (await sleeping(b, nb)) === 1,
+            async () => (await sleeping(a, na)) === 1 && (await sleeping(b, nb)) === 1,
           )
           stop.abort(new Error('canceled'))
-          await until('the killed command died', async () => (await sleeping(b, na)) === 0)
+          await until('the killed command died', async () => (await sleeping(a, na)) === 0)
           assert.equal(await sleeping(b, nb), 1, "the other slot's command was killed too")
           keep.abort()
           await settled(kept)
         } finally {
-          for (const k of [na, nb]) await reap(b, k)
+          await reap(a, na)
+          await reap(b, nb)
           await Promise.all([a.destroy(), b.destroy()])
         }
         await until('the shared machine is gone', () => backend.machines(id).length === 0, 30_000)
@@ -785,13 +708,35 @@ for (const machine of MACHINE_PROVIDERS as readonly MachineProvider<MachineDescr
         assert.equal((await box.execOwn(probe)).exitCode, 0, probe)
       })
 
-      test('egress: no policy it says it enforces goes unprobed', () => {
-        assert.equal(
-          caps.egress.enforce,
-          'none',
-          'a provider that enforces egress needs a probe here that a direct connection is refused',
-        )
-        assert.equal(caps.egress.switches, false)
+      test('egress: no policy it says it enforces goes unprobed', async () => {
+        if (caps.egress.enforce === 'none') {
+          assert.equal(caps.egress.switches, false)
+          return
+        }
+        // A listener on the host at an address the machine can reach, which deny-all refuses
+        // both around the proxy and through it.
+        const listener = createServer((_, res) => res.end('reached'))
+        await new Promise<void>((resolve) => listener.listen(0, '0.0.0.0', resolve))
+        const port = (listener.address() as { port: number }).port
+        const host = Object.entries(networkInterfaces())
+          .filter(([name]) => !/^(docker|br-|veth)/.test(name))
+          .flatMap(([, list]) => list ?? [])
+          .find((a) => a.family === 'IPv4' && !a.internal)?.address
+        const closed = await create(`${runId}-deny`, { egress: { policy: 'deny-all', auto: [] } })
+        try {
+          const target = `http://${host}:${port}/`
+          const direct = await closed.exec(
+            `curl -s -m 5 -o /dev/null -w '%{http_code}' --noproxy '*' ${target}`,
+          )
+          assert.notEqual(direct.exitCode, 0, `a direct connection got out: ${direct.stdout}`)
+          const proxied = await closed.exec(
+            `curl -s -m 10 -o /dev/null -w '%{http_code}' ${target}`,
+          )
+          assert.notEqual(proxied.stdout, '200', 'deny-all let a request through the proxy')
+        } finally {
+          await closed.destroy()
+          listener.close()
+        }
       })
     })
   })

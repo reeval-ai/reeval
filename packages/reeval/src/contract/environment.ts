@@ -4,6 +4,7 @@
 // for anything those checks don't name, and the source of the JSON Schema in schema/plan/.
 import { z } from 'zod'
 import type {
+  DeclaredSandbox,
   EnvironmentData,
   EnvironmentLayer,
   EnvironmentSpec,
@@ -29,13 +30,20 @@ import { tartSandboxSchema } from './tart.ts'
 /** An environment's or layer's name, which names its cells. */
 export const NAME = /^[A-Za-z0-9][A-Za-z0-9._@+-]*$/
 
+export const declaredSandboxSchema = z.union([
+  fakeSandboxSchema,
+  dockerSandboxSchema,
+  tartSandboxSchema,
+  cloudSandboxSchema,
+])
+
 export const sandboxDescriptorSchema = z.union([
   fakeSandboxSchema,
   dockerSandboxSchema,
   tartSandboxSchema,
+  cloudSandboxSchema,
   boatSandboxSchema,
   daytonaSandboxSchema,
-  cloudSandboxSchema,
 ])
 
 export const setupStepSchema = z.union([
@@ -52,7 +60,7 @@ export const traitsSchema = z
   .readonly()
 
 export const environmentSpecSchema = z.strictObject({
-  sandbox: sandboxDescriptorSchema.optional(),
+  sandbox: declaredSandboxSchema.optional(),
   label: z.string().optional(),
   description: z.string().optional(),
   workspace: gitWorkspaceSchema.optional(),
@@ -82,6 +90,7 @@ export const environmentDataSchema = z.strictObject({
 })
 
 export type _SameAsSchema = [
+  Assert<Same<z.infer<typeof declaredSandboxSchema>, DeclaredSandbox>>,
   Assert<Same<z.infer<typeof sandboxDescriptorSchema>, SandboxDescriptor>>,
   Assert<Same<z.infer<typeof setupStepSchema>, SetupStep>>,
   Assert<Same<z.infer<typeof environmentSpecSchema>, EnvironmentSpec>>,

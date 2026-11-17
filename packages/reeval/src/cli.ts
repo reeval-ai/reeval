@@ -2572,7 +2572,11 @@ async function executeRun(
         dryRun: setup.dryRun,
         config: elsewhere,
         judge: judgeModel,
-        sandboxes: plannedSandboxIds(plan.sandboxes, profileSandbox(config, profile?.defaults)),
+        sandboxes: plannedSandboxIds(
+          plan.sandboxes,
+          profileSandbox(config, profile?.defaults),
+          profile?.provider ?? config.provider,
+        ),
         record: fromCwd(join(scratchDir(config.root), `${runId}.json`)),
       }),
       details: lines,

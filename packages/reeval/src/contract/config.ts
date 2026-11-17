@@ -22,7 +22,7 @@ import type {
 } from '../types.ts'
 import { boatProviderSchema } from './boat.ts'
 import { daytonaProviderSchema } from './daytona.ts'
-import { environmentDataSchema, sandboxDescriptorSchema } from './environment.ts'
+import { declaredSandboxSchema, environmentDataSchema } from './environment.ts'
 import { gatewayEntryDataSchema } from './gateway.ts'
 import { harnessDescriptorSchema } from './harness.ts'
 import { configJudgeDataSchema } from './judge.ts'
@@ -118,7 +118,7 @@ const recordMode = z.enum(['manual', 'ci', 'always'])
 
 export const profileDefaultsDataSchema = z.strictObject({
   harnesses: harnessList.optional(),
-  sandbox: sandboxDescriptorSchema.optional(),
+  sandbox: declaredSandboxSchema.optional(),
   environments: environmentList.optional(),
   runs: runs().optional(),
   gate: gatePolicySchema.optional(),
@@ -181,7 +181,7 @@ export const analysisConfigDataSchema = z.strictObject({
 export const reevalConfigDataSchema = z.strictObject({
   include: z.array(z.string()).optional(),
   harnesses: harnessList.optional(),
-  sandbox: sandboxDescriptorSchema.optional(),
+  sandbox: declaredSandboxSchema.optional(),
   environments: environmentList.optional(),
   runs: runs().optional(),
   gate: gatePolicySchema.optional(),

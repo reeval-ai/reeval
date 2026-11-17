@@ -39,14 +39,11 @@ export function recipeOf(sandbox: Partial<ImageRecipe>): ImageRecipe | null {
 }
 
 /**
- * The recipe a machine provider's sandbox builds: its own, or the empty recipe (reeval's sandbox
- * image for the harness) when `place()` marked it `reevalImage`; null for a bare machine.
+ * The recipe a machine provider's sandbox builds: its own, or the empty recipe, reeval's sandbox
+ * image for the harness.
  */
-export function machineRecipeOf(
-  sandbox: Partial<ImageRecipe> & { reevalImage?: true },
-): ImageRecipe | null {
-  return recipeOf(sandbox) ?? (sandbox.reevalImage ? {} : null)
-}
+export const machineRecipeOf = (sandbox: Partial<ImageRecipe>): ImageRecipe =>
+  recipeOf(sandbox) ?? {}
 
 /** What a registry reference names now: its top-level manifest's digest, or why it doesn't. */
 export type ResolveDigest = (

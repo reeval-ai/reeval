@@ -404,8 +404,6 @@ export async function createTartSandbox(
       machine: { sandbox: 'tart' },
       darwin: true,
       hint: 'The egress gateway needs Node in the image (brew install node) and passwordless sudo for its user.',
-      // The image preflight baked the harness into, when it did.
-      install: false,
       boot: async () => {
         const booted = await bootTart(descriptor, options, vm).catch((error: unknown) => {
           span.end(error)

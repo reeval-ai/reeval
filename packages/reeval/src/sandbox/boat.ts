@@ -28,14 +28,7 @@ import type { OpenPool } from './machine-service.ts'
 import { optionalPeer } from './optional-peer.ts'
 import type { PoolProvider } from './pool.ts'
 import { PrepareError } from './provider.ts'
-import { machineRecipeOf } from './recipe.ts'
-import {
-  createPooledSshSandbox,
-  missingSshTool,
-  newKey,
-  type PooledSshMachine,
-  TTL_MARGIN_S,
-} from './ssh-pool.ts'
+import { missingSshTool, newKey, type PooledSshMachine, TTL_MARGIN_S } from './ssh-pool.ts'
 import { InfraError, MachineReclaimed, type NetworkSandbox, RunStopped } from './types.ts'
 
 export const BOAT_BASE_URL = 'BOAT_BASE_URL'
@@ -594,20 +587,12 @@ export async function createBoatSandbox(
   descriptor: BoatSandboxDescriptor,
   options: SandboxOptions,
 ): Promise<NetworkSandbox> {
-  if (machineRecipeOf(descriptor)) {
-    if (!options.base) {
-      throw new InfraError("The boat() sandbox's image wasn't prepared before the run started")
-    }
-    const { createVmContainerSandbox, fromSnapshot } = await import('./vm-container.ts')
-    return createVmContainerSandbox(descriptor, fromSnapshot(options.base), options, {
-      fn: 'boat',
-      sandbox: 'boat',
-      size: 'small',
-      description: (info) => `boat sandbox ${info.id} (${info.size})`,
-    })
+  if (!options.base) {
+    throw new InfraError("The boat() sandbox's image wasn't prepared before the run started")
   }
-  return createPooledSshSandbox(descriptor, options, {
-    helper: 'boat()',
+  const { createVmContainerSandbox, fromSnapshot } = await import('./vm-container.ts')
+  return createVmContainerSandbox(descriptor, fromSnapshot(options.base), options, {
+    fn: 'boat',
     sandbox: 'boat',
     size: descriptor.type ?? 'small',
     description: (info) => `boat sandbox ${info.id} (${info.size})`,

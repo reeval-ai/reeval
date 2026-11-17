@@ -33,6 +33,7 @@ import {
 } from './declaration.ts'
 import { dockerSandboxSchema, fakeSandboxSchema } from './docker.ts'
 import {
+  declaredSandboxSchema,
   environmentDataSchema,
   environmentLayerSchema,
   environmentSpecSchema,
@@ -143,6 +144,7 @@ export const CONTRACT_SCHEMAS: Record<string, z.ZodType> = {
   PluginSource: pluginSourceSchema,
   McpServer: mcpServerSchema,
   GitWorkspace: gitWorkspaceSchema,
+  DeclaredSandbox: declaredSandboxSchema,
   SandboxDescriptor: sandboxDescriptorSchema,
   SetupStep: setupStepSchema,
   EnvironmentSpec: environmentSpecSchema,

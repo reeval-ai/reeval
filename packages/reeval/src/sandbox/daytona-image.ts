@@ -28,7 +28,6 @@ import {
   harnessRecipe,
   imageRecipeKey,
   installSteps,
-  machineRecipeOf,
   type ResolveDigest,
   registryResolver,
 } from './recipe.ts'
@@ -51,8 +50,6 @@ export type DaytonaImage = {
   name: string
   /** The harness install's label, whose home copy the image keeps; unset with nothing baked. */
   homeLabel?: string
-  /** Whether the image has the harness, so an attempt doesn't install it. */
-  harnessBaked: boolean
   /** Why the key couldn't pin a base by digest, so the build may pull something newer. */
   unpinned?: { ref: string; reason: string }
 }
@@ -150,9 +147,8 @@ export async function daytonaImage(
   sandbox: DaytonaSandboxDescriptor,
   harness: HarnessDescriptor,
   o: { resolve?: ResolveDigest; signal?: AbortSignal } = {},
-): Promise<DaytonaImage | null> {
+): Promise<DaytonaImage> {
   const { image, from, dockerfile, install } = sandbox
-  if (!machineRecipeOf(sandbox)) return null
   const bake = harnessBake(harness)
   const script = image === undefined ? await harnessScript(harness) : null
   const harnessLines = script ? asSandboxUser(script) : []
@@ -234,7 +230,6 @@ export async function daytonaImage(
     key,
     name: `${sandbox.prefix}-img-${key.slice(0, 12)}`,
     ...(homeLabel && { homeLabel }),
-    harnessBaked: image !== undefined || script !== null || bake === null,
     ...(unpinned && { unpinned }),
   }
 }

@@ -76,7 +76,6 @@ export function vmImageTargets(uses: ImageUse[]): VmImageTarget[] {
     if (!isVm(sandbox.kind)) continue
     const s = sandbox as VmSandbox
     const recipe = machineRecipeOf(s)
-    if (!recipe) continue
     const baked = harnessBake(harness)?.label ?? harness.kind
     const size = s.kind === 'daytona' ? (s.size ?? 'medium') : null
     const key = JSON.stringify([s.kind, s.apiKey.from, s.prefix, size, recipe, baked, plugins])
@@ -99,13 +98,11 @@ export async function vmImageName(target: VmImageTarget, root: string): Promise<
   if (target.provider === 'boat') {
     const { snapshotName, vmImageKey } = await import('./boat-images.ts')
     const recipe = machineRecipeOf(target.sandbox)
-    if (!recipe) throw new Error(`${target.id} has no image recipe`)
     const { key } = await vmImageKey(recipe, target.harness, { root, plugins: target.plugins })
     return snapshotName(target.sandbox.prefix, key)
   }
   const { daytonaImage } = await import('./daytona-image.ts')
   const image = await daytonaImage(target.sandbox as DaytonaSandboxDescriptor, target.harness)
-  if (!image) throw new Error(`${target.id} has no image recipe`)
   return image.name
 }
 

@@ -146,17 +146,6 @@ describe('finding a saved snapshot', () => {
   })
   after(() => api.close())
 
-  test('a sandbox with no recipe builds nothing', async () => {
-    const provider = boatProvider({ resolve, timings })
-    const before = api.requests.length
-    const handle = await pointedAt(api, () => provider.prepare(boat(), harness, ctx()))
-    assert.equal(handle, null)
-    assert.ok(
-      api.requests.slice(before).every((r) => !r.call.includes('snapshot')),
-      'no snapshot calls',
-    )
-  })
-
   test('uses a ready snapshot without starting a machine', async () => {
     const recipe = { from: 'debian:12' }
     const name = await nameFor(recipe)

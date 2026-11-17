@@ -276,25 +276,19 @@ after(() => gitHttp.close())
 
 /** The fake Boat API the `boat-*` fixtures run on, its sandboxes sshd containers. */
 let boatApi: FakeBoat
-/** The fake VM service the `cloud-*` fixtures run through, in front of the fake API. */
-let vmService: FakeVmService
 before(async () => {
   boatApi = await fakeBoat(startSshVm, { saved: startBoatDockerVm })
-  vmService = await fakeVmService(boatApi, { maxLive: 10, maxStarts: 100 })
+})
+after(() => boatApi.close())
+/** The fake VM service the `cloud-*` fixtures run through, whose every VM has the host's Docker. */
+let dockerBoatApi: FakeBoat
+let vmService: FakeVmService
+before(async () => {
+  dockerBoatApi = await fakeBoat(startBoatDockerVm)
+  vmService = await fakeVmService(dockerBoatApi, { maxLive: 10, maxStarts: 100 })
 })
 after(async () => {
   await vmService.close()
-  await boatApi.close()
-})
-/** The fake VM service `cloud-image` runs through, whose every VM has the host's Docker. */
-let dockerBoatApi: FakeBoat
-let dockerVmService: FakeVmService
-before(async () => {
-  dockerBoatApi = await fakeBoat(startBoatDockerVm)
-  dockerVmService = await fakeVmService(dockerBoatApi, { maxLive: 10, maxStarts: 100 })
-})
-after(async () => {
-  await dockerVmService.close()
   await dockerBoatApi.close()
 })
 let boatBuilds: Promise<unknown> = Promise.resolve()
@@ -331,18 +325,18 @@ const onFakeBoat: Pick<Feature, 'sandbox' | 'hostEnv' | 'prepare'> = {
   prepare: buildOnFakeBoat,
 }
 /** No sandbox of the run is left on the fake API. */
-const boatCleanedUp = (run: RunRecord, sandbox: { prefix: string } = boat()) => {
+const boatCleanedUp = (run: RunRecord, sandbox: { prefix: string } = boat(), api = boatApi) => {
   for (const a of run.evals.flatMap((e) => e.attempts)) {
     if (a.sandboxBase?.provider === 'boat') keptImages.add(a.sandboxBase.key.slice(0, 12))
   }
   const prefix = runPrefix(sandbox, run.runId)
   assert.deepEqual(
-    boatApi.live().filter((name) => name.startsWith(prefix)),
+    api.live().filter((name) => name.startsWith(prefix)),
     [],
     'every Boat sandbox of the run is deleted',
   )
   assert.ok(
-    boatApi.requests.some(
+    api.requests.some(
       (q) => q.call === 'POST /sandboxes' && String(q.body?.name).startsWith(prefix),
     ),
     'the run created its sandboxes on the fake API',
@@ -350,9 +344,9 @@ const boatCleanedUp = (run: RunRecord, sandbox: { prefix: string } = boat()) => 
 }
 
 /** How many sandboxes the run created on the fake API. */
-const boatCreates = (run: RunRecord, sandbox: { prefix: string } = boat()) => {
+const boatCreates = (run: RunRecord, sandbox: { prefix: string } = boat(), api = boatApi) => {
   const prefix = runPrefix(sandbox, run.runId)
-  return boatApi.requests.filter(
+  return api.requests.filter(
     (q) => q.call === 'POST /sandboxes' && !q.refused && String(q.body?.name).startsWith(prefix),
   ).length
 }
@@ -367,14 +361,14 @@ const onFakeCloud: Pick<Feature, 'sandbox' | 'hostEnv' | 'prepare'> = {
     REEVAL_VM_TOKEN: vmService.token,
     REEVAL_SANDBOX_LABELS: 'sweep-job=42',
   }),
-  prepare: () => buildSshVmImage(),
+  prepare: () => buildSshVmImage(['boat', 'boat-docker']),
 }
 /**
  * Every VM of the run was made labeled and deleted, and neither the record nor the attempts'
  * debug logs name the provider.
  */
 const cloudCleanedUp = (run: RunRecord, project: string) => {
-  boatCleanedUp(run, CLOUD_VM)
+  boatCleanedUp(run, CLOUD_VM, dockerBoatApi)
   assert.deepEqual(
     vmService.requests.filter(
       (q) => q.status >= 400 && !(q.status === 404 && q.call.startsWith('GET ')),
@@ -382,7 +376,7 @@ const cloudCleanedUp = (run: RunRecord, project: string) => {
     [],
     'the service took every call',
   )
-  for (const q of boatApi.requests) {
+  for (const q of dockerBoatApi.requests) {
     if (
       q.call !== 'POST /sandboxes' ||
       !String(q.body?.name).startsWith(runPrefix(CLOUD_VM, run.runId))
@@ -1424,20 +1418,6 @@ export const features: Feature[] = [
     },
   },
   {
-    dir: 'sandbox/cloud-resources-root',
-    tiers: ['docker'],
-    env: 'vm',
-    ...onFakeCloud,
-    canary: /expected 'refused' to be 'killed'/,
-    record: ({ run, project }) => {
-      cloudCleanedUp(run, project)
-      // The sampler ran while the check looked for it.
-      const r = run.evals.find((e) => e.name === 'lands')?.attempts[0]?.resources
-      assert.ok((r?.usage?.durationMs ?? 0) >= 3000, JSON.stringify(r))
-      assert.equal(r?.usage?.partial, undefined, JSON.stringify(r))
-    },
-  },
-  {
     dir: 'sandbox/boat-brokered',
     tiers: ['docker'],
     env: 'keys',
@@ -1452,18 +1432,6 @@ export const features: Feature[] = [
       assert.deepEqual(landed(run)?.env.brokered, ['API_KEY'])
       assert.equal(filesContaining(runDir, TOKEN), '')
       boatCleanedUp(run)
-    },
-  },
-  {
-    dir: 'sandbox/cloud-installs-harness',
-    tiers: ['docker'],
-    env: 'vm',
-    ...onFakeCloud,
-    canary: /expected '1' to be '2'/,
-    record: ({ run, project }) => {
-      const turns = run.evals.flatMap((e) => e.attempts).flatMap((a) => a.turns)
-      assert.equal(turns.length, 2, 'both agents started, inside their 2s')
-      cloudCleanedUp(run, project)
     },
   },
   {
@@ -1512,7 +1480,7 @@ export const features: Feature[] = [
     tiers: ['docker'],
     env: 'vm',
     ...onFakeBoat,
-    canary: /expected 'reeval(-s1)?' to be 'user'/,
+    canary: /expected 'reeval' to be 'user'/,
     record: ({ run }) => {
       assert.equal(boatCreates(run), 1, 'both attempts ran at once on one machine')
       boatCleanedUp(run)
@@ -1527,25 +1495,13 @@ export const features: Feature[] = [
     },
   },
   {
-    dir: 'sandbox/cloud-shared-install',
-    tiers: ['docker'],
-    env: 'vm',
-    ...onFakeCloud,
-    canary: /expected '\/home\/reeval(-s1)?' not to be '\/home\/reeval(-s1)?'/,
-    record: ({ run, project }) => {
-      assert.equal(boatCreates(run, CLOUD_VM), 1, 'both attempts ran at once on one machine')
-      const said = (re: RegExp) => debugLogs(project).filter((log) => log.some((l) => re.test(l)))
-      assert.equal(said(/installed the fake agent's bootstrap/).length, 1, 'one slot installed')
-      assert.equal(said(/its home from the machine's install/).length, 1, 'the other copied it')
-      cloudCleanedUp(run, project)
-    },
-  },
-  {
     dir: 'sandbox/boat-image',
     tiers: ['docker'],
     env: 'closed',
     canaryEnv: 'open',
     ...onFakeBoat,
+    // The run builds its own snapshot: no `reeval image build` first.
+    prepare: () => buildSshVmImage(['boat', 'boat-docker']),
     sandbox: `docker${installId(['echo baked-by-boat-image > /etc/reeval-recipe'])}`,
     hostEnv: () => ({ BOAT_BASE_URL: boatApi.url, BOAT_API_KEY: boatApi.key, ...egressEnv() }),
     canary: /expected '200 exit=0' to match/,
@@ -1556,6 +1512,7 @@ export const features: Feature[] = [
       assert.equal(base?.provider, 'boat', JSON.stringify(attempt))
       assert.match(base?.snapshot ?? '', /^reeval-img-[0-9a-f]{12}$/)
       assert.equal(base?.image, `reeval-vm-image:${base?.key.slice(0, 12)}`)
+      assert.equal(base?.built, true, 'built by this run')
       const prefix = runPrefix(boat(), run.runId)
       const creates = boatApi.requests.filter(
         (q) => q.call === 'POST /sandboxes' && String(q.body?.name).startsWith(prefix),
@@ -1582,8 +1539,8 @@ export const features: Feature[] = [
     canaryEnv: 'open',
     sandbox: `cloud${installId(['echo baked-by-cloud-image > /etc/reeval-recipe'])}`,
     hostEnv: () => ({
-      REEVAL_VM_URL: dockerVmService.url,
-      REEVAL_VM_TOKEN: dockerVmService.token,
+      REEVAL_VM_URL: vmService.url,
+      REEVAL_VM_TOKEN: vmService.token,
       ...egressEnv(),
     }),
     prepare: () => buildSshVmImage(['boat', 'boat-docker']),
@@ -1623,8 +1580,8 @@ export const features: Feature[] = [
     env: '-',
     hostEnv: () => ({
       REEVAL_PLAN_TARGET: 'cloud',
-      REEVAL_VM_URL: dockerVmService.url,
-      REEVAL_VM_TOKEN: dockerVmService.token,
+      REEVAL_VM_URL: vmService.url,
+      REEVAL_VM_TOKEN: vmService.token,
     }),
     prepare: () => buildSshVmImage(['boat', 'boat-docker']),
     canary: /expected \{ .*'root\\n'.* \} to match object/s,
@@ -1664,8 +1621,8 @@ export const features: Feature[] = [
     env: 'built',
     hostEnv: () => ({
       REEVAL_PLAN_TARGET: 'cloud',
-      REEVAL_VM_URL: dockerVmService.url,
-      REEVAL_VM_TOKEN: dockerVmService.token,
+      REEVAL_VM_URL: vmService.url,
+      REEVAL_VM_TOKEN: vmService.token,
     }),
     prepare: () => buildSshVmImage(['boat', 'boat-docker']),
     canary: /expected '' to contain 'built on linux as uid 0'/,
@@ -1686,7 +1643,7 @@ export const features: Feature[] = [
     record: ({ run, project }) => {
       cloudCleanedUp(run, project)
       const r = run.evals.find((e) => e.name === 'lands')?.attempts[0]?.resources
-      assert.equal(r?.scope, 'machine', JSON.stringify(r))
+      assert.equal(r?.scope, 'container', JSON.stringify(r))
       assert.equal(r?.machine.sandbox, 'cloud')
       assert.equal(r?.machine.size, 'small')
       assert.match(r?.machine.id ?? '', /^bx_[0-9a-f]{8}$/, JSON.stringify(r))
@@ -1698,16 +1655,20 @@ export const features: Feature[] = [
     tiers: ['docker'],
     env: 'vm',
     ...onFakeCloud,
-    canary: /expected 'reeval(-s1)?' to be 'user'/,
+    canary: /expected 'reeval' to be 'user'/,
     record: ({ run, project }) => {
-      assert.equal(boatCreates(run, CLOUD_VM), 1, 'both attempts ran at once on one machine')
+      assert.equal(
+        boatCreates(run, CLOUD_VM, dockerBoatApi),
+        1,
+        'both attempts ran at once on one machine',
+      )
       cloudCleanedUp(run, project)
       const resources = run.evals.flatMap((e) => e.attempts.map((a) => a.resources))
       assert.ok(resources.length >= 2, JSON.stringify(resources))
       for (const r of resources) {
-        assert.equal(r?.shared, true, JSON.stringify(r))
+        assert.equal(r?.scope, 'container', JSON.stringify(r))
         assert.equal(r?.machine.sandbox, 'cloud')
-        assert.equal(r?.usage, undefined, "another attempt's use would count in the VM's")
+        assert.ok(r?.usage, "each attempt's own container's use")
       }
     },
   },
@@ -5862,7 +5823,7 @@ evaluate('broken', async (c) => {
 `,
   })
   const r = await runCli(p.dir, ['run'], {
-    env: { REEVAL_VM_URL: dockerVmService.url, REEVAL_VM_TOKEN: dockerVmService.token },
+    env: { REEVAL_VM_URL: vmService.url, REEVAL_VM_TOKEN: vmService.token },
     timeoutMs: 210_000,
   })
   assert.equal(r.code, 3, r.stdout + r.stderr)
@@ -5886,47 +5847,6 @@ evaluate('broken', async (c) => {
     [],
     'every VM of the run is deleted',
   )
-})
-
-test("cloud(): a harness install that fails is the attempt's infra error, and its VM is deleted", {
-  skip: skipTier('docker'),
-  timeout: 180_000,
-}, async () => {
-  buildSshVmImage()
-  const p = await project('cloud-install-fails', {
-    'reeval.config.ts': `
-import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
-import { cloud } from 'reeval/internal/vm'
-export default defineConfig({
-  harnesses: fakeHarness({ bootstrap: 'echo no mirror >&2; exit 7', script: [[{ exec: 'true' }]] }),
-  sandbox: cloud(),
-  egress: 'allow-all',
-})
-`,
-    'evals/a.eval.ts': `
-import { evaluate } from 'reeval'
-evaluate('installs', async (c) => {
-  await c.send('hi')
-})
-`,
-  })
-  const r = await runCli(p.dir, ['run'], {
-    env: { REEVAL_VM_URL: vmService.url, REEVAL_VM_TOKEN: vmService.token },
-    timeoutMs: 150_000,
-  })
-  assert.equal(r.code, 3, r.stdout + r.stderr)
-  const { run, evals } = readRun(p.dir)
-  assert.equal(evals[0]?.error?.kind, 'infra', JSON.stringify(evals[0]?.error))
-  assert.match(
-    String(evals[0]?.error?.message),
-    /^Installing the fake agent's bootstrap in cloud\(\) sandbox bx_\w+ failed: The fake agent's bootstrap exited 7: no mirror$/,
-  )
-  assert.ok(
-    boatApi.requests.some((q) => /^DELETE \/sandboxes\/bx_\w+$/.test(q.call)),
-    'the VM was deleted',
-  )
-  boatCleanedUp(run, CLOUD_VM)
 })
 
 test('every feature fixture is in the table, with one check and a canary', () => {

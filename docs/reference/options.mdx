@@ -594,7 +594,7 @@ For more information about sandbox factories, see [Choose a sandbox](/configurat
 </Property>
 
 <Property name="boat.reuse" type="boolean" optional>
-  Whether a VM whose attempt finished runs the next attempt, after reeval resets its sandbox user: its processes, crontab, files in `/tmp`, `/var/tmp` and `/dev/shm`, workspace and home. Defaults to `false`, a new VM per attempt.
+  Whether a VM whose attempt finished runs the next attempt, in a new container. Defaults to `false`, a new VM per attempt.
 </Property>
 
 <Property name="boat.attemptsPerMachine" type="number" optional>
@@ -618,7 +618,7 @@ For more information about sandbox factories, see [Choose a sandbox](/configurat
 </Property>
 
 <Property name="daytona.reuse" type="boolean" optional>
-  Whether a sandbox whose attempt finished runs the next attempt, after reeval resets its sandbox user, as `boat.reuse` does. Defaults to `false`, a new sandbox per attempt.
+  Whether a sandbox whose attempt finished runs the next attempt, after reeval resets its sandbox user: its processes, crontab, files in `/tmp`, `/var/tmp` and `/dev/shm`, workspace and home. Defaults to `false`, a new sandbox per attempt.
 </Property>
 
 <Property name="daytona.attemptsPerMachine" type="number" optional>
