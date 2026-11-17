@@ -6,7 +6,12 @@ import { dirname, join, resolve } from 'node:path'
 import { CloudError } from './cloud-run.ts'
 import { UsageError } from './errors.ts'
 
-export type LinkedProject = { orgId: string; projectId: string }
+export type LinkedProject = {
+  orgId: string
+  projectId: string
+  /** The project's name when `reeval link` wrote it, for showing without a call. */
+  projectName?: string
+}
 
 /** The project's directory, where `.reeval/project.json` is: beside the config, else here. */
 export const projectDirFor = (configPath: string | undefined) =>
@@ -25,7 +30,7 @@ export async function linkedProject(projectDir: string): Promise<LinkedProject |
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
     throw new UsageError(`couldn't read ${file}: ${(error as Error).message}`)
   }
-  let linked: { orgId?: unknown; projectId?: unknown } | null = null
+  let linked: { orgId?: unknown; projectId?: unknown; projectName?: unknown } | null = null
   try {
     linked = JSON.parse(text)
   } catch {}
@@ -39,7 +44,12 @@ export async function linkedProject(projectDir: string): Promise<LinkedProject |
       `${file} isn't JSON with an orgId and a projectId: reeval link writes it again`,
     )
   }
-  return { orgId: linked.orgId, projectId: linked.projectId }
+  const { orgId, projectId, projectName } = linked
+  return {
+    orgId,
+    projectId,
+    ...(typeof projectName === 'string' && projectName && { projectName }),
+  }
 }
 
 /** Writes the link, replacing any other, through a temporary file so a reader never sees half. */
@@ -47,9 +57,9 @@ export async function writeLinkedProject(projectDir: string, link: LinkedProject
   const file = projectFile(projectDir)
   await mkdir(join(projectDir, '.reeval'), { recursive: true })
   const tmp = `${file}.${process.pid}.tmp`
-  const { orgId, projectId } = link
+  const { orgId, projectId, projectName } = link
   try {
-    await writeFile(tmp, `${JSON.stringify({ orgId, projectId }, null, 2)}\n`)
+    await writeFile(tmp, `${JSON.stringify({ orgId, projectId, projectName }, null, 2)}\n`)
     await rename(tmp, file)
   } catch (error) {
     await rm(tmp, { force: true })

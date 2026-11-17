@@ -256,9 +256,16 @@ async function run(argv: string[]): Promise<number> {
     console.log(commandHelpText(version, positionals))
     return EXIT.ok
   }
-  if (values.help || !command) {
+  if (values.help) {
     console.log(HELP)
-    return values.help ? EXIT.ok : EXIT.usage
+    return EXIT.ok
+  }
+  if (!command) {
+    const { homeScreen, homeStatus } = await import('./home.ts')
+    const tty = !!process.stdout.isTTY
+    const term = { tty, color: tty && !process.env.NO_COLOR, columns: process.stdout.columns ?? 0 }
+    console.log(homeScreen(version, await homeStatus(values.config), term))
+    return EXIT.ok
   }
   if (command === 'init') {
     const { initCommand } = await import('./init.ts')

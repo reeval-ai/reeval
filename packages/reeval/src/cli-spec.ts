@@ -112,6 +112,8 @@ export type CommandSpec = {
   help: string
   /** Its arguments may hold a secret, so a refusal counts them instead of repeating them. */
   secretArgs?: true
+  /** It takes a recorded run by ref, so its help says how to name one. */
+  runRef?: true
   sub?: Record<string, Omit<CommandSpec, 'sub'>>
 }
 
@@ -406,6 +408,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
           'allow-incomplete',
         ],
         positionals: 1,
+        runRef: true,
         help: `
   reeval cloud push [run]       Upload a recorded run (default: latest) to the studio of the cloud
                                 project reeval link linked, as its history archive with its saved
@@ -475,6 +478,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
   record: {
     flags: ['artifacts', 'allow-incomplete', 'skip-secret-scan', 'profile'],
     positionals: Number.POSITIVE_INFINITY,
+    runRef: true,
     help: `
   reeval record [run...]        Copy runs (default: latest) from .reeval/runs into the history folder
                                 --artifacts all|evidence|failures|none --allow-incomplete --skip-secret-scan
@@ -493,6 +497,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
   show: {
     flags: ['json', 'md', 'trace', 'out', 'profile', 'offline', 'all-branches'],
     positionals: 1,
+    runRef: true,
     help: `
   reeval show [run]             One run: result blocks, --md (summary.md) or --json (the record)
     --trace                     Write its timeline as Chrome Trace Event JSON for ui.perfetto.dev:
@@ -505,6 +510,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
   compare: {
     flags: ['md', 'json', 'fail-on-regression', 'verbose', 'profile', 'offline', 'all-branches'],
     positionals: 2,
+    runRef: true,
     help: `
   reeval compare [base] [head]  Diff two runs; base defaults to head's nearest recorded ancestor
                                 --md --json --fail-on-regression
@@ -517,6 +523,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
   checkout: {
     flags: ['profile', 'offline', 'all-branches'],
     positionals: 2,
+    runRef: true,
     help: `
   reeval checkout [run] [dir]   A git worktree at the run's commit, with its worktree.patch applied
                                 (default dir: .reeval/checkouts/<run>)
@@ -527,6 +534,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
   sync: {
     flags: ['profile', 'debug', 'push-only'],
     positionals: Number.POSITIVE_INFINITY,
+    runRef: true,
     help: `
   reeval sync [--debug run...]  Upload the runs recorded to history.store that didn't upload
                                 (kept in .reeval/store/<id>/pending), then download the runs
@@ -567,6 +575,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
       'all-branches',
     ],
     positionals: 1,
+    runRef: true,
     help: `
   reeval analyze [run]          Explain a run with one LLM call over a digest of its facts (vs its
                                 nearest recorded ancestor), citations and commands checked; cached
@@ -601,6 +610,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
   studio: {
     flags: ['port', 'no-open', 'no-scratch', 'profile'],
     positionals: 1,
+    runRef: true,
     help: `
   reeval studio [run]           Open the hosted studio on your local runs: serves them on 127.0.0.1
                                 to the studio page at REEVAL_CLOUD_URL, which pairs with a one-time
@@ -625,6 +635,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
           'all-branches',
         ],
         positionals: 1,
+        runRef: true,
         help: `
   reeval studio share [run]     Share a recorded run's report (default: latest) from the cloud
                                 project reeval link linked, with the org's members, and print the
@@ -651,6 +662,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
   report: {
     flags: ['out', 'json', 'last', 'issue', 'yes'],
     positionals: 1,
+    runRef: true,
     help: `
   reeval report [run]           Collect a bug report: versions, reeval doctor, the config's shape, the
                                 last reeval command's error and stack, the run's failures and their
@@ -755,28 +767,24 @@ export const INSTEAD: Record<string, string> = {
     "-vv keeps every attempt's trace.ndjson in .reeval/debug, and reeval show --trace writes a run's timeline for ui.perfetto.dev",
 }
 
-const HELP_FOOTER = `Options: --config <path> (default: the nearest reeval.config.ts, or .mts, .cts, .js, .mjs, .cjs,
-or reeval.yaml, in the current directory or above)
-Exit codes: 0 passed, 1 failed, 2 usage/config error, 3 infra error, 4 stopped (the cloud
-platform stopped the run before it finished; reeval run --cloud --resume continues it),
-130 interrupted (Ctrl-C), 143 terminated (SIGTERM)
-`
+const RUN_REF = 'A run is latest, latest~N, a run id or its prefix, or a git SHA prefix.'
 
 const helpLines = (spec: CommandSpec) => [
   spec.help,
   ...Object.values(spec.sub ?? {}).map((sub) => sub.help),
 ]
 
-/** `reeval --help`: every command's help lines, in the order of `COMMANDS`. */
+/** `reeval --help`: every command's help lines, in the order of `COMMANDS`, then the global flags. */
 export function helpText(version: string): string {
   return `reeval ${version} — eval runner for coding agents
 
 Usage:${Object.values(COMMANDS).flatMap(helpLines).join('')}
-  reeval --version
-  reeval --help
 
-Runs are latest, latest~N, a run id (or unique prefix), or a git SHA prefix.
-${HELP_FOOTER}`
+Global options:
+  --config <path>               Use this config instead of the nearest reeval.config.ts
+  -h, --help                    Show help; reeval <command> --help for one command
+  --version                     Print the version
+`
 }
 
 /**
@@ -789,11 +797,13 @@ export function commandHelpText(version: string, path: string[]): string {
   if (!spec) return helpText(version)
   const sub = spec.sub?.[subName]
   const lines = sub ? [sub.help] : helpLines(spec)
+  const runRef = sub
+    ? sub.runRef
+    : spec.runRef || Object.values(spec.sub ?? {}).some((s) => s.runRef)
   return `reeval ${version} — eval runner for coding agents
 
 Usage:${lines.join('')}
-
-${HELP_FOOTER}`
+${runRef ? `\n${RUN_REF}\n` : ''}`
 }
 
 /** Splits a command line on whitespace, honoring single and double quotes. */

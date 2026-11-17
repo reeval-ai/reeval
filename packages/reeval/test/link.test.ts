@@ -118,7 +118,11 @@ describe('reeval link on a terminal', () => {
         r.out,
         'Linked this project to Web app (web) in Acme (acme): wrote .reeval/project.json.',
       )
-      assert.deepEqual(linked(dir), { orgId: 'org_acme', projectId: 'proj_web' })
+      assert.deepEqual(linked(dir), {
+        orgId: 'org_acme',
+        projectId: 'proj_web',
+        projectName: 'Web app',
+      })
       assert.deepEqual(p.seen, ['GET /api/orgs', 'GET /api/orgs/org_acme/projects'])
     } finally {
       await p.close()
@@ -133,7 +137,11 @@ describe('reeval link on a terminal', () => {
       assert.equal(r.code, 0, r.error?.message)
       assert.doesNotMatch(r.asked, /Which org/)
       assert.match(r.asked, /Project \[1\]: Answer 1 to 1, or a slug\.\nProject \[1\]: $/)
-      assert.deepEqual(linked(dir), { orgId: 'org_lab', projectId: 'proj_evals' })
+      assert.deepEqual(linked(dir), {
+        orgId: 'org_lab',
+        projectId: 'proj_evals',
+        projectName: 'Evals',
+      })
     } finally {
       await p.close()
     }
@@ -156,7 +164,11 @@ describe('reeval link on a terminal', () => {
       assert.equal(readFileSync(linkFile(dir), 'utf8'), before)
       const yes = await link(p.base, dir, {}, ['y', '1', '1'])
       assert.equal(yes.code, 0, yes.error?.message)
-      assert.deepEqual(linked(dir), { orgId: 'org_acme', projectId: 'proj_api' })
+      assert.deepEqual(linked(dir), {
+        orgId: 'org_acme',
+        projectId: 'proj_api',
+        projectName: 'API',
+      })
     } finally {
       await p.close()
     }
@@ -171,7 +183,11 @@ describe('reeval link on a terminal', () => {
       const r = await link(p.base, dir, {}, ['yes', 'evals'])
       assert.equal(r.code, 0, r.error?.message)
       assert.match(r.asked, /^\.reeval\/project\.json isn't a link reeval reads\. Replace it\?/)
-      assert.deepEqual(linked(dir), { orgId: 'org_lab', projectId: 'proj_evals' })
+      assert.deepEqual(linked(dir), {
+        orgId: 'org_lab',
+        projectId: 'proj_evals',
+        projectName: 'Evals',
+      })
     } finally {
       await p.close()
     }
@@ -197,7 +213,11 @@ describe('reeval link without a terminal', () => {
       const dir = tempDir('link')
       const r = await link(p.base, dir, { org: 'acme', project: 'proj_web' })
       assert.equal(r.code, 0, r.error?.message)
-      assert.deepEqual(linked(dir), { orgId: 'org_acme', projectId: 'proj_web' })
+      assert.deepEqual(linked(dir), {
+        orgId: 'org_acme',
+        projectId: 'proj_web',
+        projectName: 'Web app',
+      })
       const again = await link(p.base, dir, { org: 'org_acme', project: 'WEB' })
       assert.equal(again.code, 0, again.error?.message)
       assert.equal(
@@ -219,7 +239,11 @@ describe('reeval link without a terminal', () => {
       const dir = tempDir('link')
       const r = await link(p.base, dir, { org: 'mixed', project: 'EVALS' })
       assert.equal(r.code, 0, r.error?.message)
-      assert.deepEqual(linked(dir), { orgId: 'org_mixed', projectId: 'proj_evals' })
+      assert.deepEqual(linked(dir), {
+        orgId: 'org_mixed',
+        projectId: 'proj_evals',
+        projectName: 'Evals',
+      })
     } finally {
       await p.close()
     }
@@ -235,10 +259,18 @@ describe('reeval link without a terminal', () => {
         refused.error?.message ?? '',
         /^\.reeval\/project\.json links this project to Web app \(web\) in Acme \(acme\): pass --yes to replace it\.$/,
       )
-      assert.deepEqual(linked(dir), { orgId: 'org_acme', projectId: 'proj_web' })
+      assert.deepEqual(linked(dir), {
+        orgId: 'org_acme',
+        projectId: 'proj_web',
+        projectName: 'Web app',
+      })
       const r = await link(p.base, dir, { org: 'lab', project: 'evals', yes: true })
       assert.equal(r.code, 0, r.error?.message)
-      assert.deepEqual(linked(dir), { orgId: 'org_lab', projectId: 'proj_evals' })
+      assert.deepEqual(linked(dir), {
+        orgId: 'org_lab',
+        projectId: 'proj_evals',
+        projectName: 'Evals',
+      })
     } finally {
       await p.close()
     }
@@ -376,7 +408,11 @@ describe('reeval link from the CLI', () => {
         r.stdout,
         /Linked this project to Web app \(web\) in Acme \(acme\): wrote \.\.\/\.reeval\/project\.json\./,
       )
-      assert.deepEqual(linked(dir), { orgId: 'org_acme', projectId: 'proj_web' })
+      assert.deepEqual(linked(dir), {
+        orgId: 'org_acme',
+        projectId: 'proj_web',
+        projectName: 'Web app',
+      })
       const list = await runCli(dir, ['cloud', 'secrets', 'list'], { env: e })
       assert.equal(list.code, 0, list.stdout + list.stderr)
       assert.equal(p.seen.at(-1), 'GET /api/orgs/org_acme/projects/proj_web/secrets')
