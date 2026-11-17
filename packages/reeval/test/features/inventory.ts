@@ -2366,7 +2366,7 @@ export const inventory: InventoryFeature[] = [
     name: "The plan's verdict hints: a compare below 4 runs a cell (1 included) and a compared eval with below 6 cases will show only a direction whatever happens; a profile's `limit.runs` cut is named",
     plan: [
       'compare/verdicts',
-      'compare/verdicts-no-control',
+      'compare/verdicts-filtered',
       'compare/verdicts-some-cases',
       'compare/cases',
       'compare/study',

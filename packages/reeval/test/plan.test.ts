@@ -142,7 +142,7 @@ export const cases: PlanCase[] = [
   { dir: 'where', name: 'trait-none', args: ['--trait', 'auth=clerk', '--trait', 'stack=vite'] },
   { dir: 'where', name: 'limit-traits', args: ['--profile', 'vite'] },
   { dir: 'compare', name: 'verdicts', args: ['evals/verdicts.eval.ts'] },
-  { dir: 'compare', name: 'verdicts-no-control', args: ['evals/verdicts.eval.ts', 'b/skilled'] },
+  { dir: 'compare', name: 'verdicts-filtered', args: ['evals/verdicts.eval.ts', 'b/skilled'] },
   {
     dir: 'compare',
     name: 'verdicts-some-cases',
