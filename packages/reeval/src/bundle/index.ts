@@ -1280,7 +1280,7 @@ async function install(
 
 /**
  * The version `.github/workflows/preview.yml` gives a pkg.pr.new preview build, which no release
- * a lockfile installs has: `0.0.0-preview-<sha>`.
+ * a lockfile installs has: `0.0.0-preview-<commit sha>`.
  */
 const PREVIEW_VERSION = /^0\.0\.0-preview-[0-9a-f]+$/
 
@@ -1313,7 +1313,7 @@ async function useRunningReeval(project: string, root: string): Promise<void> {
     }
     if ((await realpath(dirname(resolved))) !== own) {
       throw new UsageError(
-        `The bundle runs on its own reeval, but its project resolves ${name} at ${dirname(resolved)}, which reeval couldn't point at the one it carries, so nothing ran.`,
+        `The bundle runs on its own reeval, but its project resolves ${name} at ${dirname(resolved)}, which reeval couldn't point at the running reeval, so nothing ran.`,
       )
     }
   }
