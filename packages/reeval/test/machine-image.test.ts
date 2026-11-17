@@ -1,9 +1,14 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { ImageBuildError, type ImageStage, type RemoteEngine } from '@reeval/sandbox-docker'
+import {
+  buildInstallLayer,
+  ImageBuildError,
+  type ImageStage,
+  type RemoteEngine,
+} from '@reeval/sandbox-docker'
 import { imageOnMachine, recipeCaused } from '../src/sandbox/machine-image.ts'
 import { PrepareError } from '../src/sandbox/provider.ts'
 import { InfraError } from '../src/sandbox/types.ts'
@@ -60,4 +65,58 @@ test("a failed install, Dockerfile or plugin build step is the recipe's, a lost 
   }
   assert.ok(!recipeCaused(failed('harness'), 'exit code: 1'), 'harness')
   assert.ok(!recipeCaused(failed('plugin'), 'ssh: connect to host: connection refused'))
+})
+
+test("what SSH prints when it loses the machine is the machine's, whatever the stage", () => {
+  for (const line of [
+    'Connection to 10.0.0.7 closed by remote host.',
+    'Connection to 10.0.0.7 port 22 timed out',
+    'Timeout, server 10.0.0.7 not responding.',
+  ]) {
+    for (const stage of ['install', 'dockerfile', 'plugin'] as const) {
+      const error = new ImageBuildError(line, {
+        stage,
+        ref: 'r',
+        transient: false,
+        cause: null,
+        log: null,
+      })
+      assert.ok(!recipeCaused(error, line), `${stage}: ${line}`)
+    }
+  }
+})
+
+test("an install build whose SSH session drops names the drop, so it's the machine's", async () => {
+  const bin = mkdtempSync(join(tmpdir(), 'reeval-mi-bin-'))
+  writeFileSync(
+    join(bin, 'docker'),
+    `#!/bin/sh
+if [ "$1" = build ]; then
+  cat >/dev/null
+  echo '#5 [2/2] RUN /bin/sh -c reeval-install'
+  echo '#5 0.412 installing'
+  echo 'Connection to 10.0.0.7 closed by remote host.' >&2
+  exit 255
+fi
+echo 'Error: No such image: reeval-install' >&2
+exit 1
+`,
+    { mode: 0o755 },
+  )
+  const PATH = process.env.PATH
+  process.env.PATH = `${bin}:${PATH}`
+  try {
+    const error = await buildInstallLayer({ ref: 'base:1', key: 'k' }, [{ run: 'true' }]).then(
+      () => assert.fail('built'),
+      (e: unknown) => e as Error,
+    )
+    assert.ok(error instanceof ImageBuildError, String(error))
+    assert.match(
+      error.message,
+      /docker build failed: Connection to 10\.0\.0\.7 closed by remote host\./,
+    )
+    assert.ok(!recipeCaused(error, error.message))
+  } finally {
+    process.env.PATH = PATH
+  }
 })
