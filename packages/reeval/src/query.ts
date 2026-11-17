@@ -112,6 +112,35 @@ export function usesRunParameter(sql: string): boolean {
   return /[:$@]run\b/.test(code)
 }
 
+/** The views and tables read from transcripts, which a run records only where its artifact level keeps them. */
+const FROM_TRANSCRIPTS = [
+  'tool_calls',
+  'skill_uses',
+  'context_reads',
+  'context_use',
+  'skill_reads',
+  'skill_files',
+]
+
+/**
+ * A note when `sql` reads a view or table built from transcripts and some attempts that made tool
+ * calls (in `run`, when given) have none recorded, so they're missing from it rather than idle.
+ */
+function transcriptCoverage(db: HistoryDb, sql: string, run?: string): string | undefined {
+  const names = FROM_TRANSCRIPTS.filter((n) => new RegExp(`\\b${n}\\b`, 'i').test(sql))
+  if (!names.length) return undefined
+  const [row] = db.query(
+    `SELECT COUNT(*) AS called, COALESCE(SUM(EXISTS (SELECT 1 FROM tool_calls t
+      WHERE t.run_id = a.run_id AND t.attempt_key = a.key)), 0) AS read
+    FROM attempts a WHERE a.tools > 0${run === undefined ? '' : ' AND a.run_id = ?'}`,
+    run === undefined ? [] : [run],
+  ).rows
+  const called = Number(row?.called ?? 0)
+  const read = Number(row?.read ?? 0)
+  if (read === called) return undefined
+  return `note: ${names.join(', ')} ${names.length === 1 ? 'covers' : 'cover'} ${read} of the ${called} attempts that made tool calls; the others have no transcript to read. A run recorded below history.artifacts: 'all' keeps none for a passing attempt ('evidence', the default, keeps them for failed ones only).`
+}
+
 /** The run id `ref` names in history.db: `last` (or `latest`) by started_at, an id or a unique prefix. */
 function resolveRunRef(db: HistoryDb, ref: string): string {
   if (ref === 'last' || ref === 'latest') {
@@ -191,9 +220,11 @@ export async function queryCommand(ctx: Ctx, args: string[]): Promise<number> {
         `reeval query --run ${run}: --run binds :run, which the statement doesn't use; add WHERE run_id = :run.`,
       )
     }
-    const result =
-      run === undefined ? db.query(sql) : db.query(sql, { run: resolveRunRef(db, run) })
+    const params = run === undefined ? undefined : { run: resolveRunRef(db, run) }
+    const result = db.query(sql, params)
     ctx.out(ctx.flags.json ? JSON.stringify(result.rows, null, 2) : formatRows(result))
+    const note = transcriptCoverage(db, sql, params?.run)
+    if (note) ctx.err(note)
     return 0
   } finally {
     db.close()

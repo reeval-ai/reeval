@@ -768,6 +768,48 @@ for (const name of ['one', 'two']) {
     )
   })
 
+  test('views read from transcripts say how many attempts the recorded artifacts left out', async () => {
+    const p = await project('query-transcript-coverage', {
+      'reeval.config.ts': fakeConfig({
+        harness: `{ script: [[{ exec: 'if test -f ~/.agents/skills/s/SKILL.md; then echo y > ok.txt; fi' }]] }`,
+      }),
+      'skills/s/SKILL.md': skill('s'),
+      'evals/s.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+import { fakeSandbox } from 'reeval/sandbox'
+const sandbox = fakeSandbox()
+const plain = defineEnvironment('plain', { sandbox })
+const skilled = defineEnvironment('skilled', ({ skill }) => ({ sandbox, skills: [skill.local('../skills/s')] }))
+evaluate('writes', { compare: { control: plain, variants: [skilled] }, runs: 2 }, async (c) => {
+  await c.send('go')
+  await expect(c).toHaveFile('ok.txt')
+})
+`,
+    })
+    const ran = await runCli(p.dir, ['run'])
+    assert.equal(ran.code, 0, ran.stdout + ran.stderr)
+    const scratch = await runCli(p.dir, ['query', 'tool_calls'])
+    assert.doesNotMatch(scratch.stderr, /note:/, 'a scratch run keeps every transcript')
+
+    assert.equal((await runCli(p.dir, ['record', 'latest'])).code, 0)
+    const recorded = await runCli(p.dir, [
+      'query',
+      'SELECT * FROM tool_calls JOIN skill_uses USING (run_id)',
+    ])
+    assert.equal(recorded.code, 0, recorded.stderr)
+    assert.match(
+      recorded.stderr,
+      /note: tool_calls, skill_uses cover 2 of the 4 attempts that made tool calls; .* history\.artifacts: 'all'/,
+    )
+    const run = await runCli(p.dir, ['query', 'SELECT * FROM attempts', '--json'])
+    assert.doesNotMatch(run.stderr, /note:/, 'a view not read from transcripts has no note')
+
+    assert.equal((await runCli(p.dir, ['run'])).code, 0)
+    const whole = await runCli(p.dir, ['query', 'tool_calls', '--run', readRun(p.dir).run.runId])
+    assert.equal(whole.code, 0, whole.stderr)
+    assert.doesNotMatch(whole.stderr, /note:/, '--run counts only the run it names')
+    assert.match((await runCli(p.dir, ['query', 'tool_calls'])).stderr, /covers 6 of the 8/)
+  })
+
   test('failing attempts join skills by environment digest, not name', async () => {
     const p = await project('query-joins', {
       'reeval.config.ts': fakeConfig(),
