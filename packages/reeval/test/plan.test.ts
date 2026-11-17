@@ -1497,18 +1497,18 @@ evaluate('own', { environments: mixed, runs: 1, egress: 'deny-all' }, async () =
     assert.match(r.stdout, /› own .*egress: deny-all$/m)
   })
 
-  test("a cell filter narrows each row's counts in the text plan, not only the totals", async () => {
+  test("a cell filter narrows each row's counts in the text plan, a variant keeping its control", async () => {
     const p = await fixture('plan/compare')
     const r = await runCli(p.dir, ['run', '--dry-run', 'evals/variants.eval.ts', 'b/skilled'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    assert.match(r.stdout, /2 evals · 2 cells · 6 attempts/)
+    assert.match(r.stdout, /2 evals · 4 cells · 12 attempts/)
     const rows = r.stdout
       .split('\n')
       .filter((l) => l.startsWith('evals/variants.eval.ts'))
       .map((l) => l.split(/\s{2,}/).slice(1, 5))
     assert.deepEqual(rows, [
-      ['1', '1 of 2', '4', '4'],
-      ['1', '1', '2', '2'],
+      ['1', '1 of 2', '4', '8'],
+      ['1', '1', '2', '4'],
     ])
   })
 

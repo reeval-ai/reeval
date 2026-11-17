@@ -75,7 +75,8 @@ The `reeval run` command plans the evaluations and runs their attempts. `--ui`, 
 
 ```text
 reeval run [filter...]        Run evals matching config.include; filters are path, name or cell substrings
-                              (parts of one kind OR; a name and a cell key are one kind)
+                              (parts of one kind OR; a name and a cell key are one kind); a whole
+                              variant cell runs with its control, for its lift
   --profile <name>            Size the run with a profile from reeval.config.ts (also REEVAL_PROFILE;
                               default: defaultProfile.cloud for a cloud run, else defaultProfile.ci
                               in CI, else defaultProfile.local)

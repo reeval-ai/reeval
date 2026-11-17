@@ -453,6 +453,51 @@ describe('runEngine: running', () => {
     assert.equal(none.noFiles, true)
   })
 
+  test('a filter that picks a whole variant cell also runs its control, on its harness and sandbox', async () => {
+    const { run } = project(['evals/a.eval.ts'])
+    const arm = (index: number, key: string, role: string, n = 1) => {
+      const [harness, , sandbox] = key.split('/')
+      return test0(index, `x [${key}#${n}]`, {
+        attempt: attempt('x', { cell: { key, role, harness, sandbox }, n } as never),
+      })
+    }
+    const tests = {
+      'a.eval.ts': [
+        arm(0, 'h/base/s', 'control'),
+        arm(1, 'h/base/s', 'control', 2),
+        arm(2, 'h/skill/s', 'variant'),
+        arm(3, 'h/skill/s', 'variant', 2),
+        arm(4, 'h/doc/s', 'variant'),
+        arm(5, 'g/base/s', 'control'),
+        arm(6, 'g/skill/s', 'variant'),
+        test0(7, 'later', { mode: 'todo' }),
+      ],
+    }
+    const planned = async (filters: string[]) => {
+      let keys: string[] = []
+      await engine(
+        {
+          run,
+          filters,
+          onPlan: async (p) => {
+            keys = p.planned.map((a) => a.key.split(' # ')[1] as string)
+            return false
+          },
+        },
+        fakeSpawn(passing(tests)).spawn,
+      )
+      return keys
+    }
+    assert.deepEqual(await planned(['h/skill/s']), [
+      'h/base/s#1',
+      'h/base/s#2',
+      'h/skill/s#1',
+      'h/skill/s#2',
+    ])
+    assert.deepEqual(await planned(['h/skill/s#2']), ['h/skill/s#2'], 'one attempt runs alone')
+    assert.deepEqual(await planned(['/base/']), ['h/base/s#1', 'h/base/s#2', 'g/base/s#1'])
+  })
+
   test('a part that names a file also matches as a name or cell part in the other files', async () => {
     const { run } = project(['evals/fake/a.eval.ts', 'evals/b.eval.ts', 'evals/c.eval.ts'])
     const tests = {
