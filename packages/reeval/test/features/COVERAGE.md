@@ -263,7 +263,7 @@
 | `reeval mcp`: run history as read-only MCP tools and resources, over stdio or stateless HTTP | ✓ 1 | — | — | — | — | — |
 | `reeval mcp` for debugging a failed run: `failures` (each failed attempt's checks, judge scores, error, check logs and transcript tail, and whether its cell failed before) and `history` listing scratch runs, with a note, when nothing is recorded | ✓ 1 | — | — | — | — | — |
 | An eval whose cells are all ungated is marked ○ and `not gated` in the run summary when its attempts miss, never ✓ beside 0/n, and reads `not gated` (○) in the tally, `reeval compare` and `reeval history`, never `pass` | ✓ 1 | — | ● 1 | — | — | — |
-| `reeval query` facts views: `effort`, `factor_effects` (controlled, pooled, observed, not measured), `skill_reads` and `tool_calls`, `attempt_context` | ✓ 1 | — | — | — | — | — |
+| `reeval query` facts views: `effort`, `factor_effects` (controlled, pooled over runs and across one run's evals, observed, not measured), `skill_reads` and `tool_calls`, `attempt_context` | ✓ 2 | — | — | — | — | — |
 | Skill use of skills reeval didn't place (a setup step, the workspace or a package cache put them there): `skill_reads` and `skill_uses` by `source` (`placed`, `skill-dir`, `elsewhere`), from a native load or a path under an agent's skill directory | ✓ 1 | — | ● 1 | ● 1 | — | ● 1 |
 | `flaky_cells` pooled over comparable runs, `flaky` from a minimum n and `mixed` below it, and `drift` with changed paths and a `noise` flag | ✓ 2 | — | — | — | — | — |
 | Effort (tool calls, agent time, and tokens when both sides reported usage): the effort table in `reeval run` and `summary.md` from four counted tries a side, beside lift in `reeval compare -v` and the studio | ✓ 2 | — | — | — | — | — |

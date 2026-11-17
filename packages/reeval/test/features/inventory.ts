@@ -2288,8 +2288,8 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'query.facts',
     area: 'Records and studio',
-    name: '`reeval query` facts views: `effort`, `factor_effects` (controlled, pooled, observed, not measured), `skill_reads` and `tool_calls`, `attempt_context`',
-    unit: ['reeval/test/analysis.test.ts'],
+    name: "`reeval query` facts views: `effort`, `factor_effects` (controlled, pooled over runs and across one run's evals, observed, not measured), `skill_reads` and `tool_calls`, `attempt_context`",
+    unit: ['reeval/test/analysis.test.ts', 'reeval/test/query.test.ts'],
   },
   {
     id: 'query.found-skills',
