@@ -125,7 +125,7 @@ export function downloadShown(
       status(`${doing} ${formatBytes(received)}${total ? ` of ${formatBytes(total)}` : ''}`)
     },
     onSaved: (where) => {
-      saved ??= where
+      saved = where
     },
   }).then(
     (lines) => {
@@ -183,7 +183,7 @@ function placed(
 export type DownloadWatch = {
   /** Bytes received so far, of `total` when the platform said. */
   onProgress?: (received: number, total: number | null) => void
-  /** Where each run it wrote, or found already here, is. */
+  /** Where each run it wrote, or found already here, is in `.reeval/runs`. */
   onSaved?: (where: string) => void
 }
 
@@ -480,7 +480,7 @@ export async function downloadCloudFiles(
     const scratch = mine.some((f) => f.area === 'runs') && shown('.reeval', 'runs', runId)
     const record = mine.find((f) => f.area === 'history' && f.record)
     const where = scratch || (record && shown(record.path))
-    if (where) options.onSaved?.(where)
+    if (scratch) options.onSaved?.(scratch)
     if (!wrote.length) {
       lines.push(`Run ${runId} of cloud run ${cloudRunId} is already in ${where}`)
       continue

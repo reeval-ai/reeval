@@ -286,6 +286,7 @@ export async function attach(options: AttachOptions): Promise<number> {
         renderer?.close()
         const last = renderer ?? ended
         renderer = ended = undefined
+        if (options.ending) last?.status?.('')
         await last?.dismiss?.()
         code = undefined
         if (++headers > (options.resumedAfter ?? 0)) current = true
