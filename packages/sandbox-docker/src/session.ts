@@ -668,7 +668,7 @@ export async function createDockerSession(options: SessionOptions): Promise<Dock
       stdout: Readable.toWeb(child.stdout) as ReadableStream<Uint8Array>,
       wait: () => exited,
       kill: async () => {
-        child.kill('SIGKILL')
+        child.kill()
         await stop()
       },
     }
@@ -848,7 +848,7 @@ export async function createDockerSession(options: SessionOptions): Promise<Dock
       const startedAt = Date.now()
       const child = spawnEngine(engine, args, env)
       const exited = new Promise<{ exitCode: number }>((resolve) =>
-        child.on('close', (code) => {
+        child.once('close', (code) => {
           traceDocker(
             args,
             startedAt,
@@ -859,7 +859,7 @@ export async function createDockerSession(options: SessionOptions): Promise<Dock
         }),
       )
       const kill = async () => {
-        child.kill('SIGKILL')
+        child.kill()
         await killExec(marker)
       }
       o.abortSignal?.addEventListener('abort', () => void kill(), { once: true })

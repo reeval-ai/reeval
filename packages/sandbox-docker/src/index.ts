@@ -117,8 +117,10 @@ export {
 } from './egress/substitution.ts'
 export type { DerivedTokens } from './egress/tokens.ts'
 export {
+  argvTransport,
   controlOptions,
   controlPathFits,
+  type ExecProcess,
   type ExecTransport,
   privateDir,
   SSH_OPTIONS,
@@ -181,6 +183,7 @@ export {
   isSshFailure,
   remoteBuild,
   spawnEngine,
+  sshEngine,
 } from './remote-engine.ts'
 export {
   createDockerSession,

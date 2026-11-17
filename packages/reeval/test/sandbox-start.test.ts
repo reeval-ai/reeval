@@ -2,7 +2,7 @@
 // refusal, and the machine removed once on every way out.
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
-import type { DockerSession, ExecTransport } from '@reeval/sandbox-docker'
+import { argvTransport, type DockerSession } from '@reeval/sandbox-docker'
 import type { SandboxOptions } from '../src/sandbox/index.ts'
 import { type BootedMachine, brokeringRefusal, startSandbox } from '../src/sandbox/start.ts'
 
@@ -16,14 +16,14 @@ const options = (o: Partial<SandboxOptions> = {}): SandboxOptions => ({
 })
 
 /** Root that refuses every command, so the gateway can't install its CA. */
-const noRoot: ExecTransport = {
+const noRoot = argvTransport({
   argv: (command) => [...command],
   run: async () => ({
     exitCode: 1,
     stdout: Buffer.from(''),
     stderr: 'sudo: a password is required',
   }),
-}
+})
 
 function machine(o: { session?: () => DockerSession } = {}) {
   const seen = { destroyed: 0, noGateway: undefined as string | undefined, sessions: 0 }

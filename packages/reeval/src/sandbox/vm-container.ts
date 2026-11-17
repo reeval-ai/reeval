@@ -12,9 +12,8 @@ import {
   type RemoteEngine,
   type SandboxLimits,
   sizeBytes,
-  sshArgv,
+  sshEngine,
 } from '@reeval/sandbox-docker'
-import { run, unsetOtel } from '@reeval/sandbox-docker/process'
 import { attemptDebug } from '../debug/attempt.ts'
 import { registerSecret } from '../redact.ts'
 import type {
@@ -137,12 +136,6 @@ async function untilImage(
   }
 }
 
-/** Closes the SSH connection the machine's commands shared. */
-async function closeConnection(engine: RemoteEngine): Promise<void> {
-  const [bin = 'ssh', ...args] = sshArgv(engine.target, '')
-  await run(bin, ['-O', 'exit', ...args.slice(0, -1)], { env: unsetOtel() }).catch(() => {})
-}
-
 /**
  * One attempt in a container of `source`'s image on a slot of `descriptor`'s pool. A reused
  * machine whose Docker can't get the image is dropped and another leased, up to 3 times.
@@ -181,9 +174,8 @@ export async function createVmContainerSandbox(
         : `${lease.reused ? 'reused' : 'shared'} ${info.id} (${info.name}, ${info.size}); slot ${lease.slot}${lease.reused ? `, its attempt ${lease.reused + 1}` : ''}`,
     )
     for (const lost of lease.lost) debug?.log('container', lostLine(lost))
-    const engine: RemoteEngine = {
-      kind: 'ssh',
-      target: {
+    const engine = sshEngine(
+      {
         host: info.host,
         port: info.port,
         user: info.user,
@@ -192,10 +184,10 @@ export async function createVmContainerSandbox(
         hostKeyAlias: info.id,
         controlPath: join(dir, 'cm'),
       },
-      description: o.description(info),
-    }
+      o.description(info),
+    )
     const done = async (broken: boolean) => {
-      await closeConnection(engine)
+      await engine.close?.()
       await rm(dir, { recursive: true, force: true })
       await lease.release(broken)
     }
