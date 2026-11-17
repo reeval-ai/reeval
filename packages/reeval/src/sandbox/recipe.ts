@@ -45,11 +45,14 @@ export function recipeOf(sandbox: Partial<ImageRecipe>): ImageRecipe | null {
 export const machineRecipeOf = (sandbox: Partial<ImageRecipe>): ImageRecipe =>
   recipeOf(sandbox) ?? {}
 
-/** What a registry reference names now: its top-level manifest's digest, or why it doesn't. */
+/**
+ * What a registry reference names now: its top-level manifest's digest, or why it doesn't,
+ * `transient` when asking again later may answer (no network, a rate limit, a failing registry).
+ */
 export type ResolveDigest = (
   ref: string,
   signal?: AbortSignal,
-) => Promise<{ digest: string } | { error: string }>
+) => Promise<{ digest: string } | { error: string; transient?: true }>
 
 /**
  * An image recipe's content key: `key` is its last layer's, and `layers` the chain from the image
@@ -59,7 +62,7 @@ export type ResolveDigest = (
  */
 export type RecipeKey =
   | { key: string; layers: Layer[] }
-  | { unresolved: { ref: string; reason: string } }
+  | { unresolved: { ref: string; reason: string; transient?: true } }
 
 /** The sandbox's `install` commands, with their timeouts in ms. */
 export const installSteps = (sandbox: Pick<DockerSandboxDescriptor, 'install'>): InstallStep[] =>
@@ -122,6 +125,12 @@ export function harnessRecipe(harness: BakedHarness): Promise<string> {
   return recipe
 }
 
+const unresolved = (ref: string, now: { error: string; transient?: true }) => ({
+  ref,
+  reason: now.error,
+  ...(now.transient && { transient: true as const }),
+})
+
 /**
  * The content key of the image an attempt on `harness` starts from, from the recipe alone and
  * what its bases name in their registries now, with no container engine: the key `prepareImage`
@@ -148,7 +157,7 @@ export async function imageRecipeKey(
   }
   if (recipe.from) {
     const now = await digest(recipe.from)
-    if ('error' in now) return { unresolved: { ref: recipe.from, reason: now.error } }
+    if ('error' in now) return { unresolved: unresolved(recipe.from, now) }
     layers.push({
       ref: harnessImageFor(harness, recipe.from),
       key: bakedKey(harness, recipe.from, now.digest),
@@ -168,7 +177,7 @@ export async function imageRecipeKey(
     const answers = await Promise.all(bases.map(async (ref) => ({ ref, now: await digest(ref) })))
     const named: { ref: string; digest: string }[] = []
     for (const { ref, now } of answers) {
-      if ('error' in now) return { unresolved: { ref, reason: now.error } }
+      if ('error' in now) return { unresolved: unresolved(ref, now) }
       named.push({ ref, digest: now.digest })
     }
     const { tag } = dockerfileTag(path, harness, baked)

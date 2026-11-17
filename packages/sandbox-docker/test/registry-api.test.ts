@@ -153,9 +153,45 @@ describe('registryDigest', () => {
     const closed = await registryDigest('127.0.0.1:1/acme/tool:1')
     assert.ok('error' in closed)
     assert.match(closed.error, /^couldn't reach 127\.0\.0\.1:1: /)
+    assert.equal(closed.transient, true)
     assert.deepEqual(await registryDigest('Acme/Tool'), {
       error: "Acme/Tool isn't an image reference",
     })
+  })
+
+  test('a rate limit, a timeout or a failing registry is transient; a refusal is not', async () => {
+    const lookup = (status: number) =>
+      registryDigest('reg.test/acme/tool:1', {
+        fetch: (async () => new Response(null, { status })) as typeof fetch,
+      })
+    for (const status of [408, 429, 500, 502, 503]) {
+      assert.deepEqual(await lookup(status), {
+        error: `reg.test answered ${status} for reg.test/acme/tool:1`,
+        transient: true,
+      })
+    }
+    assert.deepEqual(await lookup(404), { error: "reg.test/acme/tool:1 isn't in reg.test" })
+    assert.equal('transient' in (await lookup(403)), false)
+    assert.equal('transient' in (await lookup(400)), false)
+    const slow = await registryDigest('reg.test/acme/tool:1', {
+      timeoutMs: 10,
+      fetch: ((_: unknown, init?: RequestInit) =>
+        new Promise((_resolve, reject) =>
+          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason)),
+        )) as typeof fetch,
+    })
+    assert.ok('error' in slow && slow.transient, JSON.stringify(slow))
+    const challenged = async (input: string | URL) =>
+      String(input).includes('/token')
+        ? new Response(null, { status: 429 })
+        : new Response(null, {
+            status: 401,
+            headers: { 'www-authenticate': 'Bearer realm="https://auth.test/token"' },
+          })
+    assert.deepEqual(
+      await registryDigest('reg.test/acme/tool:1', { fetch: challenged as typeof fetch }),
+      { error: 'reg.test refused a token for acme/tool: 429', transient: true },
+    )
   })
 
   test('a reference pinned by digest is that digest, with no request', async () => {

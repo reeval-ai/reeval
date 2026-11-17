@@ -91,6 +91,12 @@ function challenge(header: string | null): { scheme: string; params: Record<stri
   return { scheme: match?.[1]?.toLowerCase() ?? '', params }
 }
 
+/** Why a reference didn't resolve; `transient` when asking again later may answer. */
+export type RegistryLookupError = { error: string; transient?: true }
+
+/** A registry status that says ask again later: overloaded, rate-limited or timed out. */
+const retryable = (status: number) => status === 408 || status === 429 || status >= 500
+
 const basic = (c: { username: string; password: string }) =>
   `Basic ${Buffer.from(`${c.username}:${c.password}`).toString('base64')}`
 
@@ -98,12 +104,13 @@ const basic = (c: { username: string; password: string }) =>
  * What `ref` names in its registry now, without Docker: the digest of its top-level manifest (an
  * index for a multi-platform image), through the registry HTTP API. It follows the registry's
  * token challenge, anonymously or with `credential`'s login. A reference pinned by digest is that
- * digest. `error` when it doesn't resolve: no such image, access refused or no network.
+ * digest. `error` when it doesn't resolve: no such image, access refused, or, `transient`, no
+ * network or a registry that's rate-limiting or failing.
  */
 export async function registryDigest(
   ref: string,
   options: RegistryDigestOptions = {},
-): Promise<{ digest: string } | { error: string }> {
+): Promise<{ digest: string } | RegistryLookupError> {
   const parsed = parseImageRef(ref)
   if (!parsed) return { error: `${ref} isn't an image reference` }
   if (DIGEST.test(parsed.reference)) return { digest: parsed.reference }
@@ -128,8 +135,12 @@ export async function registryDigest(
       const asked = challenge(response.headers.get('www-authenticate'))
       if (asked.scheme === 'bearer' && asked.params.realm) {
         const token = await bearerToken(asked.params, repository, login, fetchFn, signal)
-        if ('error' in token)
-          return { error: `${host} refused a token for ${repository}: ${token.error}` }
+        if ('error' in token) {
+          return {
+            error: `${host} refused a token for ${repository}: ${token.error}`,
+            ...(token.transient && { transient: true }),
+          }
+        }
         authorization = `Bearer ${token.token}`
       } else if (asked.scheme === 'basic' && login) {
         authorization = basic(login)
@@ -155,7 +166,10 @@ export async function registryDigest(
       }
     }
     if (response.status === 404) return { error: `${ref} isn't in ${host}` }
-    return { error: `${host} answered ${response.status} for ${ref}` }
+    return {
+      error: `${host} answered ${response.status} for ${ref}`,
+      ...(retryable(response.status) && { transient: true }),
+    }
   } catch (cause) {
     if (options.signal?.aborted) throw cause
     const message =
@@ -164,7 +178,7 @@ export async function registryDigest(
           ? cause.cause.message
           : cause.message
         : String(cause)
-    return { error: `couldn't reach ${host}: ${message}` }
+    return { error: `couldn't reach ${host}: ${message}`, transient: true }
   }
 }
 
@@ -174,7 +188,7 @@ async function bearerToken(
   login: RegistryCredential | undefined,
   fetchFn: typeof fetch,
   signal: AbortSignal,
-): Promise<{ token: string } | { error: string }> {
+): Promise<{ token: string } | RegistryLookupError> {
   const url = new URL(params.realm as string)
   // A login goes only to a realm the transport protects.
   const protectedRealm = url.protocol === 'https:' || loopback(url.host)
@@ -184,7 +198,9 @@ async function bearerToken(
     headers: login && 'username' in login && protectedRealm ? { authorization: basic(login) } : {},
     signal,
   })
-  if (!response.ok) return { error: `${response.status}` }
+  if (!response.ok) {
+    return { error: `${response.status}`, ...(retryable(response.status) && { transient: true }) }
+  }
   const body = (await response.json().catch(() => null)) as {
     token?: unknown
     access_token?: unknown

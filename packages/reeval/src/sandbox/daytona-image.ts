@@ -25,6 +25,7 @@ import {
 import { shellQuote as q } from '@reeval/sandbox-docker/process'
 import type { DaytonaSandboxDescriptor, HarnessDescriptor } from '../types.ts'
 import { harnessBake } from './harness-install.ts'
+import { PrepareError } from './provider.ts'
 import {
   harnessRecipe,
   imageRecipeKey,
@@ -51,7 +52,7 @@ export type DaytonaImage = {
   name: string
   /** The harness install's label, whose home copy the image keeps; unset with nothing baked. */
   homeLabel?: string
-  /** Why the key couldn't pin a base by digest, so the build may pull something newer. */
+  /** Why the key couldn't name a Dockerfile's base by digest, so it's keyed on the Dockerfile as written. */
   unpinned?: { ref: string; reason: string }
 }
 
@@ -140,9 +141,28 @@ function onBaseStage(body: string, harnessImage: string | undefined): string {
     .join('\n')
 }
 
+/** Why `ref` can't be pinned by digest: worth retrying, or a refusal the config has to fix. */
+function unpinnable(ref: string, now: { error: string; transient?: true }): PrepareError {
+  const failure = { stage: 'daytona', ref, cause: null, log: null }
+  if (now.transient) {
+    return new PrepareError({
+      ...failure,
+      class: 'transient',
+      message: `daytona() couldn't look up ${ref} in its registry to pin it by digest: ${now.error}`,
+    })
+  }
+  return new PrepareError({
+    ...failure,
+    class: 'config',
+    usage: true,
+    message: `daytona() builds on ${ref} pinned by digest, but its registry doesn't answer for it: ${now.error}. Push it to a registry reeval can look it up in anonymously, or name it by digest (${ref}@sha256:…).`,
+  })
+}
+
 /**
- * The image `sandbox` describes for `harness`, or null for Daytona's default snapshot. `resolve`
- * names what a base is now, for the key.
+ * The image `sandbox` describes for `harness`. `resolve` names what a base is now, for the key and
+ * for the `FROM` lines reeval writes, which always pin their base by digest: a base that doesn't
+ * resolve throws a {@link PrepareError}, transient when asking again may answer.
  */
 export async function daytonaImage(
   sandbox: DaytonaSandboxDescriptor,
@@ -165,18 +185,23 @@ export async function daytonaImage(
   let unpinned: DaytonaImage['unpinned']
   const pin = async (ref: string) => {
     const now = await resolve(ref, o.signal)
-    if ('error' in now) unpinned ??= { ref, reason: now.error }
-    else pins.push({ ref, digest: now.digest })
-    return 'error' in now ? '' : now.digest
+    if ('error' in now) throw unpinnable(ref, now)
+    pins.push({ ref, digest: now.digest })
+    return now.digest
   }
   let recipeKey: string
   if (image !== undefined) recipeKey = `image:${image}@${await pin(image)}`
   else {
+    const fromPin = from !== undefined ? await pin(from) : ''
     const named = baked
       ? await imageRecipeKey({ from, dockerfile, install }, baked, { resolve, signal: o.signal })
       : undefined
-    if (named && 'unresolved' in named) unpinned = named.unresolved
-    const fromPin = from !== undefined ? await pin(from) : ''
+    if (named && 'unresolved' in named) {
+      if (named.unresolved.transient) {
+        throw unpinnable(named.unresolved.ref, { error: named.unresolved.reason, transient: true })
+      }
+      unpinned = { ref: named.unresolved.ref, reason: named.unresolved.reason }
+    }
     recipeKey =
       named && 'key' in named
         ? named.key
@@ -185,8 +210,10 @@ export async function daytonaImage(
           : `from:${from ?? NODE_IMAGE}@${fromPin}`
   }
   const pinned = (ref: string) => {
+    if (ref.includes('@')) return ref
     const pin = pins.find((p) => p.ref === ref)
-    return pin && !ref.includes('@') ? `${ref}@${pin.digest}` : ref
+    if (!pin) throw new Error(`daytona(): ${ref} reached a FROM line without its digest`)
+    return `${ref}@${pin.digest}`
   }
 
   const lines: string[] = []

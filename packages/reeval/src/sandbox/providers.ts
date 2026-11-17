@@ -775,7 +775,7 @@ export const cloudProvider = (): SandboxProvider<CloudSandboxDescriptor> => ({
       await ctx.retry(async () => {
         const now = await resolve(ref, ctx.signal)
         if (!('error' in now)) return
-        if (now.error.startsWith("couldn't reach ") || isTransient(now.error)) {
+        if (now.transient) {
           throw failure(ref, true, `cloud() couldn't look up ${ref} in its registry: ${now.error}`)
         }
         throw failure(
