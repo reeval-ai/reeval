@@ -152,9 +152,21 @@ const tail = (text: string) => text.trim().split('\n').slice(-15).join('\n')
 const clipLine = (text: string, max = 300) =>
   text.length > max ? `${text.slice(0, max - 1)}…` : text
 
-/** Why a `docker build` failed, in a line: the failing step's exit, or BuildKit's (or buildah's) own error. */
-function buildReason(error: string | null, engine?: Engine): string {
-  if (!error) return `${engineSpec(engine).bin} build failed`
+/**
+ * Why a `docker build` failed, in a line: the failing step's exit, or BuildKit's (or buildah's) own
+ * error. With neither, the output's last line that isn't a step's, which is where a remote
+ * engine's SSH says it lost the machine.
+ */
+function buildReason(error: string | null, output: string, engine?: Engine): string {
+  if (!error) {
+    const last = output
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line && !/^#\d+ /.test(line))
+      .at(-1)
+    const failed = `${engineSpec(engine).bin} build failed`
+    return last ? `${failed}: ${clipLine(last)}` : failed
+  }
   const exit =
     /^process ".*" did not complete successfully: exit code: (\d+)$/s.exec(error) ??
     /^while running runtime: exit status (\d+)$/.exec(error)
@@ -181,7 +193,7 @@ function buildError(
   const text = [parsed.error ?? '', ...parsed.output].join('\n')
   const cause = failureCause(text, parsed.exitCode)
   parsed.output = parsed.output.filter(keep)
-  const why = reason?.(parsed) ?? buildReason(parsed.error, what.engine)
+  const why = reason?.(parsed) ?? buildReason(parsed.error, output, what.engine)
   return new ImageBuildError(
     failureMessage({
       headline: `${what.headline} failed: ${why}`,
