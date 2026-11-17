@@ -6,7 +6,13 @@ import { detectAgent } from 'std-env'
 import { parseCli } from './cli-parse.ts'
 import { commandHelpText, type Flags, helpText } from './cli-spec.ts'
 import type { DownloadWatch } from './cloud-files.ts'
-import { cloudAsked, PLAN_TARGET, type RunTarget, wantsCloud } from './cloud-run.ts'
+import {
+  CLOUD_FILES_PENDING,
+  cloudAsked,
+  PLAN_TARGET,
+  type RunTarget,
+  wantsCloud,
+} from './cloud-run.ts'
 import type { EvalQuestions, questionRunner } from './compare/questions.ts'
 import {
   configLabel,
@@ -1053,6 +1059,7 @@ async function attachCommand(
         detached = true
       },
       ...(download && {
+        ending: CLOUD_FILES_PENDING,
         onEnd: (_code, status) => {
           downloading = import('./cloud-files.ts').then(({ downloadShown }) =>
             downloadShown(download.run, status),
@@ -1148,6 +1155,7 @@ async function attachHere(
     | 'follow'
     | 'onDetach'
     | 'onEnd'
+    | 'ending'
     | 'cancelHint'
     | 'resumedAfter'
     | 'onFirstLine'

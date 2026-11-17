@@ -614,6 +614,9 @@ export async function cloudPlanEnv(
   return config?.gatewayBaseUrl ? { AI_GATEWAY_BASE_URL: config.gatewayBaseUrl } : {}
 }
 
+/** What a `--download`'s finished list says while the cloud run is still putting its files away. */
+export const CLOUD_FILES_PENDING = "Waiting for the cloud run's files..."
+
 export type CloudRunOptions = {
   base: URL
   bundle: MadeBundle
@@ -622,7 +625,7 @@ export type CloudRunOptions = {
   follow: (
     options: Pick<
       AttachOptions,
-      'source' | 'follow' | 'onDetach' | 'onEnd' | 'cancelHint' | 'resumedAfter'
+      'source' | 'follow' | 'onDetach' | 'onEnd' | 'ending' | 'cancelHint' | 'resumedAfter'
     >,
   ) => Promise<number>
   /**
@@ -916,6 +919,7 @@ async function followCloudRun(
         detached = true
       },
       ...(download && {
+        ending: CLOUD_FILES_PENDING,
         onEnd: (_code, status) => {
           downloading = import('./cloud-files.ts').then(({ downloadShown }) =>
             downloadShown(download, status),

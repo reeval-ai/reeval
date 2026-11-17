@@ -47,6 +47,8 @@ export type AttachOptions = {
    * user to quit it, which `attach` returns only after; `status` shows a line under that list.
    */
   onEnd?: (code: number, status: EndStatus) => void
+  /** What the finished list says from the run's end until its stream ends and `onEnd` is told. */
+  ending?: string
   /** Told once, before the stream's first line other than a heartbeat is drawn. */
   onFirstLine?: () => void
   /** How to cancel a run this viewer can't reach, which the interactive list shows. */
@@ -305,6 +307,7 @@ export async function attach(options: AttachOptions): Promise<number> {
       }
       if (line.type === 'plan') config = line.header.config
       renderer?.onEvent(viewerEvent(line, shown, config))
+      if (line.type === 'run-end' && options.ending) renderer?.status?.(options.ending)
     }
   } catch (error) {
     if (!detached.signal.aborted) {
