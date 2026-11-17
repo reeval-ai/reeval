@@ -24,7 +24,7 @@ const resolve: ResolveDigest = async (ref) =>
   ref.startsWith('missing')
     ? { error: `${ref}: not found` }
     : ref.startsWith('down')
-      ? { error: "couldn't reach down.example: fetch failed" }
+      ? { error: "couldn't reach down.example: fetch failed", transient: true }
       : { digest: DIGEST }
 const timings = { pollMs: 10, saveTimeoutMs: 5_000, settleTimeoutMs: 5_000 }
 const root = tempDir('boat-images')

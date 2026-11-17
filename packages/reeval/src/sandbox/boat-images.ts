@@ -108,7 +108,7 @@ export async function vmImageKey(
   else if (recipe.image) {
     const now = await resolve(recipe.image, o.signal)
     if ('error' in now) {
-      if (now.error.startsWith("couldn't reach ") || isTransient(now.error)) {
+      if (now.transient) {
         throw new PrepareError({
           class: 'transient',
           stage: 'boat-image',

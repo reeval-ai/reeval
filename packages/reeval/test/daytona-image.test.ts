@@ -4,6 +4,8 @@
 // the fake Daytona API (support/daytona.ts) through the real SDK.
 import assert from 'node:assert/strict'
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { createServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, before, describe, test } from 'node:test'
@@ -11,7 +13,9 @@ import type { Daytona } from '@daytona/sdk'
 import { NODE_IMAGE } from '../../sandbox-docker/src/build-image.ts'
 import { daytonaClient, ensureSnapshot, prepareDaytona, sdkImage } from '../src/sandbox/daytona.ts'
 import { daytonaImage, harnessScript } from '../src/sandbox/daytona-image.ts'
+import { prepareAll } from '../src/sandbox/preflight.ts'
 import { PrepareError } from '../src/sandbox/provider.ts'
+import { daytonaProvider } from '../src/sandbox/providers.ts'
 import type { HarnessDescriptor } from '../src/types.ts'
 import { type FakeDaytona, fakeDaytona } from './support/daytona.ts'
 import { daytonaSandbox as daytona } from './support/machines.ts'
@@ -30,7 +34,11 @@ test("the SDK's Image takes a whole Dockerfile and the files its COPY lines name
 
 const DIGEST = `sha256:${'a'.repeat(64)}`
 const resolve = async (ref: string) =>
-  ref.startsWith('private/') ? { error: 'unauthorized' } : { digest: DIGEST }
+  ref.startsWith('private/')
+    ? { error: 'unauthorized' }
+    : ref.startsWith('busy/')
+      ? { error: 'registry-1.docker.io answered 429 for busy/base:1', transient: true as const }
+      : { digest: DIGEST }
 const fake: HarnessDescriptor = { kind: 'fake', bootstrap: 'echo hi > ~/hello' } as never
 
 /** A machine the fake API reports started, which nothing connects to. */
@@ -118,10 +126,44 @@ describe('the generated Dockerfile', () => {
     assert.notEqual(a?.name, large?.name)
   })
 
-  test('keys a base the registry refuses on its name, and says so', async () => {
-    const image = await daytonaImage(daytona({ from: 'private/toolchain:1' }), fake, { resolve })
-    assert.equal(image?.dockerfile.split('\n')[0], 'FROM private/toolchain:1')
-    assert.deepEqual(image?.unpinned, { ref: 'private/toolchain:1', reason: 'unauthorized' })
+  test('refuses a from or an image its registry refuses, rather than build it unpinned', async () => {
+    for (const recipe of [{ from: 'private/toolchain:1' }, { image: 'private/toolchain:1' }]) {
+      const error = await daytonaImage(daytona(recipe), fake, { resolve }).catch((e) => e)
+      assert.ok(error instanceof PrepareError, String(error))
+      assert.equal(error.failure.class, 'config')
+      assert.equal(error.failure.usage, true)
+      assert.match(
+        error.message,
+        /daytona\(\) builds on private\/toolchain:1 pinned by digest, but its registry doesn't answer for it: unauthorized\. .* name it by digest \(private\/toolchain:1@sha256:…\)/,
+      )
+    }
+  })
+
+  test('fails as transient when the registry is busy, rather than build it unpinned', async () => {
+    for (const recipe of [{ from: 'busy/base:1' }, { image: 'busy/base:1' }]) {
+      const error = await daytonaImage(daytona(recipe), fake, { resolve }).catch((e) => e)
+      assert.ok(error instanceof PrepareError, String(error))
+      assert.equal(error.failure.class, 'transient')
+      assert.match(
+        error.message,
+        /couldn't look up busy\/base:1 in its registry to pin it by digest: .*answered 429/,
+      )
+    }
+  })
+
+  test('a Dockerfile base the registry is busy for fails as transient; one it refuses is keyed on its name', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'reeval-daytona-df-'))
+    const busy = join(dir, 'busy.Dockerfile')
+    const refused = join(dir, 'refused.Dockerfile')
+    writeFileSync(busy, 'FROM busy/base:1\n')
+    writeFileSync(refused, 'FROM private/toolchain:1\n')
+    const sandbox = (dockerfile: string) => ({ ...daytona(), dockerfile })
+    const cursor = { kind: 'cursor' } as HarnessDescriptor
+    const error = await daytonaImage(sandbox(busy), cursor, { resolve }).catch((e) => e)
+    assert.ok(error instanceof PrepareError, String(error))
+    assert.equal(error.failure.class, 'transient')
+    const image = await daytonaImage(sandbox(refused), cursor, { resolve })
+    assert.deepEqual(image.unpinned, { ref: 'private/toolchain:1', reason: 'unauthorized' })
   })
 
   test("starts a FROM ${REEVAL_BASE} Dockerfile on reeval's base stage, directives first", async () => {
@@ -270,6 +312,55 @@ describe("preflight's snapshot", () => {
       assert.equal(posts('t-broken'), 1, 'built once more, not again')
     } finally {
       failBuilds = false
+    }
+  })
+})
+
+describe("preflight's registry lookup", () => {
+  test('waits out a registry rate-limiting the lookup and builds on the base pinned by digest', async () => {
+    let heads = 0
+    const registry = createServer((req, res) => {
+      if (req.method === 'HEAD' && req.url === '/v2/toolchain/manifests/1' && ++heads <= 2) {
+        res.writeHead(429, { 'retry-after': '0' }).end()
+        return
+      }
+      res.writeHead(200, { 'docker-content-digest': DIGEST }).end()
+    })
+    await new Promise<void>((r) => registry.listen(0, '127.0.0.1', r))
+    const from = `127.0.0.1:${(registry.address() as AddressInfo).port}/toolchain:1`
+    try {
+      const sandbox = daytona({ from })
+      const log: string[] = []
+      const [outcome] = await pointedAt(() =>
+        prepareAll(
+          [
+            {
+              kind: 'daytona',
+              key: 'k',
+              label: `docker:${from}`,
+              sandbox,
+              harness: fake,
+              plugins: [],
+              setBy: ['config'],
+              runWide: false,
+            },
+          ],
+          {
+            providers: { daytona: daytonaProvider() },
+            root: mkdtempSync(join(tmpdir(), 'reeval-daytona-pin-')),
+            delays: [0, 0],
+            log: (line) => log.push(line),
+          },
+        ),
+      )
+      assert.ok(outcome?.ok, JSON.stringify(outcome))
+      assert.equal(heads, 3)
+      assert.equal(log.filter((l) => /^retrying .*answered 429/.test(l)).length, 2, log.join('\n'))
+      const name = (outcome.handle as { baked: string }).baked
+      const built = api.snapshots().find((s) => s.name === name)
+      assert.equal(built?.dockerfile?.split('\n')[0], `FROM ${from}@${DIGEST}`)
+    } finally {
+      registry.close()
     }
   })
 })

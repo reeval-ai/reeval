@@ -439,7 +439,7 @@ export async function prepareDaytona(
   const image = await ctx.retry(() => daytonaImage(sandbox, harness, { signal: ctx.signal }))
   if (image.unpinned) {
     ctx.log(
-      `daytona: ${image.unpinned.ref} isn't pinned by digest (${image.unpinned.reason}), so the image is keyed on its name`,
+      `daytona: the Dockerfile's base ${image.unpinned.ref} isn't pinned by digest (${image.unpinned.reason}), so the image is keyed on the Dockerfile as written`,
     )
   }
   const dockerfileLog = join(ctx.root, '.reeval', 'cache', 'images', `${image.name}.Dockerfile`)
