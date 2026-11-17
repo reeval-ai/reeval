@@ -1073,6 +1073,46 @@ describe('interactive renderer', () => {
     assert.equal(text(), lines('  ◆  Finished.', ...RESULT))
   })
 
+  test("a status under the finished list stays in the scrollback, and local drops the run's host", async () => {
+    const shown = async (status?: Parameters<NonNullable<InteractiveRenderer['status']>>) => {
+      let text = ''
+      const out = {
+        isTTY: true,
+        write: (chunk: string) => {
+          text += chunk
+          return true
+        },
+      }
+      const renderer = new InteractiveRenderer({
+        out,
+        stdout: out as never,
+        stdin: {} as never,
+        colors: colors(false),
+        output: options({ statusLine: true, interactive: true, outputLogs: 'none' }),
+        harness: 'cursor',
+        now: () => T0,
+        timers: false,
+        attached: { detach: () => {}, host: 'box-node' },
+        load: async () =>
+          ({
+            mountList: () => ({ waitUntilExit: async () => {}, unmount: () => {} }),
+          }) as never,
+      })
+      for (const e of interleaved) renderer.onEvent(e)
+      if (status) renderer.status(...status)
+      renderer.close()
+      await renderer.wait()
+      return text
+    }
+    assert.match(await shown(), /\(on box-node\)/)
+    const going = await shown(["Downloading the run's files... 1.0 MB of 2.0 MB"])
+    assert.match(going, /\(on box-node\)/)
+    assert.match(going, /Downloading the run's files\.\.\. 1\.0 MB of 2\.0 MB\n$/)
+    const saved = await shown(['✓ Saved to .reeval/runs/r1', { local: true }])
+    assert.doesNotMatch(saved, /on box-node/)
+    assert.match(saved, /✓ Saved to \.reeval\/runs\/r1\n$/)
+  })
+
   test('under -v with --output-logs none, the scrollback is the list -v prints to a pipe', async () => {
     const mount = async () =>
       ({

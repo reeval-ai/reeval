@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto'
 import type { AttachOptions } from './attach.ts'
 import type { MadeBundle } from './bundle/index.ts'
 import { type FlagName, type Flags, RUN_FLAGS } from './cli-spec.ts'
+import type { DownloadWatch } from './cloud-files.ts'
 import type { LinkedProject } from './cloud-project.ts'
 import type { PlannedItem } from './engine/node.ts'
 import { UsageError } from './errors.ts'
@@ -619,7 +620,10 @@ export type CloudRunOptions = {
   log: (line: string) => void
   /** Follows the run's event stream and returns its exit code; `attach()` with the run's output. */
   follow: (
-    options: Pick<AttachOptions, 'source' | 'follow' | 'onDetach' | 'cancelHint' | 'resumedAfter'>,
+    options: Pick<
+      AttachOptions,
+      'source' | 'follow' | 'onDetach' | 'onEnd' | 'cancelHint' | 'resumedAfter'
+    >,
   ) => Promise<number>
   /**
    * `--download`: once the run ends, its files go into this project as a run here leaves them,
@@ -885,6 +889,21 @@ async function followCloudRun(
   let read: PlatformRun | null | undefined
   const followed = new AbortController()
   watchQueue(runId, base, auth, log, followed.signal).catch(() => {})
+  const into = options.download
+  const download = into
+    ? async (watch: DownloadWatch = {}) => {
+        const { downloadCloudFiles } = await import('./cloud-files.ts')
+        return downloadCloudFiles({
+          cloudRunId: runId,
+          url: runUrl('/artifacts/files.tar.gz'),
+          auth,
+          root: into.root,
+          history: into.history,
+          ...watch,
+        })
+      }
+    : undefined
+  let downloading: Promise<string[]> | undefined
   try {
     code = await options.follow({
       source: events.href,
@@ -896,6 +915,14 @@ async function followCloudRun(
       onDetach: () => {
         detached = true
       },
+      ...(download && {
+        onEnd: (_code, status) => {
+          downloading = import('./cloud-files.ts').then(({ downloadShown }) =>
+            downloadShown(download, status),
+          )
+          downloading.catch(() => {})
+        },
+      }),
       cancelHint: cancelHint(runId),
       ...(resumedAfter === undefined ? {} : { resumedAfter }),
     })
@@ -914,18 +941,9 @@ async function followCloudRun(
     return INTERRUPTED
   }
   code = await stoppedOr(code, runId, base, auth, log, read)
-  if (options.download) {
-    const { downloadAfter, downloadCloudFiles } = await import('./cloud-files.ts')
-    const { root, history } = options.download
-    const lines = await downloadAfter(code, runId, () =>
-      downloadCloudFiles({
-        cloudRunId: runId,
-        url: runUrl('/artifacts/files.tar.gz'),
-        auth,
-        root,
-        history,
-      }),
-    )
+  if (download) {
+    const { downloadAfter } = await import('./cloud-files.ts')
+    const lines = await downloadAfter(code, runId, () => downloading ?? download())
     for (const line of lines) log(line)
   }
   return code

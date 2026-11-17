@@ -242,6 +242,11 @@ export interface Renderer {
   wait?(): Promise<void>
   /** Takes the interactive list down with no key pressed, then prints it as `wait` does. */
   dismiss?(): Promise<void>
+  /**
+   * Shows `line` under the finished interactive list; `local` drops the run's host from the paths
+   * it names, once its files are on this machine.
+   */
+  status?(line: string, options?: { local?: boolean }): void
 }
 
 /** Where output goes; `process.stdout` in the CLI, a capture in tests. */

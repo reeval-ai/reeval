@@ -336,6 +336,7 @@ export function ListApp({
           ...finished.notes.map((n) => c.yellow(n)),
           finished.done,
           c.dim(finished.pointer),
+          ...(state.status ? [state.status] : []),
         ]
       : [doneLine(c, state.counts)]),
     refused && !finished
