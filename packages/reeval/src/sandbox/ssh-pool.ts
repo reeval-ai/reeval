@@ -15,6 +15,7 @@ import type { DaytonaSandboxDescriptor } from '../types.ts'
 import { harnessBake } from './harness-install.ts'
 import type { SandboxOptions } from './index.ts'
 import { leaseMachine } from './machine-service.ts'
+import { lostLine } from './pool.ts'
 import { startSandbox } from './start.ts'
 import { InfraError, type NetworkSandbox, RunStopped } from './types.ts'
 
@@ -61,12 +62,6 @@ const nodeForAgent = (user: string, loginRoot: boolean) =>
     'real="$(PATH="$1"; readlink -f "$(command -v node)" 2>/dev/null || true)"',
     `{ [ -z "$real" ] || [ -x ${AGENT_NODE}/bin/node ] || { prefix="$(dirname "$(dirname "$real")")" && rm -rf ${AGENT_NODE} && mkdir -p "$(dirname ${AGENT_NODE})" && if ${loginRoot ? `setpriv --reuid=${user} --regid=${user} --init-groups --` : `sudo -n -u ${user}`} test -x "$real"; then ln -s "$prefix" ${AGENT_NODE}; else mkdir -p ${AGENT_NODE} && cp -a "$prefix/." ${AGENT_NODE} && chmod -R a+rX ${AGENT_NODE}; fi; }; }`,
   ].join(' && ')
-
-/** The harness install whose home the machine's image keeps, so its slots and resets copy it. */
-const homeLabel = (options: SandboxOptions) => {
-  const bake = options.harness && harnessBake(options.harness)
-  return bake ? bake.label : undefined
-}
 
 /** A fresh ed25519 key pair in `dir`, made by the host's OpenSSH. */
 export async function newKey(
@@ -118,6 +113,8 @@ export type PooledSshOptions = {
   description(info: PooledSshMachine): string
   /** What the provider's pool starts machines from, as preflight prepared it; part of its key. */
   image?: unknown
+  /** The harness install whose home the machine's image keeps, so its slots and resets copy it. */
+  homeLabel?: string
 }
 
 /**
@@ -156,21 +153,21 @@ export async function createPooledSshSandbox(
         if (info.secretUser) registerSecret(info.user)
         const shared = (info.attemptsPerMachine ?? descriptor.attemptsPerMachine ?? 1) > 1
         // A machine of its own that's never reused has the image's home as it is.
-        const label = shared || (info.reuse ?? descriptor.reuse) ? homeLabel(options) : undefined
+        const slotHome = shared || (info.reuse ?? descriptor.reuse)
+        const label = slotHome ? o.homeLabel : undefined
         debug?.log(
           'container',
           lease.start
             ? `created ${info.id} (${info.name}, ${info.size}) in ${lease.start.ms}ms${lease.start.queuedMs >= 1000 ? `, ${Math.round(lease.start.queuedMs / 1000)}s of it waiting for the account's start caps` : ''}${lease.start.rateLimited ? `, after ${lease.start.rateLimited} rate-limited starts` : ''}; slot ${lease.slot}`
             : `${lease.reused ? 'reused' : 'shared'} ${info.id} (${info.name}, ${info.size}); slot ${lease.slot}${lease.reused ? `, its attempt ${lease.reused + 1}` : ''}`,
         )
-        for (const lost of lease.lost) {
+        if (slotHome && !label && options.harness && harnessBake(options.harness)) {
           debug?.log(
             'container',
-            lost.reclaimed
-              ? `gave ${lost.machine} back: ${lost.error}`
-              : `dropped ${lost.machine}: keeping it alive failed: ${lost.error}`,
+            `${info.id} slot ${lease.slot}: the image keeps no home with the harness's CLI, so this attempt installs it`,
           )
         }
+        for (const lost of lease.lost) debug?.log('container', lostLine(lost))
         const layout = slotLayout(lease.slot)
         const dir = await mkdtemp(join(tmpdir(), `reeval-${o.sandbox}-ssh-`))
         let machine: SshMachine
@@ -197,7 +194,8 @@ export async function createPooledSshSandbox(
           })
           await machine.home().catch(async (error: unknown) => {
             await machine.close()
-            throw error
+            if (options.signal.aborted) throw options.signal.reason
+            throw error instanceof InfraError ? error : new InfraError((error as Error).message)
           })
         } catch (error) {
           await rm(dir, { recursive: true, force: true })

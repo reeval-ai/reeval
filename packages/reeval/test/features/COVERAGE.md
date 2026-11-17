@@ -153,7 +153,7 @@
 | `docker({ swap })`: swap on top of memory, as much as memory by default | ✓ 2 | — | — | ● 1 | — | — |
 | An OOM kill during an attempt is an infra error | ✓ 1 | — | — | ● 1 | ● 1 | — |
 | Each attempt's `resources`: the container's or VM's vCPUs and memory (a macOS VM's from `sysctl`), and the CPU (average, p95 and peak cores), peak memory, a container's cgroup `memory.peak` and CPU throttling, and a VM's disk it used, in `reeval show` and `reeval query attempt_resources` | ✓ 1 | — | — | ● 2 | ● 1 | — |
-| The resources sampler is out of the agent's reach: a container's runs in a sibling container it can't see, a VM's as root | — | — | — | ● 1 | ● 1 | — |
+| The resources sampler is out of a container agent's reach: it runs in a sibling container the agent can't see | — | — | — | ● 1 | ● 1 | — |
 | `docker({ from })` toolchain images | ✓ 2 | — | — | — | — | — |
 | Preflight: every sandbox prepared before any attempt; a failure fails only its cells, or stops the run from the config | ✓ 1 | — | — | — | — | — |
 | The sandbox provider prepare contract: check, key, prepare, classify (a scripted provider and Docker) | ✓ 1 | — | — | — | — | — |

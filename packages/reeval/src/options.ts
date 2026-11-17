@@ -329,10 +329,10 @@ export function checkOptions(options: object, where: string, allowed = KNOWN): v
         `sandbox in ${where} must come from ${sandboxHelpers()} (got ${describe(o.sandbox)})`,
       )
     }
-    const limit = maxConcurrentProblem(o.sandbox, where)
-    if (limit) throw new UsageError(limit)
     const problem = sandboxProblem(o.sandbox)
     if (problem) throw new UsageError(`sandbox in ${where}: ${problem}`)
+    const limit = maxConcurrentProblem(o.sandbox, where)
+    if (limit) throw new UsageError(limit)
   }
   if (o.environments !== undefined) checkEnvironments(o.environments, where)
   const raw = options as { environments?: unknown; compare?: unknown }

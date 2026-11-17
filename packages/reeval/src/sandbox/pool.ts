@@ -92,6 +92,12 @@ export type LeaseFacts = {
   lost: { machine: string; error: string; reclaimed?: true }[]
 }
 
+/** How the attempt's trace names one of a lease's `lost` machines. */
+export const lostLine = (lost: LeaseFacts['lost'][number]) =>
+  lost.reclaimed
+    ? `gave ${lost.machine} back: ${lost.error}`
+    : `dropped ${lost.machine}: keeping it alive failed: ${lost.error}`
+
 export type MachineStart = { ms: number; queuedMs: number; rateLimited: number }
 
 /** A machine that's gone, or never came up, as the run's trace records it. */

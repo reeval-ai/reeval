@@ -26,6 +26,7 @@ import type {
 import { containerSandbox } from './docker.ts'
 import type { SandboxOptions } from './index.ts'
 import { leaseMachine } from './machine-service.ts'
+import { lostLine } from './pool.ts'
 import type { BuiltPlugin } from './prepare.ts'
 import { PrepareError } from './provider.ts'
 import { type PooledSshMachine, TTL_MARGIN_S } from './ssh-pool.ts'
@@ -179,6 +180,7 @@ export async function createVmContainerSandbox(
         ? `created ${info.id} (${info.name}, ${info.size})${source.snapshot ? ` from snapshot ${source.snapshot}` : ''} in ${lease.start.ms}ms; slot ${lease.slot}`
         : `${lease.reused ? 'reused' : 'shared'} ${info.id} (${info.name}, ${info.size}); slot ${lease.slot}${lease.reused ? `, its attempt ${lease.reused + 1}` : ''}`,
     )
+    for (const lost of lease.lost) debug?.log('container', lostLine(lost))
     const engine: RemoteEngine = {
       kind: 'ssh',
       target: {

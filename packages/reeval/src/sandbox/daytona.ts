@@ -188,6 +188,8 @@ export type DaytonaStart = {
   dockerfile?: string
   /** The directory its `COPY` sources are in. */
   contextDir?: string
+  /** The harness install whose home the image keeps, which a shared or reset slot copies in. */
+  homeLabel?: string
 }
 
 const spell = (ms: number) =>
@@ -462,6 +464,7 @@ export async function prepareDaytona(
   if (!building) ctx.image?.({ name: image.name, cached: got === 'ready' })
   const start: DaytonaStart = {
     name: image.name,
+    ...(image.homeLabel && { homeLabel: image.homeLabel }),
     ...(got === 'ready'
       ? { snapshot: image.name }
       : {
@@ -696,6 +699,7 @@ export async function createDaytonaSandbox(
   }
   return createPooledSshSandbox(descriptor, options, {
     image: start,
+    ...(start.homeLabel && { homeLabel: start.homeLabel }),
     helper: 'daytona()',
     sandbox: 'daytona',
     size: descriptor.size ?? 'medium',
