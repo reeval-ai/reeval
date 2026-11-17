@@ -22,9 +22,9 @@
 // - Each failed check is `✗ label  failed 2 of 4 runs`, then its first message line and
 //   `file:line`, and a failed command's first stderr line; the rest of the message, the file
 //   excerpt and the snapshot only in the full detail. On several harnesses it adds `, all on H` or
-//   `, M of them on H`. A compare names the arms instead (`failed on react · the control
-//   (expected)`), where a control that isn't gated is expected to fail. An eval with cases and
-//   no compare names the cases (`failed on power`, `power (2 of 4 runs)` with several runs of it).
+//   `, M of them on H`. A compare names the arms instead (`failed on react · the control too,
+//   which isn't gated`): an ungated control is expected to fail. An eval with cases and no
+//   compare names the cases (`failed on power`, `power (2 of 4 runs)` with several runs of it).
 // - An eval nothing gates prints its answers (questions, `c.observe`) even in a list printed once.
 // - Errors that aren't a check's: `✗ 2 runs hit an infrastructure error`, then the message.
 // - `Worth knowing:` the eval's remarks, each its brief unless the detail is full, then each check
@@ -482,8 +482,8 @@ const LABEL_COLUMN = 40
 /**
  * `✗ label  failed 2 of 4 runs`, then the first line of its message and where it is, dimmed, and a
  * failed command's first stderr line; the message's other lines only in the full detail. A compare names the arms instead, the variants
- * first: `failed on react · the control (expected)`, where a control that isn't gated is
- * expected to fail. The `✗` is red only for a failure that counts against a failed eval.
+ * first: `failed on react · the control too, which isn't gated`, as an ungated control is expected
+ * to fail. The `✗` is red only for a failure that counts against a failed eval.
  */
 function checkLines(
   cells: CellResult[],
@@ -510,7 +510,7 @@ function checkLines(
       const expected = base && !baselineGated
       if (named) {
         text = `${label}  failed on ${named}`
-        if (base) note = expected ? `${baseText} (expected)` : undefined
+        if (base) note = expected ? `${baseText} too, which isn't gated` : undefined
         if (base && !expected) text += ` · ${baseText}`
       } else {
         text = `${label}  failed on ${baseText}`

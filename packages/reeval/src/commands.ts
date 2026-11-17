@@ -75,7 +75,12 @@ export class CommandError extends Error {
   override name = 'CommandError'
 }
 
-type Ctx = { config: ResolvedConfig; flags: HistoryFlags; out: (s: string) => void }
+type Ctx = {
+  config: ResolvedConfig
+  flags: HistoryFlags
+  out: (s: string) => void
+  err?: (s: string) => void
+}
 
 /** Recorded runs; from a remote store, those HEAD reaches unless `--all-branches` (`scoped`). */
 async function recorded(config: ResolvedConfig, scoped = true): Promise<HistoryEntry[]> {
@@ -467,6 +472,21 @@ export async function showCommand(ctx: Ctx, refs: string[]): Promise<number> {
           ? `${live.runId} stopped without writing a record: reeval run --resume ${live.runId} finishes it, then reeval show reads it.`
           : `${live.runId} is still running: reeval show reads the record it writes when it ends. reeval studio shows it live.`,
       )
+  }
+  if (!ref || ref === 'latest') {
+    const { listLive } = await import('./studio/live.ts')
+    const live = (
+      await listLive({ root: config.root, historyDir: config.history.dir, scratch: true })
+    ).find((r) => r.state !== 'stopped')
+    if (live && !entries.length)
+      throw new CommandError(
+        `${live.runId} is still running: reeval show reads the record it writes when it ends. reeval studio shows it live.`,
+      )
+    if (live) {
+      ctx.err?.(
+        `note: ${live.runId} is still running (${live.counts.done} of ${live.planned} attempts finished); reeval show reads the newest finished run until it writes its record, and reeval studio shows it live.`,
+      )
+    }
   }
   const entry = await pick(config, ref, entries)
   const dir = entry.recorded ? config.history.dir : scratchDir(config.root)

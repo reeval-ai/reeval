@@ -127,6 +127,28 @@ describe('named check results', () => {
     assert.match(agent.stdout, /^ {4}✗ house style {2}failed on the control 2 of 2 · expected$/m)
   })
 
+  test('a check both arms fail names the variant, then the ungated control as such', async () => {
+    const p = await project('checks-both-fail', {
+      'reeval.config.ts': fakeConfig(),
+      'evals/s.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+import { fakeSandbox } from 'reeval/sandbox'
+const sandbox = fakeSandbox()
+const plain = defineEnvironment('plain', { sandbox })
+const styled = defineEnvironment('styled', { sandbox })
+evaluate('greets', { compare: { control: plain, variants: [styled] }, runs: 2 }, async (c) => {
+  await c.send('go')
+  await expect(c, 'writes ok.txt').toHaveFile('ok.txt')
+})
+`,
+    })
+    const r = await runCli(p.dir)
+    assert.equal(r.code, 1, r.stdout + r.stderr)
+    assert.match(
+      r.stdout,
+      /✗ writes ok\.txt {2}failed on styled 2 of 2 · the control 2 of 2 too, which isn't gated$/m,
+    )
+  })
+
   test('without a compare the attempts record their assertions and the result has no check matrix', async () => {
     const p = await project('checks-single', {
       'reeval.config.ts': fakeConfig({ harness: "{ files: { 'ok.txt': 'y' } }" }),

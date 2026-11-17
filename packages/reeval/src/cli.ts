@@ -406,7 +406,12 @@ async function run(argv: string[]): Promise<number> {
   if (command in HISTORY_COMMANDS) {
     const config = await historyConfig(configPath, command, values.profile, values)
     const commands = await import('./commands.ts')
-    const ctx = { config, flags: values, out: (s: string) => console.log(s) }
+    const ctx = {
+      config,
+      flags: values,
+      out: (s: string) => console.log(s),
+      err: (s: string) => console.error(dim(s)),
+    }
     switch (command as keyof typeof HISTORY_COMMANDS) {
       case 'record':
         return commands.recordCommand(ctx, filters)
@@ -422,11 +427,11 @@ async function run(argv: string[]): Promise<number> {
         return commands.syncCommand(ctx, filters)
       case 'query': {
         const { queryCommand } = await import('./query.ts')
-        return queryCommand({ ...ctx, err: (s: string) => console.error(dim(s)) }, filters)
+        return queryCommand(ctx, filters)
       }
       case 'analyze': {
         const { analyzeCommand } = await import('./analysis/command.ts')
-        return analyzeCommand({ ...ctx, err: (s: string) => console.error(dim(s)) }, filters)
+        return analyzeCommand(ctx, filters)
       }
     }
   }
