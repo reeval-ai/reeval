@@ -68,7 +68,9 @@ export function homeScreen(version: string, status: HomeStatus, term: HomeTermin
     : [
         ['reeval init', 'Set up a project here'],
         doctor,
-        ['reeval login', 'Sign in to the cloud platform'],
+        ...(status.signedIn
+          ? []
+          : [['reeval login', 'Sign in to the cloud platform'] as [string, string]]),
       ]
   const signedIn = status.signedIn
   const rows: [string, string?][] = [

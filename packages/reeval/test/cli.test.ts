@@ -15,7 +15,7 @@ import {
   helpText,
 } from '../src/cli-spec.ts'
 import { UsageError } from '../src/config.ts'
-import { homeScreen } from '../src/home.ts'
+import { homeScreen, homeStatus } from '../src/home.ts'
 import { fakeConfig, pkgRoot, project, runCli } from './helpers.ts'
 
 const GOLDEN = join(pkgRoot, 'test/fixtures/cli/help.golden.txt')
@@ -130,6 +130,23 @@ describe('cli', () => {
     assert.match(token, /^ {2}Signed in with REEVAL_TOKEN$/m)
     const noEmail = homeScreen('1', { ...status, signedIn: { email: null } }, term)
     assert.match(noEmail, /^ {2}Signed in \(no email stored locally\)$/m)
+    assert.doesNotMatch(wide, /reeval login/)
+    assert.match(
+      homeScreen('1', { ...status, signedIn: null }, term),
+      /^ {2}reeval login {5}Sign in/m,
+    )
+  })
+
+  test('the home screen reads a --config that does not exist as no project', async () => {
+    const p = await project('cli-home-missing', {})
+    const cwd = process.cwd()
+    process.chdir(p.dir)
+    try {
+      const status = await homeStatus('nope.ts', { XDG_CONFIG_HOME: p.dir })
+      assert.deepEqual(status, { signedIn: null, project: null, config: false })
+    } finally {
+      process.chdir(cwd)
+    }
   })
 
   test('reeval alone prints the home screen and exits 0; --version prints the version', async () => {
