@@ -1996,14 +1996,15 @@ async function prepareRun(
         // A sandbox no cloud run takes refuses only the evals that use it, in their plan, so it
         // sizes the run as a default one would.
         const { docker } = await import('./sandbox.ts')
-        const onCloud = written.map((s) =>
-          placedSandbox(
-            s.kind === 'tart' || (s.kind === 'docker' && s.engine === 'podman') ? docker() : s,
-            config,
-            profile,
-            'cloud',
-          ),
-        )
+        const { CloudUnsupported } = await import('./sandbox/place.ts')
+        const onCloud = written.map((s) => {
+          try {
+            return placedSandbox(s, config, profile, 'cloud')
+          } catch (error) {
+            if (!(error instanceof CloudUnsupported)) throw error
+            return placedSandbox(docker(), config, profile, 'cloud')
+          }
+        })
         return defaultConcurrency((await sandboxCapacity(onCloud)) ?? hostCapacity())
       }
       return concurrency ?? defaultConcurrency((await sandboxCapacity(sandboxes)) ?? hostCapacity())
