@@ -475,6 +475,33 @@ describe("the service's capacity", () => {
       attempts: 5,
     })
   })
+
+  test('sizes a cloud run, whatever concurrency was given, and a run here as given', async () => {
+    const p = await service({ maxLive: 5 })
+    const { dir } = await project('cloud-sized', {
+      'reeval.config.ts': `
+import { defineConfig } from 'reeval'
+import { fakeHarness } from 'reeval/harness'
+export default defineConfig({ harnesses: fakeHarness(), concurrency: 2 })
+`,
+      'evals/a.eval.ts': `
+import { evaluate } from 'reeval'
+evaluate('a', { runs: 8 }, async () => {})
+`,
+    })
+    const planned = async (env: Record<string, string>) => {
+      const r = await runCli(dir, ['run', '--dry-run', '--json'], {
+        env: { [VM_URL]: '', [VM_TOKEN]: '', REEVAL_PLAN_TARGET: '', ...env },
+      })
+      assert.equal(r.code, 0, r.stdout + r.stderr)
+      return JSON.parse(r.stdout).concurrency
+    }
+    const onVms = { REEVAL_PLAN_TARGET: 'cloud', [VM_URL]: p.url, [VM_TOKEN]: p.token }
+    assert.equal(await planned(onVms), 5, "the VM service's limits size it")
+    assert.equal(await planned({ ...onVms, REEVAL_CONCURRENCY: '3' }), 5)
+    assert.equal(await planned({ REEVAL_PLAN_TARGET: 'cloud' }), 1, 'where it is bundled')
+    assert.equal(await planned({}), 2, "here, the config's")
+  })
 })
 
 describe('an attempt on a VM it cannot reach', () => {

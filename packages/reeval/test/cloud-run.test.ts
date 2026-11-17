@@ -1736,6 +1736,13 @@ evaluate('reaches', async (c) => {
     assert.equal(unset.code, 0, unset.stdout + unset.stderr)
     assert.match(unset.stdout, /target {2}cloud/)
     assert.doesNotMatch(unset.stdout + unset.stderr, /REEVAL_CLOUD_URL isn't set/)
+    assert.doesNotMatch(unset.stdout, /applies to runs here/)
+    const sized = await runCli(dir, ['run', '--cloud', '--dry-run'], {
+      env: { REEVAL_CLOUD_URL: '', REEVAL_CONCURRENCY: '3' },
+    })
+    assert.equal(sized.code, 0, sized.stdout + sized.stderr)
+    assert.match(sized.stdout, /REEVAL_CONCURRENCY applies to runs here: a cloud run runs as many/)
+    assert.doesNotMatch(sized.stdout, /at concurrency 3/)
     const bad = await runCli(dir, ['run', '--cloud'], {
       env: { REEVAL_CLOUD_URL: 'ftp://platform.test' },
     })

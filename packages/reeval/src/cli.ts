@@ -1370,7 +1370,19 @@ async function runCommand(
   }
   const cloud = bundled ? undefined : await cloudTarget(runFlags, setup, filters, configPath)
   if (cloud && 'exit' in cloud) return cloud.exit
-  if (cloud && cloud.target.kind !== 'local') process.env[PLAN_TARGET] = 'cloud'
+  if (cloud && cloud.target.kind !== 'local') {
+    process.env[PLAN_TARGET] = 'cloud'
+    const given = process.env.REEVAL_CONCURRENCY
+      ? 'REEVAL_CONCURRENCY'
+      : setup.config.concurrency !== undefined && `concurrency in ${setup.configFile}`
+    if (given && !(setup.profile?.provider ?? setup.config.provider) && !setup.json) {
+      console.log(
+        dim(
+          `${given} applies to runs here: a cloud run runs as many attempts at once as the cloud gives it`,
+        ),
+      )
+    }
+  }
   const explicit = runFlags.concurrency ?? (process.env.REEVAL_CONCURRENCY || undefined)
   const ctx = await startRun(setup, bundled)
   const startedWith: RunInvocation | undefined = resumed
@@ -1954,13 +1966,15 @@ async function prepareRun(
       throw new UsageError(`--runs must be a whole number of at least 1 (got ${flags.runs})`)
     }
   }
-  const sandboxes = [
+  const written = [
     ...(config.environments.length ? config.environments : [undefined]).map((e) =>
       environmentSandbox(e, config.sandbox),
     ),
     ...(profile ? [profileSandbox(config, profile.defaults)] : []),
-  ].map((s) => placedSandbox(s, config, profile))
+  ]
+  const sandboxes = written.map((s) => placedSandbox(s, config, profile))
   const concurrency = givenConcurrency(config, flags.concurrency)
+  const provider = profile?.provider ?? config.provider
   const registry = await registryFlag(flags)
   return {
     output,
@@ -1974,10 +1988,17 @@ async function prepareRun(
      * The run's concurrency. Without one given, it's sized from where the first sandbox that
      * runs off the host runs (the Docker or Podman VM, the Boat account) when it answers, as a
      * real run is, so --dry-run shows the same; a resume reads it once the stopped run's
-     * sandboxes are gone, since they count against it.
+     * sandboxes are gone, since they count against it. A cloud run's is the cloud's, whatever was
+     * given: what its VM service lets it run at once where it runs, and moot where it's bundled.
      */
-    sizeRun: async () =>
-      concurrency ?? defaultConcurrency((await sandboxCapacity(sandboxes)) ?? hostCapacity()),
+    sizeRun: async () => {
+      if (process.env[PLAN_TARGET] === 'cloud' && !provider) {
+        if (!process.env.REEVAL_VM_URL) return 1
+        const onCloud = written.map((s) => placedSandbox(s, config, profile, 'cloud'))
+        return defaultConcurrency((await sandboxCapacity(onCloud)) ?? hostCapacity())
+      }
+      return concurrency ?? defaultConcurrency((await sandboxCapacity(sandboxes)) ?? hostCapacity())
+    },
     budget: profile?.budget ?? config.budget,
     record: profile?.record ?? config.record,
     /** Whether the run is recorded into the history once it ends. */

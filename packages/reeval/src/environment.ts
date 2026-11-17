@@ -32,7 +32,7 @@ import {
   sandboxHelpers,
   sandboxKind,
 } from './sandbox/kinds.ts'
-import { place } from './sandbox/place.ts'
+import { place, type Target } from './sandbox/place.ts'
 import type {
   Egress,
   Environment,
@@ -1569,16 +1569,17 @@ export const profileSandbox = (
     defaults?.sandbox ?? config.sandbox,
   )
 
-/** `sandbox` on the provider a run of `config` with `profile` uses, as its plan places it. */
 /** The id a sandbox's cells carry: its own `id`, or its kind's for it. */
 export const sandboxId = (s: SandboxDescriptor): string => s.id ?? sandboxKind(s).id(s)
 
+/** `sandbox` on the provider a run of `config` with `profile` uses, as its plan places it. */
 export const placedSandbox = (
   sandbox: SandboxDescriptor,
   config: { provider?: ProviderDescriptor | undefined; file: string },
   profile?: { provider?: ProviderDescriptor | undefined } | null,
+  target: Target = 'here',
 ): SandboxDescriptor => {
-  const placed = place(sandbox, profile?.provider ?? config.provider, 'here', config.file)
+  const placed = place(sandbox, profile?.provider ?? config.provider, target, config.file)
   return placed === sandbox ? placed : { ...placed, id: sandboxId(sandbox) }
 }
 
