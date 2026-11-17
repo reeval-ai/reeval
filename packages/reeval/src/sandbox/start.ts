@@ -8,12 +8,8 @@ import {
 import type { AttemptDebug } from '../debug/attempt.ts'
 import { egressLabel, isRestricted, setupEgress } from '../egress.ts'
 import { gatewayGlue, sessionSandbox } from './docker.ts'
-import { harnessBake, installHarness } from './harness-install.ts'
 import type { SandboxOptions } from './index.ts'
 import { InfraError, type NetworkSandbox } from './types.ts'
-
-/** How long installing the harness's CLI in a new machine may take. */
-const INSTALL_TIMEOUT_MS = 10 * 60_000
 
 /**
  * Brokered values never enter the sandbox: with no gateway to swap them in, the attempt can't
@@ -66,15 +62,6 @@ export type BootedMachine = {
   stateDir?: string
   /** The gateway's port in the machine, when it isn't the machine's only one. */
   proxyPort?: number
-  /** The harness's CLI is already in the machine, from an attempt before. */
-  installed?: boolean
-  /**
-   * Once the gateway runs: waits for the harness's CLI another of the machine's attempts installs,
-   * whether it's now in this one's home, or this attempt is to install it.
-   */
-  installedElsewhere?(): Promise<boolean>
-  /** Runs once the harness's CLI has installed. */
-  onInstalled?(): Promise<void>
   /** Starting the sandbox failed after the boot: `destroy` follows, and the machine isn't reused. */
   failed?(): void
   /** Removes the machine. */
@@ -92,8 +79,6 @@ export type StartOptions = {
   darwin?: boolean
   /** What the gateway needs on this machine, for the brokering refusal. */
   hint?: string
-  /** Installs the harness's CLI before the session, when the image doesn't have it baked in. */
-  install: boolean
   /** A debug line about the machine's network, after it boots. */
   networkNote?: string
   /** Boots the machine; when it fails, it removes what it made itself. */
@@ -102,8 +87,8 @@ export type StartOptions = {
 
 /**
  * The start of a machine sandbox: boot it, start the egress gateway on it, refuse brokered values
- * the gateway can't keep out, install the harness under a deadline of its own, and hand back the
- * sandbox. Anything that fails after the boot removes the machine.
+ * the gateway can't keep out, and hand back the sandbox. Anything that fails after the boot
+ * removes the machine.
  */
 export async function startSandbox(
   options: SandboxOptions,
@@ -156,37 +141,6 @@ export async function startSandbox(
     if (gateway) await machine.onGateway?.(gateway, signal)
     if (signal.aborted) throw signal.reason
     const network = machine.session({ gateway, noGateway, destroy })
-    // A machine with nothing baked in downloads pnpm and the CLI here, before the harness's start
-    // is timed: there, a slow download would spend its readiness window and be tried again. The
-    // eval's timer is paused while a sandbox starts, so the install has a deadline of its own.
-    const needed =
-      start.install && !machine.installed && options.harness ? harnessBake(options.harness) : null
-    const bake = needed && !(await machine.installedElsewhere?.()) ? needed : null
-    if (bake) {
-      const installing = performance.now()
-      const deadline = AbortSignal.timeout(INSTALL_TIMEOUT_MS)
-      const stop = AbortSignal.any([signal, deadline])
-      const install = installHarness(network, bake, { signal: stop })
-      install.catch(() => {})
-      const stopped = new Promise<never>((_, reject) => {
-        if (stop.aborted) reject(stop.reason)
-        stop.addEventListener('abort', () => reject(stop.reason), { once: true })
-      })
-      stopped.catch(() => {})
-      const version = await Promise.race([install, stopped]).catch((error: unknown) => {
-        if (signal.aborted) throw error
-        throw new InfraError(
-          deadline.aborted
-            ? `Installing ${bake.name} in ${start.helper} sandbox ${network.id} didn't finish within ${INSTALL_TIMEOUT_MS / 60_000} minutes`
-            : `Installing ${bake.name} in ${start.helper} sandbox ${network.id} failed: ${(error as Error).message}`,
-        )
-      })
-      debug?.log(
-        'container',
-        `installed ${bake.name} ${version} in ${Math.round(performance.now() - installing)}ms`,
-      )
-      await machine.onInstalled?.()
-    }
     return await sessionSandbox(network, glue, {
       ...(machine.stateDir && { stateDir: machine.stateDir }),
       oomKills: async () => null,

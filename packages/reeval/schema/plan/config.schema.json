@@ -145,94 +145,6 @@
       "required": ["apiKey", "kind", "prefix"],
       "additionalProperties": false
     },
-    "BoatSandboxDescriptor": {
-      "description": "A sandbox placed on boat.dev machines: a `docker()` sandbox on the `boat()` provider.",
-      "type": "object",
-      "properties": {
-        "apiKey": {
-          "description": "The host variable with the Boat API key, read on the host only.",
-          "type": "object",
-          "properties": {
-            "from": {
-              "type": "string",
-              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
-            },
-            "kind": {
-              "type": "string",
-              "const": "secret"
-            }
-          },
-          "required": ["from", "kind"],
-          "additionalProperties": false
-        },
-        "attemptsPerMachine": {
-          "description": "The attempts one machine runs at once, each as a user of its own with its own home (which each sees at `/home/reeval`), workspace and egress gateway. The harness installs once per machine, and every other slot's home gets its own copy of the install. Default 1. A harness whose bridge takes a fixed port in the machine (Claude Code, OpenCode, Goose, fx, Grok Build) runs one per machine, unless the sandbox has an image recipe: then each attempt is a container with a network of its own.",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8
-        },
-        "dockerfile": {
-          "description": "A Dockerfile, absolute or relative to the directory of the file it's written in, built from its directory with `REEVAL_BASE` set to reeval's sandbox image.",
-          "type": "string",
-          "pattern": "\\S"
-        },
-        "from": {
-          "description": "A Debian or Ubuntu based toolchain image; reeval bakes Node and the harness on top.",
-          "type": "string",
-          "pattern": "^\\S+$"
-        },
-        "id": {
-          "description": "Cell id; defaults to `boat`, plus `:<type>` with a `type` and `:<image>` with an image recipe, and an install hash.",
-          "type": "string",
-          "pattern": "\\S"
-        },
-        "image": {
-          "description": "An image that already has the harness baked in, pulled from its registry on a build VM. With any of `image`, `from`, `dockerfile` or `install`, preflight builds the image once into a Boat saved snapshot, and each attempt runs in a container of it on a VM started from the snapshot.",
-          "type": "string",
-          "pattern": "\\S"
-        },
-        "install": {
-          "description": "Baked onto the sandbox image in one build container: in order, no secrets, no workspace.",
-          "minItems": 1,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/InstallStep"
-          }
-        },
-        "kind": {
-          "type": "string",
-          "const": "boat"
-        },
-        "maxConcurrent": {
-          "description": "The most attempts on Boat at once, across the run: machines times `attemptsPerMachine`.",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 9007199254740991
-        },
-        "prefix": {
-          "description": "The start of every sandbox name reeval gives Boat, so a run's cleanup finds only its own: lowercase letters, digits and dashes.",
-          "type": "string",
-          "maxLength": 32,
-          "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
-        },
-        "reevalImage": {
-          "description": "With no recipe, each attempt runs in a container of reeval's sandbox image for its harness.",
-          "type": "boolean",
-          "const": true
-        },
-        "reuse": {
-          "description": "A machine takes another of the run's attempts once one ends, instead of being deleted: its user's processes, cron jobs and files are removed and its home put back as it was after the harness installed, which isn't installed again. Default false, one attempt per slot.",
-          "type": "boolean"
-        },
-        "type": {
-          "description": "The machine size. Default `small`.",
-          "type": "string",
-          "enum": ["small", "default", "large", "xlarge"]
-        }
-      },
-      "required": ["apiKey", "kind", "prefix"],
-      "additionalProperties": false
-    },
     "Budget": {
       "description": "Run-level caps. `attempts` is checked against the plan; `duration` while running.",
       "type": "object",
@@ -347,7 +259,7 @@
       "type": "object",
       "properties": {
         "attemptsPerMachine": {
-          "description": "The attempts one machine runs at once, each as a user of its own, as `boat({ attemptsPerMachine })` does. Default 1.",
+          "description": "The attempts one machine runs at once, each in a container of its own, as `boat({ attemptsPerMachine })` does. Default 1.",
           "type": "integer",
           "minimum": 1,
           "maximum": 8
@@ -420,11 +332,6 @@
           "type": "integer",
           "exclusiveMinimum": 0,
           "maximum": 9007199254740991
-        },
-        "reevalImage": {
-          "description": "Each attempt runs in a container of reeval's image for the harness, which each VM pulls by digest or builds as its first attempt starts, as a recipe's is. Set for a `docker()` placed on a cloud run; `cloud()` doesn't take it.",
-          "type": "boolean",
-          "const": true
         },
         "reuse": {
           "description": "A machine takes another of the run's attempts once one ends, instead of being deleted, as `boat({ reuse })` does. Default false, one attempt per slot.",
@@ -674,93 +581,22 @@
       "required": ["apiKey", "kind", "prefix"],
       "additionalProperties": false
     },
-    "DaytonaSandboxDescriptor": {
-      "description": "A sandbox placed on Daytona: a `docker()` sandbox on the `daytona()` provider.",
-      "type": "object",
-      "properties": {
-        "apiKey": {
-          "description": "The host variable with the Daytona API key, read on the host only.",
-          "type": "object",
-          "properties": {
-            "from": {
-              "type": "string",
-              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
-            },
-            "kind": {
-              "type": "string",
-              "const": "secret"
-            }
-          },
-          "required": ["from", "kind"],
-          "additionalProperties": false
+    "DeclaredSandbox": {
+      "description": "A sandbox an eval, environment, profile or config sets.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FakeSandboxDescriptor"
         },
-        "attemptsPerMachine": {
-          "description": "The attempts one machine runs at once, each as a user of its own, as `boat({ attemptsPerMachine })` does. Default 1.",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8
+        {
+          "$ref": "#/$defs/DockerSandboxDescriptor"
         },
-        "dockerfile": {
-          "description": "A Dockerfile, absolute or relative to the directory of the file it's written in, that Daytona builds from its directory into a snapshot. `FROM ${REEVAL_BASE}` starts it from reeval's sandbox image; any other base must be Debian or Ubuntu based, and gets Node and the harness baked on top.",
-          "type": "string",
-          "pattern": "\\S"
+        {
+          "$ref": "#/$defs/TartSandboxDescriptor"
         },
-        "from": {
-          "description": "A Debian or Ubuntu based toolchain image in a registry Daytona can pull; reeval bakes Node and the harness on top into a Daytona snapshot, cached by content.",
-          "type": "string",
-          "pattern": "^\\S+$"
-        },
-        "id": {
-          "description": "Cell id; defaults to `daytona`, or `daytona:<image>` for a recipe as for `docker()`, then `:<size>` with a `size`.",
-          "type": "string",
-          "pattern": "\\S"
-        },
-        "image": {
-          "description": "An image in a registry Daytona can pull, with the harness baked in and a `reeval` user, used as is.",
-          "type": "string",
-          "pattern": "\\S"
-        },
-        "install": {
-          "description": "Baked into the image in order, on `from` or reeval's sandbox image: no secrets, no workspace.",
-          "minItems": 1,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/InstallStep"
-          }
-        },
-        "kind": {
-          "type": "string",
-          "const": "daytona"
-        },
-        "maxConcurrent": {
-          "description": "The most attempts on Daytona at once, across the run: machines times `attemptsPerMachine`.",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 9007199254740991
-        },
-        "prefix": {
-          "description": "The start of every sandbox name reeval gives Daytona, so a run's cleanup finds only its own: lowercase letters, digits and dashes.",
-          "type": "string",
-          "maxLength": 32,
-          "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
-        },
-        "reevalImage": {
-          "description": "With no recipe, each sandbox starts from reeval's sandbox image for its harness.",
-          "type": "boolean",
-          "const": true
-        },
-        "reuse": {
-          "description": "A machine takes another of the run's attempts once one ends, instead of being deleted, as `boat({ reuse })` does. Default false, one attempt per slot.",
-          "type": "boolean"
-        },
-        "size": {
-          "description": "The sandbox size. Default `medium`.",
-          "type": "string",
-          "enum": ["small", "medium", "large"]
+        {
+          "$ref": "#/$defs/CloudSandboxDescriptor"
         }
-      },
-      "required": ["apiKey", "kind", "prefix"],
-      "additionalProperties": false
+      ]
     },
     "DirectGatewayDescriptor": {
       "description": "Each provider's own key: made by `direct()` in `reeval/gateway`. Every `gateway` list ends with it unless it's listed elsewhere, where it's tried in that place.",
@@ -1043,7 +879,7 @@
         },
         "sandbox": {
           "description": "Where the attempt runs: `docker()` or `fakeSandbox()`. A child's `extend` / `extendEnvironment` replaces the parent's entirely when it sets one; install is not merged onto the parent image.",
-          "$ref": "#/$defs/SandboxDescriptor"
+          "$ref": "#/$defs/DeclaredSandbox"
         },
         "setup": {
           "description": "Shell commands run in every attempt before the agent starts; a child's run after its parent's.",
@@ -2668,7 +2504,7 @@
         },
         "sandbox": {
           "description": "The default machine when the resolved environment omits `sandbox`.",
-          "$ref": "#/$defs/SandboxDescriptor"
+          "$ref": "#/$defs/DeclaredSandbox"
         },
         "snapshot": {
           "description": "When each attempt's workspace is copied; merged over the config's.",
@@ -2963,7 +2799,7 @@
         },
         "sandbox": {
           "description": "The default machine when the resolved environment omits `sandbox`. Not an environment: it does not invent skills, files or a name. Implicit `docker()` when nobody sets one.",
-          "$ref": "#/$defs/SandboxDescriptor"
+          "$ref": "#/$defs/DeclaredSandbox"
         },
         "secrets": {
           "description": "`unbrokered: 'error'` refuses Docker secrets without `hosts`, and credential-like MCP headers and `env` values written as plain strings, instead of warning (default `'warn'`).",
@@ -3081,28 +2917,6 @@
         }
       },
       "additionalProperties": false
-    },
-    "SandboxDescriptor": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/FakeSandboxDescriptor"
-        },
-        {
-          "$ref": "#/$defs/DockerSandboxDescriptor"
-        },
-        {
-          "$ref": "#/$defs/TartSandboxDescriptor"
-        },
-        {
-          "$ref": "#/$defs/BoatSandboxDescriptor"
-        },
-        {
-          "$ref": "#/$defs/DaytonaSandboxDescriptor"
-        },
-        {
-          "$ref": "#/$defs/CloudSandboxDescriptor"
-        }
-      ]
     },
     "Secret": {
       "description": "A host environment variable, redacted everywhere reeval writes and recorded by name only. Made by the `secret` helper of `defineEnvironment` and `defineConfig` callbacks.",

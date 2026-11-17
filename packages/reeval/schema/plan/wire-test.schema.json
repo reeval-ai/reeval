@@ -251,7 +251,7 @@
           "additionalProperties": false
         },
         "attemptsPerMachine": {
-          "description": "The attempts one machine runs at once, each as a user of its own with its own home (which each sees at `/home/reeval`), workspace and egress gateway. The harness installs once per machine, and every other slot's home gets its own copy of the install. Default 1. A harness whose bridge takes a fixed port in the machine (Claude Code, OpenCode, Goose, fx, Grok Build) runs one per machine, unless the sandbox has an image recipe: then each attempt is a container with a network of its own.",
+          "description": "The attempts one machine runs at once, each in a container of its own with its own workspace, home, network and egress gateway. Default 1.",
           "type": "integer",
           "minimum": 1,
           "maximum": 8
@@ -272,7 +272,7 @@
           "pattern": "\\S"
         },
         "image": {
-          "description": "An image that already has the harness baked in, pulled from its registry on a build VM. With any of `image`, `from`, `dockerfile` or `install`, preflight builds the image once into a Boat saved snapshot, and each attempt runs in a container of it on a VM started from the snapshot.",
+          "description": "An image that already has the harness baked in, pulled from its registry on a build VM. Preflight builds the image (reeval's for the harness, with none of `image`, `from`, `dockerfile` or `install`) once into a Boat saved snapshot, and each attempt runs in a container of it on a VM started from the snapshot.",
           "type": "string",
           "pattern": "\\S"
         },
@@ -300,13 +300,8 @@
           "maxLength": 32,
           "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
         },
-        "reevalImage": {
-          "description": "With no recipe, each attempt runs in a container of reeval's sandbox image for its harness.",
-          "type": "boolean",
-          "const": true
-        },
         "reuse": {
-          "description": "A machine takes another of the run's attempts once one ends, instead of being deleted: its user's processes, cron jobs and files are removed and its home put back as it was after the harness installed, which isn't installed again. Default false, one attempt per slot.",
+          "description": "A machine takes another of the run's attempts once one ends, in a new container, instead of being deleted. Default false, one attempt per slot.",
           "type": "boolean"
         },
         "type": {
@@ -485,7 +480,7 @@
       "type": "object",
       "properties": {
         "attemptsPerMachine": {
-          "description": "The attempts one machine runs at once, each as a user of its own, as `boat({ attemptsPerMachine })` does. Default 1.",
+          "description": "The attempts one machine runs at once, each in a container of its own, as `boat({ attemptsPerMachine })` does. Default 1.",
           "type": "integer",
           "minimum": 1,
           "maximum": 8
@@ -558,11 +553,6 @@
           "type": "integer",
           "exclusiveMinimum": 0,
           "maximum": 9007199254740991
-        },
-        "reevalImage": {
-          "description": "Each attempt runs in a container of reeval's image for the harness, which each VM pulls by digest or builds as its first attempt starts, as a recipe's is. Set for a `docker()` placed on a cloud run; `cloud()` doesn't take it.",
-          "type": "boolean",
-          "const": true
         },
         "reuse": {
           "description": "A machine takes another of the run's attempts once one ends, instead of being deleted, as `boat({ reuse })` does. Default false, one attempt per slot.",
@@ -717,7 +707,7 @@
           "additionalProperties": false
         },
         "attemptsPerMachine": {
-          "description": "The attempts one machine runs at once, each as a user of its own, as `boat({ attemptsPerMachine })` does. Default 1.",
+          "description": "The attempts one machine runs at once, each as a user of its own with its own home (which each sees at `/home/reeval`), workspace and egress gateway. Default 1. A harness whose bridge takes a fixed port in the machine (Claude Code, OpenCode, Goose, fx, Grok Build) runs one per machine.",
           "type": "integer",
           "minimum": 1,
           "maximum": 8
@@ -766,13 +756,8 @@
           "maxLength": 32,
           "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
         },
-        "reevalImage": {
-          "description": "With no recipe, each sandbox starts from reeval's sandbox image for its harness.",
-          "type": "boolean",
-          "const": true
-        },
         "reuse": {
-          "description": "A machine takes another of the run's attempts once one ends, instead of being deleted, as `boat({ reuse })` does. Default false, one attempt per slot.",
+          "description": "A machine takes another of the run's attempts once one ends, instead of being deleted: its user's processes, cron jobs and files are removed and its home put back as the snapshot had it. Default false, one attempt per slot.",
           "type": "boolean"
         },
         "size": {
@@ -2394,6 +2379,7 @@
       "required": ["name", "skipped"]
     },
     "SandboxDescriptor": {
+      "description": "Where an attempt runs: its declared sandbox, or the one `place()` made of it on the run's provider.",
       "anyOf": [
         {
           "$ref": "#/$defs/FakeSandboxDescriptor"
@@ -2405,13 +2391,13 @@
           "$ref": "#/$defs/TartSandboxDescriptor"
         },
         {
+          "$ref": "#/$defs/CloudSandboxDescriptor"
+        },
+        {
           "$ref": "#/$defs/BoatSandboxDescriptor"
         },
         {
           "$ref": "#/$defs/DaytonaSandboxDescriptor"
-        },
-        {
-          "$ref": "#/$defs/CloudSandboxDescriptor"
         }
       ]
     },

@@ -30,6 +30,7 @@ import {
   plainCredentialHeaders,
   plannedSecrets,
   sameWorkspaceOnly,
+  sandboxId,
   sandboxOf,
   traitsOf,
   type UnbrokeredSecret,
@@ -76,6 +77,7 @@ import type {
   PinnableKey,
   PlannedEgress,
   PlannedQuestion,
+  ProviderDescriptor,
   Question,
   QuestionOptions,
   QuestionStateOptions,
@@ -174,14 +176,17 @@ export function harnessId(h: HarnessDescriptor): string {
 /** The provider a sandbox runs on: its kind, or `podman` for a Docker sandbox on Podman. */
 export const sandboxProvider = (s: SandboxDescriptor): string => sandboxKind(s).provider(s)
 
-export const sandboxId = (s: SandboxDescriptor): string => s.id ?? sandboxKind(s).id(s)
+export { sandboxId }
 
 /** The planned attempts' sandboxes by id, once each, or `fallback`'s when none is planned. */
 export function plannedSandboxIds(
   planned: SandboxDescriptor[],
   fallback: SandboxDescriptor,
+  provider?: ProviderDescriptor,
 ): string[] {
-  const ids = new Set(planned.map(sandboxId))
+  const label = (s: SandboxDescriptor) =>
+    provider && s.kind === provider.kind ? `${sandboxId(s)} on ${provider.kind}()` : sandboxId(s)
+  const ids = new Set(planned.map(label))
   return ids.size ? [...ids] : [sandboxId(fallback)]
 }
 

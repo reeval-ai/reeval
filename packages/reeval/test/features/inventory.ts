@@ -1187,6 +1187,7 @@ export const inventory: InventoryFeature[] = [
       'providers/daytona-shared',
       'providers/config-provider',
       'providers/profile-provider',
+      'providers/fake-on-provider',
     ],
     unit: [
       'reeval/test/place.test.ts',
@@ -1275,13 +1276,8 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'cloud.sandbox',
     area: 'Sandbox',
-    name: "`cloud({ size, reuse, attemptsPerMachine, maxConcurrent })` (internal, `reeval/internal/vm`): a VM per attempt from the VM service at `REEVAL_VM_URL`, on `boat()`'s pool, over SSH, under `allow-all`, whose harness CLI it installs as the VM starts, before the harness's start is timed, once per machine for slots sharing one, labeled, deleted when it ends, and recorded as `cloud` with no message, record field or log naming the upstream",
-    fixtures: [
-      'sandbox/cloud-session',
-      'sandbox/cloud-shared-machine',
-      'sandbox/cloud-installs-harness',
-      'sandbox/cloud-shared-install',
-    ],
+    name: "`cloud({ size, reuse, attemptsPerMachine, maxConcurrent })` (internal, `reeval/internal/vm`): a VM per attempt from the VM service at `REEVAL_VM_URL`, on `boat()`'s pool, each attempt in a container of reeval's image for its harness, built on the VM as it starts (or the recipe's, under `cloud.image`), labeled, deleted when it ends, and recorded as `cloud` with no message, record field or log naming the upstream",
+    fixtures: ['sandbox/cloud-session', 'sandbox/cloud-shared-machine'],
     plan: ['environments/cloud'],
     unit: [
       'reeval/test/cloud.test.ts',
@@ -1391,7 +1387,7 @@ export const inventory: InventoryFeature[] = [
     id: 'sandbox.resources-sampler',
     area: 'Sandbox',
     name: "The resources sampler is out of the agent's reach: a container's runs in a sibling container it can't see, a VM's as root",
-    fixtures: ['sandbox/resources-hidden', 'sandbox/cloud-resources-root'],
+    fixtures: ['sandbox/resources-hidden'],
   },
   {
     id: 'docker.from',

@@ -170,10 +170,6 @@ function abortable<T>(work: Promise<T>, signal: AbortSignal, orphan: (value: T) 
   })
 }
 
-/** The default snapshot of each size. */
-export const snapshotOf = (sandbox: Pick<DaytonaSandboxDescriptor, 'size'>) =>
-  `daytona-${sandbox.size ?? 'medium'}`
-
 /** Each size's resources, as Daytona's default snapshot of that size has them. */
 const RESOURCES: Record<DaytonaSize, Resources> = {
   small: { cpu: 1, memory: 1, disk: 3 },
@@ -192,8 +188,6 @@ export type DaytonaStart = {
   dockerfile?: string
   /** The directory its `COPY` sources are in. */
   contextDir?: string
-  /** The image has the harness, so a machine of its own needn't install it. */
-  harnessBaked: boolean
 }
 
 const spell = (ms: number) =>
@@ -433,7 +427,7 @@ export async function warmImage(
 /**
  * Preflight for a recipe's sandbox: checks the organization, generates the image and has Daytona
  * build it, into a snapshot or, when the key can't make snapshots, once into its build cache for
- * every create to find. Null without a recipe: sandboxes start from Daytona's default snapshot.
+ * every create to find.
  */
 export async function prepareDaytona(
   sandbox: DaytonaSandboxDescriptor,
@@ -443,7 +437,6 @@ export async function prepareDaytona(
 ): Promise<PreparedHandle> {
   await checkDaytona(sandbox, ctx.root)
   const image = await ctx.retry(() => daytonaImage(sandbox, harness, { signal: ctx.signal }))
-  if (!image) return null
   if (image.unpinned) {
     ctx.log(
       `daytona: ${image.unpinned.ref} isn't pinned by digest (${image.unpinned.reason}), so the image is keyed on its name`,
@@ -469,7 +462,6 @@ export async function prepareDaytona(
   if (!building) ctx.image?.({ name: image.name, cached: got === 'ready' })
   const start: DaytonaStart = {
     name: image.name,
-    harnessBaked: image.harnessBaked,
     ...(got === 'ready'
       ? { snapshot: image.name }
       : {
@@ -551,9 +543,11 @@ export const openDaytonaPool: OpenPool<DaytonaSandboxDescriptor> = async (sandbo
   const api = await daytonaClient(sandbox, o.root)
   const k = sandbox.attemptsPerMachine ?? 1
   const start = o.image as DaytonaStart | undefined
-  const image = start?.dockerfile ? await sdkImage(start, o.root) : undefined
+  if (!start)
+    throw new InfraError("The daytona() sandbox's image wasn't prepared before the run started")
+  const image = start.dockerfile ? await sdkImage(start, o.root) : undefined
   return {
-    provider: daytonaPoolProvider(sandbox, api, o.runId, start && { ...start, image }),
+    provider: daytonaPoolProvider(sandbox, api, o.runId, { ...start, image }),
     options: {
       limits: {
         machines: sandbox.maxConcurrent ? Math.ceil(sandbox.maxConcurrent / k) : 1_000,
@@ -571,12 +565,10 @@ export function daytonaPoolProvider(
   descriptor: DaytonaSandboxDescriptor,
   api: Daytona,
   runId: string,
-  start?: DaytonaStart & { image?: Image },
+  start: DaytonaStart & { image?: Image },
 ): PoolProvider<PooledSshMachine> {
   const size = descriptor.size ?? 'medium'
-  const snapshot = start ? start.snapshot : snapshotOf(descriptor)
-  // A built image starts as root, with no sudo: reeval's own commands run as it.
-  const loginRoot = start !== undefined
+  const { snapshot } = start
   const labels = runLabels(descriptor, runId)
   const extra = sandboxLabels()
   const made = new Map<string, { sandbox: Sandbox; dir: string }>()
@@ -609,7 +601,7 @@ export function daytonaPoolProvider(
         const creating = api.create(
           {
             name,
-            ...(snapshot ? { snapshot } : { image: start?.image, resources: resourcesOf(size) }),
+            ...(snapshot ? { snapshot } : { image: start.image, resources: resourcesOf(size) }),
             labels: { ...extra, ...labels },
             // The pool says when a machine goes; Daytona's idle stop would cut an attempt off.
             autoStopInterval: 0,
@@ -665,8 +657,8 @@ export function daytonaPoolProvider(
             knownHostsFile,
             route: `${target.host}:${target.port} (Daytona's SSH gateway)`,
             secretUser: true,
-            ...(loginRoot && { loginRoot: true }),
-            ...(start?.harnessBaked && { harnessBaked: true }),
+            // A built image starts as root, with no sudo: reeval's own commands run as it.
+            loginRoot: true,
           },
         }
       } catch (error) {
@@ -699,12 +691,11 @@ export async function createDaytonaSandbox(
     )
     start = handle ? daytonaStart(handle) : undefined
   }
-  const { image, from, dockerfile, install } = descriptor
-  if (!start && (image ?? from ?? dockerfile ?? install) !== undefined) {
+  if (!start) {
     throw new InfraError("The daytona() sandbox's image wasn't prepared before the run started")
   }
   return createPooledSshSandbox(descriptor, options, {
-    ...(start && { image: start }),
+    image: start,
     helper: 'daytona()',
     sandbox: 'daytona',
     size: descriptor.size ?? 'medium',

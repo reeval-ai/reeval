@@ -95,7 +95,6 @@ describe('the generated Dockerfile', () => {
     ])
     assert.match(image.name, /^reeval-img-[0-9a-f]{12}$/)
     assert.equal(image.name, `reeval-img-${image.key.slice(0, 12)}`)
-    assert.equal(image.harnessBaked, true)
     assert.equal(image.unpinned, undefined)
     assert.match(String(image.homeLabel), /^fake-/)
   })
@@ -154,11 +153,12 @@ describe('the generated Dockerfile', () => {
     assert.equal(image?.dockerfile.split('\n')[0], `FROM acme/agent:1@${DIGEST}`)
     assert.ok(!image?.dockerfile.includes('apt-get'))
     assert.ok(!image?.dockerfile.includes('USER reeval'))
-    assert.equal(image?.harnessBaked, true)
   })
 
-  test("is none without a recipe: Daytona's default snapshot", async () => {
-    assert.equal(await daytonaImage(daytona(), fake, { resolve }), null)
+  test("without a recipe, bakes the harness as the sandbox user onto reeval's base, with a home copy", async () => {
+    const image = await daytonaImage(daytona(), fake, { resolve })
+    assert.ok(image.dockerfile.includes('USER reeval'))
+    assert.match(String(image.homeLabel), /^fake-/)
   })
 
   test("renders a real harness's bootstrap: its files, commands, marker and version probe", async () => {

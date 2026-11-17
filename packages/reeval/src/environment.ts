@@ -1570,15 +1570,16 @@ export const profileSandbox = (
   )
 
 /** `sandbox` on the provider a run of `config` with `profile` uses, as its plan places it. */
+/** The id a sandbox's cells carry: its own `id`, or its kind's for it. */
+export const sandboxId = (s: SandboxDescriptor): string => s.id ?? sandboxKind(s).id(s)
+
 export const placedSandbox = (
   sandbox: SandboxDescriptor,
   config: { provider?: ProviderDescriptor | undefined; file: string },
   profile?: { provider?: ProviderDescriptor | undefined } | null,
 ): SandboxDescriptor => {
   const placed = place(sandbox, profile?.provider ?? config.provider, 'here', config.file)
-  return placed === sandbox
-    ? placed
-    : { ...placed, id: sandbox.id ?? sandboxKind(sandbox).id(sandbox) }
+  return placed === sandbox ? placed : { ...placed, id: sandboxId(sandbox) }
 }
 
 function checkSandbox(value: unknown, where: string): asserts value is SandboxDescriptor {

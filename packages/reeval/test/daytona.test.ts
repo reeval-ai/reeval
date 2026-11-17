@@ -24,8 +24,11 @@ import {
 } from './support/machines.ts'
 
 let api: FakeDaytona
+const START = { name: 'reeval-test', snapshot: 'reeval-test' }
+
 before(async () => {
   api = await fakeDaytona(unreachableMachines)
+  api.seedSnapshot(START.snapshot, { state: 'active' })
 })
 after(() => api.close())
 
@@ -129,7 +132,7 @@ describe("the pool's starts", () => {
   const client = () => pointedAt(api.key, () => daytonaClient(daytona()))
 
   test('turn a 429 into a rate limit with its Retry-After', async () => {
-    const provider = daytonaPoolProvider(daytona(), await client(), 'run-429')
+    const provider = daytonaPoolProvider(daytona(), await client(), 'run-429', START)
     api.refuseStarts(1, { retryAfterSeconds: 7 })
     const error = await provider.start(new AbortController().signal, 600).catch((e) => e)
     assert.ok(error instanceof DaytonaRateLimited, String(error))
@@ -143,12 +146,13 @@ describe("the pool's starts", () => {
       daytona({ size: 'large' }),
       (await client()) as Daytona,
       'run-x',
+      START,
     )
     await assert.rejects(provider.start(new AbortController().signal, 1800), {
       message: /Daytona's SSH gateway at 127\.0\.0\.1:1 gave no host key/,
     })
     const [made] = api.created().slice(before)
-    assert.equal(made?.snapshot, 'daytona-large')
+    assert.equal(made?.snapshot, START.snapshot)
     assert.deepEqual(made?.labels, {
       ...runLabels(daytona(), 'run-x'),
       'code-toolbox-language': 'python',
@@ -165,7 +169,7 @@ describe('a 429 after the start', () => {
   const client = () => pointedAt(api.key, () => daytonaClient(daytona()))
 
   test('on SSH access, waits for its Retry-After and keeps the sandbox', async () => {
-    const provider = daytonaPoolProvider(daytona(), await client(), 'run-ssh-429')
+    const provider = daytonaPoolProvider(daytona(), await client(), 'run-ssh-429', START)
     api.requests.length = 0
     api.refuseCalls(1, /^POST \/sandbox\/[\w-]+\/ssh-access$/, { retryAfterSeconds: 0 })
     // The fake's machines have no SSH server, so the start gets as far as the host key.
@@ -183,7 +187,7 @@ describe('a 429 after the start', () => {
   test('on the TTL, waits and keeps the machine alive', async () => {
     const made = await create('kept', runLabels(daytona(), 'run-ttl'))
     const { id } = (await made.json()) as { id: string }
-    const provider = daytonaPoolProvider(daytona(), await client(), 'run-ttl')
+    const provider = daytonaPoolProvider(daytona(), await client(), 'run-ttl', START)
     api.requests.length = 0
     api.refuseCalls(2, /^POST \/sandbox\/[\w-]+\/ttl\/\d+$/, { retryAfterSeconds: 0 })
     await provider.keepAlive?.(id, 1200)
@@ -223,11 +227,17 @@ describe('a cancel during the start', () => {
       (name) =>
         new Promise((resolve) => setTimeout(() => resolve(unreachableMachines(name)), 3000)),
     )
+    slow.seedSnapshot(START.snapshot, { state: 'active' })
     const saved = { url: process.env.DAYTONA_API_URL, key: process.env.DAYTONA_API_KEY }
     process.env.DAYTONA_API_URL = slow.url
     process.env.DAYTONA_API_KEY = slow.key
     try {
-      const provider = daytonaPoolProvider(daytona(), await daytonaClient(daytona()), 'run-cut')
+      const provider = daytonaPoolProvider(
+        daytona(),
+        await daytonaClient(daytona()),
+        'run-cut',
+        START,
+      )
       const cut = new AbortController()
       const startedAt = Date.now()
       setTimeout(() => cut.abort(new Error('canceled')), 300)

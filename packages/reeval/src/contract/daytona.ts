@@ -54,7 +54,6 @@ export const daytonaSandboxSchema = z
     prefix: prefixSchema,
     ...recipeFields,
     dockerfile: nonEmpty().optional(),
-    reevalImage: z.literal(true).optional(),
     ...machineFields,
   })
   .superRefine(oneRecipe)

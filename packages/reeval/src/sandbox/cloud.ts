@@ -22,8 +22,7 @@ import type { DoctorContext } from './kinds.ts'
 import type { OpenPool } from './machine-service.ts'
 import { optionalPeer } from './optional-peer.ts'
 import { PrepareError } from './provider.ts'
-import { recipeOf } from './recipe.ts'
-import { createPooledSshSandbox } from './ssh-pool.ts'
+import { machineRecipeOf } from './recipe.ts'
 import type { NetworkSandbox } from './types.ts'
 
 export const VM_URL = 'REEVAL_VM_URL'
@@ -145,52 +144,44 @@ export async function createCloudSandbox(
   descriptor: CloudSandboxDescriptor,
   options: SandboxOptions,
 ): Promise<NetworkSandbox> {
-  const recipe = recipeOf(descriptor) ?? (descriptor.reevalImage ? {} : null)
-  if (recipe) {
-    const { root, capabilities, memory, swap, cpus, pids } = descriptor
-    const { createVmContainerSandbox } = await import('./vm-container.ts')
-    const { imageOnMachine } = await import('./machine-image.ts')
-    return createVmContainerSandbox(
-      descriptor,
-      {
-        ready: async (engine, machine, signal) => {
-          const where = { id: machine.id, description: `cloud VM ${machine.id}` }
-          const { plugins, ...image } = await imageOnMachine(
-            recipe,
-            options.harness,
-            options.pluginBuilds ?? [],
-            where,
-            engine,
-            signal,
-          )
-          return { ref: image.ref, image, ...(plugins && { plugins }) }
+  const recipe = machineRecipeOf(descriptor)
+  const { root, capabilities, memory, swap, cpus, pids } = descriptor
+  const { createVmContainerSandbox } = await import('./vm-container.ts')
+  const { imageOnMachine } = await import('./machine-image.ts')
+  return createVmContainerSandbox(
+    descriptor,
+    {
+      ready: async (engine, machine, signal) => {
+        const where = { id: machine.id, description: `cloud VM ${machine.id}` }
+        const { plugins, ...image } = await imageOnMachine(
+          recipe,
+          options.harness,
+          options.pluginBuilds ?? [],
+          where,
+          engine,
+          signal,
+        )
+        return { ref: image.ref, image, ...(plugins && { plugins }) }
+      },
+    },
+    options,
+    {
+      fn: 'cloud',
+      sandbox: CLOUD.kind,
+      size: descriptor.size ?? 'small',
+      description: (info) => `cloud VM ${info.id} (${info.size})`,
+      container: {
+        ...(root !== undefined && { root }),
+        ...(capabilities && { capabilities }),
+        limits: {
+          ...(memory !== undefined && { memory }),
+          ...(swap !== undefined && { swap }),
+          ...(cpus !== undefined && { cpus }),
+          ...(pids !== undefined && { pids }),
         },
       },
-      options,
-      {
-        fn: 'cloud',
-        sandbox: CLOUD.kind,
-        size: descriptor.size ?? 'small',
-        description: (info) => `cloud VM ${info.id} (${info.size})`,
-        container: {
-          ...(root !== undefined && { root }),
-          ...(capabilities && { capabilities }),
-          limits: {
-            ...(memory !== undefined && { memory }),
-            ...(swap !== undefined && { swap }),
-            ...(cpus !== undefined && { cpus }),
-            ...(pids !== undefined && { pids }),
-          },
-        },
-      },
-    )
-  }
-  return createPooledSshSandbox(descriptor, options, {
-    helper: CLOUD.helper,
-    sandbox: CLOUD.kind,
-    size: descriptor.size ?? 'small',
-    description: (info) => `cloud VM ${info.id} (${info.size})`,
-  })
+    },
+  )
 }
 
 export const cloudCapacity = async (sandbox: CloudSandboxDescriptor) =>

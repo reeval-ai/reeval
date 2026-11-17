@@ -91,8 +91,6 @@ export type SandboxHooks<D extends SandboxDescriptor> = {
   slotNetworks?(sandbox: D): boolean
   /** Whether each machine prepares `sandbox`'s image as its attempt starts, none before the run. */
   preparesImage?(sandbox: D): boolean
-  /** What `sandbox` can do, when its options change what its kind can. */
-  capabilitiesFor?(sandbox: D): SandboxCapabilities
   /**
    * When preflight learns how many of `sandbox`'s attempts can run at once (the hosts it kept),
    * reads that cap for the gate.
@@ -236,10 +234,8 @@ export const sandboxKind = <D extends SandboxDescriptor>(sandbox: D): SandboxKin
   SANDBOX_KINDS[sandbox.kind] as unknown as SandboxKind<D>
 
 /** What `sandbox`'s kind can do. */
-export const capabilitiesOf = (sandbox: SandboxDescriptor): SandboxCapabilities => {
-  const kind = sandboxKind(sandbox)
-  return kind.capabilitiesFor?.(sandbox) ?? kind.capabilities
-}
+export const capabilitiesOf = (sandbox: SandboxDescriptor): SandboxCapabilities =>
+  sandboxKind(sandbox).capabilities
 
 /** Every helper that makes a sandbox, as a list a message reads: `docker(), podman() or fakeSandbox()`. */
 export function sandboxHelpers(

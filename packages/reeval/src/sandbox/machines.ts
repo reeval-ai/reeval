@@ -71,36 +71,15 @@ export const TART_MACHINE: MachineProvider<TartSandboxDescriptor> = {
       : null,
 }
 
-/**
- * Enforces nothing on the VM itself: it keeps its own network, so only `allow-all` plans on it, for
- * the whole attempt. The gateway still brokers credentials and records what goes through it.
- */
-const BOAT_EGRESS: EgressCapabilities = { enforce: 'none', record: true, switches: false }
-
-/**
- * A sandbox with an image, an image recipe or reeval's image for the harness, whose attempts each
- * run in a container of it.
- */
-const inImage = (s: BoatSandboxDescriptor | CloudSandboxDescriptor) =>
-  !!(
-    s.image ||
-    s.from ||
-    s.dockerfile ||
-    s.install?.length ||
-    ('reevalImage' in s && s.reevalImage)
-  )
-
-/** A container in the VM's Docker, as `docker()` runs one: the gateway can be its only way out. */
-const inContainer = (s: BoatSandboxDescriptor | CloudSandboxDescriptor) =>
-  inImage(s) ? { egress: DOCKER_EGRESS, processTable: true, listeners: 'proc' as const } : null
+/** Each attempt is a container in the VM's Docker, as `docker()` runs one: the gateway can be its only way out. */
+const IN_CONTAINER = { egress: DOCKER_EGRESS, processTable: true, listeners: 'proc' as const }
 
 export const BOAT_MACHINE: MachineProvider<BoatSandboxDescriptor> = {
   kind: 'boat',
   helpers: ['boat'],
   internal: true,
   os: 'linux',
-  capabilities: { egress: BOAT_EGRESS, processTable: true, listeners: 'proc' },
-  sandboxCapabilities: inContainer,
+  capabilities: IN_CONTAINER,
   id: (s) => recipeId(`boat${s.type ? `:${s.type}` : ''}`, s),
   hostPaths: { dockerfile: 'file' },
   async create(sandbox, options) {
@@ -139,7 +118,7 @@ export const BOAT_MACHINE: MachineProvider<BoatSandboxDescriptor> = {
   cleanupScope: (s) => ({ key: JSON.stringify(s), atStart: true }),
   credentials: (s) => [{ names: [s.apiKey.from], line: `${s.apiKey.from} (for boat())` }],
   slotsPerMachine: (s) => s.attemptsPerMachine ?? 1,
-  slotNetworks: inImage,
+  slotNetworks: () => true,
   async doctor(sandboxes, ctx) {
     const { boatDoctor } = await import('./boat.ts')
     return boatDoctor(sandboxes, ctx)
@@ -147,7 +126,7 @@ export const BOAT_MACHINE: MachineProvider<BoatSandboxDescriptor> = {
 }
 
 /**
- * Enforces nothing, as on Boat: the sandbox keeps Daytona's network (whose own policies only some
+ * Enforces nothing: the sandbox keeps Daytona's network (whose own policies only some
  * tiers can set), so only `allow-all` plans on it. The gateway brokers and records.
  */
 const DAYTONA_EGRESS: EgressCapabilities = { enforce: 'none', record: true, switches: false }
@@ -203,16 +182,12 @@ export const DAYTONA_MACHINE: MachineProvider<DaytonaSandboxDescriptor> = {
   },
 }
 
-/** Enforces nothing, as on Boat, whose client it runs on. */
-const CLOUD_EGRESS: EgressCapabilities = { enforce: 'none', record: true, switches: false }
-
 export const CLOUD_MACHINE: MachineProvider<CloudSandboxDescriptor> = {
   kind: 'cloud',
   helpers: ['cloud'],
   internal: true,
   os: 'linux',
-  capabilities: { egress: CLOUD_EGRESS, processTable: true, listeners: 'proc' },
-  sandboxCapabilities: inContainer,
+  capabilities: IN_CONTAINER,
   id: (s) => recipeId(s.size ? `cloud:${s.size}` : 'cloud', s),
   hostPaths: { dockerfile: 'file' },
   async create(sandbox, options) {
@@ -234,7 +209,6 @@ export const CLOUD_MACHINE: MachineProvider<CloudSandboxDescriptor> = {
         s.from ?? null,
         s.dockerfile ?? null,
         s.install ?? null,
-        s.reevalImage ?? false,
       ]),
     // Every cloud VM of the run is on one service.
     account: () => '',
@@ -253,10 +227,10 @@ export const CLOUD_MACHINE: MachineProvider<CloudSandboxDescriptor> = {
     { names: ['REEVAL_VM_TOKEN'], line: 'REEVAL_VM_TOKEN (for cloud())', cloudSets: true },
   ],
   slotsPerMachine: (s) => s.attemptsPerMachine ?? 1,
-  slotNetworks: inImage,
-  preparesImage: inImage,
+  slotNetworks: () => true,
+  preparesImage: () => true,
   privileges: (s) => ({ root: !!s.root, capabilities: s.capabilities ?? [] }),
-  pluginBuilds: inImage,
+  pluginBuilds: true,
   async doctor(sandboxes, ctx) {
     const { cloudDoctor } = await import('./cloud.ts')
     return cloudDoctor(sandboxes, ctx)

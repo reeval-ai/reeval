@@ -96,7 +96,6 @@
   "daytona() as a sandbox": "UsageError: sandbox in reeval.config.ts: daytona() is a provider, not a sandbox: set provider: daytona() in the config or a profile, and the image in docker()",
   "claudeCode sharing a daytona() machine": "UsageError: evaluate(\"e\") on claude-code:claude-haiku-5-5: claude-code's bridge listens on a fixed port in the machine, so it runs one attempt per machine: set attemptsPerMachine: 1 for it (got 2)",
   "cursor on cloud()": null,
-  "cloud() under egress 'proxy'": "UsageError: evaluate(\"e\") runs under egress 'proxy', where the egress gateway is the only way out, but the cloud sandbox enforces no egress policy: its traffic that ignores the proxy goes out directly. Set egress: 'allow-all' to run it there, or run it in docker().",
   "cloud() size unknown": "UsageError: cloud({ size }) is one of 'small', 'medium', 'large', 'xlarge' (got \"huge\")",
   "cloud() type, a boat() option": "UsageError: cloud() doesn't take type: pick a machine size with size: 'small' (2 vCPUs, 4 GB), 'medium', 'large' or 'xlarge'.",
   "cloud() apiKey": "UsageError: cloud() doesn't take apiKey: its token comes from REEVAL_VM_TOKEN, so there is no key to name.",

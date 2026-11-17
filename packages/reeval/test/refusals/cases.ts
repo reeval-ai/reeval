@@ -893,10 +893,6 @@ export const CASES: Record<string, Case[]> = {
         { harnesses: cursor({ model: 'composer-2.5' }), sandbox: cloud(), egress: 'allow-all' },
       ),
     ],
-    [
-      "cloud() under egress 'proxy'",
-      planned({}, { harnesses: cursor({ model: 'composer-2.5' }), sandbox: cloud() }),
-    ],
     ['cloud() size unknown', any(cloud, { size: 'huge' })],
     ['cloud() type, a boat() option', any(cloud, { type: 'large' })],
     ['cloud() apiKey', any(cloud, { apiKey: 'k' })],

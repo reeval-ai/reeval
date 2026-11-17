@@ -138,10 +138,10 @@ describe('sandbox kinds', () => {
     assert.equal(sandboxKind(tart({ image: 'mine' })).provider(tart({ image: 'mine' })), 'tart')
   })
 
-  test("Boat is an isolated Linux VM that brokers, with no image and egress it can't hold", () => {
+  test("Boat runs each attempt in a container on an isolated Linux VM, holding docker()'s egress", () => {
     assert.deepEqual(capabilitiesOf(boat()), {
       platform: 'linux',
-      egress: { enforce: 'none', record: true, switches: false },
+      egress: { enforce: 'allowlist', record: true, switches: true },
       brokers: true,
       harnessSession: true,
       isolated: true,

@@ -1,6 +1,5 @@
 // The Boat and Daytona sandboxes `place()` makes of a docker() sandbox on `boat()` or `daytona()`,
-// for the tests of the code that runs them. Without a recipe or `reevalImage` they're bare
-// machines, which only `cloud()` reaches from a plan.
+// for the tests of the code that runs them. Without a recipe each runs reeval's image for its harness.
 import type { BoatSandboxDescriptor, DaytonaSandboxDescriptor } from '../../src/types.ts'
 
 type Account = { apiKey?: { kind: 'secret'; from: string }; prefix?: string }

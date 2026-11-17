@@ -37,12 +37,11 @@ export const cloudSandboxSchema = z
     kind: z.literal('cloud'),
     ...fields,
     dockerfile: nonEmpty().optional(),
-    reevalImage: z.literal(true).optional(),
   })
   .superRefine(oneRecipe)
 
 /** `cloud()`'s argument. */
-export type CloudOptions = Omit<CloudSandboxDescriptor, 'kind' | 'dockerfile' | 'reevalImage'>
+export type CloudOptions = Omit<CloudSandboxDescriptor, 'kind' | 'dockerfile'>
 
 export const cloudOptionsSchema = z.strictObject(fields).superRefine(oneRecipe)
 
@@ -138,7 +137,6 @@ export const cloudProblem = (value: CloudSandboxDescriptor) =>
       'swap',
       'cpus',
       'pids',
-      'reevalImage',
       'reuse',
       'attemptsPerMachine',
     ],

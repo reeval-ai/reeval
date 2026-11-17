@@ -1230,9 +1230,10 @@ export type BoatSandboxDescriptor = {
   /** The machine size. Default `small`. */
   type?: BoatMachineType
   /**
-   * An image that already has the harness baked in, pulled from its registry on a build VM. With
-   * any of `image`, `from`, `dockerfile` or `install`, preflight builds the image once into a Boat
-   * saved snapshot, and each attempt runs in a container of it on a VM started from the snapshot.
+   * An image that already has the harness baked in, pulled from its registry on a build VM.
+   * Preflight builds the image (reeval's for the harness, with none of `image`, `from`,
+   * `dockerfile` or `install`) once into a Boat saved snapshot, and each attempt runs in a
+   * container of it on a VM started from the snapshot.
    */
   image?: string
   /** A Debian or Ubuntu based toolchain image; reeval bakes Node and the harness on top. */
@@ -1244,22 +1245,16 @@ export type BoatSandboxDescriptor = {
   dockerfile?: string
   /** Baked onto the sandbox image in one build container: in order, no secrets, no workspace. */
   install?: InstallStep[]
-  /** With no recipe, each attempt runs in a container of reeval's sandbox image for its harness. */
-  reevalImage?: true
   /** The most attempts on Boat at once, across the run: machines times `attemptsPerMachine`. */
   maxConcurrent?: number
   /**
-   * A machine takes another of the run's attempts once one ends, instead of being deleted: its
-   * user's processes, cron jobs and files are removed and its home put back as it was after the
-   * harness installed, which isn't installed again. Default false, one attempt per slot.
+   * A machine takes another of the run's attempts once one ends, in a new container, instead of
+   * being deleted. Default false, one attempt per slot.
    */
   reuse?: boolean
   /**
-   * The attempts one machine runs at once, each as a user of its own with its own home (which
-   * each sees at `/home/reeval`), workspace and egress gateway. The harness installs once per
-   * machine, and every other slot's home gets its own copy of the install. Default 1. A harness whose bridge takes a fixed port in the
-   * machine (Claude Code, OpenCode, Goose, fx, Grok Build) runs one per machine, unless the sandbox
-   * has an image recipe: then each attempt is a container with a network of its own.
+   * The attempts one machine runs at once, each in a container of its own with its own workspace,
+   * home, network and egress gateway. Default 1.
    */
   attemptsPerMachine?: number
 }
@@ -1305,20 +1300,21 @@ export type DaytonaSandboxDescriptor = {
   dockerfile?: string
   /** Baked into the image in order, on `from` or reeval's sandbox image: no secrets, no workspace. */
   install?: InstallStep[]
-  /** With no recipe, each sandbox starts from reeval's sandbox image for its harness. */
-  reevalImage?: true
   /** The sandbox size. Default `medium`. */
   size?: DaytonaSize
   /** The most attempts on Daytona at once, across the run: machines times `attemptsPerMachine`. */
   maxConcurrent?: number
   /**
-   * A machine takes another of the run's attempts once one ends, instead of being deleted, as
-   * `boat({ reuse })` does. Default false, one attempt per slot.
+   * A machine takes another of the run's attempts once one ends, instead of being deleted: its
+   * user's processes, cron jobs and files are removed and its home put back as the snapshot had
+   * it. Default false, one attempt per slot.
    */
   reuse?: boolean
   /**
-   * The attempts one machine runs at once, each as a user of its own, as
-   * `boat({ attemptsPerMachine })` does. Default 1.
+   * The attempts one machine runs at once, each as a user of its own with its own home (which
+   * each sees at `/home/reeval`), workspace and egress gateway. Default 1. A harness whose bridge
+   * takes a fixed port in the machine (Claude Code, OpenCode, Goose, fx, Grok Build) runs one per
+   * machine.
    */
   attemptsPerMachine?: number
 }
@@ -1414,12 +1410,6 @@ export type CloudSandboxDescriptor = {
   dockerfile?: string
   /** Baked onto the sandbox image in one build container: in order, no secrets, no workspace. */
   install?: InstallStep[]
-  /**
-   * Each attempt runs in a container of reeval's image for the harness, which each VM pulls by
-   * digest or builds as its first attempt starts, as a recipe's is. Set for a `docker()` placed on
-   * a cloud run; `cloud()` doesn't take it.
-   */
-  reevalImage?: true
   /** Run the agent, setup steps and checks as root in the attempt's container, as `docker({ root })` does. */
   root?: boolean
   /** Linux capabilities the attempt's container adds back, as `docker({ capabilities })` does. */
@@ -1443,18 +1433,20 @@ export type CloudSandboxDescriptor = {
    */
   reuse?: boolean
   /**
-   * The attempts one machine runs at once, each as a user of its own, as
+   * The attempts one machine runs at once, each in a container of its own, as
    * `boat({ attemptsPerMachine })` does. Default 1.
    */
   attemptsPerMachine?: number
 }
-export type SandboxDescriptor =
+/** A sandbox an eval, environment, profile or config sets. */
+export type DeclaredSandbox =
   | FakeSandboxDescriptor
   | DockerSandboxDescriptor
   | TartSandboxDescriptor
-  | BoatSandboxDescriptor
-  | DaytonaSandboxDescriptor
   | CloudSandboxDescriptor
+
+/** Where an attempt runs: its declared sandbox, or the one `place()` made of it on the run's provider. */
+export type SandboxDescriptor = DeclaredSandbox | BoatSandboxDescriptor | DaytonaSandboxDescriptor
 
 /**
  * A host environment variable, redacted everywhere reeval writes and recorded by name only. Made by
@@ -1669,7 +1661,7 @@ export type EnvironmentSpec = {
    * Where the attempt runs: `docker()` or `fakeSandbox()`. A child's `extend` / `extendEnvironment`
    * replaces the parent's entirely when it sets one; install is not merged onto the parent image.
    */
-  sandbox?: SandboxDescriptor
+  sandbox?: DeclaredSandbox
   /**
    * Human-readable label for reports; when unset the environment `name` is used. A child's replaces
    * its parent's.
@@ -2236,7 +2228,7 @@ type EvalOptionFields<N extends number = number> = {
    * The default machine when the resolved environment omits `sandbox`. Cascades like `harnesses`.
    * Not an environment: it does not invent skills, files or a name.
    */
-  sandbox?: SandboxDescriptor
+  sandbox?: DeclaredSandbox
   /**
    * Attempts per cell: a number, or `{ bestOf: n }` (odd, 3 or more), which stops each cell once
    * a majority of its `n` attempts agree and gates it on that majority; not on a compared eval.
@@ -2502,7 +2494,7 @@ export type ProfileDefaults = {
   /** The agents every eval runs on, unless a group or eval replaces them. */
   harnesses?: HarnessDescriptor | HarnessDescriptor[]
   /** The default machine when the resolved environment omits `sandbox`. */
-  sandbox?: SandboxDescriptor
+  sandbox?: DeclaredSandbox
   /** What every eval runs in when it names no environment: one, or a list (a cell each). */
   environments?: Environment | Environment[]
   /** Attempts per cell: a number, or `{ bestOf: n }` (odd, 3 or more). */
@@ -2659,7 +2651,7 @@ export type ReevalConfig = {
    * The default machine when the resolved environment omits `sandbox`. Not an environment:
    * it does not invent skills, files or a name. Implicit `docker()` when nobody sets one.
    */
-  sandbox?: SandboxDescriptor
+  sandbox?: DeclaredSandbox
   /**
    * What every eval runs in when it names no environment and has no compare: one, or a list (a
    * cell each).

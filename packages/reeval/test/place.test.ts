@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 import { cloud } from '../src/internal-vm.ts'
+import { plannedSandboxIds } from '../src/options.ts'
 import { boat, createBoat } from '../src/provider-boat.ts'
 import { daytona } from '../src/provider-daytona.ts'
 import { CloudUnsupported, place } from '../src/sandbox/place.ts'
@@ -18,14 +19,11 @@ describe('place()', () => {
   })
 
   test("docker() without a recipe goes on the provider's machines in reeval's image", () => {
-    assert.deepEqual(place(docker(), boat(), 'here', where), {
-      ...boat(),
-      reevalImage: true,
-    })
-    assert.deepEqual(place(docker(), daytona({ size: 'large' }), 'here', where), {
-      ...daytona({ size: 'large' }),
-      reevalImage: true,
-    })
+    assert.deepEqual(place(docker(), boat(), 'here', where), boat())
+    assert.deepEqual(
+      place(docker(), daytona({ size: 'large' }), 'here', where),
+      daytona({ size: 'large' }),
+    )
   })
 
   test('the recipe, the id and maxConcurrent carry; the provider caps first', () => {
@@ -50,6 +48,18 @@ describe('place()', () => {
       ...daytona(),
       image: 'ghcr.io/acme/app:1',
     })
+  })
+
+  test('a provider places docker() on its machines on a cloud run too, and refuses with its own words', () => {
+    assert.deepEqual(place(docker({ from: 'node:24' }), boat(), 'cloud', where), {
+      ...boat(),
+      from: 'node:24',
+    })
+    assert.throws(
+      () => place(tart({ image: 'macos' }), boat(), 'cloud', where),
+      (e: unknown) =>
+        !(e instanceof CloudUnsupported) && /boat\(\) runs docker\(\) sandboxes/.test(String(e)),
+    )
   })
 
   test('the fake sandbox and the machine kinds pass through', () => {
@@ -82,6 +92,22 @@ describe('place()', () => {
       'boat',
     )
   })
+
+  test("the run header names the provider each placed sandbox runs on, and not the fake one's", () => {
+    const placed = [docker({ from: 'node:24' }), docker(), fakeSandbox()].map((s) =>
+      place(s, boat(), 'here', where),
+    )
+    const ids = (sandboxes: typeof placed) =>
+      sandboxes.map((s, i) =>
+        s.kind === 'boat' ? { ...s, id: ['docker:node:24', 'docker'][i] } : s,
+      )
+    assert.deepEqual(plannedSandboxIds(ids(placed), docker(), boat()), [
+      'docker:node:24 on boat()',
+      'docker on boat()',
+      'fake',
+    ])
+    assert.deepEqual(plannedSandboxIds([docker()], docker()), ['docker'])
+  })
 })
 
 const WHERE = 'evaluate("e")'
@@ -100,7 +126,6 @@ test('here, every sandbox stays as written', () => {
 test('on a cloud run, docker() is the same container on a VM of its own, sized by the scheduler', () => {
   assert.deepEqual(place({ kind: 'docker', id: 'docker' }, undefined, 'cloud', WHERE), {
     kind: 'cloud',
-    reevalImage: true,
   })
   assert.deepEqual(
     place(
