@@ -9,6 +9,7 @@ import { join } from 'node:path'
 import { after, before, describe, test } from 'node:test'
 import type { Daytona } from '@daytona/sdk'
 import { NODE_IMAGE } from '../../sandbox-docker/src/build-image.ts'
+import { imageEnv } from '../../sandbox-docker/src/ssh-session.ts'
 import { daytonaClient, ensureSnapshot, prepareDaytona, sdkImage } from '../src/sandbox/daytona.ts'
 import { daytonaImage, harnessScript } from '../src/sandbox/daytona-image.ts'
 import { PrepareError } from '../src/sandbox/provider.ts'
@@ -87,8 +88,9 @@ describe('the generated Dockerfile', () => {
     const install = lines.findIndex((l) => l.includes('/tmp/reeval-install.sh'))
     const copy = lines.findIndex((l) => l.includes('/var/lib/reeval-pool/home-'))
     assert.ok(harness > 0 && install > harness && copy > install, image.dockerfile)
-    assert.deepEqual(lines.slice(-4), [
+    assert.deepEqual(lines.slice(-5), [
       'USER root',
+      'RUN mkdir -p /etc/reeval && cat /proc/self/environ > /etc/reeval/image-env',
       'WORKDIR /reeval',
       'ENTRYPOINT ["sleep", "infinity"]',
       '',
@@ -97,6 +99,15 @@ describe('the generated Dockerfile', () => {
     assert.equal(image.name, `reeval-img-${image.key.slice(0, 12)}`)
     assert.equal(image.unpinned, undefined)
     assert.match(String(image.homeLabel), /^fake-/)
+  })
+
+  test("keeps the image's variables but the build shell's own, for commands over SSH", () => {
+    assert.deepEqual(
+      imageEnv(
+        'PATH=/usr/lib/dart/bin:/usr/bin\0HOSTNAME=buildkitsandbox\0HOME=/root\0PUB_CACHE=/a=b\0PWD=/reeval\0',
+      ),
+      { PATH: '/usr/lib/dart/bin:/usr/bin', PUB_CACHE: '/a=b' },
+    )
   })
 
   test('is keyed on what the base names now, and on the size', async () => {

@@ -80,6 +80,29 @@ const homeTar = (label: string) => `${HOMES}/home-${label.replace(/[^A-Za-z0-9._
 export const keepHomeCopy = (label: string) =>
   `mkdir -p ${q(HOMES)} && chmod 700 ${q(HOMES)} && tar -C ${q(posix.dirname(SANDBOX_HOME))} -cf ${q(homeTar(label))} ${q(posix.basename(SANDBOX_HOME))}`
 
+/** The variables the machine's image sets (its `ENV`), as `NAME=value\0` for each. */
+const IMAGE_ENV = '/etc/reeval/image-env'
+
+/**
+ * Root commands an image runs last to keep its variables, which no SSH login applies, for the
+ * sandbox user's commands: what `docker exec` would start them with.
+ */
+export const keepImageEnv = () =>
+  `mkdir -p ${posix.dirname(IMAGE_ENV)} && cat /proc/self/environ > ${IMAGE_ENV}`
+
+/** What the build's own shell set rather than the image. */
+const BUILD_ONLY = new Set(['HOSTNAME', 'HOME', 'PWD', 'OLDPWD', 'SHLVL', '_'])
+
+/** The variables {@link keepImageEnv} kept. */
+export function imageEnv(kept: string): Record<string, string> {
+  const env: Record<string, string> = {}
+  for (const kv of kept.split('\0')) {
+    const at = kv.indexOf('=')
+    if (at > 0 && !BUILD_ONLY.has(kv.slice(0, at))) env[kv.slice(0, at)] = kv.slice(at + 1)
+  }
+  return env
+}
+
 /**
  * Root commands that empty a slot's home back to the skeleton. The directory itself stays: on a
  * shared machine, slot 0's is where the other slots' commands see their own homes.
@@ -156,15 +179,6 @@ function slotHome(layout: SlotLayout, label: string): string {
 export async function connectSsh(options: SshSessionOptions): Promise<SshMachine> {
   const { target, abortSignal: signal } = options
   const layout = options.layout ?? slotLayout(0)
-  const userPath = [`${SANDBOX_HOME}/.local/bin`, ...(options.path ?? []), SYSTEM_PATH].join(':')
-  const baseEnv = {
-    PATH: userPath,
-    HOME: SANDBOX_HOME,
-    USER: layout.user,
-    LOGNAME: layout.user,
-    SHELL: '/bin/bash',
-    LANG: 'C.UTF-8',
-  }
   const userEnv = {
     NPM_CONFIG_UPDATE_NOTIFIER: 'false',
     NPM_CONFIG_PREFIX: `${SANDBOX_HOME}/.local`,
@@ -231,6 +245,28 @@ export async function connectSsh(options: SshSessionOptions): Promise<SshMachine
     }
     await new Promise((resolve) => setTimeout(resolve, wait))
     if (signal?.aborted) return fail(signal.reason)
+  }
+  const kept = await ssh(`cat ${IMAGE_ENV} 2>/dev/null`).catch(fail)
+  if (kept.exitCode === SSH_FAILED) {
+    return fail(
+      new Error(`Couldn't read ${options.description}'s image variables: ${kept.stderr.trim()}`),
+    )
+  }
+  const image = kept.exitCode === 0 ? imageEnv(kept.stdout.toString('utf8')) : {}
+  const baseEnv = {
+    LANG: 'C.UTF-8',
+    ...image,
+    PATH: [
+      ...new Set(
+        [`${SANDBOX_HOME}/.local/bin`, ...(options.path ?? []), image.PATH || SYSTEM_PATH]
+          .join(':')
+          .split(':'),
+      ),
+    ].join(':'),
+    HOME: SANDBOX_HOME,
+    USER: layout.user,
+    LOGNAME: layout.user,
+    SHELL: '/bin/bash',
   }
 
   const shell = linuxShell({

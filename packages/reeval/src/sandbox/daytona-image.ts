@@ -14,6 +14,7 @@ import {
   installScript,
   isBakedHarness,
   keepHomeCopy,
+  keepImageEnv,
   NODE_IMAGE,
   REEVAL_BASE_ARG,
   SANDBOX_HOME,
@@ -218,7 +219,13 @@ export async function daytonaImage(
   if (install) lines.push(...installLayerLines(installScript(installSteps({ install }))))
   const homeLabel = script && bake ? bake.label : undefined
   if (homeLabel) lines.push('USER root', `RUN ${keepHomeCopy(homeLabel)}`)
-  lines.push('USER root', `WORKDIR ${SANDBOX_ROOT}`, 'ENTRYPOINT ["sleep", "infinity"]', '')
+  lines.push(
+    'USER root',
+    `RUN ${keepImageEnv()}`,
+    `WORKDIR ${SANDBOX_ROOT}`,
+    'ENTRYPOINT ["sleep", "infinity"]',
+    '',
+  )
   const text = lines.join('\n')
   const size = sandbox.size ?? 'medium'
   const key = createHash('sha256')

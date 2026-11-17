@@ -1719,6 +1719,14 @@ export const features: Feature[] = [
     },
   },
   {
+    dir: 'sandbox/daytona-image-env',
+    tiers: ['docker'],
+    env: 'image',
+    canaryEnv: 'stock',
+    ...onFakeDaytona,
+    canary: /expected \[ '' \] to deeply equal/,
+  },
+  {
     dir: 'sandbox/daytona-resources',
     tiers: ['docker'],
     env: 'vm',
