@@ -3,7 +3,7 @@
 import { createRequire, isBuiltin } from 'node:module'
 import { dirname, join } from 'node:path'
 import type { Jiti, JitiOptions } from 'jiti'
-import { COMPILED, ownDir, ownRequire, PACKAGE_NAMES } from './root.ts'
+import { COMPILED, ownDir, ownRequire, PACKAGE_NAMES, PREVIEW } from './root.ts'
 
 type Transform = NonNullable<JitiOptions['transform']>
 
@@ -72,13 +72,14 @@ function jitiFactory(): CreateJiti {
 const nativeImport = (id: string) => (isBuiltin(id) ? Promise.resolve(ownRequire(id)) : import(id))
 
 /**
- * A jiti that imports from `id`. Compiled, a file's imports of reeval itself get this reeval's own
- * modules: a copy on disk would register evals, and hold state, the executable can't see. It
+ * A jiti that imports from `id`. Compiled, or a preview build, a file's imports of reeval itself
+ * get this reeval's own modules: a copy on disk would register evals, and hold state, this reeval
+ * can't see, and a preview runs over a project whose lockfile installs a release. It
  * transforms every module on Bun as on Node (jiti's `tryNative` is on by default on Bun, which
  * would load some without `trackLoad` seeing them), so both runtimes record the same inputs.
  */
 export async function reevalJiti(id: string, options: JitiOptions = {}): Promise<Jiti> {
-  const virtualModules = COMPILED ? await ownModules() : undefined
+  const virtualModules = COMPILED || PREVIEW ? await ownModules() : undefined
   return jitiFactory()(
     id,
     {

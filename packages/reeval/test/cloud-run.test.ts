@@ -634,8 +634,13 @@ describe('reeval run on the cloud platform', () => {
     }
   })
 
-  test('a preview build runs the evals over the reeval the lockfile installs', async () => {
+  test('a preview build plans and runs the evals over the reeval the lockfile installs', async () => {
     const dir = await staleReevalProject()
+    const stale = join(dir, 'node_modules/reeval')
+    rmSync(stale, { recursive: true, force: true })
+    mkdirSync(join(stale, 'dist'), { recursive: true })
+    writeFileSync(join(stale, 'package.json'), JSON.stringify({ name: 'reeval', version: '0.0.1' }))
+    writeFileSync(join(stale, 'dist/cli.js'), "process.send({ t: 'hello', protocol: 0 })")
     const preview = tempDir('reeval-preview')
     for (const entry of readdirSync(pkgRoot)) {
       if (entry === 'dist') cpSync(join(pkgRoot, entry), join(preview, entry), { recursive: true })
@@ -646,8 +651,6 @@ describe('reeval run on the cloud platform', () => {
       join(preview, 'package.json'),
       JSON.stringify({ ...own, version: '0.0.0-preview-abc1234' }),
     )
-    rmSync(join(dir, 'node_modules/reeval'))
-    symlinkSync(preview, join(dir, 'node_modules/reeval'), 'dir')
     const cli = join(preview, 'dist/cli.js')
     const p = await platform({ cli })
     try {

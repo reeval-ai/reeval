@@ -7,7 +7,7 @@ import { stripVTControlCharacters } from 'node:util'
 import { UsageError } from '../errors.ts'
 import { attemptKey, evalId, relativeFile } from '../ids.ts'
 import { redactSecrets } from '../redact.ts'
-import { ownVersion, PACKAGE_DIR, PACKAGE_NAMES } from '../root.ts'
+import { ownVersion, PACKAGE_DIR, WORKER_PACKAGE_NAMES } from '../root.ts'
 import { Scheduler } from '../scheduler/core.ts'
 import { capMiddle } from '../text.ts'
 import { formatError, reevalFrames, type SerializedError } from './errors.ts'
@@ -86,7 +86,7 @@ export async function runEngine(
   // A file's worker holds its lane until all of its attempts finish, so `concurrency` attempts in
   // flight need that many workers.
   const workers = Math.max(1, Math.min(concurrency, specs.length))
-  const entry = workerEntry(root, PACKAGE_NAMES)
+  const entry = workerEntry(root, WORKER_PACKAGE_NAMES)
   const hide = [...reevalFrames(PACKAGE_DIR), ...reevalFrames(join(entry, '..', '..'))]
   const matchesName = (e: Named) =>
     (named.has(e.file) || looseFilters.some((f) => matchesFilter(e, f))) &&
