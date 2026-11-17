@@ -17,7 +17,7 @@ For more information about config keys, see [Options](/reference/options). For m
 
 ## `REEVAL_CONCURRENCY`
 
-`REEVAL_CONCURRENCY` is how many attempts run together (`--concurrency`, then the `concurrency` key). Unset, the cap is 8, one per CPU and per GB of memory where the sandboxes run, and at least 1. A value that is not a whole number of at least 1 stops the command.
+`REEVAL_CONCURRENCY` is how many attempts run together (`--concurrency`, then the `concurrency` key). Unset, the cap is 8, one per CPU and per GB of memory where the sandboxes run, and at least 1. A cloud run ignores it. A value that is not a whole number of at least 1 stops the command.
 
 ## `REEVAL_PRICES`
 

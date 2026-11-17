@@ -501,6 +501,23 @@ evaluate('a', { runs: 8 }, async () => {})
     assert.equal(await planned({ ...onVms, REEVAL_CONCURRENCY: '3' }), 5)
     assert.equal(await planned({ REEVAL_PLAN_TARGET: 'cloud' }), 1, 'where it is bundled')
     assert.equal(await planned({}), 2, "here, the config's")
+
+    const unused = await project('cloud-sized-podman', {
+      'reeval.config.ts': `
+import { defineConfig } from 'reeval'
+import { fakeHarness } from 'reeval/harness'
+import { podman } from 'reeval/sandbox'
+export default defineConfig({ harnesses: fakeHarness(), sandbox: podman(), concurrency: 2 })
+`,
+      'evals/a.eval.ts': `
+import { evaluate } from 'reeval'
+import { docker } from 'reeval/sandbox'
+evaluate('a', { runs: 8, sandbox: docker() }, async () => {})
+`,
+    })
+    const r = await runCli(unused.dir, ['run', '--dry-run', '--json'], { env: onVms })
+    assert.equal(r.code, 0, 'a config sandbox no eval uses refuses nothing')
+    assert.equal(JSON.parse(r.stdout).concurrency, 5)
   })
 })
 

@@ -436,7 +436,8 @@ async function run(argv: string[]): Promise<number> {
 
 /**
  * `reeval run --bundle`: the bundle's own filters, profile, tags, traits and runs, from the
- * project it extracts to. Other run flags (`--json`, `--record`, `--concurrency`, …) apply as given.
+ * project it extracts to. Other run flags (`--json`, `--record`, …) apply as given, but
+ * `--concurrency` on a cloud run, whose width is the cloud's.
  * With `--resume <id>`, the run's state moves from the current directory's `.reeval/` into the
  * extracted project's, and the run continues there.
  */
@@ -1987,12 +1988,22 @@ async function prepareRun(
      * runs off the host runs (the Docker or Podman VM, the Boat account) when it answers, as a
      * real run is, so --dry-run shows the same; a resume reads it once the stopped run's
      * sandboxes are gone, since they count against it. A cloud run's is the cloud's, whatever was
-     * given: what its VM service lets it run at once where it runs, and moot where it's bundled.
+     * given: what the cloud lets it run at once where it runs, and moot where it's bundled.
      */
     sizeRun: async () => {
       if (process.env[PLAN_TARGET] === 'cloud' && !provider) {
         if (!process.env.REEVAL_VM_URL) return 1
-        const onCloud = written.map((s) => placedSandbox(s, config, profile, 'cloud'))
+        // A sandbox no cloud run takes refuses only the evals that use it, in their plan, so it
+        // sizes the run as a default one would.
+        const { docker } = await import('./sandbox.ts')
+        const onCloud = written.map((s) =>
+          placedSandbox(
+            s.kind === 'tart' || (s.kind === 'docker' && s.engine === 'podman') ? docker() : s,
+            config,
+            profile,
+            'cloud',
+          ),
+        )
         return defaultConcurrency((await sandboxCapacity(onCloud)) ?? hostCapacity())
       }
       return concurrency ?? defaultConcurrency((await sandboxCapacity(sandboxes)) ?? hostCapacity())
