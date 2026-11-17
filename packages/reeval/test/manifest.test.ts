@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
+import { OWN_EXPORTS } from '../src/jiti.ts'
 import { baseEnv, pkgRoot, spawnTool, tempDir } from './helpers.ts'
 
 const repoRoot = join(pkgRoot, '../..')
@@ -68,4 +69,12 @@ test('the packed manifest names nothing that only exists in this workspace', () 
   assert.equal(dependencies['@vitest/utils'], dependencies['@vitest/expect'])
   assert.equal(dependencies.vitest, undefined)
   assert.equal(dependencies.vite, undefined)
+})
+
+test('a compiled or preview reeval gives eval files every module subpath of its own exports', () => {
+  const { exports } = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8'))
+  const subpaths = Object.keys(exports)
+    .filter((key) => key !== './package.json')
+    .map((key) => key.slice(1))
+  assert.deepEqual(Object.keys(OWN_EXPORTS).sort(), subpaths.sort())
 })

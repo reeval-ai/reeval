@@ -126,7 +126,10 @@ export const PACKAGE_NAMES: readonly string[] = [...new Set([PACKAGE_NAME, 'reev
  */
 export const PREVIEW = /^0\.0\.0-preview-[0-9a-f]+$/.test(PACKAGE_VERSION)
 
-/** The names the engine looks for the project's reeval by, to run its workers on: none for a preview. */
+/**
+ * The names the engine finds the project's reeval by, to run its workers on: none for a preview,
+ * whose workers are its own.
+ */
 export const WORKER_PACKAGE_NAMES: readonly string[] = PREVIEW ? [] : PACKAGE_NAMES
 
 /**

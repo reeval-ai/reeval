@@ -98,22 +98,33 @@ export async function reevalJiti(id: string, options: JitiOptions = {}): Promise
   )
 }
 
+/** Every module subpath in package.json's `exports`, which `test/manifest.test.ts` holds it to. */
+export const OWN_EXPORTS: Record<string, () => Promise<unknown>> = {
+  '': () => import('./index.ts'),
+  '/harness': () => import('./harness.ts'),
+  '/sandbox': () => import('./sandbox.ts'),
+  '/provider/boat': () => import('./provider-boat.ts'),
+  '/provider/daytona': () => import('./provider-daytona.ts'),
+  '/store/local': () => import('./store-local.ts'),
+  '/store/s3': () => import('./store-s3.ts'),
+  '/judge': () => import('./judge.ts'),
+  '/internal/vm': () => import('./internal-vm.ts'),
+  '/internal/vm-api': () => import('./internal-vm-api.ts'),
+  '/internal/vm-api/boat': () => import('./internal-vm-api-boat.ts'),
+  '/internal/vm-api/daytona': () => import('./internal-vm-api-daytona.ts'),
+  '/gateway': () => import('./gateway.ts'),
+  '/view': () => import('./view/index.ts'),
+  '/view/report': () => import('./view/report/index.ts'),
+  '/renderer/markdown': () => import('./renderer/markdown.ts'),
+  '/renderer/ascii': () => import('./renderer/ascii.ts'),
+  '/testing': () => import('./testing.ts'),
+}
+
 async function ownModules(): Promise<Record<string, unknown>> {
-  const exports: Record<string, Promise<unknown>> = {
-    '': import('./index.ts'),
-    '/harness': import('./harness.ts'),
-    '/sandbox': import('./sandbox.ts'),
-    '/provider/boat': import('./provider-boat.ts'),
-    '/provider/daytona': import('./provider-daytona.ts'),
-    '/store/local': import('./store-local.ts'),
-    '/store/s3': import('./store-s3.ts'),
-    '/judge': import('./judge.ts'),
-    '/internal/vm': import('./internal-vm.ts'),
-    '/gateway': import('./gateway.ts'),
-    '/view': import('./view/index.ts'),
-  }
   const modules: Record<string, unknown> = {}
-  for (const [subpath, module] of Object.entries(exports))
-    for (const name of PACKAGE_NAMES) modules[name + subpath] = await module
+  for (const [subpath, load] of Object.entries(OWN_EXPORTS)) {
+    const module = await load()
+    for (const name of PACKAGE_NAMES) modules[name + subpath] = module
+  }
   return modules
 }
