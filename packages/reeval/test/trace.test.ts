@@ -195,7 +195,19 @@ evaluate('a', async (c) => {
         phase: 'running',
         planned: 1,
         counts: { done: 0, passed: 0, failed: 0, errored: 0, skipped: 0, running: 1 },
-        attempts: [],
+        attempts: [
+          {
+            key: 'e # fake/default/fake#1',
+            evalId: 'e',
+            name: 'e',
+            file: 'e.eval.ts',
+            cell: 'fake/default/fake',
+            n: 1,
+            status: 'queued',
+            startedAt: null,
+            durationMs: null,
+          },
+        ],
       }),
     )
     const live = await runCli(p.dir, ['show', liveId.slice(0, 16), '--trace'])
@@ -204,5 +216,15 @@ evaluate('a', async (c) => {
       live.stderr,
       new RegExp(`${liveId} is still running: .*reeval studio shows it live`),
     )
+    const newest = await runCli(p.dir, ['show'])
+    assert.equal(newest.code, 0, newest.stderr)
+    assert.match(newest.stdout, new RegExp(`^run ${run.runId}`))
+    assert.match(
+      newest.stderr,
+      new RegExp(
+        `note: ${liveId} is still running \\(0 of 1 attempts finished\\); reeval show reads the newest finished run`,
+      ),
+    )
+    assert.doesNotMatch((await runCli(p.dir, ['show', run.runId])).stderr, /still running/)
   })
 })
