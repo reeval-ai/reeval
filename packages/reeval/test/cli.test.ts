@@ -148,12 +148,18 @@ describe('cli', () => {
       mkdirSync(join(p.dir, '.reeval'))
       const link = join(p.dir, '.reeval/project.json')
       writeFileSync(link, JSON.stringify({ orgId: 'org_1', projectId: 'proj_1' }))
-      assert.equal((await homeStatus('reeval.config.ts', {})).project, 'proj_1')
+      assert.equal(
+        (await homeStatus('reeval.config.ts', { XDG_CONFIG_HOME: p.dir })).project,
+        'proj_1',
+      )
       writeFileSync(
         link,
         JSON.stringify({ orgId: 'org_1', projectId: 'proj_1', projectName: 'Web app' }),
       )
-      assert.equal((await homeStatus('reeval.config.ts', {})).project, 'Web app')
+      assert.equal(
+        (await homeStatus('reeval.config.ts', { XDG_CONFIG_HOME: p.dir })).project,
+        'Web app',
+      )
     } finally {
       process.chdir(cwd)
     }
