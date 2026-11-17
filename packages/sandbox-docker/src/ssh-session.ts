@@ -247,6 +247,11 @@ export async function connectSsh(options: SshSessionOptions): Promise<SshMachine
     if (signal?.aborted) return fail(signal.reason)
   }
   const kept = await ssh(`cat ${IMAGE_ENV} 2>/dev/null`).catch(fail)
+  if (kept.exitCode === SSH_FAILED) {
+    return fail(
+      new Error(`Couldn't read ${options.description}'s image variables: ${kept.stderr.trim()}`),
+    )
+  }
   const image = kept.exitCode === 0 ? imageEnv(kept.stdout.toString('utf8')) : {}
   const baseEnv = {
     LANG: 'C.UTF-8',
