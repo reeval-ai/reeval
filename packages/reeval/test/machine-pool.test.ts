@@ -96,12 +96,21 @@ function fakeProvider(
   return fake
 }
 
-/** Every pool a test made, closed after it: an open pool's timers would keep the process alive. */
+/**
+ * Every pool and account a test made, closed after it: an open one's timers would keep the
+ * process alive. A test on the fake clock closes them on it, since its timers are still mocked here.
+ */
 const open = new Set<MachinePool<unknown>>()
+const accounts = new Set<PoolAccount>()
+let clock: (<T>(work: Promise<T>) => Promise<T>) | undefined
 afterEach(async () => {
   const pools = [...open]
   open.clear()
-  await Promise.all(pools.map((p) => p.close()))
+  for (const a of accounts) a.close()
+  accounts.clear()
+  const drive = clock ?? (<T>(work: Promise<T>) => work)
+  clock = undefined
+  await drive(Promise.all(pools.map((p) => p.close())))
 })
 
 const pool = (provider: Fake, o: Partial<PoolOptions> = {}) => {
@@ -121,8 +130,8 @@ const pool = (provider: Fake, o: Partial<PoolOptions> = {}) => {
  * millisecond at a time, each step after everything due has run, until `work` settles.
  */
 function fakeClock(t: TestContext) {
-  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'] })
-  return async <T>(work: Promise<T>, limitMs = 60_000): Promise<T> => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'], now: 0 })
+  const run = async <T>(work: Promise<T>, limitMs = 60_000): Promise<T> => {
     let settled = false
     const done = work.finally(() => {
       settled = true
@@ -135,6 +144,8 @@ function fakeClock(t: TestContext) {
     }
     return done
   }
+  clock = run
+  return run
 }
 
 const until = async (check: () => boolean, ms = 2_000) => {
@@ -652,7 +663,11 @@ describe('machine pool', () => {
 })
 
 describe('pools on one account', () => {
-  const account = (o: AccountOptions) => new PoolAccount('fake()', o)
+  const account = (o: AccountOptions) => {
+    const a = new PoolAccount('fake()', o)
+    accounts.add(a)
+    return a
+  }
 
   test('a start with no bound on its wait waits out a held window', async () => {
     const shared = account({ limits: { machines: 1, startsPerMinute: 10 } })
