@@ -27,7 +27,7 @@ const TAGLINE = 'Evaluation runner for SDKs, CLIs, MCP servers, and docs.'
 export type HomeStatus = {
   /** `REEVAL_TOKEN`, or `reeval login`'s sign-in with its email (null when the file has none). */
   signedIn: { token: true } | { email: string | null } | null
-  /** The cloud project `.reeval/project.json` links to, by id: the file holds no name. */
+  /** The cloud project `.reeval/project.json` links to: its name, or its id in a link without one. */
   project: string | null
   /** Whether there's a config for the commands here to read. */
   config: boolean
@@ -50,7 +50,8 @@ export async function homeStatus(
   try {
     const path = configPathFor(configFlag)
     config = !!path && existsSync(path)
-    project = (await linkedProject(projectDirFor(config ? path : undefined)))?.projectId ?? null
+    const link = await linkedProject(projectDirFor(config ? path : undefined))
+    project = link ? (link.projectName ?? link.projectId) : null
   } catch {}
   return { signedIn, project, config }
 }
@@ -78,11 +79,9 @@ export function homeScreen(version: string, status: HomeStatus, term: HomeTermin
       ? ['Not signed in', 'reeval login']
       : 'token' in signedIn
         ? [`Signed in with ${CLOUD_TOKEN_VAR}`]
-        : [
-            signedIn.email
-              ? `Signed in as ${signedIn.email}`
-              : 'Signed in (no email stored locally)',
-          ],
+        : signedIn.email
+          ? [`Signed in as ${signedIn.email}`]
+          : ['Signed in', 'reeval whoami'],
     status.project ? [`Linked to project ${status.project}`] : ['No project linked', 'reeval link'],
   ]
   const width =

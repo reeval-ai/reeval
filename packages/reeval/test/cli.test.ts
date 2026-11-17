@@ -1,7 +1,7 @@
 // The CLI's parser (commander, driven by src/cli-spec.ts): every command's help against a golden
 // file, every flag of every command parsed, and every kind of bad command line exiting 2.
 import assert from 'node:assert/strict'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { availableParallelism } from 'node:os'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
@@ -129,7 +129,7 @@ describe('cli', () => {
     const token = homeScreen('1', { ...status, signedIn: { token: true } }, term)
     assert.match(token, /^ {2}Signed in with REEVAL_TOKEN$/m)
     const noEmail = homeScreen('1', { ...status, signedIn: { email: null } }, term)
-    assert.match(noEmail, /^ {2}Signed in \(no email stored locally\)$/m)
+    assert.match(noEmail, /^ {2}Signed in {8}reeval whoami$/m)
     assert.doesNotMatch(wide, /reeval login/)
     assert.match(
       homeScreen('1', { ...status, signedIn: null }, term),
@@ -137,13 +137,23 @@ describe('cli', () => {
     )
   })
 
-  test('the home screen reads a --config that does not exist as no project', async () => {
+  test('the home screen reads the linked project, and a --config that does not exist as none', async () => {
     const p = await project('cli-home-missing', {})
     const cwd = process.cwd()
     process.chdir(p.dir)
     try {
       const status = await homeStatus('nope.ts', { XDG_CONFIG_HOME: p.dir })
       assert.deepEqual(status, { signedIn: null, project: null, config: false })
+      writeFileSync(join(p.dir, 'reeval.config.ts'), fakeConfig())
+      mkdirSync(join(p.dir, '.reeval'))
+      const link = join(p.dir, '.reeval/project.json')
+      writeFileSync(link, JSON.stringify({ orgId: 'org_1', projectId: 'proj_1' }))
+      assert.equal((await homeStatus('reeval.config.ts', {})).project, 'proj_1')
+      writeFileSync(
+        link,
+        JSON.stringify({ orgId: 'org_1', projectId: 'proj_1', projectName: 'Web app' }),
+      )
+      assert.equal((await homeStatus('reeval.config.ts', {})).project, 'Web app')
     } finally {
       process.chdir(cwd)
     }

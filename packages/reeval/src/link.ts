@@ -182,7 +182,11 @@ export async function linkCommand(flags: Flags, io: LinkIo): Promise<number> {
       }
     }
 
-    await writeLinkedProject(io.projectDir, { orgId: org.id, projectId: project.id })
+    await writeLinkedProject(io.projectDir, {
+      orgId: org.id,
+      projectId: project.id,
+      projectName: project.name,
+    })
     io.out(`Linked this project to ${label(project)} in ${label(org)}: wrote ${shownFile}.`)
     return 0
   } finally {
