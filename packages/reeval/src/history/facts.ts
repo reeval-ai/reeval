@@ -650,7 +650,24 @@ export function deriveFacts(db: DatabaseSync): void {
     const id = [p.factor, p.level, p.baseline, p.context, p.evalKey, p.pool].join('\0')
     pooled.set(id, [...(pooled.get(id) ?? []), p])
   }
-  const strata = new Map<string, Array<{ evalKey: string; pool: string; v: Side; c: Side }>>()
+  type Stratum = { evalKey: string; pool: string; runs: string[]; v: Side; c: Side }
+  const acrossEvals = (id: string, list: Stratum[], run: string | null) => {
+    const [factor, level, baseline, context] = id.split('\0') as [string, string, string, string]
+    const v = merge(list.map((s) => s.v))
+    const c = merge(list.map((s) => s.c))
+    factorRows.push({
+      ...head({ factor, level, baseline, context }),
+      tier: 'pooled',
+      run_id: run,
+      eval_key: null,
+      strata: list.length,
+      runs: run ? 1 : null,
+      ...passCols(v, c),
+      ...pooledEffort(list.map((s) => contrastEffort(s.v.samples, s.c.samples))),
+      note: 'pass@1: summed counts; effort: an effect in at least 2/3 of strata',
+    })
+  }
+  const strata = new Map<string, Stratum[]>()
   for (const group of pooled.values()) {
     const first = group[0] as Pair
     const v = merge(group.map((p) => p.v))
@@ -669,8 +686,14 @@ export function deriveFacts(db: DatabaseSync): void {
       })
     }
     const id = [first.factor, first.level, first.baseline, first.context].join('\0')
-    strata.set(id, [...(strata.get(id) ?? []), { evalKey: first.evalKey, pool: first.pool, v, c }])
+    const runs = group.map((p) => p.run)
+    strata.set(id, [
+      ...(strata.get(id) ?? []),
+      { evalKey: first.evalKey, pool: first.pool, runs, v, c },
+    ])
   }
+  // Across evals over runs: only evals with one comparable pool, and only when the strata span
+  // more than one run (one run's is the row below).
   for (const [id, list] of strata) {
     const poolsByEval = new Map<string, Set<string>>()
     for (const s of list) {
@@ -678,20 +701,23 @@ export function deriveFacts(db: DatabaseSync): void {
     }
     const comparable = list.filter((s) => (poolsByEval.get(s.evalKey)?.size ?? 0) === 1)
     if (new Set(comparable.map((s) => s.evalKey)).size < 2) continue
-    const [factor, level, baseline, context] = id.split('\0') as [string, string, string, string]
-    const v = merge(comparable.map((s) => s.v))
-    const c = merge(comparable.map((s) => s.c))
-    factorRows.push({
-      ...head({ factor, level, baseline, context }),
-      tier: 'pooled',
-      run_id: null,
-      eval_key: null,
-      strata: comparable.length,
-      runs: null,
-      ...passCols(v, c),
-      ...pooledEffort(comparable.map((s) => contrastEffort(s.v.samples, s.c.samples))),
-      note: 'pass@1: summed counts; effort: an effect in at least 2/3 of strata',
-    })
+    if (new Set(comparable.flatMap((s) => s.runs)).size < 2) continue
+    acrossEvals(id, comparable, null)
+  }
+  // Across one run's evals: an eval has one fingerprint in a run, so its evals always pool, however
+  // they changed between runs.
+  const byRun = new Map<string, Map<string, Stratum[]>>()
+  for (const p of pairs) {
+    const id = [p.factor, p.level, p.baseline, p.context].join('\0')
+    const run = byRun.get(p.run) ?? new Map<string, Stratum[]>()
+    const s = { evalKey: p.evalKey, pool: p.pool, runs: [p.run], v: p.v, c: p.c }
+    run.set(id, [...(run.get(id) ?? []), s])
+    byRun.set(p.run, run)
+  }
+  for (const [run, contrasts] of byRun) {
+    for (const [id, list] of contrasts) {
+      if (new Set(list.map((s) => s.evalKey)).size > 1) acrossEvals(id, list, run)
+    }
   }
 
   // Paired: each variant of an eval with cases against its control over the cases of one run,

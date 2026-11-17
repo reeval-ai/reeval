@@ -725,6 +725,49 @@ evaluate('calls', { runs: 3 }, async (c) => {
     )
   })
 
+  test("factor_effects pools a variant across one run's evals, however the evals changed between runs", async () => {
+    const evals = (prompt: string) => `import { defineEnvironment, evaluate, expect } from 'reeval'
+import { fakeSandbox } from 'reeval/sandbox'
+const sandbox = fakeSandbox()
+const plain = defineEnvironment('plain', { sandbox })
+const skilled = defineEnvironment('skilled', ({ skill }) => ({ sandbox, skills: [skill.local('../skills/s')] }))
+for (const name of ['one', 'two']) {
+  evaluate(name, { compare: { control: plain, variants: [skilled] }, runs: 2 }, async (c) => {
+    await c.send('${prompt}')
+    await expect(c).toHaveFile('ok.txt')
+  })
+}
+`
+    const p = await project('query-pooled-per-run', {
+      'reeval.config.ts': fakeConfig({ harness: "{ withSkill: { files: { 'ok.txt': 'y' } } }" }),
+      'skills/s/SKILL.md': skill('s'),
+      'evals/s.eval.ts': evals('go'),
+    })
+    const sql = `SELECT run_id, strata, runs, variant_pass, variant_counted, control_pass, control_counted
+      FROM factor_effects WHERE tier = 'pooled' AND eval_key IS NULL ORDER BY run_id`
+    assert.equal((await runCli(p.dir)).code, 0)
+    const first = readRun(p.dir).run.runId
+    const row = (run: string | null) => ({
+      run_id: run,
+      strata: 2,
+      runs: run ? 1 : null,
+      variant_pass: 4,
+      variant_counted: 4,
+      control_pass: 0,
+      control_counted: 4,
+    })
+    assert.deepEqual(await query(p.dir, sql), [row(first)], 'one run: its own row, once')
+
+    await writeFile(join(p.dir, 'evals/s.eval.ts'), evals('go on'))
+    assert.equal((await runCli(p.dir)).code, 0)
+    const second = readRun(p.dir).run.runId
+    assert.deepEqual(
+      await query(p.dir, sql),
+      [row(first), row(second)],
+      'the evals changed, so nothing pools over runs, but each run pools its evals',
+    )
+  })
+
   test('failing attempts join skills by environment digest, not name', async () => {
     const p = await project('query-joins', {
       'reeval.config.ts': fakeConfig(),

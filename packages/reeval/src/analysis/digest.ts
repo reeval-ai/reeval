@@ -586,7 +586,7 @@ export async function buildDigestKeepingDropped(
     hi: number
   }>(
     `SELECT * FROM factor_effects WHERE
-      (tier = 'pooled' AND (eval_key IS NULL OR eval_key IN (${evalList})))
+      (tier = 'pooled' AND run_id IS NULL AND (eval_key IS NULL OR eval_key IN (${evalList})))
       OR (tier = 'controlled' AND factor != 'environment' AND run_id IN (${runList}) AND eval_key IN (${evalList}))
       OR (tier = 'observed' AND run_id IN (${runList}) AND eval_key IN (${evalList}))
       OR tier = 'not_measured'

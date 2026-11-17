@@ -313,7 +313,8 @@ CREATE VIEW attempt_values AS
 CREATE VIEW question_pairs AS SELECT * FROM question_pairs_m;
 
 -- What a factor (environment, harness, model) did, by evidence tier: controlled (one run),
--- pooled (comparable runs, and across evals), observed (over time), not_measured (one level).
+-- pooled (comparable runs, across evals over them, and across one run's evals, with its run_id),
+-- observed (over time), not_measured (one level).
 CREATE VIEW factor_effects AS SELECT * FROM factor_effects_m;
 
 -- Whether each attempt read each skill it had, and at which transcript line: the tool calls
