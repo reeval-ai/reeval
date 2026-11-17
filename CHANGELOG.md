@@ -1,5 +1,52 @@
 # Changelog
 
+## [0.31.0](https://github.com/reeval-ai/reeval/compare/v0.30.1...v0.31.0) (2026-11-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sandbox:** remove the bare-VM path ([#1066](https://github.com/reeval-ai/reeval/issues/1066))
+* **config:** run attempts on boat() and daytona() as providers ([#1063](https://github.com/reeval-ai/reeval/issues/1063))
+* **cloud:** place a cloud run's docker() attempts on machines of their own ([#1059](https://github.com/reeval-ai/reeval/issues/1059))
+
+### Features
+
+* **bundle:** publish every pushed commit to pkg.pr.new and run bundles on its preview build ([#1072](https://github.com/reeval-ai/reeval/issues/1072)) ([95cf2f7](https://github.com/reeval-ai/reeval/commit/95cf2f70cee6c7474bcff0250ea96625e58c8460))
+* **cli:** run a filtered variant cell with its control ([#1078](https://github.com/reeval-ai/reeval/issues/1078)) ([ae59cbd](https://github.com/reeval-ai/reeval/commit/ae59cbd77bda7f657a5c394f6038b5b5ee92b528))
+* **cli:** show a home screen for bare reeval and drop the help footer ([#1081](https://github.com/reeval-ai/reeval/issues/1081)) ([ae436ff](https://github.com/reeval-ai/reeval/commit/ae436ffd6fd3478c7ba12327a84c0cb3ba3633bd))
+* **cli:** spin a waiting step until a followed cloud run's first line ([#1055](https://github.com/reeval-ai/reeval/issues/1055)) ([198dba7](https://github.com/reeval-ai/reeval/commit/198dba767a90f06e5b0d2c6a6d1d2153dbf07f87))
+* **cloud:** carry the running reeval in a cloud bundle under REEVAL_DEV_CLI=1 ([#1058](https://github.com/reeval-ai/reeval/issues/1058)) ([a12f3c9](https://github.com/reeval-ai/reeval/commit/a12f3c9aaa4e89d792d0997b9a45c3d4cbaf8dfb))
+* **cloud:** place a cloud run's docker() attempts on machines of their own ([#1059](https://github.com/reeval-ai/reeval/issues/1059)) ([1fbb622](https://github.com/reeval-ai/reeval/commit/1fbb622245f829824c94e61c6f51c3ae8e6f397d))
+* **config:** add defaultProfile.cloud for runs sent to the cloud ([#1056](https://github.com/reeval-ai/reeval/issues/1056)) ([9105860](https://github.com/reeval-ai/reeval/commit/910586036fce915696f7450765d86a1aa622a2c3))
+* **config:** run attempts on boat() and daytona() as providers ([#1063](https://github.com/reeval-ai/reeval/issues/1063)) ([4e66b23](https://github.com/reeval-ai/reeval/commit/4e66b238f2ccaa8c34e1cb9e1760462027cb77d7))
+* **history:** pool each variant across one run's evals in factor_effects ([#1079](https://github.com/reeval-ai/reeval/issues/1079)) ([3a46c8a](https://github.com/reeval-ai/reeval/commit/3a46c8ac5869fa243df73d6f00adc9acd1887911))
+* **sandbox:** run cloud() attempts in a container of an image recipe ([#1057](https://github.com/reeval-ai/reeval/issues/1057)) ([148b7c2](https://github.com/reeval-ai/reeval/commit/148b7c2071776040b2f555017a3b0b8ee6bc0041))
+
+
+### Bug Fixes
+
+* **bundle:** leave the loader's tsconfig check out of a load's inputs ([#1051](https://github.com/reeval-ai/reeval/issues/1051)) ([f303841](https://github.com/reeval-ai/reeval/commit/f303841162238bb8c19ef72761982a9dcf347da3))
+* **bundle:** list the .env files the config load reads on every runtime ([#1053](https://github.com/reeval-ai/reeval/issues/1053)) ([69c4703](https://github.com/reeval-ai/reeval/commit/69c4703eedb138190d6efae7b6d3a8c0f9531af4))
+* **capture:** start c.capture()'s timeout once the browser is downloaded ([#1064](https://github.com/reeval-ai/reeval/issues/1064)) ([8aa02ce](https://github.com/reeval-ai/reeval/commit/8aa02ce4a23a90654625a2881f8853d2dac61244))
+* **cli:** download a cloud run's files as it ends, while its list is up ([#1074](https://github.com/reeval-ai/reeval/issues/1074)) ([a61d1f8](https://github.com/reeval-ai/reeval/commit/a61d1f82c9b640b8e9667da432a8e63d749ab98b))
+* **cli:** print reeval attach &lt;id&gt; for a cloud run ([#1054](https://github.com/reeval-ai/reeval/issues/1054)) ([49d2c73](https://github.com/reeval-ai/reeval/commit/49d2c736645f4fb496628ae9528877c34081e34b))
+* **cli:** say an ungated control fails a check too, and name a live run in reeval show ([#1080](https://github.com/reeval-ai/reeval/issues/1080)) ([f590618](https://github.com/reeval-ai/reeval/commit/f5906181c65733cce31665f9550b0973cdec3756))
+* **cloud:** name the provider command for a missing provider key ([#1050](https://github.com/reeval-ai/reeval/issues/1050)) ([7ee3386](https://github.com/reeval-ai/reeval/commit/7ee3386c4cd1a03a8f68d7e147823aedfae63774))
+* **cloud:** run a bundle's evals on the reeval it carries ([#1060](https://github.com/reeval-ai/reeval/issues/1060)) ([85c12cc](https://github.com/reeval-ai/reeval/commit/85c12ccbfb9be03d7b84a6197edaa2248d6e3d28))
+* **cloud:** size a cloud run from the cloud, not the config's concurrency ([#1068](https://github.com/reeval-ai/reeval/issues/1068)) ([9c5a023](https://github.com/reeval-ai/reeval/commit/9c5a0237e7afaf18a726bdc1b0016a02814cd522))
+* **engine:** plan a preview build's runs over its own reeval, not the project's ([#1073](https://github.com/reeval-ai/reeval/issues/1073)) ([57b83b3](https://github.com/reeval-ai/reeval/commit/57b83b3e8245249060daffac8bb46e653ac00576))
+* **query:** say when transcript views leave out attempts recorded without one ([#1077](https://github.com/reeval-ai/reeval/issues/1077)) ([f9d61e6](https://github.com/reeval-ai/reeval/commit/f9d61e6f7e49e396949be1542a3f10bd7f0a3b63))
+* **sandbox:** apply the image's ENV to commands on daytona() ([#1069](https://github.com/reeval-ai/reeval/issues/1069)) ([9bf1da8](https://github.com/reeval-ai/reeval/commit/9bf1da894c93ebe0266b7afad411fef786eb031c))
+* **sandbox:** clean up follow-ups from the provider and bare-VM reviews ([#1070](https://github.com/reeval-ai/reeval/issues/1070)) ([5182ac2](https://github.com/reeval-ai/reeval/commit/5182ac24405e841e154288ff0f2f7a4d40f026e9))
+* **sandbox:** count an SSH session the machine closed as the machine's fault ([#1065](https://github.com/reeval-ai/reeval/issues/1065)) ([7eb519c](https://github.com/reeval-ai/reeval/commit/7eb519c44d1ef4231eab061289309c3539df6feb))
+* **sandbox:** pin a daytona() base by digest or fail, never build it unpinned ([#1071](https://github.com/reeval-ai/reeval/issues/1071)) ([c11ac0c](https://github.com/reeval-ai/reeval/commit/c11ac0ccaaa6620e72e3c8ef95d8c9eddd193890))
+* **sandbox:** resolve gateway hosts through c-ares with a timeout and negative cache ([#1061](https://github.com/reeval-ai/reeval/issues/1061)) ([a5ac196](https://github.com/reeval-ai/reeval/commit/a5ac19608aa8bf34d0faf9c06492a3155c6f34f0))
+
+
+### Code Refactoring
+
+* **sandbox:** remove the bare-VM path ([#1066](https://github.com/reeval-ai/reeval/issues/1066)) ([48a5c21](https://github.com/reeval-ai/reeval/commit/48a5c2145239ab5be3e1ef20ff3f7d8e83f2c578))
+
 ## [0.30.1](https://github.com/reeval-ai/reeval/compare/v0.30.0...v0.30.1) (2026-11-16)
 
 
