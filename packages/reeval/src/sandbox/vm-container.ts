@@ -29,7 +29,7 @@ import { leaseMachine } from './machine-service.ts'
 import type { BuiltPlugin } from './prepare.ts'
 import { PrepareError } from './provider.ts'
 import { type PooledSshMachine, TTL_MARGIN_S } from './ssh-pool.ts'
-import { InfraError, type NetworkSandbox } from './types.ts'
+import { InfraError, type NetworkSandbox, RunStopped } from './types.ts'
 
 /** How long a machine started from the snapshot may take to have the image ready in its Docker. */
 const IMAGE_WAIT_MS = 4 * 60_000
@@ -168,7 +168,8 @@ export async function createVmContainerSandbox(
     ).catch(async (error: unknown) => {
       await rm(dir, { recursive: true, force: true })
       if (options.signal.aborted) throw options.signal.reason
-      throw error instanceof InfraError ? error : new InfraError((error as Error).message)
+      if (error instanceof InfraError || error instanceof RunStopped) throw error
+      throw new InfraError((error as Error).message)
     })
     const info = lease.info as PooledSshMachine
     if (info.secretUser) registerSecret(info.user)
