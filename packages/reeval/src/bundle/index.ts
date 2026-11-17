@@ -53,6 +53,7 @@ import {
   PACKAGE_DIR,
   PACKAGE_NAMES,
   PACKAGE_VERSION,
+  PREVIEW,
   reevalCommand,
 } from '../root.ts'
 import { withoutBom } from '../text.ts'
@@ -1022,7 +1023,7 @@ export async function openBundle(file: string, log: (line: string) => void): Pro
     // own, with no commits, as a fresh clone's top is.
     await git(dir, ['init', '-q']).catch(() => {})
     await install(manifest, dir, log)
-    if (manifest.devCli || PREVIEW_VERSION.test(PACKAGE_VERSION)) {
+    if (manifest.devCli || PREVIEW) {
       await useRunningReeval(project, dir)
     }
     // A `uv run` here, such as the Python runner's in the dry run and in the run's workers, would
@@ -1277,12 +1278,6 @@ async function install(
     }
   }
 }
-
-/**
- * The version `.github/workflows/preview.yml` gives a pkg.pr.new preview build, which no release
- * a lockfile installs has: `0.0.0-preview-<commit sha>`.
- */
-const PREVIEW_VERSION = /^0\.0\.0-preview-[0-9a-f]+$/
 
 /**
  * A bundle that carries its own reeval, or one a preview build runs, runs its eval files on the

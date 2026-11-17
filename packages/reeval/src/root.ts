@@ -120,6 +120,19 @@ export const PACKAGE_VERSION: string = manifest.version
 export const PACKAGE_NAMES: readonly string[] = [...new Set([PACKAGE_NAME, 'reeval'])]
 
 /**
+ * Whether this reeval is a pkg.pr.new preview build, whose version `.github/workflows/preview.yml`
+ * sets to `0.0.0-preview-<commit sha>`, which no release a lockfile installs has. Like a compiled
+ * reeval, it loads eval files over its own modules, not the project's installed reeval.
+ */
+export const PREVIEW = /^0\.0\.0-preview-[0-9a-f]+$/.test(PACKAGE_VERSION)
+
+/**
+ * The names the engine finds the project's reeval by, to run its workers on: none for a preview,
+ * whose workers are its own.
+ */
+export const WORKER_PACKAGE_NAMES: readonly string[] = PREVIEW ? [] : PACKAGE_NAMES
+
+/**
  * This build of reeval: its version and its code's mtime. npm gives every installed file the same
  * mtime, so the version tells releases apart; a rebuild moves the mtime.
  */
