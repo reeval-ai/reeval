@@ -153,15 +153,15 @@ export async function createPooledSshSandbox(
         if (info.secretUser) registerSecret(info.user)
         const shared = (info.attemptsPerMachine ?? descriptor.attemptsPerMachine ?? 1) > 1
         // A machine of its own that's never reused has the image's home as it is.
-        const freshHome = shared || (info.reuse ?? descriptor.reuse)
-        const label = freshHome ? o.homeLabel : undefined
+        const slotHome = shared || (info.reuse ?? descriptor.reuse)
+        const label = slotHome ? o.homeLabel : undefined
         debug?.log(
           'container',
           lease.start
             ? `created ${info.id} (${info.name}, ${info.size}) in ${lease.start.ms}ms${lease.start.queuedMs >= 1000 ? `, ${Math.round(lease.start.queuedMs / 1000)}s of it waiting for the account's start caps` : ''}${lease.start.rateLimited ? `, after ${lease.start.rateLimited} rate-limited starts` : ''}; slot ${lease.slot}`
             : `${lease.reused ? 'reused' : 'shared'} ${info.id} (${info.name}, ${info.size}); slot ${lease.slot}${lease.reused ? `, its attempt ${lease.reused + 1}` : ''}`,
         )
-        if (freshHome && !label && options.harness && harnessBake(options.harness)) {
+        if (slotHome && !label && options.harness && harnessBake(options.harness)) {
           debug?.log(
             'container',
             `${info.id} slot ${lease.slot}: the image keeps no home with the harness's CLI, so this attempt installs it`,
@@ -194,6 +194,7 @@ export async function createPooledSshSandbox(
           })
           await machine.home().catch(async (error: unknown) => {
             await machine.close()
+            if (options.signal.aborted) throw options.signal.reason
             throw error instanceof InfraError ? error : new InfraError((error as Error).message)
           })
         } catch (error) {
