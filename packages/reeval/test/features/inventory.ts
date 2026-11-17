@@ -1268,8 +1268,8 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'daytona.images',
     area: 'Sandbox',
-    name: "`docker({ image, from, dockerfile, install })` on `daytona()`: preflight generates one Dockerfile (reeval's toolchain on the base, the harness's bootstrap as steps run by the sandbox user, the install and a home copy for shared slots) and has Daytona build it into a snapshot named by its content key, waiting on one being built, activating an inactive one and rebuilding a failed one once, or, when the key can't make snapshots, builds it once in a sandbox that stops idle and is deleted, for every create to build from Daytona's cache; each sandbox logs in as root and runs the agent as `reeval`, with the harness already installed",
-    fixtures: ['sandbox/daytona-image'],
+    name: "`docker({ image, from, dockerfile, install })` on `daytona()`: preflight generates one Dockerfile (reeval's toolchain on the base, the harness's bootstrap as steps run by the sandbox user, the install and a home copy for shared slots) and has Daytona build it into a snapshot named by its content key, waiting on one being built, activating an inactive one and rebuilding a failed one once, or, when the key can't make snapshots, builds it once in a sandbox that stops idle and is deleted, for every create to build from Daytona's cache; each sandbox logs in as root and runs the agent as `reeval`, with the harness already installed and the image's variables (its `ENV`, `PATH` included) on its commands",
+    fixtures: ['sandbox/daytona-image', 'sandbox/daytona-image-env'],
     plan: ['providers/daytona'],
     unit: ['reeval/test/daytona-image.test.ts', 'reeval/test/refusals.test.ts'],
   },

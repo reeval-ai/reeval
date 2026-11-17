@@ -203,6 +203,7 @@ export { darwinShell } from './shells.ts'
 export {
   connectSsh,
   keepHomeCopy,
+  keepImageEnv,
   resetSlot,
   type SshMachine,
   type SshSessionOptions,
