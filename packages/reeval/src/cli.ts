@@ -5,7 +5,14 @@ import { inspect } from 'node:util'
 import { detectAgent } from 'std-env'
 import { parseCli } from './cli-parse.ts'
 import { commandHelpText, type Flags, helpText } from './cli-spec.ts'
-import { cloudAsked, PLAN_TARGET, type RunTarget, wantsCloud } from './cloud-run.ts'
+import type { DownloadWatch } from './cloud-files.ts'
+import {
+  CLOUD_FILES_PENDING,
+  cloudAsked,
+  PLAN_TARGET,
+  type RunTarget,
+  wantsCloud,
+} from './cloud-run.ts'
 import type { EvalQuestions, questionRunner } from './compare/questions.ts'
 import {
   configLabel,
@@ -1036,6 +1043,7 @@ async function attachCommand(
   const follower = cloudRun ? await cloudFollower(flags) : undefined
   const log = follower?.log ?? ((line: string) => console.log(dim(line)))
   const followed = new AbortController()
+  let downloading: Promise<string[]> | undefined
   if (cloudRun) {
     cloud
       .watchQueue(cloudRun.runId, cloudRun.base, cloudRun.auth, log, followed.signal)
@@ -1050,6 +1058,15 @@ async function attachCommand(
       onDetach: () => {
         detached = true
       },
+      ...(download && {
+        ending: CLOUD_FILES_PENDING,
+        onEnd: (_code, status) => {
+          downloading = import('./cloud-files.ts').then(({ downloadShown }) =>
+            downloadShown(download.run, status),
+          )
+          downloading.catch(() => {})
+        },
+      }),
     })
   } catch (error) {
     const { EventStreamError } = await import('./events.ts')
@@ -1075,7 +1092,8 @@ async function attachCommand(
     )
   } else if (download) {
     const { downloadAfter } = await import('./cloud-files.ts')
-    for (const line of await downloadAfter(code, download.runId, download.run)) {
+    const lines = await downloadAfter(code, download.runId, () => downloading ?? download.run())
+    for (const line of lines) {
       console.log(dim(line))
     }
   }
@@ -1122,7 +1140,8 @@ async function cloudDownload(
   return {
     runId: run.runId,
     ...(picked ? { profile: picked.name } : {}),
-    run: () => downloadCloudFiles({ cloudRunId: run.runId, url: run.files, auth, root, history }),
+    run: (watch: DownloadWatch = {}) =>
+      downloadCloudFiles({ cloudRunId: run.runId, url: run.files, auth, root, history, ...watch }),
   }
 }
 
@@ -1131,7 +1150,15 @@ async function attachHere(
   flags: Flags,
   options: Pick<
     import('./attach.ts').AttachOptions,
-    'source' | 'root' | 'follow' | 'onDetach' | 'cancelHint' | 'resumedAfter' | 'onFirstLine'
+    | 'source'
+    | 'root'
+    | 'follow'
+    | 'onDetach'
+    | 'onEnd'
+    | 'ending'
+    | 'cancelHint'
+    | 'resumedAfter'
+    | 'onFirstLine'
   >,
 ): Promise<number> {
   const { attach } = await import('./attach.ts')

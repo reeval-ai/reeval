@@ -2,7 +2,7 @@
 // `reeval run --bundle` as the platform's machine would, and serves its event stream, which the
 // cloud run follows to the run's exit code.
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import {
   cpSync,
@@ -20,6 +20,7 @@ import { createServer, type IncomingMessage } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { dirname, join } from 'node:path'
 import { describe, test } from 'node:test'
+import { setTimeout as sleep } from 'node:timers/promises'
 import { gunzipSync, gzipSync } from 'node:zlib'
 import { readTar, type TarEntry, writeTar } from '@reeval/sandbox-docker'
 import type WebSocket from 'ws'
@@ -27,7 +28,8 @@ import { WebSocketServer } from 'ws'
 import { afterLostStream, checkCloudSecrets, cloudUrl } from '../src/cloud-run.ts'
 import { EventStreamError } from '../src/events.ts'
 import { stripCredentials } from '../src/redact.ts'
-import { pkgRoot, project, runCli, tempDir } from './helpers.ts'
+import { stripAnsi } from '../src/ui/colors.ts'
+import { baseEnv, pkgRoot, project, runCli, tempDir } from './helpers.ts'
 import { fakeS3 } from './support/fake-s3.ts'
 
 describe('the cloud platform URL', () => {
@@ -1922,6 +1924,50 @@ describe("a cloud run's files, downloaded with --download", () => {
       })
       assert.equal(again.code, 0, again.stdout + again.stderr)
       assert.match(again.stdout, new RegExp(`Run ${runId} of cloud run run_1 is already in`))
+    } finally {
+      await p.close()
+    }
+  })
+
+  const pty =
+    process.platform === 'linux' && spawnSync('script', ['--version']).status === 0
+      ? false
+      : "needs util-linux's script to give reeval attach a terminal"
+  test('on a terminal, land as the run ends, while its finished list is still up', {
+    skip: pty,
+  }, async () => {
+    const p = await platform()
+    try {
+      const dir = await fixtureProject()
+      const r = await runCli(dir, ['run', '--cloud'], { env: env(p) })
+      assert.equal(r.code, 0, r.stdout + r.stderr)
+      const { REEVAL_UI: _, NO_COLOR: __, ...rest } = baseEnv
+      const cli = `'${process.execPath}' '${join(pkgRoot, 'dist/cli.js')}'`
+      const viewer = spawn(
+        'script',
+        ['-qec', `${cli} attach --download ${p.base}/api/runs/run_1/events`, '/dev/null'],
+        { cwd: dir, env: { ...rest, ...env(p), TERM: 'xterm-256color' } },
+      )
+      let shown = ''
+      viewer.stdout.on('data', (d) => (shown += d))
+      const viewed = new Promise<number | null>((resolve) => viewer.on('close', resolve))
+      const shows = async (text: string) => {
+        for (let i = 0; i < 400 && !stripAnsi(shown).includes(text); i++) await sleep(25)
+        assert.ok(stripAnsi(shown).includes(text), `${text} in:\n${stripAnsi(shown)}`)
+      }
+      try {
+        await shows('q quit')
+        await shows('✓ Saved to .reeval/runs/')
+        recordOf(dir)
+        viewer.stdin.write('q')
+        assert.equal(await viewed, 0, stripAnsi(shown))
+        assert.match(
+          stripAnsi(shown),
+          /Downloaded run \S+ of cloud run run_1 into \.reeval\/runs\//,
+        )
+      } finally {
+        viewer.kill()
+      }
     } finally {
       await p.close()
     }

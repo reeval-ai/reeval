@@ -19,6 +19,7 @@ import {
 import { dirname, isAbsolute, join } from 'node:path'
 import { gunzip } from 'node:zlib'
 import { readTar } from '@reeval/sandbox-docker'
+import type { EndStatus } from './attach.ts'
 import { type CloudAuth, CloudError, platformMessage } from './cloud-run.ts'
 import { UsageError } from './errors.ts'
 import { displayUrl } from './events.ts'
@@ -100,6 +101,46 @@ export async function downloadAfter(
   }
 }
 
+/** How often the finished list's download line moves on. */
+const PROGRESS_MS = 250
+
+/**
+ * Starts `download` as a cloud run ends, while its finished list may still be up, saying how it
+ * goes under the list: its progress, then where the run is, which its paths now name. The list
+ * prints its last line once it's quit, so a download that's still going says so then. Resolves to
+ * what to print once the list is down.
+ */
+export function downloadShown(
+  download: (watch: DownloadWatch) => Promise<string[]>,
+  status: EndStatus,
+): Promise<string[]> {
+  const doing = "Downloading the run's files..."
+  status(doing)
+  let at = 0
+  let saved: string | undefined
+  const started = download({
+    onProgress: (received, total) => {
+      if (Date.now() - at < PROGRESS_MS) return
+      at = Date.now()
+      status(`${doing} ${formatBytes(received)}${total ? ` of ${formatBytes(total)}` : ''}`)
+    },
+    onSaved: (where) => {
+      saved = where
+    },
+  }).then(
+    (lines) => {
+      status(saved ? `✓ Saved to ${saved}` : (lines.at(-1) ?? ''), { local: !!saved })
+      return lines
+    },
+    (error: unknown) => {
+      status("✗ Couldn't download the run's files: quit the list (q) to see why")
+      throw error
+    },
+  )
+  started.catch(() => {})
+  return started
+}
+
 /**
  * Where an archive path lands: `outside` when it's outside `.reeval/runs`, `.reeval/debug` and the
  * history folder (`history`, its path from the project root, or null when it's outside it),
@@ -138,7 +179,20 @@ function placed(
   return { area, runId, path, record: ext === '.json', linkable }
 }
 
-async function fetchArchive(url: URL, what: string, auth: CloudAuth): Promise<Buffer | null> {
+/** What a download tells as it goes. */
+export type DownloadWatch = {
+  /** Bytes received so far, of `total` when the platform said. */
+  onProgress?: (received: number, total: number | null) => void
+  /** Where each run it wrote, or found already here, is in `.reeval/runs`. */
+  onSaved?: (where: string) => void
+}
+
+async function fetchArchive(
+  url: URL,
+  what: string,
+  auth: CloudAuth,
+  onProgress?: DownloadWatch['onProgress'],
+): Promise<Buffer | null> {
   let res: Response
   try {
     res = await fetch(url, {
@@ -166,11 +220,20 @@ async function fetchArchive(url: URL, what: string, auth: CloudAuth): Promise<Bu
     }
     throw new UsageError(`the cloud platform refused to send ${what}: ${why}`)
   }
-  if (Number(res.headers.get('content-length')) > MAX_BYTES) {
+  const length = Number(res.headers.get('content-length'))
+  if (length > MAX_BYTES) {
     throw new CloudError(`${what} are more than 2 GB: not downloading them`)
   }
   try {
-    return Buffer.from(await res.arrayBuffer())
+    if (!onProgress || !res.body) return Buffer.from(await res.arrayBuffer())
+    const chunks: Uint8Array[] = []
+    let received = 0
+    for await (const chunk of res.body) {
+      chunks.push(chunk)
+      received += chunk.length
+      onProgress(received, length > 0 ? length : null)
+    }
+    return Buffer.concat(chunks)
   } catch (error) {
     throw new CloudError(`couldn't download ${what}: ${(error as Error).message}`)
   }
@@ -215,13 +278,15 @@ const listed = (paths: string[]) => paths.slice(0, 3).join(', ') + (paths.length
  * the archive holds anything but runs' files; each run's records land last, so a download cut
  * short leaves no record of a run without its files.
  */
-export async function downloadCloudFiles(options: {
-  cloudRunId: string
-  url: URL
-  auth: CloudAuth
-  root: string
-  history: ResolvedHistory
-}): Promise<string[]> {
+export async function downloadCloudFiles(
+  options: {
+    cloudRunId: string
+    url: URL
+    auth: CloudAuth
+    root: string
+    history: ResolvedHistory
+  } & DownloadWatch,
+): Promise<string[]> {
   const { cloudRunId, url, auth, root } = options
   const historyAt = relativeFile(root, options.history.dir)
   const history =
@@ -232,7 +297,7 @@ export async function downloadCloudFiles(options: {
     ? `.reeval/runs, .reeval/debug and ${historyAt || '.'}`
     : `.reeval/runs and .reeval/debug (this project's history folder, ${options.history.dir}, is outside it)`
   const what = `the files of cloud run ${cloudRunId}`
-  const archive = await fetchArchive(url, what, auth)
+  const archive = await fetchArchive(url, what, auth, options.onProgress)
   if (!archive) return [`The cloud platform has no files of run ${cloudRunId} to download`]
   let tar: Buffer
   try {
@@ -415,6 +480,7 @@ export async function downloadCloudFiles(options: {
     const scratch = mine.some((f) => f.area === 'runs') && shown('.reeval', 'runs', runId)
     const record = mine.find((f) => f.area === 'history' && f.record)
     const where = scratch || (record && shown(record.path))
+    if (scratch) options.onSaved?.(scratch)
     if (!wrote.length) {
       lines.push(`Run ${runId} of cloud run ${cloudRunId} is already in ${where}`)
       continue

@@ -31,6 +31,8 @@ export type ListState = {
     pointer: string
     errors: string[]
   } | null
+  /** A line under the finished list about what follows the run, such as downloading its files. */
+  status?: string
   /** Takes the finished list down as q does, with no key pressed. */
   quit?: true
   /** Following another process's run: whether x can cancel it now. */
@@ -221,7 +223,8 @@ export type InteractiveOptions = RendererOptions & {
 }
 
 type Mounted = { waitUntilExit: () => Promise<unknown>; unmount: () => void }
-type Ended = { scrollback: StatusList; verbose: boolean; pointer: string; event: ReevalEvent }
+type RunEnd = Extract<ReevalEvent, { type: 'run-end' }>
+type Ended = { scrollback: StatusList; verbose: boolean; pointer: string; event: RunEnd }
 
 export class InteractiveRenderer implements Renderer {
   readonly #o: InteractiveOptions
@@ -391,43 +394,55 @@ export class InteractiveRenderer implements Renderer {
         return
       case 'debug':
         return
-      case 'run-end': {
-        const host = this.#o.attached?.host
-        const listOf = (verbose: boolean) =>
-          statusList({
-            record: e.record,
-            suite: suiteResult(e.record),
-            remarks: e.remarks ?? null,
-            verbose,
-            ...(e.notRun ? { notRun: e.notRun } : {}),
-            ...(host ? { host } : {}),
-          })
-        const list = listOf(false)
-        const verbose = (this.#o.verbosity ?? 0) > 0
-        if (!this.#app) {
-          // Nothing was listed (every eval skipped), so there's nothing to browse.
-          this.#plain.onEvent(e)
-          return
-        }
-        this.#flush()
-        this.#stopPolling()
-        const pointer = pointerLine(e.summaryPath, host)
-        this.#ended = { scrollback: verbose ? listOf(true) : list, verbose, pointer, event: e }
-        this.#store.set({
-          files: list.files,
-          ...(this.#store.get().phase ? { phase: endText(e.record.status) } : {}),
-          finished: {
-            done: list.done,
-            notes: list.notes,
-            pointer,
-            errors: list.errors,
-          },
-        })
+      case 'run-end':
+        this.#finish(e, this.#o.attached?.host)
         return
-      }
       default:
         this.#plain.onEvent(e)
     }
+  }
+
+  #finish(e: RunEnd, host: string | undefined) {
+    const listOf = (verbose: boolean) =>
+      statusList({
+        record: e.record,
+        suite: suiteResult(e.record),
+        remarks: e.remarks ?? null,
+        verbose,
+        ...(e.notRun ? { notRun: e.notRun } : {}),
+        ...(host ? { host } : {}),
+      })
+    const list = listOf(false)
+    const verbose = (this.#o.verbosity ?? 0) > 0
+    if (!this.#app) {
+      // Nothing was listed (every eval skipped), so there's nothing to browse.
+      this.#plain.onEvent(e)
+      return
+    }
+    this.#flush()
+    this.#stopPolling()
+    const pointer = pointerLine(e.summaryPath, host)
+    this.#ended = { scrollback: verbose ? listOf(true) : list, verbose, pointer, event: e }
+    this.#store.set({
+      files: list.files,
+      ...(this.#store.get().phase ? { phase: endText(e.record.status) } : {}),
+      finished: {
+        done: list.done,
+        notes: list.notes,
+        pointer,
+        errors: list.errors,
+      },
+    })
+  }
+
+  /**
+   * Shows `line` under the finished list's pointer; `local` drops the run's host from the paths
+   * it names, once its files are on this machine.
+   */
+  status(line: string, options: { local?: boolean } = {}): void {
+    if (!this.#ended || this.#fallback) return
+    if (options.local) this.#finish(this.#ended.event, undefined)
+    this.#store.set({ status: line })
   }
 
   #stopPolling() {
@@ -461,7 +476,12 @@ export class InteractiveRenderer implements Renderer {
     const { phase } = this.#store.get()
     const { scrollback, verbose, pointer } = this.#ended
     const head = phase ? [`  ${this.#c.teal('◆')}  ${phase}`, ''] : []
-    const text = [...head, ...listLines(scrollback, this.#c, true, pointer, verbose)]
+    const { status } = this.#store.get()
+    const text = [
+      ...head,
+      ...listLines(scrollback, this.#c, true, pointer, verbose),
+      ...(status ? [status] : []),
+    ]
     this.#o.out.write(`${text.join('\n')}\n`)
   }
 

@@ -42,6 +42,13 @@ export type AttachOptions = {
   silence?: { stallMs?: number; lostMs?: number }
   /** Told when the viewer detaches, before `attach` returns 0. */
   onDetach?: () => void
+  /**
+   * Told the run's exit code once its stream has ended, before the interactive list waits for the
+   * user to quit it, which `attach` returns only after; `status` shows a line under that list.
+   */
+  onEnd?: (code: number, status: EndStatus) => void
+  /** What the finished list says from the run's end until its stream ends and `onEnd` is told. */
+  ending?: string
   /** Told once, before the stream's first line other than a heartbeat is drawn. */
   onFirstLine?: () => void
   /** How to cancel a run this viewer can't reach, which the interactive list shows. */
@@ -53,6 +60,9 @@ export type AttachOptions = {
    */
   resumedAfter?: number
 }
+
+/** A line under the finished interactive list, as `Renderer.status` takes it; a no-op elsewhere. */
+export type EndStatus = (line: string, options?: { local?: boolean }) => void
 
 const SILENT = Symbol('silent')
 
@@ -276,6 +286,7 @@ export async function attach(options: AttachOptions): Promise<number> {
         renderer?.close()
         const last = renderer ?? ended
         renderer = ended = undefined
+        if (options.ending) last?.status?.('')
         await last?.dismiss?.()
         code = undefined
         if (++headers > (options.resumedAfter ?? 0)) current = true
@@ -297,6 +308,7 @@ export async function attach(options: AttachOptions): Promise<number> {
       }
       if (line.type === 'plan') config = line.header.config
       renderer?.onEvent(viewerEvent(line, shown, config))
+      if (line.type === 'run-end' && options.ending) renderer?.status?.(options.ending)
     }
   } catch (error) {
     if (!detached.signal.aborted) {
@@ -311,6 +323,10 @@ export async function attach(options: AttachOptions): Promise<number> {
     lines.return?.(undefined).catch(() => {})
   }
   renderer?.close()
+  if (!detached.signal.aborted && code !== undefined) {
+    const last = renderer ?? ended
+    options.onEnd?.(code, (line, opts) => last?.status?.(line, opts))
+  }
   await (renderer ?? ended)?.wait?.()
   if (detached.signal.aborted) {
     if (header) {
