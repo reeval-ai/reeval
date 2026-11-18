@@ -767,6 +767,9 @@ export const INSTEAD: Record<string, string> = {
     "-vv keeps every attempt's trace.ndjson in .reeval/debug, and reeval show --trace writes a run's timeline for ui.perfetto.dev",
 }
 
+/** What reeval is, in one line: bare `reeval`, `--help` and the package's description say it. */
+export const TAGLINE = 'Evaluation runner for SDKs, CLIs, MCP servers, and docs.'
+
 const RUN_REF = 'A run is latest, latest~N, a run id or its prefix, or a git SHA prefix.'
 
 const helpLines = (spec: CommandSpec) => [
@@ -776,7 +779,7 @@ const helpLines = (spec: CommandSpec) => [
 
 /** `reeval --help`: every command's help lines, in the order of `COMMANDS`, then the global flags. */
 export function helpText(version: string): string {
-  return `reeval ${version} — eval runner for coding agents
+  return `reeval ${version} — ${TAGLINE}
 
 Usage:${Object.values(COMMANDS).flatMap(helpLines).join('')}
 
@@ -800,7 +803,7 @@ export function commandHelpText(version: string, path: string[]): string {
   const runRef = sub
     ? sub.runRef
     : spec.runRef || Object.values(spec.sub ?? {}).some((s) => s.runRef)
-  return `reeval ${version} — eval runner for coding agents
+  return `reeval ${version} — ${TAGLINE}
 
 Usage:${lines.join('')}
 ${runRef ? `\n${RUN_REF}\n` : ''}`
