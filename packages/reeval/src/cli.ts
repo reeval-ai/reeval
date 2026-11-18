@@ -126,7 +126,7 @@ import type {
   RunContext,
   SandboxDescriptor,
 } from './types.ts'
-import { colors } from './ui/colors.ts'
+import { colors, depthOf } from './ui/colors.ts'
 import type { RecordedPaths } from './ui/events.ts'
 import { createRenderer, resolveOutput } from './ui/index.ts'
 import { parseHeartbeat } from './ui/mode.ts'
@@ -263,7 +263,12 @@ async function run(argv: string[]): Promise<number> {
   if (!command) {
     const { homeScreen, homeStatus } = await import('./home.ts')
     const tty = !!process.stdout.isTTY
-    const term = { tty, color: tty && !process.env.NO_COLOR, columns: process.stdout.columns ?? 0 }
+    const term = {
+      tty,
+      color: tty && !process.env.NO_COLOR,
+      columns: process.stdout.columns ?? 0,
+      depth: tty ? depthOf(process.stdout.getColorDepth()) : undefined,
+    }
     console.log(homeScreen(version, await homeStatus(values.config), term))
     return EXIT.ok
   }
@@ -1212,8 +1217,7 @@ async function cloudFollower(flags: Flags) {
     stdinTTY: !!process.stdin.isTTY,
   })
   const { StepSpinner } = await import('./ui/tty.ts')
-  const depth = process.stdout.isTTY ? process.stdout.getColorDepth() : 4
-  const c = colors(output.color, depth >= 24 ? 24 : depth >= 8 ? 8 : 4)
+  const c = colors(output.color, depthOf(process.stdout.isTTY ? process.stdout.getColorDepth() : 4))
   const spinner =
     output.statusLine && !process.env.REEVAL_DEBUG
       ? new StepSpinner(

@@ -1,11 +1,12 @@
 // What bare `reeval` prints: the mark, the version, who's signed in and the linked project, and a
 // few commands to try. `reeval --help` lists every command.
 import { existsSync } from 'node:fs'
+import { TAGLINE } from './cli-spec.ts'
 import { linkedProject, projectDirFor } from './cloud-project.ts'
 import { cloudUrl } from './cloud-run.ts'
 import { configPathFor } from './config.ts'
 import { CLOUD_TOKEN_VAR, storedUser } from './login/credentials.ts'
-import { colors } from './ui/colors.ts'
+import { type ColorDepth, colors } from './ui/colors.ts'
 
 const MARK = [
   '        ▄▄████▄▄',
@@ -22,7 +23,6 @@ const MARK = [
 const MARK_WIDTH = 24
 /** The narrowest terminal the mark and the text beside it fit on. */
 const MARK_COLUMNS = 90
-const TAGLINE = 'Evaluation runner for SDKs, CLIs, MCP servers, and docs.'
 
 export type HomeStatus = {
   /** `REEVAL_TOKEN`, or `reeval login`'s sign-in with its email (null when the file has none). */
@@ -33,7 +33,7 @@ export type HomeStatus = {
   config: boolean
 }
 
-export type HomeTerminal = { tty: boolean; color: boolean; columns: number }
+export type HomeTerminal = { tty: boolean; color: boolean; columns: number; depth?: ColorDepth }
 
 /** Who's signed in, the linked project and the config, from local files only; a problem reads as none. */
 export async function homeStatus(
@@ -57,7 +57,7 @@ export async function homeStatus(
 }
 
 export function homeScreen(version: string, status: HomeStatus, term: HomeTerminal): string {
-  const c = colors(term.color)
+  const c = colors(term.color, term.depth)
   const doctor: [string, string] = ['reeval doctor', 'Check your environment setup']
   const tryNext: [string, string][] = status.config
     ? [
@@ -86,23 +86,26 @@ export function homeScreen(version: string, status: HomeStatus, term: HomeTermin
   ]
   const width =
     Math.max(...[...tryNext, ...rows.filter(([, hint]) => hint)].map(([left]) => left.length)) + 4
-  const line = ([left, hint]: [string, string?]) =>
-    hint ? `  ${left.padEnd(width)}${c.dim(hint)}` : `  ${left}`
+  const line = ([left, hint]: [string, string?], paint = (s: string) => s) =>
+    hint ? `  ${paint(left.padEnd(width))}${c.dim(hint)}` : `  ${paint(left)}`
   const about = [`${c.bold('reeval')} ${c.dim(`v${version}`)}`, TAGLINE]
   const head =
     term.tty && term.columns >= MARK_COLUMNS
-      ? MARK.map((mark, i) => {
-          const text = about[i - 4]
-          return text ? `${c.teal(mark.padEnd(MARK_WIDTH))}    ${text}` : c.teal(mark)
-        })
+      ? [
+          '',
+          ...MARK.map((mark, i) => {
+            const text = about[i - 4]
+            return text ? `${c.brand(mark.padEnd(MARK_WIDTH))}    ${text}` : c.brand(mark)
+          }),
+        ]
       : about
   return [
     ...head,
     '',
-    ...rows.map(line),
+    ...rows.map((row) => line(row, c.muted)),
     '',
     c.bold('Try next'),
-    ...tryNext.map(line),
+    ...tryNext.map((row) => line(row)),
     '',
     `Run ${c.bold('reeval --help')} to see every command`,
   ].join('\n')

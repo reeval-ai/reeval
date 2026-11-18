@@ -16,11 +16,18 @@ export type Colors = {
   orange: Paint
   teal: Paint
   blue: Paint
+  /** The reeval mark's teal, #63D0BD; cyan on 16 colors. */
+  brand: Paint
+  /** Light gray, between plain and dim text; dim on 16 colors. */
+  muted: Paint
   dim: Paint
   bold: Paint
   /** A stable color per attempt tag, cycling Turborepo's palette in order of first use. */
   tag(key: string): Paint
 }
+
+/** The depth for `tty.WriteStream.getColorDepth()`'s bits. */
+export const depthOf = (bits = 4): ColorDepth => (bits >= 24 ? 24 : bits >= 8 ? 8 : 4)
 
 const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;?]*[ -/]*[@-~]`, 'g')
 
@@ -48,6 +55,8 @@ export function colors(enabled: boolean, depth: ColorDepth = 4): Colors {
     orange: paint(accent(depth, [215, 95, 0], 166, 33)),
     teal: paint(accent(depth, [0, 135, 175], 31, 36)),
     blue: paint(accent(depth, [0, 135, 255], 33, 34)),
+    brand: paint(accent(depth, [99, 208, 189], 79, 36)),
+    muted: depth === 4 ? paint(2, 22) : paint(accent(depth, [190, 190, 190], 250, 37)),
     dim: paint(2, 22),
     bold: paint(1, 22),
     tag(key) {

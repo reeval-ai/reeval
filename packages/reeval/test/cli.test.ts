@@ -13,6 +13,7 @@ import {
   type FlagName,
   GLOBAL,
   helpText,
+  TAGLINE,
 } from '../src/cli-spec.ts'
 import { UsageError } from '../src/config.ts'
 import { homeScreen, homeStatus } from '../src/home.ts'
@@ -102,6 +103,16 @@ describe('cli', () => {
     assert.match(helpText('V'), /^Global options:\n {2}--config <path> /m)
   })
 
+  test('help, the home screen and the package describe reeval in the same words', () => {
+    const status = { signedIn: null, project: null, config: false }
+    const home = homeScreen('V', status, { tty: false, color: false, columns: 80 })
+    assert.equal(home.split('\n')[1], TAGLINE)
+    assert.ok(helpText('V').startsWith(`reeval V — ${TAGLINE}\n`))
+    assert.ok(commandHelpText('V', ['run']).startsWith(`reeval V — ${TAGLINE}\n`))
+    const pkg = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8'))
+    assert.equal(pkg.description, TAGLINE)
+  })
+
   test('the home screen shows the mark only on a wide enough terminal', () => {
     const status = { signedIn: { email: 'ada@example.com' }, project: 'prj_1', config: false }
     const wide = homeScreen('1.2.3', status, { tty: true, color: false, columns: 100 })
@@ -121,10 +132,19 @@ describe('cli', () => {
         /^reeval v1\.2\.3\nEvaluation runner for SDKs, CLIs, MCP servers, and docs\.\n/,
       )
     }
+    assert.match(wide, /^\n {8}▄▄████▄▄\n/)
     assert.ok(!wide.includes('\x1b['))
-    assert.ok(
-      homeScreen('1.2.3', status, { tty: true, color: true, columns: 100 }).includes('\x1b['),
-    )
+    const painted = (depth?: 4 | 8 | 24) =>
+      homeScreen('1.2.3', status, { tty: true, color: true, columns: 100, depth })
+    const lines = (depth?: 4 | 8 | 24) => painted(depth).split('\n')
+    assert.equal(lines(24)[0], '')
+    assert.equal(lines(24)[1], '\x1b[38;2;99;208;189m        ▄▄████▄▄\x1b[39m')
+    assert.equal(lines(8)[1], '\x1b[38;5;79m        ▄▄████▄▄\x1b[39m')
+    assert.equal(lines()[1], '\x1b[36m        ▄▄████▄▄\x1b[39m')
+    assert.ok(lines(24).includes('  \x1b[38;2;190;190;190mSigned in as ada@example.com\x1b[39m'))
+    assert.ok(lines(8).includes('  \x1b[38;5;250mLinked to project prj_1\x1b[39m'))
+    assert.ok(lines().includes('  \x1b[2mLinked to project prj_1\x1b[22m'))
+    assert.ok(lines(24).includes('  reeval doctor    \x1b[2mCheck your environment setup\x1b[22m'))
     const term = { tty: false, color: false, columns: 80 }
     const token = homeScreen('1', { ...status, signedIn: { token: true } }, term)
     assert.match(token, /^ {2}Signed in with REEVAL_TOKEN$/m)

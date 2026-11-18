@@ -1,6 +1,6 @@
 import { redactSecrets } from '../redact.ts'
 import { AgentRenderer } from './agent.ts'
-import { type ColorDepth, colors } from './colors.ts'
+import { colors, depthOf } from './colors.ts'
 import type { OutputStream, Renderer } from './events.ts'
 import type { OutputOptions } from './mode.ts'
 import { PlainRenderer } from './plain.ts'
@@ -8,8 +8,6 @@ import { type InteractiveOptions, InteractiveRenderer } from './tty.ts'
 
 export type { Renderer } from './events.ts'
 export { type OutputOptions, resolveOutput } from './mode.ts'
-
-const depthOf = (bits = 4): ColorDepth => (bits >= 24 ? 24 : bits >= 8 ? 8 : 4)
 
 export function createRenderer(options: {
   out: OutputStream
