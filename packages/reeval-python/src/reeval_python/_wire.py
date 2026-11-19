@@ -889,6 +889,23 @@ class EvalOptionsDataCompareHarnessesOnly(TypedDict):
     only: list[str] | str
 
 
+class EvalOptionsDataCompareMetricK(TypedDict):
+    # Explicit trial count `k` (`>= 2`) for unbiased `pass@k` and `pass^k`.
+    k: float
+    # Which metric leads in headlines; default `'pass-rate'`.
+    lead: NotRequired[Literal["pass-rate", "pass@k", "pass^k", "task-pass-rate"]]
+
+
+class EvalOptionsDataCompareMetricPassAtK(TypedDict):
+    # Explicit trial count `k` (`>= 2`) for unbiased `pass@k`, making `pass@k` the lead.
+    passAtK: float
+
+
+class EvalOptionsDataCompareMetricPassHatK(TypedDict):
+    # Explicit trial count `k` (`>= 2`) for unbiased `pass^k`, making `pass^k` the lead.
+    passHatK: float
+
+
 class EvalOptionsDataCompareRunsBestOf(TypedDict):
     bestOf: float
 
@@ -910,6 +927,9 @@ class EvalOptionsDataCompare(TypedDict):
     harnesses: NotRequired[AntigravityHarnessDescriptor | ClaudeCodeHarnessDescriptor | CodexHarnessDescriptor | CursorHarnessDescriptor | FakeHarnessDescriptor | FxHarnessDescriptor | GooseHarnessDescriptor | GrokBuildHarnessDescriptor | OpenCodeHarnessDescriptor | PiHarnessDescriptor | list[HarnessDescriptor] | EvalOptionsDataCompareHarnessesAdd | EvalOptionsDataCompareHarnessesOnly]
     # Defaults for `c.judge()`, merged field by field down the cascade.
     judge: NotRequired[ConfigJudgeOptions]
+    # Which pass/fail metric leads in reports when per-task trials are 2 or more; default
+    # `'pass-rate'`.
+    metric: NotRequired[Literal["pass-rate", "task-pass-rate"] | EvalOptionsDataCompareMetricK | EvalOptionsDataCompareMetricPassAtK | EvalOptionsDataCompareMetricPassHatK]
     # Keys a profile's `limit` may not narrow for this group or eval.
     pin: NotRequired[list[PinnableKey]]
     # The model every question that names none of its own is answered by, down the cascade.
@@ -964,6 +984,23 @@ class EvalOptionsData2HarnessesOnly(TypedDict):
     only: list[str] | str
 
 
+class EvalOptionsData2MetricK(TypedDict):
+    # Explicit trial count `k` (`>= 2`) for unbiased `pass@k` and `pass^k`.
+    k: float
+    # Which metric leads in headlines; default `'pass-rate'`.
+    lead: NotRequired[Literal["pass-rate", "pass@k", "pass^k", "task-pass-rate"]]
+
+
+class EvalOptionsData2MetricPassAtK(TypedDict):
+    # Explicit trial count `k` (`>= 2`) for unbiased `pass@k`, making `pass@k` the lead.
+    passAtK: float
+
+
+class EvalOptionsData2MetricPassHatK(TypedDict):
+    # Explicit trial count `k` (`>= 2`) for unbiased `pass^k`, making `pass^k` the lead.
+    passHatK: float
+
+
 class EvalOptionsData2RunsBestOf(TypedDict):
     bestOf: float
 
@@ -986,6 +1023,9 @@ class EvalOptionsData2(TypedDict):
     harnesses: NotRequired[AntigravityHarnessDescriptor | ClaudeCodeHarnessDescriptor | CodexHarnessDescriptor | CursorHarnessDescriptor | FakeHarnessDescriptor | FxHarnessDescriptor | GooseHarnessDescriptor | GrokBuildHarnessDescriptor | OpenCodeHarnessDescriptor | PiHarnessDescriptor | list[HarnessDescriptor] | EvalOptionsData2HarnessesAdd | EvalOptionsData2HarnessesOnly]
     # Defaults for `c.judge()`, merged field by field down the cascade.
     judge: NotRequired[ConfigJudgeOptions]
+    # Which pass/fail metric leads in reports when per-task trials are 2 or more; default
+    # `'pass-rate'`.
+    metric: NotRequired[Literal["pass-rate", "task-pass-rate"] | EvalOptionsData2MetricK | EvalOptionsData2MetricPassAtK | EvalOptionsData2MetricPassHatK]
     # Keys a profile's `limit` may not narrow for this group or eval.
     pin: NotRequired[list[PinnableKey]]
     # The model every question that names none of its own is answered by, down the cascade.
@@ -2199,6 +2239,8 @@ CAMEL_KEYS: frozenset[str] = frozenset(
         "minLift",
         "outputTruncated",
         "outputView",
+        "passAtK",
+        "passHatK",
         "passRate",
         "preSatisfied",
         "providerOptions",
