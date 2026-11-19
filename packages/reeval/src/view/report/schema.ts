@@ -29,13 +29,16 @@ import type {
   FailureClusters,
   Figure,
   HeadlinePrimary,
+  HeadlineResult,
   IntegrityIssue,
   Interval,
   JudgeRow,
+  JudgeScore,
   JudgmentBreakdown,
   MeasureCells,
   MeasureVsBaseline,
   PairwiseRow,
+  Proportion,
   ProvenanceState,
   QualitativeAnswers,
   Quote,
@@ -87,6 +90,11 @@ const rateSchema: z.ZodType<Rate> = z.strictObject({
   rate: z.number().nullable(),
   text: z.string(),
   interval: intervalSchema.nullable(),
+})
+
+const proportionSchema: z.ZodType<Proportion> = z.strictObject({
+  k: z.number().int().nonnegative(),
+  n: z.number().int().nonnegative(),
 })
 
 const attemptRefSchema: z.ZodType<AttemptRef> = z.strictObject({
@@ -164,6 +172,8 @@ const changeRowSchema: z.ZodType<ChangeRow> = z.strictObject({
   harness: z.string().nullable(),
   prior: z.string(),
   current: z.string(),
+  priorPassed: proportionSchema.nullable().optional(),
+  currentPassed: proportionSchema.nullable().optional(),
   delta: deltaSchema.nullable(),
   status: compareStatusSchema,
   gate: z.boolean(),
@@ -225,6 +235,64 @@ export const headlinePrimarySchema: z.ZodType<HeadlinePrimary> = z.discriminated
     answered: countSchema,
     lead: quoteSchema.nullable(),
     leadRole: z.enum(['sole', 'representative']).nullable(),
+  }),
+  z.strictObject({
+    kind: z.literal('regression'),
+    worse: z.number().int().nonnegative(),
+    fixed: z.number().int().nonnegative(),
+    lead: changeRowSchema.nullable(),
+  }),
+])
+
+const headlineResultSchema: z.ZodType<HeadlineResult> = z.discriminatedUnion('kind', [
+  z.strictObject({
+    kind: z.literal('pass-rate'),
+    passed: proportionSchema,
+    outcome: z.enum(['passed', 'found', 'used']),
+  }),
+  z.strictObject({
+    kind: z.literal('lift'),
+    baseline: z.string(),
+    variant: z.string(),
+    baselinePassed: proportionSchema,
+    variantPassed: proportionSchema,
+    points: z.number(),
+    lo: z.number(),
+    hi: z.number(),
+  }),
+  z.strictObject({
+    kind: z.literal('tied-ceiling'),
+    baseline: z.string(),
+    variant: z.string(),
+    passed: proportionSchema,
+    measure: measureKeySchema,
+    baselineMedian: z.number(),
+    variantMedian: z.number(),
+  }),
+  z.strictObject({
+    kind: z.literal('choice'),
+    question: z.string(),
+    options: z.array(z.strictObject({ label: z.string(), count: z.number().int().nonnegative() })),
+    attempts: z.number().int().nonnegative(),
+  }),
+  z.strictObject({
+    kind: z.literal('measure'),
+    label: z.string(),
+    unit: measureUnitSchema,
+    median: z.number().nullable(),
+    n: z.number().int().nonnegative(),
+  }),
+  z.strictObject({
+    kind: z.literal('judge'),
+    label: z.string(),
+    scale: z.tuple([z.number(), z.number()]),
+    median: z.number().nullable(),
+    n: z.number().int().nonnegative(),
+  }),
+  z.strictObject({
+    kind: z.literal('text'),
+    question: z.string(),
+    answered: proportionSchema,
   }),
   z.strictObject({
     kind: z.literal('regression'),
@@ -333,6 +401,10 @@ const behaviorRowSchema: z.ZodType<BehaviorRow> = z.strictObject({
 const contrastRowSchema: z.ZodType<ContrastRow> = z.strictObject({
   from: z.string(),
   to: z.string(),
+  harness: z.string().optional(),
+  sandbox: z.string().optional(),
+  fromPassed: proportionSchema.optional(),
+  toPassed: proportionSchema.optional(),
   measure: z.union([z.literal('pass-rate'), measureKeySchema]),
   delta: deltaSchema,
   interval: intervalSchema.nullable(),
@@ -383,6 +455,15 @@ const choiceBreakdownSchema: z.ZodType<ChoiceBreakdown> = z.strictObject({
       harness: z.string(),
       counts: z.record(z.string(), z.number().int().nonnegative()),
       attempts: z.number().int().nonnegative(),
+      picks: z
+        .array(
+          z.strictObject({
+            option: z.string(),
+            k: z.number().int().nonnegative(),
+            n: z.number().int().nonnegative(),
+          }),
+        )
+        .optional(),
       text: z.string(),
     }),
   ),
@@ -402,6 +483,17 @@ const discoveryRateSchema: z.ZodType<DiscoveryRate> = z.strictObject({
   ),
 })
 
+const indexOutcomeSchema = z.enum(['pass', 'fail', 'infra_error', 'canceled'])
+
+const judgeScoreSchema: z.ZodType<JudgeScore> = z.strictObject({
+  attempt: z.string(),
+  key: z.string(),
+  keys: z.array(z.string()),
+  score: z.number(),
+  verdict: z.enum(['pass', 'fail']),
+  outcome: indexOutcomeSchema,
+})
+
 const judgeRowSchema: z.ZodType<JudgeRow> = z.strictObject({
   label: z.string(),
   question: z.string(),
@@ -410,6 +502,7 @@ const judgeRowSchema: z.ZodType<JudgeRow> = z.strictObject({
   keys: z.array(z.string()),
   spread: spreadSchema,
   atOrAbove: countSchema.nullable(),
+  scores: z.array(judgeScoreSchema).optional(),
 })
 
 const pairwiseRowSchema: z.ZodType<PairwiseRow> = z.strictObject({
@@ -491,6 +584,7 @@ const failureClustersSchema: z.ZodType<FailureClusters> = z.strictObject({
       severity: z.enum(['concern', 'suggestion']),
       text: z.string(),
       fix: z.strictObject({ at: z.string(), edit: z.string() }),
+      line: z.string().optional(),
     }),
   ),
 })
@@ -611,6 +705,7 @@ const executiveRollupSchema: z.ZodType<ExecutiveRollup> = z.strictObject({
       shapes: z.array(evalShapeSchema),
       design: z.string(),
       primary: z.string(),
+      result: headlineResultSchema.optional(),
       medianTokens: figureSchema,
     }),
   ),
@@ -670,12 +765,50 @@ const attemptIndexRowSchema: z.ZodType<AttemptIndexRow> = z.strictObject({
   harness: z.string(),
   arm: z.string().nullable(),
   case: z.string().nullable(),
-  outcome: z.enum(['pass', 'fail', 'infra_error', 'canceled']),
+  outcome: indexOutcomeSchema,
   reclassified: z.boolean(),
   turnError: z.string().nullable(),
   tokens: figureSchema,
   agentMs: figureSchema,
   toolCalls: figureSchema,
+  usage: z
+    .strictObject({
+      input: z.number().nonnegative(),
+      output: z.number().nonnegative(),
+      cacheRead: z.number().nonnegative(),
+      cacheWrite: z.number().nonnegative(),
+      reasoning: z.number().nonnegative().nullable(),
+    })
+    .nullable()
+    .optional(),
+  time: z
+    .strictObject({
+      setupMs: z.number().nonnegative(),
+      agentMs: z.number().nonnegative(),
+      diffMs: z.number().nonnegative(),
+      checksMs: z.number().nonnegative(),
+      judgeMs: z.number().nonnegative(),
+      agent: z
+        .strictObject({
+          modelMs: z.number().nonnegative().nullable(),
+          toolMs: z.number().nonnegative(),
+          waitingMs: z.number().nonnegative(),
+          otherMs: z.number().nonnegative(),
+        })
+        .nullable(),
+    })
+    .optional(),
+  judgments: z
+    .array(
+      z.strictObject({
+        label: z.string(),
+        score: z.number(),
+        threshold: z.number(),
+        verdict: z.enum(['pass', 'fail']),
+        gated: z.boolean(),
+      }),
+    )
+    .optional(),
   facts: attemptFactsSchema.optional(),
   diff: z
     .strictObject({
@@ -716,6 +849,9 @@ export type _SameAsSchema = [
   Assert<Same<z.infer<typeof countSchema>, Count>>,
   Assert<Same<z.infer<typeof rateSchema>, Rate>>,
   Assert<Same<z.infer<typeof headlinePrimarySchema>, HeadlinePrimary>>,
+  Assert<Same<z.infer<typeof headlineResultSchema>, HeadlineResult>>,
+  Assert<Same<z.infer<typeof judgeScoreSchema>, JudgeScore>>,
+  Assert<Same<z.infer<typeof proportionSchema>, Proportion>>,
   Assert<Same<z.infer<typeof taskResultsSchema>, TaskResults>>,
   Assert<Same<z.infer<typeof variantComparisonSchema>, VariantComparison>>,
   Assert<Same<z.infer<typeof regressionChangesSchema>, RegressionChanges>>,
@@ -768,10 +904,12 @@ export const REPORT_SCHEMAS: Record<string, z.ZodType> = {
   IntegrityIssue: integrityIssueSchema,
   Interval: intervalSchema,
   JudgeRow: judgeRowSchema,
+  JudgeScore: judgeScoreSchema,
   JudgmentBreakdown: judgmentBreakdownSchema,
   MeasureCells: measureCellsSchema,
   MeasureVsBaseline: measureVsBaselineSchema,
   PairwiseRow: pairwiseRowSchema,
+  Proportion: proportionSchema,
   ProvenanceState: provenanceStateSchema,
   QualitativeAnswers: qualitativeAnswersSchema,
   Quote: quoteSchema,

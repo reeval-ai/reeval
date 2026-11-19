@@ -2,14 +2,16 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { describe, test } from 'node:test'
 import { corpusEntries } from '../scripts/schema/corpus.ts'
-import type { RunRecord } from '../src/history/types.ts'
+import type { EvalEntry, RunRecord } from '../src/history/types.ts'
 import { FORBIDDEN_OUTPUT, runReportMarkdown } from '../src/renderer/markdown.ts'
 import type { CompareRow } from '../src/view/compare.ts'
 import { NewerSchemaError, readableRecord } from '../src/view/record.ts'
+import type { RunRemarks } from '../src/view/remarks.ts'
 import {
   attemptAnchor,
   attemptAnchorId,
   buildRunReport,
+  headlineResultText,
   REPORT_VERSION,
   readableRunReport,
   runReportSchema,
@@ -460,5 +462,233 @@ describe('RunReport links', () => {
       JSON.stringify(buildRunReport(record)),
       './ is the default',
     )
+  })
+})
+
+/** `with-layouts`' A/B eval with two variants on one coding harness. */
+function twoVariants(record: RunRecord): EvalEntry {
+  const e = record.evals.find(
+    (ev) =>
+      ev.compare &&
+      new Set(ev.cells.map((c) => c.harness)).size === 1 &&
+      ev.cells.filter((c) => c.role === 'variant').length >= 2,
+  )
+  assert.ok(e, 'with-layouts has an A/B eval with two variants')
+  return e
+}
+
+/** That eval run again on a second coding harness, `other`. */
+function onTwoHarnesses(): { record: RunRecord; e: EvalEntry } {
+  const record = cloneRecord('with-layouts')
+  const e = twoVariants(record)
+  const harness = e.cells[0]!.harness
+  const rename = (key: string) => key.replace(`${harness}/`, 'other/')
+  const lastSeq = Math.max(...record.evals.flatMap((ev) => ev.attempts.map((a) => a.seq ?? 0)))
+  e.cells.push(
+    ...e.cells.map((c) => ({ ...structuredClone(c), key: rename(c.key), harness: 'other' })),
+  )
+  e.attempts.push(
+    ...e.attempts.map((a, i) => ({
+      ...structuredClone(a),
+      key: `${a.key}~other`,
+      id: rename(a.id),
+      cell: rename(a.cell),
+      seq: a.seq === null ? null : lastSeq + 1 + i,
+    })),
+  )
+  return { record, e }
+}
+
+describe('RunReport chart data', () => {
+  test('each contrast row names its coding harness and counts, so no two rows repeat', () => {
+    const { record, e } = onTwoHarnesses()
+    const report = buildRunReport(record, { evals: [e.key], links: { base: './' } })
+    const comparison = report.evals[0]!.primary
+    assert.equal(comparison?.kind, 'comparison')
+    if (comparison?.kind !== 'comparison') return
+    assert.equal(comparison.contrasts.length, 6, '3 pairs on each of 2 harnesses')
+    const ids = comparison.contrasts.map((c) => `${c.from}|${c.to}|${c.harness}|${c.sandbox}`)
+    assert.equal(new Set(ids).size, ids.length)
+    assert.deepEqual(
+      new Set(comparison.contrasts.map((c) => c.harness)),
+      new Set(['fake', 'other']),
+    )
+    for (const c of comparison.contrasts) {
+      assert.ok(c.fromPassed && c.toPassed)
+      assert.ok(c.fromPassed.n > 0 && c.toPassed.n > 0)
+    }
+    const md = runReportMarkdown(report)
+    assert.match(md, /\| From \| To \| Coding harness \| Measure \|/)
+    assert.match(md, /\| with-skill \| plain \| other \| Pass rate \|/)
+  })
+
+  test('a baseline-never-passes check is one integrity line naming its harnesses', () => {
+    const { record, e } = onTwoHarnesses()
+    const report = buildRunReport(record, { evals: [e.key], links: { base: './' } })
+    const never = report.integrity.filter((i) => i.kind === 'baseline-never-passes')
+    assert.ok(never.length > 0)
+    const texts = never.map((i) => i.text)
+    assert.equal(new Set(texts).size, texts.length, 'no message repeats')
+    for (const t of texts) assert.match(t, / on every coding harness;/)
+    const ids = report.integrity.map((i) => `${i.kind}|${i.evalId}|${i.text}`)
+    assert.equal(new Set(ids).size, ids.length, 'no issue repeats')
+  })
+
+  test('the kicker names the variant the headline picked, not the first one declared', () => {
+    const record = cloneRecord('with-layouts')
+    const e = twoVariants(record)
+    const variants = e.cells.filter((c) => c.role === 'variant')
+    const [first, second] = variants
+    assert.ok(first && second)
+    for (const a of e.attempts) {
+      if (a.cell === first.key && a.outcome === 'pass') a.outcome = 'fail'
+      if (a.cell === second.key && a.outcome === 'fail') a.outcome = 'pass'
+    }
+    const control = e.cells.find((c) => c.role === 'control')!
+    for (const a of e.attempts) if (a.cell === control.key) a.outcome = 'fail'
+    const report = buildRunReport(record, { evals: [e.key], links: { base: './' } })
+    const headline = report.evals[0]!.headline
+    assert.equal(headline.primary.kind, 'lift')
+    if (headline.primary.kind !== 'lift') return
+    assert.equal(headline.primary.variant.label, second.variant)
+    assert.equal(headline.kicker, `${second.variant} against the ${control.environment} baseline`)
+  })
+
+  test("a remark's fix is carried as a line, the one the markdown prints", () => {
+    const record = cloneRecord('with-layouts')
+    const e = record.evals[0]!
+    const remarks: RunRemarks = {
+      kind: 'reeval-remarks',
+      schemaVersion: 1,
+      runId: record.runId,
+      createdAt: record.startedAt,
+      remarks: [
+        {
+          id: 'r1',
+          evalId: e.id,
+          evalKey: e.key,
+          kind: 'too-few-tries',
+          severity: 'concern',
+          text: '1 run per side.',
+          evidence: [],
+          fix: { at: 'source:evals/a.eval.ts#L12', edit: 'set runs: 4' },
+          firstSeenRun: record.runId,
+        },
+      ],
+    }
+    const report = buildRunReport(record, { evals: [e.key], remarks, links: { base: './' } })
+    const remark = report.evals[0]!.failures?.remarks[0]
+    assert.equal(remark?.line, '1 run per side. Fix at evals/a.eval.ts:12: set runs: 4.')
+    assert.match(
+      runReportMarkdown(report),
+      /^- \(concern\) 1 run per side\. Fix at evals\/a\.eval\.ts:12: set runs: 4\.$/m,
+    )
+    assert.doesNotMatch(JSON.stringify(report), /\[object Object\]/)
+  })
+
+  test('the rollup carries its result as numbers, and prints the text they format to', () => {
+    for (const entry of corpusEntries()) {
+      const file = entry.runs.at(-1)?.file
+      if (!file) continue
+      const record = readableRecord(JSON.parse(readFileSync(file, 'utf8')) as RunRecord)
+      const report = buildRunReport(record, { links: { base: './' } })
+      for (const row of report.rollup?.rows ?? []) {
+        assert.ok(row.result, `${entry.name}: ${row.name} has a result`)
+        assert.equal(headlineResultText(row.result), row.primary, `${entry.name}: ${row.name}`)
+        assert.ok(runReportMarkdown(report).includes(`| ${row.primary.replace(/\|/g, '\\|')} |`))
+      }
+    }
+  })
+
+  test('an A/B eval in the rollup has a median tokens figure', () => {
+    const { record } = onTwoHarnesses()
+    let tokens = 1000
+    for (const e of record.evals) {
+      for (const a of e.attempts) {
+        a.usage = { input: tokens, output: 10, cacheRead: 0, cacheWrite: 0, reasoning: null }
+        tokens += 1000
+      }
+    }
+    const report = buildRunReport(record, { links: { base: './' } })
+    const ab = report.rollup?.rows.find((r) => r.shapes.includes('ab'))
+    assert.ok(ab)
+    assert.equal(ab.result?.kind === 'lift' || ab.result?.kind === 'tied-ceiling', true)
+    assert.equal(typeof ab.medianTokens.value, 'number')
+    assert.notEqual(ab.medianTokens.text, 'not reported')
+  })
+
+  test('each attempt carries its token and time split and its judge calls', () => {
+    const record = cloneRecord('with-layouts')
+    const e = record.evals.find((ev) => !ev.compare) ?? record.evals[0]!
+    const a = e.attempts.find((x) => x.seq !== null)!
+    a.usage = { input: 100, output: 40, cacheRead: 800, cacheWrite: 60, reasoning: 12 }
+    a.timeSplit = { modelMs: 3000, toolMs: 1500, waitingMs: 0, otherMs: 500 }
+    a.judgements = [
+      {
+        key: '0:q',
+        label: 'clear',
+        question: 'Is it clear?',
+        verdict: 'fail',
+        score: 0.3,
+        threshold: 0.7,
+        model: 'fake',
+      },
+    ]
+    const report = buildRunReport(record, { evals: [e.key], links: { base: './' } })
+    const row = report.attempts.find((r) => r.key === a.key)!
+    assert.deepEqual(row.usage, a.usage)
+    assert.equal(row.tokens.value, 1000)
+    assert.deepEqual(row.time, { ...a.timings, agent: a.timeSplit })
+    assert.equal(row.time?.agentMs, row.agentMs.value)
+    assert.deepEqual(row.judgments, [
+      { label: 'clear', score: 0.3, threshold: 0.7, verdict: 'fail', gated: false },
+    ])
+    const judge = report.evals[0]!.judgments?.scores.find((s) => s.label === 'clear')
+    assert.deepEqual(judge?.scores, [
+      {
+        attempt: row.id,
+        key: a.key,
+        keys: judge?.scores?.[0]?.keys,
+        score: 0.3,
+        verdict: 'fail',
+        outcome: row.outcome,
+      },
+    ])
+    assert.doesNotThrow(() => runReportSchema.parse(report))
+  })
+
+  test("every judge row's scores are the values behind its spread", () => {
+    for (const entry of corpusEntries()) {
+      const file = entry.runs.at(-1)?.file
+      if (!file) continue
+      const record = readableRecord(JSON.parse(readFileSync(file, 'utf8')) as RunRecord)
+      for (const section of buildRunReport(record).evals) {
+        for (const row of section.judgments?.scores ?? []) {
+          assert.equal(row.scores?.length, row.spread.n, `${entry.name}: ${row.label}`)
+        }
+      }
+    }
+  })
+
+  test('choice rows and regression rows carry k and n', () => {
+    for (const entry of corpusEntries()) {
+      const file = entry.runs.at(-1)?.file
+      if (!file) continue
+      const record = readableRecord(JSON.parse(readFileSync(file, 'utf8')) as RunRecord)
+      for (const section of buildRunReport(record).evals) {
+        for (const choice of section.choices) {
+          for (const row of choice.rows) {
+            assert.deepEqual(
+              row.picks,
+              choice.options.map((o) => ({
+                option: o.label,
+                k: row.counts[o.label] ?? 0,
+                n: row.attempts,
+              })),
+            )
+          }
+        }
+      }
+    }
   })
 })

@@ -1,7 +1,12 @@
 // `reeval/renderer/markdown`: a `RunReport` as Markdown, the one renderer behind summary.md,
 // `reeval show --md`, `reeval compare --md`, the MCP server's `md` and `reeval analyze --save`.
 
-import { medianWithDelta } from '../view/report/format.ts'
+import {
+  changeSideText,
+  headlineResultText,
+  medianWithDelta,
+  remarkLine,
+} from '../view/report/format.ts'
 import { attemptAnchorId } from '../view/report/ids.ts'
 import {
   COMPARE_STATUS_LABEL,
@@ -92,16 +97,6 @@ function h(level: number, text: string): string {
   return `${'#'.repeat(level)} ${text}`
 }
 
-/** `source:file#L12` → `file:12`, matching the CLI's Worth knowing line. */
-const remarkLocation = (at: string) => at.replace(/^source:/, '').replace(/#L(\d+)$/, ':$1')
-
-function formatRemark(r: { text: string; fix?: { at: string; edit: string } | null }): string {
-  if (!r.fix?.at) return r.text
-  return r.fix.edit
-    ? `${r.text} Fix at ${remarkLocation(r.fix.at)}: ${r.fix.edit}.`
-    : `${r.text} At ${remarkLocation(r.fix.at)}.`
-}
-
 function shapeLabel(shapes: EvalSection['shapes']): string {
   const map = {
     task: 'Task',
@@ -135,7 +130,7 @@ function headlineBold(primary: HeadlinePrimary): string {
       ].filter(Boolean)
       const counts = parts.length ? parts.join(', ') : 'no gated flips'
       if (!primary.lead) return `**${counts}**`
-      return `**${counts}: ${primary.lead.signal}, ${primary.lead.prior} to ${primary.lead.current}**`
+      return `**${counts}: ${primary.lead.signal}, ${changeSideText(primary.lead, 'prior')} to ${changeSideText(primary.lead, 'current')}**`
     }
   }
 }
@@ -311,12 +306,25 @@ function comparisonMarkdown(primary: VariantComparison, blockLevel: number): str
   }
   if (primary.contrasts.length) {
     lines.push(h(blockLevel, 'Pairwise contrasts'), '')
+    const showHarness = primary.contrasts.some((c) => c.harness !== undefined)
+    const showSandbox = new Set(primary.contrasts.map((c) => c.sandbox)).size > 1
     lines.push(
       table(
-        ['From', 'To', 'Measure', 'Delta', 'Interval', 'Pass-rate verdict'],
+        [
+          'From',
+          'To',
+          ...(showHarness ? ['Coding harness'] : []),
+          ...(showSandbox ? ['Sandbox'] : []),
+          'Measure',
+          'Delta',
+          'Interval',
+          'Pass-rate verdict',
+        ],
         primary.contrasts.map((c: ContrastRow) => [
           c.from,
           c.to,
+          ...(showHarness ? [c.harness ?? 'n/a'] : []),
+          ...(showSandbox ? [c.sandbox ?? 'n/a'] : []),
           contrastMeasureLabel(c.measure),
           c.delta.text,
           c.interval?.text ?? 'n/a',
@@ -371,8 +379,8 @@ function regressionMarkdown(primary: RegressionChanges, blockLevel: number): str
           r.signal,
           r.kind,
           r.harness ?? 'n/a',
-          r.prior,
-          r.current,
+          changeSideText(r, 'prior'),
+          changeSideText(r, 'current'),
           r.delta?.text ?? 'n/a',
           COMPARE_STATUS_LABEL[r.status],
           r.gate ? 'gate' : 'ungated',
@@ -386,7 +394,12 @@ function regressionMarkdown(primary: RegressionChanges, blockLevel: number): str
     lines.push(
       table(
         ['Signal', 'Kind', 'Prior', 'Current'],
-        primary.unchanged.map((r) => [r.signal, r.kind, r.prior, r.current]),
+        primary.unchanged.map((r) => [
+          r.signal,
+          r.kind,
+          changeSideText(r, 'prior'),
+          changeSideText(r, 'current'),
+        ]),
       ),
       '',
       '</details>',
@@ -422,7 +435,9 @@ function choicesMarkdown(choices: ChoiceBreakdown[], blockLevel: number): string
             ...(showArm ? [r.arm ?? 'n/a'] : []),
             r.prompt ?? 'n/a',
             r.harness,
-            ...optionLabels.map((o) => String(r.counts[o] ?? 0)),
+            ...optionLabels.map((o) =>
+              String(r.picks?.find((p) => p.option === o)?.k ?? r.counts[o] ?? 0),
+            ),
             String(r.attempts),
           ]),
         ),
@@ -601,7 +616,7 @@ function failuresMarkdown(f: FailureClusters, blockLevel: number): string[] {
   if (f.remarks.length) {
     lines.push(h(blockLevel + 1, 'Worth knowing'), '')
     for (const r of f.remarks) {
-      lines.push(`- (${r.severity}) ${formatRemark(r)}`)
+      lines.push(`- (${r.severity}) ${r.line ?? remarkLine(r)}`)
     }
     lines.push('')
   }
@@ -672,7 +687,7 @@ export const blockMarkdown: BlockMarkdown = {
           rollup.rows.map((r) => [
             `[${r.name}](#${r.anchor})`,
             `${r.shapes.join(', ')}; ${r.design}`,
-            r.primary,
+            r.result ? headlineResultText(r.result) : r.primary,
             r.medianTokens.text,
           ]),
         ),

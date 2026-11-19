@@ -8,7 +8,7 @@ import type { AttemptFacts } from '../classify.ts'
 import type { CompareRow, StackChange } from '../compare.ts'
 import { contrastsOf } from '../contrasts.ts'
 import { runCost } from '../cost.ts'
-import { effortSample, filesChanged, formatCount, formatSeconds } from '../effort.ts'
+import { effortSample, filesChanged, formatCount } from '../effort.ts'
 import { labeledJudgments } from '../judgments.ts'
 import { attemptAnswerRows, isUngatedMiss } from '../model.ts'
 import type { RunRemarks } from '../remarks.ts'
@@ -20,17 +20,22 @@ import {
   countOf,
   diffLinesText,
   durationFigure,
+  headlineResultText,
+  MEASURE_TEXT,
   pctDelta,
+  proportion,
+  proportionText,
   ptsDelta,
   ptsInterval,
   rateOf,
+  remarkLine,
   spreadOf,
   tokensFigure,
   tokensText,
   usdFigure,
 } from './format.ts'
 import { type AttemptIdMap, attemptIds, selectedEvals } from './ids.ts'
-import { measurePhrase, PASS_RATE_OUTCOME_LABEL, passRateOutcomeFromMatchers } from './labels.ts'
+import { PASS_RATE_OUTCOME_LABEL, passRateOutcomeFromMatchers } from './labels.ts'
 import { attemptHref, attemptRef, captureHref, gfmAnchor, withBase } from './links.ts'
 import { REPORT_POLICY } from './policy.ts'
 import { provenanceState } from './provenance.ts'
@@ -56,11 +61,14 @@ import type {
   Fairness,
   Figure,
   HeadlinePrimary,
+  HeadlineResult,
   IntegrityIssue,
+  JudgeScore,
   JudgmentBreakdown,
   MeasureCells,
   MeasureKey,
   MeasureVsBaseline,
+  Proportion,
   QualitativeAnswers,
   Quote,
   Rate,
@@ -249,19 +257,9 @@ function measureValues(attempts: AttemptRecord[]): Record<MeasureKey, number[]> 
 
 function measuresOf(attempts: AttemptRecord[]): MeasureCells {
   const values = measureValues(attempts)
-  const fmt: Record<MeasureKey, (n: number) => string> = {
-    tokens: tokensText,
-    toolCalls: formatCount,
-    turns: formatCount,
-    costUsd: (n) => usdFigure(n).text,
-    agentMs: formatSeconds,
-    filesChanged: formatCount,
-    linesAdded: formatCount,
-    linesRemoved: formatCount,
-  }
   const cells = emptyMeasures()
   for (const key of MEASURE_KEYS) {
-    cells[key] = spreadOf(values[key], fmt[key])
+    cells[key] = spreadOf(values[key], MEASURE_TEXT[key])
   }
   return cells
 }
@@ -347,6 +345,14 @@ function wasReclassified(a: AttemptRecord): boolean {
   if ((a as { turnStatusRead?: boolean }).turnStatusRead === true) return false
   if (a.error && 'turn' in a.error && (a.error as { turn?: unknown }).turn) return true
   return a.turns.some((t) => t.status === 'error') && countedOutcome(a.outcome)
+}
+
+/** An attempt's outcome as the index shows it: a fail an interrupted run aborted is `canceled`. */
+function indexOutcome(a: AttemptRecord, record: RunRecord): AttemptIndexRow['outcome'] {
+  if (a.outcome === 'fail' && a.error?.kind === 'aborted' && record.status === 'interrupted') {
+    return 'canceled'
+  }
+  return a.outcome as AttemptIndexRow['outcome']
 }
 
 function turnErrorMessage(a: AttemptRecord): string | null {
@@ -632,31 +638,58 @@ function floorSentence(fairness: Fairness, n: number): string {
   return ''
 }
 
-function headlinePrimaryText(primary: HeadlinePrimary): string {
+function headlineResultOf(primary: HeadlinePrimary): HeadlineResult {
   switch (primary.kind) {
     case 'pass-rate':
-      return `${primary.rate.text} ${PASS_RATE_OUTCOME_LABEL[primary.outcome]}`
+      return { kind: 'pass-rate', passed: proportion(primary.rate), outcome: primary.outcome }
     case 'lift':
-      return `${primary.variant.label} vs ${primary.baseline.label}: ${primary.points.text} pass rate (${primary.variantRate.text} vs ${primary.baselineRate.text})`
+      return {
+        kind: 'lift',
+        baseline: primary.baseline.label,
+        variant: primary.variant.label,
+        baselinePassed: proportion(primary.baselineRate),
+        variantPassed: proportion(primary.variantRate),
+        points: primary.points.value ?? 0,
+        lo: primary.interval.lo,
+        hi: primary.interval.hi,
+      }
     case 'tied-ceiling':
-      return `${primary.variant.label} vs ${primary.baseline.label}: tied at ${primary.rate.text} pass rate, median ${measurePhrase(primary.lead.measure)} ${primary.lead.delta.text} (${primary.lead.variant.text} vs ${primary.lead.baseline.text})`
+      return {
+        kind: 'tied-ceiling',
+        baseline: primary.baseline.label,
+        variant: primary.variant.label,
+        passed: proportion(primary.rate),
+        measure: primary.lead.measure,
+        baselineMedian: primary.lead.baseline.value ?? 0,
+        variantMedian: primary.lead.variant.value ?? 0,
+      }
     case 'choice':
-      return `${primary.question}: ${primary.options.map((o) => `${o.label} ${o.count}`).join(', ')}`
+      return {
+        kind: 'choice',
+        question: primary.question,
+        options: primary.options,
+        attempts: primary.attempts,
+      }
     case 'measure':
-      return `Median ${primary.label}: ${primary.spread.median.text}`
+      return {
+        kind: 'measure',
+        label: primary.label,
+        unit: primary.unit,
+        median: primary.spread.median.value,
+        n: primary.spread.n,
+      }
     case 'judge':
-      return `${primary.label}: median ${primary.spread.median.text} on ${primary.scale[0]} to ${primary.scale[1]}`
+      return {
+        kind: 'judge',
+        label: primary.label,
+        scale: primary.scale,
+        median: primary.spread.median.value,
+        n: primary.spread.n,
+      }
     case 'text':
-      return primary.question
-    case 'regression': {
-      const parts = [
-        primary.worse ? `${primary.worse} worse` : null,
-        primary.fixed ? `${primary.fixed} fixed` : null,
-      ].filter(Boolean)
-      const counts = parts.length ? parts.join(', ') : 'no gated flips'
-      if (!primary.lead) return counts
-      return `${counts}: ${primary.lead.signal}, ${primary.lead.prior} to ${primary.lead.current}`
-    }
+      return { kind: 'text', question: primary.question, answered: proportion(primary.answered) }
+    case 'regression':
+      return { kind: 'regression', worse: primary.worse, fixed: primary.fixed, lead: primary.lead }
   }
 }
 
@@ -677,12 +710,6 @@ function chooseHeadline(
     const sha = p.gitSha ? p.gitSha.slice(0, 7) : null
     const bits = [when, sha, p.runId].filter(Boolean)
     kicker = `Compared with ${bits.join(', ')}`
-  } else if (compare && arms.length >= 2) {
-    const baseline = arms.find((a) => a.role === 'baseline')
-    const variant = arms.find((a) => a.role === 'variant')
-    if (baseline && variant) {
-      kicker = `${variant.label} against the ${baseline.label} baseline`
-    }
   }
 
   if (regression) {
@@ -746,6 +773,7 @@ function chooseHeadline(
     })
     lifts.sort((a, b) => Math.abs(b.rawPoints) - Math.abs(a.rawPoints))
     const best = lifts[0]!
+    kicker = `${best.variant.label} against the ${baseline.label} baseline`
     const others = lifts.slice(1).map(({ variant, points, interval, rate }) => ({
       variant,
       points,
@@ -1127,6 +1155,10 @@ function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
       {
         from: aCell.variant ?? aCell.environment,
         to: bCell.variant ?? bCell.environment,
+        harness: aCell.harness,
+        sandbox: aCell.sandbox,
+        fromPassed: { k: c.lift.variant.pass, n: c.lift.variant.counted },
+        toPassed: { k: c.lift.control.pass, n: c.lift.control.counted },
         measure: 'pass-rate' as const,
         delta: ptsDelta(c.lift.points),
         interval: ptsInterval(c.lift.interval.lo, c.lift.interval.hi),
@@ -1186,15 +1218,17 @@ function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
   }
 }
 
-function compareSideText(row: CompareRow, side: 'base' | 'head'): string {
+function compareSidePassed(row: CompareRow, side: 'base' | 'head'): Proportion | null {
   const cells = row.perCell
-  if (cells?.length) {
-    const pass = cells.reduce((n, c) => n + c[side].pass, 0)
-    const fail = cells.reduce((n, c) => n + c[side].fail, 0)
-    const n = pass + fail
-    if (n > 0) return `${pass} of ${n}`
-  }
-  return row[side] ?? 'n/a'
+  if (!cells?.length) return null
+  const k = cells.reduce((n, c) => n + c[side].pass, 0)
+  const n = k + cells.reduce((n, c) => n + c[side].fail, 0)
+  return n > 0 ? { k, n } : null
+}
+
+function compareSideText(row: CompareRow, side: 'base' | 'head'): string {
+  const passed = compareSidePassed(row, side)
+  return passed ? proportionText(passed) : (row[side] ?? 'n/a')
 }
 
 function compareSideDelta(row: CompareRow): ReturnType<typeof ptsDelta> | null {
@@ -1218,6 +1252,8 @@ function buildRegression(prior: NonNullable<Ctx['prior']>): RegressionChanges {
       harness: null,
       prior: compareSideText(row, 'base'),
       current: compareSideText(row, 'head'),
+      priorPassed: compareSidePassed(row, 'base'),
+      currentPassed: compareSidePassed(row, 'head'),
       delta: compareSideDelta(row),
       status: row.status,
       gate: Boolean(row.gate),
@@ -1284,6 +1320,11 @@ function buildChoices(e: EvalEntry): ChoiceBreakdown[] {
       }
       const rows = [...byKey.values()].map((row) => ({
         ...row,
+        picks: options.map((o) => ({
+          option: o.label,
+          k: row.counts[o.label] ?? 0,
+          n: row.attempts,
+        })),
         text: options.map((o) => `${o.label} ${row.counts[o.label] ?? 0}`).join(', '),
       }))
       return {
@@ -1387,11 +1428,16 @@ function buildDiscovery(
   return out
 }
 
-function buildJudgments(e: EvalEntry): JudgmentBreakdown | null {
+function buildJudgments(
+  e: EvalEntry,
+  ids: AttemptIdMap,
+  record: RunRecord,
+): JudgmentBreakdown | null {
   const scores = e.attempts.flatMap((a) => {
     const cell = cellOf(e, a.cell)
     return labeledJudgments(a).map((j) => ({
       ...j,
+      attempt: a,
       keys: [cell?.harness ?? a.cell, cell?.environment ?? ''].filter(Boolean),
     }))
   })
@@ -1420,6 +1466,20 @@ function buildJudgments(e: EvalEntry): JudgmentBreakdown | null {
         threshold === null
           ? null
           : countOf(values.filter((v) => v >= threshold).length, values.length),
+      scores: rows.flatMap((r): JudgeScore[] => {
+        const id = ids.get(r.attempt.key)
+        if (!id || r.attempt.outcome === 'skipped') return []
+        return [
+          {
+            attempt: id,
+            key: r.attempt.key,
+            keys: r.keys,
+            score: r.judgment.score,
+            verdict: r.judgment.verdict,
+            outcome: indexOutcome(r.attempt, record),
+          },
+        ]
+      }),
     }
   })
   // Pairwise from eval.answers: rates only; attempt cites need PairVote.attempts (newer records).
@@ -1616,7 +1676,13 @@ function buildFailures(
           r.severity === 'concern' &&
           (r.evalKey === e.key || r.evalId === e.id || r.evalId === e.key || r.evalId === evalPath),
       )
-      .map((r) => ({ kind: r.kind, severity: r.severity, text: r.text, fix: r.fix })) ?? []
+      .map((r) => ({
+        kind: r.kind,
+        severity: r.severity,
+        text: r.text,
+        fix: r.fix,
+        line: remarkLine(r),
+      })) ?? []
   if (!clusters.size && !evalRemarks.length) return null
   return {
     clusters: [...clusters.values()].sort((a, b) => b.count.k - a.count.k),
@@ -1703,7 +1769,7 @@ function buildEvalSection(ctx: Ctx, e: EvalEntry, displayName: string): EvalSect
     primary,
     choices: buildChoices(e),
     discovery: buildDiscovery(e, ctx.facts),
-    judgments: buildJudgments(e),
+    judgments: buildJudgments(e, ctx.ids, ctx.record),
     qualitative: buildQualitative(e, ctx.ids, ctx.linkBase, ctx.hrefs, ctx.hrefByKey),
     captures: buildCaptures(e, ctx.ids, ctx.linkBase, ctx.hrefs, ctx.hrefByKey, ctx.pages),
     failures: buildFailures(e, ctx.ids, ctx.linkBase, ctx.hrefs, ctx.hrefByKey, ctx.remarks),
@@ -1766,6 +1832,7 @@ function buildIntegrity(ctx: Ctx): IntegrityIssue[] {
       }
     }
     if (e.compare) {
+      const harnessesByCheck = new Map<string, Set<string>>()
       for (const c of e.cells.filter((x) => x.role === 'control')) {
         for (const check of c.checks ?? []) {
           const answered = check.pass + check.fail
@@ -1780,21 +1847,28 @@ function buildIntegrity(ctx: Ctx): IntegrityIssue[] {
                 ),
             )
             if (variant) {
-              issues.push({
-                kind: 'baseline-never-passes',
-                severity: 'warn',
-                text: `Check "${check.label}" never passes on the baseline and always passes on a variant; it may not apply to the baseline.`,
-                evalId: e.key,
-                cites: [],
-              })
+              const harnesses = harnessesByCheck.get(check.label) ?? new Set()
+              harnesses.add(c.harness)
+              harnessesByCheck.set(check.label, harnesses)
             }
           }
         }
       }
-    }
-    for (const a of e.attempts) {
-      if (!a.usage && countedOutcome(a.outcome)) {
-        // Collect once per eval below.
+      const allHarnesses = new Set(e.cells.map((c) => c.harness)).size
+      for (const [label, harnesses] of harnessesByCheck) {
+        const on =
+          allHarnesses > 1
+            ? harnesses.size === allHarnesses
+              ? ' on every coding harness'
+              : ` on coding harness${harnesses.size === 1 ? '' : 'es'} ${[...harnesses].join(', ')}`
+            : ''
+        issues.push({
+          kind: 'baseline-never-passes',
+          severity: 'warn',
+          text: `Check "${label}" never passes on the baseline and always passes on a variant${on}; it may not apply to the baseline.`,
+          evalId: e.key,
+          cites: [],
+        })
       }
     }
     const unreported = e.attempts.filter((a) => countedOutcome(a.outcome) && !a.usage)
@@ -1854,7 +1928,24 @@ function buildIntegrity(ctx: Ctx): IntegrityIssue[] {
       })
     }
   }
-  return issues
+  return mergeIssues(issues)
+}
+
+/** One issue per kind, eval and sentence, its cites merged in order. */
+function mergeIssues(issues: IntegrityIssue[]): IntegrityIssue[] {
+  const byId = new Map<string, IntegrityIssue>()
+  for (const issue of issues) {
+    const id = `${issue.kind}\0${issue.evalId ?? ''}\0${issue.text}`
+    const seen = byId.get(id)
+    if (!seen) {
+      byId.set(id, { ...issue, cites: [...issue.cites] })
+      continue
+    }
+    for (const cite of issue.cites) {
+      if (!seen.cites.some((c) => c.key === cite.key)) seen.cites.push(cite)
+    }
+  }
+  return [...byId.values()]
 }
 
 function buildRoster(evals: EvalEntry[], record: RunRecord): RosterRow[] {
@@ -1888,6 +1979,7 @@ function buildRoster(evals: EvalEntry[], record: RunRecord): RosterRow[] {
 
 function buildRollup(
   sections: EvalSection[],
+  evals: ReadonlyMap<string, EvalEntry>,
   analysis: AnalysisDoc | null,
 ): ExecutiveRollup | null {
   if (sections.length < 2 && !analysis?.analysis.tldr) return null
@@ -1911,26 +2003,39 @@ function buildRollup(
     : []
   return {
     lead,
-    rows: sections.map((s) => ({
-      evalId: s.id,
-      name: s.name,
-      anchor: s.anchor,
-      shapes: s.shapes,
-      design: s.design,
-      primary: headlinePrimaryText(s.headline.primary),
-      medianTokens:
-        s.headline.primary.kind === 'measure' && s.headline.primary.unit === 'tokens'
-          ? s.headline.primary.spread.median
-          : tokensFigure(
-              s.primary && 'breakdown' in s.primary
-                ? (s.primary.median?.measures.tokens?.median.value ??
-                    s.primary.breakdown[0]?.measures.tokens?.median.value ??
-                    null)
-                : null,
-            ),
-    })),
+    rows: sections.map((s) => {
+      const result = headlineResultOf(s.headline.primary)
+      return {
+        evalId: s.id,
+        name: s.name,
+        anchor: s.anchor,
+        shapes: s.shapes,
+        design: s.design,
+        primary: headlineResultText(result),
+        result,
+        medianTokens: rollupTokens(s, evals.get(s.id)),
+      }
+    }),
     findings,
   }
+}
+
+function rollupTokens(s: EvalSection, e: EvalEntry | undefined): Figure {
+  if (s.headline.primary.kind === 'measure' && s.headline.primary.unit === 'tokens') {
+    return s.headline.primary.spread.median
+  }
+  if (s.primary && 'breakdown' in s.primary) {
+    return tokensFigure(
+      s.primary.median?.measures.tokens?.median.value ??
+        s.primary.breakdown[0]?.measures.tokens?.median.value ??
+        null,
+    )
+  }
+  if (s.primary?.kind === 'comparison' && e) {
+    const counted = e.attempts.filter((a) => countedOutcome(a.outcome))
+    return tokensFigure(measuresOf(counted).tokens?.median.value ?? null)
+  }
+  return tokensFigure(null)
 }
 
 function buildActions(analysis: AnalysisDoc | null): ReportClaim[] {
@@ -1965,8 +2070,6 @@ function buildAttemptIndex(ctx: Ctx): AttemptIndexRow[] {
         ((a as { turnStatusRead?: boolean }).turnStatusRead === false ||
           ((a as { turnStatusRead?: boolean }).turnStatusRead === undefined &&
             a.turns.some((t) => t.status === 'error')))
-      const canceled =
-        a.outcome === 'fail' && a.error?.kind === 'aborted' && record.status === 'interrupted'
       rows.push({
         id,
         key: a.key,
@@ -1974,12 +2077,43 @@ function buildAttemptIndex(ctx: Ctx): AttemptIndexRow[] {
         harness: cell?.harness ?? a.cell,
         arm: cell?.environment ?? null,
         case: a.case ?? null,
-        outcome: canceled ? 'canceled' : (a.outcome as AttemptIndexRow['outcome']),
+        outcome: indexOutcome(a, record),
         reclassified,
         turnError: turnErrorMessage(a),
         tokens: tokensFigure(a.usage ? totalTokens(a.usage) : null),
         agentMs: durationFigure(a.timings.agentMs),
         toolCalls: countFigure(a.activity.tools),
+        usage: a.usage
+          ? {
+              input: a.usage.input,
+              output: a.usage.output,
+              cacheRead: a.usage.cacheRead,
+              cacheWrite: a.usage.cacheWrite,
+              reasoning: a.usage.reasoning,
+            }
+          : null,
+        time: {
+          setupMs: a.timings.setupMs,
+          agentMs: a.timings.agentMs,
+          diffMs: a.timings.diffMs,
+          checksMs: a.timings.checksMs,
+          judgeMs: a.timings.judgeMs,
+          agent: a.timeSplit
+            ? {
+                modelMs: a.timeSplit.modelMs,
+                toolMs: a.timeSplit.toolMs,
+                waitingMs: a.timeSplit.waitingMs,
+                otherMs: a.timeSplit.otherMs,
+              }
+            : null,
+        },
+        judgments: labeledJudgments(a).map((j) => ({
+          label: j.label,
+          score: j.judgment.score,
+          threshold: j.judgment.threshold,
+          verdict: j.judgment.verdict,
+          gated: j.check !== undefined,
+        })),
         ...(ctx.facts?.has(a.key) ? { facts: ctx.facts.get(a.key) } : {}),
         diff:
           diffStats.files === 0 && diffStats.added === null
@@ -2040,7 +2174,7 @@ export function buildRunReport(record: RunRecord, options: RunReportOptions = {}
 
   const sections = evals.map((e) => buildEvalSection(ctx, e, names.get(e.key) ?? e.name))
   const single = sections.length === 1
-  const rollup = buildRollup(sections, ctx.analysis)
+  const rollup = buildRollup(sections, new Map(evals.map((e) => [e.key, e])), ctx.analysis)
   const roster = buildRoster(evals, record)
 
   return {

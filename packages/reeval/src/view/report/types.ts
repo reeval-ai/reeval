@@ -22,6 +22,8 @@ export type Rate = {
   text: string
   interval: Interval | null
 }
+/** A proportion as its counts, `k` of `n`; a renderer derives the rate, interval and text. */
+export type Proportion = { k: number; n: number }
 /** `href` is the citation target (Section 2.10). */
 export type AttemptRef = {
   /** The display label, `A1..AN`, numbered over the evals the report covers. */
@@ -132,8 +134,11 @@ export type ExecutiveRollup = {
     shapes: EvalShape[]
     /** `3 arms × 4 coding harnesses`. */
     design: string
-    /** The eval's headline in one cell, in its native unit. */
+    /** The eval's headline in one cell, in its native unit: `result` as text. */
     primary: string
+    /** The headline as numbers; absent in reports built before it. */
+    result?: HeadlineResult
+    /** Over the eval's counted attempts, every arm's on an A/B eval. */
     medianTokens: Figure
   }>
   /** Run-level analysis claims (no `evalId`). */
@@ -251,6 +256,47 @@ export type HeadlinePrimary =
       lead: ChangeRow | null
     }
 
+/** An eval's headline as numbers only, which `headlineResultText` prints. */
+export type HeadlineResult =
+  | { kind: 'pass-rate'; passed: Proportion; outcome: 'passed' | 'found' | 'used' }
+  | {
+      kind: 'lift'
+      baseline: string
+      variant: string
+      baselinePassed: Proportion
+      variantPassed: Proportion
+      /** Pass-rate points as a fraction (`1` is +100 pts), with its 95% interval. */
+      points: number
+      lo: number
+      hi: number
+    }
+  | {
+      kind: 'tied-ceiling'
+      baseline: string
+      variant: string
+      passed: Proportion
+      measure: MeasureKey
+      baselineMedian: number
+      variantMedian: number
+    }
+  | {
+      kind: 'choice'
+      question: string
+      options: Array<{ label: string; count: number }>
+      attempts: number
+    }
+  | {
+      kind: 'measure'
+      label: string
+      unit: 'tokens' | 'ms' | 'usd' | 'count' | 'lines' | 'files'
+      /** Null when no attempt reported it. */
+      median: number | null
+      n: number
+    }
+  | { kind: 'judge'; label: string; scale: [number, number]; median: number | null; n: number }
+  | { kind: 'text'; question: string; answered: Proportion }
+  | { kind: 'regression'; worse: number; fixed: number; lead: ChangeRow | null }
+
 export type CheckCell = {
   status: 'pass' | 'fail' | 'mixed' | 'na' | 'error' | 'not-run'
   passed: number
@@ -330,9 +376,21 @@ export type EffortPivotRow = {
 
 export type BehaviorRow = { label: string; matcher: string; cells: Record<string, Count | null> }
 
+/**
+ * `from` against `to` on one coding harness and sandbox: each pair has a row per harness (and
+ * sandbox), whose interval is over that cell's attempts alone.
+ */
 export type ContrastRow = {
   from: string
   to: string
+  /** The coding harness both cells ran on; absent in reports built before it. */
+  harness?: string
+  /** The sandbox both cells ran in. */
+  sandbox?: string
+  /** `from`'s counted attempts that passed. */
+  fromPassed?: Proportion
+  /** `to`'s counted attempts that passed. */
+  toPassed?: Proportion
   measure: 'pass-rate' | MeasureKey
   delta: Delta
   interval: Interval | null
@@ -359,8 +417,12 @@ export type ChangeRow = {
   signal: string
   kind: 'outcome' | 'assertion' | 'judgment' | 'choice' | 'measure' | 'observation'
   harness: string | null
+  /** `priorPassed` as text when set, else the comparison's own value. */
   prior: string
   current: string
+  /** The prior run's counted attempts that passed; null when the row has no counts. */
+  priorPassed?: Proportion | null
+  currentPassed?: Proportion | null
   delta: Delta | null
   status: CompareStatus
   gate: boolean
@@ -394,6 +456,9 @@ export type ChoiceBreakdown = {
     harness: string
     counts: Record<string, number>
     attempts: number
+    /** Each option's count out of the row's attempts, in `options` order. */
+    picks?: Array<{ option: string } & Proportion>
+    /** `counts` as text. */
     text: string
   }>
   passByPick: Array<{ option: string; rate: Rate }>
@@ -425,6 +490,20 @@ export type JudgeRow = {
   spread: Spread
   /** Null when `threshold` is null (diagnostic): omit from "At or above". */
   atOrAbove: Count | null
+  /** Each score behind `spread`, one per judge call; absent in reports built before it. */
+  scores?: JudgeScore[]
+}
+
+export type JudgeScore = {
+  /** The attempt's index id (`A3`) and `AttemptRecord.key`. */
+  attempt: string
+  key: string
+  /** One value per `JudgeRow.keys` axis. */
+  keys: string[]
+  score: number
+  /** The judge's own verdict on its threshold. */
+  verdict: 'pass' | 'fail'
+  outcome: AttemptIndexRow['outcome']
 }
 
 export type PairwiseRow = {
@@ -489,6 +568,8 @@ export type FailureClusters = {
     severity: Remark['severity']
     text: string
     fix: Remark['fix']
+    /** `text` with `fix` as one plain line (`… Fix at evals/a.eval.ts:12: set runs: 4.`). */
+    line?: string
   }>
 }
 
@@ -524,6 +605,34 @@ export type AttemptIndexRow = {
   tokens: Figure
   agentMs: Figure
   toolCalls: Figure
+  /** The tokens `tokens` adds up; null when the harness reported none, absent before it. */
+  usage?: {
+    input: number
+    output: number
+    cacheRead: number
+    cacheWrite: number
+    /** Of `output`; null when the harness doesn't say. */
+    reasoning: number | null
+  } | null
+  /** Where the attempt's time went, by phase, and the agent's turns by what they waited on. */
+  time?: {
+    setupMs: number
+    agentMs: number
+    diffMs: number
+    checksMs: number
+    judgeMs: number
+    /** Null when no turn split its time. */
+    agent: { modelMs: number | null; toolMs: number; waitingMs: number; otherMs: number } | null
+  }
+  /** The attempt's judge calls, in call order, labeled as `JudgeRow.label`. */
+  judgments?: Array<{
+    label: string
+    score: number
+    threshold: number
+    verdict: 'pass' | 'fail'
+    /** Whether a `toPass` assertion gated on it. */
+    gated: boolean
+  }>
   /**
    * What its transcript shows it did, from the report's `facts`; absent when the report had none
    * for it, such as a passing attempt whose transcript `evidence` didn't keep.

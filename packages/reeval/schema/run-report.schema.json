@@ -327,6 +327,33 @@
         "id": {
           "type": "string"
         },
+        "judgments": {
+          "description": "The attempt's judge calls, in call order, labeled as `JudgeRow.label`.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "gated": {
+                "description": "Whether a `toPass` assertion gated on it.",
+                "type": "boolean"
+              },
+              "label": {
+                "type": "string"
+              },
+              "score": {
+                "type": "number"
+              },
+              "threshold": {
+                "type": "number"
+              },
+              "verdict": {
+                "type": "string",
+                "enum": ["pass", "fail"]
+              }
+            },
+            "required": ["gated", "label", "score", "threshold", "verdict"]
+          }
+        },
         "key": {
           "description": "`AttemptRecord.key`.",
           "type": "string"
@@ -371,6 +398,70 @@
         "reclassified": {
           "type": "boolean"
         },
+        "time": {
+          "description": "Where the attempt's time went, by phase, and the agent's turns by what they waited on.",
+          "type": "object",
+          "properties": {
+            "agent": {
+              "description": "Null when no turn split its time.",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "modelMs": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "otherMs": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "toolMs": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "waitingMs": {
+                      "type": "number",
+                      "minimum": 0
+                    }
+                  },
+                  "required": ["modelMs", "otherMs", "toolMs", "waitingMs"]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "agentMs": {
+              "type": "number",
+              "minimum": 0
+            },
+            "checksMs": {
+              "type": "number",
+              "minimum": 0
+            },
+            "diffMs": {
+              "type": "number",
+              "minimum": 0
+            },
+            "judgeMs": {
+              "type": "number",
+              "minimum": 0
+            },
+            "setupMs": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": ["agent", "agentMs", "checksMs", "diffMs", "judgeMs", "setupMs"]
+        },
         "tokens": {
           "$ref": "#/$defs/Figure"
         },
@@ -379,6 +470,48 @@
         },
         "turnError": {
           "type": ["string", "null"]
+        },
+        "usage": {
+          "description": "The tokens `tokens` adds up; null when the harness reported none, absent before it.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "cacheRead": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "cacheWrite": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "input": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "output": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "reasoning": {
+                  "description": "Of `output`; null when the harness doesn't say.",
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": ["cacheRead", "cacheWrite", "input", "output", "reasoning"]
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -535,6 +668,16 @@
         "current": {
           "type": "string"
         },
+        "currentPassed": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Proportion"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "delta": {
           "anyOf": [
             {
@@ -556,7 +699,19 @@
           "enum": ["outcome", "assertion", "judgment", "choice", "measure", "observation"]
         },
         "prior": {
+          "description": "`priorPassed` as text when set, else the comparison's own value.",
           "type": "string"
+        },
+        "priorPassed": {
+          "description": "The prior run's counted attempts that passed; null when the row has no counts.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Proportion"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "signal": {
           "type": "string"
@@ -686,10 +841,34 @@
               "harness": {
                 "type": "string"
               },
+              "picks": {
+                "description": "Each option's count out of the row's attempts, in `options` order.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "k": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "n": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "option": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["k", "n", "option"]
+                }
+              },
               "prompt": {
                 "type": ["string", "null"]
               },
               "text": {
+                "description": "`counts` as text.",
                 "type": "string"
               }
             },
@@ -700,12 +879,21 @@
       "required": ["noPick", "options", "passByPick", "question", "rows"]
     },
     "ContrastRow": {
+      "description": "`from` against `to` on one coding harness and sandbox: each pair has a row per harness (and sandbox), whose interval is over that cell's attempts alone.",
       "type": "object",
       "properties": {
         "delta": {
           "$ref": "#/$defs/Delta"
         },
         "from": {
+          "type": "string"
+        },
+        "fromPassed": {
+          "description": "`from`'s counted attempts that passed.",
+          "$ref": "#/$defs/Proportion"
+        },
+        "harness": {
+          "description": "The coding harness both cells ran on; absent in reports built before it.",
           "type": "string"
         },
         "interval": {
@@ -739,8 +927,16 @@
             }
           ]
         },
+        "sandbox": {
+          "description": "The sandbox both cells ran in.",
+          "type": "string"
+        },
         "to": {
           "type": "string"
+        },
+        "toPassed": {
+          "description": "`to`'s counted attempts that passed.",
+          "$ref": "#/$defs/Proportion"
         },
         "verdict": {
           "type": "string",
@@ -1086,14 +1282,266 @@
                 "type": "string"
               },
               "medianTokens": {
+                "description": "Over the eval's counted attempts, every arm's on an A/B eval.",
                 "$ref": "#/$defs/Figure"
               },
               "name": {
                 "type": "string"
               },
               "primary": {
-                "description": "The eval's headline in one cell, in its native unit.",
+                "description": "The eval's headline in one cell, in its native unit: `result` as text.",
                 "type": "string"
+              },
+              "result": {
+                "description": "The headline as numbers; absent in reports built before it.",
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "pass-rate"
+                      },
+                      "outcome": {
+                        "type": "string",
+                        "enum": ["passed", "found", "used"]
+                      },
+                      "passed": {
+                        "$ref": "#/$defs/Proportion"
+                      }
+                    },
+                    "required": ["kind", "outcome", "passed"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "baseline": {
+                        "type": "string"
+                      },
+                      "baselinePassed": {
+                        "$ref": "#/$defs/Proportion"
+                      },
+                      "hi": {
+                        "type": "number"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "const": "lift"
+                      },
+                      "lo": {
+                        "type": "number"
+                      },
+                      "points": {
+                        "description": "Pass-rate points as a fraction (`1` is +100 pts), with its 95% interval.",
+                        "type": "number"
+                      },
+                      "variant": {
+                        "type": "string"
+                      },
+                      "variantPassed": {
+                        "$ref": "#/$defs/Proportion"
+                      }
+                    },
+                    "required": [
+                      "baseline",
+                      "baselinePassed",
+                      "hi",
+                      "kind",
+                      "lo",
+                      "points",
+                      "variant",
+                      "variantPassed"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "baseline": {
+                        "type": "string"
+                      },
+                      "baselineMedian": {
+                        "type": "number"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "const": "tied-ceiling"
+                      },
+                      "measure": {
+                        "type": "string",
+                        "enum": [
+                          "tokens",
+                          "toolCalls",
+                          "turns",
+                          "costUsd",
+                          "agentMs",
+                          "filesChanged",
+                          "linesAdded",
+                          "linesRemoved"
+                        ]
+                      },
+                      "passed": {
+                        "$ref": "#/$defs/Proportion"
+                      },
+                      "variant": {
+                        "type": "string"
+                      },
+                      "variantMedian": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "baseline",
+                      "baselineMedian",
+                      "kind",
+                      "measure",
+                      "passed",
+                      "variant",
+                      "variantMedian"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "attempts": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "kind": {
+                        "type": "string",
+                        "const": "choice"
+                      },
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "count": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "label": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["count", "label"]
+                        }
+                      },
+                      "question": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["attempts", "kind", "options", "question"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "measure"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "median": {
+                        "description": "Null when no attempt reported it.",
+                        "type": ["number", "null"]
+                      },
+                      "n": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "unit": {
+                        "type": "string",
+                        "enum": ["tokens", "ms", "usd", "count", "lines", "files"]
+                      }
+                    },
+                    "required": ["kind", "label", "median", "n", "unit"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "judge"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "median": {
+                        "type": ["number", "null"]
+                      },
+                      "n": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "scale": {
+                        "type": "array",
+                        "prefixItems": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ],
+                        "items": false,
+                        "minItems": 2,
+                        "maxItems": 2
+                      }
+                    },
+                    "required": ["kind", "label", "median", "n", "scale"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "answered": {
+                        "$ref": "#/$defs/Proportion"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "const": "text"
+                      },
+                      "question": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["answered", "kind", "question"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "fixed": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "kind": {
+                        "type": "string",
+                        "const": "regression"
+                      },
+                      "lead": {
+                        "anyOf": [
+                          {
+                            "$ref": "#/$defs/ChangeRow"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "worse": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["fixed", "kind", "lead", "worse"]
+                  }
+                ]
               },
               "shapes": {
                 "type": "array",
@@ -1175,6 +1623,10 @@
                   "snapshot-too-large",
                   "observe-throws"
                 ]
+              },
+              "line": {
+                "description": "`text` with `fix` as one plain line (`… Fix at evals/a.eval.ts:12: set runs: 4.`).",
+                "type": "string"
               },
               "severity": {
                 "type": "string",
@@ -1606,6 +2058,13 @@
         "question": {
           "type": "string"
         },
+        "scores": {
+          "description": "Each score behind `spread`, one per judge call; absent in reports built before it.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JudgeScore"
+          }
+        },
         "spread": {
           "$ref": "#/$defs/Spread"
         },
@@ -1614,6 +2073,38 @@
         }
       },
       "required": ["assertion", "atOrAbove", "keys", "label", "question", "spread", "threshold"]
+    },
+    "JudgeScore": {
+      "type": "object",
+      "properties": {
+        "attempt": {
+          "description": "The attempt's index id (`A3`) and `AttemptRecord.key`.",
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "keys": {
+          "description": "One value per `JudgeRow.keys` axis.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outcome": {
+          "type": "string",
+          "enum": ["pass", "fail", "infra_error", "canceled"]
+        },
+        "score": {
+          "type": "number"
+        },
+        "verdict": {
+          "description": "The judge's own verdict on its threshold.",
+          "type": "string",
+          "enum": ["pass", "fail"]
+        }
+      },
+      "required": ["attempt", "key", "keys", "outcome", "score", "verdict"]
     },
     "JudgmentBreakdown": {
       "type": "object",
@@ -1838,6 +2329,23 @@
         }
       },
       "required": ["a", "aWins", "b", "bWins", "cut", "pairs", "question", "reasons", "ties"]
+    },
+    "Proportion": {
+      "description": "A proportion as its counts, `k` of `n`; a renderer derives the rate, interval and text.",
+      "type": "object",
+      "properties": {
+        "k": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": ["k", "n"]
     },
     "ProvenanceState": {
       "type": "object",

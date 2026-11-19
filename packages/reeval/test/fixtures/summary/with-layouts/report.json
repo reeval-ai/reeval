@@ -140,7 +140,7 @@
     {
       "kind": "baseline-never-passes",
       "severity": "warn",
-      "text": "Check \"house greeting\" never passes on the baseline and always passes on a variant; it may not apply to the baseline.",
+      "text": "Check \"house greeting\" never passes on the baseline and always passes on a variant on coding harness learner; it may not apply to the baseline.",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "cites": []
     },
@@ -448,6 +448,14 @@
         "shapes": ["task"],
         "design": "3 prompts, 1 coding harness, 3 attempts",
         "primary": "67% passed",
+        "result": {
+          "kind": "pass-rate",
+          "passed": {
+            "k": 2,
+            "n": 3
+          },
+          "outcome": "passed"
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -460,6 +468,22 @@
         "shapes": ["ab"],
         "design": "4 prompts, 1 coding harness, 2 arms, 8 attempts",
         "primary": "with-skill vs plain: +100 pts pass rate (100% vs 0%)",
+        "result": {
+          "kind": "lift",
+          "baseline": "plain",
+          "variant": "with-skill",
+          "baselinePassed": {
+            "k": 0,
+            "n": 4
+          },
+          "variantPassed": {
+            "k": 4,
+            "n": 4
+          },
+          "points": 1,
+          "lo": 0.30718972942832046,
+          "hi": 1
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -472,6 +496,14 @@
         "shapes": ["task"],
         "design": "2 coding harnesses, 2 attempts",
         "primary": "50% passed",
+        "result": {
+          "kind": "pass-rate",
+          "passed": {
+            "k": 1,
+            "n": 2
+          },
+          "outcome": "passed"
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -484,6 +516,22 @@
         "shapes": ["ab"],
         "design": "2 coding harnesses, 2 arms, 16 attempts",
         "primary": "with-skill vs plain: +50 pts pass rate (50% vs 0%)",
+        "result": {
+          "kind": "lift",
+          "baseline": "plain",
+          "variant": "with-skill",
+          "baselinePassed": {
+            "k": 0,
+            "n": 8
+          },
+          "variantPassed": {
+            "k": 4,
+            "n": 8
+          },
+          "points": 0.5,
+          "lo": 0.0683263240797084,
+          "hi": 0.7847839393037324
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -496,6 +544,22 @@
         "shapes": ["ab"],
         "design": "1 coding harness, 3 arms, 12 attempts",
         "primary": "with-skill vs plain: +100 pts pass rate (100% vs 0%)",
+        "result": {
+          "kind": "lift",
+          "baseline": "plain",
+          "variant": "with-skill",
+          "baselinePassed": {
+            "k": 0,
+            "n": 4
+          },
+          "variantPassed": {
+            "k": 4,
+            "n": 4
+          },
+          "points": 1,
+          "lo": 0.30718972942832046,
+          "hi": 1
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -508,6 +572,22 @@
         "shapes": ["ab"],
         "design": "1 coding harness, 2 arms, 8 attempts",
         "primary": "with-skill vs plain: -100 pts pass rate (0% vs 100%)",
+        "result": {
+          "kind": "lift",
+          "baseline": "plain",
+          "variant": "with-skill",
+          "baselinePassed": {
+            "k": 4,
+            "n": 4
+          },
+          "variantPassed": {
+            "k": 0,
+            "n": 4
+          },
+          "points": -1,
+          "lo": -1,
+          "hi": -0.30718972942832046
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -520,6 +600,22 @@
         "shapes": ["ab"],
         "design": "1 coding harness, 2 arms, 2 attempts",
         "primary": "with-skill vs plain: +100 pts pass rate (100% vs 0%)",
+        "result": {
+          "kind": "lift",
+          "baseline": "plain",
+          "variant": "with-skill",
+          "baselinePassed": {
+            "k": 0,
+            "n": 1
+          },
+          "variantPassed": {
+            "k": 1,
+            "n": 1
+          },
+          "points": 1,
+          "lo": -0.12210872433829856,
+          "hi": 1
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -532,6 +628,14 @@
         "shapes": ["task"],
         "design": "1 coding harness, 1 attempt",
         "primary": "100% passed",
+        "result": {
+          "kind": "pass-rate",
+          "passed": {
+            "k": 1,
+            "n": 1
+          },
+          "outcome": "passed"
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -544,6 +648,14 @@
         "shapes": ["task"],
         "design": "1 coding harness, 1 attempt",
         "primary": "0% passed",
+        "result": {
+          "kind": "pass-rate",
+          "passed": {
+            "k": 0,
+            "n": 1
+          },
+          "outcome": "passed"
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -556,6 +668,14 @@
         "shapes": ["task"],
         "design": "1 coding harness, 2 attempts",
         "primary": "50% passed",
+        "result": {
+          "kind": "pass-rate",
+          "passed": {
+            "k": 1,
+            "n": 2
+          },
+          "outcome": "passed"
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -568,6 +688,13 @@
         "shapes": ["task"],
         "design": "1 coding harness, 1 attempt",
         "primary": "Median tokens: not reported",
+        "result": {
+          "kind": "measure",
+          "label": "tokens",
+          "unit": "tokens",
+          "median": null,
+          "n": 0
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -580,6 +707,13 @@
         "shapes": ["task"],
         "design": "1 coding harness, 1 attempt",
         "primary": "Median tokens: not reported",
+        "result": {
+          "kind": "measure",
+          "label": "tokens",
+          "unit": "tokens",
+          "median": null,
+          "n": 0
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -592,6 +726,13 @@
         "shapes": ["task"],
         "design": "1 coding harness, 0 attempts",
         "primary": "Median tokens: not reported",
+        "result": {
+          "kind": "measure",
+          "label": "tokens",
+          "unit": "tokens",
+          "median": null,
+          "n": 0
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -604,6 +745,13 @@
         "shapes": ["task"],
         "design": "1 coding harness, 0 attempts",
         "primary": "Median tokens: not reported",
+        "result": {
+          "kind": "measure",
+          "label": "tokens",
+          "unit": "tokens",
+          "median": null,
+          "n": 0
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -3691,6 +3839,16 @@
           {
             "from": "with-skill",
             "to": "plain",
+            "harness": "fake",
+            "sandbox": "fake",
+            "fromPassed": {
+              "k": 4,
+              "n": 4
+            },
+            "toPassed": {
+              "k": 0,
+              "n": 4
+            },
             "measure": "pass-rate",
             "delta": {
               "value": 1,
@@ -3708,6 +3866,16 @@
           {
             "from": "with-doc",
             "to": "plain",
+            "harness": "fake",
+            "sandbox": "fake",
+            "fromPassed": {
+              "k": 0,
+              "n": 4
+            },
+            "toPassed": {
+              "k": 0,
+              "n": 4
+            },
             "measure": "pass-rate",
             "delta": {
               "value": 0,
@@ -3725,6 +3893,16 @@
           {
             "from": "with-doc",
             "to": "with-skill",
+            "harness": "fake",
+            "sandbox": "fake",
+            "fromPassed": {
+              "k": 0,
+              "n": 4
+            },
+            "toPassed": {
+              "k": 4,
+              "n": 4
+            },
             "measure": "pass-rate",
             "delta": {
               "value": -1,
@@ -6460,6 +6638,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 27,
+        "agentMs": 8,
+        "diffMs": 13,
+        "checksMs": 7,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -6496,6 +6684,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 19,
+        "agentMs": 5,
+        "diffMs": 15,
+        "checksMs": 8,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -6532,6 +6730,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 20,
+        "agentMs": 6,
+        "diffMs": 15,
+        "checksMs": 13,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -6568,6 +6776,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 20,
+        "agentMs": 7,
+        "diffMs": 13,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -6604,6 +6822,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 22,
+        "agentMs": 1,
+        "diffMs": 14,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -6640,6 +6868,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 19,
+        "agentMs": 1,
+        "diffMs": 11,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -6676,6 +6914,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 25,
+        "agentMs": 10,
+        "diffMs": 9,
+        "checksMs": 6,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -6712,6 +6960,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 16,
+        "agentMs": 2,
+        "diffMs": 12,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -6748,6 +7006,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 21,
+        "agentMs": 2,
+        "diffMs": 9,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -6784,6 +7052,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 13,
+        "agentMs": 3,
+        "diffMs": 11,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -6820,6 +7098,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 19,
+        "agentMs": 5,
+        "diffMs": 11,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -6856,6 +7144,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 15,
+        "agentMs": 1,
+        "diffMs": 20,
+        "checksMs": 6,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -6892,6 +7190,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 21,
+        "agentMs": 8,
+        "diffMs": 16,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -6928,6 +7236,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 23,
+        "agentMs": 7,
+        "diffMs": 11,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -6964,6 +7282,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 38,
+        "agentMs": 7,
+        "diffMs": 11,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7000,6 +7328,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 12,
+        "agentMs": 3,
+        "diffMs": 9,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7036,6 +7374,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 12,
+        "agentMs": 1,
+        "diffMs": 9,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7072,6 +7420,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 21,
+        "agentMs": 6,
+        "diffMs": 15,
+        "checksMs": 6,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7108,6 +7466,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 32,
+        "agentMs": 9,
+        "diffMs": 13,
+        "checksMs": 7,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7144,6 +7512,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 24,
+        "agentMs": 8,
+        "diffMs": 13,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7180,6 +7558,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 13,
+        "agentMs": 10,
+        "diffMs": 13,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7216,6 +7604,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 15,
+        "agentMs": 1,
+        "diffMs": 10,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7252,6 +7650,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 10,
+        "agentMs": 4,
+        "diffMs": 9,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7288,6 +7696,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 18,
+        "agentMs": 3,
+        "diffMs": 11,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7324,6 +7742,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 14,
+        "agentMs": 1,
+        "diffMs": 10,
+        "checksMs": 0,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7360,6 +7788,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 19,
+        "agentMs": 6,
+        "diffMs": 17,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7396,6 +7834,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 14,
+        "agentMs": 6,
+        "diffMs": 11,
+        "checksMs": 0,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7432,6 +7880,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 15,
+        "agentMs": 7,
+        "diffMs": 15,
+        "checksMs": 0,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7468,6 +7926,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 18,
+        "agentMs": 0,
+        "diffMs": 0,
+        "checksMs": 0,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": null,
       "links": {
         "transcript": null,
@@ -7499,6 +7967,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 16,
+        "agentMs": 1,
+        "diffMs": 14,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7535,6 +8013,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 19,
+        "agentMs": 8,
+        "diffMs": 12,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7571,6 +8059,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 15,
+        "agentMs": 1,
+        "diffMs": 11,
+        "checksMs": 6,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7607,6 +8105,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 20,
+        "agentMs": 14,
+        "diffMs": 9,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7643,6 +8151,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 18,
+        "agentMs": 2,
+        "diffMs": 11,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7679,6 +8197,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 21,
+        "agentMs": 5,
+        "diffMs": 12,
+        "checksMs": 6,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7715,6 +8243,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 23,
+        "agentMs": 5,
+        "diffMs": 11,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7751,6 +8289,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 17,
+        "agentMs": 1,
+        "diffMs": 11,
+        "checksMs": 5,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7787,6 +8335,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 12,
+        "agentMs": 1,
+        "diffMs": 9,
+        "checksMs": 5,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7823,6 +8381,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 9,
+        "agentMs": 1,
+        "diffMs": 10,
+        "checksMs": 0,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7859,6 +8427,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 13,
+        "agentMs": 1,
+        "diffMs": 12,
+        "checksMs": 6,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7895,6 +8473,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 17,
+        "agentMs": 4,
+        "diffMs": 15,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7931,6 +8519,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 16,
+        "agentMs": 1,
+        "diffMs": 11,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -7967,6 +8565,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 18,
+        "agentMs": 0,
+        "diffMs": 9,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -8003,6 +8611,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 13,
+        "agentMs": 1,
+        "diffMs": 12,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -8039,6 +8657,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 14,
+        "agentMs": 1,
+        "diffMs": 11,
+        "checksMs": 5,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -8075,6 +8703,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 15,
+        "agentMs": 4,
+        "diffMs": 9,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -8111,6 +8749,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 13,
+        "agentMs": 2,
+        "diffMs": 9,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -8147,6 +8795,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 11,
+        "agentMs": 6,
+        "diffMs": 12,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -8183,6 +8841,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 12,
+        "agentMs": 0,
+        "diffMs": 11,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -8219,6 +8887,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 21,
+        "agentMs": 6,
+        "diffMs": 9,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -8255,6 +8933,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 11,
+        "agentMs": 3,
+        "diffMs": 8,
+        "checksMs": 5,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -8291,6 +8979,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 19,
+        "agentMs": 2,
+        "diffMs": 9,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -8327,6 +9025,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 11,
+        "agentMs": 3,
+        "diffMs": 11,
+        "checksMs": 5,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -8363,6 +9071,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 13,
+        "agentMs": 3,
+        "diffMs": 11,
+        "checksMs": 7,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -8399,6 +9117,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 12,
+        "agentMs": 4,
+        "diffMs": 10,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -8435,6 +9163,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 9,
+        "agentMs": 4,
+        "diffMs": 9,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
@@ -8471,6 +9209,16 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 11,
+        "agentMs": 0,
+        "diffMs": 8,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
