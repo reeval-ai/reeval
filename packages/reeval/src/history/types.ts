@@ -21,6 +21,7 @@ import type {
   McpStartup,
   Observation,
   Outcome,
+  PassMetric,
   PhaseTimings,
   ResolvedJudgeStateOptions,
   Revision,
@@ -517,6 +518,8 @@ export type EvalEntry = {
   tags: string[]
   /** The baseline environment, when the evaluation uses `compare`. */
   compare?: EvalCompareMeta
+  /** Primary pass/fail metric configured for this evaluation when set (`PassMetric`). */
+  metric?: PassMetric
   /**
    * Over gated cells, the outcome is `fail` if any failed, else `infra_error` if any is (a cell is
    * `infra_error` only when nothing counted), else `skipped` if all were, else `pass`. An ungated
@@ -970,6 +973,7 @@ export type RunRecord = {
       runs?: number
       /** Set by `defaults.runs: { bestOf }`. */
       bestOf?: number
+      metric?: PassMetric
       timeout?: string | number
       env?: string[]
     }
@@ -1008,6 +1012,8 @@ export type RunRecord = {
     runs: number
     /** Set by the config's `runs: { bestOf }`. */
     bestOf?: number
+    /** Primary pass/fail metric set in config when configured. */
+    metric?: PassMetric
     judgeModel: string | null
     threshold: number
     timeoutMs: number

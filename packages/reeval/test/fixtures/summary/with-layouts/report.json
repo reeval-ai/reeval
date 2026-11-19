@@ -454,7 +454,8 @@
             "k": 2,
             "n": 3
           },
-          "outcome": "passed"
+          "outcome": "passed",
+          "taskRate": 0.6666666666666666
         },
         "medianTokens": {
           "value": null,
@@ -480,6 +481,8 @@
             "k": 4,
             "n": 4
           },
+          "baselineTaskRate": 0,
+          "variantTaskRate": 1,
           "points": 1,
           "lo": 0.30718972942832046,
           "hi": 1
@@ -827,11 +830,16 @@
               "text": "+21 pts to +94 pts"
             }
           },
+          "taskRate": {
+            "value": 0.6666666666666666,
+            "text": "67%"
+          },
+          "tasks": 3,
           "assertions": 3,
           "harnesses": 1,
           "outcome": "passed"
         },
-        "foot": "2 of 3 counted attempts passed on all 3 assertions. 1 coding harness."
+        "foot": "2 of 3 counted attempts passed on all 3 assertions. Task-averaged: 67% across 3 tasks. 1 coding harness."
       },
       "insights": [],
       "primary": {
@@ -929,10 +937,14 @@
                 "text": "+21 pts to +94 pts"
               }
             },
+            "taskRate": {
+              "value": 0.6666666666666666,
+              "text": "67%"
+            },
             "measures": {
               "tokens": null,
               "toolCalls": {
-                "n": 3,
+                "n": 2,
                 "median": {
                   "value": 1,
                   "text": "1"
@@ -947,7 +959,7 @@
                 }
               },
               "turns": {
-                "n": 3,
+                "n": 2,
                 "median": {
                   "value": 1,
                   "text": "1"
@@ -963,22 +975,22 @@
               },
               "costUsd": null,
               "agentMs": {
-                "n": 3,
+                "n": 2,
                 "median": {
-                  "value": 6,
+                  "value": 7,
                   "text": "<0.1s"
                 },
                 "q1": {
-                  "value": 5.5,
+                  "value": 6.5,
                   "text": "<0.1s"
                 },
                 "q3": {
-                  "value": 7,
+                  "value": 7.5,
                   "text": "<0.1s"
                 }
               },
               "filesChanged": {
-                "n": 3,
+                "n": 2,
                 "median": {
                   "value": 1,
                   "text": "1"
@@ -994,10 +1006,110 @@
               },
               "linesAdded": null,
               "linesRemoved": null
-            }
+            },
+            "costPerSuccess": null
           }
         ],
-        "median": null
+        "median": null,
+        "costReported": false,
+        "tasks": [
+          {
+            "task": "reset",
+            "label": "reset",
+            "cells": {
+              "fake": {
+                "rate": {
+                  "k": 1,
+                  "n": 1,
+                  "rate": 1,
+                  "text": "100%",
+                  "interval": {
+                    "lo": 0.2065493117918027,
+                    "hi": 1,
+                    "text": "+21 pts to +100 pts"
+                  }
+                }
+              }
+            },
+            "total": {
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "interval": {
+                  "lo": 0.2065493117918027,
+                  "hi": 1,
+                  "text": "+21 pts to +100 pts"
+                }
+              }
+            }
+          },
+          {
+            "task": "double",
+            "label": "double",
+            "cells": {
+              "fake": {
+                "rate": {
+                  "k": 0,
+                  "n": 1,
+                  "rate": 0,
+                  "text": "0%",
+                  "interval": {
+                    "lo": 0,
+                    "hi": 0.7934506882081973,
+                    "text": "0 pts to +79 pts"
+                  }
+                }
+              }
+            },
+            "total": {
+              "rate": {
+                "k": 0,
+                "n": 1,
+                "rate": 0,
+                "text": "0%",
+                "interval": {
+                  "lo": 0,
+                  "hi": 0.7934506882081973,
+                  "text": "0 pts to +79 pts"
+                }
+              }
+            }
+          },
+          {
+            "task": "clear",
+            "label": "clear",
+            "cells": {
+              "fake": {
+                "rate": {
+                  "k": 1,
+                  "n": 1,
+                  "rate": 1,
+                  "text": "100%",
+                  "interval": {
+                    "lo": 0.2065493117918027,
+                    "hi": 1,
+                    "text": "+21 pts to +100 pts"
+                  }
+                }
+              }
+            },
+            "total": {
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "interval": {
+                  "lo": 0.2065493117918027,
+                  "hi": 1,
+                  "text": "+21 pts to +100 pts"
+                }
+              }
+            }
+          }
+        ]
       },
       "choices": [],
       "discovery": [],
@@ -1097,9 +1209,23 @@
               "text": "+51 pts to +100 pts"
             }
           },
+          "baselineTaskRate": {
+            "value": 0,
+            "text": "0%"
+          },
+          "variantTaskRate": {
+            "value": 1,
+            "text": "100%"
+          },
+          "taskPoints": {
+            "value": 1,
+            "unit": "pts",
+            "text": "+100 pts"
+          },
+          "tasks": 4,
           "others": []
         },
-        "foot": "n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts."
+        "foot": "n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts. No failures in 4 counted attempts on with-skill (95% Wilson CI 51% to 100%). Task-averaged: 100% vs 0% (+100 pts across 4 tasks)."
       },
       "insights": [],
       "primary": {
@@ -1125,6 +1251,7 @@
           }
         ],
         "uniformLead": null,
+        "costReported": false,
         "summary": [
           {
             "arm": "plain",
@@ -1139,6 +1266,11 @@
                 "text": "0 pts to +49 pts"
               }
             },
+            "taskRate": {
+              "value": 0,
+              "text": "0%"
+            },
+            "taskLift": null,
             "lift": null,
             "interval": null,
             "verdict": "baseline",
@@ -1150,40 +1282,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -1193,40 +1297,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 2.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 1.75,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -1240,7 +1316,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "arm": "with-skill",
@@ -1254,6 +1332,15 @@
                 "hi": 0.9999999999999999,
                 "text": "+51 pts to +100 pts"
               }
+            },
+            "taskRate": {
+              "value": 1,
+              "text": "100%"
+            },
+            "taskLift": {
+              "value": 1,
+              "unit": "pts",
+              "text": "+100 pts"
             },
             "lift": {
               "value": 1,
@@ -1289,11 +1376,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "turns": {
@@ -1312,11 +1395,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -1340,11 +1419,7 @@
                     "text": "<0.1s"
                   }
                 },
-                "delta": {
-                  "value": 0.4,
-                  "unit": "pct",
-                  "text": "+40%"
-                },
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
@@ -1363,11 +1438,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -1380,7 +1451,143 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
+          }
+        ],
+        "tasks": [
+          {
+            "task": "Ada",
+            "label": "Ada",
+            "cells": {
+              "plain": {
+                "rate": {
+                  "k": 0,
+                  "n": 1,
+                  "rate": 0,
+                  "text": "0%",
+                  "interval": {
+                    "lo": 0,
+                    "hi": 0.7934506882081973,
+                    "text": "0 pts to +79 pts"
+                  }
+                }
+              },
+              "with-skill": {
+                "rate": {
+                  "k": 1,
+                  "n": 1,
+                  "rate": 1,
+                  "text": "100%",
+                  "interval": {
+                    "lo": 0.2065493117918027,
+                    "hi": 1,
+                    "text": "+21 pts to +100 pts"
+                  }
+                }
+              }
+            },
+            "total": null
+          },
+          {
+            "task": "Grace",
+            "label": "Grace",
+            "cells": {
+              "plain": {
+                "rate": {
+                  "k": 0,
+                  "n": 1,
+                  "rate": 0,
+                  "text": "0%",
+                  "interval": {
+                    "lo": 0,
+                    "hi": 0.7934506882081973,
+                    "text": "0 pts to +79 pts"
+                  }
+                }
+              },
+              "with-skill": {
+                "rate": {
+                  "k": 1,
+                  "n": 1,
+                  "rate": 1,
+                  "text": "100%",
+                  "interval": {
+                    "lo": 0.2065493117918027,
+                    "hi": 1,
+                    "text": "+21 pts to +100 pts"
+                  }
+                }
+              }
+            },
+            "total": null
+          },
+          {
+            "task": "Linus",
+            "label": "Linus",
+            "cells": {
+              "plain": {
+                "rate": {
+                  "k": 0,
+                  "n": 1,
+                  "rate": 0,
+                  "text": "0%",
+                  "interval": {
+                    "lo": 0,
+                    "hi": 0.7934506882081973,
+                    "text": "0 pts to +79 pts"
+                  }
+                }
+              },
+              "with-skill": {
+                "rate": {
+                  "k": 1,
+                  "n": 1,
+                  "rate": 1,
+                  "text": "100%",
+                  "interval": {
+                    "lo": 0.2065493117918027,
+                    "hi": 1,
+                    "text": "+21 pts to +100 pts"
+                  }
+                }
+              }
+            },
+            "total": null
+          },
+          {
+            "task": "Edsger",
+            "label": "Edsger",
+            "cells": {
+              "plain": {
+                "rate": {
+                  "k": 0,
+                  "n": 1,
+                  "rate": 0,
+                  "text": "0%",
+                  "interval": {
+                    "lo": 0,
+                    "hi": 0.7934506882081973,
+                    "text": "0 pts to +79 pts"
+                  }
+                }
+              },
+              "with-skill": {
+                "rate": {
+                  "k": 1,
+                  "n": 1,
+                  "rate": 1,
+                  "text": "100%",
+                  "interval": {
+                    "lo": 0.2065493117918027,
+                    "hi": 1,
+                    "text": "+21 pts to +100 pts"
+                  }
+                }
+              }
+            },
+            "total": null
           }
         ],
         "assertionsByArm": [
@@ -1436,6 +1643,10 @@
                 "text": "0 pts to +49 pts"
               }
             },
+            "taskRate": {
+              "value": 0,
+              "text": "0%"
+            },
             "measures": {
               "tokens": {
                 "value": null,
@@ -1443,40 +1654,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -1486,40 +1669,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 2.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 1.75,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -1533,7 +1688,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "harness": "fake",
@@ -1548,6 +1705,10 @@
                 "hi": 0.9999999999999999,
                 "text": "+51 pts to +100 pts"
               }
+            },
+            "taskRate": {
+              "value": 1,
+              "text": "100%"
             },
             "measures": {
               "tokens": {
@@ -1571,11 +1732,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "turns": {
@@ -1594,11 +1751,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -1622,11 +1775,7 @@
                     "text": "<0.1s"
                   }
                 },
-                "delta": {
-                  "value": 0.4,
-                  "unit": "pct",
-                  "text": "+40%"
-                },
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
@@ -1645,11 +1794,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -1662,7 +1807,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ]
       },
@@ -1959,7 +2106,8 @@
               },
               "linesAdded": null,
               "linesRemoved": null
-            }
+            },
+            "costPerSuccess": null
           },
           {
             "keys": ["terse"],
@@ -1976,70 +2124,15 @@
             },
             "measures": {
               "tokens": null,
-              "toolCalls": {
-                "n": 1,
-                "median": {
-                  "value": 0,
-                  "text": "0"
-                },
-                "q1": {
-                  "value": 0,
-                  "text": "0"
-                },
-                "q3": {
-                  "value": 0,
-                  "text": "0"
-                }
-              },
-              "turns": {
-                "n": 1,
-                "median": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q1": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q3": {
-                  "value": 1,
-                  "text": "1"
-                }
-              },
+              "toolCalls": null,
+              "turns": null,
               "costUsd": null,
-              "agentMs": {
-                "n": 1,
-                "median": {
-                  "value": 8,
-                  "text": "<0.1s"
-                },
-                "q1": {
-                  "value": 8,
-                  "text": "<0.1s"
-                },
-                "q3": {
-                  "value": 8,
-                  "text": "<0.1s"
-                }
-              },
-              "filesChanged": {
-                "n": 1,
-                "median": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q1": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q3": {
-                  "value": 1,
-                  "text": "1"
-                }
-              },
+              "agentMs": null,
+              "filesChanged": null,
               "linesAdded": null,
               "linesRemoved": null
-            }
+            },
+            "costPerSuccess": null
           }
         ],
         "median": {
@@ -2058,7 +2151,7 @@
           "measures": {
             "tokens": null,
             "toolCalls": {
-              "n": 2,
+              "n": 1,
               "median": {
                 "value": 0,
                 "text": "0"
@@ -2073,7 +2166,7 @@
               }
             },
             "turns": {
-              "n": 2,
+              "n": 1,
               "median": {
                 "value": 1,
                 "text": "1"
@@ -2089,22 +2182,22 @@
             },
             "costUsd": null,
             "agentMs": {
-              "n": 2,
+              "n": 1,
               "median": {
-                "value": 4.5,
+                "value": 1,
                 "text": "<0.1s"
               },
               "q1": {
-                "value": 2.75,
+                "value": 1,
                 "text": "<0.1s"
               },
               "q3": {
-                "value": 6.25,
+                "value": 1,
                 "text": "<0.1s"
               }
             },
             "filesChanged": {
-              "n": 2,
+              "n": 1,
               "median": {
                 "value": 1,
                 "text": "1"
@@ -2120,8 +2213,10 @@
             },
             "linesAdded": null,
             "linesRemoved": null
-          }
-        }
+          },
+          "costPerSuccess": null
+        },
+        "costReported": false
       },
       "choices": [],
       "discovery": [],
@@ -2249,6 +2344,7 @@
           }
         ],
         "uniformLead": null,
+        "costReported": false,
         "summary": [
           {
             "arm": "plain",
@@ -2274,40 +2370,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 8,
-                  "median": {
-                    "value": 0,
-                    "text": "0"
-                  },
-                  "q1": {
-                    "value": 0,
-                    "text": "0"
-                  },
-                  "q3": {
-                    "value": 0,
-                    "text": "0"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 8,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -2317,40 +2385,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 8,
-                  "median": {
-                    "value": 2,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 3.75,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 8,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -2364,7 +2404,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "arm": "with-skill",
@@ -2399,7 +2441,7 @@
               },
               "toolCalls": {
                 "value": {
-                  "n": 8,
+                  "n": 4,
                   "median": {
                     "value": 0,
                     "text": "0"
@@ -2413,16 +2455,12 @@
                     "text": "0"
                   }
                 },
-                "delta": {
-                  "value": null,
-                  "unit": "pct",
-                  "text": "n/a"
-                },
+                "delta": null,
                 "lower": null
               },
               "turns": {
                 "value": {
-                  "n": 8,
+                  "n": 4,
                   "median": {
                     "value": 1,
                     "text": "1"
@@ -2436,11 +2474,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -2450,13 +2484,13 @@
               },
               "agentMs": {
                 "value": {
-                  "n": 8,
+                  "n": 4,
                   "median": {
-                    "value": 5,
+                    "value": 6.5,
                     "text": "<0.1s"
                   },
                   "q1": {
-                    "value": 1.75,
+                    "value": 5.5,
                     "text": "<0.1s"
                   },
                   "q3": {
@@ -2464,16 +2498,12 @@
                     "text": "<0.1s"
                   }
                 },
-                "delta": {
-                  "value": 1.5,
-                  "unit": "pct",
-                  "text": "+150%"
-                },
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
                 "value": {
-                  "n": 8,
+                  "n": 4,
                   "median": {
                     "value": 1,
                     "text": "1"
@@ -2487,11 +2517,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -2504,7 +2530,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ],
         "assertionsByArm": [
@@ -2567,40 +2595,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 0,
-                    "text": "0"
-                  },
-                  "q1": {
-                    "value": 0,
-                    "text": "0"
-                  },
-                  "q3": {
-                    "value": 0,
-                    "text": "0"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -2610,40 +2610,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 3.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 6.25,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -2657,7 +2629,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "harness": "learner",
@@ -2695,11 +2669,7 @@
                     "text": "0"
                   }
                 },
-                "delta": {
-                  "value": null,
-                  "unit": "pct",
-                  "text": "n/a"
-                },
+                "delta": null,
                 "lower": null
               },
               "turns": {
@@ -2718,11 +2688,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -2746,11 +2712,7 @@
                     "text": "<0.1s"
                   }
                 },
-                "delta": {
-                  "value": 0.8571428571428571,
-                  "unit": "pct",
-                  "text": "+86%"
-                },
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
@@ -2769,11 +2731,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -2786,7 +2744,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "harness": "terse",
@@ -2809,40 +2769,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 0,
-                    "text": "0"
-                  },
-                  "q1": {
-                    "value": 0,
-                    "text": "0"
-                  },
-                  "q3": {
-                    "value": 0,
-                    "text": "0"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -2852,40 +2784,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 2,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 3,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -2899,7 +2803,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "harness": "terse",
@@ -2922,49 +2828,13 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 0,
-                    "text": "0"
-                  },
-                  "q1": {
-                    "value": 0,
-                    "text": "0"
-                  },
-                  "q3": {
-                    "value": 0,
-                    "text": "0"
-                  }
-                },
-                "delta": {
-                  "value": null,
-                  "unit": "pct",
-                  "text": "n/a"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -2973,49 +2843,13 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 0.75,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 5,
-                    "text": "<0.1s"
-                  }
-                },
-                "delta": {
-                  "value": -0.25,
-                  "unit": "pct",
-                  "text": "-25%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -3028,7 +2862,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ]
       },
@@ -3270,7 +3106,7 @@
             }
           ]
         },
-        "foot": "n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts."
+        "foot": "n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts. No failures in 4 counted attempts on with-skill (95% Wilson CI 51% to 100%)."
       },
       "insights": [],
       "primary": {
@@ -3305,6 +3141,7 @@
           }
         ],
         "uniformLead": null,
+        "costReported": false,
         "summary": [
           {
             "arm": "plain",
@@ -3330,40 +3167,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -3373,40 +3182,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 2.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 1.75,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 3.75,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -3420,7 +3201,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "arm": "with-skill",
@@ -3469,11 +3252,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "turns": {
@@ -3492,11 +3271,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -3520,11 +3295,7 @@
                     "text": "<0.1s"
                   }
                 },
-                "delta": {
-                  "value": 0.6,
-                  "unit": "pct",
-                  "text": "+60%"
-                },
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
@@ -3543,11 +3314,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -3560,7 +3327,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "arm": "with-doc",
@@ -3594,49 +3363,13 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -3645,49 +3378,13 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 4.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 5.75,
-                    "text": "<0.1s"
-                  }
-                },
-                "delta": {
-                  "value": 0.8,
-                  "unit": "pct",
-                  "text": "+80%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -3700,7 +3397,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ],
         "assertionsByArm": [
@@ -3940,40 +3639,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -3983,40 +3654,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 2.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 1.75,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 3.75,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -4030,7 +3673,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "harness": "fake",
@@ -4068,11 +3713,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "turns": {
@@ -4091,11 +3732,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -4119,11 +3756,7 @@
                     "text": "<0.1s"
                   }
                 },
-                "delta": {
-                  "value": 0.6,
-                  "unit": "pct",
-                  "text": "+60%"
-                },
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
@@ -4142,11 +3775,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -4159,7 +3788,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "harness": "fake",
@@ -4182,49 +3813,13 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -4233,49 +3828,13 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 4.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 5.75,
-                    "text": "<0.1s"
-                  }
-                },
-                "delta": {
-                  "value": 0.8,
-                  "unit": "pct",
-                  "text": "+80%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -4288,7 +3847,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ]
       },
@@ -4462,7 +4023,7 @@
           },
           "others": []
         },
-        "foot": "n = 4 vs 4 counted attempts. 95% CI -100 pts to -31 pts."
+        "foot": "n = 4 vs 4 counted attempts. 95% CI -100 pts to -31 pts. No failures in 4 counted attempts on plain (95% Wilson CI 51% to 100%)."
       },
       "insights": [],
       "primary": {
@@ -4488,6 +4049,7 @@
           }
         ],
         "uniformLead": null,
+        "costReported": false,
         "summary": [
           {
             "arm": "plain",
@@ -4603,7 +4165,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "arm": "with-skill",
@@ -4637,49 +4201,13 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -4688,49 +4216,13 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 0.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 0,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "<0.1s"
-                  }
-                },
-                "delta": {
-                  "value": -0.8333333333333335,
-                  "unit": "pct",
-                  "text": "-83%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -4743,7 +4235,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ],
         "assertionsByArm": [
@@ -4896,7 +4390,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "harness": "fake",
@@ -4919,49 +4415,13 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -4970,49 +4430,13 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 0.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 0,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "<0.1s"
-                  }
-                },
-                "delta": {
-                  "value": -0.8333333333333335,
-                  "unit": "pct",
-                  "text": "-83%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -5025,7 +4449,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ]
       },
@@ -5159,7 +4585,7 @@
           },
           "others": []
         },
-        "foot": "n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. 1 per side is below 4, so this cannot come back helped or made worse."
+        "foot": "n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. No failures in 1 counted attempt on with-skill (95% Wilson CI 21% to 100%). 1 per side is below 4, so this cannot come back helped or made worse."
       },
       "insights": [],
       "primary": {
@@ -5185,6 +4611,7 @@
           }
         ],
         "uniformLead": null,
+        "costReported": false,
         "summary": [
           {
             "arm": "plain",
@@ -5210,40 +4637,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 1,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 1,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -5253,40 +4652,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 1,
-                  "median": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 1,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -5300,7 +4671,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "arm": "with-skill",
@@ -5349,11 +4722,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "turns": {
@@ -5372,11 +4741,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -5400,11 +4765,7 @@
                     "text": "<0.1s"
                   }
                 },
-                "delta": {
-                  "value": -0.25,
-                  "unit": "pct",
-                  "text": "-25%"
-                },
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
@@ -5423,11 +4784,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -5440,7 +4797,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ],
         "assertionsByArm": [
@@ -5503,40 +4862,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 1,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 1,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -5546,40 +4877,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 1,
-                  "median": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 1,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -5593,7 +4896,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "harness": "fake",
@@ -5631,11 +4936,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "turns": {
@@ -5654,11 +4955,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -5682,11 +4979,7 @@
                     "text": "<0.1s"
                   }
                 },
-                "delta": {
-                  "value": -0.25,
-                  "unit": "pct",
-                  "text": "-25%"
-                },
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
@@ -5705,11 +4998,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -5722,7 +5011,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ]
       },
@@ -5799,7 +5090,7 @@
           "harnesses": 1,
           "outcome": "passed"
         },
-        "foot": "1 of 1 counted attempts passed on all 1 assertions. 1 coding harness."
+        "foot": "No failures in 1 counted attempt on 1 assertion (95% Wilson CI 21% to 100%); small sample does not rule out failures. 1 coding harness."
       },
       "insights": [],
       "primary": {
@@ -5912,10 +5203,12 @@
               },
               "linesAdded": null,
               "linesRemoved": null
-            }
+            },
+            "costPerSuccess": null
           }
         ],
-        "median": null
+        "median": null,
+        "costReported": false
       },
       "choices": [],
       "discovery": [],
@@ -6027,73 +5320,19 @@
             },
             "measures": {
               "tokens": null,
-              "toolCalls": {
-                "n": 1,
-                "median": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q1": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q3": {
-                  "value": 1,
-                  "text": "1"
-                }
-              },
-              "turns": {
-                "n": 1,
-                "median": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q1": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q3": {
-                  "value": 1,
-                  "text": "1"
-                }
-              },
+              "toolCalls": null,
+              "turns": null,
               "costUsd": null,
-              "agentMs": {
-                "n": 1,
-                "median": {
-                  "value": 6,
-                  "text": "<0.1s"
-                },
-                "q1": {
-                  "value": 6,
-                  "text": "<0.1s"
-                },
-                "q3": {
-                  "value": 6,
-                  "text": "<0.1s"
-                }
-              },
-              "filesChanged": {
-                "n": 1,
-                "median": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q1": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q3": {
-                  "value": 1,
-                  "text": "1"
-                }
-              },
+              "agentMs": null,
+              "filesChanged": null,
               "linesAdded": null,
               "linesRemoved": null
-            }
+            },
+            "costPerSuccess": null
           }
         ],
-        "median": null
+        "median": null,
+        "costReported": false
       },
       "choices": [],
       "discovery": [],
@@ -6244,7 +5483,7 @@
             "measures": {
               "tokens": null,
               "toolCalls": {
-                "n": 2,
+                "n": 1,
                 "median": {
                   "value": 1,
                   "text": "1"
@@ -6259,7 +5498,7 @@
                 }
               },
               "turns": {
-                "n": 2,
+                "n": 1,
                 "median": {
                   "value": 1,
                   "text": "1"
@@ -6275,22 +5514,22 @@
               },
               "costUsd": null,
               "agentMs": {
-                "n": 2,
+                "n": 1,
                 "median": {
-                  "value": 3.5,
+                  "value": 6,
                   "text": "<0.1s"
                 },
                 "q1": {
-                  "value": 2.25,
+                  "value": 6,
                   "text": "<0.1s"
                 },
                 "q3": {
-                  "value": 4.75,
+                  "value": 6,
                   "text": "<0.1s"
                 }
               },
               "filesChanged": {
-                "n": 2,
+                "n": 1,
                 "median": {
                   "value": 1,
                   "text": "1"
@@ -6306,10 +5545,12 @@
               },
               "linesAdded": null,
               "linesRemoved": null
-            }
+            },
+            "costPerSuccess": null
           }
         ],
-        "median": null
+        "median": null,
+        "costReported": false
       },
       "choices": [],
       "discovery": [],

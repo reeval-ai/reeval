@@ -78,6 +78,8 @@ export type {
   Observation,
   PairFactor,
   PairVote,
+  PassMetric,
+  PassMetricLead,
   PinnableKey,
   PluginPart,
   PluginSource,

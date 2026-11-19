@@ -2220,6 +2220,32 @@ export type OddAtLeast3<N extends number> = number extends N
  */
 export type Runs<N extends number = number> = number | { bestOf: OddAtLeast3<N> }
 
+/** Which metric leads when configured via `metric`. */
+export type PassMetricLead = 'pass-rate' | 'task-pass-rate' | 'pass@k' | 'pass^k'
+
+/**
+ * Pass/fail reporting metric configuration: `'pass-rate'` (pooled default), `'task-pass-rate'`
+ * (equal-weight mean across tasks), `{ passAtK: k }`, `{ passHatK: k }`, or `{ k, lead? }` for
+ * unbiased `pass@k` and `pass^k` at explicit trial count `k` (`k >= 2`).
+ */
+export type PassMetric =
+  | 'pass-rate'
+  | 'task-pass-rate'
+  | {
+      /** Explicit trial count `k` (`>= 2`) for unbiased `pass@k`, making `pass@k` the lead. */
+      passAtK: number
+    }
+  | {
+      /** Explicit trial count `k` (`>= 2`) for unbiased `pass^k`, making `pass^k` the lead. */
+      passHatK: number
+    }
+  | {
+      /** Explicit trial count `k` (`>= 2`) for unbiased `pass@k` and `pass^k`. */
+      k: number
+      /** Which metric leads in headlines; default `'pass-rate'`. */
+      lead?: PassMetricLead
+    }
+
 /** Options other than `environments` and `compare`, which are exclusive of each other. */
 type EvalOptionFields<N extends number = number> = {
   /** Which agents run the eval; each harness is its own cell. */
@@ -2238,6 +2264,8 @@ type EvalOptionFields<N extends number = number> = {
   runs?: Runs<N>
   /** How each cell's attempts decide its outcome; default `'all'`. */
   gate?: GatePolicy
+  /** Which pass/fail metric leads in reports when per-task trials are 2 or more; default `'pass-rate'`. */
+  metric?: PassMetric
   /** Variables and secrets for the sandbox, merged by name down the cascade. */
   env?: EnvVars
   /**
@@ -2501,6 +2529,8 @@ export type ProfileDefaults = {
   runs?: Runs
   /** How each cell's attempts decide its outcome. */
   gate?: GatePolicy
+  /** Which pass/fail metric leads in reports when per-task trials are 2 or more. */
+  metric?: PassMetric
   /** Variables and secrets for the sandbox, merged by name over the config's. */
   env?: EnvVars
   /** Where the sandbox may connect; replaces the config's policy, per phase. */
@@ -2664,6 +2694,8 @@ export type ReevalConfig = {
   runs?: Runs
   /** How each cell's attempts decide its outcome; default `'all'`. */
   gate?: GatePolicy
+  /** Which pass/fail metric leads in reports when per-task trials are 2 or more; default `'pass-rate'`. */
+  metric?: PassMetric
   /** Variables and secrets for the sandbox, merged by name down the cascade. */
   env?: EnvVars
   /** Where the sandbox may connect; default `'proxy'` in both phases. */
@@ -2891,6 +2923,8 @@ export type ResolvedConfig = {
   runs: Runs | undefined
   /** Unset means `'all'`; kept unset so the plan can hint when `runs > 1`. */
   gate: GatePolicy | undefined
+  /** Unset means `'pass-rate'`. */
+  metric: PassMetric | undefined
   env: EnvVars
   egress?: Egress
   judge: ConfigJudgeOptions & { threshold: number }
@@ -3692,6 +3726,8 @@ export type EvalPlan = {
   bestOf?: number
   /** The eval's gate policy, or undefined when it was left at the default (`'all'`). */
   gate?: GatePolicy
+  /** The eval's primary pass/fail metric, or undefined when left at the default (`'pass-rate'`). */
+  metric?: PassMetric
   attempts: number
   /** The case and environment pairs `where` left out of this case; unset when none. */
   excluded?: ExcludedPair[]

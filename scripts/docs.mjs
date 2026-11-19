@@ -37,7 +37,7 @@ const pythonSrc = join(root, 'packages/reeval-python/src')
 const cli = join(root, 'packages/reeval/dist/cli.js')
 const check = process.argv.includes('--check')
 /** Option keys reference/options has no entry for yet: left out of the option-keys table and its coverage check. */
-const UNDOCUMENTED_OPTIONS = ['revision']
+const UNDOCUMENTED_OPTIONS = ['revision', 'metric']
 const problems = []
 const read = (path) => readFileSync(path, 'utf8')
 

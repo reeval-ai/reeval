@@ -344,3 +344,115 @@ export function normalCdf(z: number): number {
   const erf = 1 - poly * Math.exp(-(z * z) / 2)
   return z >= 0 ? (1 + erf) / 2 : (1 - erf) / 2
 }
+
+/**
+ * Sample size below which a 100% pass rate still admits >10% failure probability under a 95%
+ * Wilson interval (at n = 30, Wilson's lower bound is ~89%).
+ */
+export const SMALL_CERTAINTY_N = 30
+
+/**
+ * Unbiased estimator of Pass@k on one task: `1 - C(n - c, k) / C(n, k)`, where `n` is counted
+ * trials and `c` is passes (`0 <= c <= n`). Null when `n < k` or `k < 1`.
+ */
+export function unbiasedPassAtK(c: number, n: number, k: number): number | null {
+  if (k < 1 || n < k || c < 0 || c > n) return null
+  if (n - c < k) return 1
+  let ratio = 1
+  for (let i = 0; i < k; i++) {
+    ratio *= (n - c - i) / (n - i)
+  }
+  return Math.min(1, Math.max(0, 1 - ratio))
+}
+
+/**
+ * Unbiased estimator of Pass^k on one task: `C(c, k) / C(n, k)`, where `n` is counted trials and
+ * `c` is passes (`0 <= c <= n`). Null when `n < k` or `k < 1`.
+ */
+export function unbiasedPassHatK(c: number, n: number, k: number): number | null {
+  if (k < 1 || n < k || c < 0 || c > n) return null
+  if (c < k) return 0
+  let ratio = 1
+  for (let i = 0; i < k; i++) {
+    ratio *= (c - i) / (n - i)
+  }
+  return Math.min(1, Math.max(0, ratio))
+}
+
+export type TaskTrialInput = {
+  /** Passed attempts on this task. */
+  pass: number
+  /** Counted attempts on this task. */
+  n: number
+  /** Per-cell trial counts on this task when aggregated across cells; defaults to `[{ pass, n }]`. */
+  cellTrials?: Array<{ pass: number; n: number }>
+}
+
+/**
+ * Unweighted mean pass rate across tasks that have at least one counted attempt; null when none
+ * do. Each task is scored first (`pass / n`, or mean across cells on the task) and then averaged
+ * equally across tasks.
+ */
+export function taskMeanRate(inputs: readonly TaskTrialInput[]): number | null {
+  const active = inputs.filter((t) => t.n > 0)
+  if (active.length === 0) return null
+  const sum = active.reduce((acc, t) => {
+    const cells = (t.cellTrials ?? [{ pass: t.pass, n: t.n }]).filter((c) => c.n > 0)
+    const rate = cells.reduce((s, c) => s + c.pass / c.n, 0) / cells.length
+    return acc + rate
+  }, 0)
+  return sum / active.length
+}
+
+export type PassKResult =
+  | {
+      ok: true
+      k: number
+      passAtK: number
+      passHatK: number
+    }
+  | {
+      ok: false
+      k: number
+      reason: string
+    }
+
+/**
+ * Unbiased Pass@k and Pass^k across all tasks in scope: computed per task with
+ * `1 - C(n - c, k) / C(n, k)` and `C(c, k) / C(n, k)` and averaged equally across tasks, ONLY when
+ * every task in `inputs` has `n >= k` (in every cell when `cellTrials` is provided). Otherwise
+ * omits the values and returns a plain-language reason.
+ */
+export function passKAcrossTasks(inputs: readonly TaskTrialInput[], k: number): PassKResult {
+  if (inputs.length === 0) {
+    return { ok: false, k, reason: `needs ${k} trials per task (0 tasks)` }
+  }
+  const cellNs = inputs.flatMap((t) =>
+    t.cellTrials && t.cellTrials.length > 0 ? t.cellTrials.map((c) => c.n) : [t.n],
+  )
+  const minN = cellNs.length ? Math.min(...cellNs) : 0
+  if (minN < k) {
+    const detail = inputs.length === 1 && cellNs.length === 1 ? `has ${minN}` : `fewest has ${minN}`
+    return { ok: false, k, reason: `needs ${k} trials per task (${detail})` }
+  }
+  let atKSum = 0
+  let hatKSum = 0
+  for (const t of inputs) {
+    const cells =
+      t.cellTrials && t.cellTrials.length > 0 ? t.cellTrials : [{ pass: t.pass, n: t.n }]
+    let cellAtK = 0
+    let cellHatK = 0
+    for (const c of cells) {
+      cellAtK += unbiasedPassAtK(c.pass, c.n, k) ?? 0
+      cellHatK += unbiasedPassHatK(c.pass, c.n, k) ?? 0
+    }
+    atKSum += cellAtK / cells.length
+    hatKSum += cellHatK / cells.length
+  }
+  return {
+    ok: true,
+    k,
+    passAtK: atKSum / inputs.length,
+    passHatK: hatKSum / inputs.length,
+  }
+}

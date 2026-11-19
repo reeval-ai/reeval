@@ -1,14 +1,23 @@
 import { caseName } from '../../history/cases.ts'
 import type { AttemptRecord, CellRecord, EvalEntry, RunRecord } from '../../history/types.ts'
-import { COMPARE_RUNS, containsZero, liftInterval } from '../../stats.ts'
-import type { CapturePageFile } from '../../types.ts'
+import {
+  COMPARE_RUNS,
+  containsZero,
+  liftInterval,
+  passKAcrossTasks,
+  SMALL_CERTAINTY_N,
+  type TaskTrialInput,
+  taskMeanRate,
+} from '../../stats.ts'
+import type { CapturePageFile, PassMetric, PassMetricLead } from '../../types.ts'
 import { totalTokens } from '../../usage.ts'
 import type { AnalysisDoc } from '../analysis.ts'
 import type { AttemptFacts } from '../classify.ts'
 import type { CompareRow, StackChange } from '../compare.ts'
 import { contrastsOf } from '../contrasts.ts'
 import { runCost } from '../cost.ts'
-import { effortSample, filesChanged, formatCount } from '../effort.ts'
+import { costPerSuccess, effortSample, filesChanged, formatCount } from '../effort.ts'
+import { caseLabel } from '../family.ts'
 import { labeledJudgments } from '../judgments.ts'
 import { attemptAnswerRows, isUngatedMiss } from '../model.ts'
 import type { RunRemarks } from '../remarks.ts'
@@ -23,6 +32,7 @@ import {
   headlineResultText,
   MEASURE_TEXT,
   pctDelta,
+  percentFigure,
   proportion,
   proportionText,
   ptsDelta,
@@ -33,6 +43,7 @@ import {
   tokensFigure,
   tokensText,
   usdFigure,
+  wilsonRangeText,
 } from './format.ts'
 import { type AttemptIdMap, attemptIds, selectedEvals } from './ids.ts'
 import { PASS_RATE_OUTCOME_LABEL, passRateOutcomeFromMatchers } from './labels.ts'
@@ -79,7 +90,9 @@ import type {
   RunReport,
   RunTally,
   Spread,
+  TaskCell,
   TaskResults,
+  TaskRow,
   VariantComparison,
 } from './types.ts'
 
@@ -98,6 +111,8 @@ export type RunReportOptions = {
   evals?: string[]
   /** Overrides the derived title. */
   title?: string
+  /** Explicit pass/fail metric override (e.g. `'task-pass-rate'` or `{ passAtK: 3 }`). */
+  metric?: PassMetric
   /** Where the report's links point. */
   links?: ReportLinks
 }
@@ -228,7 +243,10 @@ function attemptDiffStats(a: AttemptRecord): {
   return { files, added, removed }
 }
 
-function measureValues(attempts: AttemptRecord[]): Record<MeasureKey, number[]> {
+function measureValues(
+  attempts: AttemptRecord[],
+  passingOnly = false,
+): Record<MeasureKey, number[]> {
   const out: Record<MeasureKey, number[]> = {
     tokens: [],
     toolCalls: [],
@@ -240,7 +258,7 @@ function measureValues(attempts: AttemptRecord[]): Record<MeasureKey, number[]> 
     linesRemoved: [],
   }
   for (const a of attempts) {
-    if (!countedOutcome(a.outcome)) continue
+    if (passingOnly ? a.outcome !== 'pass' : !countedOutcome(a.outcome)) continue
     const sample = effortSample(a)
     if (sample.tokens !== undefined) out.tokens.push(sample.tokens)
     out.toolCalls.push(sample.tools)
@@ -255,8 +273,8 @@ function measureValues(attempts: AttemptRecord[]): Record<MeasureKey, number[]> 
   return out
 }
 
-function measuresOf(attempts: AttemptRecord[]): MeasureCells {
-  const values = measureValues(attempts)
+function measuresOf(attempts: AttemptRecord[], passingOnly = false): MeasureCells {
+  const values = measureValues(attempts, passingOnly)
   const cells = emptyMeasures()
   for (const key of MEASURE_KEYS) {
     cells[key] = spreadOf(values[key], MEASURE_TEXT[key])
@@ -291,6 +309,7 @@ type Ctx = {
   pages?: ReadonlyMap<string, CapturePageFile>
   facts?: ReadonlyMap<string, AttemptFacts>
   prior: RunReportOptions['prior']
+  metric?: PassMetric
   /** Citation hrefs already claimed in this report; keeps per-arm evidence distinct. */
   hrefs: Set<string>
   /** Canonical evidence href per attempt key, assigned before section cites. */
@@ -630,6 +649,192 @@ function fairnessOf(nA: number, nB: number, interval: { lo: number; hi: number }
   return 'clear'
 }
 
+const SATURATION_NOTE =
+  'Saturated: every arm hit 100% across all tasks. This comparison catches regressions; add harder tasks to separate variants.'
+
+type ResolvedMetric = {
+  lead: PassMetricLead
+  k: number | null
+  configured: boolean
+}
+
+function resolveMetric(e: EvalEntry, record: RunRecord, override?: PassMetric): ResolvedMetric {
+  const raw = override ?? e.metric ?? record.profile?.defaults.metric ?? record.config.metric
+  if (raw === undefined) return { lead: 'pass-rate', k: null, configured: false }
+  if (raw === 'pass-rate') return { lead: 'pass-rate', k: null, configured: true }
+  if (raw === 'task-pass-rate') return { lead: 'task-pass-rate', k: null, configured: true }
+  if ('passAtK' in raw) return { lead: 'pass@k', k: raw.passAtK, configured: true }
+  if ('passHatK' in raw) return { lead: 'pass^k', k: raw.passHatK, configured: true }
+  return { lead: raw.lead ?? 'pass-rate', k: raw.k, configured: true }
+}
+
+function isPassFailEval(e: EvalEntry): boolean {
+  if (assertionLabels(e).length > 0) return true
+  if (!e.compare) return false
+  if (e.attempts.some((a) => a.outcome === 'fail')) return true
+  const hasUngradedSignals =
+    attemptAnswerRows(e).length > 0 ||
+    e.attempts.some((a) => (a.judgements?.length ?? 0) > 0 || (a.observations?.length ?? 0) > 0)
+  return e.cells.some((c) => c.gate !== 'none') && !hasUngradedSignals
+}
+
+type EvalTask = {
+  task: string
+  label: string
+  match: (a: AttemptRecord) => boolean
+}
+
+/**
+ * Tasks in an `EvalEntry`: reuses `EvalEntry.cases` (`CaseRecord`) and `caseLabel` when `cases`
+ * exist, else falls back to distinct first-turn prompts when a cell ran multiple distinct prompts.
+ */
+function evalTasks(e: EvalEntry): EvalTask[] {
+  const caseMap = new Map<string, string>()
+  for (const c of e.cases ?? []) {
+    const label = c.name ? caseLabel(e.name, c.name) : c.key
+    caseMap.set(c.key, label)
+  }
+  for (const a of e.attempts) {
+    if (a.case !== undefined && !caseMap.has(a.case)) {
+      caseMap.set(a.case, a.case)
+    }
+  }
+  if (caseMap.size > 0) {
+    return [...caseMap.entries()].map(([task, label]) => ({
+      task,
+      label,
+      match: (a) => a.case === task,
+    }))
+  }
+  const byCell = new Map<string, Set<string>>()
+  const allPrompts: string[] = []
+  for (const a of e.attempts) {
+    const prompt = a.turns[0]?.prompt?.trim()
+    if (!prompt) continue
+    if (!allPrompts.includes(prompt)) allPrompts.push(prompt)
+    const set = byCell.get(a.cell) ?? new Set<string>()
+    set.add(prompt)
+    byCell.set(a.cell, set)
+  }
+  const multiPromptInCell = [...byCell.values()].some((s) => s.size > 1)
+  if (multiPromptInCell && allPrompts.length > 1) {
+    return allPrompts.map((prompt, idx) => {
+      const oneLine = prompt.replace(/\s+/g, ' ').trim()
+      const label = oneLine.length > 60 ? `${oneLine.slice(0, 59)}…` : oneLine
+      return {
+        task: `prompt-${idx + 1}`,
+        label,
+        match: (a) => a.turns[0]?.prompt?.trim() === prompt,
+      }
+    })
+  }
+  return [{ task: 'default', label: e.name, match: () => true }]
+}
+
+type ScopeScore = {
+  taskRate?: Figure
+  rawTaskRate: number | null
+  k?: number
+  passAtK?: Figure
+  rawPassAtK?: number
+  passHatK?: Figure
+  rawPassHatK?: number
+  passKOmitted?: string
+}
+
+function isExcludedForTask(e: EvalEntry, taskKey: string, cell: CellRecord): boolean {
+  return (e.excluded ?? []).some(
+    (ex) =>
+      ex.case === taskKey &&
+      ex.environment === cell.environment &&
+      (ex.harness === undefined || ex.harness === cell.harness),
+  )
+}
+
+function scoreScope(
+  e: EvalEntry,
+  tasks: EvalTask[],
+  attempts: AttemptRecord[],
+  cells: CellRecord[],
+  requestedK: number | null,
+): ScopeScore {
+  const multi = tasks.length > 1
+  const inputs: TaskTrialInput[] = []
+  for (const t of tasks) {
+    const activeCells = cells.filter((c) => !isExcludedForTask(e, t.task, c))
+    if (cells.length > 0 && activeCells.length === 0) continue
+    const counted = attempts.filter((a) => countedOutcome(a.outcome) && t.match(a))
+    const pass = counted.filter((a) => a.outcome === 'pass').length
+    if (activeCells.length > 1) {
+      const cellTrials = activeCells.map((c) => {
+        const ca = counted.filter((a) => a.cell === c.key)
+        return { pass: ca.filter((a) => a.outcome === 'pass').length, n: ca.length }
+      })
+      inputs.push({ pass, n: counted.length, cellTrials })
+    } else {
+      inputs.push({ pass, n: counted.length })
+    }
+  }
+  const rawTaskRate = multi ? taskMeanRate(inputs) : null
+  const out: ScopeScore = {
+    rawTaskRate,
+    ...(multi && rawTaskRate !== null ? { taskRate: percentFigure(rawTaskRate) } : {}),
+  }
+  if (requestedK !== null) {
+    const pk = passKAcrossTasks(inputs, requestedK)
+    out.k = pk.k
+    if (pk.ok) {
+      out.rawPassAtK = pk.passAtK
+      out.rawPassHatK = pk.passHatK
+      out.passAtK = percentFigure(pk.passAtK)
+      out.passHatK = percentFigure(pk.passHatK)
+    } else {
+      out.passKOmitted = pk.reason
+    }
+  }
+  return out
+}
+
+function buildTaskCell(
+  attempts: AttemptRecord[],
+  cells: CellRecord[],
+  requestedK: number | null,
+): TaskCell {
+  const rate = passRateForAttempts(attempts)
+  if (requestedK === null) return { rate }
+  const counted = attempts.filter((a) => countedOutcome(a.outcome))
+  const cellTrials =
+    cells.length > 1
+      ? cells.map((c) => {
+          const ca = counted.filter((a) => a.cell === c.key)
+          return { pass: ca.filter((a) => a.outcome === 'pass').length, n: ca.length }
+        })
+      : [{ pass: rate.k, n: rate.n }]
+  const pk = passKAcrossTasks(
+    [{ pass: rate.k, n: rate.n, ...(cells.length > 1 ? { cellTrials } : {}) }],
+    requestedK,
+  )
+  if (pk.ok) {
+    return {
+      rate,
+      k: pk.k,
+      passAtK: percentFigure(pk.passAtK),
+      passHatK: percentFigure(pk.passHatK),
+    }
+  }
+  return { rate, k: pk.k, passKOmitted: pk.reason }
+}
+
+function costReportedOnEval(e: EvalEntry): boolean {
+  return e.attempts.some((a) => countedOutcome(a.outcome) && a.cost !== undefined)
+}
+
+function smallCeilingSentence(label: string | null, rate: Rate): string | null {
+  if (rate.rate !== 1 || rate.n <= 0 || rate.n >= SMALL_CERTAINTY_N) return null
+  const on = label ? ` on ${label}` : ''
+  return `No failures in ${rate.n} counted attempt${rate.n === 1 ? '' : 's'}${on} (95% Wilson CI ${wilsonRangeText(rate.interval)}).`
+}
+
 function floorSentence(fairness: Fairness, n: number): string {
   if (fairness === 'too-few-runs') {
     return `${n} per side is below ${COMPARE_RUNS}, so this cannot come back helped or made worse.`
@@ -641,7 +846,16 @@ function floorSentence(fairness: Fairness, n: number): string {
 function headlineResultOf(primary: HeadlinePrimary): HeadlineResult {
   switch (primary.kind) {
     case 'pass-rate':
-      return { kind: 'pass-rate', passed: proportion(primary.rate), outcome: primary.outcome }
+      return {
+        kind: 'pass-rate',
+        passed: proportion(primary.rate),
+        outcome: primary.outcome,
+        ...(primary.taskRate?.value != null ? { taskRate: primary.taskRate.value } : {}),
+        ...(primary.metric ? { metric: primary.metric } : {}),
+        ...(primary.k !== undefined ? { k: primary.k } : {}),
+        ...(primary.passAtK?.value != null ? { passAtK: primary.passAtK.value } : {}),
+        ...(primary.passHatK?.value != null ? { passHatK: primary.passHatK.value } : {}),
+      }
     case 'lift':
       return {
         kind: 'lift',
@@ -649,9 +863,30 @@ function headlineResultOf(primary: HeadlinePrimary): HeadlineResult {
         variant: primary.variant.label,
         baselinePassed: proportion(primary.baselineRate),
         variantPassed: proportion(primary.variantRate),
+        ...(primary.baselineTaskRate?.value != null
+          ? { baselineTaskRate: primary.baselineTaskRate.value }
+          : {}),
+        ...(primary.variantTaskRate?.value != null
+          ? { variantTaskRate: primary.variantTaskRate.value }
+          : {}),
         points: primary.points.value ?? 0,
         lo: primary.interval.lo,
         hi: primary.interval.hi,
+        ...(primary.metric ? { metric: primary.metric } : {}),
+        ...(primary.k !== undefined ? { k: primary.k } : {}),
+        ...(primary.baselinePassAtK?.value != null
+          ? { baselinePassAtK: primary.baselinePassAtK.value }
+          : {}),
+        ...(primary.variantPassAtK?.value != null
+          ? { variantPassAtK: primary.variantPassAtK.value }
+          : {}),
+        ...(primary.baselinePassHatK?.value != null
+          ? { baselinePassHatK: primary.baselinePassHatK.value }
+          : {}),
+        ...(primary.variantPassHatK?.value != null
+          ? { variantPassHatK: primary.variantPassHatK.value }
+          : {}),
+        ...(primary.saturated ? { saturated: true } : {}),
       }
     case 'tied-ceiling':
       return {
@@ -662,6 +897,11 @@ function headlineResultOf(primary: HeadlinePrimary): HeadlineResult {
         measure: primary.lead.measure,
         baselineMedian: primary.lead.baseline.value ?? 0,
         variantMedian: primary.lead.variant.value ?? 0,
+        ...(primary.metric ? { metric: primary.metric } : {}),
+        ...(primary.k !== undefined ? { k: primary.k } : {}),
+        ...(primary.passAtK?.value != null ? { passAtK: primary.passAtK.value } : {}),
+        ...(primary.passHatK?.value != null ? { passHatK: primary.passHatK.value } : {}),
+        ...(primary.saturated ? { saturated: true } : {}),
       }
     case 'choice':
       return {
@@ -698,10 +938,20 @@ function chooseHeadline(
   arms: Arm[],
   prior: Ctx['prior'],
   regression: RegressionChanges | null,
-): { primary: HeadlinePrimary; fairness: Fairness; foot: string; kicker: string | null } {
+  metricCfg: ResolvedMetric,
+): {
+  primary: HeadlinePrimary
+  fairness: Fairness
+  foot: string
+  kicker: string | null
+  saturated?: boolean
+} {
   const harnesses = new Set(e.cells.map((c) => c.harness)).size
   const assertions = assertionLabels(e)
   const compare = Boolean(e.compare)
+  const passFail = isPassFailEval(e)
+  const tasks = passFail ? evalTasks(e) : []
+  const multiTask = tasks.length > 1
 
   let kicker: string | null = null
   if (regression && prior) {
@@ -742,58 +992,93 @@ function chooseHeadline(
     }
   }
 
-  if (compare && arms.length >= 2) {
+  if (compare && arms.length >= 2 && passFail) {
     const baseline = arms.find((a) => a.role === 'baseline')!
     const variants = arms.filter((a) => a.role === 'variant')
+    const cellsFor = (arm: Arm) =>
+      e.cells.filter((c) => (c.environmentDigest ?? c.environment) === arm.id)
     const attemptsFor = (arm: Arm) =>
       e.attempts.filter((a) => {
         const cell = cellOf(e, a.cell)
         return cell && (cell.environmentDigest ?? cell.environment) === arm.id
       })
     const rateFor = (arm: Arm) => passRateForAttempts(attemptsFor(arm))
+    const scopeFor = (arm: Arm) =>
+      scoreScope(e, tasks, attemptsFor(arm), cellsFor(arm), metricCfg.k)
     const baselineRate = rateFor(baseline)
+    const baseScope = scopeFor(baseline)
     const lifts = variants.map((v) => {
       const rate = rateFor(v)
+      const scope = scopeFor(v)
       const nV = rate.n
       const nB = baselineRate.n
       const { points, low, high } = liftInterval(
         { pass: rate.k, n: nV },
         { pass: baselineRate.k, n: nB },
       )
+      const taskPoints =
+        scope.rawTaskRate !== null && baseScope.rawTaskRate !== null
+          ? ptsDelta(scope.rawTaskRate - baseScope.rawTaskRate)
+          : undefined
       return {
         variant: { id: v.id, label: v.label } satisfies ArmRef,
         points: ptsDelta(points),
         interval: ptsInterval(low, high),
         rate,
+        scope,
+        taskPoints,
         rawPoints: points,
+        rawTaskPoints:
+          scope.rawTaskRate !== null && baseScope.rawTaskRate !== null
+            ? scope.rawTaskRate - baseScope.rawTaskRate
+            : points,
         lo: low,
         hi: high,
         n: Math.min(nV, nB),
       }
     })
-    lifts.sort((a, b) => Math.abs(b.rawPoints) - Math.abs(a.rawPoints))
+    lifts.sort((a, b) => {
+      const aMag =
+        metricCfg.lead === 'task-pass-rate' ? Math.abs(a.rawTaskPoints) : Math.abs(a.rawPoints)
+      const bMag =
+        metricCfg.lead === 'task-pass-rate' ? Math.abs(b.rawTaskPoints) : Math.abs(b.rawPoints)
+      return bMag - aMag
+    })
     const best = lifts[0]!
     kicker = `${best.variant.label} against the ${baseline.label} baseline`
-    const others = lifts.slice(1).map(({ variant, points, interval, rate }) => ({
+    const others = lifts.slice(1).map(({ variant, points, interval, rate, scope, taskPoints }) => ({
       variant,
       points,
       interval,
       rate,
+      ...(scope.taskRate ? { taskRate: scope.taskRate } : {}),
+      ...(taskPoints ? { taskPoints } : {}),
+      ...(scope.k !== undefined ? { k: scope.k } : {}),
+      ...(scope.passAtK ? { passAtK: scope.passAtK } : {}),
+      ...(scope.passHatK ? { passHatK: scope.passHatK } : {}),
+      ...(scope.passKOmitted ? { passKOmitted: scope.passKOmitted } : {}),
     }))
     const fairness = fairnessOf(best.rate.n, baselineRate.n, { lo: best.lo, hi: best.hi })
-    const tied =
-      REPORT_POLICY.tiedCeiling &&
+    const allArmsAtCeiling =
       baselineRate.rate === 1 &&
-      best.rate.rate === 1 &&
-      assertions.length > 0
+      baselineRate.n > 0 &&
+      lifts.every((l) => l.rate.rate === 1 && l.rate.n > 0)
+    const tied = REPORT_POLICY.tiedCeiling && allArmsAtCeiling && assertions.length > 0
+
+    const bothHavePassK =
+      best.scope.rawPassAtK !== undefined &&
+      best.scope.rawPassHatK !== undefined &&
+      baseScope.rawPassAtK !== undefined &&
+      baseScope.rawPassHatK !== undefined
+    const omittedReason = best.scope.passKOmitted ?? baseScope.passKOmitted
 
     if (tied) {
-      const baseAttempts = attemptsFor(baseline).filter((a) => countedOutcome(a.outcome))
-      const varAttempts = attemptsFor(variants.find((v) => v.id === best.variant.id)!).filter((a) =>
-        countedOutcome(a.outcome),
+      const baseAttempts = attemptsFor(baseline).filter((a) => a.outcome === 'pass')
+      const varAttempts = attemptsFor(variants.find((v) => v.id === best.variant.id)!).filter(
+        (a) => a.outcome === 'pass',
       )
-      const baseMeasures = measuresOf(baseAttempts)
-      const varMeasures = measuresOf(varAttempts)
+      const baseMeasures = measuresOf(baseAttempts, true)
+      const varMeasures = measuresOf(varAttempts, true)
       let lead: {
         measure: MeasureKey
         baseline: Figure
@@ -814,13 +1099,27 @@ function chooseHeadline(
         }
       }
       if (lead) {
-        const n = baselineRate.n + best.rate.n
+        const totalN = arms.reduce((sum, a) => sum + rateFor(a).n, 0)
+        const passKNote =
+          metricCfg.k !== null
+            ? bothHavePassK
+              ? `Pass@${metricCfg.k} ${best.scope.passAtK!.text}, Pass^${metricCfg.k} ${best.scope.passHatK!.text}.`
+              : omittedReason
+                ? `Pass@${metricCfg.k} and Pass^${metricCfg.k} omitted: ${omittedReason}.`
+                : null
+            : null
+        const footParts = [
+          `No failures in ${totalN} counted attempts across ${arms.length} arms on all ${assertions.length} applicable assertion${assertions.length === 1 ? '' : 's'} (${baseline.label} 95% Wilson CI ${wilsonRangeText(baselineRate.interval)}, ${best.variant.label} ${wilsonRangeText(best.rate.interval)}).`,
+          SATURATION_NOTE,
+          passKNote,
+        ]
         return {
           primary: {
             kind: 'tied-ceiling',
             baseline: { id: baseline.id, label: baseline.label },
             variant: best.variant,
             rate: baselineRate,
+            ...(baseScope.taskRate ? { taskRate: baseScope.taskRate, tasks: tasks.length } : {}),
             assertions: assertions.length,
             lead: {
               measure: lead.measure,
@@ -828,15 +1127,45 @@ function chooseHeadline(
               variant: lead.variant,
               delta: lead.delta,
             },
+            ...(metricCfg.configured ? { metric: metricCfg.lead } : {}),
+            ...(metricCfg.k !== null ? { k: metricCfg.k } : {}),
+            ...(bothHavePassK
+              ? { passAtK: best.scope.passAtK, passHatK: best.scope.passHatK }
+              : omittedReason
+                ? { passKOmitted: omittedReason }
+                : {}),
+            saturated: true,
           },
           fairness,
-          foot: `Every attempt passed all ${assertions.length} applicable assertions (${n} of ${n}).`,
+          foot: footParts.filter(Boolean).join(' '),
           kicker,
+          saturated: true,
         }
       }
     }
 
     const floor = floorSentence(fairness, best.n)
+    const ceilingNotes = allArmsAtCeiling
+      ? [
+          `No failures in ${best.rate.n} vs ${baselineRate.n} counted attempts (${baseline.label} 95% Wilson CI ${wilsonRangeText(baselineRate.interval)}, ${best.variant.label} ${wilsonRangeText(best.rate.interval)}).`,
+          SATURATION_NOTE,
+        ]
+      : [
+          smallCeilingSentence(best.variant.label, best.rate),
+          smallCeilingSentence(baseline.label, baselineRate),
+        ]
+    const taskFoot =
+      multiTask && best.scope.taskRate && baseScope.taskRate && best.taskPoints
+        ? `Task-averaged: ${best.scope.taskRate.text} vs ${baseScope.taskRate.text} (${best.taskPoints.text} across ${tasks.length} tasks)${metricCfg.lead === 'task-pass-rate' ? `; pooled pass rate ${best.rate.text} vs ${baselineRate.text}` : ''}.`
+        : null
+    const passKFoot =
+      metricCfg.k !== null
+        ? bothHavePassK
+          ? `Pass@${metricCfg.k} ${best.scope.passAtK!.text} vs ${baseScope.passAtK!.text}, Pass^${metricCfg.k} ${best.scope.passHatK!.text} vs ${baseScope.passHatK!.text}${metricCfg.lead === 'pass@k' || metricCfg.lead === 'pass^k' ? `; pooled pass rate ${best.rate.text} vs ${baselineRate.text}` : ''}.`
+          : omittedReason
+            ? `Pass@${metricCfg.k} and Pass^${metricCfg.k} omitted: ${omittedReason}.`
+            : null
+        : null
     return {
       primary: {
         kind: 'lift',
@@ -846,28 +1175,57 @@ function chooseHeadline(
         interval: best.interval,
         baselineRate,
         variantRate: best.rate,
+        ...(multiTask && baseScope.taskRate && best.scope.taskRate && best.taskPoints
+          ? {
+              baselineTaskRate: baseScope.taskRate,
+              variantTaskRate: best.scope.taskRate,
+              taskPoints: best.taskPoints,
+              tasks: tasks.length,
+            }
+          : {}),
+        ...(metricCfg.configured ? { metric: metricCfg.lead } : {}),
+        ...(metricCfg.k !== null ? { k: metricCfg.k } : {}),
+        ...(bothHavePassK
+          ? {
+              baselinePassAtK: baseScope.passAtK,
+              variantPassAtK: best.scope.passAtK,
+              passAtKPoints: ptsDelta(best.scope.rawPassAtK! - baseScope.rawPassAtK!),
+              baselinePassHatK: baseScope.passHatK,
+              variantPassHatK: best.scope.passHatK,
+              passHatKPoints: ptsDelta(best.scope.rawPassHatK! - baseScope.rawPassHatK!),
+            }
+          : omittedReason
+            ? { passKOmitted: omittedReason }
+            : {}),
+        ...(allArmsAtCeiling ? { saturated: true } : {}),
         others,
       },
       fairness,
       foot: [
         `n = ${best.rate.n} vs ${baselineRate.n} counted attempts. 95% CI ${best.interval.text}.`,
+        ...ceilingNotes,
+        taskFoot,
+        passKFoot,
         floor,
       ]
         .filter(Boolean)
         .join(' '),
       kicker,
+      ...(allArmsAtCeiling ? { saturated: true } : {}),
     }
   }
 
   if (assertions.length > 0) {
+    const gatedCells = e.cells.filter((c) => c.gate !== 'none')
+    const activeCells = gatedCells.length ? gatedCells : e.cells
     const gated = e.attempts.filter((a) => {
       const cell = cellOf(e, a.cell)
       return cell && cell.gate !== 'none' && countedOutcome(a.outcome)
     })
     const pool = gated.length ? gated : e.attempts.filter((a) => countedOutcome(a.outcome))
-    // An attempt "passes" the headline when every applicable assertion passed.
     let passedAll = 0
     for (const a of pool) {
+      if (a.outcome !== 'pass') continue
       const applicable = (a.assertions ?? []).filter(
         (x) => (x.status as string) !== 'not_applicable',
       )
@@ -875,18 +1233,54 @@ function chooseHeadline(
       if (applicable.every((x) => x.status === 'pass')) passedAll++
     }
     const rate = rateOf(passedAll, pool.length)
+    const scope = scoreScope(e, tasks, pool, activeCells, metricCfg.k)
     const outcome = passRateOutcomeFromMatchers(assertions.map((a) => a.matcher)) ?? 'passed'
     const outcomeWord = PASS_RATE_OUTCOME_LABEL[outcome]
+    const assertionPhrase =
+      assertions.length === 1 ? 'on 1 assertion' : `on all ${assertions.length} assertions`
+    const baseSentence =
+      rate.rate === 1 && rate.n > 0 && rate.n < SMALL_CERTAINTY_N
+        ? `No failures in ${rate.n} counted attempt${rate.n === 1 ? '' : 's'} ${assertionPhrase} (95% Wilson CI ${wilsonRangeText(rate.interval)}); small sample does not rule out failures.`
+        : rate.rate === 1 && rate.n > 0
+          ? `No failures in ${rate.n} counted attempts ${assertionPhrase} (95% Wilson CI ${wilsonRangeText(rate.interval)}).`
+          : `${rate.k} of ${rate.n} counted attempts ${outcomeWord} on all ${assertions.length} assertions.`
+    const taskSentence =
+      multiTask && scope.taskRate
+        ? `Task-averaged: ${scope.taskRate.text} across ${tasks.length} tasks${metricCfg.lead === 'task-pass-rate' ? ` (pooled ${rate.text})` : ''}.`
+        : null
+    const passKSentence =
+      metricCfg.k !== null
+        ? scope.passAtK && scope.passHatK
+          ? `Pass@${metricCfg.k} ${scope.passAtK.text}, Pass^${metricCfg.k} ${scope.passHatK.text}${metricCfg.lead === 'pass@k' || metricCfg.lead === 'pass^k' ? ` (pooled ${rate.text})` : ''}.`
+          : scope.passKOmitted
+            ? `Pass@${metricCfg.k} and Pass^${metricCfg.k} omitted: ${scope.passKOmitted}.`
+            : null
+        : null
     return {
       primary: {
         kind: 'pass-rate',
         rate,
+        ...(multiTask && scope.taskRate ? { taskRate: scope.taskRate, tasks: tasks.length } : {}),
         assertions: assertions.length,
         harnesses: Math.max(1, harnesses),
         outcome,
+        ...(metricCfg.configured ? { metric: metricCfg.lead } : {}),
+        ...(scope.k !== undefined ? { k: scope.k } : {}),
+        ...(scope.passAtK && scope.passHatK
+          ? { passAtK: scope.passAtK, passHatK: scope.passHatK }
+          : scope.passKOmitted
+            ? { passKOmitted: scope.passKOmitted }
+            : {}),
       },
       fairness: pool.length < COMPARE_RUNS ? 'too-few-runs' : 'clear',
-      foot: `${rate.k} of ${rate.n} counted attempts ${outcomeWord} on all ${assertions.length} assertions. ${harnesses} coding harness${harnesses === 1 ? '' : 'es'}.`,
+      foot: [
+        baseSentence,
+        taskSentence,
+        passKSentence,
+        `${harnesses} coding harness${harnesses === 1 ? '' : 'es'}.`,
+      ]
+        .filter(Boolean)
+        .join(' '),
       kicker,
     }
   }
@@ -1016,9 +1410,12 @@ function chooseHeadline(
   }
 }
 
-function buildTaskResults(e: EvalEntry): TaskResults | null {
+function buildTaskResults(e: EvalEntry, metricCfg: ResolvedMetric): TaskResults | null {
   const labels = assertionLabels(e)
   if (!labels.length) return null
+  const tasks = evalTasks(e)
+  const multiTask = tasks.length > 1
+  const costReported = costReportedOnEval(e)
   const harnesses = [...new Set(e.cells.map((c) => c.harness))]
   const columns = harnesses
   const assertions: AssertionRow[] = labels.map((row) => {
@@ -1035,26 +1432,102 @@ function buildTaskResults(e: EvalEntry): TaskResults | null {
   })
   const axes = ['Coding harness']
   const breakdown: BreakdownRow[] = harnesses.map((h) => {
+    const hCells = e.cells.filter((c) => c.harness === h)
     const attempts = e.attempts.filter((a) => cellOf(e, a.cell)?.harness === h)
+    const scope = scoreScope(e, tasks, attempts, hCells, metricCfg.k)
+    const cps = costPerSuccess(attempts)
     return {
       keys: [h],
       rate: passRateForAttempts(attempts),
-      measures: measuresOf(attempts),
+      ...(multiTask ? { taskRate: scope.taskRate ?? null } : {}),
+      ...(scope.k !== undefined ? { k: scope.k } : {}),
+      ...(scope.passAtK && scope.passHatK
+        ? { passAtK: scope.passAtK, passHatK: scope.passHatK }
+        : scope.passKOmitted
+          ? { passKOmitted: scope.passKOmitted }
+          : {}),
+      measures: measuresOf(attempts, true),
+      costPerSuccess: cps === null ? null : usdFigure(cps),
     }
   })
+  const gatedCells = e.cells.filter((c) => c.gate !== 'none')
+  const totalCells = gatedCells.length ? gatedCells : e.cells
+  const gatedAttempts = e.attempts.filter((a) => {
+    const cell = cellOf(e, a.cell)
+    return cell && cell.gate !== 'none'
+  })
+  const totalPool = gatedAttempts.some((a) => countedOutcome(a.outcome))
+    ? gatedAttempts
+    : e.attempts
+  const overallScope = scoreScope(e, tasks, totalPool, totalCells, metricCfg.k)
+  const allCps = costPerSuccess(e.attempts)
   const medianRow: BreakdownRow | null =
     breakdown.length > 1
       ? {
           keys: ['Median'],
           rate: passRateForAttempts(e.attempts),
-          measures: measuresOf(e.attempts.filter((a) => countedOutcome(a.outcome))),
+          ...(multiTask
+            ? { taskRate: scoreScope(e, tasks, e.attempts, e.cells, null).taskRate ?? null }
+            : {}),
+          ...(overallScope.k !== undefined ? { k: overallScope.k } : {}),
+          ...(overallScope.passAtK && overallScope.passHatK
+            ? { passAtK: overallScope.passAtK, passHatK: overallScope.passHatK }
+            : overallScope.passKOmitted
+              ? { passKOmitted: overallScope.passKOmitted }
+              : {}),
+          measures: measuresOf(e.attempts, true),
+          costPerSuccess: allCps === null ? null : usdFigure(allCps),
         }
       : null
-  return { kind: 'task', columns, assertions, axes, breakdown, median: medianRow }
+  const taskRows: TaskRow[] | undefined = multiTask
+    ? tasks.map((t) => {
+        const cells: Record<string, TaskCell> = {}
+        for (const h of columns) {
+          const hCells = e.cells.filter((c) => c.harness === h && !isExcludedForTask(e, t.task, c))
+          const hAttempts = e.attempts.filter((a) => cellOf(e, a.cell)?.harness === h && t.match(a))
+          cells[h] = buildTaskCell(hAttempts, hCells, metricCfg.k)
+        }
+        const activeTotalCells = totalCells.filter((c) => !isExcludedForTask(e, t.task, c))
+        const totalTaskAttempts = totalPool.filter((a) => t.match(a))
+        return {
+          task: t.task,
+          label: t.label,
+          cells,
+          total: buildTaskCell(totalTaskAttempts, activeTotalCells, metricCfg.k),
+        }
+      })
+    : undefined
+  return {
+    kind: 'task',
+    columns,
+    assertions,
+    axes,
+    breakdown,
+    median: medianRow,
+    ...(metricCfg.configured ? { metric: metricCfg.lead } : {}),
+    ...(overallScope.k !== undefined ? { k: overallScope.k } : {}),
+    ...(overallScope.passAtK && overallScope.passHatK
+      ? { passAtK: overallScope.passAtK, passHatK: overallScope.passHatK }
+      : overallScope.passKOmitted
+        ? { passKOmitted: overallScope.passKOmitted }
+        : {}),
+    costReported,
+    ...(taskRows ? { tasks: taskRows } : {}),
+  }
 }
 
-function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
+function buildVariantComparison(
+  e: EvalEntry,
+  arms: Arm[],
+  metricCfg: ResolvedMetric,
+): VariantComparison {
+  const passFail = isPassFailEval(e)
+  const tasks = passFail ? evalTasks(e) : []
+  const multiTask = tasks.length > 1
+  const costReported = passFail && costReportedOnEval(e)
   const baseline = arms.find((a) => a.role === 'baseline')
+  const cellsFor = (arm: Arm) =>
+    e.cells.filter((c) => (c.environmentDigest ?? c.environment) === arm.id)
   const attemptsFor = (arm: Arm) =>
     e.attempts.filter((a) => {
       const cell = cellOf(e, a.cell)
@@ -1064,26 +1537,53 @@ function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
   const baseAttempts = baseline
     ? attemptsFor(baseline).filter((a) => countedOutcome(a.outcome))
     : []
-  const baseMeasures = measuresOf(baseAttempts)
+  const baseMeasures = measuresOf(baseAttempts, passFail)
   const baseRate = passRateForAttempts(baseAttempts)
+  const baseScope =
+    passFail && baseline
+      ? scoreScope(e, tasks, baseAttempts, cellsFor(baseline), metricCfg.k)
+      : null
+  const baseCps = passFail && baseline ? costPerSuccess(baseAttempts) : null
 
   const summary: ArmRow[] = arms.map((arm) => {
     const attempts = attemptsFor(arm).filter((a) => countedOutcome(a.outcome))
     const rate = passRateForAttempts(attempts)
-    const measures = measuresOf(attempts)
+    const scope = passFail ? scoreScope(e, tasks, attempts, cellsFor(arm), metricCfg.k) : null
+    const measures = measuresOf(attempts, passFail)
     const vs = emptyMeasureVsBaseline()
     for (const key of MEASURE_KEYS) {
       vs[key] = measureVs(measures[key], arm.role === 'baseline' ? null : baseMeasures[key], null)
     }
+    const cps = passFail ? costPerSuccess(attempts) : undefined
+    const cpsFig = cps === undefined ? undefined : cps === null ? null : usdFigure(cps)
+    const cpsDelta = !passFail
+      ? undefined
+      : arm.role === 'baseline' || cps === null || cps === undefined || baseCps === null
+        ? null
+        : pctDelta(cps, baseCps)
+    const passKFields = scope
+      ? {
+          ...(multiTask && scope.taskRate ? { taskRate: scope.taskRate } : {}),
+          ...(scope.k !== undefined ? { k: scope.k } : {}),
+          ...(scope.passAtK && scope.passHatK
+            ? { passAtK: scope.passAtK, passHatK: scope.passHatK }
+            : scope.passKOmitted
+              ? { passKOmitted: scope.passKOmitted }
+              : {}),
+        }
+      : {}
     if (arm.role === 'baseline') {
       return {
         arm: arm.label,
         rate,
+        ...passKFields,
+        ...(multiTask && passFail ? { taskLift: null } : {}),
         lift: null,
         interval: null,
         verdict: 'baseline' as const,
         verdictScope: 'pass-rate' as const,
         measures: vs,
+        ...(passFail ? { costPerSuccess: cpsFig ?? null, costPerSuccessDelta: null } : {}),
       }
     }
     const { points, low, high } = liftInterval(
@@ -1101,16 +1601,48 @@ function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
             : points < 0
               ? 'made-worse'
               : 'within-noise'
+    const taskLift =
+      multiTask && passFail && scope?.rawTaskRate != null && baseScope?.rawTaskRate != null
+        ? ptsDelta(scope.rawTaskRate - baseScope.rawTaskRate)
+        : multiTask && passFail
+          ? null
+          : undefined
     return {
       arm: arm.label,
       rate,
+      ...passKFields,
+      ...(taskLift !== undefined ? { taskLift } : {}),
       lift: ptsDelta(points),
       interval: ptsInterval(low, high),
       verdict,
       verdictScope: 'pass-rate' as const,
       measures: vs,
+      ...(passFail
+        ? { costPerSuccess: cpsFig ?? null, costPerSuccessDelta: cpsDelta ?? null }
+        : {}),
     }
   })
+
+  const saturated =
+    passFail && arms.length >= 2 && summary.every((row) => row.rate.rate === 1 && row.rate.n > 0)
+
+  const taskRows: TaskRow[] | undefined =
+    passFail && multiTask
+      ? tasks.map((t) => {
+          const cells: Record<string, TaskCell> = {}
+          for (const arm of arms) {
+            const armCells = cellsFor(arm).filter((c) => !isExcludedForTask(e, t.task, c))
+            const armAttempts = attemptsFor(arm).filter((a) => t.match(a))
+            cells[arm.label] = buildTaskCell(armAttempts, armCells, metricCfg.k)
+          }
+          return {
+            task: t.task,
+            label: t.label,
+            cells,
+            total: null,
+          }
+        })
+      : undefined
 
   const labels = assertionLabels(e)
   const columns = arms.map((a) => a.label)
@@ -1159,6 +1691,8 @@ function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
         sandbox: aCell.sandbox,
         fromPassed: { k: c.lift.variant.pass, n: c.lift.variant.counted },
         toPassed: { k: c.lift.control.pass, n: c.lift.control.counted },
+        ...(passFail && c.taskPoints !== undefined ? { taskDelta: ptsDelta(c.taskPoints) } : {}),
+        ...(passFail && c.brokenTasks ? { brokenTasks: c.brokenTasks } : {}),
         measure: 'pass-rate' as const,
         delta: ptsDelta(c.lift.points),
         interval: ptsInterval(c.lift.interval.lo, c.lift.interval.hi),
@@ -1171,6 +1705,7 @@ function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
   const harnesses = [...new Set(e.cells.map((c) => c.harness))]
   const effortByHarness = harnesses.flatMap((h) =>
     arms.map((arm) => {
+      const hArmCells = cellsFor(arm).filter((c) => c.harness === h)
       const attempts = e.attempts.filter((a) => {
         const cell = cellOf(e, a.cell)
         return (
@@ -1180,7 +1715,8 @@ function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
           countedOutcome(a.outcome)
         )
       })
-      const measures = measuresOf(attempts)
+      const scope = passFail ? scoreScope(e, tasks, attempts, hArmCells, metricCfg.k) : null
+      const measures = measuresOf(attempts, passFail)
       const vs = emptyMeasureVsBaseline()
       const baseH = baseline
         ? e.attempts.filter((a) => {
@@ -1193,15 +1729,35 @@ function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
             )
           })
         : []
-      const baseM = measuresOf(baseH)
+      const baseM = measuresOf(baseH, passFail)
       for (const key of MEASURE_KEYS) {
         vs[key] = measureVs(measures[key], arm.role === 'baseline' ? null : baseM[key], null)
       }
+      const hCps = passFail ? costPerSuccess(attempts) : undefined
+      const baseHCps = passFail && baseline ? costPerSuccess(baseH) : null
+      const hCpsDelta = !passFail
+        ? undefined
+        : arm.role === 'baseline' || hCps === null || hCps === undefined || baseHCps === null
+          ? null
+          : pctDelta(hCps, baseHCps)
       return {
         harness: h,
         arm: arm.label,
         rate: passRateForAttempts(attempts),
+        ...(multiTask && scope?.taskRate ? { taskRate: scope.taskRate } : {}),
+        ...(scope?.k !== undefined ? { k: scope.k } : {}),
+        ...(scope?.passAtK && scope.passHatK
+          ? { passAtK: scope.passAtK, passHatK: scope.passHatK }
+          : scope?.passKOmitted
+            ? { passKOmitted: scope.passKOmitted }
+            : {}),
         measures: vs,
+        ...(passFail
+          ? {
+              costPerSuccess: hCps === null || hCps === undefined ? null : usdFigure(hCps),
+              costPerSuccessDelta: hCpsDelta ?? null,
+            }
+          : {}),
       }
     }),
   )
@@ -1210,7 +1766,12 @@ function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
     kind: 'comparison',
     arms,
     uniformLead,
+    ...(passFail && metricCfg.configured ? { metric: metricCfg.lead } : {}),
+    ...(passFail && metricCfg.k !== null ? { k: metricCfg.k } : {}),
+    ...(passFail ? { costReported } : {}),
+    ...(saturated ? { saturated: true, saturationNote: SATURATION_NOTE } : {}),
     summary,
+    ...(taskRows ? { tasks: taskRows } : {}),
     assertionsByArm: uniformLead ? [] : assertionsByArm,
     behavior: [],
     contrasts,
@@ -1713,7 +2274,8 @@ function buildEvalSection(ctx: Ctx, e: EvalEntry, displayName: string): EvalSect
   const shapes = shapesOf(e, Boolean(ctx.prior))
   const design = designOf(e)
   const regression = ctx.prior ? buildRegression(ctx.prior) : null
-  const chosen = chooseHeadline(e, arms, ctx.prior, regression)
+  const metricCfg = resolveMetric(e, ctx.record, ctx.metric)
+  const chosen = chooseHeadline(e, arms, ctx.prior, regression, metricCfg)
   const primaryHeadline = fillTextLeadCites(
     chosen.primary,
     e,
@@ -1728,11 +2290,12 @@ function buildEvalSection(ctx: Ctx, e: EvalEntry, displayName: string): EvalSect
     fairness: chosen.fairness,
     primary: primaryHeadline,
     foot: chosen.foot,
+    ...(chosen.saturated ? { saturated: true } : {}),
   }
   let primary: EvalSection['primary'] = null
   if (regression) primary = regression
-  else if (e.compare) primary = buildVariantComparison(e, arms)
-  else primary = buildTaskResults(e)
+  else if (e.compare && isPassFailEval(e)) primary = buildVariantComparison(e, arms, metricCfg)
+  else primary = buildTaskResults(e, metricCfg)
 
   const insights: ReportClaim[] = []
   if (ctx.analysis) {
@@ -2032,8 +2595,11 @@ function rollupTokens(s: EvalSection, e: EvalEntry | undefined): Figure {
     )
   }
   if (s.primary?.kind === 'comparison' && e) {
-    const counted = e.attempts.filter((a) => countedOutcome(a.outcome))
-    return tokensFigure(measuresOf(counted).tokens?.median.value ?? null)
+    const passFail = isPassFailEval(e)
+    return tokensFigure(measuresOf(e.attempts, passFail).tokens?.median.value ?? null)
+  }
+  if (e?.compare && !isPassFailEval(e)) {
+    return tokensFigure(measuresOf(e.attempts, false).tokens?.median.value ?? null)
   }
   return tokensFigure(null)
 }
@@ -2164,6 +2730,7 @@ export function buildRunReport(record: RunRecord, options: RunReportOptions = {}
     pages: options.pages,
     facts: options.facts,
     prior: options.prior ?? null,
+    metric: options.metric,
     hrefs: new Set(),
     hrefByKey: new Map(),
   }

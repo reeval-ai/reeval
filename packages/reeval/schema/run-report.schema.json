@@ -54,6 +54,28 @@
         "arm": {
           "type": "string"
         },
+        "costPerSuccess": {
+          "description": "Total counted cost divided by passing attempts; null when cost unreported or 0 passes.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Figure"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "costPerSuccessDelta": {
+          "description": "Percentage delta of costPerSuccess against baseline; null on baseline or when either side is null.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Delta"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "interval": {
           "anyOf": [
             {
@@ -63,6 +85,12 @@
               "type": "null"
             }
           ]
+        },
+        "k": {
+          "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 9007199254740991
         },
         "lift": {
           "anyOf": [
@@ -113,8 +141,36 @@
             "turns"
           ]
         },
+        "passAtK": {
+          "description": "Unweighted mean of unbiased per-task Pass@k when every task has `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passHatK": {
+          "description": "Unweighted mean of unbiased per-task Pass^k when every task has `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passKOmitted": {
+          "description": "Reason Pass@k and Pass^k were omitted on this arm when `k` was requested and some task has `n < k`.",
+          "type": "string"
+        },
         "rate": {
+          "description": "Pooled pass rate across counted attempts on this arm.",
           "$ref": "#/$defs/Rate"
+        },
+        "taskLift": {
+          "description": "Equal-weight cross-task point lift against baseline when more than 1 task ran; null on baseline.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Delta"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "taskRate": {
+          "description": "Equal-weight mean pass rate across tasks when more than 1 task ran.",
+          "$ref": "#/$defs/Figure"
         },
         "verdict": {
           "description": "Pass-rate certainty only; measure direction lives in measure cells.",
@@ -581,6 +637,23 @@
     "BreakdownRow": {
       "type": "object",
       "properties": {
+        "costPerSuccess": {
+          "description": "Total counted cost divided by passing attempts; null when cost unreported or 0 passes.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Figure"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "k": {
+          "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 9007199254740991
+        },
         "keys": {
           "description": "One value per axis, repeated on every row.",
           "type": "array",
@@ -591,10 +664,34 @@
         "measures": {
           "$ref": "#/$defs/MeasureCells"
         },
+        "passAtK": {
+          "description": "Unweighted mean of unbiased per-task Pass@k when every task has `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passHatK": {
+          "description": "Unweighted mean of unbiased per-task Pass^k when every task has `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passKOmitted": {
+          "description": "Reason Pass@k and Pass^k were omitted when `k` was requested and some task has `n < k`.",
+          "type": "string"
+        },
         "rate": {
+          "description": "Pooled pass rate across counted attempts in this group.",
           "anyOf": [
             {
               "$ref": "#/$defs/Rate"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "taskRate": {
+          "description": "Equal-weight mean pass rate across tasks when more than 1 task ran.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Figure"
             },
             {
               "type": "null"
@@ -882,6 +979,13 @@
       "description": "`from` against `to` on one coding harness and sandbox: each pair has a row per harness (and sandbox), whose interval is over that cell's attempts alone.",
       "type": "object",
       "properties": {
+        "brokenTasks": {
+          "description": "Tasks where `from` scored 0% on multi-task evaluations; omitted when none or single-task.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "delta": {
           "$ref": "#/$defs/Delta"
         },
@@ -930,6 +1034,10 @@
         "sandbox": {
           "description": "The sandbox both cells ran in.",
           "type": "string"
+        },
+        "taskDelta": {
+          "description": "Equal-weight cross-task point delta (`from` minus `to`) when more than 1 task ran.",
+          "$ref": "#/$defs/Delta"
         },
         "to": {
           "type": "string"
@@ -1045,9 +1153,37 @@
         "arm": {
           "type": "string"
         },
+        "costPerSuccess": {
+          "description": "Total counted cost divided by passing attempts; null when cost unreported or 0 passes.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Figure"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "costPerSuccessDelta": {
+          "description": "Percentage delta of costPerSuccess against this harness's baseline; null on baseline or when either side is null.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Delta"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "harness": {
           "description": "A harness label, or `Median` for the cross-harness row.",
           "type": "string"
+        },
+        "k": {
+          "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 9007199254740991
         },
         "measures": {
           "type": "object",
@@ -1088,8 +1224,25 @@
             "turns"
           ]
         },
+        "passAtK": {
+          "description": "Unweighted mean of unbiased per-task Pass@k when every task has `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passHatK": {
+          "description": "Unweighted mean of unbiased per-task Pass^k when every task has `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passKOmitted": {
+          "description": "Reason Pass@k and Pass^k were omitted when `k` was requested and some task has `n < k`.",
+          "type": "string"
+        },
         "rate": {
+          "description": "Pooled pass rate for this harness and arm.",
           "$ref": "#/$defs/Rate"
+        },
+        "taskRate": {
+          "description": "Equal-weight mean pass rate across tasks when more than 1 task ran.",
+          "$ref": "#/$defs/Figure"
         }
       },
       "required": ["arm", "harness", "measures", "rate"]
@@ -1111,6 +1264,10 @@
         },
         "primary": {
           "$ref": "#/$defs/HeadlinePrimary"
+        },
+        "saturated": {
+          "description": "True when every arm in a pass/fail comparison hit 100% across all tasks.",
+          "type": "boolean"
         },
         "task": {
           "description": "The eval's name: the heading above the headline.",
@@ -1298,16 +1455,35 @@
                   {
                     "type": "object",
                     "properties": {
+                      "k": {
+                        "type": "integer",
+                        "minimum": 2,
+                        "maximum": 9007199254740991
+                      },
                       "kind": {
                         "type": "string",
                         "const": "pass-rate"
+                      },
+                      "metric": {
+                        "type": "string",
+                        "enum": ["pass-rate", "task-pass-rate", "pass@k", "pass^k"]
                       },
                       "outcome": {
                         "type": "string",
                         "enum": ["passed", "found", "used"]
                       },
+                      "passAtK": {
+                        "type": "number"
+                      },
                       "passed": {
                         "$ref": "#/$defs/Proportion"
+                      },
+                      "passHatK": {
+                        "type": "number"
+                      },
+                      "taskRate": {
+                        "description": "Equal-weight cross-task pass rate [0, 1] when more than 1 task ran.",
+                        "type": "number"
                       }
                     },
                     "required": ["kind", "outcome", "passed"]
@@ -1318,11 +1494,26 @@
                       "baseline": {
                         "type": "string"
                       },
+                      "baselinePassAtK": {
+                        "type": "number"
+                      },
                       "baselinePassed": {
                         "$ref": "#/$defs/Proportion"
                       },
+                      "baselinePassHatK": {
+                        "type": "number"
+                      },
+                      "baselineTaskRate": {
+                        "description": "Equal-weight cross-task baseline pass rate [0, 1] when more than 1 task ran.",
+                        "type": "number"
+                      },
                       "hi": {
                         "type": "number"
+                      },
+                      "k": {
+                        "type": "integer",
+                        "minimum": 2,
+                        "maximum": 9007199254740991
                       },
                       "kind": {
                         "type": "string",
@@ -1331,15 +1522,32 @@
                       "lo": {
                         "type": "number"
                       },
+                      "metric": {
+                        "type": "string",
+                        "enum": ["pass-rate", "task-pass-rate", "pass@k", "pass^k"]
+                      },
                       "points": {
                         "description": "Pass-rate points as a fraction (`1` is +100 pts), with its 95% interval.",
                         "type": "number"
                       },
+                      "saturated": {
+                        "type": "boolean"
+                      },
                       "variant": {
                         "type": "string"
                       },
+                      "variantPassAtK": {
+                        "type": "number"
+                      },
                       "variantPassed": {
                         "$ref": "#/$defs/Proportion"
+                      },
+                      "variantPassHatK": {
+                        "type": "number"
+                      },
+                      "variantTaskRate": {
+                        "description": "Equal-weight cross-task variant pass rate [0, 1] when more than 1 task ran.",
+                        "type": "number"
                       }
                     },
                     "required": [
@@ -1362,6 +1570,11 @@
                       "baselineMedian": {
                         "type": "number"
                       },
+                      "k": {
+                        "type": "integer",
+                        "minimum": 2,
+                        "maximum": 9007199254740991
+                      },
                       "kind": {
                         "type": "string",
                         "const": "tied-ceiling"
@@ -1379,8 +1592,21 @@
                           "linesRemoved"
                         ]
                       },
+                      "metric": {
+                        "type": "string",
+                        "enum": ["pass-rate", "task-pass-rate", "pass@k", "pass^k"]
+                      },
+                      "passAtK": {
+                        "type": "number"
+                      },
                       "passed": {
                         "$ref": "#/$defs/Proportion"
+                      },
+                      "passHatK": {
+                        "type": "number"
+                      },
+                      "saturated": {
+                        "type": "boolean"
                       },
                       "variant": {
                         "type": "string"
@@ -1670,17 +1896,51 @@
               "exclusiveMinimum": 0,
               "maximum": 9007199254740991
             },
+            "k": {
+              "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 9007199254740991
+            },
             "kind": {
               "type": "string",
               "const": "pass-rate"
+            },
+            "metric": {
+              "description": "Which pass/fail metric leads when explicitly configured.",
+              "type": "string",
+              "enum": ["pass-rate", "task-pass-rate", "pass@k", "pass^k"]
             },
             "outcome": {
               "description": "Product outcome noun: passed (default), found, or used.",
               "type": "string",
               "enum": ["passed", "found", "used"]
             },
+            "passAtK": {
+              "description": "Unweighted mean of unbiased per-task `1 - C(n - c, k) / C(n, k)` when every task has `n >= k`.",
+              "$ref": "#/$defs/Figure"
+            },
+            "passHatK": {
+              "description": "Unweighted mean of unbiased per-task `C(c, k) / C(n, k)` when every task has `n >= k`.",
+              "$ref": "#/$defs/Figure"
+            },
+            "passKOmitted": {
+              "description": "Reason Pass@k and Pass^k were omitted when `k` was requested (`needs k trials per task ...`).",
+              "type": "string"
+            },
             "rate": {
+              "description": "Pooled pass rate across gated counted attempts (default lead).",
               "$ref": "#/$defs/Rate"
+            },
+            "taskRate": {
+              "description": "Equal-weight mean pass rate across tasks when more than 1 task ran.",
+              "$ref": "#/$defs/Figure"
+            },
+            "tasks": {
+              "description": "Distinct task count when more than 1 task ran.",
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 9007199254740991
             }
           },
           "required": ["assertions", "harnesses", "kind", "outcome", "rate"]
@@ -1691,15 +1951,38 @@
             "baseline": {
               "$ref": "#/$defs/ArmRef"
             },
+            "baselinePassAtK": {
+              "description": "Baseline unweighted unbiased Pass@k when every task has `n >= k`.",
+              "$ref": "#/$defs/Figure"
+            },
+            "baselinePassHatK": {
+              "description": "Baseline unweighted unbiased Pass^k when every task has `n >= k`.",
+              "$ref": "#/$defs/Figure"
+            },
             "baselineRate": {
               "$ref": "#/$defs/Rate"
+            },
+            "baselineTaskRate": {
+              "description": "Equal-weight cross-task baseline pass rate when more than 1 task ran.",
+              "$ref": "#/$defs/Figure"
             },
             "interval": {
               "$ref": "#/$defs/Interval"
             },
+            "k": {
+              "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 9007199254740991
+            },
             "kind": {
               "type": "string",
               "const": "lift"
+            },
+            "metric": {
+              "description": "Which pass/fail metric leads when explicitly configured.",
+              "type": "string",
+              "enum": ["pass-rate", "task-pass-rate", "pass@k", "pass^k"]
             },
             "others": {
               "description": "Every other variant, with its own interval; never dropped.",
@@ -1710,11 +1993,31 @@
                   "interval": {
                     "$ref": "#/$defs/Interval"
                   },
+                  "k": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 9007199254740991
+                  },
+                  "passAtK": {
+                    "$ref": "#/$defs/Figure"
+                  },
+                  "passHatK": {
+                    "$ref": "#/$defs/Figure"
+                  },
+                  "passKOmitted": {
+                    "type": "string"
+                  },
                   "points": {
                     "$ref": "#/$defs/Delta"
                   },
                   "rate": {
                     "$ref": "#/$defs/Rate"
+                  },
+                  "taskPoints": {
+                    "$ref": "#/$defs/Delta"
+                  },
+                  "taskRate": {
+                    "$ref": "#/$defs/Figure"
                   },
                   "variant": {
                     "$ref": "#/$defs/ArmRef"
@@ -1723,14 +2026,53 @@
                 "required": ["interval", "points", "rate", "variant"]
               }
             },
-            "points": {
+            "passAtKPoints": {
+              "description": "Variant minus baseline Pass@k points when both arms satisfy `n >= k`.",
               "$ref": "#/$defs/Delta"
+            },
+            "passHatKPoints": {
+              "description": "Variant minus baseline Pass^k points when both arms satisfy `n >= k`.",
+              "$ref": "#/$defs/Delta"
+            },
+            "passKOmitted": {
+              "description": "Reason Pass@k and Pass^k were omitted when `k` was requested (`needs k trials per task ...`).",
+              "type": "string"
+            },
+            "points": {
+              "description": "Pooled pass-rate point difference (default lead).",
+              "$ref": "#/$defs/Delta"
+            },
+            "saturated": {
+              "description": "True when every arm hit 100% across all tasks.",
+              "type": "boolean"
+            },
+            "taskPoints": {
+              "description": "Equal-weight cross-task point difference (`variant` minus `baseline`) when more than 1 task ran.",
+              "$ref": "#/$defs/Delta"
+            },
+            "tasks": {
+              "description": "Distinct task count when more than 1 task ran.",
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 9007199254740991
             },
             "variant": {
               "$ref": "#/$defs/ArmRef"
             },
+            "variantPassAtK": {
+              "description": "Variant unweighted unbiased Pass@k when every task has `n >= k`.",
+              "$ref": "#/$defs/Figure"
+            },
+            "variantPassHatK": {
+              "description": "Variant unweighted unbiased Pass^k when every task has `n >= k`.",
+              "$ref": "#/$defs/Figure"
+            },
             "variantRate": {
               "$ref": "#/$defs/Rate"
+            },
+            "variantTaskRate": {
+              "description": "Equal-weight cross-task variant pass rate when more than 1 task ran.",
+              "$ref": "#/$defs/Figure"
             }
           },
           "required": [
@@ -1754,6 +2096,12 @@
             },
             "baseline": {
               "$ref": "#/$defs/ArmRef"
+            },
+            "k": {
+              "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 9007199254740991
             },
             "kind": {
               "type": "string",
@@ -1787,8 +2135,39 @@
               },
               "required": ["baseline", "delta", "measure", "variant"]
             },
+            "metric": {
+              "description": "Which pass/fail metric leads when explicitly configured.",
+              "type": "string",
+              "enum": ["pass-rate", "task-pass-rate", "pass@k", "pass^k"]
+            },
+            "passAtK": {
+              "description": "Unweighted unbiased Pass@k across tasks when every task has `n >= k`.",
+              "$ref": "#/$defs/Figure"
+            },
+            "passHatK": {
+              "description": "Unweighted unbiased Pass^k across tasks when every task has `n >= k`.",
+              "$ref": "#/$defs/Figure"
+            },
+            "passKOmitted": {
+              "description": "Reason Pass@k and Pass^k were omitted when `k` was requested.",
+              "type": "string"
+            },
             "rate": {
               "$ref": "#/$defs/Rate"
+            },
+            "saturated": {
+              "description": "True when every arm hit 100% across all tasks.",
+              "type": "boolean"
+            },
+            "taskRate": {
+              "description": "Equal-weight cross-task pass rate when more than 1 task ran.",
+              "$ref": "#/$defs/Figure"
+            },
+            "tasks": {
+              "description": "Distinct task count when more than 1 task ran.",
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 9007199254740991
             },
             "variant": {
               "$ref": "#/$defs/ArmRef"
@@ -2973,6 +3352,33 @@
       },
       "required": ["median", "n", "q1", "q3"]
     },
+    "TaskCell": {
+      "type": "object",
+      "properties": {
+        "k": {
+          "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 9007199254740991
+        },
+        "passAtK": {
+          "description": "Unbiased `1 - C(n - c, k) / C(n, k)` on this task when `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passHatK": {
+          "description": "Unbiased `C(c, k) / C(n, k)` on this task when `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passKOmitted": {
+          "description": "Reason Pass@k and Pass^k were omitted on this task when `n < k`.",
+          "type": "string"
+        },
+        "rate": {
+          "$ref": "#/$defs/Rate"
+        }
+      },
+      "required": ["rate"]
+    },
     "TaskResults": {
       "type": "object",
       "properties": {
@@ -3000,6 +3406,16 @@
             "type": "string"
           }
         },
+        "costReported": {
+          "description": "True when at least one counted attempt reported USD cost.",
+          "type": "boolean"
+        },
+        "k": {
+          "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 9007199254740991
+        },
         "kind": {
           "type": "string",
           "const": "task"
@@ -3014,9 +3430,68 @@
               "type": "null"
             }
           ]
+        },
+        "metric": {
+          "description": "Which pass/fail metric leads when explicitly configured.",
+          "type": "string",
+          "enum": ["pass-rate", "task-pass-rate", "pass@k", "pass^k"]
+        },
+        "passAtK": {
+          "description": "Overall unweighted unbiased Pass@k across tasks when every task has `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passHatK": {
+          "description": "Overall unweighted unbiased Pass^k across tasks when every task has `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passKOmitted": {
+          "description": "Reason Pass@k and Pass^k were omitted when `k` was requested and some task has `n < k`.",
+          "type": "string"
+        },
+        "tasks": {
+          "description": "Per-task pass rates when more than 1 task ran.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TaskRow"
+          }
         }
       },
       "required": ["assertions", "axes", "breakdown", "columns", "kind", "median"]
+    },
+    "TaskRow": {
+      "type": "object",
+      "properties": {
+        "cells": {
+          "description": "One entry per column key (coding harness on task evals, arm label on comparisons).",
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/TaskCell"
+          }
+        },
+        "label": {
+          "description": "Human-readable task label.",
+          "type": "string"
+        },
+        "task": {
+          "description": "Stable task key (`CaseRecord.key` or prompt key).",
+          "type": "string"
+        },
+        "total": {
+          "description": "Overall task score across gated/counted attempts on task evals; null on arm comparisons.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TaskCell"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": ["cells", "label", "task", "total"]
     },
     "VariantComparison": {
       "type": "object",
@@ -3047,20 +3522,50 @@
             "$ref": "#/$defs/ContrastRow"
           }
         },
+        "costReported": {
+          "description": "True when at least one counted attempt reported USD cost.",
+          "type": "boolean"
+        },
         "effortByHarness": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/EffortPivotRow"
           }
         },
+        "k": {
+          "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 9007199254740991
+        },
         "kind": {
           "type": "string",
           "const": "comparison"
+        },
+        "metric": {
+          "description": "Which pass/fail metric leads when explicitly configured.",
+          "type": "string",
+          "enum": ["pass-rate", "task-pass-rate", "pass@k", "pass^k"]
+        },
+        "saturated": {
+          "description": "True when every arm hit 100% across all tasks.",
+          "type": "boolean"
+        },
+        "saturationNote": {
+          "description": "Plain-language saturation explanation when `saturated` is true; null otherwise.",
+          "type": ["string", "null"]
         },
         "summary": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/ArmRow"
+          }
+        },
+        "tasks": {
+          "description": "Per-task pass rates by arm when more than 1 task ran.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TaskRow"
           }
         },
         "uniformLead": {

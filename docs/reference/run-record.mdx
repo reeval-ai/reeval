@@ -80,7 +80,7 @@ For more information about the keys on `stack.judge.state`, see [`c.judge()`](/r
   Each environment the run applied, fingerprinted; secret values are never included.
 </Property>
 
-<Property name="profile" type="{name: string; reason: string; defaults: {harness?: string[]; environment?: string; sandbox?: string; runs?: number; bestOf?: number; timeout?: string | number; env?: string[]}; limit: {runs?: number; compare?: false | {maxVariants: number}; harness?: string[]; traits?: Record<string, string | string[]>}} | null">
+<Property name="profile" type="{name: string; reason: string; defaults: {harness?: string[]; environment?: string; sandbox?: string; runs?: number; bestOf?: number; metric?: PassMetric; timeout?: string | number; env?: string[]}; limit: {runs?: number; compare?: false | {maxVariants: number}; harness?: string[]; traits?: Record<string, string | string[]>}} | null">
   The profile the run was sized with, and why it was chosen.
 </Property>
 
@@ -94,7 +94,7 @@ For more information about the keys on `stack.judge.state`, see [`c.judge()`](/r
 
 <Property name="budget" type="{attempts?: number; duration?: string | number} | null"></Property>
 
-<Property name="config" type="{sandbox: string; environment: string | null; runs: number; bestOf?: number; judgeModel: string | null; threshold: number; timeoutMs: number; concurrency: number; configHash: string}">
+<Property name="config" type="{sandbox: string; environment: string | null; runs: number; bestOf?: number; metric?: PassMetric; judgeModel: string | null; threshold: number; timeoutMs: number; concurrency: number; configHash: string}">
   The run's settings. `sandbox` is the id of each sandbox the planned attempts ran on, after the profile's defaults, joined with `, `.
 </Property>
 
@@ -334,6 +334,10 @@ The tokens the run used, as the harnesses count them, and what they cost.
 
 <Property name="compare" type="EvalCompareMeta" optional>
   The baseline environment, when the evaluation uses `compare`.
+</Property>
+
+<Property name="metric" type="PassMetric" optional>
+  Primary pass/fail metric configured for this evaluation when set (`PassMetric`).
 </Property>
 
 <Property name="outcome" type="Outcome">

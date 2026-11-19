@@ -1,9 +1,11 @@
 import type { ArtifactLevel, RunRecord, RunScope } from '../../history/types.ts'
-import type { CompareCut, Outcome } from '../../types.ts'
+import type { CompareCut, Outcome, PassMetric, PassMetricLead } from '../../types.ts'
 import type { ActionKind, Confidence } from '../analysis.ts'
 import type { AttemptFacts } from '../classify.ts'
 import type { CompareStatus } from '../compare.ts'
 import type { Remark } from '../remarks.ts'
+
+export type { PassMetric, PassMetricLead }
 
 /** A displayed number: `value` for charts, `text` as every surface prints it (`461k`, `1m 05s`, `not reported`). */
 export type Figure = { value: number | null; text: string }
@@ -188,35 +190,108 @@ export type EvalHeadline = {
   primary: HeadlinePrimary
   /** Sample size, harness count, interval, and floor, as sentences. */
   foot: string
+  /** True when every arm in a pass/fail comparison hit 100% across all tasks. */
+  saturated?: boolean
 }
 
 export type HeadlinePrimary =
   | {
       kind: 'pass-rate'
+      /** Pooled pass rate across gated counted attempts (default lead). */
       rate: Rate
+      /** Equal-weight mean pass rate across tasks when more than 1 task ran. */
+      taskRate?: Figure
+      /** Distinct task count when more than 1 task ran. */
+      tasks?: number
       assertions: number
       harnesses: number
       /** Product outcome noun: passed (default), found, or used. */
       outcome: 'passed' | 'found' | 'used'
+      /** Which pass/fail metric leads when explicitly configured. */
+      metric?: PassMetricLead
+      /** Explicit trial count `k` when Pass@k / Pass^k were requested. */
+      k?: number
+      /** Unweighted mean of unbiased per-task `1 - C(n - c, k) / C(n, k)` when every task has `n >= k`. */
+      passAtK?: Figure
+      /** Unweighted mean of unbiased per-task `C(c, k) / C(n, k)` when every task has `n >= k`. */
+      passHatK?: Figure
+      /** Reason Pass@k and Pass^k were omitted when `k` was requested (`needs k trials per task ...`). */
+      passKOmitted?: string
     }
   | {
       kind: 'lift'
       baseline: ArmRef
       variant: ArmRef
+      /** Pooled pass-rate point difference (default lead). */
       points: Delta
       interval: Interval
       baselineRate: Rate
       variantRate: Rate
+      /** Equal-weight cross-task baseline pass rate when more than 1 task ran. */
+      baselineTaskRate?: Figure
+      /** Equal-weight cross-task variant pass rate when more than 1 task ran. */
+      variantTaskRate?: Figure
+      /** Equal-weight cross-task point difference (`variant` minus `baseline`) when more than 1 task ran. */
+      taskPoints?: Delta
+      /** Distinct task count when more than 1 task ran. */
+      tasks?: number
+      /** Which pass/fail metric leads when explicitly configured. */
+      metric?: PassMetricLead
+      /** Explicit trial count `k` when Pass@k / Pass^k were requested. */
+      k?: number
+      /** Baseline unweighted unbiased Pass@k when every task has `n >= k`. */
+      baselinePassAtK?: Figure
+      /** Variant unweighted unbiased Pass@k when every task has `n >= k`. */
+      variantPassAtK?: Figure
+      /** Variant minus baseline Pass@k points when both arms satisfy `n >= k`. */
+      passAtKPoints?: Delta
+      /** Baseline unweighted unbiased Pass^k when every task has `n >= k`. */
+      baselinePassHatK?: Figure
+      /** Variant unweighted unbiased Pass^k when every task has `n >= k`. */
+      variantPassHatK?: Figure
+      /** Variant minus baseline Pass^k points when both arms satisfy `n >= k`. */
+      passHatKPoints?: Delta
+      /** Reason Pass@k and Pass^k were omitted when `k` was requested (`needs k trials per task ...`). */
+      passKOmitted?: string
+      /** True when every arm hit 100% across all tasks. */
+      saturated?: boolean
       /** Every other variant, with its own interval; never dropped. */
-      others: Array<{ variant: ArmRef; points: Delta; interval: Interval; rate: Rate }>
+      others: Array<{
+        variant: ArmRef
+        points: Delta
+        interval: Interval
+        rate: Rate
+        taskRate?: Figure
+        taskPoints?: Delta
+        k?: number
+        passAtK?: Figure
+        passHatK?: Figure
+        passKOmitted?: string
+      }>
     }
   | {
       kind: 'tied-ceiling'
       baseline: ArmRef
       variant: ArmRef
       rate: Rate
+      /** Equal-weight cross-task pass rate when more than 1 task ran. */
+      taskRate?: Figure
+      /** Distinct task count when more than 1 task ran. */
+      tasks?: number
       assertions: number
       lead: { measure: MeasureKey; baseline: Figure; variant: Figure; delta: Delta }
+      /** Which pass/fail metric leads when explicitly configured. */
+      metric?: PassMetricLead
+      /** Explicit trial count `k` when Pass@k / Pass^k were requested. */
+      k?: number
+      /** Unweighted unbiased Pass@k across tasks when every task has `n >= k`. */
+      passAtK?: Figure
+      /** Unweighted unbiased Pass^k across tasks when every task has `n >= k`. */
+      passHatK?: Figure
+      /** Reason Pass@k and Pass^k were omitted when `k` was requested. */
+      passKOmitted?: string
+      /** True when every arm hit 100% across all tasks. */
+      saturated?: boolean
     }
   | {
       kind: 'choice'
@@ -258,17 +333,38 @@ export type HeadlinePrimary =
 
 /** An eval's headline as numbers only, which `headlineResultText` prints. */
 export type HeadlineResult =
-  | { kind: 'pass-rate'; passed: Proportion; outcome: 'passed' | 'found' | 'used' }
+  | {
+      kind: 'pass-rate'
+      passed: Proportion
+      outcome: 'passed' | 'found' | 'used'
+      /** Equal-weight cross-task pass rate [0, 1] when more than 1 task ran. */
+      taskRate?: number
+      metric?: PassMetricLead
+      k?: number
+      passAtK?: number
+      passHatK?: number
+    }
   | {
       kind: 'lift'
       baseline: string
       variant: string
       baselinePassed: Proportion
       variantPassed: Proportion
+      /** Equal-weight cross-task baseline pass rate [0, 1] when more than 1 task ran. */
+      baselineTaskRate?: number
+      /** Equal-weight cross-task variant pass rate [0, 1] when more than 1 task ran. */
+      variantTaskRate?: number
       /** Pass-rate points as a fraction (`1` is +100 pts), with its 95% interval. */
       points: number
       lo: number
       hi: number
+      metric?: PassMetricLead
+      k?: number
+      baselinePassAtK?: number
+      variantPassAtK?: number
+      baselinePassHatK?: number
+      variantPassHatK?: number
+      saturated?: boolean
     }
   | {
       kind: 'tied-ceiling'
@@ -278,6 +374,11 @@ export type HeadlineResult =
       measure: MeasureKey
       baselineMedian: number
       variantMedian: number
+      metric?: PassMetricLead
+      k?: number
+      passAtK?: number
+      passHatK?: number
+      saturated?: boolean
     }
   | {
       kind: 'choice'
@@ -319,11 +420,47 @@ export type AssertionRow = {
   total: CheckCell
 }
 
+export type TaskCell = {
+  rate: Rate
+  /** Explicit trial count `k` when Pass@k / Pass^k were requested. */
+  k?: number
+  /** Unbiased `1 - C(n - c, k) / C(n, k)` on this task when `n >= k`. */
+  passAtK?: Figure
+  /** Unbiased `C(c, k) / C(n, k)` on this task when `n >= k`. */
+  passHatK?: Figure
+  /** Reason Pass@k and Pass^k were omitted on this task when `n < k`. */
+  passKOmitted?: string
+}
+
+export type TaskRow = {
+  /** Stable task key (`CaseRecord.key` or prompt key). */
+  task: string
+  /** Human-readable task label. */
+  label: string
+  /** One entry per column key (coding harness on task evals, arm label on comparisons). */
+  cells: Record<string, TaskCell>
+  /** Overall task score across gated/counted attempts on task evals; null on arm comparisons. */
+  total: TaskCell | null
+}
+
 export type BreakdownRow = {
   /** One value per axis, repeated on every row. */
   keys: string[]
+  /** Pooled pass rate across counted attempts in this group. */
   rate: Rate | null
+  /** Equal-weight mean pass rate across tasks when more than 1 task ran. */
+  taskRate?: Figure | null
+  /** Explicit trial count `k` when Pass@k / Pass^k were requested. */
+  k?: number
+  /** Unweighted mean of unbiased per-task Pass@k when every task has `n >= k`. */
+  passAtK?: Figure
+  /** Unweighted mean of unbiased per-task Pass^k when every task has `n >= k`. */
+  passHatK?: Figure
+  /** Reason Pass@k and Pass^k were omitted when `k` was requested and some task has `n < k`. */
+  passKOmitted?: string
   measures: MeasureCells
+  /** Total counted cost divided by passing attempts; null when cost unreported or 0 passes. */
+  costPerSuccess?: Figure | null
 }
 
 export type TaskResults = {
@@ -334,6 +471,20 @@ export type TaskResults = {
   breakdown: BreakdownRow[]
   /** The cross-group median row; null with one group. */
   median: BreakdownRow | null
+  /** Which pass/fail metric leads when explicitly configured. */
+  metric?: PassMetricLead
+  /** Explicit trial count `k` when Pass@k / Pass^k were requested. */
+  k?: number
+  /** Overall unweighted unbiased Pass@k across tasks when every task has `n >= k`. */
+  passAtK?: Figure
+  /** Overall unweighted unbiased Pass^k across tasks when every task has `n >= k`. */
+  passHatK?: Figure
+  /** Reason Pass@k and Pass^k were omitted when `k` was requested and some task has `n < k`. */
+  passKOmitted?: string
+  /** True when at least one counted attempt reported USD cost. */
+  costReported?: boolean
+  /** Per-task pass rates when more than 1 task ran. */
+  tasks?: TaskRow[]
 }
 
 export type Arm = {
@@ -356,7 +507,20 @@ export type MeasureVsBaseline = {
 
 export type ArmRow = {
   arm: string
+  /** Pooled pass rate across counted attempts on this arm. */
   rate: Rate
+  /** Equal-weight mean pass rate across tasks when more than 1 task ran. */
+  taskRate?: Figure
+  /** Equal-weight cross-task point lift against baseline when more than 1 task ran; null on baseline. */
+  taskLift?: Delta | null
+  /** Explicit trial count `k` when Pass@k / Pass^k were requested. */
+  k?: number
+  /** Unweighted mean of unbiased per-task Pass@k when every task has `n >= k`. */
+  passAtK?: Figure
+  /** Unweighted mean of unbiased per-task Pass^k when every task has `n >= k`. */
+  passHatK?: Figure
+  /** Reason Pass@k and Pass^k were omitted on this arm when `k` was requested and some task has `n < k`. */
+  passKOmitted?: string
   lift: Delta | null
   interval: Interval | null
   /** Pass-rate certainty only; measure direction lives in measure cells. */
@@ -364,14 +528,33 @@ export type ArmRow = {
   /** Always `pass-rate` for this column today. */
   verdictScope: 'pass-rate'
   measures: Record<MeasureKey, MeasureVsBaseline>
+  /** Total counted cost divided by passing attempts; null when cost unreported or 0 passes. */
+  costPerSuccess?: Figure | null
+  /** Percentage delta of costPerSuccess against baseline; null on baseline or when either side is null. */
+  costPerSuccessDelta?: Delta | null
 }
 
 export type EffortPivotRow = {
   /** A harness label, or `Median` for the cross-harness row. */
   harness: string
   arm: string
+  /** Pooled pass rate for this harness and arm. */
   rate: Rate
+  /** Equal-weight mean pass rate across tasks when more than 1 task ran. */
+  taskRate?: Figure
+  /** Explicit trial count `k` when Pass@k / Pass^k were requested. */
+  k?: number
+  /** Unweighted mean of unbiased per-task Pass@k when every task has `n >= k`. */
+  passAtK?: Figure
+  /** Unweighted mean of unbiased per-task Pass^k when every task has `n >= k`. */
+  passHatK?: Figure
+  /** Reason Pass@k and Pass^k were omitted when `k` was requested and some task has `n < k`. */
+  passKOmitted?: string
   measures: Record<MeasureKey, MeasureVsBaseline>
+  /** Total counted cost divided by passing attempts; null when cost unreported or 0 passes. */
+  costPerSuccess?: Figure | null
+  /** Percentage delta of costPerSuccess against this harness's baseline; null on baseline or when either side is null. */
+  costPerSuccessDelta?: Delta | null
 }
 
 export type BehaviorRow = { label: string; matcher: string; cells: Record<string, Count | null> }
@@ -391,6 +574,10 @@ export type ContrastRow = {
   fromPassed?: Proportion
   /** `to`'s counted attempts that passed. */
   toPassed?: Proportion
+  /** Equal-weight cross-task point delta (`from` minus `to`) when more than 1 task ran. */
+  taskDelta?: Delta
+  /** Tasks where `from` scored 0% on multi-task evaluations; omitted when none or single-task. */
+  brokenTasks?: string[]
   measure: 'pass-rate' | MeasureKey
   delta: Delta
   interval: Interval | null
@@ -405,7 +592,19 @@ export type VariantComparison = {
   arms: Arm[]
   /** Set when every arm passed every applicable assertion; `assertionsByArm` is then empty. */
   uniformLead: string | null
+  /** Which pass/fail metric leads when explicitly configured. */
+  metric?: PassMetricLead
+  /** Explicit trial count `k` when Pass@k / Pass^k were requested. */
+  k?: number
+  /** True when at least one counted attempt reported USD cost. */
+  costReported?: boolean
+  /** True when every arm hit 100% across all tasks. */
+  saturated?: boolean
+  /** Plain-language saturation explanation when `saturated` is true; null otherwise. */
+  saturationNote?: string | null
   summary: ArmRow[]
+  /** Per-task pass rates by arm when more than 1 task ran. */
+  tasks?: TaskRow[]
   assertionsByArm: AssertionRow[]
   behavior: BehaviorRow[]
   /** From `contrastsOf`; empty with one variant. */

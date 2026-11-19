@@ -2403,6 +2403,12 @@ export const inventory: InventoryFeature[] = [
     ],
   },
   {
+    id: 'summary.metrics',
+    area: 'Records and studio',
+    name: 'Report evaluation metrics (`metric` option, per-task rows and equal-weight `taskRate` beside pooled pass rate, unbiased `pass@k` and `pass^k` at explicit `k` when every task has `n >= k` with omission reasons otherwise, passing-only effort and `costPerSuccess`, and small-sample 100% Wilson caveats and saturation flags)',
+    unit: ['reeval/test/run-report.test.ts', 'reeval/test/refusals.test.ts'],
+  },
+  {
     id: 'summary.report-facts',
     area: 'Records and studio',
     name: "Each attempt's facts in the `RunReport` (`attemptFacts` in `reeval/view`: tool calls by class, skills used by source, context files read), counted from its kept transcript as `reeval query`'s `tool_calls`, `skill_uses` and `context_reads` count them, absent where the transcript wasn't kept, and a skill discovery's sources",

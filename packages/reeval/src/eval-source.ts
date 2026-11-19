@@ -25,7 +25,7 @@ import type {
  * not what an attempt measures), `revision`'s own part, the gate, which compare reads as a
  * policy change, and `snapshot`, what reeval keeps after the attempt.
  */
-const UNHASHED = new Set(['tags', 'runs', 'timeout', 'revision', 'gate', 'snapshot'])
+const UNHASHED = new Set(['tags', 'runs', 'timeout', 'revision', 'gate', 'metric', 'snapshot'])
 
 /**
  * The `sources` fingerprint part. An attempt without a source (one kept from a record that had
