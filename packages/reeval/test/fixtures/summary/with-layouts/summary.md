@@ -58,7 +58,7 @@ Run `20261020T205330Z_da3d797_cursor-agent_1k52` by cursor-agent, 2026-10-20, re
 
 **67% passed**
 
-2 of 3 counted attempts passed on all 3 assertions. Task-averaged: 67% across 3 tasks. 1 coding harness.
+2 of 3 trials passed on all 3 assertions. Task-averaged: 67% across 3 tasks. 1 coding harness.
 
 ### Assertions
 
@@ -97,7 +97,7 @@ with-skill against the plain baseline
 
 **with-skill vs plain: +100 pts pass rate (100% vs 0%)**
 
-n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts. No failures in 4 counted attempts on with-skill (95% Wilson CI 51% to 100%). Task-averaged: 100% vs 0% (+100 pts across 4 tasks).
+4 vs 4 trials. 95% CI +31 pts to +100 pts. No failures in 4 trials on with-skill (95% Wilson CI 51% to 100%). Task-averaged: 100% vs 0% (+100 pts across 4 tasks).
 
 ### Baseline vs. variants
 
@@ -144,7 +144,7 @@ n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts. No failures in 4 counte
 
 **50% passed**
 
-1 of 2 counted attempts passed on all 3 assertions. 2 coding harnesses.
+1 of 2 trials passed on all 3 assertions. 2 coding harnesses.
 
 ### Assertions
 
@@ -177,7 +177,7 @@ with-skill against the plain baseline
 
 **with-skill vs plain: +50 pts pass rate (50% vs 0%)**
 
-n = 8 vs 8 counted attempts. 95% CI +7 pts to +78 pts.
+8 vs 8 trials. 95% CI +7 pts to +78 pts.
 
 ### Baseline vs. variants
 
@@ -219,7 +219,7 @@ with-skill against the plain baseline
 
 **with-skill vs plain: +100 pts pass rate (100% vs 0%)**
 
-n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts. No failures in 4 counted attempts on with-skill (95% Wilson CI 51% to 100%).
+4 vs 4 trials. 95% CI +31 pts to +100 pts. No failures in 4 trials on with-skill (95% Wilson CI 51% to 100%).
 
 ### Baseline vs. variants
 
@@ -272,7 +272,7 @@ with-skill against the plain baseline
 
 **with-skill vs plain: -100 pts pass rate (0% vs 100%)**
 
-n = 4 vs 4 counted attempts. 95% CI -100 pts to -31 pts. No failures in 4 counted attempts on plain (95% Wilson CI 51% to 100%).
+4 vs 4 trials. 95% CI -100 pts to -31 pts. No failures in 4 trials on plain (95% Wilson CI 51% to 100%).
 
 ### Baseline vs. variants
 
@@ -312,7 +312,7 @@ with-skill against the plain baseline
 
 **with-skill vs plain: +100 pts pass rate (100% vs 0%)**
 
-n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. No failures in 1 counted attempt on with-skill (95% Wilson CI 21% to 100%). 1 per side is below 4, so this cannot come back helped or made worse.
+1 vs 1 trials. 95% CI -12 pts to +100 pts. No failures in 1 trial on with-skill (95% Wilson CI 21% to 100%). 1 trial per side is below 4, so this cannot come back helped or made worse.
 
 ### Baseline vs. variants
 
@@ -350,7 +350,7 @@ n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. No failures in 1 counte
 
 **100% passed**
 
-No failures in 1 counted attempt on 1 assertion (95% Wilson CI 21% to 100%); small sample does not rule out failures. 1 coding harness.
+No failures in 1 trial on 1 assertion (95% Wilson CI 21% to 100%); small sample does not rule out failures. 1 coding harness.
 
 ### Assertions
 
@@ -370,7 +370,7 @@ No failures in 1 counted attempt on 1 assertion (95% Wilson CI 21% to 100%); sma
 
 **0% passed**
 
-0 of 1 counted attempts passed on all 2 assertions. 1 coding harness.
+0 of 1 trial passed on all 2 assertions. 1 coding harness.
 
 ### Assertions
 
@@ -398,7 +398,7 @@ No failures in 1 counted attempt on 1 assertion (95% Wilson CI 21% to 100%); sma
 
 **50% passed**
 
-1 of 2 counted attempts passed on all 2 assertions. 1 coding harness.
+1 of 2 trials passed on all 2 assertions. 1 coding harness.
 
 ### Assertions
 
@@ -426,7 +426,7 @@ No failures in 1 counted attempt on 1 assertion (95% Wilson CI 21% to 100%); sma
 
 **Median tokens: not reported**
 
-No attempt reported usage.
+No trial reported usage.
 
 ### Failures and caveats
 
@@ -440,7 +440,7 @@ No attempt reported usage.
 
 **Median tokens: not reported**
 
-No attempt reported usage.
+No trial reported usage.
 
 ### Failures and caveats
 
@@ -454,7 +454,7 @@ No attempt reported usage.
 
 **Median tokens: not reported**
 
-No attempt reported usage.
+No trial reported usage.
 
 ## greets in Klingon
 
@@ -462,7 +462,7 @@ No attempt reported usage.
 
 **Median tokens: not reported**
 
-No attempt reported usage.
+No trial reported usage.
 
 ## State
 

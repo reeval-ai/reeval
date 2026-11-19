@@ -839,7 +839,7 @@
           "harnesses": 1,
           "outcome": "passed"
         },
-        "foot": "2 of 3 counted attempts passed on all 3 assertions. Task-averaged: 67% across 3 tasks. 1 coding harness."
+        "foot": "2 of 3 trials passed on all 3 assertions. Task-averaged: 67% across 3 tasks. 1 coding harness."
       },
       "insights": [],
       "primary": {
@@ -1225,7 +1225,7 @@
           "tasks": 4,
           "others": []
         },
-        "foot": "n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts. No failures in 4 counted attempts on with-skill (95% Wilson CI 51% to 100%). Task-averaged: 100% vs 0% (+100 pts across 4 tasks)."
+        "foot": "4 vs 4 trials. 95% CI +31 pts to +100 pts. No failures in 4 trials on with-skill (95% Wilson CI 51% to 100%). Task-averaged: 100% vs 0% (+100 pts across 4 tasks)."
       },
       "insights": [],
       "primary": {
@@ -1916,7 +1916,7 @@
           "harnesses": 2,
           "outcome": "passed"
         },
-        "foot": "1 of 2 counted attempts passed on all 3 assertions. 2 coding harnesses."
+        "foot": "1 of 2 trials passed on all 3 assertions. 2 coding harnesses."
       },
       "insights": [],
       "primary": {
@@ -2318,7 +2318,7 @@
           },
           "others": []
         },
-        "foot": "n = 8 vs 8 counted attempts. 95% CI +7 pts to +78 pts."
+        "foot": "8 vs 8 trials. 95% CI +7 pts to +78 pts."
       },
       "insights": [],
       "primary": {
@@ -3106,7 +3106,7 @@
             }
           ]
         },
-        "foot": "n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts. No failures in 4 counted attempts on with-skill (95% Wilson CI 51% to 100%)."
+        "foot": "4 vs 4 trials. 95% CI +31 pts to +100 pts. No failures in 4 trials on with-skill (95% Wilson CI 51% to 100%)."
       },
       "insights": [],
       "primary": {
@@ -4023,7 +4023,7 @@
           },
           "others": []
         },
-        "foot": "n = 4 vs 4 counted attempts. 95% CI -100 pts to -31 pts. No failures in 4 counted attempts on plain (95% Wilson CI 51% to 100%)."
+        "foot": "4 vs 4 trials. 95% CI -100 pts to -31 pts. No failures in 4 trials on plain (95% Wilson CI 51% to 100%)."
       },
       "insights": [],
       "primary": {
@@ -4585,7 +4585,7 @@
           },
           "others": []
         },
-        "foot": "n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. No failures in 1 counted attempt on with-skill (95% Wilson CI 21% to 100%). 1 per side is below 4, so this cannot come back helped or made worse."
+        "foot": "1 vs 1 trials. 95% CI -12 pts to +100 pts. No failures in 1 trial on with-skill (95% Wilson CI 21% to 100%). 1 trial per side is below 4, so this cannot come back helped or made worse."
       },
       "insights": [],
       "primary": {
@@ -5090,7 +5090,7 @@
           "harnesses": 1,
           "outcome": "passed"
         },
-        "foot": "No failures in 1 counted attempt on 1 assertion (95% Wilson CI 21% to 100%); small sample does not rule out failures. 1 coding harness."
+        "foot": "No failures in 1 trial on 1 assertion (95% Wilson CI 21% to 100%); small sample does not rule out failures. 1 coding harness."
       },
       "insights": [],
       "primary": {
@@ -5245,7 +5245,7 @@
           "harnesses": 1,
           "outcome": "passed"
         },
-        "foot": "0 of 1 counted attempts passed on all 2 assertions. 1 coding harness."
+        "foot": "0 of 1 trial passed on all 2 assertions. 1 coding harness."
       },
       "insights": [],
       "primary": {
@@ -5407,7 +5407,7 @@
           "harnesses": 1,
           "outcome": "passed"
         },
-        "foot": "1 of 2 counted attempts passed on all 2 assertions. 1 coding harness."
+        "foot": "1 of 2 trials passed on all 2 assertions. 1 coding harness."
       },
       "insights": [],
       "primary": {
@@ -5628,7 +5628,7 @@
             }
           }
         },
-        "foot": "No attempt reported usage."
+        "foot": "No trial reported usage."
       },
       "insights": [],
       "primary": null,
@@ -5691,7 +5691,7 @@
             }
           }
         },
-        "foot": "No attempt reported usage."
+        "foot": "No trial reported usage."
       },
       "insights": [],
       "primary": null,
@@ -5754,7 +5754,7 @@
             }
           }
         },
-        "foot": "No attempt reported usage."
+        "foot": "No trial reported usage."
       },
       "insights": [],
       "primary": null,
@@ -5796,7 +5796,7 @@
             }
           }
         },
-        "foot": "No attempt reported usage."
+        "foot": "No trial reported usage."
       },
       "insights": [],
       "primary": null,

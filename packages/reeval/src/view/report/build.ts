@@ -829,15 +829,19 @@ function costReportedOnEval(e: EvalEntry): boolean {
   return e.attempts.some((a) => countedOutcome(a.outcome) && a.cost !== undefined)
 }
 
+function trialsText(n: number): string {
+  return `${n} trial${n === 1 ? '' : 's'}`
+}
+
 function smallCeilingSentence(label: string | null, rate: Rate): string | null {
   if (rate.rate !== 1 || rate.n <= 0 || rate.n >= SMALL_CERTAINTY_N) return null
   const on = label ? ` on ${label}` : ''
-  return `No failures in ${rate.n} counted attempt${rate.n === 1 ? '' : 's'}${on} (95% Wilson CI ${wilsonRangeText(rate.interval)}).`
+  return `No failures in ${trialsText(rate.n)}${on} (95% Wilson CI ${wilsonRangeText(rate.interval)}).`
 }
 
 function floorSentence(fairness: Fairness, n: number): string {
   if (fairness === 'too-few-runs') {
-    return `${n} per side is below ${COMPARE_RUNS}, so this cannot come back helped or made worse.`
+    return `${trialsText(n)} per side is below ${COMPARE_RUNS}, so this cannot come back helped or made worse.`
   }
   if (fairness === 'within-noise') return 'The interval spans 0: within noise.'
   return ''
@@ -1109,7 +1113,7 @@ function chooseHeadline(
                 : null
             : null
         const footParts = [
-          `No failures in ${totalN} counted attempts across ${arms.length} arms on all ${assertions.length} applicable assertion${assertions.length === 1 ? '' : 's'} (${baseline.label} 95% Wilson CI ${wilsonRangeText(baselineRate.interval)}, ${best.variant.label} ${wilsonRangeText(best.rate.interval)}).`,
+          `No failures in ${trialsText(totalN)} across ${arms.length} arms on all ${assertions.length} applicable assertion${assertions.length === 1 ? '' : 's'} (${baseline.label} 95% Wilson CI ${wilsonRangeText(baselineRate.interval)}, ${best.variant.label} ${wilsonRangeText(best.rate.interval)}).`,
           SATURATION_NOTE,
           passKNote,
         ]
@@ -1147,7 +1151,7 @@ function chooseHeadline(
     const floor = floorSentence(fairness, best.n)
     const ceilingNotes = allArmsAtCeiling
       ? [
-          `No failures in ${best.rate.n} vs ${baselineRate.n} counted attempts (${baseline.label} 95% Wilson CI ${wilsonRangeText(baselineRate.interval)}, ${best.variant.label} ${wilsonRangeText(best.rate.interval)}).`,
+          `No failures in ${best.rate.n} vs ${baselineRate.n} trials (${baseline.label} 95% Wilson CI ${wilsonRangeText(baselineRate.interval)}, ${best.variant.label} ${wilsonRangeText(best.rate.interval)}).`,
           SATURATION_NOTE,
         ]
       : [
@@ -1202,7 +1206,7 @@ function chooseHeadline(
       },
       fairness,
       foot: [
-        `n = ${best.rate.n} vs ${baselineRate.n} counted attempts. 95% CI ${best.interval.text}.`,
+        `${best.rate.n} vs ${baselineRate.n} trials. 95% CI ${best.interval.text}.`,
         ...ceilingNotes,
         taskFoot,
         passKFoot,
@@ -1240,10 +1244,10 @@ function chooseHeadline(
       assertions.length === 1 ? 'on 1 assertion' : `on all ${assertions.length} assertions`
     const baseSentence =
       rate.rate === 1 && rate.n > 0 && rate.n < SMALL_CERTAINTY_N
-        ? `No failures in ${rate.n} counted attempt${rate.n === 1 ? '' : 's'} ${assertionPhrase} (95% Wilson CI ${wilsonRangeText(rate.interval)}); small sample does not rule out failures.`
+        ? `No failures in ${trialsText(rate.n)} ${assertionPhrase} (95% Wilson CI ${wilsonRangeText(rate.interval)}); small sample does not rule out failures.`
         : rate.rate === 1 && rate.n > 0
-          ? `No failures in ${rate.n} counted attempts ${assertionPhrase} (95% Wilson CI ${wilsonRangeText(rate.interval)}).`
-          : `${rate.k} of ${rate.n} counted attempts ${outcomeWord} on all ${assertions.length} assertions.`
+          ? `No failures in ${trialsText(rate.n)} ${assertionPhrase} (95% Wilson CI ${wilsonRangeText(rate.interval)}).`
+          : `${rate.k} of ${trialsText(rate.n)} ${outcomeWord} on all ${assertions.length} assertions.`
     const taskSentence =
       multiTask && scope.taskRate
         ? `Task-averaged: ${scope.taskRate.text} across ${tasks.length} tasks${metricCfg.lead === 'task-pass-rate' ? ` (pooled ${rate.text})` : ''}.`
@@ -1299,7 +1303,7 @@ function chooseHeadline(
         noPick,
       },
       fairness: 'clear',
-      foot: `${choiceRow.answers.length} attempts, ${noPick} without a pick.`,
+      foot: `${trialsText(choiceRow.answers.length)}, ${noPick} without a pick.`,
       kicker,
     }
   }
@@ -1327,8 +1331,8 @@ function chooseHeadline(
       },
       fairness: scores.length < COMPARE_RUNS ? 'too-few-runs' : 'clear',
       foot: atOrAbove
-        ? `${atOrAbove.text} at or above the ${threshold} threshold.`
-        : 'Diagnostic judgment, no threshold.',
+        ? `${atOrAbove.k} of ${trialsText(atOrAbove.n)} at or above the ${threshold} threshold.`
+        : `${trialsText(spread.n)}; diagnostic judgment, no threshold.`,
       kicker,
     }
   }
@@ -1345,7 +1349,7 @@ function chooseHeadline(
     return {
       primary: { kind: 'measure', label: name, unit: 'count', spread },
       fairness: values.length < COMPARE_RUNS ? 'too-few-runs' : 'clear',
-      foot: `${spread.n} attempts, interquartile range ${spread.q1.text} to ${spread.q3.text}.`,
+      foot: `${trialsText(spread.n)}, interquartile range ${spread.q1.text} to ${spread.q3.text}.`,
       kicker,
     }
   }
@@ -1382,8 +1386,8 @@ function chooseHeadline(
       fairness: 'clear',
       foot:
         leadRole === 'representative'
-          ? `${answered.length} of ${textRow.answers.length} attempts answered. Showing 1 representative answer.`
-          : `${answered.length} of ${textRow.answers.length} attempts answered.`,
+          ? `${answered.length} of ${trialsText(textRow.answers.length)} answered. Showing 1 representative answer.`
+          : `${answered.length} of ${trialsText(textRow.answers.length)} answered.`,
       kicker,
     }
   }
@@ -1404,8 +1408,8 @@ function chooseHeadline(
     fairness: tokenValues.length < COMPARE_RUNS ? 'too-few-runs' : 'clear',
     foot:
       spread.n === 0
-        ? 'No attempt reported usage.'
-        : `${spread.n} attempts, interquartile range ${spread.q1.text} to ${spread.q3.text}.`,
+        ? 'No trial reported usage.'
+        : `${trialsText(spread.n)}, interquartile range ${spread.q1.text} to ${spread.q3.text}.`,
     kicker,
   }
 }

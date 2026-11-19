@@ -1151,7 +1151,7 @@ describe('RunReport metric best practices', () => {
     if (tiedSec.headline.primary.kind === 'tied-ceiling') {
       assert.equal(tiedSec.headline.primary.saturated, true)
     }
-    assert.match(tiedSec.headline.foot, /No failures in 12 counted attempts across 3 arms/)
+    assert.match(tiedSec.headline.foot, /No failures in 12 trials across 3 arms/)
     assert.match(tiedSec.headline.foot, /95% Wilson CI 51% to 100%/)
     assert.match(tiedSec.headline.foot, /Saturated: every arm hit 100% across all tasks/)
     assert.match(
@@ -1178,6 +1178,7 @@ describe('RunReport metric best practices', () => {
     assert.doesNotThrow(() => runReportSchema.parse(flatCeiling))
     assert.equal(flatCeiling.evals[0]!.headline.primary.kind, 'lift')
     assert.equal(flatCeiling.evals[0]!.headline.saturated, true)
+    assert.match(flatCeiling.evals[0]!.headline.foot, /No failures in 4 vs 4 trials/)
     assert.match(flatCeiling.evals[0]!.headline.foot, /Saturated: every arm hit 100%/)
 
     // Canary: when v2 drops below 100% (even if control and v1 are 100%), comparison is NOT saturated!
@@ -1239,5 +1240,93 @@ describe('RunReport metric best practices', () => {
       'evaluate("e")',
     )
     assert.deepEqual(overridden.resolved.metric, { passAtK: 3 })
+  })
+
+  test('report footers count sample sizes in trials and never in attempts or runs', () => {
+    for (const entry of corpusEntries()) {
+      const file = entry.runs.at(-1)?.file
+      if (!file) continue
+      const record = readableRecord(JSON.parse(readFileSync(file, 'utf8')) as RunRecord)
+      const report = buildRunReport(record, { links: { base: './' } })
+      for (const sec of report.evals) {
+        assert.doesNotMatch(
+          sec.headline.foot,
+          /\b(counted )?attempts?\b|\bruns?\b|\bn\s*=/i,
+          `${entry.name} / ${sec.name}: ${sec.headline.foot}`,
+        )
+      }
+    }
+
+    const layouts = loadCorpusRun('with-layouts')
+    const report = buildRunReport(layouts, { links: { base: './' } })
+    const byName = new Map(report.evals.map((s) => [s.name, s.headline.foot]))
+    assert.match(byName.get('greets in the house style') ?? '', /^4 vs 4 trials\./)
+    assert.match(
+      byName.get('greets in the house style') ?? '',
+      /No failures in 4 trials on with-skill/,
+    )
+    assert.match(byName.get('greets once') ?? '', /^1 vs 1 trials\./)
+    assert.match(
+      byName.get('greets once') ?? '',
+      /1 trial per side is below 4, so this cannot come back helped or made worse\./,
+    )
+    assert.match(
+      byName.get('writes greet.js') ?? '',
+      /^No failures in 1 trial on 1 assertion \(95% Wilson CI 21% to 100%\);/,
+    )
+    assert.match(byName.get('greets in French') ?? '', /^0 of 1 trial passed on all 2 assertions\./)
+    assert.equal(byName.get('reads the fixture repo'), 'No trial reported usage.')
+
+    // Non-pass/fail shapes also count sample sizes in trials in their footers.
+    const choiceRec = cloneRecord('with-layouts')
+    const choiceEv = choiceRec.evals.find((ev) => !ev.compare)!
+    choiceEv.cases = undefined
+    choiceEv.attempts = choiceEv.attempts.slice(0, 3).map((a, i) => ({
+      ...a,
+      case: undefined,
+      assertions: [],
+      judgements: [],
+      observations: [],
+      answers: [
+        {
+          question: 'Which client?',
+          choices: ['fetch', 'axios'],
+          choice: i === 0 ? null : 'fetch',
+          text: i === 0 ? '' : 'fetch',
+          input: null,
+        },
+      ],
+    }))
+    const choiceFoot = buildRunReport(choiceRec, { evals: [choiceEv.key] }).evals[0]!.headline.foot
+    assert.equal(choiceFoot, '3 trials, 1 without a pick.')
+
+    const obsRec = cloneRecord('with-layouts')
+    const obsEv = obsRec.evals.find((ev) => !ev.compare)!
+    obsEv.cases = undefined
+    obsEv.attempts = obsEv.attempts.slice(0, 2).map((a, i) => ({
+      ...a,
+      case: undefined,
+      assertions: [],
+      judgements: [],
+      answers: [],
+      observations: [{ name: 'bundle_kb', value: i === 0 ? 40 : 60 }],
+    }))
+    const obsFoot = buildRunReport(obsRec, { evals: [obsEv.key] }).evals[0]!.headline.foot
+    assert.equal(obsFoot, '2 trials, interquartile range 45 to 55.')
+
+    const textRec = cloneRecord('with-layouts')
+    const textEv = textRec.evals.find((ev) => !ev.compare)!
+    textEv.cases = undefined
+    textEv.answers = undefined
+    textEv.attempts = textEv.attempts.slice(0, 2).map((a, i) => ({
+      ...a,
+      case: undefined,
+      assertions: [],
+      judgements: [],
+      observations: [],
+      answers: [{ question: 'Why?', text: `Reason ${i + 1}`, choice: null, input: null }],
+    }))
+    const textFoot = buildRunReport(textRec, { evals: [textEv.key] }).evals[0]!.headline.foot
+    assert.equal(textFoot, '2 of 2 trials answered. Showing 1 representative answer.')
   })
 })
