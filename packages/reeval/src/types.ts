@@ -1141,6 +1141,11 @@ export type DockerSandboxDescriptor = {
   root?: boolean
   /** Linux capabilities to add back, e.g. `['NET_RAW']`; every other one is dropped. */
   capabilities?: string[]
+  /**
+   * Host devices to pass in, by name: `'kvm'` is `/dev/kvm`, read-write, with its group added so
+   * the sandbox user can open it. Docker and Podman on this machine only.
+   */
+  devices?: 'kvm'[]
   /** The container's memory: `'4g'` (default), `'512m'`, or bytes. */
   memory?: string | number
   /**

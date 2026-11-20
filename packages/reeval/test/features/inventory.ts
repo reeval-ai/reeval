@@ -1121,6 +1121,17 @@ export const inventory: InventoryFeature[] = [
     unit: ['sandbox-docker/test/confinement.test.ts'],
   },
   {
+    id: 'docker.devices',
+    area: 'Sandbox',
+    name: "`docker({ devices: ['kvm'] })`: `/dev/kvm` read-write with its group, checked in preflight; refused on providers, cloud runs and `tart()`",
+    fixtures: ['sandbox/kvm-device'],
+    unit: [
+      'sandbox-docker/test/unit.test.ts',
+      'sandbox-docker/test/confinement.test.ts',
+      'reeval/test/refusals.test.ts',
+    ],
+  },
+  {
     id: 'podman.sandbox',
     area: 'Sandbox',
     name: "`podman({ … })`: `docker()`'s sandbox on rootless Podman, on the bridge network with Docker's seccomp profile",

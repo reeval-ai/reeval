@@ -755,6 +755,7 @@ DockerSandboxDescriptor = TypedDict(
     {
         "capabilities": "NotRequired[list[str]]",
         "cpus": "NotRequired[float]",
+        "devices": "NotRequired[list[Literal[\"kvm\"]]]",
         "dockerfile": "NotRequired[str]",
         "engine": "NotRequired[Literal[\"docker\", \"podman\"]]",
         "from": "NotRequired[str]",

@@ -5,6 +5,7 @@
   "a dockerfile": "UsageError: tart() has no \"dockerfile\": a Tart VM starts from its image, and reeval bakes only the harness onto it.",
   "install": "UsageError: tart() has no \"install\": a Tart VM starts from its image, and reeval bakes only the harness onto it; put install commands in the environment setup.",
   "root": "UsageError: tart() has no \"root\": the VM runs everything as the image user.",
+  "devices": "UsageError: tart() has no \"devices\": a Tart VM gets no host devices.",
   "an unknown key with a hint": "UsageError: Unknown tart() option \"cpu\". Did you mean \"cpus\"?",
   "env on the sandbox": "UsageError: Unknown tart() option \"env\". Variables and secrets belong in defineEnvironment({ env }).",
   "fractional CPUs": "UsageError: tart({ cpus }) takes a whole number of CPUs above zero (got 1.5)",

@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { posix } from 'node:path'
 import { Readable } from 'node:stream'
 import type { HarnessV1NetworkSandboxSession, HarnessV1SandboxProvider } from '@ai-sdk/harness'
+import { deviceArgs, deviceGid, type SandboxDevice } from './devices.ts'
 import {
   docker,
   dockerCapacity,
@@ -124,6 +125,8 @@ export type SessionOptions = {
    * other one is dropped.
    */
   capabilities?: readonly string[]
+  /** Host devices, by name, each passed with its group so the sandbox user can open it. */
+  devices?: readonly SandboxDevice[]
   /** Each unset one is {@link DEFAULT_LIMITS}'. */
   limits?: Partial<SandboxLimits>
   /** The container CLI; Docker unless set. */
@@ -157,6 +160,10 @@ export async function confinementArgs(options: SessionOptions): Promise<string[]
     ...(options.root ? ROOT_CAPABILITIES : []),
     ...(options.capabilities ?? []),
   ]
+  const devices = options.devices ?? []
+  const gids = await Promise.all(
+    devices.map((d) => deviceGid(d, options.image, { engine: options.engine, root: options.root })),
+  )
   return [
     '--user',
     '0:0',
@@ -173,6 +180,7 @@ export async function confinementArgs(options: SessionOptions): Promise<string[]
     String(limits.pids),
     '--cpus',
     await cpuLimit(limits.cpus, options.engine),
+    ...deviceArgs(devices, gids),
     ...engineSpec(options.engine).runArgs(),
   ]
 }

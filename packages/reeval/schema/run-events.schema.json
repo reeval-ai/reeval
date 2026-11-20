@@ -2404,6 +2404,13 @@
           "description": "CPUs the container may use, fractions allowed. Default 2, capped at the Docker host's.",
           "type": "number"
         },
+        "devices": {
+          "description": "Host devices to pass in, by name: `'kvm'` is `/dev/kvm`, read-write, with its group added so the sandbox user can open it. Docker and Podman on this machine only.",
+          "type": "array",
+          "items": {
+            "const": "kvm"
+          }
+        },
         "dockerfile": {
           "description": "A Dockerfile, absolute or relative to the directory of the file it's written in, built from its directory with `REEVAL_BASE` set to reeval's sandbox image and cached by content hash.",
           "type": "string"

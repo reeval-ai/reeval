@@ -1,4 +1,4 @@
-import { imageInfo, LABEL } from '@reeval/sandbox-docker'
+import { DeviceError, deviceGid, imageInfo, LABEL } from '@reeval/sandbox-docker'
 import { pluginBuildsLabel } from './environment/plugins.ts'
 import { UsageError } from './errors.ts'
 import { sandboxId } from './options.ts'
@@ -88,6 +88,18 @@ export async function preflight(
         : new PreflightInfraError(error.message)
     }
     throw error
+  }
+  for (const o of outcomes) {
+    const { sandbox } = o.target
+    if (!o.ok || sandbox.kind !== 'docker' || !sandbox.devices?.length) continue
+    const { ref } = attemptImage(o.handle)
+    for (const device of sandbox.devices) {
+      await deviceGid(device, ref, { engine: sandbox.engine, root: !!sandbox.root }).catch(
+        (error: unknown) => {
+          throw error instanceof DeviceError ? new UsageError(error.message) : error
+        },
+      )
+    }
   }
   writePrepared(options.root, options.runId, outcomes)
   const images: SandboxImage[] = []

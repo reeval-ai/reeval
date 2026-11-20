@@ -517,6 +517,10 @@ For more information about sandbox factories, see [Choose a sandbox](/configurat
   Linux capabilities to add back, such as `['NET_RAW']`, with or without the `CAP_` prefix. The container drops every other capability and runs with `no-new-privileges`.
 </Property>
 
+<Property name="docker.devices" type="'kvm'[]" optional>
+  Host devices to pass into the container, by name, never by path. `'kvm'` passes `/dev/kvm` read-write and adds its group, so the `reeval` user can open it, for an Android emulator. Before the run, reeval checks that the device is the KVM character device and that the `reeval` user can open it. Docker and Podman on your machine only.
+</Property>
+
 <Property name="docker.image" type="string" optional>
   An image that already has the harness baked in. reeval uses it as is. At most one of `image`, `from`, and `dockerfile`; without one, the container runs reeval's own image for the harness, on Node 26.
 </Property>

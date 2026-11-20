@@ -20,11 +20,11 @@ export class CloudUnsupported extends UsageError {}
 
 /** The docker() options a provider's container takes as they are. */
 const CARRIED = new Set(['kind', 'id', 'image', 'from', 'dockerfile', 'install', 'maxConcurrent'])
-const PRIVILEGE = new Set(['root', 'capabilities'])
+const PRIVILEGE = new Set(['root', 'capabilities', 'devices'])
 /** `docker()`'s own defaults, which a provider's machines already match. */
 const isDefault = (key: string, value: unknown) =>
   (key === 'root' && value === false) ||
-  (key === 'capabilities' && Array.isArray(value) && value.length === 0)
+  ((key === 'capabilities' || key === 'devices') && Array.isArray(value) && value.length === 0)
 
 /**
  * The sandbox `sandbox` runs as for an attempt that starts at `target`; `where` names the eval in
@@ -57,6 +57,7 @@ export function place(
         `${provider.kind === 'boat' ? 'boat({ type })' : 'daytona({ size })'} sets the machine's size`,
       extra.includes('root') && 'the agent runs as the reeval user',
       extra.includes('capabilities') && `${provider.kind}() adds no capabilities`,
+      extra.includes('devices') && `${provider.kind}() passes no host devices`,
     ].filter(Boolean)
     throw new UsageError(
       `${where}: docker({ ${extra.join(', ')} }) applies to a container on your machine, not on ${provider.kind}(): ${why.join(', and ')}. Leave ${them} out.`,
@@ -78,8 +79,13 @@ function onCloud(sandbox: SandboxDescriptor, where: string): SandboxDescriptor {
       `${where}: podman() runs containers on this machine's Podman, and a cloud run runs each attempt's container on a machine of its own. Use docker(), or run it here with --local.`,
     )
   }
+  if (sandbox.devices?.length) {
+    throw new CloudUnsupported(
+      `${where}: docker({ devices }) passes this machine's devices into the container, and a cloud run's machines pass none. Run it here with --local.`,
+    )
+  }
   // The scheduler sets the machine's size and how many attempts share it.
-  const { kind: _, engine: __, id: ___, ...container } = sandbox
+  const { kind: _, engine: __, id: ___, devices: ____, ...container } = sandbox
   return { kind: 'cloud', ...container } satisfies CloudSandboxDescriptor
 }
 

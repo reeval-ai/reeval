@@ -189,6 +189,7 @@ const DOCKER_ONLY: Record<string, string> = {
     'a Tart VM starts from its image, and reeval bakes only the harness onto it; put install commands in the environment setup',
   root: 'the VM runs everything as the image user',
   capabilities: 'a macOS VM has no Linux capabilities',
+  devices: 'a Tart VM gets no host devices',
   swap: 'macOS manages its own swap',
   pids: 'a macOS VM has no process limit',
   engine: 'Tart is its only engine',

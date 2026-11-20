@@ -31,6 +31,7 @@ import {
   sourceTreeHash,
   versionLabel,
 } from '../src/build-image.ts'
+import { deviceArgs, deviceGid } from '../src/devices.ts'
 import {
   docker,
   dockerState,
@@ -69,7 +70,13 @@ import {
   type PodmanHostInputs,
   podmanHostEnv,
 } from '../src/engine.ts'
-import { DEFAULT_IMAGE, HARNESS_PACKAGES, harnessLabel, imageFor } from '../src/image.ts'
+import {
+  DEFAULT_IMAGE,
+  HARNESS_PACKAGES,
+  harnessLabel,
+  imageFor,
+  SANDBOX_USER,
+} from '../src/image.ts'
 import { pullLayer, registryRef } from '../src/registry.ts'
 import { memorySwap } from '../src/session.ts'
 import { type DockerCommand, onDockerCommand, traceDocker } from '../src/trace.ts'
@@ -129,6 +136,75 @@ test("dockerState: running, down, Windows containers or missing, from the CLI's 
   } finally {
     process.env.PATH = path
     delete process.env.FAKE_DOCKER_INFO
+  }
+})
+
+test("devices: kvm is /dev/kvm read-write plus its group, after checking it's 10:232 and the sandbox user opens it", async () => {
+  assert.deepEqual(deviceArgs(['kvm'], [992]), [
+    '--device',
+    '/dev/kvm:/dev/kvm:rw',
+    '--group-add',
+    '992',
+  ])
+  assert.deepEqual(deviceArgs([], []), [])
+  // A docker CLI whose `run` answers as a host in the state the image names: kvm-<state>.
+  const bin = mkdtempSync(join(tmpdir(), 'reeval-docker-kvm-'))
+  writeFileSync(
+    join(bin, 'docker.js'),
+    `const args = process.argv.slice(2); require('node:fs').appendFileSync(${JSON.stringify(join(bin, 'calls'))}, JSON.stringify(args) + '\\n')
+const state = args.find((a) => a.startsWith('kvm-')).slice(4), opening = args.includes('--group-add')
+const stat = (char, rdev) => console.log(JSON.stringify({ char, rdev, gid: 992 }))
+if (state === 'missing') { console.error('docker: Error response from daemon: error gathering device information while adding custom device "/dev/kvm": no such file or directory.'); process.exit(125) }
+if (opening) { if (state === 'denied') { console.error("Error: EACCES: permission denied, open '/dev/kvm'"); process.exit(1) } }
+else stat(state !== 'block', state === 'other' ? 2793 : 2792)\n`,
+  )
+  writeFileSync(join(bin, 'docker'), `#!/bin/sh\nexec node "$(dirname "$0")/docker.js" "$@"\n`)
+  chmodSync(join(bin, 'docker'), 0o755)
+  writeFileSync(join(bin, 'docker.cmd'), '@node "%~dp0docker.js" %*\r\n')
+  const path = process.env.PATH
+  process.env.PATH = `${bin}${delimiter}${path}`
+  try {
+    assert.equal(await deviceGid('kvm', 'kvm-ok'), 992)
+    const calls = readFileSync(join(bin, 'calls'), 'utf8')
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l))
+    assert.equal(calls.length, 2)
+    for (const call of calls) {
+      for (const flag of [
+        '--rm',
+        'none',
+        SANDBOX_USER,
+        'ALL',
+        'no-new-privileges',
+        '/dev/kvm:/dev/kvm:rw',
+      ]) {
+        assert.ok(call.includes(flag), `${flag} in ${call.join(' ')}`)
+      }
+    }
+    assert.deepEqual(calls[1].slice(calls[1].indexOf('--group-add'), -5), ['--group-add', '992'])
+    await deviceGid('kvm', 'kvm-ok')
+    assert.equal(
+      readFileSync(join(bin, 'calls'), 'utf8').trim().split('\n').length,
+      2,
+      'checked once',
+    )
+    const refused = async (state: string, why: RegExp) =>
+      assert.rejects(deviceGid('kvm', `kvm-${state}`), (e: Error) => {
+        assert.equal(e.name, 'DeviceError')
+        assert.match(e.message, /^docker\(\{ devices: \['kvm'\] \}\) needs KVM at \/dev\/kvm: /)
+        assert.match(e.message, why)
+        return true
+      })
+    await refused('missing', /the Docker host has none/)
+    await refused('block', /isn't the KVM device \(character device 10:232\)/)
+    await refused('other', /isn't the KVM device/)
+    await refused(
+      'denied',
+      /the sandbox user can't open it read-write with its group \(992\): Error: EACCES/,
+    )
+  } finally {
+    process.env.PATH = path
   }
 })
 
