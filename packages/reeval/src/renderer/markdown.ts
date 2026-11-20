@@ -807,6 +807,11 @@ function evalSectionMarkdown(section: EvalSection, single: boolean): string {
     }
     lines.push('')
   }
+  if (section.next?.length) {
+    lines.push(h(blockLevel, 'Next'), '')
+    for (const n of section.next) lines.push(`- ${n.at ? `At ${n.at}: ` : ''}${n.text}.`)
+    lines.push('')
+  }
   if (section.primary?.kind === 'task') lines.push(...taskMarkdown(section.primary, blockLevel))
   if (section.primary?.kind === 'comparison') {
     lines.push(...comparisonMarkdown(section.primary, blockLevel))

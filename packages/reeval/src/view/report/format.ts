@@ -346,7 +346,7 @@ export function headlinePrimaryText(primary: HeadlinePrimary): string {
 }
 
 /** `source:file#L12` as `file:12`, as the CLI's Worth knowing line prints it. */
-const remarkLocation = (at: string) => at.replace(/^source:/, '').replace(/#L(\d+)$/, ':$1')
+export const remarkLocation = (at: string) => at.replace(/^source:/, '').replace(/#L(\d+)$/, ':$1')
 
 /** A remark with its fix as one plain line. */
 export function remarkLine(r: { text: string; fix?: Remark['fix'] | null }): string {

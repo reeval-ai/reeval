@@ -1349,6 +1349,25 @@
           "description": "Unique in the report; `<name> (<file>)` when two evals share a name.",
           "type": "string"
         },
+        "next": {
+          "description": "What to change next: each concern remark that names an edit, as that edit and where.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "at": {
+                "type": ["string", "null"]
+              },
+              "kind": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": ["at", "kind", "text"]
+          }
+        },
         "primary": {
           "description": "Null on a check-free eval, whose first choice, judge, or measure block leads.",
           "anyOf": [
