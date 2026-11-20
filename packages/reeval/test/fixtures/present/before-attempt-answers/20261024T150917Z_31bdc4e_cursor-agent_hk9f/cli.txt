@@ -1,0 +1,11 @@
+takes its time
+The run stopped early (budget reached).
+3 of 3 counted attempts passed · 2s wall time · tokens not reported · cost not reported · 31bdc4e
+
+Error: Run stopped early (budget); pass rates and medians cover only the attempts that finished.
+Warning: 3 counted attempts reported no token usage; token medians omit them.
+
+PASS           takes its time
+               100% passed · 3 of 3 attempts
+
+Evals: 1 pass

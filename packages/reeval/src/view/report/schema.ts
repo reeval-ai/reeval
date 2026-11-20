@@ -473,6 +473,7 @@ const armRowSchema: z.ZodType<ArmRow> = z.strictObject({
   passAtK: figureSchema.optional(),
   passHatK: figureSchema.optional(),
   passKOmitted: z.string().optional(),
+  missedMinLift: z.number().optional(),
   lift: deltaSchema.nullable(),
   interval: intervalSchema.nullable(),
   verdict: z.enum(['baseline', 'helped', 'made-worse', 'within-noise', 'too-few-runs']),
@@ -671,9 +672,11 @@ const captureGallerySchema: z.ZodType<CaptureGallery> = z.strictObject({
 
 const failureClusterSchema: z.ZodType<FailureCluster> = z.strictObject({
   kind: z.enum(['assertion', 'turn-error', 'infra-error', 'capture-error', 'error']),
+  cause: z.enum(['timeout', 'canceled']).optional(),
   label: z.string(),
   at: z.string().nullable(),
   message: z.string().optional(),
+  detail: z.string().optional(),
   count: countSchema,
   attempts: z.array(attemptRefSchema),
 })
@@ -721,6 +724,9 @@ const evalSectionSchema = z.strictObject({
   id: z.string(),
   anchor: z.string(),
   name: z.string(),
+  group: z.array(z.string()).optional(),
+  state: z.enum(['ran', 'skipped', 'todo', 'not-run']).optional(),
+  outcome: z.enum(['pass', 'fail', 'infra_error', 'skipped']).optional(),
   file: z.string(),
   shapes: z.array(evalShapeSchema),
   design: z.string(),
@@ -736,6 +742,9 @@ const evalSectionSchema = z.strictObject({
   next: z
     .array(z.strictObject({ kind: z.string(), text: z.string(), at: z.string().nullable() }))
     .optional(),
+  suggestions: z.array(z.string()).optional(),
+  notes: z.array(z.string()).optional(),
+  observed: z.array(z.string()).optional(),
 }) as z.ZodType<EvalSection>
 
 const runTallySchema: z.ZodType<RunTally> = z.strictObject({
@@ -780,6 +789,7 @@ const runHeaderSchema: z.ZodType<RunHeader> = z.strictObject({
       judge: figureSchema.nullable(),
       total: figureSchema.nullable(),
       basis: z.enum(['reported', 'estimated', 'mixed']),
+      unpriced: z.number().optional(),
     })
     .nullable(),
   git: z
@@ -790,6 +800,8 @@ const runHeaderSchema: z.ZodType<RunHeader> = z.strictObject({
       repo: z.string().nullable(),
     })
     .nullable(),
+  servedBy: z.array(z.strictObject({ harness: z.string(), text: z.string() })).optional(),
+  errors: z.array(z.string()).optional(),
 })
 
 const integrityIssueSchema: z.ZodType<IntegrityIssue> = z.strictObject({

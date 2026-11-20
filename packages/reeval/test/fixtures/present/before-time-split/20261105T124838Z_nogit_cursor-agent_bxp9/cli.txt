@@ -1,0 +1,10 @@
+slow install
+1 of 2 counted attempts passed · 2m 00s wall time · tokens 220k · cost not reported
+
+FAIL           slow install
+               50% passed · 1 of 2 attempts · Cursor · composer-2.5 1 of 1, Claude Code · claude-sonnet-5 0 of 1
+               failed check, 1 of 2, all on Claude Code · claude-sonnet-5: done
+                 expected file done.txt to exist
+                 at probe.eval.ts:9
+
+Evals: 1 fail

@@ -1,0 +1,328 @@
+{
+  "presentationVersion": 1,
+  "header": {
+    "title": "Run 20260927T151935Z_facb81b_cursor-agent_07sv",
+    "runId": "20260927T151935Z_facb81b_cursor-agent_07sv",
+    "status": "complete",
+    "stopped": null,
+    "startedAt": "2026-09-27T15:19:35.703Z",
+    "date": "2026-09-27",
+    "author": "cursor-agent",
+    "reeval": "0.0.1",
+    "profile": null,
+    "runs": "1 run per cell",
+    "git": {
+      "repo": null,
+      "branch": "master",
+      "sha": "facb81bea2e0b05784e52830c44b5e157c99eb1d",
+      "dirty": false,
+      "text": "facb81b"
+    },
+    "wall": {
+      "value": 740,
+      "text": "740ms"
+    },
+    "tokens": {
+      "value": null,
+      "text": "not reported"
+    },
+    "cost": {
+      "value": null,
+      "text": "not reported"
+    },
+    "counted": {
+      "k": 1,
+      "n": 1,
+      "text": "1 of 1"
+    },
+    "infraError": 0,
+    "canceled": 0,
+    "attempts": "1 of 1 counted attempt passed",
+    "servedBy": []
+  },
+  "tally": {
+    "pass": 1,
+    "fail": 0,
+    "infraError": 0,
+    "canceled": 0,
+    "skipped": 1,
+    "todo": 0,
+    "notRun": 0,
+    "ungated": 0,
+    "text": "1 pass · 1 skipped"
+  },
+  "caveats": [
+    {
+      "severity": "warn",
+      "text": "writes greet.js: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/greet.es.ts › writes greet.js",
+      "cites": [
+        {
+          "id": "A1",
+          "href": "./evals-greet-es-ts-writes-greet-js-4857ff/fake-fake-70e87d/1/transcript.jsonl"
+        }
+      ]
+    }
+  ],
+  "harnesses": [
+    {
+      "id": "fake",
+      "name": "Fake",
+      "model": null,
+      "label": "Fake",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 1,
+        "text": "1 attempt"
+      }
+    }
+  ],
+  "evals": [
+    {
+      "id": "evals/greet.es.ts › writes greet.js",
+      "anchor": "writes-greetjs",
+      "name": "writes greet.js",
+      "file": "evals/greet.es.ts",
+      "shapes": ["Task"],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "writes greet.js",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "-",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A1",
+          "key": "evals/greet.es.ts › writes greet.js # fake/-/fake#1",
+          "href": "./evals-greet-es-ts-writes-greet-js-4857ff/fake-fake-70e87d/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "1ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": ["100% passed, 95% CI 21% to 100%"]
+    },
+    {
+      "id": "evals/greet.es.ts › greets in French",
+      "anchor": "greets-in-french",
+      "name": "greets in French",
+      "file": "evals/greet.es.ts",
+      "shapes": ["Task"],
+      "design": "1 coding harness, 0 attempts",
+      "state": "skipped",
+      "verdict": "skipped",
+      "verdictText": "skipped",
+      "headline": {
+        "task": "greets in French",
+        "metric": {
+          "kind": "none",
+          "text": "skipped"
+        },
+        "foot": "",
+        "left": null
+      },
+      "arms": [],
+      "attempts": [],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": []
+    }
+  ],
+  "actions": [],
+  "provenance": {
+    "rows": [
+      {
+        "field": "Executed at",
+        "value": "facb81bea2e0 on master, clean (the commit that adds this record is later)"
+      },
+      {
+        "field": "Lockfiles",
+        "value": "none found"
+      },
+      {
+        "field": "Images",
+        "value": "none (fake sandbox)"
+      },
+      {
+        "field": "Harnesses",
+        "value": "fake"
+      },
+      {
+        "field": "Environments",
+        "value": "none"
+      },
+      {
+        "field": "Judge",
+        "value": "none by default · threshold 0.8 · version 0e2a4839495b"
+      },
+      {
+        "field": "Packages",
+        "value": "vitest 5.0.2 · @evalsuite/harness-antigravity 0.1.0 · @evalsuite/harness-opencode 0.1.0 · @evalsuite/harness-goose 0.1.0 · @evalsuite/harness-pi 0.1.0 · @evalsuite/harness-cursor-sdk 0.1.0 · ai 7.0.114 · @ai-sdk/harness 1.0.124 · @ai-sdk/harness-claude-code 1.0.128 · @ai-sdk/google 4.0.79 · @ai-sdk/typesafe-ai 3.0.6"
+      },
+      {
+        "field": "reeval",
+        "value": "0.0.1 · node 22.14.0 · linux/x64"
+      },
+      {
+        "field": "Runner",
+        "value": "local · cursor-agent"
+      },
+      {
+        "field": "Artifacts",
+        "value": "all"
+      }
+    ],
+    "warnings": []
+  },
+  "attemptIndex": [
+    {
+      "id": "A1",
+      "anchor": "attempt-evals-greet-es-ts-writes-greet-js-fake-fake-1-4db1d21c",
+      "eval": "writes greet.js",
+      "harness": "Fake",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-greet-es-ts-writes-greet-js-4857ff/fake-fake-70e87d/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-greet-es-ts-writes-greet-js-4857ff/fake-fake-70e87d/1/diff.patch"
+        }
+      ]
+    }
+  ]
+}

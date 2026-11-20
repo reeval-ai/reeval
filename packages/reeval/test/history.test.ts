@@ -152,11 +152,8 @@ describe('recording runs into evals/.history', () => {
     )
     const summary = recorded.read('summary.md')
     assert.match(summary, /^# agent$/m, 'passes get detail')
-    assert.match(
-      summary,
-      /^\| <a id="attempt-[a-z0-9-]+"><\/a>A1 \| evals\/agent\.eval\.ts › agent \| fake \| fake \| pass \|/m,
-    )
-    assert.match(summary, /^## Judgments$/m)
+    assert.match(summary, /^\| <a id="attempt-[a-z0-9-]+"><\/a>A1 \| agent \| Fake \| pass \|/m)
+    assert.match(summary, /^### Judgments$/m)
     assert.match(summary, /Did it write hello\.txt/)
     const [input] = JSON.parse(recorded.read(e.trial.files.judgeInput?.path ?? ''))
     assert.deepEqual(input.state.diff.$ref, 'diff.patch', 'the judge input points at diff.patch')
@@ -829,7 +826,7 @@ evaluate('cased', { cases: ['a', 'b'], runs: 2 }, async (c, k) => {
     const md = await runCli(p.dir, ['compare', '--md'])
     // compare --md is RunReport with prior; orphaned-base text stays on the plain compare layout.
     assert.match(md.stdout, new RegExp(`Changes since .*${before}`))
-    assert.match(md.stdout, /Unchanged \(1\)/)
+    assert.match(md.stdout, /1 unchanged/)
   })
 
   test('runs further back than the first 20,000 commits are still in HEAD’s history', async () => {

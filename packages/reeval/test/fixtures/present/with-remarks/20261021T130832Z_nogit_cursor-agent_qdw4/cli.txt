@@ -1,0 +1,16 @@
+Run 20261021T130832Z_nogit_cursor-agent_qdw4
+3 of 5 counted attempts passed · 9s wall time · tokens not reported · cost not reported
+
+FAIL           coin
+               33% passed · 1 of 3 attempts
+               failed check, 2 of 3: lands heads
+                 expected 2 to be 1 // Object.is equality
+
+PASS           skill helps
+               docs 0% vs marked 100%: too few runs · 0 of 2 vs 2 of 2 attempts
+               docs    0%    0 of 2  baseline
+               marked  100%  2 of 2  too few runs
+               failed check, 2 of 4, all on docs, not gated: uses the marker
+                 expected 'control' to be 'variant' // Object.is equality
+
+Evals: 1 fail · 1 pass

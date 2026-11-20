@@ -139,6 +139,7 @@ export default defineConfig({
     gateway: 'src/gateway.ts',
     'view/index': 'src/view/index.ts',
     'view/report/index': 'src/view/report/index.ts',
+    'view/present/index': 'src/view/present/index.ts',
     'renderer/markdown': 'src/renderer/markdown.ts',
     'renderer/ascii': 'src/renderer/ascii.ts',
     testing: 'src/testing.ts',

@@ -82,6 +82,10 @@
       "types": "./dist/view/report/index.d.ts",
       "default": "./dist/view/report/index.js"
     },
+    "./view/present": {
+      "types": "./dist/view/present/index.d.ts",
+      "default": "./dist/view/present/index.js"
+    },
     "./renderer/markdown": {
       "types": "./dist/renderer/markdown.d.ts",
       "default": "./dist/renderer/markdown.js"

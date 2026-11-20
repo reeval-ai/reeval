@@ -88,6 +88,10 @@ For more information about the keys on `stack.judge.state`, see [`c.judge()`](/r
   How `reeval run` was started; `--resume` plans with it again. Unset in older records.
 </Property>
 
+<Property name="remarks" type="Remark[]" optional>
+  What the run said about the evals themselves (`remarks.json`'s remarks), so every report of the run prints the same ones. They never change a verdict, count or exit code. Unset when the run raised none, and in older records.
+</Property>
+
 <Property name="plan" type="{evals: number; cells: number; attempts: number; estimateMs: number; sandboxWarnings: SandboxWarning[]}">
   What the run planned before it started, and each level whose sandbox ran as root, with capabilities added back or with host devices.
 </Property>

@@ -1,0 +1,13 @@
+Run 20261107T103139Z_nogit_cursor-agent_jxj5
+1 of 2 counted attempts passed · 6s wall time · tokens not reported · cost not reported
+
+FAIL           canary
+               0% passed · 0 of 1 attempt
+               failed check, 1 of 1: toBeGreaterThanOrEqual 2
+                 expected 0 to be greater than or equal to 2
+                 at evals/canary.eval.ts:6
+
+PASS           lands
+               100% passed · 1 of 1 attempt
+
+Evals: 1 fail · 1 pass

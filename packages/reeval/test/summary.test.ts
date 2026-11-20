@@ -8,8 +8,11 @@ import { fileURLToPath } from 'node:url'
 import { corpusEntries } from '../scripts/schema/corpus.ts'
 import type { RunRecord } from '../src/history/types.ts'
 import { FORBIDDEN_OUTPUT, runReportMarkdown } from '../src/renderer/markdown.ts'
+import { present } from '../src/view/present/index.ts'
 import { readableRecord } from '../src/view/record.ts'
 import { buildRunReport, runReportSchema } from '../src/view/report/index.ts'
+
+const renderMd = (report: Parameters<typeof present>[0]) => runReportMarkdown(present(report))
 
 const UPDATE = !!process.env.REEVAL_UPDATE_SNAPSHOTS
 const PACKAGE_DIR = fileURLToPath(new URL('..', import.meta.url))
@@ -32,7 +35,7 @@ describe('summary.md goldens', () => {
       const record = loadCorpus(g.corpus)
       const report = buildRunReport(record, { links: { base: './' } })
       assert.doesNotThrow(() => runReportSchema.parse(report))
-      const md = runReportMarkdown(report)
+      const md = renderMd(report)
       for (const forbidden of FORBIDDEN_OUTPUT) {
         assert.doesNotMatch(md, forbidden.pattern, forbidden.name)
       }

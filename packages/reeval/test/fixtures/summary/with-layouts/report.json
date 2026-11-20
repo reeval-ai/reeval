@@ -897,6 +897,9 @@
       "id": "evals/family.eval.ts › adds a button that builds",
       "anchor": "adds-a-name-button-that-builds",
       "name": "adds a $name button that builds",
+      "group": [],
+      "state": "ran",
+      "outcome": "fail",
       "file": "evals/family.eval.ts",
       "shapes": ["task"],
       "design": "3 prompts, 1 coding harness, 3 attempts",
@@ -1231,6 +1234,9 @@
       "id": "evals/family.eval.ts › greets in the house style",
       "anchor": "greets-s-in-the-house-style",
       "name": "greets %s in the house style",
+      "group": [],
+      "state": "ran",
+      "outcome": "pass",
       "file": "evals/family.eval.ts",
       "shapes": ["ab"],
       "design": "4 prompts, 1 coding harness, 2 arms, 8 attempts",
@@ -1934,6 +1940,9 @@
       "id": "evals/harnesses.eval.ts › greets in the house style on each agent",
       "anchor": "greets-in-the-house-style-on-each-agent",
       "name": "greets in the house style on each agent",
+      "group": [],
+      "state": "ran",
+      "outcome": "fail",
       "file": "evals/harnesses.eval.ts",
       "shapes": ["task"],
       "design": "2 coding harnesses, 2 attempts",
@@ -2293,6 +2302,9 @@
       "id": "evals/harnesses.eval.ts › learns the house style from the skill",
       "anchor": "learns-the-house-style-from-the-skill",
       "name": "learns the house style from the skill",
+      "group": [],
+      "state": "ran",
+      "outcome": "fail",
       "file": "evals/harnesses.eval.ts",
       "shapes": ["ab"],
       "design": "2 coding harnesses, 2 arms, 16 attempts",
@@ -2984,6 +2996,9 @@
       "id": "evals/measure.eval.ts › greets in the house style",
       "anchor": "greets-in-the-house-style",
       "name": "greets in the house style",
+      "group": [],
+      "state": "ran",
+      "outcome": "fail",
       "file": "evals/measure.eval.ts",
       "shapes": ["ab"],
       "design": "1 coding harness, 3 arms, 12 attempts",
@@ -3881,6 +3896,9 @@
       "id": "evals/measure.eval.ts › keeps the plain greeting",
       "anchor": "keeps-the-plain-greeting",
       "name": "keeps the plain greeting",
+      "group": [],
+      "state": "ran",
+      "outcome": "fail",
       "file": "evals/measure.eval.ts",
       "shapes": ["ab"],
       "design": "1 coding harness, 2 arms, 8 attempts",
@@ -4414,6 +4432,9 @@
       "id": "evals/measure.eval.ts › greets once",
       "anchor": "greets-once",
       "name": "greets once",
+      "group": [],
+      "state": "ran",
+      "outcome": "pass",
       "file": "evals/measure.eval.ts",
       "shapes": ["ab"],
       "design": "1 coding harness, 2 arms, 2 attempts",
@@ -4932,6 +4953,9 @@
       "id": "evals/results.eval.ts › writes greet.js",
       "anchor": "writes-greetjs",
       "name": "writes greet.js",
+      "group": [],
+      "state": "ran",
+      "outcome": "pass",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
       "design": "1 coding harness, 1 attempt",
@@ -5087,6 +5111,9 @@
       "id": "evals/results.eval.ts › greets in French",
       "anchor": "greets-in-french",
       "name": "greets in French",
+      "group": [],
+      "state": "ran",
+      "outcome": "fail",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
       "design": "1 coding harness, 1 attempt",
@@ -5233,6 +5260,9 @@
       "id": "evals/results.eval.ts › explains why greet.js fails",
       "anchor": "explains-why-greetjs-fails",
       "name": "explains why greet.js fails",
+      "group": [],
+      "state": "ran",
+      "outcome": "fail",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
       "design": "1 coding harness, 2 attempts",
@@ -5435,6 +5465,9 @@
       "id": "evals/results.eval.ts › reads the fixture repo",
       "anchor": "reads-the-fixture-repo",
       "name": "reads the fixture repo",
+      "group": [],
+      "state": "ran",
+      "outcome": "fail",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
       "design": "1 coding harness, 1 attempt",
@@ -5498,6 +5531,9 @@
       "id": "evals/results.eval.ts › starts its sandbox",
       "anchor": "starts-its-sandbox",
       "name": "starts its sandbox",
+      "group": [],
+      "state": "ran",
+      "outcome": "infra_error",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
       "design": "1 coding harness, 1 attempt",
@@ -5561,6 +5597,9 @@
       "id": "evals/results.eval.ts › greets in Welsh",
       "anchor": "greets-in-welsh",
       "name": "greets in Welsh",
+      "group": [],
+      "state": "skipped",
+      "outcome": "skipped",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
       "design": "1 coding harness, 0 attempts",
@@ -5603,6 +5642,9 @@
       "id": "evals/results.eval.ts › greets in Klingon",
       "anchor": "greets-in-klingon",
       "name": "greets in Klingon",
+      "group": [],
+      "state": "todo",
+      "outcome": "skipped",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
       "design": "1 coding harness, 0 attempts",
@@ -5732,7 +5774,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-adds-a-reset-button-that-builds-5f0694/fake-fake-70e87d/1/transcript.jsonl",
@@ -5792,7 +5834,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/transcript.jsonl",
@@ -5843,7 +5885,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-adds-a-clear-button-that-builds-ddd4f5/fake-fake-70e87d/1/transcript.jsonl",
@@ -5903,7 +5945,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/transcript.jsonl",
@@ -5954,7 +5996,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
@@ -6014,7 +6056,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/transcript.jsonl",
@@ -6065,7 +6107,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
@@ -6125,7 +6167,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/transcript.jsonl",
@@ -6176,7 +6218,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
@@ -6236,7 +6278,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/transcript.jsonl",
@@ -6287,7 +6329,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
@@ -6338,7 +6380,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/skilled-fake-cd398f/1/transcript.jsonl",
@@ -6398,7 +6440,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/transcript.jsonl",
@@ -6458,7 +6500,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/transcript.jsonl",
@@ -6509,7 +6551,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/1/transcript.jsonl",
@@ -6569,7 +6611,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/transcript.jsonl",
@@ -6629,7 +6671,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/transcript.jsonl",
@@ -6689,7 +6731,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/transcript.jsonl",
@@ -6740,7 +6782,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
@@ -6800,7 +6842,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/transcript.jsonl",
@@ -6851,7 +6893,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/1/transcript.jsonl",
@@ -6911,7 +6953,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
@@ -6971,7 +7013,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/transcript.jsonl",
@@ -7022,7 +7064,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-once-98c8e5/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
@@ -7073,7 +7115,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-results-eval-ts-writes-greet-js-3064b7/fake-fake-70e87d/1/transcript.jsonl",
@@ -7133,7 +7175,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/transcript.jsonl",
@@ -7184,7 +7226,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/1/transcript.jsonl",
@@ -7238,7 +7280,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/transcript.jsonl",
@@ -7347,7 +7389,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/transcript.jsonl",
@@ -7398,7 +7440,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/2/transcript.jsonl",
@@ -7458,7 +7500,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/transcript.jsonl",
@@ -7518,7 +7560,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/transcript.jsonl",
@@ -7578,7 +7620,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/transcript.jsonl",
@@ -7629,7 +7671,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/2/transcript.jsonl",
@@ -7689,7 +7731,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/transcript.jsonl",
@@ -7740,7 +7782,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/2/transcript.jsonl",
@@ -7800,7 +7842,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/transcript.jsonl",
@@ -7860,7 +7902,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/transcript.jsonl",
@@ -7920,7 +7962,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/transcript.jsonl",
@@ -7971,7 +8013,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/3/transcript.jsonl",
@@ -8031,7 +8073,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/transcript.jsonl",
@@ -8091,7 +8133,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/transcript.jsonl",
@@ -8151,7 +8193,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/transcript.jsonl",
@@ -8202,7 +8244,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/3/transcript.jsonl",
@@ -8262,7 +8304,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/transcript.jsonl",
@@ -8313,7 +8355,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/3/transcript.jsonl",
@@ -8373,7 +8415,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/transcript.jsonl",
@@ -8433,7 +8475,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/transcript.jsonl",
@@ -8484,7 +8526,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/4/transcript.jsonl",
@@ -8544,7 +8586,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/transcript.jsonl",
@@ -8604,7 +8646,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/transcript.jsonl",
@@ -8664,7 +8706,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/transcript.jsonl",
@@ -8715,7 +8757,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/4/transcript.jsonl",
@@ -8775,7 +8817,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/transcript.jsonl",
@@ -8826,7 +8868,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/4/transcript.jsonl",
@@ -8886,7 +8928,7 @@
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/transcript.jsonl",

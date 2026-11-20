@@ -3,28 +3,32 @@ title: "Read a run's output"
 description: "Read the outcomes, the tally, and the remarks that reeval run and reeval show print."
 ---
 
-`reeval run` ends with a status list: each evaluation file, one line per evaluation under it, then a tally of the run. `reeval show` prints the full result blocks with their tables.
+`reeval run` ends with the run's results: a line of facts, a block per evaluation, then a tally. They are the same sections, in the same order, as the run's `summary.md` file and the studio; the terminal prints the shorter subset.
 
 ## Read the outcomes
 
 ```text
-with-reeval-mcp.eval.ts
-└─ ✗ adds a tested multiply function  0 of 1 run passed
-     Failed on fake.
-     ✗ toSucceed node --test  failed 1 of 1 run
-       expected command to succeed, exit code 1 · with-reeval-mcp.eval.ts:13
+adds a tested multiply function
+0 of 1 counted attempt passed · 2s wall time · tokens not reported · cost not reported · reeval@45620f2 (dirty)
 
-Done in 846ms · 1 failed
+FAIL           adds a tested multiply function
+               0% passed · 0 of 1 attempt
+               failed check, 1 of 1: toSucceed node --test
+                 expected command to succeed, exit code 1
+                 at with-reeval-mcp.eval.ts:13
+
+Evals: 1 fail
+
 Browse it: reeval studio · summary .reeval/runs/…/summary.md
 ```
 
-Each line is an icon, the evaluation's name and `N of M runs passed`: `✓` passed, `✗` failed or hit an infra error, `●` ran (no cell is gated, as under [`gate: 'observe'`](/reference/options#gate)), `–` skipped or todo, and `○` canceled. A passing evaluation is one line. A failed one, a comparison, and one with remarks add lines under it: how each harness did, a table of the arms, a case table for [cases](/evaluations/task/cases), and each failed [assertion](/reference/glossary#assertion) with the runs or arms it failed on, its first message line and its location.
+Each block starts with the verdict and the evaluation's name: `PASS`, `FAIL`, `NOT GATED` (no cell is gated, as under [`gate: 'observe'`](/reference/options#gate)), `INFRA ERROR`, `CANCELED`, `SKIPPED` or `TODO`. Under it come the pass rate with `k of n attempts`, how each harness did, the arms of a comparison, and each failed [assertion](/reference/glossary#assertion) with how many attempts it failed, the arm or harness it failed on, its first message line and its location. Infra errors and canceled attempts are counted beside the rate, not in it.
 
-`-v` prints them under every evaluation, with each full message, file excerpt, snapshot, interval and remark. `--ui agent` always adds the rest of each failure's message and its snapshot.
+`-v` adds each full message, file excerpt and interval, and each suggestion. `--ui agent` always adds them.
 
-`Done in` gives the run's time, then the tally, which omits zeros, as in `2 failed · 1 passed · 1 infra error`. A failure outside any evaluation prints first, as `error:`, and counts as a `run error`. `Browse it:` names the studio and the run's `summary.md` file. For more information about the trace of a failed assertion, see [Debug a failing attempt](/results/inspection/debugging).
+The facts line gives how many counted attempts passed, the run's time, its tokens and its cost. `Evals:` is the tally, which omits zeros, as in `2 fail · 1 pass · 1 infra error`. A failure outside any evaluation prints first, as `Error:`, and counts as a `run error`. `Browse it:` names the studio and the run's `summary.md` file. For more information about the trace of a failed assertion, see [Debug a failing attempt](/results/inspection/debugging).
 
-On a terminal outside CI, unless `--ui` names a mode, the list draws while the run goes and stays up once it ends: ↑ and ↓ move, → opens an evaluation and, on an open one (`→ more`), shows what `-v` adds, enter opens or closes it, ← steps back, escape folds it, and `q` quits, leaving the list in your scrollback.
+On a terminal outside CI, unless `--ui` names a mode, a list draws while the run goes: ↑ and ↓ move, → opens an evaluation and, on an open one (`→ more`), shows what `-v` adds, enter opens or closes it, ← steps back, escape folds it, and `q` quits. Once the run ends, the results print in its place.
 
 An open evaluation with cases shows its case table live. → shows five, failed and running first, and `7 cases hidden, → to show`; → again shows all.
 
@@ -32,30 +36,31 @@ A spinner turns while reeval waits on a sandbox, an agent turn or a judge. An ev
 
 ## Read remarks
 
-Under an evaluation, `Worth knowing:` names concerns about it, such as a flaky assertion, a slow MCP server start, or too few runs for a difference to hold. reeval's own rules raise them from the run and its history. Each names the file location to change. At most three concerns print, then `+N more remarks (-v)`. To print the rest, each remark's whole sentence and any suggestion, pass `-v`. A concern prints on the run that first raises it; a slow server start, or too few runs, on every run. It also names an assertion that passed only on a retry.
+Under an evaluation, `Next:` names the edit a remark asks for and where, and each `(concern)` line names a concern about the evaluation, such as a flaky assertion, a slow MCP server start, or too few runs for a difference to hold. reeval's own rules raise them from the run and its history. At most three concerns print, then `+N more remarks (-v)`. To print the rest and any suggestion, pass `-v`. A concern prints on the run that first raises it; a slow server start, or too few runs, on every run. A `(note)` line names an assertion that passed only on a retry.
 
 A remark looks like this:
 
 ```text
-└─ ✓ records the change in the changelog  1 of 1 variant run passed
-     The detailed-rules variant helped.
-     arm                    passed  verdict
-     short-rules (control)  0 of 1
-     detailed-rules         1 of 1  helped
-     ✗ changelog entry  failed on the control · expected
-       expected CHANGELOG.md to match /## Unreleased\s+- feat: / · with-rules-ab.eval.ts:20
-     Worth knowing: 1 run per side; set runs: 4 at with-rules-ab.eval.ts:14 to confirm this difference.
+PASS           records the change in the changelog
+               short-rules 0% vs detailed-rules 100%: too few runs · 0 of 1 vs 1 of 1 attempt
+               short-rules     0%    0 of 1  baseline
+               detailed-rules  100%  1 of 1  too few runs
+               failed check, 1 of 2, all on short-rules, not gated: changelog entry
+                 expected CHANGELOG.md to match /## Unreleased\s+- feat: /
+                 at with-rules-ab.eval.ts:20
+               Next: at with-rules-ab.eval.ts:14, set runs: 4, where a difference this size would hold
+               (concern) The detailed-rules variant passed 1 of 1 run and the control 0 of 1: better by 100 points, but on too few runs for the difference to hold.
 ```
 
-A control that isn't gated fails as `expected`. With `-v`, the remark prints its whole sentence:
+A control that isn't gated fails as `not gated`. With `-v`, the block adds the difference's interval:
 
 ```text
-     Worth knowing: The detailed-rules variant passed 1 of 1 run and the control 0 of 1: better by 100 points, but on too few runs for the difference to hold. Fix at with-rules-ab.eval.ts:14: set runs: 4, where a difference this size would hold.
+               detailed-rules +100 pts (95% CI -12 pts to +100 pts)
 ```
 
 ## Show one run
 
-`reeval show` prints the most recent run as result blocks, with each arm's pass counts and a table of assertions per cell:
+`reeval show` prints the most recent run's results, as `reeval run` ends with them:
 
 ```bash
 npx reeval show

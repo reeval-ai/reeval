@@ -1,0 +1,7 @@
+writes hello
+1 of 1 counted attempt passed · 15s wall time · tokens 43k · cost not reported · 9c5124c
+
+PASS           writes hello
+               100% passed · 1 of 1 attempt
+
+Evals: 1 pass

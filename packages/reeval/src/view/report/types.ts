@@ -100,9 +100,15 @@ export type RunHeader = {
     /** Labeled total when agent and judge are both present; else null. */
     total: Figure | null
     basis: 'reported' | 'estimated' | 'mixed'
+    /** The priced parts' sum left out this many that had no price; unset when none. */
+    unpriced?: number
   } | null
   /** `repo` is the basename of `git.remote`. */
   git: { sha: string; branch: string | null; dirty: boolean; repo: string | null } | null
+  /** The upstream providers a gateway named for each harness's calls; unset when it named none. */
+  servedBy?: Array<{ harness: string; text: string }>
+  /** Each error outside any attempt, as its first line; unset when there were none. */
+  errors?: string[]
 }
 
 export type IntegrityKind =
@@ -165,6 +171,12 @@ export type EvalSection = {
   anchor: string
   /** Unique in the report; `<name> (<file>)` when two evals share a name. */
   name: string
+  /** The `describe` groups the eval sits in, outermost first; absent in reports built before it. */
+  group?: string[]
+  /** Whether it ran; absent in reports built before it, where no attempts reads as `not-run`. */
+  state?: 'ran' | 'skipped' | 'todo' | 'not-run'
+  /** `EvalEntry.outcome`; absent in reports built before it. */
+  outcome?: Outcome
   file: string
   shapes: EvalShape[]
   /** `3 prompts, 4 coding harnesses, 3 arms, 36 attempts`. */
@@ -181,6 +193,15 @@ export type EvalSection = {
   failures: FailureClusters | null
   /** What to change next: each concern remark that names an edit, as that edit and where. */
   next?: NextStep[]
+  /** Each suggestion remark on the eval, as its line; unset when there are none. */
+  suggestions?: string[]
+  /**
+   * Each check that needed its `c.exec` retries (`"npm test" passed on try 2 of 3.`), and the first
+   * capture whose page had page errors, with the run folder's file that lists them; unset when none.
+   */
+  notes?: string[]
+  /** Each `c.observe` name's values tallied, per arm or harness when they differ: `orm: drizzle 9 · prisma 3`. */
+  observed?: string[]
 }
 
 export type NextStep = {
@@ -536,6 +557,8 @@ export type ArmRow = {
   passHatK?: Figure
   /** Reason Pass@k and Pass^k were omitted on this arm when `k` was requested and some task has `n < k`. */
   passKOmitted?: string
+  /** The compare's `minLift` (0 to 1) when this variant's lift fell below it, failing its gate. */
+  missedMinLift?: number
   lift: Delta | null
   interval: Interval | null
   /** Pass-rate certainty only; measure direction lives in measure cells. */
@@ -772,6 +795,8 @@ export type FailureCluster = {
    * `assertion` cluster, and an `infra-error` is never the turn error behind a `turn-error` one.
    */
   kind: 'assertion' | 'turn-error' | 'infra-error' | 'capture-error' | 'error'
+  /** An `error` cluster's attempts timed out or the run canceled them; unset for any other error. */
+  cause?: 'timeout' | 'canceled'
   label: string
   at: string | null
   /**
@@ -779,6 +804,8 @@ export type FailureCluster = {
    * it when the check ended the body; absent on other kinds, whose `label` is the message.
    */
   message?: string
+  /** The rest of the first attempt's failure text, past the line `message` or `label` keeps. */
+  detail?: string
   /** Members of the eval's counted attempts. */
   count: Count
   attempts: AttemptRef[]

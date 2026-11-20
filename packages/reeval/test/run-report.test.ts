@@ -5,10 +5,12 @@ import { corpusEntries } from '../scripts/schema/corpus.ts'
 import { resolveConfig } from '../src/config.ts'
 import type { AttemptRecord, EvalEntry, RunRecord } from '../src/history/types.ts'
 import { cascade } from '../src/options.ts'
+import { runReportText } from '../src/renderer/ascii.ts'
 import { FORBIDDEN_OUTPUT, runReportMarkdown } from '../src/renderer/markdown.ts'
 import { unbiasedPassAtK, unbiasedPassHatK } from '../src/stats.ts'
 import type { CompareRow } from '../src/view/compare.ts'
 import { costPerSuccess } from '../src/view/effort.ts'
+import { present } from '../src/view/present/index.ts'
 import { NewerSchemaError, readableRecord } from '../src/view/record.ts'
 import type { RunRemarks } from '../src/view/remarks.ts'
 import {
@@ -20,6 +22,10 @@ import {
   readableRunReport,
   runReportSchema,
 } from '../src/view/report/index.ts'
+
+const renderMd = (report: Parameters<typeof present>[0]) => runReportMarkdown(present(report))
+const verboseText = (report: Parameters<typeof present>[0]) =>
+  runReportText(present(report), { detail: 'verbose', width: Number.POSITIVE_INFINITY })
 
 function loadCorpusRun(name: string): RunRecord {
   const file = corpusEntries()
@@ -41,7 +47,7 @@ describe('buildRunReport', () => {
       const record = readableRecord(JSON.parse(readFileSync(file, 'utf8')) as RunRecord)
       const report = buildRunReport(record, { links: { base: './' } })
       assert.doesNotThrow(() => runReportSchema.parse(report), entry.name)
-      const md = runReportMarkdown(report)
+      const md = renderMd(report)
       for (const forbidden of FORBIDDEN_OUTPUT) {
         assert.doesNotMatch(md, forbidden.pattern, `${entry.name}: ${forbidden.name}`)
       }
@@ -59,7 +65,7 @@ describe('buildRunReport', () => {
     assert.equal(report.single, true)
     assert.equal(report.evals.length, 1)
     assert.equal(report.roster.length, 0)
-    const md = runReportMarkdown(report)
+    const md = renderMd(report)
     assert.match(
       md,
       new RegExp(`^# ${report.header.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'm'),
@@ -134,8 +140,9 @@ describe('buildRunReport', () => {
       assert.equal(block.prior.gitSha, 'abcdef1234567890')
       assert.ok(block.whatChanged.some((line) => /judge model/.test(line)))
     }
-    const md = runReportMarkdown(report)
-    assert.match(md, /\*\*1 worse: .+2 of 2 to 0 of 2\*\*/)
+    const md = renderMd(report)
+    assert.match(md, /\*\*1 worse, 0 fixed\*\*/)
+    assert.match(md, /\| 2 of 2 \| 0 of 2 \|/)
     assert.match(md, /Changes since 2026-01-02, abcdef1(?:, main)?, prior-run-id/)
     assert.match(md, /Prior run by fixture-author/)
     assert.match(md, /What changed/)
@@ -158,7 +165,7 @@ describe('buildRunReport', () => {
     const primary = report.evals[0]!.headline.primary
     assert.equal(primary.kind, 'pass-rate')
     if (primary.kind === 'pass-rate') assert.equal(primary.outcome, 'used')
-    assert.match(runReportMarkdown(report), /\*\*\d+% used\*\*/)
+    assert.match(renderMd(report), /\*\*\d+% used\*\*/)
   })
 
   test('pre-satisfied checks emit integrity and keep full wording', () => {
@@ -219,7 +226,7 @@ describe('buildRunReport', () => {
     assert.ok(judgments)
     assert.equal(judgments!.scores[0]!.threshold, null)
     assert.equal(judgments!.scores[0]!.atOrAbove, null)
-    const md = runReportMarkdown(report)
+    const md = renderMd(report)
     assert.match(md, /diagnostic/)
     assert.doesNotMatch(md, /At or above/)
   })
@@ -234,8 +241,8 @@ describe('buildRunReport', () => {
     if (comparison?.kind === 'comparison') {
       assert.ok(comparison.summary.every((row) => row.verdictScope === 'pass-rate'))
     }
-    const md = runReportMarkdown(report)
-    assert.match(md, /Pass-rate verdict/)
+    const md = renderMd(report)
+    assert.match(md, /\| Arm \| Pass rate \| Passed \| Effect \| Left out \|/)
     assert.doesNotMatch(md, /\| made-worse \|/)
     assert.doesNotMatch(md, /\| pass-rate \|/)
   })
@@ -252,7 +259,7 @@ describe('buildRunReport', () => {
     assert.ok(report.header.cost!.agent)
     assert.ok(report.header.cost!.judge)
     assert.ok(report.header.cost!.total)
-    assert.match(runReportMarkdown(report), /agent \$.+, judge \$.+ \(mixed\)/)
+    assert.match(renderMd(report), /agent \$.+, judge \$.+ \(mixed\)/)
   })
 
   test('colliding transcript paths get distinct attempt hrefs', () => {
@@ -294,7 +301,7 @@ describe('buildRunReport', () => {
       if (row.href.startsWith('#')) assert.equal(row.href, same.href, 'the anchor is the same')
     }
     assert.ok(renumbered > 0, 'the one-eval report numbers its attempts from A1')
-    const md = runReportMarkdown(whole)
+    const md = renderMd(whole)
     const targets = new Set([...md.matchAll(/<a id="([^"]+)"><\/a>/g)].map((m) => m[1]))
     assert.equal(targets.size, whole.attempts.length, 'one anchor per attempt, all distinct')
     for (const a of whole.attempts) assert.ok(targets.has(attemptAnchorId(a.key)), a.key)
@@ -332,7 +339,7 @@ describe('buildRunReport', () => {
       assert.equal(primary.leadRole, 'representative')
       assert.ok(primary.answered.k >= 2)
     }
-    assert.match(runReportMarkdown(report), /Showing 1 of \d+ answers as representative/)
+    assert.match(renderMd(report), /showing 1 of \d+ as representative/)
   })
 
   test("a text headline's quote cites a real attempt, or is left out when it has none", () => {
@@ -342,6 +349,7 @@ describe('buildRunReport', () => {
       e.attempts = e.attempts.slice(0, 1).map((a) => ({
         ...a,
         seq: unnumbered ? null : a.seq,
+        ...(unnumbered ? { outcome: 'skipped' as const } : {}),
         assertions: [],
         judgments: [],
         observations: [],
@@ -364,7 +372,7 @@ describe('buildRunReport', () => {
       assert.equal(uncited.leadRole, null)
     }
     assert.doesNotMatch(JSON.stringify(report), /"A\?"/)
-    assert.doesNotMatch(runReportMarkdown(report), /\]\(#\)/)
+    assert.doesNotMatch(renderMd(report), /\]\(#\)/)
   })
 })
 
@@ -521,9 +529,10 @@ describe('RunReport chart data', () => {
       assert.ok(c.fromPassed && c.toPassed)
       assert.ok(c.fromPassed.n > 0 && c.toPassed.n > 0)
     }
-    const md = runReportMarkdown(report)
-    assert.match(md, /\| From \| To \| Coding harness \| Measure \|/)
-    assert.match(md, /\| with-skill \| plain \| other \| Pass rate \|/)
+    const stats = present(report).evals[0]?.stats.filter((t) => t.includes(' vs ')) ?? []
+    assert.equal(new Set(stats).size, 6)
+    assert.ok(stats.some((t) => t.startsWith('with-skill vs plain on other: ')))
+    for (const t of stats) assert.ok(verboseText(report).includes(t))
   })
 
   test('a baseline-never-passes check is one integrity line naming its harnesses', () => {
@@ -586,7 +595,7 @@ describe('RunReport chart data', () => {
     assert.deepEqual(section.next, [
       { kind: 'too-few-tries', text: 'set runs: 4', at: 'evals/a.eval.ts:12' },
     ])
-    const md = runReportMarkdown(report)
+    const md = renderMd(report)
     assert.match(md, /^- \(concern\) 1 run per side\.$/m)
     assert.match(md, /^#{2,3} Next\n\n- At evals\/a\.eval\.ts:12: set runs: 4\.$/m)
     assert.doesNotMatch(JSON.stringify(report), /\[object Object\]/)
@@ -601,7 +610,7 @@ describe('RunReport chart data', () => {
       for (const row of report.rollup?.rows ?? []) {
         assert.ok(row.result, `${entry.name}: ${row.name} has a result`)
         assert.equal(headlineResultText(row.result), row.primary, `${entry.name}: ${row.name}`)
-        assert.ok(runReportMarkdown(report).includes(`| ${row.primary.replace(/\|/g, '\\|')} |`))
+        assert.ok(renderMd(report).includes(row.name), `${entry.name}: ${row.name} is rendered`)
       }
     }
   })
@@ -870,14 +879,13 @@ describe('RunReport metric best practices', () => {
     assert.equal(taskBlock.breakdown[0]?.rate?.text, '91%')
     assert.equal(taskBlock.breakdown[0]?.taskRate?.text, '50%')
 
-    const md = runReportMarkdown(report)
+    const md = renderMd(report)
     assertCleanMarkdown(md)
     assert.match(md, /\*\*91% passed\*\*/)
-    assert.match(md, /Task-averaged: 50% across 2 tasks\./)
+    assert.match(verboseText(report), /task average 50%/)
     assert.match(md, /## By task/)
-    assert.match(md, /\| easy \| 100% \| 10 of 10 \|/)
-    assert.match(md, /\| hard \| 0% \| 0 of 1 \|/)
-    assert.match(md, /\| Coding harness \| Pass rate \| Task avg \|/)
+    assert.match(md, /\| easy \| 100% \(10 of 10\) \|/)
+    assert.match(md, /\| hard \| 0% \(0 of 1\) \|/)
 
     // Explicit metric: 'task-pass-rate' promotes equal-weight taskRate to lead while keeping pooled visible.
     e.metric = 'task-pass-rate'
@@ -887,11 +895,10 @@ describe('RunReport metric best practices', () => {
     assert.ok(rollupRow?.result)
     assert.equal(rollupRow.primary, '50% passed (task avg)')
     assert.equal(headlineResultText(rollupRow.result), rollupRow.primary)
-    const taskLedMd = runReportMarkdown(taskLed)
+    const taskLedMd = renderMd(taskLed)
     assertCleanMarkdown(taskLedMd)
-    assert.match(taskLedMd, /\*\*50% passed \(task avg\)\*\*/)
-    assert.match(taskLedMd, /pooled 91%/)
-    assert.match(taskLedMd, /\| Coding harness \| Task avg \| Pass rate \|/)
+    assert.match(taskLedMd, /\*\*50% task average\*\*/)
+    assert.match(verboseText(taskLed), /91% passed, 95% CI/)
   })
 
   test('multi-task contrasts preserve pooled delta and expose taskDelta and 0%-passing brokenTasks', () => {
@@ -967,11 +974,9 @@ describe('RunReport metric best practices', () => {
     assert.equal(v1VsControl.taskDelta?.text, '-25 pts')
     assert.deepEqual(v1VsControl.brokenTasks, ['task-b'])
 
-    const md = runReportMarkdown(report)
+    const md = renderMd(report)
     assertCleanMarkdown(md)
-    assert.match(md, /Task-avg delta/)
-    assert.match(md, /0%-pass tasks/)
-    assert.match(md, /task-b/)
+    assert.match(verboseText(report), /task average -25 pts, 0%-pass tasks: task-b/)
   })
 
   test('Pass@k and Pass^k use unbiased estimators at explicit k, omit when any task has n < k with a reason, and omit on non-pass/fail evals', () => {
@@ -1034,11 +1039,11 @@ describe('RunReport metric best practices', () => {
     assert.ok(Math.abs((p2.passHatK?.value ?? 0) - 1 / 12) < 1e-12)
     assert.equal(p2.passHatK?.text, '8%')
     assert.equal(p2.passKOmitted, undefined)
-    const mdAt2 = runReportMarkdown(at2)
+    const mdAt2 = renderMd(at2)
     assertCleanMarkdown(mdAt2)
-    assert.match(mdAt2, /\*\*62% pass@2\*\*/)
-    assert.match(mdAt2, /Pass@2 62%, Pass\^2 8% \(pooled 33%\)/)
-    assert.match(mdAt2, /\| Coding harness \| Pass@2 \| Pass rate \| Task avg \| Pass\^2 \|/)
+    assert.match(mdAt2, /\*\*62% Pass@2\*\*/)
+    assert.match(verboseText(at2), /Pass@2 62%\n.*Pass\^2 8%/)
+    assert.match(verboseText(at2), /33% passed, 95% CI/)
 
     // With explicit metric: { passHatK: 5 }, t1 only has n = 4 < 5 => omitted with clear reason!
     const at5 = buildRunReport(record, {
@@ -1063,10 +1068,13 @@ describe('RunReport metric best practices', () => {
       assert.equal(taskBlock5.tasks?.[1]?.total?.passAtK?.value, 1)
       assert.equal(taskBlock5.tasks?.[1]?.total?.passHatK?.value, 0)
     }
-    const mdAt5 = runReportMarkdown(at5)
+    const mdAt5 = renderMd(at5)
     assertCleanMarkdown(mdAt5)
     assert.match(mdAt5, /\*\*33% passed\*\*/, 'falls back to pooled pass rate when k is unmet')
-    assert.match(mdAt5, /Pass@5 and Pass\^5 omitted: needs 5 trials per task \(fewest has 4\)\./)
+    assert.match(
+      verboseText(at5),
+      /Pass@5 and Pass\^5 omitted: needs 5 trials per task \(fewest has 4\)/,
+    )
 
     // Non-pass/fail evaluation (pure choice without assertions) omits Pass@k / Pass^k even when requested.
     const ungraded = cloneRecord('with-layouts')
@@ -1098,7 +1106,7 @@ describe('RunReport metric best practices', () => {
     assert.doesNotThrow(() => runReportSchema.parse(choiceReport))
     assert.equal(choiceReport.evals[0]!.headline.primary.kind, 'choice')
     assert.equal(choiceReport.evals[0]!.primary, null)
-    assert.doesNotMatch(runReportMarkdown(choiceReport), /Pass@2|Pass\^2/)
+    assert.doesNotMatch(renderMd(choiceReport), /Pass@2|Pass\^2/)
   })
 
   test('effort summarizes passing attempts only on pass/fail evals, returns null at 0 passes, keeps counted on ungraded, and computes costPerSuccess', () => {
@@ -1182,9 +1190,9 @@ describe('RunReport metric best practices', () => {
       assert.equal(idxRow.toolCalls.value, 1)
     }
 
-    const md = runReportMarkdown(report)
+    const md = renderMd(report)
     assertCleanMarkdown(md)
-    assert.match(md, /\| Cost \| Cost per success \|/)
+    assert.match(md, /\| Median cost \| Cost per pass \|/)
     assert.match(md, /\$0\.25 \| \$2\.00 \|/)
 
     // Now let variant pass 4/4 at $0.125 each (total $0.50, costPerSuccess = $0.125 => -94% vs $2.00).
@@ -1267,7 +1275,7 @@ describe('RunReport metric best practices', () => {
       assert.equal(tiedComp.saturated, true)
       assert.match(tiedComp.saturationNote ?? '', /catches regressions/)
     }
-    const tiedMd = runReportMarkdown(tiedReport)
+    const tiedMd = renderMd(tiedReport)
     assertCleanMarkdown(tiedMd)
     assert.match(tiedMd, /Saturated: every arm hit 100% across all tasks/)
 

@@ -1,0 +1,38 @@
+Run 20261016T082407Z_36a6749_cursor-agent_mc00
+3 of 5 counted attempts passed · 7 infra errors · 25s wall time · tokens not reported · cost not reported · 36a6749
+
+INFRA ERROR    writes greet.js
+               100% passed · 1 of 1 attempt · left out: 1 infra error
+               infra error, 1 of 2, all on broken: the fake sandbox fell over
+
+FAIL           fails its check
+               0% passed · 0 of 1 attempt · left out: 1 infra error
+               error, 1 of 2, all on Fake: expected command to succeed, exit code 1
+               infra error, 1 of 2, all on broken: the fake sandbox fell over
+
+FAIL           fails its judge
+               0% passed · 0 of 1 attempt · left out: 1 infra error
+               error, 1 of 2, all on Fake: judge score 0.80 is below 0.95 for "Is greet.js perfect?" (fake)
+               infra error, 1 of 2, all on broken: the fake sandbox fell over
+
+SKIPPED        is skipped for now
+
+TODO           greets in Welsh
+
+INFRA ERROR    house greeting › greets in the house style
+               plain 0% vs with-house-greeting 100%: too few runs · 0 of 1 vs 1 of 1 attempt · left out: 2 infra errors
+               plain                0%    0 of 1  baseline      left out: 1 infra error
+               with-house-greeting  100%  1 of 1  too few runs  left out: 1 infra error
+               infra error, 2 of 4, all on broken: the fake sandbox fell over
+               error, 1 of 4, all on plain, not gated: expected command to succeed, exit code 1
+
+INFRA ERROR    house greeting › writes a greeting
+               plain 100% vs with-house-greeting 100%: too few runs · 1 of 1 vs 1 of 1 attempt · left out: 2 infra errors
+               plain                100%  1 of 1  baseline      left out: 1 infra error
+               with-house-greeting  100%  1 of 1  too few runs  left out: 1 infra error
+               infra error, 2 of 4, all on broken: the fake sandbox fell over
+               Which greeting reads more like our house style?
+                 plain 0 of 2, with-house-greeting 2 of 2, 0 ties
+               Saturated: every arm hit 100% across all tasks. This comparison catches regressions; add harder tasks to separate variants.
+
+Evals: 2 fail · 3 infra errors · 1 skipped · 1 todo

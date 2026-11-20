@@ -208,7 +208,7 @@ pass             stores invoice totals in cents with the billing skill
   another measure differs, the line under the variant names it (`Same pass rate · 5× faster.`),
   and a measure that only leans gets a `too-few-tries` remark with the runs that would confirm it.
   The check table shows which check told the arms apart.
-- `Worth knowing:` under an eval in `reeval run`'s list names what about it needs work, with the line to fix. Remarks never
+- `Next:` and `(concern)` lines under an eval in `reeval run`'s results name what about it needs work, with the line to fix. Remarks never
   change a verdict.
 - Both arms passing is a result, not a broken eval: the agent already does this without the
   skill. Say so, and suggest a harder task or a more specific rule from the skill next.

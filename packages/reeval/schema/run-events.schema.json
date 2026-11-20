@@ -7568,6 +7568,13 @@
           },
           "required": ["version"]
         },
+        "remarks": {
+          "description": "What the run said about the evals themselves (`remarks.json`'s remarks), so every report of the run prints the same ones. They never change a verdict, count or exit code. Unset when the run raised none, and in older records.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Remark"
+          }
+        },
         "retriedAt": {
           "description": "When each `reeval run --retry-errors` of the run started, oldest first; unset for a run never retried. A `--resume` of the run while it's `interrupted` finishes the last one.",
           "type": "array",

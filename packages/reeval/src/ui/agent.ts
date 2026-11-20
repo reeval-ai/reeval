@@ -1,15 +1,10 @@
-// For coding agents running `reeval run`: they read every line back into context, so after the
-// run header (the one every mode prints, without color) nothing prints while attempts run but
-// what needs attention now (a sandbox that failed to prepare, a warning), and the run ends with
-// the same status list as CI, without color or tree glyphs.
-import { suiteResult } from '../view/suite.ts'
 import { colors } from './colors.ts'
 import type { OutputStream, ReevalEvent, Renderer } from './events.ts'
 import { attemptAxes, debugLines, progressLine } from './format.ts'
 import { noticeLines, PrepareLines, planLines, startLine } from './header.ts'
-import { listLines } from './list.ts'
 import type { OutputOptions } from './mode.ts'
-import { pointerLine, statusList } from './status.ts'
+import { resultLines } from './results.ts'
+import { pointerLine } from './status.ts'
 import { Tagger } from './tags.ts'
 
 const MAX_LINES = 12
@@ -76,19 +71,14 @@ export class AgentRenderer implements Renderer {
         return
       case 'run-end': {
         this.#write('')
-        const verbose = (this.#o.verbosity ?? 0) > 0
-        const list = statusList({
-          record: e.record,
-          suite: suiteResult(e.record),
+        const lines = resultLines(e.record, this.#c, {
           remarks: e.remarks ?? null,
-          verbose,
-          ...(e.notRun ? { notRun: e.notRun } : {}),
+          // An agent acts on the detail a terminal keeps behind -v.
+          verbose: true,
+          width: WIDTH,
+          pointer: pointerLine(e.summaryPath),
         })
-        // An agent can't press → for the rest, and the snapshot and excerpt are what it acts on.
-        const pointer = pointerLine(e.summaryPath)
-        for (const line of listLines(list, this.#c, false, pointer, verbose, true)) {
-          this.#write(line)
-        }
+        for (const line of lines) this.#write(line)
         return
       }
       default:

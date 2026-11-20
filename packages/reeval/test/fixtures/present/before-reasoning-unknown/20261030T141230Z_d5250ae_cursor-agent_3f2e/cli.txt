@@ -1,0 +1,7 @@
+edits through a subagent
+3 of 3 counted attempts passed · 38s wall time · tokens 179k · cost not reported · d5250ae (dirty)
+
+PASS           edits through a subagent
+               100% passed · 3 of 3 attempts · Cursor · composer-2.5 1 of 1, Claude Code · claude-sonnet-5[effort=medium] 1 of 1, Codex · gpt-5.6-luna[effort=medium] 1 of 1
+
+Evals: 1 pass

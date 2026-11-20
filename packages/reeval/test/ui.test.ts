@@ -265,52 +265,65 @@ function render(
 
 const lines = (...l: string[]) => `${l.join('\n')}\n`
 
-const LIST = [
-  ['✓ writes greet.js              1 of 1 run passed'],
-  [
-    '✗ greets in French             0 of 1 run passed',
-    'Failed on fake.',
-    '✗ french greeting  failed 1 of 1 run',
-    '  expected command to succeed, exit code 1',
-  ],
-  [
-    '✗ explains why greet.js fails  1 of 2 runs passed',
-    'Passed 1 of 2 on fake.',
-    '✗ names the root cause  failed 1 of 2 runs',
-    "  expected 'Docker is down' to contain 'null'",
-  ],
-  [
-    '✗ reads the fixture repo       0 of 1 run passed',
-    'Failed on fake.',
-    '✗ 1 run failed',
-    '  the fixture repo is missing',
-  ],
-  [
-    '✗ starts its sandbox           0 of 1 run passed',
-    'No run finished.',
-    '✗ 1 run hit an infrastructure error',
-    '  the fake sandbox fell over',
-  ],
-  ['– greets in Welsh              skipped'],
-  ['– greets in Klingon            todo'],
-]
-
-/** The status list `run-end` prints, with the tree's glyphs (pipe and CI) or without (agent mode). */
-const result = (glyphs: boolean) => [
+/** The results `run-end` prints: the run's brief sections, then the pointer. */
+const RESULTS = [
+  'Run 20261020T205330Z_da3d797_cursor-agent_1k52',
+  '2 of 5 counted attempts passed · 1 infra error · 6m 05s wall time · tokens not reported · cost not reported · da3d797',
   '',
-  'evals/results.eval.ts',
-  ...LIST.flatMap(([row = '', ...detail], i) => {
-    const last = i === LIST.length - 1
-    const branch = glyphs ? (last ? '└─ ' : '├─ ') : '  '
-    const indent = glyphs ? (last ? '     ' : '│    ') : '    '
-    return [`${branch}${row}`, ...detail.map((line) => `${indent}${line}`)]
-  }),
+  'PASS           writes greet.js',
+  '               100% passed · 1 of 1 attempt',
   '',
-  'Done in 6m 05s · 3 failed · 1 infra error · 1 passed · 2 skipped',
+  'FAIL           greets in French',
+  '               0% passed · 0 of 1 attempt',
+  '               failed check, 1 of 1: french greeting',
+  '                 expected command to succeed, exit code 1',
+  '',
+  'FAIL           explains why greet.js fails',
+  '               50% passed · 1 of 2 attempts',
+  '               failed check, 1 of 2: names the root cause',
+  "                 expected 'Docker is down' to contain 'null'",
+  '',
+  'FAIL           reads the fixture repo',
+  '               0% passed · 0 of 1 attempt',
+  '               error, 1 of 1: the fixture repo is missing',
+  '',
+  'INFRA ERROR    starts its sandbox',
+  '               left out: 1 infra error',
+  '               infra error, 1 of 1: the fake sandbox fell over',
+  '',
+  'SKIPPED        greets in Welsh',
+  '',
+  'TODO           greets in Klingon',
+  '',
+  'Evals: 3 fail · 1 pass · 1 infra error · 1 skipped · 1 todo',
+  '',
   'Browse it: reeval studio · summary .reeval/runs/run-1/summary.md',
 ]
 
-const RESULT = result(true)
+/** The results with a blank line above them, as a pipe prints them. */
+const result = () => ['', ...RESULTS]
+
+/** An agent's: every eval's -v statistics too, below its block. */
+const agentResult = () => {
+  const stats: Record<string, string> = {
+    'writes greet.js': '100% passed, 95% CI 21% to 100%',
+    'greets in French': '0% passed, 95% CI 0% to 79%',
+    'explains why greet.js fails': '50% passed, 95% CI 9% to 91%',
+    'reads the fixture repo': '0% passed, 95% CI 0% to 79%',
+  }
+  const out: string[] = ['']
+  let open: string | undefined
+  for (const line of RESULTS) {
+    const name = /^[A-Z][A-Z ]{12} {2}(\S.+)$/.exec(line)?.[1]
+    if (line === '' && open && stats[open]) out.push(`               ${stats[open]}`)
+    if (line === '') open = undefined
+    if (name) open = name
+    out.push(line)
+  }
+  return out
+}
+
+const RESULT = result()
 
 /** `interleaved` with a two-line failure message, whose second line is `-v` detail. */
 const withLongMessage = JSON.parse(
@@ -388,12 +401,10 @@ describe('plain renderer', () => {
     }
     const events = interleaved.map((e) => (e.type === 'run-end' ? { ...e, record: served } : e))
     const out = render(events, options()).split('\n')
-    const row = out.findIndex((l) => l.startsWith('├─ ✓ writes greet.js'))
-    assert.deepEqual(out.slice(row, row + 3), [
-      '├─ ✓ writes greet.js              1 of 1 run passed',
-      '│    Passed on fake.',
-      '│    Worth knowing: served by Anthropic 2 · Amazon Bedrock 1; judge served by Google 1',
-    ])
+    assert.ok(
+      out.includes('Fake served by Anthropic 2 · Amazon Bedrock 1; judge served by Google 1'),
+      out.join('\n'),
+    )
   })
 
   test('stream: every prefixed line prints as it happens, interleaved', () => {
@@ -582,7 +593,7 @@ describe('plain renderer', () => {
     assert.ok(out.includes(`${clear}2 evals · 1/2 tries`), out)
     assert.ok(out.includes(`  ◆  Running...\n\n${clear}2 evals · 0/2 tries`), out)
     assert.ok(
-      out.includes(`${clear}2 evals · 2/2 tries${clear}evals/`),
+      out.includes(`${clear}2 evals · 2/2 tries${clear}Run `),
       'no second gap above the list',
     )
     assert.doesNotMatch(out, /running after/)
@@ -975,7 +986,7 @@ describe('agent renderer', () => {
       output: options({ mode: 'agent' }),
     })
     for (const e of interleaved) renderer.onEvent(e)
-    assert.equal(text, lines('  ◆  Running...', ...result(false)))
+    assert.equal(text, lines('  ◆  Running...', ...agentResult()))
     assert.ok(!text.includes('\x1b['))
   })
 
@@ -986,7 +997,7 @@ describe('agent renderer', () => {
       output: options({ mode: 'agent' }),
     })
     for (const e of withLongMessage) renderer.onEvent(e)
-    assert.match(text, /^ {6}the clone found no commits$/m)
+    assert.match(text, /^ +the clone found no commits$/m)
     assert.ok(
       !render(withLongMessage, options({ outputLogs: 'none' })).includes('found no commits'),
       'a pipe keeps it for -v',
@@ -1144,10 +1155,10 @@ describe('interactive renderer', () => {
     renderer.close()
     await renderer.wait()
     const piped = render(events, options({ outputLogs: 'none' }), false, 1)
-    const list = (out: string) => out.slice(out.indexOf('evals/results.eval.ts'))
-    assert.match(text(), /^│ {6}the clone found no commits$/m)
-    assert.ok(text().includes(suggestion), 'a suggestion prints only under -v')
-    assert.match(text(), /^ {2}◆ {2}Finished\.\n\nevals\/results\.eval\.ts/)
+    const list = (out: string) => out.slice(out.indexOf('Run '))
+    assert.match(text(), /^ +the clone found no commits$/m)
+    assert.ok(text().includes(suggestion), text())
+    assert.match(text(), /^ {2}◆ {2}Finished\.\n\nRun /)
     assert.equal(list(text()), list(piped))
   })
 

@@ -9,6 +9,7 @@ import {
   type TaskTrialInput,
   taskMeanRate,
 } from '../../stats.ts'
+import { plural } from '../../text.ts'
 import type { CapturePageFile, PassMetric, PassMetricLead } from '../../types.ts'
 import { totalTokens } from '../../usage.ts'
 import type { AnalysisDoc } from '../analysis.ts'
@@ -18,8 +19,9 @@ import { contrastsOf } from '../contrasts.ts'
 import { runCost } from '../cost.ts'
 import { costPerSuccess, effortSample, filesChanged, formatCount } from '../effort.ts'
 import { caseLabel } from '../family.ts'
-import { labeledJudgments } from '../judgments.ts'
+import { checksByLabel, checkTries, labeledJudgments } from '../judgments.ts'
 import { attemptAnswerRows, isUngatedMiss } from '../model.ts'
+import { observedLine, observedTallies } from '../observations.ts'
 import type { RunRemarks } from '../remarks.ts'
 import { runScope } from '../scope.ts'
 import { factSegment, messageLine } from '../suite.ts'
@@ -46,7 +48,7 @@ import {
   usdFigure,
   wilsonRangeText,
 } from './format.ts'
-import { type AttemptIdMap, attemptIds, selectedEvals } from './ids.ts'
+import { type AttemptIdMap, attemptIds, ranAttempt, selectedEvals } from './ids.ts'
 import { PASS_RATE_OUTCOME_LABEL, passRateOutcomeFromMatchers } from './labels.ts'
 import { attemptHref, attemptRef, captureHref, gfmAnchor, withBase } from './links.ts'
 import { REPORT_POLICY } from './policy.ts'
@@ -170,7 +172,7 @@ const cellOf = (e: EvalEntry, key: string) => e.cells.find((c) => c.key === key)
 function assignAttemptHrefs(ctx: Ctx): void {
   for (const e of ctx.evals) {
     for (const a of e.attempts) {
-      if (a.seq === null) continue
+      if (!ranAttempt(a)) continue
       const id = ctx.ids.get(a.key)
       if (!id) continue
       const href = attemptHref(e, a, ctx.linkBase, ctx.hrefs)
@@ -413,6 +415,7 @@ function buildHeader(ctx: Ctx): RunHeader {
   const cost = runCost(record.cost)
   const agent = record.cost?.agentUsd
   const judge = record.cost?.judgeUsd
+  const unpriced = (agent?.unpriced ?? 0) + (judge?.unpriced ?? 0)
   let basis: 'reported' | 'estimated' | 'mixed' | null = null
   if (agent || judge) {
     const bases = [agent?.basis, judge?.basis].filter(Boolean)
@@ -441,6 +444,7 @@ function buildHeader(ctx: Ctx): RunHeader {
           judge: judge ? usdFigure(judge.usd) : null,
           total: agent && judge ? usdFigure(agent.usd + judge.usd) : null,
           basis,
+          ...(unpriced ? { unpriced } : {}),
         }
       : cost
         ? {
@@ -458,7 +462,34 @@ function buildHeader(ctx: Ctx): RunHeader {
           repo: repoBasename(record.git.remote),
         }
       : null,
+    ...(servedBy(evals).length ? { servedBy: servedBy(evals) } : {}),
+    ...(record.errors?.length ? { errors: record.errors.map(messageLine) } : {}),
   }
+}
+
+/** Which upstream providers a gateway said served each harness's calls and its judge's. */
+function servedBy(evals: EvalEntry[]): Array<{ harness: string; text: string }> {
+  const by = new Map<string, { agent: Map<string, number>; judge: Map<string, number> }>()
+  const add = (m: Map<string, number>, provider: string, calls: number) =>
+    m.set(provider, (m.get(provider) ?? 0) + calls)
+  for (const e of evals) {
+    for (const a of e.attempts) {
+      const harness = cellOf(e, a.cell)?.harness
+      if (!harness) continue
+      const seen = by.get(harness) ?? { agent: new Map(), judge: new Map() }
+      for (const u of a.upstreams ?? []) add(seen.agent, u.provider, u.calls)
+      for (const j of a.judgements) if (j.upstream) add(seen.judge, j.upstream, 1)
+      by.set(harness, seen)
+    }
+  }
+  const list = (m: Map<string, number>) => [...m].map(([p, n]) => `${p} ${n}`).join(' · ')
+  return [...by].flatMap(([harness, { agent, judge }]) => {
+    const parts = [
+      ...(agent.size ? [`served by ${list(agent)}`] : []),
+      ...(judge.size ? [`judge served by ${list(judge)}`] : []),
+    ]
+    return parts.length ? [{ harness, text: parts.join('; ') }] : []
+  })
 }
 
 function uniqueEvalNames(evals: EvalEntry[]): Map<string, string> {
@@ -491,7 +522,7 @@ function designOf(e: EvalEntry): string {
   const prompts = new Set(
     e.attempts.flatMap((a) => (a.turns[0]?.prompt ? [a.turns[0].prompt] : [])),
   ).size
-  const attempts = e.attempts.filter((a) => a.seq !== null).length
+  const attempts = e.attempts.filter(ranAttempt).length
   const parts: string[] = []
   if (prompts > 1) parts.push(`${prompts} prompts`)
   parts.push(`${harnesses} coding harness${harnesses === 1 ? '' : 'es'}`)
@@ -1618,11 +1649,18 @@ function buildVariantComparison(
         : multiTask && passFail
           ? null
           : undefined
+    const keys = new Set(cellsFor(arm).map((c) => c.key))
+    const missedLift =
+      (e.lifts ?? []).find((l) => keys.has(l.variant) && l.outcome === 'fail')?.minLift ??
+      cellsFor(arm).find(
+        (c) => c.lift?.minLift !== undefined && c.lift.interval.lo < c.lift.minLift,
+      )?.lift?.minLift
     return {
       arm: arm.label,
       rate,
       ...passKFields,
       ...(taskLift !== undefined ? { taskLift } : {}),
+      ...(missedLift !== undefined ? { missedMinLift: missedLift } : {}),
       lift: ptsDelta(points),
       interval: ptsInterval(low, high),
       verdict,
@@ -2206,10 +2244,12 @@ function buildFailures(
     at: string | null,
     attempt: AttemptRecord,
     message?: string,
+    text?: string,
+    cause?: FailureClusters['clusters'][number]['cause'],
   ) => {
     const ref = attemptRef(ids, e, attempt, linkBase, hrefs, hrefByKey)
     if (!ref) return
-    const key = `${kind}\0${label}\0${at ?? ''}`
+    const key = `${kind}\0${cause ?? ''}\0${label}\0${at ?? ''}`
     const existing = clusters.get(key)
     if (existing) {
       existing.attempts.push(ref)
@@ -2218,16 +2258,19 @@ function buildFailures(
     }
     clusters.set(key, {
       kind,
+      ...(cause ? { cause } : {}),
       label,
       at,
       ...(message ? { message } : {}),
+      ...(text && detailOf(text) ? { detail: detailOf(text) as string } : {}),
       count: countOf(1, counted.length),
       attempts: [ref],
     })
   }
   for (const a of e.attempts) {
     let failedAssertion = false
-    for (const x of a.assertions ?? []) {
+    // An infra error's checks failed for the infrastructure, which is its own cluster.
+    for (const x of a.outcome === 'infra_error' ? [] : (a.assertions ?? [])) {
       if (x.status !== 'fail') continue
       failedAssertion = true
       const own = x.message ?? ''
@@ -2235,7 +2278,7 @@ function buildFailures(
         own && a.error?.kind === 'assertion' && a.error.message.startsWith(own)
           ? a.error.message
           : own
-      add('assertion', x.label, x.at ?? null, a, messageLine(message))
+      add('assertion', x.label, x.at ?? null, a, messageLine(message), message)
     }
     let turnError = false
     for (const t of a.turns) {
@@ -2247,13 +2290,17 @@ function buildFailures(
     // The failed `expect` that ended the body, and the turn error an attempt was reclassified
     // for, are already their own clusters.
     if (a.outcome === 'infra_error' && a.error) {
-      if (!(a.error.turn && turnError)) add('infra-error', messageLine(a.error.message), null, a)
+      if (!(a.error.turn && turnError)) {
+        add('infra-error', messageLine(a.error.message), null, a, undefined, a.error.message)
+      }
     } else if (
       a.error &&
       a.outcome === 'fail' &&
-      !(a.error.kind === 'assertion' && failedAssertion)
+      !((a.error.kind === 'assertion' || a.error.kind === 'judge') && failedAssertion)
     ) {
-      add('error', messageLine(a.error.message), null, a)
+      const cause =
+        a.error.kind === 'timeout' ? 'timeout' : a.error.kind === 'aborted' ? 'canceled' : undefined
+      add('error', messageLine(a.error.message), null, a, undefined, a.error.message, cause)
     }
   }
   // A remark that names an edit prints it under Next, so its line here is the finding alone.
@@ -2273,6 +2320,20 @@ function buildFailures(
 
 // Remark.evalId is the suite fact path (`factSegment(id)`); evalKey is EvalEntry.key when set.
 // Summary keeps concerns only (CLI `Remarks:` without `-v`); suggestions stay out of Worth knowing.
+/** A failure's lines past its first, without blank lines or empty `--- stderr ---` blocks. */
+function detailOf(text: string): string | null {
+  const lines = text
+    .split('\n')
+    .slice(1)
+    .map((l) => l.trimEnd())
+    .filter((l) => l.trim() !== '')
+  const header = (l: string | undefined) => l !== undefined && /^--- [\w ]+ ---$/.test(l.trim())
+  const kept = lines.filter(
+    (l, i) => !(header(l) && (i === lines.length - 1 || header(lines[i + 1]))),
+  )
+  return kept.join('\n') || null
+}
+
 function concernsOf(e: EvalEntry, remarks: RunRemarks | null) {
   const evalPath = factSegment(e.id)
   return (
@@ -2366,6 +2427,15 @@ function buildEvalSection(ctx: Ctx, e: EvalEntry, displayName: string): EvalSect
     id: e.key,
     anchor: gfmAnchor(displayName),
     name: displayName,
+    group: e.group,
+    state: e.todo
+      ? 'todo'
+      : e.skip || e.outcome === 'skipped'
+        ? 'skipped'
+        : e.attempts.some((a) => a.outcome !== 'skipped')
+          ? 'ran'
+          : 'not-run',
+    outcome: e.outcome,
     file: e.file,
     shapes,
     design,
@@ -2379,7 +2449,67 @@ function buildEvalSection(ctx: Ctx, e: EvalEntry, displayName: string): EvalSect
     captures: buildCaptures(e, ctx.ids, ctx.linkBase, ctx.hrefs, ctx.hrefByKey, ctx.pages),
     failures: buildFailures(e, ctx.ids, ctx.linkBase, ctx.hrefs, ctx.hrefByKey, ctx.remarks),
     ...nextOf(e, ctx.remarks),
+    ...suggestionsOf(e, ctx.remarks),
+    ...notesOf(e),
   }
+}
+
+function notesOf(e: EvalEntry): { notes?: string[]; observed?: string[] } {
+  const counted = e.attempts.filter((a) => a.outcome === 'pass' || a.outcome === 'fail')
+  const tries = new Map<string, string[]>()
+  for (const a of counted) {
+    for (const [label, check] of checksByLabel(a)) {
+      const note = checkTries(check)
+      if (note) tries.set(label, [...(tries.get(label) ?? []), note])
+    }
+  }
+  const retried = [...tries].map(([label, notes]) => {
+    const flat = label.replace(/\s*\n\s*/g, ' ')
+    return counted.length === 1
+      ? `"${flat}" ${notes[0]}.`
+      : `"${flat}" retried in ${notes.length} of ${counted.length} attempts.`
+  })
+  const [first, ...rest] = counted.flatMap((a) =>
+    (a.files.artifacts ?? []).flatMap(({ name, capture }) =>
+      capture?.pageErrors && capture.page
+        ? [{ name, errors: capture.pageErrors, path: capture.page.path }]
+        : [],
+    ),
+  )
+  const pageErrors = first
+    ? [
+        `${first.errors} page error${first.errors === 1 ? '' : 's'} in capture "${first.name}", listed in ${first.path}${
+          rest.length ? ` (+${rest.length} more capture${rest.length === 1 ? '' : 's'})` : ''
+        }`,
+      ]
+    : []
+  const notes = [...retried, ...pageErrors]
+  const tallies = observedTallies(counted)
+  const perCell = new Set(tallies.map((t) => t.cell)).size > 1
+  const byArm = new Set(e.cells.map((c) => c.environment)).size > 1
+  const who = (key: string) => {
+    const cell = e.cells.find((c) => c.key === key)
+    return cell ? (byArm ? cell.environment : cell.harness) : key
+  }
+  const observed = tallies.map(
+    (t) => `${t.name}${perCell ? ` on ${who(t.cell)}` : ''}: ${observedLine(t)}`,
+  )
+  return {
+    ...(notes.length ? { notes } : {}),
+    ...(observed.length ? { observed } : {}),
+  }
+}
+
+function suggestionsOf(e: EvalEntry, remarks: RunRemarks | null): { suggestions?: string[] } {
+  const evalPath = factSegment(e.id)
+  const suggestions = (remarks?.remarks ?? [])
+    .filter(
+      (r) =>
+        r.severity === 'suggestion' &&
+        (r.evalKey === e.key || r.evalId === e.id || r.evalId === e.key || r.evalId === evalPath),
+    )
+    .map((r) => remarkLine(r))
+  return suggestions.length ? { suggestions } : {}
 }
 
 function buildIntegrity(ctx: Ctx): IntegrityIssue[] {
@@ -2560,7 +2690,7 @@ function buildRoster(evals: EvalEntry[], record: RunRecord): RosterRow[] {
   if (harnesses.length < 2) return []
   return harnesses.map((h) => {
     const attempts = evals.flatMap((e) =>
-      e.attempts.filter((a) => cellOf(e, a.cell)?.harness === h.id && a.seq !== null),
+      e.attempts.filter((a) => cellOf(e, a.cell)?.harness === h.id && ranAttempt(a)),
     )
     const gateways = [
       ...new Set(
@@ -2668,7 +2798,7 @@ function buildAttemptIndex(ctx: Ctx): AttemptIndexRow[] {
   const rows: AttemptIndexRow[] = []
   for (const e of evals) {
     for (const a of e.attempts) {
-      if (a.seq === null) continue
+      if (!ranAttempt(a)) continue
       const id = ids.get(a.key)
       if (!id) continue
       const cell = cellOf(e, a.cell)
@@ -2752,8 +2882,8 @@ function buildAttemptIndex(ctx: Ctx): AttemptIndexRow[] {
                 removed: diffStats.removed,
                 text:
                   diffStats.added === null || diffStats.removed === null
-                    ? `${diffStats.files} files (lines not recorded)`
-                    : `${diffStats.files} files, ${diffLinesText(diffStats.added, diffStats.removed)}`,
+                    ? `${plural(diffStats.files, 'file')} (lines not recorded)`
+                    : `${plural(diffStats.files, 'file')}, ${diffLinesText(diffStats.added, diffStats.removed)}`,
               },
         links: {
           transcript: a.files.transcript ? withBase(linkBase, a.files.transcript.path) : null,
@@ -2774,6 +2904,17 @@ function buildAttemptIndex(ctx: Ctx): AttemptIndexRow[] {
   return rows.sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)))
 }
 
+function recordedRemarks(record: RunRecord): RunRemarks | null {
+  if (!record.remarks?.length) return null
+  return {
+    kind: 'reeval-remarks',
+    schemaVersion: 1,
+    runId: record.runId,
+    createdAt: record.endedAt,
+    remarks: record.remarks,
+  }
+}
+
 /** The only reader of a `RunRecord` for a report. Pure and deterministic. */
 export function buildRunReport(record: RunRecord, options: RunReportOptions = {}): RunReport {
   const evals = selectedEvals(record, options.evals)
@@ -2787,7 +2928,7 @@ export function buildRunReport(record: RunRecord, options: RunReportOptions = {}
     evals,
     ids,
     linkBase: options.links?.base,
-    remarks: options.remarks ?? null,
+    remarks: options.remarks ?? recordedRemarks(record),
     analysis: options.analysis ?? null,
     pages: options.pages,
     facts: options.facts,

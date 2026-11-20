@@ -1,0 +1,8 @@
+builds the app
+0 of 0 counted attempts passed · 1 infra error · 3s wall time · tokens not reported · cost not reported
+
+INFRA ERROR    builds the app
+               left out: 1 infra error
+               infra error, 1 of 1: out of memory: 1 process killed at the 128m limit; raise docker({ memory })
+
+Evals: 1 infra error

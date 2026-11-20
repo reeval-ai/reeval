@@ -63,6 +63,7 @@ describe('reeval/view/report and reeval/renderer/* public exports', () => {
     assert.ok(pkg.exports['./view'], './view')
     for (const [subpath, file] of [
       ['./view/report', 'view/report/index'],
+      ['./view/present', 'view/present/index'],
       ['./renderer/markdown', 'renderer/markdown'],
       ['./renderer/ascii', 'renderer/ascii'],
     ] as const) {
@@ -100,11 +101,15 @@ describe('reeval/view/report and reeval/renderer/* public exports', () => {
     }
   })
 
-  test('reeval/renderer/ascii exports runReportText, which is not implemented yet', async () => {
+  test('reeval/view/present and both renderers draw one presentation', async () => {
+    const present = await loadExport('./view/present')
     const ascii = await loadExport('./renderer/ascii')
+    const markdown = await loadExport('./renderer/markdown')
+    for (const name of ['present', 'runPresentationSchema', 'sectionsOf', 'sectionTexts']) {
+      assert.notEqual(present[name], undefined, name)
+    }
     assert.equal(typeof ascii.runReportText, 'function')
-    const runReportText = ascii.runReportText as (r: unknown, o?: { width?: number }) => string
-    assert.throws(() => runReportText({}, { width: 80 }), /not implemented yet/)
+    assert.equal(typeof markdown.runReportMarkdown, 'function')
   })
 
   test('reeval/view re-exports the zod-free surface, not the schema', async () => {

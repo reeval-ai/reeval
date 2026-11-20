@@ -1,0 +1,50 @@
+Run 20261101T084238Z_4b17f3c_cursor-agent_0vbf
+7 of 8 counted attempts passed · 1 infra error · 30s wall time · tokens not reported · cost not reported · 4b17f3c
+
+FAIL           greets %s
+               plain 0% vs with-house-greeting 100%: too few runs, not by minLift 20 · 0 of 2 vs 2 of 2 attempts
+               plain                0%    0 of 2  baseline
+               with-house-greeting  100%  2 of 2  too few runs, not by minLift 20
+               Ada    0%  0 of 1
+               Grace  0%  0 of 1
+               failed check, 2 of 4, all on plain, not gated: toSucceed grep -q Ahoy greet.js
+                 expected command to succeed, exit code 1
+                 at evals/cases.eval.ts:15
+
+PASS           writes greet.js
+               100% passed · 1 of 1 attempt
+
+FAIL           fails its check and its judge
+               0% passed · 0 of 1 attempt
+               failed check, 1 of 1: toSucceed grep -q Bonjour greet.js
+                 expected command to succeed, exit code 1
+                 at evals/greet.eval.ts:13
+               failed check, 1 of 1: toPass Is greet.js perfect?
+                 judge score 0.80 is below 0.95 for "Is greet.js perfect?" (fake)
+                 at evals/greet.eval.ts:14
+
+INFRA ERROR    never starts
+               left out: 1 infra error
+               infra error, 1 of 1: the fake sandbox fell over
+
+SKIPPED        is skipped for now
+
+TODO           greets in Welsh
+
+PASS           house greeting › writes a greeting
+               plain 100% vs with-house-greeting 100%: same · 4 of 4 vs 4 of 4 attempts
+               plain                100%  4 of 4  baseline
+               with-house-greeting  100%  4 of 4  same
+               Does the greeting use the house style?
+                 no 4 of 8, yes 4 of 8
+               Which greeting reads more like our house style?
+                 plain 0 of 8, with-house-greeting 8 of 8, 0 ties
+               How did the agent pick its greeting?
+                 8 of 8 answered
+               Saturated: every arm hit 100% across all tasks. This comparison catches regressions; add harder tasks to separate variants.
+               (observed) greeting on plain: hello 4
+               (observed) greeting on with-house-greeting: ahoy 4
+               (observed) lines on plain: 2 · 4 attempts
+               (observed) lines on with-house-greeting: 2 · 4 attempts
+
+Evals: 2 fail · 2 pass · 1 infra error · 1 skipped · 1 todo

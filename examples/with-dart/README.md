@@ -47,7 +47,8 @@ later one starts from the saved snapshot:
   ◆  Running...
 
 with-dart.eval.ts
-  ✓ writes and tests fizzbuzz in Dart  1 of 1 run passed
+PASS           writes and tests fizzbuzz in Dart
+               100% passed · 1 of 1 attempt
 ```
 
 `pnpm reeval image list --profile boat` shows the snapshots, and

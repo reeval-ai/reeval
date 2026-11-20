@@ -1,0 +1,2215 @@
+{
+  "presentationVersion": 1,
+  "header": {
+    "title": "Run 20260929T034441Z_nogit_runner_dvee",
+    "runId": "20260929T034441Z_nogit_runner_dvee",
+    "status": "complete",
+    "stopped": null,
+    "startedAt": "2026-09-29T03:44:41.986Z",
+    "date": "2026-09-29",
+    "author": "runner",
+    "reeval": "0.0.1",
+    "profile": null,
+    "runs": "1 run per cell",
+    "git": null,
+    "wall": {
+      "value": 42526,
+      "text": "43s"
+    },
+    "tokens": {
+      "value": 173907,
+      "text": "174k"
+    },
+    "cost": {
+      "value": null,
+      "text": "not reported"
+    },
+    "counted": {
+      "k": 6,
+      "n": 12,
+      "text": "6 of 12"
+    },
+    "infraError": 0,
+    "canceled": 0,
+    "attempts": "6 of 12 counted attempts passed",
+    "servedBy": []
+  },
+  "tally": {
+    "pass": 6,
+    "fail": 6,
+    "infraError": 0,
+    "canceled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "notRun": 0,
+    "ungated": 0,
+    "text": "6 fail · 6 pass"
+  },
+  "caveats": [
+    {
+      "severity": "warn",
+      "text": "edit and run canary: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/edit-and-run.eval.ts › edit and run canary",
+      "cites": [
+        {
+          "id": "A2",
+          "href": "#attempt-evals-edit-and-run-eval-ts-edit-and-run-canary-codex-gpt-5-4-4305f4a0"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "egress canary: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/egress.eval.ts › egress canary",
+      "cites": [
+        {
+          "id": "A4",
+          "href": "#attempt-evals-egress-eval-ts-egress-canary-codex-gpt-5-4-mini-closed-b03946ee"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "key canary: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/key.eval.ts › key canary",
+      "cites": [
+        {
+          "id": "A6",
+          "href": "#attempt-evals-key-eval-ts-key-canary-codex-gpt-5-4-mini-planted-dock-f18034fe"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "mcp canary: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/mcp.eval.ts › mcp canary",
+      "cites": [
+        {
+          "id": "A8",
+          "href": "#attempt-evals-mcp-eval-ts-mcp-canary-codex-gpt-5-4-mini-stamped-dock-4db139a2"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "rules canary: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/rules.eval.ts › rules canary",
+      "cites": [
+        {
+          "id": "A10",
+          "href": "#attempt-evals-rules-eval-ts-rules-canary-codex-gpt-5-4-mini-ruled-do-f6f9f8ef"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "skill canary: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/skill.eval.ts › skill canary",
+      "cites": [
+        {
+          "id": "A12",
+          "href": "#attempt-evals-skill-eval-ts-skill-canary-codex-gpt-5-4-mini-skilled-53710083"
+        }
+      ]
+    }
+  ],
+  "harnesses": [
+    {
+      "id": "codex:gpt-5.4-mini",
+      "name": "Codex",
+      "model": "gpt-5.4-mini",
+      "label": "Codex · gpt-5.4-mini",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 12,
+        "text": "12 attempts"
+      }
+    }
+  ],
+  "evals": [
+    {
+      "id": "evals/edit-and-run.eval.ts › edit and run",
+      "anchor": "edit-and-run",
+      "name": "edit and run",
+      "file": "evals/edit-and-run.eval.ts",
+      "shapes": ["Task"],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "edit and run",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "notes",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": 43446,
+            "text": "43k"
+          },
+          "agentTime": {
+            "value": 8290,
+            "text": "8.3s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A1",
+          "key": "evals/edit-and-run.eval.ts › edit and run # codex:gpt-5.4-mini/notes/docker#1",
+          "href": "./evals-edit-and-run-eval-ts-edit-and-run-db761a/codex-gpt-5-4-mini-notes-docker-75bf81/1/transcript.jsonl",
+          "harness": "Codex · gpt-5.4-mini",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": 43446,
+            "text": "43k"
+          },
+          "agentTime": {
+            "value": 8290,
+            "text": "8s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": 43446,
+            "text": "43k"
+          },
+          "toolCalls": {
+            "value": 2,
+            "text": "2"
+          },
+          "agentTime": {
+            "value": 8290,
+            "text": "8.3s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": ["100% passed, 95% CI 21% to 100%"]
+    },
+    {
+      "id": "evals/edit-and-run.eval.ts › edit and run canary",
+      "anchor": "edit-and-run-canary",
+      "name": "edit and run canary",
+      "file": "evals/edit-and-run.eval.ts",
+      "shapes": ["Task"],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "edit and run canary",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0,
+            "text": "0%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          }
+        },
+        "foot": "0 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "notes",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A2",
+          "key": "evals/edit-and-run.eval.ts › edit and run canary # codex:gpt-5.4-mini/notes/docker#1",
+          "href": "#attempt-evals-edit-and-run-eval-ts-edit-and-run-canary-codex-gpt-5-4-4305f4a0",
+          "harness": "Codex · gpt-5.4-mini",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "expected 'status: draft' to be 'status: final' // Object.is equality",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "error",
+          "kindText": "error",
+          "label": "expected 'status: draft' to be 'status: final' // Object.is equality",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 1,
+            "text": "1 of 1"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A2",
+              "href": "#attempt-evals-edit-and-run-eval-ts-edit-and-run-canary-codex-gpt-5-4-4305f4a0"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": ["0% passed, 95% CI 0% to 79%"]
+    },
+    {
+      "id": "evals/egress.eval.ts › egress",
+      "anchor": "egress",
+      "name": "egress",
+      "file": "evals/egress.eval.ts",
+      "shapes": ["Task"],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "egress",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "closed",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": 21506,
+            "text": "22k"
+          },
+          "agentTime": {
+            "value": 10403,
+            "text": "10s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A3",
+          "key": "evals/egress.eval.ts › egress # codex:gpt-5.4-mini/closed/docker#1",
+          "href": "./evals-egress-eval-ts-egress-ae6df0/codex-gpt-5-4-mini-closed-docker-60dd41/1/transcript.jsonl",
+          "harness": "Codex · gpt-5.4-mini",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": 21506,
+            "text": "22k"
+          },
+          "agentTime": {
+            "value": 10403,
+            "text": "10s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": 21506,
+            "text": "22k"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 10403,
+            "text": "10s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": ["100% passed, 95% CI 21% to 100%"]
+    },
+    {
+      "id": "evals/egress.eval.ts › egress canary",
+      "anchor": "egress-canary",
+      "name": "egress canary",
+      "file": "evals/egress.eval.ts",
+      "shapes": ["Task"],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "egress canary",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0,
+            "text": "0%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          }
+        },
+        "foot": "0 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "closed",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A4",
+          "key": "evals/egress.eval.ts › egress canary # codex:gpt-5.4-mini/closed/docker#1",
+          "href": "#attempt-evals-egress-eval-ts-egress-canary-codex-gpt-5-4-mini-closed-b03946ee",
+          "harness": "Codex · gpt-5.4-mini",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "expected '403 000' to match /^200 /",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "error",
+          "kindText": "error",
+          "label": "expected '403 000' to match /^200 /",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 1,
+            "text": "1 of 1"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A4",
+              "href": "#attempt-evals-egress-eval-ts-egress-canary-codex-gpt-5-4-mini-closed-b03946ee"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": ["0% passed, 95% CI 0% to 79%"]
+    },
+    {
+      "id": "evals/key.eval.ts › key",
+      "anchor": "key",
+      "name": "key",
+      "file": "evals/key.eval.ts",
+      "shapes": ["Task"],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "key",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "scanned",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": 10497,
+            "text": "10k"
+          },
+          "agentTime": {
+            "value": 4367,
+            "text": "4.4s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A5",
+          "key": "evals/key.eval.ts › key # codex:gpt-5.4-mini/scanned/docker#1",
+          "href": "./evals-key-eval-ts-key-187a81/codex-gpt-5-4-mini-scanned-docker-19a58e/1/transcript.jsonl",
+          "harness": "Codex · gpt-5.4-mini",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": 10497,
+            "text": "10k"
+          },
+          "agentTime": {
+            "value": 4367,
+            "text": "4s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": 10497,
+            "text": "10k"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 4367,
+            "text": "4.4s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": ["100% passed, 95% CI 21% to 100%"]
+    },
+    {
+      "id": "evals/key.eval.ts › key canary",
+      "anchor": "key-canary",
+      "name": "key canary",
+      "file": "evals/key.eval.ts",
+      "shapes": ["Task"],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "key canary",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0,
+            "text": "0%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          }
+        },
+        "foot": "0 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "planted",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A6",
+          "key": "evals/key.eval.ts › key canary # codex:gpt-5.4-mini/planted/docker#1",
+          "href": "#attempt-evals-key-eval-ts-key-canary-codex-gpt-5-4-mini-planted-dock-f18034fe",
+          "harness": "Codex · gpt-5.4-mini",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "expected [ '/proc/1/environ (raw)', …(3) ] to deeply equal []",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "error",
+          "kindText": "error",
+          "label": "expected [ '/proc/1/environ (raw)', …(3) ] to deeply equal []",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 1,
+            "text": "1 of 1"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A6",
+              "href": "#attempt-evals-key-eval-ts-key-canary-codex-gpt-5-4-mini-planted-dock-f18034fe"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": ["0% passed, 95% CI 0% to 79%"]
+    },
+    {
+      "id": "evals/mcp.eval.ts › mcp",
+      "anchor": "mcp",
+      "name": "mcp",
+      "file": "evals/mcp.eval.ts",
+      "shapes": ["Task"],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "mcp",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "stamped",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": 33096,
+            "text": "33k"
+          },
+          "agentTime": {
+            "value": 5197,
+            "text": "5.2s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A7",
+          "key": "evals/mcp.eval.ts › mcp # codex:gpt-5.4-mini/stamped/docker#1",
+          "href": "./evals-mcp-eval-ts-mcp-a42bcd/codex-gpt-5-4-mini-stamped-docker-da5e7c/1/transcript.jsonl",
+          "harness": "Codex · gpt-5.4-mini",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": 33096,
+            "text": "33k"
+          },
+          "agentTime": {
+            "value": 5197,
+            "text": "5s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": 33096,
+            "text": "33k"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 5197,
+            "text": "5.2s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": ["100% passed, 95% CI 21% to 100%"]
+    },
+    {
+      "id": "evals/mcp.eval.ts › mcp canary",
+      "anchor": "mcp-canary",
+      "name": "mcp canary",
+      "file": "evals/mcp.eval.ts",
+      "shapes": ["Task"],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "mcp canary",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0,
+            "text": "0%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          }
+        },
+        "foot": "0 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "stamped",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A8",
+          "key": "evals/mcp.eval.ts › mcp canary # codex:gpt-5.4-mini/stamped/docker#1",
+          "href": "#attempt-evals-mcp-eval-ts-mcp-canary-codex-gpt-5-4-mini-stamped-dock-4db139a2",
+          "harness": "Codex · gpt-5.4-mini",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "expected '' to contain 'tools/call'",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "error",
+          "kindText": "error",
+          "label": "expected '' to contain 'tools/call'",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 1,
+            "text": "1 of 1"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A8",
+              "href": "#attempt-evals-mcp-eval-ts-mcp-canary-codex-gpt-5-4-mini-stamped-dock-4db139a2"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": ["0% passed, 95% CI 0% to 79%"]
+    },
+    {
+      "id": "evals/rules.eval.ts › rules",
+      "anchor": "rules",
+      "name": "rules",
+      "file": "evals/rules.eval.ts",
+      "shapes": ["Task"],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "rules",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "ruled",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": 21452,
+            "text": "21k"
+          },
+          "agentTime": {
+            "value": 8978,
+            "text": "9.0s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A9",
+          "key": "evals/rules.eval.ts › rules # codex:gpt-5.4-mini/ruled/docker#1",
+          "href": "./evals-rules-eval-ts-rules-f3fd8d/codex-gpt-5-4-mini-ruled-docker-6000df/1/transcript.jsonl",
+          "harness": "Codex · gpt-5.4-mini",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": 21452,
+            "text": "21k"
+          },
+          "agentTime": {
+            "value": 8978,
+            "text": "9s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": 21452,
+            "text": "21k"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 8978,
+            "text": "9.0s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": ["100% passed, 95% CI 21% to 100%"]
+    },
+    {
+      "id": "evals/rules.eval.ts › rules canary",
+      "anchor": "rules-canary",
+      "name": "rules canary",
+      "file": "evals/rules.eval.ts",
+      "shapes": ["Task"],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "rules canary",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0,
+            "text": "0%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          }
+        },
+        "foot": "0 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "ruled",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A10",
+          "key": "evals/rules.eval.ts › rules canary # codex:gpt-5.4-mini/ruled/docker#1",
+          "href": "#attempt-evals-rules-eval-ts-rules-canary-codex-gpt-5-4-mini-ruled-do-f6f9f8ef",
+          "harness": "Codex · gpt-5.4-mini",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "expected null to be 'TANGERINE-41' // Object.is equality",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "error",
+          "kindText": "error",
+          "label": "expected null to be 'TANGERINE-41' // Object.is equality",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 1,
+            "text": "1 of 1"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A10",
+              "href": "#attempt-evals-rules-eval-ts-rules-canary-codex-gpt-5-4-mini-ruled-do-f6f9f8ef"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": ["0% passed, 95% CI 0% to 79%"]
+    },
+    {
+      "id": "evals/skill.eval.ts › skill",
+      "anchor": "skill",
+      "name": "skill",
+      "file": "evals/skill.eval.ts",
+      "shapes": ["Task"],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "skill",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "skilled",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": 43910,
+            "text": "44k"
+          },
+          "agentTime": {
+            "value": 5962,
+            "text": "6.0s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A11",
+          "key": "evals/skill.eval.ts › skill # codex:gpt-5.4-mini/skilled/docker#1",
+          "href": "./evals-skill-eval-ts-skill-468cc8/codex-gpt-5-4-mini-skilled-docker-52ee27/1/transcript.jsonl",
+          "harness": "Codex · gpt-5.4-mini",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": 43910,
+            "text": "44k"
+          },
+          "agentTime": {
+            "value": 5962,
+            "text": "6s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": 43910,
+            "text": "44k"
+          },
+          "toolCalls": {
+            "value": 2,
+            "text": "2"
+          },
+          "agentTime": {
+            "value": 5962,
+            "text": "6.0s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": ["100% passed, 95% CI 21% to 100%"]
+    },
+    {
+      "id": "evals/skill.eval.ts › skill canary",
+      "anchor": "skill-canary",
+      "name": "skill canary",
+      "file": "evals/skill.eval.ts",
+      "shapes": ["Task"],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "skill canary",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0,
+            "text": "0%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          }
+        },
+        "foot": "0 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "skilled",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A12",
+          "key": "evals/skill.eval.ts › skill canary # codex:gpt-5.4-mini/skilled/docker#1",
+          "href": "#attempt-evals-skill-eval-ts-skill-canary-codex-gpt-5-4-mini-skilled-53710083",
+          "harness": "Codex · gpt-5.4-mini",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "expected null to be 'PROBE-7F3K-QUILL' // Object.is equality",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "error",
+          "kindText": "error",
+          "label": "expected null to be 'PROBE-7F3K-QUILL' // Object.is equality",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 1,
+            "text": "1 of 1"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A12",
+              "href": "#attempt-evals-skill-eval-ts-skill-canary-codex-gpt-5-4-mini-skilled-53710083"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": ["0% passed, 95% CI 0% to 79%"]
+    }
+  ],
+  "actions": [],
+  "provenance": {
+    "rows": [
+      {
+        "field": "Executed at",
+        "value": "not a git repository"
+      },
+      {
+        "field": "Lockfiles",
+        "value": "none found"
+      },
+      {
+        "field": "Images",
+        "value": "reeval-sandbox:codex-0.1.0 · id 1b03c464ad8c · no registry digest (built locally) · CLI codex-cli 0.157.1"
+      },
+      {
+        "field": "Harnesses",
+        "value": "codex:gpt-5.4-mini (model gpt-5.4-mini, served gpt-5.4-mini-2026-03-17[effort=medium])"
+      },
+      {
+        "field": "Environments",
+        "value": "closed 62b9fdc93469; notes a9fe919c0f6d; planted 76aaffdb150e; ruled 3b6bc71a36c7; scanned 5c768772c7e8; skilled 31d96fe99677 · skills contract-probe; stamped a7c2720c31fc · mcp stamp"
+      },
+      {
+        "field": "Judge",
+        "value": "none by default · threshold 0.8 · version 0e2a4839495b"
+      },
+      {
+        "field": "Packages",
+        "value": "@vitest/expect 5.0.2 · jiti 2.7.0 · @reeval/harness-antigravity 0.1.0 · @reeval/harness-opencode 0.2.0 · @reeval/harness-goose 0.1.0 · @reeval/harness-pi 0.1.0 · @reeval/harness-cursor-sdk 0.1.0 · @ai-sdk/harness-claude-code 1.0.128-patch.5d1c985c · @reeval/harness-codex 0.1.0 · ai 7.0.114 · @ai-sdk/harness 1.0.124 · @ai-sdk/google 4.0.79 · @ai-sdk/typesafe-ai 3.0.6"
+      },
+      {
+        "field": "reeval",
+        "value": "0.0.1 · node 24.21.0 · linux/x64"
+      },
+      {
+        "field": "Runner",
+        "value": "local · runner"
+      },
+      {
+        "field": "Artifacts",
+        "value": "all"
+      },
+      {
+        "field": "Context",
+        "value": "66 files"
+      }
+    ],
+    "warnings": [
+      "Image reeval-sandbox:codex-0.1.0 isn't pushed, so an exact rerun needs this machine's image (id 1b03c464ad8c).",
+      "Not a git repository, so the code under test isn't pinned."
+    ]
+  },
+  "attemptIndex": [
+    {
+      "id": "A1",
+      "anchor": "attempt-evals-edit-and-run-eval-ts-edit-and-run-codex-gpt-5-4-mini-n-301a2e89",
+      "eval": "edit and run",
+      "harness": "Codex · gpt-5.4-mini",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": 43446,
+        "text": "43k"
+      },
+      "agentTime": {
+        "value": 8290,
+        "text": "8s"
+      },
+      "toolCalls": {
+        "value": 2,
+        "text": "2"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-edit-and-run-eval-ts-edit-and-run-db761a/codex-gpt-5-4-mini-notes-docker-75bf81/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-edit-and-run-eval-ts-edit-and-run-db761a/codex-gpt-5-4-mini-notes-docker-75bf81/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A2",
+      "anchor": "attempt-evals-edit-and-run-eval-ts-edit-and-run-canary-codex-gpt-5-4-4305f4a0",
+      "eval": "edit and run canary",
+      "harness": "Codex · gpt-5.4-mini",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    },
+    {
+      "id": "A3",
+      "anchor": "attempt-evals-egress-eval-ts-egress-codex-gpt-5-4-mini-closed-docker-6bd4fd45",
+      "eval": "egress",
+      "harness": "Codex · gpt-5.4-mini",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": 21506,
+        "text": "22k"
+      },
+      "agentTime": {
+        "value": 10403,
+        "text": "10s"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-egress-eval-ts-egress-ae6df0/codex-gpt-5-4-mini-closed-docker-60dd41/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-egress-eval-ts-egress-ae6df0/codex-gpt-5-4-mini-closed-docker-60dd41/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A4",
+      "anchor": "attempt-evals-egress-eval-ts-egress-canary-codex-gpt-5-4-mini-closed-b03946ee",
+      "eval": "egress canary",
+      "harness": "Codex · gpt-5.4-mini",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    },
+    {
+      "id": "A5",
+      "anchor": "attempt-evals-key-eval-ts-key-codex-gpt-5-4-mini-scanned-docker-1-4a3d8e93",
+      "eval": "key",
+      "harness": "Codex · gpt-5.4-mini",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": 10497,
+        "text": "10k"
+      },
+      "agentTime": {
+        "value": 4367,
+        "text": "4s"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-key-eval-ts-key-187a81/codex-gpt-5-4-mini-scanned-docker-19a58e/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-key-eval-ts-key-187a81/codex-gpt-5-4-mini-scanned-docker-19a58e/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A6",
+      "anchor": "attempt-evals-key-eval-ts-key-canary-codex-gpt-5-4-mini-planted-dock-f18034fe",
+      "eval": "key canary",
+      "harness": "Codex · gpt-5.4-mini",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    },
+    {
+      "id": "A7",
+      "anchor": "attempt-evals-mcp-eval-ts-mcp-codex-gpt-5-4-mini-stamped-docker-1-60c17252",
+      "eval": "mcp",
+      "harness": "Codex · gpt-5.4-mini",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": 33096,
+        "text": "33k"
+      },
+      "agentTime": {
+        "value": 5197,
+        "text": "5s"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-mcp-eval-ts-mcp-a42bcd/codex-gpt-5-4-mini-stamped-docker-da5e7c/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-mcp-eval-ts-mcp-a42bcd/codex-gpt-5-4-mini-stamped-docker-da5e7c/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A8",
+      "anchor": "attempt-evals-mcp-eval-ts-mcp-canary-codex-gpt-5-4-mini-stamped-dock-4db139a2",
+      "eval": "mcp canary",
+      "harness": "Codex · gpt-5.4-mini",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    },
+    {
+      "id": "A9",
+      "anchor": "attempt-evals-rules-eval-ts-rules-codex-gpt-5-4-mini-ruled-docker-1-095bdebf",
+      "eval": "rules",
+      "harness": "Codex · gpt-5.4-mini",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": 21452,
+        "text": "21k"
+      },
+      "agentTime": {
+        "value": 8978,
+        "text": "9s"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-rules-eval-ts-rules-f3fd8d/codex-gpt-5-4-mini-ruled-docker-6000df/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-rules-eval-ts-rules-f3fd8d/codex-gpt-5-4-mini-ruled-docker-6000df/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A10",
+      "anchor": "attempt-evals-rules-eval-ts-rules-canary-codex-gpt-5-4-mini-ruled-do-f6f9f8ef",
+      "eval": "rules canary",
+      "harness": "Codex · gpt-5.4-mini",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    },
+    {
+      "id": "A11",
+      "anchor": "attempt-evals-skill-eval-ts-skill-codex-gpt-5-4-mini-skilled-docker-8e4cff47",
+      "eval": "skill",
+      "harness": "Codex · gpt-5.4-mini",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": 43910,
+        "text": "44k"
+      },
+      "agentTime": {
+        "value": 5962,
+        "text": "6s"
+      },
+      "toolCalls": {
+        "value": 2,
+        "text": "2"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-skill-eval-ts-skill-468cc8/codex-gpt-5-4-mini-skilled-docker-52ee27/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-skill-eval-ts-skill-468cc8/codex-gpt-5-4-mini-skilled-docker-52ee27/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A12",
+      "anchor": "attempt-evals-skill-eval-ts-skill-canary-codex-gpt-5-4-mini-skilled-53710083",
+      "eval": "skill canary",
+      "harness": "Codex · gpt-5.4-mini",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    }
+  ]
+}

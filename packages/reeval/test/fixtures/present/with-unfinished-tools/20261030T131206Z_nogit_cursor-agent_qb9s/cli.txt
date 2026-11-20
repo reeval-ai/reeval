@@ -1,0 +1,7 @@
+a read the harness never finished
+1 of 1 counted attempt passed · 733ms wall time · tokens not reported · cost not reported
+
+PASS           a read the harness never finished
+               100% passed · 1 of 1 attempt
+
+Evals: 1 pass

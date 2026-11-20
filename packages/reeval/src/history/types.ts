@@ -38,6 +38,7 @@ import type {
   WebEventType,
 } from '../types.ts'
 import type { CellEffort } from '../view/effort.ts'
+import type { Remark } from '../view/remarks.ts'
 
 /**
  * One path the attempt's workspace diff changed. Optional line counts come from
@@ -986,6 +987,12 @@ export type RunRecord = {
   } | null
   /** How `reeval run` was started; `--resume` plans with it again. Unset in older records. */
   invocation?: RunInvocation
+  /**
+   * What the run said about the evals themselves (`remarks.json`'s remarks), so every report of
+   * the run prints the same ones. They never change a verdict, count or exit code. Unset when the
+   * run raised none, and in older records.
+   */
+  remarks?: Remark[]
   /**
    * What the run planned before it started, and each level whose sandbox ran as root, with
    * capabilities added back or with host devices.

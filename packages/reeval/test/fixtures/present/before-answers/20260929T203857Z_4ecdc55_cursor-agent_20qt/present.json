@@ -1,0 +1,418 @@
+{
+  "presentationVersion": 1,
+  "header": {
+    "title": "takes its time",
+    "runId": "20260929T203857Z_4ecdc55_cursor-agent_20qt",
+    "status": "budget",
+    "stopped": "stopped early (budget reached)",
+    "startedAt": "2026-09-29T20:38:57.881Z",
+    "date": "2026-09-29",
+    "author": "cursor-agent",
+    "reeval": "0.2.0",
+    "profile": "budget",
+    "runs": "4 runs per cell",
+    "git": {
+      "repo": null,
+      "branch": "master",
+      "sha": "4ecdc55af9b16719ae1281e36a85e9e23a232b2f",
+      "dirty": false,
+      "text": "4ecdc55"
+    },
+    "wall": {
+      "value": 2166,
+      "text": "2s"
+    },
+    "tokens": {
+      "value": null,
+      "text": "not reported"
+    },
+    "cost": {
+      "value": null,
+      "text": "not reported"
+    },
+    "counted": {
+      "k": 3,
+      "n": 3,
+      "text": "3 of 3"
+    },
+    "infraError": 0,
+    "canceled": 0,
+    "attempts": "3 of 3 counted attempts passed",
+    "servedBy": []
+  },
+  "tally": {
+    "pass": 1,
+    "fail": 0,
+    "infraError": 0,
+    "canceled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "notRun": 0,
+    "ungated": 0,
+    "text": "1 pass"
+  },
+  "caveats": [
+    {
+      "severity": "error",
+      "text": "Run stopped early (budget); pass rates and medians cover only the attempts that finished.",
+      "evalId": null,
+      "cites": []
+    },
+    {
+      "severity": "warn",
+      "text": "3 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "evals/slow.eval.ts › takes its time",
+      "cites": [
+        {
+          "id": "A1",
+          "href": "./evals-slow-eval-ts-takes-its-time-c5b2d3/slow-fake-daf0c8/1/transcript.jsonl"
+        },
+        {
+          "id": "A2",
+          "href": "./evals-slow-eval-ts-takes-its-time-c5b2d3/slow-fake-daf0c8/2/transcript.jsonl"
+        },
+        {
+          "id": "A3",
+          "href": "./evals-slow-eval-ts-takes-its-time-c5b2d3/slow-fake-daf0c8/3/transcript.jsonl"
+        }
+      ]
+    }
+  ],
+  "harnesses": [
+    {
+      "id": "slow",
+      "name": "slow",
+      "model": null,
+      "label": "slow",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 3,
+        "text": "3 attempts"
+      }
+    }
+  ],
+  "evals": [
+    {
+      "id": "evals/slow.eval.ts › takes its time",
+      "anchor": "takes-its-time",
+      "name": "takes its time",
+      "file": "evals/slow.eval.ts",
+      "shapes": ["Task"],
+      "design": "1 coding harness, 3 attempts",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "takes its time",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 3,
+            "n": 3,
+            "rate": 1,
+            "text": "100%",
+            "of": "3 of 3",
+            "interval": "44% to 100%"
+          }
+        },
+        "foot": "3 of 3 attempts",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "-",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 3,
+            "n": 3,
+            "rate": 1,
+            "text": "100%",
+            "of": "3 of 3",
+            "interval": "44% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 403,
+            "text": "0.4s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A1",
+          "key": "evals/slow.eval.ts › takes its time # slow/-/fake#1",
+          "href": "./evals-slow-eval-ts-takes-its-time-c5b2d3/slow-fake-daf0c8/1/transcript.jsonl",
+          "harness": "slow",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 405,
+            "text": "405ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A2",
+          "key": "evals/slow.eval.ts › takes its time # slow/-/fake#2",
+          "href": "./evals-slow-eval-ts-takes-its-time-c5b2d3/slow-fake-daf0c8/2/transcript.jsonl",
+          "harness": "slow",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 403,
+            "text": "403ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A3",
+          "key": "evals/slow.eval.ts › takes its time # slow/-/fake#3",
+          "href": "./evals-slow-eval-ts-takes-its-time-c5b2d3/slow-fake-daf0c8/3/transcript.jsonl",
+          "harness": "slow",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 403,
+            "text": "403ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 403,
+            "text": "0.4s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": ["100% passed, 95% CI 44% to 100%"]
+    }
+  ],
+  "actions": [],
+  "provenance": {
+    "rows": [
+      {
+        "field": "Executed at",
+        "value": "4ecdc55af9b1 on master, clean (the commit that adds this record is later)"
+      },
+      {
+        "field": "Lockfiles",
+        "value": "none found"
+      },
+      {
+        "field": "Images",
+        "value": "none (fake sandbox)"
+      },
+      {
+        "field": "Harnesses",
+        "value": "slow"
+      },
+      {
+        "field": "Environments",
+        "value": "none"
+      },
+      {
+        "field": "Judge",
+        "value": "fake · threshold 0.8 · version 5f5bd2b4c5f3"
+      },
+      {
+        "field": "Packages",
+        "value": "@vitest/expect 5.0.2 · jiti 2.7.0 · @reeval/harness-antigravity 0.1.0 · @reeval/harness-opencode 0.2.0 · @reeval/harness-goose 0.1.0 · @reeval/harness-pi 0.1.0 · @reeval/harness-cursor-sdk 0.1.0 · @ai-sdk/harness-claude-code 1.0.128-patch.5d1c985c · @reeval/harness-codex 0.1.0 · ai 7.0.114 · @ai-sdk/harness 1.0.124 · @ai-sdk/google 4.0.79 · @ai-sdk/typesafe-ai 3.0.6"
+      },
+      {
+        "field": "reeval",
+        "value": "0.2.0 · node 22.14.0 · linux/x64"
+      },
+      {
+        "field": "Runner",
+        "value": "local · cursor-agent"
+      },
+      {
+        "field": "Artifacts",
+        "value": "all"
+      }
+    ],
+    "warnings": []
+  },
+  "attemptIndex": [
+    {
+      "id": "A1",
+      "anchor": "attempt-evals-slow-eval-ts-takes-its-time-slow-fake-1-be1bd9cd",
+      "eval": "takes its time",
+      "harness": "slow",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 405,
+        "text": "405ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-slow-eval-ts-takes-its-time-c5b2d3/slow-fake-daf0c8/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-slow-eval-ts-takes-its-time-c5b2d3/slow-fake-daf0c8/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A2",
+      "anchor": "attempt-evals-slow-eval-ts-takes-its-time-slow-fake-2-a93aa5e3",
+      "eval": "takes its time",
+      "harness": "slow",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 403,
+        "text": "403ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-slow-eval-ts-takes-its-time-c5b2d3/slow-fake-daf0c8/2/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-slow-eval-ts-takes-its-time-c5b2d3/slow-fake-daf0c8/2/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A3",
+      "anchor": "attempt-evals-slow-eval-ts-takes-its-time-slow-fake-3-cb251130",
+      "eval": "takes its time",
+      "harness": "slow",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 403,
+        "text": "403ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-slow-eval-ts-takes-its-time-c5b2d3/slow-fake-daf0c8/3/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-slow-eval-ts-takes-its-time-c5b2d3/slow-fake-daf0c8/3/diff.patch"
+        }
+      ]
+    }
+  ]
+}
