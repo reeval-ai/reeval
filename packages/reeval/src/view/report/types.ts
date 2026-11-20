@@ -140,8 +140,10 @@ export type ExecutiveRollup = {
     primary: string
     /** The headline as numbers; absent in reports built before it. */
     result?: HeadlineResult
-    /** Over the eval's counted attempts, every arm's on an A/B eval. */
+    /** Over the eval's counted attempts; not reported on an A/B eval, whose arms are in `medianTokensByArm`. */
     medianTokens: Figure
+    /** Each arm's median tokens, from its summary row, on an A/B eval. */
+    medianTokensByArm?: Array<{ arm: string; tokens: Figure }>
   }>
   /** Run-level analysis claims (no `evalId`). */
   findings: ReportClaim[]

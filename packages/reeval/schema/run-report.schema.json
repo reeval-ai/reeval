@@ -1439,8 +1439,24 @@
                 "type": "string"
               },
               "medianTokens": {
-                "description": "Over the eval's counted attempts, every arm's on an A/B eval.",
+                "description": "Over the eval's counted attempts; not reported on an A/B eval, whose arms are in `medianTokensByArm`.",
                 "$ref": "#/$defs/Figure"
+              },
+              "medianTokensByArm": {
+                "description": "Each arm's median tokens, from its summary row, on an A/B eval.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "arm": {
+                      "type": "string"
+                    },
+                    "tokens": {
+                      "$ref": "#/$defs/Figure"
+                    }
+                  },
+                  "required": ["arm", "tokens"]
+                }
               },
               "name": {
                 "type": "string"
