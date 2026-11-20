@@ -780,7 +780,7 @@ export type FailureClusters = {
     severity: Remark['severity']
     text: string
     fix: Remark['fix']
-    /** `text` with `fix` as one plain line (`… Fix at evals/a.eval.ts:12: set runs: 4.`). */
+    /** `text`, with `fix`'s place when it names no edit (`… At evals/a.eval.ts:12.`); an edit is in the section's `next`. */
     line?: string
   }>
 }
