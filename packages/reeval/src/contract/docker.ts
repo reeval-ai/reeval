@@ -39,6 +39,7 @@ const fields = {
   ...recipeFields,
   maxConcurrent: z.number().optional(),
   ...containerFields,
+  devices: z.array(z.enum(['kvm'])).optional(),
 }
 
 export const dockerSandboxSchema = z
@@ -99,6 +100,7 @@ const DOCKER_HINTS: Record<string, string> = {
   memswap: 'swap',
   cpu: 'cpus',
   pidsLimit: 'pids',
+  device: 'devices',
 }
 
 /** The sentence for a field whose value the schema refused, given the value. */
@@ -107,6 +109,11 @@ const FIELD: Record<string, (value: unknown) => string> = {
   maxConcurrent: (v) => `docker({ maxConcurrent }) takes a number (got ${got(v)})`,
   kind: (v) => `a Docker sandbox's kind is "docker" (got ${got(v)})`,
   engine: (v) => `a Docker sandbox's engine is "docker" or "podman" (got ${got(v)})`,
+  devices: (v) => {
+    const path = Array.isArray(v) && v.find((d) => typeof d === 'string' && d.startsWith('/'))
+    if (!path) return `docker({ devices }) takes device names: 'kvm' for /dev/kvm (got ${got(v)})`
+    return `docker({ devices }) takes device names, not paths: ${/^\/dev\/kvm(:|$)/.test(path) ? "write devices: ['kvm'] for /dev/kvm" : `reeval passes only 'kvm' (/dev/kvm), not ${path}`}`
+  },
 }
 
 /** Which refusal to report when there are several: the order `docker()` has always checked in. */
@@ -118,6 +125,7 @@ const ORDER = [
   'from',
   'root',
   'capabilities',
+  'devices',
   'memory',
   'swap',
   'cpus',

@@ -18,6 +18,7 @@ import {
   SANDBOX_HOME,
   SANDBOX_ROOT,
   SANDBOX_STATE,
+  type SandboxDevice,
   type SandboxLimits,
   type Substitution,
   WORKSPACE_DIR,
@@ -327,13 +328,14 @@ export async function createDockerSandbox(
   if (!(await imageInfo(image, engine))) {
     throw new InfraError(`${spec.name} image ${image} not found. Build it with: reeval image build`)
   }
-  const { root, capabilities, memory, swap, cpus, pids } = descriptor
+  const { root, capabilities, devices, memory, swap, cpus, pids } = descriptor
   return containerSandbox(options, {
     image,
     engine,
     fn: spec.fn,
     ...(root !== undefined && { root }),
     ...(capabilities && { capabilities }),
+    ...(devices?.length && { devices }),
     limits: {
       ...(memory !== undefined && { memory }),
       ...(swap !== undefined && { swap }),
@@ -357,6 +359,7 @@ export async function containerSandbox(
     fn: string
     root?: boolean
     capabilities?: string[]
+    devices?: SandboxDevice[]
     limits: Partial<SandboxLimits>
     /** The machine its resources are read on, as the record names it. */
     machine: { sandbox: string; size?: string; id?: string; name?: string }
@@ -418,6 +421,7 @@ async function startContainer(
     env: options.env,
     ...(root !== undefined && { root }),
     ...(o.capabilities && { capabilities: o.capabilities }),
+    ...(o.devices && { devices: o.devices }),
     limits,
     labels: { [LABEL.run]: options.runId },
     lifetimeMs: options.timeoutMs,

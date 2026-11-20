@@ -94,6 +94,7 @@ const SIZES =
 const NOT_ON_DAYTONA: Record<string, string> = {
   root: 'the agent, setup steps and checks run as the unprivileged reeval user, and a Daytona sandbox has no root mode yet',
   capabilities: 'a Daytona sandbox has no container capabilities to add',
+  devices: 'a Daytona sandbox gets no host devices',
   memory: SIZES,
   cpus: SIZES,
   swap: SIZES,

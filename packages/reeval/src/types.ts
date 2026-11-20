@@ -1141,6 +1141,11 @@ export type DockerSandboxDescriptor = {
   root?: boolean
   /** Linux capabilities to add back, e.g. `['NET_RAW']`; every other one is dropped. */
   capabilities?: string[]
+  /**
+   * Host devices to pass in, by name: `'kvm'` is `/dev/kvm`, read-write, with its group added so
+   * the sandbox user can open it. Docker and Podman on this machine only.
+   */
+  devices?: 'kvm'[]
   /** The container's memory: `'4g'` (default), `'512m'`, or bytes. */
   memory?: string | number
   /**
@@ -3707,7 +3712,7 @@ export type EvalPlan = {
   skip?: string
   /** Warnings about the eval's setup, e.g. a moving git ref. */
   warnings: string[]
-  /** Its sandbox runs as root or with capabilities added back; empty for a skipped eval. */
+  /** Its sandbox runs as root, with capabilities added back or with host devices; empty for a skipped eval. */
   sandboxWarnings: SandboxWarning[]
   /** Secrets any of its attempts brokers, as `NAME → host, host`. */
   brokered: string[]
@@ -3721,11 +3726,11 @@ export type EvalPlan = {
 
 /**
  * A `SandboxWarning` describes a sandbox with more privilege than the default `reeval` user:
- * `docker({ root: true })` or `docker({ capabilities })`. One per level that set such a sandbox,
+ * `docker({ root: true })`, `docker({ capabilities })` or `docker({ devices })`. One per level that set such a sandbox,
  * however many evaluations inherit it.
  */
 export type SandboxWarning = {
-  kind: 'root' | 'capabilities'
+  kind: 'root' | 'capabilities' | 'devices'
   /** Which level set the sandbox. */
   level: 'config' | 'profile' | 'group' | 'eval'
   /**
@@ -3737,7 +3742,9 @@ export type SandboxWarning = {
   file: string | null
   /** The capabilities added back, for `capabilities`. */
   capabilities?: string[]
-  /** The line reeval prints after `⚠  Warning:`, in red for root and orange for capabilities. */
+  /** The host devices passed in, for `devices`. */
+  devices?: string[]
+  /** The line reeval prints after `⚠  Warning:`, in red for root and orange for the others. */
   message: string
 }
 

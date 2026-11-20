@@ -755,6 +755,7 @@ DockerSandboxDescriptor = TypedDict(
     {
         "capabilities": "NotRequired[list[str]]",
         "cpus": "NotRequired[float]",
+        "devices": "NotRequired[list[Literal[\"kvm\"]]]",
         "dockerfile": "NotRequired[str]",
         "engine": "NotRequired[Literal[\"docker\", \"podman\"]]",
         "from": "NotRequired[str]",
@@ -1990,6 +1991,9 @@ class TranscriptEventWebSearch(TypedDict):
 
 class TranscriptEventWebFetch(TypedDict):
     atMs: float
+    # The size of the fetched content the harness reports, in bytes; absent when it reports
+    # none.
+    bytes: NotRequired[float]
     # Set when the harness never reported the call's end, so `durationMs` runs to the next
     # event's `atMs` (the turn's end for the last).
     durationInferred: NotRequired[Literal[True]]
@@ -1998,6 +2002,8 @@ class TranscriptEventWebFetch(TypedDict):
     ok: bool | None
     # True when a shell-like tool or edit ran at least two minutes.
     stalled: NotRequired[bool]
+    # The HTTP status the harness reports for the fetch; absent when it reports none.
+    status: NotRequired[float]
     # The `toolCallId` of the subagent call whose agent made this call; absent for the agent's
     # own.
     subagent: NotRequired[str]

@@ -308,7 +308,12 @@ export class PlainRenderer implements Renderer {
   /** The header block names a sandbox warning; GitHub Actions also annotates it. */
   #annotate(w: SandboxWarning) {
     const file = w.file ? `file=${ghEscape(w.file, true)},` : ''
-    const title = w.kind === 'root' ? 'Sandbox runs as root' : 'Sandbox has extra capabilities'
+    const title =
+      w.kind === 'root'
+        ? 'Sandbox runs as root'
+        : w.kind === 'devices'
+          ? 'Sandbox has host devices'
+          : 'Sandbox has extra capabilities'
     this.#write(`::warning ${file}title=${ghEscape(title, true)}::${ghEscape(w.message)}`)
   }
 

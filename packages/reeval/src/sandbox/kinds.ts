@@ -66,7 +66,11 @@ export type SandboxCapabilities = {
 export type HostPath = 'file' | 'dir'
 
 /** What the attempt's sandbox did to widen its own privileges, for the plan's warnings. */
-export type SandboxPrivileges = { root: boolean; capabilities: readonly string[] }
+export type SandboxPrivileges = {
+  root: boolean
+  capabilities: readonly string[]
+  devices?: readonly string[]
+}
 
 /** What `reeval doctor` gives a kind's checks. */
 export type DoctorContext = { deps: DoctorDeps; root: string; online: boolean; envFile: string }
@@ -158,7 +162,11 @@ const DOCKER: SandboxKind<DockerSandboxDescriptor> = {
   id: (s) => recipeId(engineOf(s), s),
   hostPaths: { dockerfile: 'file' },
   buildsAtStart: (s) => !!(s.from || s.dockerfile || s.install?.length),
-  privileges: (s) => ({ root: !!s.root, capabilities: s.capabilities ?? [] }),
+  privileges: (s) => ({
+    root: !!s.root,
+    capabilities: s.capabilities ?? [],
+    devices: s.devices ?? [],
+  }),
   async create(sandbox, options) {
     const { createDockerSandbox } = await import('./docker.ts')
     return createDockerSandbox(sandbox, options)

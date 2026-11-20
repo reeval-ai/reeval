@@ -472,6 +472,14 @@ export const CASES: Record<string, Case[]> = {
     ['root that is not a boolean', any(docker, { root: 'yes' })],
     ['a capability that is not a name', any(docker, { capabilities: 'NET_RAW' })],
     ['a lower-case capability', any(docker, { capabilities: ['net_raw'] })],
+    ['kvm', any(docker, { devices: ['kvm'] })],
+    ['a device path', any(docker, { devices: ['/dev/kvm'] })],
+    ['a device path with its permissions', any(docker, { devices: ['/dev/kvm:/dev/kvm:rw'] })],
+    ['another device path', any(docker, { devices: ['/dev/sda'] })],
+    ['an unknown device name', any(docker, { devices: ['gpu'] })],
+    ['devices not a list', any(docker, { devices: 'kvm' })],
+    ['device instead of devices', any(docker, { device: ['kvm'] })],
+    ['podman: a device path', any(podman, { devices: ['/dev/kvm'] })],
     ['a memory size docker does not take', any(docker, { memory: '4GB' })],
     ['a fractional memory in bytes', any(docker, { memory: 1.5 })],
     ['memorySwap instead of swap', any(docker, { memorySwap: '8g' })],
@@ -502,6 +510,7 @@ export const CASES: Record<string, Case[]> = {
     ['data: maxConcurrent 0', options({ sandbox: { kind: 'docker', maxConcurrent: 0 } })],
     ['data: a typo', options({ sandbox: { kind: 'docker', memswap: '8g' } })],
     ['data: a bad memory', options({ sandbox: { kind: 'docker', memory: '4GB' } })],
+    ['data: a device path', options({ sandbox: { kind: 'docker', devices: ['/dev/kvm'] } })],
     ['data: two bases', options({ sandbox: { kind: 'docker', image: 'a', from: 'b' } })],
     ['data: a bad install step', options({ sandbox: { kind: 'docker', install: [{ run: '' }] } })],
     ['data: in an environment', env({ sandbox: { kind: 'docker', memswap: '8g' } })],
@@ -514,6 +523,7 @@ export const CASES: Record<string, Case[]> = {
     ['a dockerfile', any(tart, { image: SEQUOIA, dockerfile: 'Dockerfile' })],
     ['install', any(tart, { image: SEQUOIA, install: ['brew install jq'] })],
     ['root', any(tart, { image: SEQUOIA, root: true })],
+    ['devices', any(tart, { image: SEQUOIA, devices: ['kvm'] })],
     ['an unknown key with a hint', any(tart, { image: SEQUOIA, cpu: 4 })],
     ['env on the sandbox', any(tart, { image: SEQUOIA, env: {} })],
     ['fractional CPUs', any(tart, { image: SEQUOIA, cpus: 1.5 })],
@@ -841,6 +851,22 @@ export const CASES: Record<string, Case[]> = {
       onProvider(boat(), { sandbox: docker({ root: true }), harnesses: cursor({ model: 'm' }) }),
     ],
     [
+      'docker({ devices }) on boat()',
+      onProvider(boat(), {
+        sandbox: docker({ devices: ['kvm'] }),
+        harnesses: cursor({ model: 'm' }),
+      }),
+    ],
+    [
+      'docker({ devices }) on daytona()',
+      onProvider(daytona(), {
+        sandbox: docker({ devices: ['kvm'] }),
+        harnesses: cursor({ model: 'm' }),
+        egress: 'allow-all',
+      }),
+    ],
+    ['boat() devices', any(boat, { devices: ['kvm'] })],
+    [
       'docker({ memory, cpus }) on daytona()',
       onProvider(daytona(), {
         sandbox: docker({ memory: '8g', cpus: 4 }),
@@ -913,6 +939,10 @@ export const CASES: Record<string, Case[]> = {
       plannedOnCloud({ sandbox: tart({ image: 'macos-base' }), egress: 'allow-all' }),
     ],
     ['podman() on a cloud run', plannedOnCloud({ sandbox: podman() })],
+    [
+      'docker({ devices }) on a cloud run',
+      plannedOnCloud({ sandbox: docker({ devices: ['kvm'] }) }),
+    ],
     [
       'opencode mcp: {file:} in an arg',
       mcpOn(OPENCODE, ({ mcp }) => ({

@@ -5,6 +5,7 @@ const pkgs = defineEnvironment('pkgs', { sandbox: docker({ root: true }) })
 const deps = defineEnvironment('deps', {
   sandbox: docker({ root: true, capabilities: ['NET_ADMIN'] }),
 })
+const kvm = defineEnvironment('kvm', { sandbox: docker({ devices: ['kvm'] }) })
 const plain = defineEnvironment('plain', { sandbox: docker() })
 const host = defineEnvironment('host', { sandbox: fakeSandbox() })
 
@@ -20,6 +21,9 @@ group('system packages', { environments: pkgs }, () => {
 
 // Root and a capability on the eval's environments: a warning for each.
 evaluate('installs deps', { environments: deps }, async () => {})
+
+// A host device: a warning.
+evaluate('boots an emulator', { environments: kvm }, async () => {})
 
 // No warning: a default docker() environment and the fake sandbox.
 evaluate('stays unprivileged', { environments: plain }, async () => {})
