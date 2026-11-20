@@ -35,17 +35,17 @@ export function deviceArgs(devices: readonly SandboxDevice[], gids: readonly num
 export type DeviceNode = { char: boolean; rdev: number; gid: number }
 
 /**
- * Where the engine's daemon runs on this machine (Linux), the node it resolves `path` to, or
- * `missing`. Elsewhere the daemon is in a VM reeval can't stat, so this is undefined and a probe
- * container reads the node instead.
+ * The node `path` resolves to on this machine, where the engine's daemon may run (Linux), or
+ * undefined: reeval's `/dev` can still be another machine's than the daemon's (`DOCKER_HOST`, a
+ * context, a mounted `docker.sock`), so this only ever adds a check to the probe container's.
  */
-function hostNode(path: string, engine?: Engine): DeviceNode | 'missing' | undefined {
+function hostNode(path: string, engine?: Engine): DeviceNode | undefined {
   if (process.platform !== 'linux' || isRemoteEngine(engine)) return undefined
   try {
     const s = statSync(path)
     return { char: s.isCharacterDevice(), rdev: s.rdev, gid: s.gid }
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return 'missing'
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
     throw error
   }
 }
@@ -64,7 +64,8 @@ const probed = new Map<string, Promise<number>>()
 /**
  * The group that owns `name` on the engine's host, after checking that it's the expected
  * character device and that the user the sandbox runs as can open it read-write in `image`. The
- * node is read on this machine where the daemon runs here, since the image could lie about it.
+ * image reads the node it's given; where this machine has the node too, the two must agree, since
+ * the image could lie about it.
  * Checked once per engine, image and user. Throws a {@link DeviceError} that says what to fix.
  */
 export function deviceGid(
@@ -74,7 +75,7 @@ export function deviceGid(
     engine?: Engine
     root?: boolean
     /** Reads the node on the host; {@link hostNode} unless set. */
-    host?: (path: string) => DeviceNode | 'missing' | undefined
+    host?: (path: string) => DeviceNode | undefined
   } = {},
 ): Promise<number> {
   const user = options.root ? '0:0' : SANDBOX_USER
@@ -93,7 +94,7 @@ async function probe(
   name: SandboxDevice,
   image: string,
   user: string,
-  host: (path: string) => DeviceNode | 'missing' | undefined,
+  host: (path: string) => DeviceNode | undefined,
   engine?: Engine,
 ) {
   const { path, major, minor, what } = DEVICES[name]
@@ -127,16 +128,20 @@ async function probe(
   const none = fail(
     `the ${spec.name} host has none. On Linux, enable virtualization and load the kvm module; Docker Desktop's VM has no ${path}, and Colima needs --vm-type vz --nested-virtualization.`,
   )
-  let node = host(path)
-  if (node === 'missing') throw none
-  if (!node) {
-    const stat = await run(STAT(path))
-    if (stat.exitCode !== 0) {
-      throw /no such file|not exist|error gathering device/i.test(stat.stderr)
-        ? none
-        : fail(`checking it failed: ${stat.stderr.trim()}`)
-    }
-    node = JSON.parse(stat.stdout.toString('utf8').trim()) as DeviceNode
+  const stat = await run(STAT(path))
+  if (stat.exitCode !== 0) {
+    throw /no such file|not exist|error gathering device/i.test(stat.stderr)
+      ? none
+      : fail(`checking it failed: ${stat.stderr.trim()}`)
+  }
+  const node = JSON.parse(stat.stdout.toString('utf8').trim()) as DeviceNode
+  const here = host(path)
+  const show = (n: DeviceNode) =>
+    `${n.char ? 'character' : 'non-character'} device ${majorOf(n.rdev)}:${minorOf(n.rdev)}, group ${n.gid}`
+  if (here && (here.char !== node.char || here.rdev !== node.rdev || here.gid !== node.gid)) {
+    throw fail(
+      `this machine's (${show(here)}) isn't the one the container gets (${show(node)}). Is DOCKER_HOST, a docker context or a mounted docker.sock pointing at another ${spec.name} host?`,
+    )
   }
   if (!node.char || majorOf(node.rdev) !== major || minorOf(node.rdev) !== minor) {
     throw fail(

@@ -154,7 +154,7 @@ test("devices: kvm is /dev/kvm read-write plus its group, after checking it's 10
     join(bin, 'docker.js'),
     `const args = process.argv.slice(2); require('node:fs').appendFileSync(${JSON.stringify(join(bin, 'calls'))}, JSON.stringify(args) + '\\n')
 const state = args.find((a) => a.startsWith('kvm-')).slice(4), opening = args.includes('--group-add')
-const stat = (char, rdev) => console.log(JSON.stringify({ char, rdev, gid: 992 }))
+const stat = (char, rdev) => console.log(JSON.stringify({ char, rdev, gid: state.endsWith('world') ? 0 : 992 }))
 if (state === 'missing') { console.error('docker: Error response from daemon: error gathering device information while adding custom device "/dev/kvm": no such file or directory.'); process.exit(125) }
 if (opening) { if (state === 'denied') { console.error("Error: EACCES: permission denied, open '/dev/kvm'"); process.exit(1) } }
 else stat(state !== 'block', state === 'other' ? 2793 : 2792)\n`,
@@ -206,17 +206,29 @@ else stat(state !== 'block', state === 'other' ? 2793 : 2792)\n`,
       'denied',
       /the sandbox user can't open it read-write with its group \(992\): Error: EACCES/,
     )
-    // On a host the daemon runs on, the host's node decides, whatever the image prints: here the
-    // image's node passes but the host's is the disk, or absent.
+    // Where this machine has the node too, it must be the container's: an image that reports a
+    // valid KVM node is refused when this machine's is the disk, or the daemon is another machine.
     const disk = () => ({ char: false, rdev: 254 * 256, gid: 6 })
-    await refused('ok-disk', /isn't the KVM device \(character device 10:232\)/, disk)
-    await refused('ok-absent', /the Docker host has none/, () => 'missing' as const)
+    await refused(
+      'ok-disk',
+      /this machine's \(non-character device 254:0, group 6\) isn't the one the container gets \(character device 10:232, group 992\)\. Is DOCKER_HOST/,
+      disk,
+    )
+    const otherGroup = () => ({ char: true, rdev: 2792, gid: 993 })
+    await refused('ok-group', /isn't the one the container gets/, otherGroup)
+    // None on this machine is unknown, not a refusal: the container's node decides.
+    assert.equal(await deviceGid('kvm', 'kvm-ok-unseen', { host: () => undefined }), 992)
+    await refused('missing', /the Docker host has none/, () => ({
+      char: true,
+      rdev: 2792,
+      gid: 992,
+    }))
     const before = readFileSync(join(bin, 'calls'), 'utf8').trim().split('\n').length
     const world = () => ({ char: true, rdev: 2792, gid: 0 })
     assert.equal(await deviceGid('kvm', 'kvm-ok-world', { host: world }), 0)
     const after = readFileSync(join(bin, 'calls'), 'utf8').trim().split('\n').slice(before)
-    assert.equal(after.length, 1, 'only the open probe runs')
-    assert.ok(!JSON.parse(after[0] as string).includes('--group-add'), 'no root group')
+    assert.equal(after.length, 2, 'the stat and the open probe')
+    assert.ok(!JSON.parse(after[1] as string).includes('--group-add'), 'no root group')
   } finally {
     process.env.PATH = path
   }
