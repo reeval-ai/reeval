@@ -620,6 +620,11 @@ function armsOf(e: EvalEntry): Arm[] {
         for (let i = 0; i < p.length; i++) h = (h * 31 + p.charCodeAt(i)) | 0
         return `p${(h >>> 0).toString(16).padStart(8, '0')}`
       }),
+      gated: e.cells
+        .filter(
+          (x) => (x.environmentDigest ?? x.environment) === (c.environmentDigest ?? c.environment),
+        )
+        .every((x) => x.gate !== 'none'),
     }
   })
 }
@@ -1652,17 +1657,28 @@ function buildFailures(
     })
   }
   for (const a of e.attempts) {
+    let failedAssertion = false
     for (const x of a.assertions ?? []) {
-      if (x.status === 'fail') add('assertion', x.label, x.at ?? null, a)
+      if (x.status !== 'fail') continue
+      failedAssertion = true
+      add('assertion', x.label, x.at ?? null, a)
     }
+    let turnError = false
     for (const t of a.turns) {
       if (t.status === 'error' && t.error) {
+        turnError = true
         add('turn-error', messageLine(t.error), null, a)
       }
     }
+    // The failed `expect` that ended the body, and the turn error an attempt was reclassified
+    // for, are already their own clusters.
     if (a.outcome === 'infra_error' && a.error) {
-      add('infra-error', messageLine(a.error.message), null, a)
-    } else if (a.error && a.outcome === 'fail') {
+      if (!(a.error.turn && turnError)) add('infra-error', messageLine(a.error.message), null, a)
+    } else if (
+      a.error &&
+      a.outcome === 'fail' &&
+      !(a.error.kind === 'assertion' && failedAssertion)
+    ) {
       add('error', messageLine(a.error.message), null, a)
     }
   }
@@ -2083,6 +2099,25 @@ function buildAttemptIndex(ctx: Ctx): AttemptIndexRow[] {
         outcome: indexOutcome(a, record),
         reclassified,
         turnError: turnErrorMessage(a),
+        gated: cell ? cell.gate !== 'none' : true,
+        failed: (a.assertions ?? [])
+          .filter((x) => x.status === 'fail')
+          .map((x) => ({
+            label: x.label,
+            at: x.at ?? null,
+            message: messageLine(x.message ?? ''),
+          })),
+        error: a.error ? { kind: a.error.kind, message: messageLine(a.error.message) } : null,
+        cost: a.cost
+          ? { usd: a.cost.usd, text: usdFigure(a.cost.usd).text, basis: a.cost.basis }
+          : null,
+        answers: (a.answers ?? []).map((q) => ({
+          question: q.question,
+          model: q.resolvedModel ?? q.model,
+          choice: q.choice ?? null,
+          text: q.text,
+          error: q.error ?? null,
+        })),
         tokens: tokensFigure(a.usage ? totalTokens(a.usage) : null),
         agentMs: durationFigure(a.timings.agentMs),
         toolCalls: countFigure(a.activity.tools),

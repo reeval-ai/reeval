@@ -1,5 +1,5 @@
 import type { ArtifactLevel, RunRecord, RunScope } from '../../history/types.ts'
-import type { CompareCut, Outcome } from '../../types.ts'
+import type { CompareCut, ErrorKind, Outcome } from '../../types.ts'
 import type { ActionKind, Confidence } from '../analysis.ts'
 import type { AttemptFacts } from '../classify.ts'
 import type { CompareStatus } from '../compare.ts'
@@ -347,6 +347,8 @@ export type Arm = {
   change: string | null
   /** Distinct first-turn prompt hashes over the arm's attempts. */
   prompts: string[]
+  /** Whether every one of the arm's cells is gated (a baseline's default `gate: 'none'` isn't). */
+  gated?: boolean
 }
 
 export type MeasureVsBaseline = {
@@ -555,6 +557,10 @@ export type CaptureGallery = {
 }
 
 export type FailureCluster = {
+  /**
+   * `error` is an attempt error no other cluster explains: never the failed `expect` behind an
+   * `assertion` cluster, and an `infra-error` is never the turn error behind a `turn-error` one.
+   */
   kind: 'assertion' | 'turn-error' | 'infra-error' | 'capture-error' | 'error'
   label: string
   at: string | null
@@ -604,6 +610,28 @@ export type AttemptIndexRow = {
   outcome: Exclude<Outcome, 'skipped'> | 'canceled'
   reclassified: boolean
   turnError: string | null
+  /** Whether the attempt's cell is gated, so its outcome counts toward the pass rate. */
+  gated?: boolean
+  /** Each failed assertion, in the order the eval made them; `message` is its first informative line. */
+  failed?: Array<{ label: string; at: string | null; message: string }>
+  /**
+   * Why the attempt failed, its message's first informative line; null when nothing did. An
+   * `assertion` error is the failed `expect` that ended the body, so its message repeats one of
+   * `failed`'s when the eval had one.
+   */
+  error?: { kind: ErrorKind; message: string } | null
+  /** What the harness or gateway said it cost, else its tokens at list price; null when unpriced. */
+  cost?: { usd: number; text: string; basis: 'reported' | 'estimated' } | null
+  /** Each question asked of the attempt on its own, in asked order; `model` is the one that served it. */
+  answers?: Array<{
+    question: string
+    model: string
+    /** Null on a free-text question and when the call failed. */
+    choice: string | null
+    text: string
+    /** Why there's no answer; null when the call succeeded. */
+    error: string | null
+  }>
   tokens: Figure
   agentMs: Figure
   toolCalls: Figure

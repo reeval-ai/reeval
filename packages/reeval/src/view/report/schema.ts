@@ -354,6 +354,7 @@ const armSchema: z.ZodType<Arm> = z.strictObject({
   role: z.enum(['baseline', 'variant']),
   change: z.string().nullable(),
   prompts: z.array(z.string()),
+  gated: z.boolean().optional(),
 })
 
 const measureVsBaselineSchema: z.ZodType<MeasureVsBaseline> = z.strictObject({
@@ -771,6 +772,36 @@ const attemptIndexRowSchema: z.ZodType<AttemptIndexRow> = z.strictObject({
   outcome: indexOutcomeSchema,
   reclassified: z.boolean(),
   turnError: z.string().nullable(),
+  gated: z.boolean().optional(),
+  failed: z
+    .array(z.strictObject({ label: z.string(), at: z.string().nullable(), message: z.string() }))
+    .optional(),
+  error: z
+    .strictObject({
+      kind: z.enum(['assertion', 'timeout', 'aborted', 'infra', 'judge']),
+      message: z.string(),
+    })
+    .nullable()
+    .optional(),
+  cost: z
+    .strictObject({
+      usd: z.number().nonnegative(),
+      text: z.string(),
+      basis: z.enum(['reported', 'estimated']),
+    })
+    .nullable()
+    .optional(),
+  answers: z
+    .array(
+      z.strictObject({
+        question: z.string(),
+        model: z.string(),
+        choice: z.string().nullable(),
+        text: z.string(),
+        error: z.string().nullable(),
+      }),
+    )
+    .optional(),
   tokens: figureSchema,
   agentMs: figureSchema,
   toolCalls: figureSchema,

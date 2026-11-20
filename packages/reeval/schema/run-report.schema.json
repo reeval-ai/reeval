@@ -16,6 +16,10 @@
         "environmentDigest": {
           "type": ["string", "null"]
         },
+        "gated": {
+          "description": "Whether every one of the arm's cells is gated (a baseline's default `gate: 'none'` isn't).",
+          "type": "boolean"
+        },
         "id": {
           "type": "string"
         },
@@ -258,11 +262,63 @@
         "agentMs": {
           "$ref": "#/$defs/Figure"
         },
+        "answers": {
+          "description": "Each question asked of the attempt on its own, in asked order; `model` is the one that served it.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "choice": {
+                "description": "Null on a free-text question and when the call failed.",
+                "type": ["string", "null"]
+              },
+              "error": {
+                "description": "Why there's no answer; null when the call succeeded.",
+                "type": ["string", "null"]
+              },
+              "model": {
+                "type": "string"
+              },
+              "question": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": ["choice", "error", "model", "question", "text"]
+          }
+        },
         "arm": {
           "type": ["string", "null"]
         },
         "case": {
           "type": ["string", "null"]
+        },
+        "cost": {
+          "description": "What the harness or gateway said it cost, else its tokens at list price; null when unpriced.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "basis": {
+                  "type": "string",
+                  "enum": ["reported", "estimated"]
+                },
+                "text": {
+                  "type": "string"
+                },
+                "usd": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              },
+              "required": ["basis", "text", "usd"]
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "diff": {
           "description": "Lines exclude lockfiles; null counts print `not recorded`.",
@@ -310,12 +366,56 @@
             }
           ]
         },
+        "error": {
+          "description": "Why the attempt failed, its message's first informative line; null when nothing did. An `assertion` error is the failed `expect` that ended the body, so its message repeats one of `failed`'s when the eval had one.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["assertion", "timeout", "aborted", "infra", "judge"]
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": ["kind", "message"]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "evalId": {
           "type": "string"
         },
         "facts": {
           "description": "What its transcript shows it did, from the report's `facts`; absent when the report had none for it, such as a passing attempt whose transcript `evidence` didn't keep.",
           "$ref": "#/$defs/AttemptFacts"
+        },
+        "failed": {
+          "description": "Each failed assertion, in the order the eval made them; `message` is its first informative line.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "at": {
+                "type": ["string", "null"]
+              },
+              "label": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": ["at", "label", "message"]
+          }
+        },
+        "gated": {
+          "description": "Whether the attempt's cell is gated, so its outcome counts toward the pass rate.",
+          "type": "boolean"
         },
         "harness": {
           "type": "string"
@@ -1590,6 +1690,7 @@
           "$ref": "#/$defs/Count"
         },
         "kind": {
+          "description": "`error` is an attempt error no other cluster explains: never the failed `expect` behind an `assertion` cluster, and an `infra-error` is never the turn error behind a `turn-error` one.",
           "type": "string",
           "enum": ["assertion", "turn-error", "infra-error", "capture-error", "error"]
         },
