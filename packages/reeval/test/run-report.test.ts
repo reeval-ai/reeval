@@ -665,6 +665,96 @@ describe('RunReport chart data', () => {
     assert.doesNotThrow(() => runReportSchema.parse(report))
   })
 
+  test('each attempt carries its failures, cost, gate and answers', () => {
+    const { record, e } = onTwoHarnesses()
+    const control = e.cells.find((c) => c.role === 'control')!
+    control.gate = 'none'
+    const [priced, unpriced] = e.attempts.filter((a) => a.seq !== null)
+    assert.ok(priced && unpriced)
+    priced.cost = { usd: 0.25, basis: 'reported', source: 'claude-code' }
+    delete unpriced.cost
+    priced.outcome = 'fail'
+    priced.assertions = [
+      {
+        label: 'tests pass',
+        labelled: true,
+        matcher: 'toPass',
+        status: 'fail',
+        at: 'evals/a.eval.ts:12',
+        message: 'tests pass: expected 0 to be 1\n\nmore detail',
+      } as NonNullable<typeof priced.assertions>[number],
+    ]
+    priced.error = { kind: 'assertion', message: 'tests pass: expected 0 to be 1' }
+    priced.answers = [
+      {
+        question: 'Which UI?',
+        model: 'google/gemini',
+        resolvedModel: 'gemini-3.8-flash',
+        stateOptions: {} as never,
+        choices: ['Custom', 'FirebaseUI'],
+        choice: 'Custom',
+        text: 'It wrote its own form.',
+      },
+    ]
+    const report = buildRunReport(record, { evals: [e.key], links: { base: './' } })
+    assert.doesNotThrow(() => runReportSchema.parse(report))
+    const row = report.attempts.find((r) => r.key === priced.key)!
+    assert.deepEqual(row.failed, [
+      { label: 'tests pass', at: 'evals/a.eval.ts:12', message: 'tests pass: expected 0 to be 1' },
+    ])
+    assert.deepEqual(row.error, { kind: 'assertion', message: 'tests pass: expected 0 to be 1' })
+    assert.deepEqual(row.cost, { usd: 0.25, text: '$0.25', basis: 'reported' })
+    assert.equal(report.attempts.find((r) => r.key === unpriced.key)?.cost, null)
+    assert.deepEqual(row.answers, [
+      {
+        question: 'Which UI?',
+        model: 'gemini-3.8-flash',
+        choice: 'Custom',
+        text: 'It wrote its own form.',
+        error: null,
+      },
+    ])
+    const gatedOf = new Map(e.cells.map((c) => [c.key, c.gate !== 'none']))
+    for (const r of report.attempts) {
+      const a = e.attempts.find((x) => x.key === r.key)!
+      assert.equal(r.gated, gatedOf.get(a.cell), r.id)
+    }
+    const comparison = report.evals[0]!.primary
+    assert.ok(comparison?.kind === 'comparison')
+    const baseline = comparison.arms.find((a) => a.role === 'baseline')!
+    assert.equal(baseline.gated, false, 'one of its cells is ungated')
+    assert.ok(comparison.arms.filter((a) => a.role === 'variant').every((a) => a.gated))
+  })
+
+  test("a failed expect counts once in the failure clusters, not again as the attempt's error", () => {
+    const { record, e } = onTwoHarnesses()
+    const a = e.attempts.find((x) => x.seq !== null)!
+    a.outcome = 'fail'
+    a.assertions = [
+      {
+        label: 'tests pass',
+        labelled: true,
+        matcher: 'toBe',
+        status: 'fail',
+        message: 'tests pass: expected 0 to be 1',
+      } as NonNullable<typeof a.assertions>[number],
+    ]
+    a.error = { kind: 'assertion', message: 'tests pass: expected 0 to be 1' }
+    const b = e.attempts.filter((x) => x.seq !== null)[1]!
+    b.outcome = 'fail'
+    b.assertions = []
+    b.error = { kind: 'assertion', message: 'boom' }
+    const report = buildRunReport(record, { evals: [e.key], links: { base: './' } })
+    const clusters = report.evals[0]!.failures?.clusters ?? []
+    const id = (key: string) => report.attempts.find((r) => r.key === key)!.id
+    const citing = (key: string) =>
+      clusters.filter((c) => c.attempts.some((ref) => ref.id === id(key))).map((c) => c.kind)
+    assert.deepEqual(citing(a.key), ['assertion'])
+    const shown = clusters.find((c) => c.kind === 'assertion' && c.label === 'tests pass')
+    assert.equal(shown?.message, 'tests pass: expected 0 to be 1', 'its message moves onto it')
+    assert.deepEqual(citing(b.key), ['error'], 'an error with no failed assertion keeps its own')
+  })
+
   test("every judge row's scores are the values behind its spread", () => {
     for (const entry of corpusEntries()) {
       const file = entry.runs.at(-1)?.file

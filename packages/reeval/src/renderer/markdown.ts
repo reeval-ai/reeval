@@ -607,8 +607,15 @@ function failuresMarkdown(f: FailureClusters, blockLevel: number): string[] {
   if (f.clusters.length) {
     lines.push(
       table(
-        ['Kind', 'Label', 'At', 'Count', 'Attempts'],
-        f.clusters.map((c) => [c.kind, c.label, c.at ?? 'n/a', c.count.text, citeList(c.attempts)]),
+        ['Kind', 'Label', 'Message', 'At', 'Count', 'Attempts'],
+        f.clusters.map((c) => [
+          c.kind,
+          c.label,
+          c.message ?? 'n/a',
+          c.at ?? 'n/a',
+          c.count.text,
+          citeList(c.attempts),
+        ]),
       ),
       '',
     )
