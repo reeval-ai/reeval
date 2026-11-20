@@ -490,7 +490,23 @@
         "medianTokens": {
           "value": null,
           "text": "not reported"
-        }
+        },
+        "medianTokensByArm": [
+          {
+            "arm": "plain",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          },
+          {
+            "arm": "with-skill",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          }
+        ]
       },
       {
         "evalId": "evals/harnesses.eval.ts › greets in the house style on each agent",
@@ -538,7 +554,23 @@
         "medianTokens": {
           "value": null,
           "text": "not reported"
-        }
+        },
+        "medianTokensByArm": [
+          {
+            "arm": "plain",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          },
+          {
+            "arm": "with-skill",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          }
+        ]
       },
       {
         "evalId": "evals/measure.eval.ts › greets in the house style",
@@ -566,7 +598,30 @@
         "medianTokens": {
           "value": null,
           "text": "not reported"
-        }
+        },
+        "medianTokensByArm": [
+          {
+            "arm": "plain",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          },
+          {
+            "arm": "with-skill",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          },
+          {
+            "arm": "with-doc",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          }
+        ]
       },
       {
         "evalId": "evals/measure.eval.ts › keeps the plain greeting",
@@ -594,7 +649,23 @@
         "medianTokens": {
           "value": null,
           "text": "not reported"
-        }
+        },
+        "medianTokensByArm": [
+          {
+            "arm": "plain",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          },
+          {
+            "arm": "with-skill",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          }
+        ]
       },
       {
         "evalId": "evals/measure.eval.ts › greets once",
@@ -622,7 +693,23 @@
         "medianTokens": {
           "value": null,
           "text": "not reported"
-        }
+        },
+        "medianTokensByArm": [
+          {
+            "arm": "plain",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          },
+          {
+            "arm": "with-skill",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          }
+        ]
       },
       {
         "evalId": "evals/results.eval.ts › writes greet.js",
