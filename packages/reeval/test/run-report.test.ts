@@ -558,7 +558,7 @@ describe('RunReport chart data', () => {
     assert.equal(headline.kicker, `${second.variant} against the ${control.environment} baseline`)
   })
 
-  test("a remark's fix is carried as a line, the one the markdown prints", () => {
+  test("a remark's edit is a next step, and its line is the finding alone", () => {
     const record = cloneRecord('with-layouts')
     const e = record.evals[0]!
     const remarks: RunRemarks = {
@@ -581,12 +581,14 @@ describe('RunReport chart data', () => {
       ],
     }
     const report = buildRunReport(record, { evals: [e.key], remarks, links: { base: './' } })
-    const remark = report.evals[0]!.failures?.remarks[0]
-    assert.equal(remark?.line, '1 run per side. Fix at evals/a.eval.ts:12: set runs: 4.')
-    assert.match(
-      runReportMarkdown(report),
-      /^- \(concern\) 1 run per side\. Fix at evals\/a\.eval\.ts:12: set runs: 4\.$/m,
-    )
+    const section = report.evals[0]!
+    assert.equal(section.failures?.remarks[0]?.line, '1 run per side.')
+    assert.deepEqual(section.next, [
+      { kind: 'too-few-tries', text: 'set runs: 4', at: 'evals/a.eval.ts:12' },
+    ])
+    const md = runReportMarkdown(report)
+    assert.match(md, /^- \(concern\) 1 run per side\.$/m)
+    assert.match(md, /^#{2,3} Next\n\n- At evals\/a\.eval\.ts:12: set runs: 4\.$/m)
     assert.doesNotMatch(JSON.stringify(report), /\[object Object\]/)
   })
 
@@ -624,9 +626,11 @@ describe('RunReport chart data', () => {
       ab.medianTokensByArm?.map((a) => a.arm),
       section.primary.summary.map((r) => r.arm),
     )
-    for (const a of ab.medianTokensByArm ?? []) {
-      assert.equal(typeof a.tokens.value, 'number')
-    }
+    assert.deepEqual(
+      ab.medianTokensByArm?.map((a) => a.tokens.value),
+      section.primary.summary.map((r) => r.measures.tokens?.value?.median.value ?? null),
+    )
+    assert.ok(ab.medianTokensByArm?.some((a) => typeof a.tokens.value === 'number'))
   })
 
   test('each attempt carries its token and time split and its judge calls', () => {

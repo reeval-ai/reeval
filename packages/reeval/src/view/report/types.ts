@@ -179,6 +179,17 @@ export type EvalSection = {
   qualitative: QualitativeAnswers[]
   captures: CaptureGallery | null
   failures: FailureClusters | null
+  /** What to change next: each concern remark that names an edit, as that edit and where. */
+  next?: NextStep[]
+}
+
+export type NextStep = {
+  /** The remark's kind (`too-few-tries`). */
+  kind: string
+  /** The edit to make (`set runs: 4`). */
+  text: string
+  /** `evals/a.eval.ts:12`; null when the remark names no place. */
+  at: string | null
 }
 
 export type ArmRef = { id: string; label: string }
