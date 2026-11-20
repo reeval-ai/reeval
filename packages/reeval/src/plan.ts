@@ -82,7 +82,7 @@ export type RunPlan = {
   concurrency: number
   budget: Budget
   warnings: string[]
-  /** One per level whose sandbox runs as root or with capabilities added back. */
+  /** One per level whose sandbox runs as root, with capabilities added back or with host devices. */
   sandboxWarnings: SandboxWarning[]
   /** Advice that doesn't stop the run, e.g. about the default gate. */
   hints: string[]
@@ -779,7 +779,7 @@ export type PlanDocument = {
   /** What the run should cost: token and USD ranges, how they were reached, and each cell's part. */
   cost?: PlanCost
   warnings: string[]
-  /** Sandboxes that run as root or with capabilities added back, one per level that set them. */
+  /** Sandboxes that run as root, with capabilities added back or with host devices, one per level that set them. */
   sandboxWarnings: SandboxWarning[]
   hints: string[]
   evals: PlanEval[]

@@ -89,7 +89,7 @@ For more information about the keys on `stack.judge.state`, see [`c.judge()`](/r
 </Property>
 
 <Property name="plan" type="{evals: number; cells: number; attempts: number; estimateMs: number; sandboxWarnings: SandboxWarning[]}">
-  What the run planned before it started, and each level whose sandbox ran as root or with capabilities added back.
+  What the run planned before it started, and each level whose sandbox ran as root, with capabilities added back or with host devices.
 </Property>
 
 <Property name="budget" type="{attempts?: number; duration?: string | number} | null"></Property>
@@ -246,9 +246,9 @@ Counts attempts, except `evals`.
 
 ### `SandboxWarning`
 
-A `SandboxWarning` describes a sandbox with more privilege than the default `reeval` user: `docker({ root: true })` or `docker({ capabilities })`. One per level that set such a sandbox, however many evaluations inherit it.
+A `SandboxWarning` describes a sandbox with more privilege than the default `reeval` user: `docker({ root: true })`, `docker({ capabilities })` or `docker({ devices })`. One per level that set such a sandbox, however many evaluations inherit it.
 
-<Property name="kind" type="'root' | 'capabilities'"></Property>
+<Property name="kind" type="'root' | 'capabilities' | 'devices'"></Property>
 
 <Property name="level" type="'config' | 'profile' | 'group' | 'eval'">
   Which level set the sandbox.
@@ -266,8 +266,12 @@ A `SandboxWarning` describes a sandbox with more privilege than the default `ree
   The capabilities added back, for `capabilities`.
 </Property>
 
+<Property name="devices" type="string[]" optional>
+  The host devices passed in, for `devices`.
+</Property>
+
 <Property name="message" type="string">
-  The line reeval prints after `⚠  Warning:`, in red for root and orange for capabilities.
+  The line reeval prints after `⚠  Warning:`, in red for root and orange for the others.
 </Property>
 
 ### `Cost`

@@ -1,7 +1,8 @@
 // Host devices a sandbox may be given. Each is a name reeval maps to its own vetted flags, never a
 // path: the container gets that one device node, read-write, and the device's group, nothing else.
+import { statSync } from 'node:fs'
 import { docker } from './docker-cli.ts'
-import { type Engine, engineSpec } from './engine.ts'
+import { type Engine, engineSpec, isRemoteEngine } from './engine.ts'
 import { SANDBOX_USER } from './image.ts'
 
 /** A host device by name: `kvm` is `/dev/kvm`, for hardware virtualization (an Android emulator). */
@@ -18,12 +19,35 @@ export class DeviceError extends Error {
   override name = 'DeviceError'
 }
 
-/** The `docker run` flags for `devices`, given the group that owns each on the host. */
+/**
+ * The `docker run` flags for `devices`, given the group that owns each on the host. Group 0 isn't
+ * added: a device the root group owns is one the host gives everyone (`0666`) or no one.
+ */
 export function deviceArgs(devices: readonly SandboxDevice[], gids: readonly number[]): string[] {
   return devices.flatMap((name, i) => {
     const { path } = DEVICES[name]
-    return ['--device', `${path}:${path}:rw`, '--group-add', String(gids[i])]
+    const gid = gids[i] ?? 0
+    return ['--device', `${path}:${path}:rw`, ...(gid ? ['--group-add', String(gid)] : [])]
   })
+}
+
+/** A device node as `stat` follows it: whether it's a character device, its number and group. */
+export type DeviceNode = { char: boolean; rdev: number; gid: number }
+
+/**
+ * Where the engine's daemon runs on this machine (Linux), the node it resolves `path` to, or
+ * `missing`. Elsewhere the daemon is in a VM reeval can't stat, so this is undefined and a probe
+ * container reads the node instead.
+ */
+function hostNode(path: string, engine?: Engine): DeviceNode | 'missing' | undefined {
+  if (process.platform !== 'linux' || isRemoteEngine(engine)) return undefined
+  try {
+    const s = statSync(path)
+    return { char: s.isCharacterDevice(), rdev: s.rdev, gid: s.gid }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return 'missing'
+    throw error
+  }
 }
 
 const STAT = (path: string) =>
@@ -38,30 +62,43 @@ const minorOf = (rdev: number) => (rdev & 0xff) | (Math.floor(rdev / 4096) & 0xf
 const probed = new Map<string, Promise<number>>()
 
 /**
- * The group that owns `name` on the engine's host, after checking, in `image`, that it's the
- * expected character device and that the user the sandbox runs as can open it read-write. Checked
- * once per engine, image and user. Throws a {@link DeviceError} that says what to fix.
+ * The group that owns `name` on the engine's host, after checking that it's the expected
+ * character device and that the user the sandbox runs as can open it read-write in `image`. The
+ * node is read on this machine where the daemon runs here, since the image could lie about it.
+ * Checked once per engine, image and user. Throws a {@link DeviceError} that says what to fix.
  */
 export function deviceGid(
   name: SandboxDevice,
   image: string,
-  options: { engine?: Engine; root?: boolean } = {},
+  options: {
+    engine?: Engine
+    root?: boolean
+    /** Reads the node on the host; {@link hostNode} unless set. */
+    host?: (path: string) => DeviceNode | 'missing' | undefined
+  } = {},
 ): Promise<number> {
   const user = options.root ? '0:0' : SANDBOX_USER
   const key = JSON.stringify([engineSpec(options.engine).bin, image, user, name])
   let gid = probed.get(key)
   if (!gid) {
-    gid = probe(name, image, user, options.engine)
+    const host = options.host ?? ((path: string) => hostNode(path, options.engine))
+    gid = probe(name, image, user, host, options.engine)
     gid.catch(() => probed.delete(key))
     probed.set(key, gid)
   }
   return gid
 }
 
-async function probe(name: SandboxDevice, image: string, user: string, engine?: Engine) {
+async function probe(
+  name: SandboxDevice,
+  image: string,
+  user: string,
+  host: (path: string) => DeviceNode | 'missing' | undefined,
+  engine?: Engine,
+) {
   const { path, major, minor, what } = DEVICES[name]
   const spec = engineSpec(engine)
-  const run = (as: string, js: string, extra: string[] = []) =>
+  const run = (js: string, extra: string[] = []) =>
     docker(
       [
         'run',
@@ -69,7 +106,7 @@ async function probe(name: SandboxDevice, image: string, user: string, engine?: 
         '--network',
         'none',
         '--user',
-        as,
+        user,
         '--cap-drop',
         'ALL',
         '--security-opt',
@@ -87,28 +124,30 @@ async function probe(name: SandboxDevice, image: string, user: string, engine?: 
     )
   const fail = (why: string) =>
     new DeviceError(`${spec.fn}({ devices: ['${name}'] }) needs ${what} at ${path}: ${why}`)
-  const stat = await run(user, STAT(path))
-  if (stat.exitCode !== 0) {
-    throw /no such file|not exist|error gathering device/i.test(stat.stderr)
-      ? fail(
-          `the ${spec.name} host has none. On Linux, enable virtualization and load the kvm module; Docker Desktop's VM has no ${path}, and Colima needs --vm-type vz --nested-virtualization.`,
-        )
-      : fail(`checking it failed: ${stat.stderr.trim()}`)
+  const none = fail(
+    `the ${spec.name} host has none. On Linux, enable virtualization and load the kvm module; Docker Desktop's VM has no ${path}, and Colima needs --vm-type vz --nested-virtualization.`,
+  )
+  let node = host(path)
+  if (node === 'missing') throw none
+  if (!node) {
+    const stat = await run(STAT(path))
+    if (stat.exitCode !== 0) {
+      throw /no such file|not exist|error gathering device/i.test(stat.stderr)
+        ? none
+        : fail(`checking it failed: ${stat.stderr.trim()}`)
+    }
+    node = JSON.parse(stat.stdout.toString('utf8').trim()) as DeviceNode
   }
-  const s = JSON.parse(stat.stdout.toString('utf8').trim()) as {
-    char: boolean
-    rdev: number
-    gid: number
-  }
-  if (!s.char || majorOf(s.rdev) !== major || minorOf(s.rdev) !== minor) {
+  if (!node.char || majorOf(node.rdev) !== major || minorOf(node.rdev) !== minor) {
     throw fail(
       `it isn't the ${what} device (character device ${major}:${minor}) on the ${spec.name} host.`,
     )
   }
-  const open = await run(user, OPEN(path), ['--group-add', String(s.gid)])
+  const open = await run(OPEN(path), node.gid ? ['--group-add', String(node.gid)] : [])
   if (open.exitCode !== 0) {
+    if (/error gathering device/i.test(open.stderr)) throw none
     throw fail(
-      `the sandbox user can't open it read-write with its group (${s.gid}): ${
+      `the sandbox user can't open it read-write${node.gid ? ` with its group (${node.gid})` : ''}: ${
         open.stderr
           .trim()
           .split('\n')
@@ -116,5 +155,5 @@ async function probe(name: SandboxDevice, image: string, user: string, engine?: 
       }. Rootless Docker and Podman can't map the host's group into the container.`,
     )
   }
-  return s.gid
+  return node.gid
 }

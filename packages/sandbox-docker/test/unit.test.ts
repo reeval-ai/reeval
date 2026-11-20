@@ -147,6 +147,7 @@ test("devices: kvm is /dev/kvm read-write plus its group, after checking it's 10
     '992',
   ])
   assert.deepEqual(deviceArgs([], []), [])
+  assert.deepEqual(deviceArgs(['kvm'], [0]), ['--device', '/dev/kvm:/dev/kvm:rw'], 'no root group')
   // A docker CLI whose `run` answers as a host in the state the image names: kvm-<state>.
   const bin = mkdtempSync(join(tmpdir(), 'reeval-docker-kvm-'))
   writeFileSync(
@@ -161,10 +162,12 @@ else stat(state !== 'block', state === 'other' ? 2793 : 2792)\n`,
   writeFileSync(join(bin, 'docker'), `#!/bin/sh\nexec node "$(dirname "$0")/docker.js" "$@"\n`)
   chmodSync(join(bin, 'docker'), 0o755)
   writeFileSync(join(bin, 'docker.cmd'), '@node "%~dp0docker.js" %*\r\n')
+  // Where the daemon isn't on this machine, the probe container reads the node.
+  const inContainer = () => undefined
   const path = process.env.PATH
   process.env.PATH = `${bin}${delimiter}${path}`
   try {
-    assert.equal(await deviceGid('kvm', 'kvm-ok'), 992)
+    assert.equal(await deviceGid('kvm', 'kvm-ok', { host: inContainer }), 992)
     const calls = readFileSync(join(bin, 'calls'), 'utf8')
       .trim()
       .split('\n')
@@ -183,14 +186,14 @@ else stat(state !== 'block', state === 'other' ? 2793 : 2792)\n`,
       }
     }
     assert.deepEqual(calls[1].slice(calls[1].indexOf('--group-add'), -5), ['--group-add', '992'])
-    await deviceGid('kvm', 'kvm-ok')
+    await deviceGid('kvm', 'kvm-ok', { host: inContainer })
     assert.equal(
       readFileSync(join(bin, 'calls'), 'utf8').trim().split('\n').length,
       2,
       'checked once',
     )
-    const refused = async (state: string, why: RegExp) =>
-      assert.rejects(deviceGid('kvm', `kvm-${state}`), (e: Error) => {
+    const refused = async (state: string, why: RegExp, host = inContainer) =>
+      assert.rejects(deviceGid('kvm', `kvm-${state}`, { host }), (e: Error) => {
         assert.equal(e.name, 'DeviceError')
         assert.match(e.message, /^docker\(\{ devices: \['kvm'\] \}\) needs KVM at \/dev\/kvm: /)
         assert.match(e.message, why)
@@ -203,6 +206,17 @@ else stat(state !== 'block', state === 'other' ? 2793 : 2792)\n`,
       'denied',
       /the sandbox user can't open it read-write with its group \(992\): Error: EACCES/,
     )
+    // On a host the daemon runs on, the host's node decides, whatever the image prints: here the
+    // image's node passes but the host's is the disk, or absent.
+    const disk = () => ({ char: false, rdev: 254 * 256, gid: 6 })
+    await refused('ok-disk', /isn't the KVM device \(character device 10:232\)/, disk)
+    await refused('ok-absent', /the Docker host has none/, () => 'missing' as const)
+    const before = readFileSync(join(bin, 'calls'), 'utf8').trim().split('\n').length
+    const world = () => ({ char: true, rdev: 2792, gid: 0 })
+    assert.equal(await deviceGid('kvm', 'kvm-ok-world', { host: world }), 0)
+    const after = readFileSync(join(bin, 'calls'), 'utf8').trim().split('\n').slice(before)
+    assert.equal(after.length, 1, 'only the open probe runs')
+    assert.ok(!JSON.parse(after[0] as string).includes('--group-add'), 'no root group')
   } finally {
     process.env.PATH = path
   }

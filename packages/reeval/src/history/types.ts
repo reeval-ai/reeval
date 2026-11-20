@@ -983,8 +983,8 @@ export type RunRecord = {
   /** How `reeval run` was started; `--resume` plans with it again. Unset in older records. */
   invocation?: RunInvocation
   /**
-   * What the run planned before it started, and each level whose sandbox ran as root or with
-   * capabilities added back.
+   * What the run planned before it started, and each level whose sandbox ran as root, with
+   * capabilities added back or with host devices.
    */
   plan: {
     evals: number
