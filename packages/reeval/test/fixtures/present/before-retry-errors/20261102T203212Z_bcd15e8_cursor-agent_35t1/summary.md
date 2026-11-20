@@ -1,6 +1,6 @@
 # Run 20261102T203212Z_bcd15e8_cursor-agent_35t1
 
-11 of 14 counted attempts passed · 1 infra error. 29s wall time. Tokens: not reported. Cost: not reported. bcd15e8.
+7 of 8 counted attempts passed · 1 infra error. 29s wall time. Tokens: not reported. Cost: not reported. bcd15e8.
 
 Run `20261102T203212Z_bcd15e8_cursor-agent_35t1` by cursor-agent, 2026-11-02, reeval 0.18.0, varying runs per cell.
 

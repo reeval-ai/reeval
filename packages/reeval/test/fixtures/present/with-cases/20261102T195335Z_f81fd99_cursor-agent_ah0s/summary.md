@@ -1,6 +1,6 @@
 # Run 20261102T195335Z_f81fd99_cursor-agent_ah0s
 
-12 of 18 counted attempts passed. 1s wall time. Tokens: not reported. Cost: not reported. f81fd99.
+10 of 13 counted attempts passed. 1s wall time. Tokens: not reported. Cost: not reported. f81fd99.
 
 Run `20261102T195335Z_f81fd99_cursor-agent_ah0s` by cursor-agent, 2026-11-02, reeval 0.18.0, varying runs per cell.
 

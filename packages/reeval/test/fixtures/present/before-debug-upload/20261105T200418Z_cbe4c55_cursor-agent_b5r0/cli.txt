@@ -1,5 +1,5 @@
 Run 20261105T200418Z_cbe4c55_cursor-agent_b5r0
-11 of 14 counted attempts passed · 1 infra error · 9s wall time · tokens not reported · cost not reported · cbe4c55
+7 of 8 counted attempts passed · 1 infra error · 9s wall time · tokens not reported · cost not reported · cbe4c55
 
 FAIL           greets
                plain 0% vs with-house-greeting 100%: too few runs, not by minLift 20 · 0 of 2 vs 2 of 2 attempts

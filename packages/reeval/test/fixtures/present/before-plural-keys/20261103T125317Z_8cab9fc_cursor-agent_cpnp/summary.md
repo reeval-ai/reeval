@@ -1,6 +1,6 @@
 # Run 20261103T125317Z_8cab9fc_cursor-agent_cpnp
 
-0 of 5 counted attempts passed. 891ms wall time. Tokens: not reported. Cost: not reported. 8cab9fc.
+0 of 3 counted attempts passed. 891ms wall time. Tokens: not reported. Cost: not reported. 8cab9fc.
 
 Run `20261103T125317Z_8cab9fc_cursor-agent_cpnp` by cursor-agent, 2026-11-03, reeval 0.18.0, varying runs per cell.
 

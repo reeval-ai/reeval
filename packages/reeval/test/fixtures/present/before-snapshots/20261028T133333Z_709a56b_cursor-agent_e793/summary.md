@@ -1,6 +1,6 @@
 # Run 20261028T133333Z_709a56b_cursor-agent_e793
 
-11 of 14 counted attempts passed · 1 infra error. 28s wall time. Tokens: not reported. Cost: not reported. 709a56b.
+7 of 8 counted attempts passed · 1 infra error. 28s wall time. Tokens: not reported. Cost: not reported. 709a56b.
 
 Run `20261028T133333Z_709a56b_cursor-agent_e793` by cursor-agent, 2026-10-28, reeval 0.15.1, varying runs per cell.
 

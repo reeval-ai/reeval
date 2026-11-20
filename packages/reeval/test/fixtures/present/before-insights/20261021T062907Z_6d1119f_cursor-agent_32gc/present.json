@@ -31,13 +31,13 @@
       "text": "not reported"
     },
     "counted": {
-      "k": 26,
-      "n": 62,
-      "text": "26 of 62"
+      "k": 22,
+      "n": 41,
+      "text": "22 of 41"
     },
     "infraError": 1,
     "canceled": 0,
-    "attempts": "26 of 62 counted attempts passed · 1 infra error",
+    "attempts": "22 of 41 counted attempts passed · 1 infra error",
     "servedBy": []
   },
   "tally": {

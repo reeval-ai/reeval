@@ -1,6 +1,6 @@
 # Run 20261108T170453Z_c205b3a_cursor-agent_9mwr
 
-11 of 14 counted attempts passed · 1 infra error. 40s wall time. Tokens: not reported. Cost: not reported. c205b3a.
+7 of 8 counted attempts passed · 1 infra error. 40s wall time. Tokens: not reported. Cost: not reported. c205b3a.
 
 Run `20261108T170453Z_c205b3a_cursor-agent_9mwr` by cursor-agent, 2026-11-08, reeval 0.22.0, varying runs per cell.
 

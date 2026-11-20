@@ -1,6 +1,6 @@
 # Run 20260929T222130Z_fbc30c8_cursor-agent_33kp
 
-4 of 7 counted attempts passed · 7 infra errors. 921ms wall time. Tokens: not reported. Cost: not reported. fbc30c8.
+3 of 5 counted attempts passed · 7 infra errors. 921ms wall time. Tokens: not reported. Cost: not reported. fbc30c8.
 
 Run `20260929T222130Z_fbc30c8_cursor-agent_33kp` by cursor-agent, 2026-09-29, reeval 0.2.0, 1 run per cell.
 

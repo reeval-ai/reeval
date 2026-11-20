@@ -1,5 +1,5 @@
 Run 20261101T084238Z_4b17f3c_cursor-agent_0vbf
-11 of 14 counted attempts passed · 1 infra error · 30s wall time · tokens not reported · cost not reported · 4b17f3c
+7 of 8 counted attempts passed · 1 infra error · 30s wall time · tokens not reported · cost not reported · 4b17f3c
 
 FAIL           greets %s
                plain 0% vs with-house-greeting 100%: too few runs, not by minLift 20 · 0 of 2 vs 2 of 2 attempts

@@ -1,6 +1,6 @@
 # Run 20261025T201323Z_e097aaf_cursor-agent_9kkm
 
-8 of 13 counted attempts passed · 13 infra errors. 32s wall time. Tokens: not reported. Cost: not reported. e097aaf.
+7 of 9 counted attempts passed · 13 infra errors. 32s wall time. Tokens: not reported. Cost: not reported. e097aaf.
 
 Run `20261025T201323Z_e097aaf_cursor-agent_9kkm` by cursor-agent, 2026-10-25, reeval 0.14.0, varying runs per cell.
 

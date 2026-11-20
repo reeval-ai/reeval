@@ -1,6 +1,6 @@
 # Run 20261023T093806Z_66722ad_cursor-agent_e3gk
 
-8 of 13 counted attempts passed · 13 infra errors. 10s wall time. Tokens: not reported. Cost: not reported. 66722ad.
+7 of 9 counted attempts passed · 13 infra errors. 10s wall time. Tokens: not reported. Cost: not reported. 66722ad.
 
 Run `20261023T093806Z_66722ad_cursor-agent_e3gk` by cursor-agent, 2026-10-23, reeval 0.13.0, varying runs per cell.
 

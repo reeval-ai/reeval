@@ -1,5 +1,5 @@
 Run 20261018T141226Z_fa14e08_cursor-agent_bc2j
-8 of 13 counted attempts passed · 13 infra errors · 27s wall time · tokens not reported · cost not reported · fa14e08
+7 of 9 counted attempts passed · 13 infra errors · 27s wall time · tokens not reported · cost not reported · fa14e08
 
 FAIL           greets %s
                plain 0% vs with-house-greeting 100%: too few runs, not by minLift 20 · 0 of 2 vs 2 of 2 attempts · left out: 4 infra errors

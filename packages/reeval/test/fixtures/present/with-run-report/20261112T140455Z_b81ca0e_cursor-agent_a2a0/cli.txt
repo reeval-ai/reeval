@@ -1,5 +1,5 @@
 Run 20261112T140455Z_b81ca0e_cursor-agent_a2a0
-11 of 14 counted attempts passed · 1 infra error · 12s wall time · tokens not reported · cost not reported · b81ca0e
+7 of 8 counted attempts passed · 1 infra error · 12s wall time · tokens not reported · cost not reported · b81ca0e
 
 FAIL           greets
                plain 0% vs with-house-greeting 100%: too few runs, not by minLift 20 · 0 of 2 vs 2 of 2 attempts

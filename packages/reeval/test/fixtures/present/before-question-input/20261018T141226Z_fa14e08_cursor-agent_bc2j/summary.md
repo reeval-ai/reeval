@@ -1,6 +1,6 @@
 # Run 20261018T141226Z_fa14e08_cursor-agent_bc2j
 
-8 of 13 counted attempts passed · 13 infra errors. 27s wall time. Tokens: not reported. Cost: not reported. fa14e08.
+7 of 9 counted attempts passed · 13 infra errors. 27s wall time. Tokens: not reported. Cost: not reported. fa14e08.
 
 Run `20261018T141226Z_fa14e08_cursor-agent_bc2j` by cursor-agent, 2026-10-18, reeval 0.9.0, varying runs per cell.
 

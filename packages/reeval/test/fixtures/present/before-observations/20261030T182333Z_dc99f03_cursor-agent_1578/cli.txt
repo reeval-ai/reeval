@@ -1,5 +1,5 @@
 Run 20261030T182333Z_dc99f03_cursor-agent_1578
-11 of 14 counted attempts passed · 1 infra error · 29s wall time · tokens not reported · cost not reported · dc99f03
+7 of 8 counted attempts passed · 1 infra error · 29s wall time · tokens not reported · cost not reported · dc99f03
 
 FAIL           greets %s
                plain 0% vs with-house-greeting 100%: too few runs, not by minLift 20 · 0 of 2 vs 2 of 2 attempts

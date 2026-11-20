@@ -1,6 +1,6 @@
 # Run 20261112T140455Z_b81ca0e_cursor-agent_a2a0
 
-11 of 14 counted attempts passed · 1 infra error. 12s wall time. Tokens: not reported. Cost: not reported. b81ca0e.
+7 of 8 counted attempts passed · 1 infra error. 12s wall time. Tokens: not reported. Cost: not reported. b81ca0e.
 
 Run `20261112T140455Z_b81ca0e_cursor-agent_a2a0` by cursor-agent, 2026-11-12, reeval 0.24.0, varying runs per cell.
 

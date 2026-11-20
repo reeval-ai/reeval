@@ -1,5 +1,5 @@
 Run 20261020T205330Z_da3d797_cursor-agent_1k52
-22 of 56 counted attempts passed · 1 infra error · 2s wall time · tokens not reported · cost not reported · da3d797
+18 of 35 counted attempts passed · 1 infra error · 2s wall time · tokens not reported · cost not reported · da3d797
 
 FAIL           adds a $name button that builds
                67% passed · 2 of 3 attempts

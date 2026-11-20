@@ -1,6 +1,6 @@
 # Run 20261016T082646Z_d663127_cursor-agent_ps6m
 
-8 of 13 counted attempts passed · 13 infra errors. 9s wall time. Tokens: not reported. Cost: not reported. d663127.
+7 of 9 counted attempts passed · 13 infra errors. 9s wall time. Tokens: not reported. Cost: not reported. d663127.
 
 Run `20261016T082646Z_d663127_cursor-agent_ps6m` by cursor-agent, 2026-10-16, reeval 0.8.0, varying runs per cell.
 

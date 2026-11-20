@@ -1,6 +1,6 @@
 # Run 20261016T083105Z_13292af_cursor-agent_mmbw
 
-4 of 7 counted attempts passed · 7 infra errors. 5s wall time. Tokens: not reported. Cost: not reported. 13292af.
+3 of 5 counted attempts passed · 7 infra errors. 5s wall time. Tokens: not reported. Cost: not reported. 13292af.
 
 Run `20261016T083105Z_13292af_cursor-agent_mmbw` by cursor-agent, 2026-10-16, reeval 0.8.0, 1 run per cell.
 

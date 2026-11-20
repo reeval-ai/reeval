@@ -1,5 +1,5 @@
 Run 20261016T082407Z_36a6749_cursor-agent_mc00
-4 of 7 counted attempts passed · 7 infra errors · 25s wall time · tokens not reported · cost not reported · 36a6749
+3 of 5 counted attempts passed · 7 infra errors · 25s wall time · tokens not reported · cost not reported · 36a6749
 
 INFRA ERROR    writes greet.js
                100% passed · 1 of 1 attempt · left out: 1 infra error

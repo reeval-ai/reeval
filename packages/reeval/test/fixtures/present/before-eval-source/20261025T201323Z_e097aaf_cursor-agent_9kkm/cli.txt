@@ -1,5 +1,5 @@
 Run 20261025T201323Z_e097aaf_cursor-agent_9kkm
-8 of 13 counted attempts passed · 13 infra errors · 32s wall time · tokens not reported · cost not reported · e097aaf
+7 of 9 counted attempts passed · 13 infra errors · 32s wall time · tokens not reported · cost not reported · e097aaf
 
 FAIL           greets %s
                plain 0% vs with-house-greeting 100%: too few runs, not by minLift 20 · 0 of 2 vs 2 of 2 attempts · left out: 4 infra errors

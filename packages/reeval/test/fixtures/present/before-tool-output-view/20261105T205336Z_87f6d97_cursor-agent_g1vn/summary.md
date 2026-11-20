@@ -1,6 +1,6 @@
 # Run 20261105T205336Z_87f6d97_cursor-agent_g1vn
 
-11 of 14 counted attempts passed · 1 infra error. 27s wall time. Tokens: not reported. Cost: not reported. 87f6d97.
+7 of 8 counted attempts passed · 1 infra error. 27s wall time. Tokens: not reported. Cost: not reported. 87f6d97.
 
 Run `20261105T205336Z_87f6d97_cursor-agent_g1vn` by cursor-agent, 2026-11-05, reeval 0.20.0, varying runs per cell.
 

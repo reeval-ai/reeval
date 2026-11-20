@@ -1,6 +1,6 @@
 # Run 20261018T103114Z_db594e0_cursor-agent_57k0
 
-8 of 13 counted attempts passed · 13 infra errors. 29s wall time. Tokens: not reported. Cost: not reported. db594e0.
+7 of 9 counted attempts passed · 13 infra errors. 29s wall time. Tokens: not reported. Cost: not reported. db594e0.
 
 Run `20261018T103114Z_db594e0_cursor-agent_57k0` by cursor-agent, 2026-10-18, reeval 0.9.0, varying runs per cell.
 

@@ -1,6 +1,6 @@
 # Run 20260928T070748Z_37aef1d_cursor-agent_h9qy
 
-2 of 5 counted attempts passed · 5 infra errors. 877ms wall time. Tokens: not reported. Cost: not reported. 37aef1d.
+2 of 4 counted attempts passed · 5 infra errors. 877ms wall time. Tokens: not reported. Cost: not reported. 37aef1d.
 
 Run `20260928T070748Z_37aef1d_cursor-agent_h9qy` by cursor-agent, 2026-09-28, reeval 0.0.1, 1 run per cell.
 

@@ -1,6 +1,6 @@
 # Run 20261106T164338Z_5dfb96e_cursor-agent_gdta
 
-11 of 14 counted attempts passed · 1 infra error. 29s wall time. Tokens: not reported. Cost: not reported. 5dfb96e.
+7 of 8 counted attempts passed · 1 infra error. 29s wall time. Tokens: not reported. Cost: not reported. 5dfb96e.
 
 Run `20261106T164338Z_5dfb96e_cursor-agent_gdta` by cursor-agent, 2026-11-06, reeval 0.21.0, varying runs per cell.
 

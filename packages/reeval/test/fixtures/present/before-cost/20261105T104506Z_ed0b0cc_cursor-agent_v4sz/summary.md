@@ -1,6 +1,6 @@
 # Run 20261105T104506Z_ed0b0cc_cursor-agent_v4sz
 
-11 of 14 counted attempts passed · 1 infra error. 16s wall time. Tokens: not reported. Cost: not reported. ed0b0cc.
+7 of 8 counted attempts passed · 1 infra error. 16s wall time. Tokens: not reported. Cost: not reported. ed0b0cc.
 
 Run `20261105T104506Z_ed0b0cc_cursor-agent_v4sz` by cursor-agent, 2026-11-05, reeval 0.20.0, varying runs per cell.
 

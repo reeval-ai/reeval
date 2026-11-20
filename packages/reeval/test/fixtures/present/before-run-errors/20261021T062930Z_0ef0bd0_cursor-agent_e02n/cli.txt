@@ -1,5 +1,5 @@
 Run 20261021T062930Z_0ef0bd0_cursor-agent_e02n
-8 of 13 counted attempts passed · 13 infra errors · 30s wall time · tokens not reported · cost not reported · 0ef0bd0
+7 of 9 counted attempts passed · 13 infra errors · 30s wall time · tokens not reported · cost not reported · 0ef0bd0
 
 FAIL           greets %s
                plain 0% vs with-house-greeting 100%: too few runs, not by minLift 20 · 0 of 2 vs 2 of 2 attempts · left out: 4 infra errors

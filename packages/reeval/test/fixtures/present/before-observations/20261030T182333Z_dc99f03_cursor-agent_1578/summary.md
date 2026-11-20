@@ -1,6 +1,6 @@
 # Run 20261030T182333Z_dc99f03_cursor-agent_1578
 
-11 of 14 counted attempts passed · 1 infra error. 29s wall time. Tokens: not reported. Cost: not reported. dc99f03.
+7 of 8 counted attempts passed · 1 infra error. 29s wall time. Tokens: not reported. Cost: not reported. dc99f03.
 
 Run `20261030T182333Z_dc99f03_cursor-agent_1578` by cursor-agent, 2026-10-30, reeval 0.17.2, varying runs per cell.
 

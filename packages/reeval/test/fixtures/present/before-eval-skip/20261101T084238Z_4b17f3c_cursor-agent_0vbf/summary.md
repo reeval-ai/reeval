@@ -1,6 +1,6 @@
 # Run 20261101T084238Z_4b17f3c_cursor-agent_0vbf
 
-11 of 14 counted attempts passed · 1 infra error. 30s wall time. Tokens: not reported. Cost: not reported. 4b17f3c.
+7 of 8 counted attempts passed · 1 infra error. 30s wall time. Tokens: not reported. Cost: not reported. 4b17f3c.
 
 Run `20261101T084238Z_4b17f3c_cursor-agent_0vbf` by cursor-agent, 2026-11-01, reeval 0.17.2, varying runs per cell.
 

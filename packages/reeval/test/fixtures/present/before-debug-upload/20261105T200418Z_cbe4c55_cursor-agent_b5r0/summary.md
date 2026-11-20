@@ -1,6 +1,6 @@
 # Run 20261105T200418Z_cbe4c55_cursor-agent_b5r0
 
-11 of 14 counted attempts passed · 1 infra error. 9s wall time. Tokens: not reported. Cost: not reported. cbe4c55.
+7 of 8 counted attempts passed · 1 infra error. 9s wall time. Tokens: not reported. Cost: not reported. cbe4c55.
 
 Run `20261105T200418Z_cbe4c55_cursor-agent_b5r0` by cursor-agent, 2026-11-05, reeval 0.20.0, varying runs per cell.
 

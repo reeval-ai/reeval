@@ -26,12 +26,12 @@
     },
     "counted": {
       "k": 3,
-      "n": 7,
-      "text": "3 of 7"
+      "n": 5,
+      "text": "3 of 5"
     },
     "infraError": 0,
     "canceled": 0,
-    "attempts": "3 of 7 counted attempts passed",
+    "attempts": "3 of 5 counted attempts passed",
     "servedBy": []
   },
   "tally": {

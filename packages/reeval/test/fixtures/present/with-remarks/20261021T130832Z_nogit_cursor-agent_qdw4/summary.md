@@ -1,6 +1,6 @@
 # Run 20261021T130832Z_nogit_cursor-agent_qdw4
 
-3 of 7 counted attempts passed. 9s wall time. Tokens: not reported. Cost: not reported.
+3 of 5 counted attempts passed. 9s wall time. Tokens: not reported. Cost: not reported.
 
 Run `20261021T130832Z_nogit_cursor-agent_qdw4` by cursor-agent, 2026-10-21, reeval 0.11.0, varying runs per cell.
 

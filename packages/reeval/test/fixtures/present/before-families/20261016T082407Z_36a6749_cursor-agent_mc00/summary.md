@@ -1,6 +1,6 @@
 # Run 20261016T082407Z_36a6749_cursor-agent_mc00
 
-4 of 7 counted attempts passed · 7 infra errors. 25s wall time. Tokens: not reported. Cost: not reported. 36a6749.
+3 of 5 counted attempts passed · 7 infra errors. 25s wall time. Tokens: not reported. Cost: not reported. 36a6749.
 
 Run `20261016T082407Z_36a6749_cursor-agent_mc00` by cursor-agent, 2026-10-16, reeval 0.8.0, 1 run per cell.
 

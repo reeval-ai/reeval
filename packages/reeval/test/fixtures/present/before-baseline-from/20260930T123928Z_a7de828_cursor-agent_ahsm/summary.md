@@ -1,6 +1,6 @@
 # Run 20260930T123928Z_a7de828_cursor-agent_ahsm
 
-4 of 7 counted attempts passed · 7 infra errors. 1s wall time. Tokens: not reported. Cost: not reported. a7de828.
+3 of 5 counted attempts passed · 7 infra errors. 1s wall time. Tokens: not reported. Cost: not reported. a7de828.
 
 Run `20260930T123928Z_a7de828_cursor-agent_ahsm` by cursor-agent, 2026-09-30, reeval 0.3.0, 1 run per cell.
 

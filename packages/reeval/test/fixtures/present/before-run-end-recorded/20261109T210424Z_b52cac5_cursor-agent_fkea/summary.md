@@ -1,6 +1,6 @@
 # Run 20261109T210424Z_b52cac5_cursor-agent_fkea
 
-11 of 14 counted attempts passed · 1 infra error. 32s wall time. Tokens: not reported. Cost: not reported. b52cac5.
+7 of 8 counted attempts passed · 1 infra error. 32s wall time. Tokens: not reported. Cost: not reported. b52cac5.
 
 Run `20261109T210424Z_b52cac5_cursor-agent_fkea` by cursor-agent, 2026-11-09, reeval 0.23.0, varying runs per cell.
 

@@ -1,5 +1,5 @@
 Run 20261023T093806Z_66722ad_cursor-agent_e3gk
-8 of 13 counted attempts passed · 13 infra errors · 10s wall time · tokens not reported · cost not reported · 66722ad
+7 of 9 counted attempts passed · 13 infra errors · 10s wall time · tokens not reported · cost not reported · 66722ad
 
 FAIL           greets %s
                plain 0% vs with-house-greeting 100%: too few runs, not by minLift 20 · 0 of 2 vs 2 of 2 attempts · left out: 4 infra errors

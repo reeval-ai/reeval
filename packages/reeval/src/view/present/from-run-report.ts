@@ -789,8 +789,11 @@ export function present(full: RunReport): RunPresentation {
         )
       : null
   const p = report.provenance
-  const passedAll = h.tally.passed + h.tally.ungated.passed
-  const countedAll = h.tally.counted + h.tally.ungated.passed + h.tally.ungated.failed - canceled
+  // A run with no gated attempt counts its ungated ones, so its header isn't "0 of 0".
+  const onlyUngated = h.tally.counted - canceled <= 0
+  const passedAll = h.tally.passed + (onlyUngated ? h.tally.ungated.passed : 0)
+  const countedAll =
+    h.tally.counted - canceled + (onlyUngated ? h.tally.ungated.passed + h.tally.ungated.failed : 0)
   return {
     presentationVersion: 1,
     header: {

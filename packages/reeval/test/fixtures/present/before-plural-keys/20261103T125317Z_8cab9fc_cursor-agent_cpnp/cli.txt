@@ -1,5 +1,5 @@
 Run 20261103T125317Z_8cab9fc_cursor-agent_cpnp
-0 of 5 counted attempts passed · 891ms wall time · tokens not reported · cost not reported · 8cab9fc
+0 of 3 counted attempts passed · 891ms wall time · tokens not reported · cost not reported · 8cab9fc
 
 FAIL           discovery: %s
                plain 0% vs with-skill 0% · 0 of 2 vs 0 of 2 attempts

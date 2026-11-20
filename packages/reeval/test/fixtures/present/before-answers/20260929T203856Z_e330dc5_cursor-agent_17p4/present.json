@@ -32,12 +32,12 @@
     },
     "counted": {
       "k": 2,
-      "n": 5,
-      "text": "2 of 5"
+      "n": 4,
+      "text": "2 of 4"
     },
     "infraError": 5,
     "canceled": 0,
-    "attempts": "2 of 5 counted attempts passed · 5 infra errors",
+    "attempts": "2 of 4 counted attempts passed · 5 infra errors",
     "servedBy": []
   },
   "tally": {

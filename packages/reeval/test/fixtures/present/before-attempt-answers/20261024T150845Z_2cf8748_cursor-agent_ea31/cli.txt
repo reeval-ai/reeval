@@ -1,5 +1,5 @@
 Run 20261024T150845Z_2cf8748_cursor-agent_ea31
-8 of 13 counted attempts passed · 13 infra errors · 32s wall time · tokens not reported · cost not reported · 2cf8748
+7 of 9 counted attempts passed · 13 infra errors · 32s wall time · tokens not reported · cost not reported · 2cf8748
 
 FAIL           greets %s
                plain 0% vs with-house-greeting 100%: too few runs, not by minLift 20 · 0 of 2 vs 2 of 2 attempts · left out: 4 infra errors

@@ -1,6 +1,6 @@
 # Run 20261017T110842Z_a8c5572_cursor-agent_z4v6
 
-8 of 13 counted attempts passed · 13 infra errors. 30s wall time. Tokens: not reported. Cost: not reported. a8c5572.
+7 of 9 counted attempts passed · 13 infra errors. 30s wall time. Tokens: not reported. Cost: not reported. a8c5572.
 
 Run `20261017T110842Z_a8c5572_cursor-agent_z4v6` by cursor-agent, 2026-10-17, reeval 0.9.0, varying runs per cell.
 

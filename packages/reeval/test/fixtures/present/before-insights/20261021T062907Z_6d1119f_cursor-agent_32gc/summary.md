@@ -1,6 +1,6 @@
 # Run 20261021T062907Z_6d1119f_cursor-agent_32gc
 
-26 of 62 counted attempts passed · 1 infra error. 2s wall time. Tokens: not reported. Cost: not reported. 6d1119f.
+22 of 41 counted attempts passed · 1 infra error. 2s wall time. Tokens: not reported. Cost: not reported. 6d1119f.
 
 Run `20261021T062907Z_6d1119f_cursor-agent_32gc` by cursor-agent, 2026-10-21, reeval 0.10.0, varying runs per cell.
 

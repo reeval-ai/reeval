@@ -1,6 +1,6 @@
 # Run 20261101T084157Z_0ce3c84_cursor-agent_zzcn
 
-12 of 18 counted attempts passed. 1s wall time. Tokens: not reported. Cost: not reported. 0ce3c84.
+10 of 13 counted attempts passed. 1s wall time. Tokens: not reported. Cost: not reported. 0ce3c84.
 
 Run `20261101T084157Z_0ce3c84_cursor-agent_zzcn` by cursor-agent, 2026-11-01, reeval 0.17.2, varying runs per cell.
 

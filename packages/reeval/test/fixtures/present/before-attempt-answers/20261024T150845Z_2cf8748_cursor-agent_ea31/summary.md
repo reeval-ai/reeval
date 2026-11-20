@@ -1,6 +1,6 @@
 # Run 20261024T150845Z_2cf8748_cursor-agent_ea31
 
-8 of 13 counted attempts passed · 13 infra errors. 32s wall time. Tokens: not reported. Cost: not reported. 2cf8748.
+7 of 9 counted attempts passed · 13 infra errors. 32s wall time. Tokens: not reported. Cost: not reported. 2cf8748.
 
 Run `20261024T150845Z_2cf8748_cursor-agent_ea31` by cursor-agent, 2026-10-24, reeval 0.13.0, varying runs per cell.
 

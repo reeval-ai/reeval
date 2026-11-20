@@ -1,5 +1,5 @@
 Run 20261105T205336Z_87f6d97_cursor-agent_g1vn
-11 of 14 counted attempts passed · 1 infra error · 27s wall time · tokens not reported · cost not reported · 87f6d97
+7 of 8 counted attempts passed · 1 infra error · 27s wall time · tokens not reported · cost not reported · 87f6d97
 
 FAIL           greets
                plain 0% vs with-house-greeting 100%: too few runs, not by minLift 20 · 0 of 2 vs 2 of 2 attempts

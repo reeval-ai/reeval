@@ -1,6 +1,6 @@
 # Run 20261021T062930Z_0ef0bd0_cursor-agent_e02n
 
-8 of 13 counted attempts passed · 13 infra errors. 30s wall time. Tokens: not reported. Cost: not reported. 0ef0bd0.
+7 of 9 counted attempts passed · 13 infra errors. 30s wall time. Tokens: not reported. Cost: not reported. 0ef0bd0.
 
 Run `20261021T062930Z_0ef0bd0_cursor-agent_e02n` by cursor-agent, 2026-10-21, reeval 0.10.0, varying runs per cell.
 

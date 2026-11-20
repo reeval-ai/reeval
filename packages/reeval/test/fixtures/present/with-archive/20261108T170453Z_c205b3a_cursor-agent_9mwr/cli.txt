@@ -1,5 +1,5 @@
 Run 20261108T170453Z_c205b3a_cursor-agent_9mwr
-11 of 14 counted attempts passed · 1 infra error · 40s wall time · tokens not reported · cost not reported · c205b3a
+7 of 8 counted attempts passed · 1 infra error · 40s wall time · tokens not reported · cost not reported · c205b3a
 
 FAIL           greets
                plain 0% vs with-house-greeting 100%: too few runs, not by minLift 20 · 0 of 2 vs 2 of 2 attempts
