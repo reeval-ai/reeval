@@ -39,6 +39,7 @@ import {
   ptsInterval,
   rateOf,
   remarkLine,
+  remarkLocation,
   spreadOf,
   tokensFigure,
   tokensText,
@@ -79,6 +80,7 @@ import type {
   MeasureCells,
   MeasureKey,
   MeasureVsBaseline,
+  NextStep,
   Proportion,
   QualitativeAnswers,
   Quote,
@@ -2231,28 +2233,41 @@ function buildFailures(
       add('error', messageLine(a.error.message), null, a)
     }
   }
-  // Remark.evalId is the suite fact path (`factSegment(id)`); evalKey is EvalEntry.key when set.
-  // Summary keeps concerns only (CLI `Remarks:` without `-v`); suggestions stay out of Worth knowing.
-  const evalPath = factSegment(e.id)
-  const evalRemarks =
-    remarks?.remarks
-      .filter(
-        (r) =>
-          r.severity === 'concern' &&
-          (r.evalKey === e.key || r.evalId === e.id || r.evalId === e.key || r.evalId === evalPath),
-      )
-      .map((r) => ({
-        kind: r.kind,
-        severity: r.severity,
-        text: r.text,
-        fix: r.fix,
-        line: remarkLine(r),
-      })) ?? []
+  // A remark that names an edit prints it under Next, so its line here is the finding alone.
+  const evalRemarks = concernsOf(e, remarks).map((r) => ({
+    kind: r.kind,
+    severity: r.severity,
+    text: r.text,
+    fix: r.fix,
+    line: r.fix?.edit ? r.text : remarkLine(r),
+  }))
   if (!clusters.size && !evalRemarks.length) return null
   return {
     clusters: [...clusters.values()].sort((a, b) => b.count.k - a.count.k),
     remarks: evalRemarks,
   }
+}
+
+// Remark.evalId is the suite fact path (`factSegment(id)`); evalKey is EvalEntry.key when set.
+// Summary keeps concerns only (CLI `Remarks:` without `-v`); suggestions stay out of Worth knowing.
+function concernsOf(e: EvalEntry, remarks: RunRemarks | null) {
+  const evalPath = factSegment(e.id)
+  return (
+    remarks?.remarks.filter(
+      (r) =>
+        r.severity === 'concern' &&
+        (r.evalKey === e.key || r.evalId === e.id || r.evalId === e.key || r.evalId === evalPath),
+    ) ?? []
+  )
+}
+
+function nextOf(e: EvalEntry, remarks: RunRemarks | null): { next?: NextStep[] } {
+  const next: NextStep[] = concernsOf(e, remarks).flatMap((r) =>
+    r.fix?.edit
+      ? [{ kind: r.kind, text: r.fix.edit, at: r.fix.at ? remarkLocation(r.fix.at) : null }]
+      : [],
+  )
+  return next.length ? { next } : {}
 }
 
 function fillTextLeadCites(
@@ -2340,6 +2355,7 @@ function buildEvalSection(ctx: Ctx, e: EvalEntry, displayName: string): EvalSect
     qualitative: buildQualitative(e, ctx.ids, ctx.linkBase, ctx.hrefs, ctx.hrefByKey),
     captures: buildCaptures(e, ctx.ids, ctx.linkBase, ctx.hrefs, ctx.hrefByKey, ctx.pages),
     failures: buildFailures(e, ctx.ids, ctx.linkBase, ctx.hrefs, ctx.hrefByKey, ctx.remarks),
+    ...nextOf(e, ctx.remarks),
   }
 }
 
@@ -2605,16 +2621,6 @@ function rollupTokens(s: EvalSection): Figure {
         null,
     )
   }
-<<<<<<< ours
-  if (s.primary?.kind === 'comparison' && e) {
-    const passFail = isPassFailEval(e)
-    return tokensFigure(measuresOf(e.attempts, passFail).tokens?.median.value ?? null)
-  }
-  if (e?.compare && !isPassFailEval(e)) {
-    return tokensFigure(measuresOf(e.attempts, false).tokens?.median.value ?? null)
-  }
-=======
->>>>>>> theirs
   return tokensFigure(null)
 }
 
