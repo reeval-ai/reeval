@@ -506,6 +506,7 @@ export function normalizeStream(
     if (name === 'webFetch' || name === 'WebFetch') {
       const result = record(output)
       const status = typeof result.code === 'number' ? result.code : undefined
+      const bytes = typeof result.bytes === 'number' ? result.bytes : undefined
       out.push({
         at: call.ms,
         event: {
@@ -517,6 +518,8 @@ export function normalizeStream(
             !failed &&
             result.success !== false &&
             (status === undefined || (status >= 200 && status < 400)),
+          ...(status === undefined ? {} : { status }),
+          ...(bytes === undefined ? {} : { bytes }),
         },
       })
       return

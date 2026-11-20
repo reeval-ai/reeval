@@ -108,6 +108,8 @@ export const transcriptEventSchema = z.discriminatedUnion('type', [
     toolCallId: z.string(),
     url: z.string(),
     ok: z.boolean().nullable(),
+    status: z.number().optional(),
+    bytes: z.number().optional(),
     durationMs: nullableNumber,
     stalled: z.boolean().optional(),
     subagent: z.string().optional(),

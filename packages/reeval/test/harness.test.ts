@@ -2119,13 +2119,13 @@ describe('Claude Code transcripts', () => {
         e.type === 'web-search'
           ? [e.type, e.query, e.references, e.ok]
           : e.type === 'web-fetch'
-            ? [e.type, e.url, e.ok]
+            ? [e.type, e.url, e.ok, e.status, e.bytes]
             : [e.type],
       ),
       [
         ['web-search', 'node test runner', 2, true],
-        ['web-fetch', 'https://nodejs.org/api/test.html', true],
-        ['web-fetch', 'https://example.com/missing', false],
+        ['web-fetch', 'https://nodejs.org/api/test.html', true, 200, 10],
+        ['web-fetch', 'https://example.com/missing', false, 404, undefined],
         ['web-search', 'cursor search', 3, true],
       ],
     )
