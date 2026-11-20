@@ -78,7 +78,9 @@
       "anchor": "probes-metadata",
       "name": "probes metadata",
       "file": "evals/metadata.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -216,7 +218,9 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     }
   ],
   "actions": [],
@@ -298,6 +302,10 @@
         {
           "name": "diff",
           "href": "./evals-metadata-eval-ts-probes-metadata-c447b4/fake-proxied-docker-e69ee5/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-metadata-eval-ts-probes-metadata-c447b4/fake-proxied-docker-e69ee5/1/snapshots/final"
         }
       ]
     }

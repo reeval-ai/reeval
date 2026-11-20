@@ -77,6 +77,7 @@ export class AgentRenderer implements Renderer {
           verbose: true,
           width: WIDTH,
           pointer: pointerLine(e.summaryPath),
+          ...(e.notRun ? { notRun: e.notRun } : {}),
         })
         for (const line of lines) this.#write(line)
         return

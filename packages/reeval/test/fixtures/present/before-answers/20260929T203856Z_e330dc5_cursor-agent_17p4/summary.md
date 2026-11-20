@@ -1,6 +1,6 @@
 # Run 20260929T203856Z_e330dc5_cursor-agent_17p4
 
-2 of 4 counted attempts passed · 5 infra errors. 958ms wall time. Tokens: not reported. Cost: not reported. e330dc5.
+2 of 5 counted attempts passed · 5 infra errors. 958ms wall time. Tokens: not reported. Cost: not reported. e330dc5.
 
 Run `20260929T203856Z_e330dc5_cursor-agent_17p4` by cursor-agent, 2026-09-29, reeval 0.2.0, 1 run per cell.
 

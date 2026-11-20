@@ -186,7 +186,9 @@
       "anchor": "edits-and-reasons",
       "name": "edits and reasons",
       "file": "edit.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "9 coding harnesses, 9 attempts",
       "state": "ran",
       "verdict": "pass",
@@ -769,7 +771,9 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 70% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 70% to 100%"
+      ]
     }
   ],
   "actions": [],
@@ -866,6 +870,10 @@
         {
           "name": "diff",
           "href": "./edit-eval-ts-edits-and-reasons-2d3b89/cursor-composer-2-5-puzzle-docker-e8df09/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./edit-eval-ts-edits-and-reasons-2d3b89/cursor-composer-2-5-puzzle-docker-e8df09/1/snapshots/final"
         }
       ]
     },
@@ -898,6 +906,10 @@
         {
           "name": "diff",
           "href": "./edit-eval-ts-edits-and-reasons-2d3b89/claude-code-claude-sonnet-5-effort-medium-puzzle-docker-f3d2d8/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./edit-eval-ts-edits-and-reasons-2d3b89/claude-code-claude-sonnet-5-effort-medium-puzzle-docker-f3d2d8/1/snapshots/final"
         }
       ]
     },
@@ -930,6 +942,10 @@
         {
           "name": "diff",
           "href": "./edit-eval-ts-edits-and-reasons-2d3b89/codex-gpt-5-6-luna-effort-medium-puzzle-docker-e17139/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./edit-eval-ts-edits-and-reasons-2d3b89/codex-gpt-5-6-luna-effort-medium-puzzle-docker-e17139/1/snapshots/final"
         }
       ]
     },
@@ -962,6 +978,10 @@
         {
           "name": "diff",
           "href": "./edit-eval-ts-edits-and-reasons-2d3b89/antigravity-gemini-3-8-flash-medium-puzzle-docker-89668e/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./edit-eval-ts-edits-and-reasons-2d3b89/antigravity-gemini-3-8-flash-medium-puzzle-docker-89668e/1/snapshots/final"
         }
       ]
     },
@@ -994,6 +1014,10 @@
         {
           "name": "diff",
           "href": "./edit-eval-ts-edits-and-reasons-2d3b89/opencode-gemini-3-8-flash-puzzle-docker-1e1a4d/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./edit-eval-ts-edits-and-reasons-2d3b89/opencode-gemini-3-8-flash-puzzle-docker-1e1a4d/1/snapshots/final"
         }
       ]
     },
@@ -1026,6 +1050,10 @@
         {
           "name": "diff",
           "href": "./edit-eval-ts-edits-and-reasons-2d3b89/goose-gemini-3-8-flash-puzzle-docker-098801/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./edit-eval-ts-edits-and-reasons-2d3b89/goose-gemini-3-8-flash-puzzle-docker-098801/1/snapshots/final"
         }
       ]
     },
@@ -1058,6 +1086,10 @@
         {
           "name": "diff",
           "href": "./edit-eval-ts-edits-and-reasons-2d3b89/pi-gemini-3-8-flash-puzzle-docker-2d05bd/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./edit-eval-ts-edits-and-reasons-2d3b89/pi-gemini-3-8-flash-puzzle-docker-2d05bd/1/snapshots/final"
         }
       ]
     },
@@ -1090,6 +1122,10 @@
         {
           "name": "diff",
           "href": "./edit-eval-ts-edits-and-reasons-2d3b89/fx-gpt-5-5-puzzle-docker-72a445/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./edit-eval-ts-edits-and-reasons-2d3b89/fx-gpt-5-5-puzzle-docker-72a445/1/snapshots/final"
         }
       ]
     },
@@ -1122,6 +1158,10 @@
         {
           "name": "diff",
           "href": "./edit-eval-ts-edits-and-reasons-2d3b89/grok-build-grok-4-6-puzzle-docker-c99eb9/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./edit-eval-ts-edits-and-reasons-2d3b89/grok-build-grok-4-6-puzzle-docker-c99eb9/1/snapshots/final"
         }
       ]
     }

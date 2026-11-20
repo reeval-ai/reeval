@@ -78,7 +78,9 @@
       "anchor": "a-read-the-harness-never-finished",
       "name": "a read the harness never finished",
       "file": "evals/unfinished.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -216,7 +218,9 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     }
   ],
   "actions": [],
@@ -263,7 +267,9 @@
         "value": "all"
       }
     ],
-    "warnings": ["Not a git repository, so the code under test isn't pinned."]
+    "warnings": [
+      "Not a git repository, so the code under test isn't pinned."
+    ]
   },
   "attemptIndex": [
     {
@@ -295,6 +301,10 @@
         {
           "name": "diff",
           "href": "./evals-unfinished-eval-ts-a-read-the-harness-never-finished-c64c66/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-unfinished-eval-ts-a-read-the-harness-never-finished-c64c66/fake-fake-fake-dc13e2/1/snapshots/final"
         }
       ]
     }

@@ -133,7 +133,9 @@
       "anchor": "edit-and-run",
       "name": "edit and run",
       "file": "evals/edit-and-run.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -257,14 +259,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/edit-and-run.eval.ts › edit and run canary",
       "anchor": "edit-and-run-canary",
       "name": "edit and run canary",
       "file": "evals/edit-and-run.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "fail",
@@ -409,14 +415,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["0% passed, 95% CI 0% to 79%"]
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
     },
     {
       "id": "evals/egress.eval.ts › egress",
       "anchor": "egress",
       "name": "egress",
       "file": "evals/egress.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -540,14 +550,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/egress.eval.ts › egress canary",
       "anchor": "egress-canary",
       "name": "egress canary",
       "file": "evals/egress.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "fail",
@@ -692,14 +706,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["0% passed, 95% CI 0% to 79%"]
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
     },
     {
       "id": "evals/key.eval.ts › key",
       "anchor": "key",
       "name": "key",
       "file": "evals/key.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -823,14 +841,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/key.eval.ts › key canary",
       "anchor": "key-canary",
       "name": "key canary",
       "file": "evals/key.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "fail",
@@ -975,14 +997,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["0% passed, 95% CI 0% to 79%"]
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
     },
     {
       "id": "evals/mcp.eval.ts › mcp",
       "anchor": "mcp",
       "name": "mcp",
       "file": "evals/mcp.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -1106,14 +1132,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/mcp.eval.ts › mcp canary",
       "anchor": "mcp-canary",
       "name": "mcp canary",
       "file": "evals/mcp.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "fail",
@@ -1258,14 +1288,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["0% passed, 95% CI 0% to 79%"]
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
     },
     {
       "id": "evals/rules.eval.ts › rules",
       "anchor": "rules",
       "name": "rules",
       "file": "evals/rules.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -1389,14 +1423,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/rules.eval.ts › rules canary",
       "anchor": "rules-canary",
       "name": "rules canary",
       "file": "evals/rules.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "fail",
@@ -1541,14 +1579,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["0% passed, 95% CI 0% to 79%"]
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
     },
     {
       "id": "evals/skill.eval.ts › skill",
       "anchor": "skill",
       "name": "skill",
       "file": "evals/skill.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -1672,14 +1714,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/skill.eval.ts › skill canary",
       "anchor": "skill-canary",
       "name": "skill canary",
       "file": "evals/skill.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "fail",
@@ -1824,7 +1870,9 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["0% passed, 95% CI 0% to 79%"]
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
     }
   ],
   "actions": [],

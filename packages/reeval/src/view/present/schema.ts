@@ -249,12 +249,17 @@ export const questionSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('pairwise'),
     question: text,
-    a: text,
-    b: text,
-    /** `won 8 of 8`. */
-    aWins: countSchema,
-    bWins: countSchema,
+    /** `within` or `across`, when the question has both cuts; null otherwise. */
+    cut: text.nullable(),
+    /** Each side's wins, `6 of 12`: two arms, or each of three or more against the rest. */
+    sides: z.array(z.strictObject({ label: text, wins: countSchema })),
     ties: figureSchema,
+  }),
+  z.strictObject({
+    kind: z.literal('unanswered'),
+    question: text,
+    /** `2 of 2 not answered: the model is over quota`. */
+    text,
   }),
   z.strictObject({
     kind: z.literal('answers'),

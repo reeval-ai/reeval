@@ -14,7 +14,14 @@ import { shownRemarks } from './remarks.ts'
 export function resultLines(
   record: RunRecord,
   c: Colors,
-  options: { remarks?: RunRemarks | null; verbose: boolean; width?: number; pointer: string },
+  options: {
+    remarks?: RunRemarks | null
+    verbose: boolean
+    width?: number
+    pointer: string
+    /** Attempts the run planned that this resume's filters left out. */
+    notRun?: number
+  },
 ): string[] {
   const { shown, hidden } = shownRemarks(
     options.remarks?.remarks ?? [],
@@ -41,7 +48,11 @@ export function resultLines(
   return [
     ...text.trimEnd().split('\n'),
     ...(hidden ? ['', c.dim(`+${hidden} more remark${hidden === 1 ? '' : 's'} (-v)`)] : []),
+    ...(options.notRun ? ['', c.yellow(incomplete(record.runId, options.notRun))] : []),
     '',
     options.pointer,
   ]
 }
+
+const incomplete = (runId: string, n: number) =>
+  `Incomplete: ${n === 1 ? '1 attempt' : `${n} attempts`} this resume’s filters left out ${n === 1 ? 'is' : 'are'} not run; reeval run --resume ${runId} runs ${n === 1 ? 'it' : 'them'}`

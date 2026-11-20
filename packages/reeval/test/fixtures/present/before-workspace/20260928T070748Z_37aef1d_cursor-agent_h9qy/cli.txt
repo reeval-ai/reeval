@@ -1,5 +1,5 @@
 Run 20260928T070748Z_37aef1d_cursor-agent_h9qy
-2 of 4 counted attempts passed · 5 infra errors · 877ms wall time · tokens not reported · cost not reported · 37aef1d
+2 of 5 counted attempts passed · 5 infra errors · 877ms wall time · tokens not reported · cost not reported · 37aef1d
 
 INFRA ERROR    writes greet.js
                100% passed · 1 of 1 attempt · left out: 1 infra error

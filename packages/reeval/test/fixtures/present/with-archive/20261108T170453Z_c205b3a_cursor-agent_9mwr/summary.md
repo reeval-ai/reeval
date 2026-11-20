@@ -1,6 +1,6 @@
 # Run 20261108T170453Z_c205b3a_cursor-agent_9mwr
 
-7 of 8 counted attempts passed · 1 infra error. 40s wall time. Tokens: not reported. Cost: not reported. c205b3a.
+11 of 14 counted attempts passed · 1 infra error. 40s wall time. Tokens: not reported. Cost: not reported. c205b3a.
 
 Run `20261108T170453Z_c205b3a_cursor-agent_9mwr` by cursor-agent, 2026-11-08, reeval 0.22.0, varying runs per cell.
 
@@ -213,9 +213,12 @@ Run `20261108T170453Z_c205b3a_cursor-agent_9mwr` by cursor-agent, 2026-11-08, re
 
 #### Pairwise: Which greeting reads more like our house style?
 
-| A | B | A won | B won | Ties |
-| --- | --- | --- | --- | --- |
-| plain | with-house-greeting | 0 of 8 | 8 of 8 | 0 ties |
+| Side | Won |
+| --- | --- |
+| plain | 0 of 8 |
+| with-house-greeting | 8 of 8 |
+
+0 ties.
 
 #### Answers: How did the agent pick its greeting?
 
@@ -229,6 +232,10 @@ Run `20261108T170453Z_c205b3a_cursor-agent_9mwr` by cursor-agent, 2026-11-08, re
 - It followed the prompt. ([A11](#attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-wi-53dfffd4), Fake)
 - It followed the prompt. ([A13](#attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-wi-7259f15d), Fake)
 - It followed the prompt. ([A15](#attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-wi-07c11122), Fake)
+
+#### Not answered: Which greeting handles a missing name?
+
+The model call failed: Rate limit exceeded (429).
 
 ### Next
 
@@ -265,18 +272,18 @@ Evals: 2 fail · 2 pass · 1 infra error · 1 skipped · 1 todo.
 
 | ID | Eval | Coding harness | Arm | Case | Outcome | Tokens | Agent time | Tool calls | Diff | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="attempt-evals-cases-eval-ts-greets-ada-fake-plain-docker-1-e42b8e7f"></a>A1 | greets | Fake | plain | Ada | fail | not reported | 358ms | 1 | 2 files (lines not recorded) | [transcript](./evals-cases-eval-ts-greets-ada-f5df99/fake-plain-docker-98d88a/1/transcript.jsonl), [diff](./evals-cases-eval-ts-greets-ada-f5df99/fake-plain-docker-98d88a/1/diff.patch) |
-| <a id="attempt-evals-cases-eval-ts-greets-ada-fake-with-house-greeting-dock-d571f074"></a>A2 | greets | Fake | with-house-greeting | Ada | pass | not reported | 160ms | 1 | 1 file (lines not recorded) | [transcript](./evals-cases-eval-ts-greets-ada-f5df99/fake-with-house-greeting-docker-a9116f/1/transcript.jsonl), [diff](./evals-cases-eval-ts-greets-ada-f5df99/fake-with-house-greeting-docker-a9116f/1/diff.patch) |
-| <a id="attempt-evals-cases-eval-ts-greets-grace-fake-plain-docker-1-8cf04872"></a>A3 | greets | Fake | plain | Grace | fail | not reported | 324ms | 1 | 2 files (lines not recorded) | [transcript](./evals-cases-eval-ts-greets-grace-a7b5e5/fake-plain-docker-98d88a/1/transcript.jsonl), [diff](./evals-cases-eval-ts-greets-grace-a7b5e5/fake-plain-docker-98d88a/1/diff.patch) |
-| <a id="attempt-evals-cases-eval-ts-greets-grace-fake-with-house-greeting-do-1a35d459"></a>A4 | greets | Fake | with-house-greeting | Grace | pass | not reported | 148ms | 1 | 1 file (lines not recorded) | [transcript](./evals-cases-eval-ts-greets-grace-a7b5e5/fake-with-house-greeting-docker-a9116f/1/transcript.jsonl), [diff](./evals-cases-eval-ts-greets-grace-a7b5e5/fake-with-house-greeting-docker-a9116f/1/diff.patch) |
-| <a id="attempt-evals-greet-eval-ts-writes-greet-js-fake-fake-fake-1-601c6d4b"></a>A5 | writes greet.js | Fake | n/a | n/a | pass | not reported | 9ms | 1 | 2 files (lines not recorded) | n/a |
-| <a id="attempt-evals-greet-eval-ts-fails-its-check-and-its-judge-fake-fake-b3f77b75"></a>A6 | fails its check and its judge | Fake | n/a | n/a | fail | not reported | 21ms | 1 | 2 files (lines not recorded) | [transcript](./evals-greet-eval-ts-fails-its-check-and-its-judge-035df6/fake-fake-fake-dc13e2/1/transcript.jsonl), [diff](./evals-greet-eval-ts-fails-its-check-and-its-judge-035df6/fake-fake-fake-dc13e2/1/diff.patch) |
-| <a id="attempt-evals-greet-eval-ts-never-starts-broken-fake-fake-1-d9fe8f94"></a>A7 | never starts | broken | n/a | n/a | infra error | not reported | 0ms | 0 | not recorded | n/a |
-| <a id="attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-pl-a824be0d"></a>A8 | house greeting › writes a greeting | Fake | plain | n/a | pass | not reported | 324ms | 1 | 2 files (lines not recorded) | n/a |
-| <a id="attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-wi-6ee93722"></a>A9 | house greeting › writes a greeting | Fake | with-house-greeting | n/a | pass | not reported | 163ms | 1 | 1 file (lines not recorded) | n/a |
-| <a id="attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-pl-3db5eb54"></a>A10 | house greeting › writes a greeting | Fake | plain | n/a | pass | not reported | 291ms | 1 | 2 files (lines not recorded) | n/a |
-| <a id="attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-wi-53dfffd4"></a>A11 | house greeting › writes a greeting | Fake | with-house-greeting | n/a | pass | not reported | 187ms | 1 | 1 file (lines not recorded) | n/a |
-| <a id="attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-pl-495e1b9a"></a>A12 | house greeting › writes a greeting | Fake | plain | n/a | pass | not reported | 397ms | 1 | 2 files (lines not recorded) | n/a |
-| <a id="attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-wi-7259f15d"></a>A13 | house greeting › writes a greeting | Fake | with-house-greeting | n/a | pass | not reported | 171ms | 1 | 1 file (lines not recorded) | n/a |
-| <a id="attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-pl-38ee5383"></a>A14 | house greeting › writes a greeting | Fake | plain | n/a | pass | not reported | 373ms | 1 | 2 files (lines not recorded) | n/a |
-| <a id="attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-wi-07c11122"></a>A15 | house greeting › writes a greeting | Fake | with-house-greeting | n/a | pass | not reported | 145ms | 1 | 1 file (lines not recorded) | n/a |
+| <a id="attempt-evals-cases-eval-ts-greets-ada-fake-plain-docker-1-e42b8e7f"></a>A1 | greets | Fake | plain | Ada | fail | not reported | 358ms | 1 | 2 files (lines not recorded) | [transcript](./evals-cases-eval-ts-greets-ada-f5df99/fake-plain-docker-98d88a/1/transcript.jsonl), [diff](./evals-cases-eval-ts-greets-ada-f5df99/fake-plain-docker-98d88a/1/diff.patch), [snapshot](./evals-cases-eval-ts-greets-ada-f5df99/fake-plain-docker-98d88a/1/snapshots/final) |
+| <a id="attempt-evals-cases-eval-ts-greets-ada-fake-with-house-greeting-dock-d571f074"></a>A2 | greets | Fake | with-house-greeting | Ada | pass | not reported | 160ms | 1 | 1 file (lines not recorded) | [transcript](./evals-cases-eval-ts-greets-ada-f5df99/fake-with-house-greeting-docker-a9116f/1/transcript.jsonl), [diff](./evals-cases-eval-ts-greets-ada-f5df99/fake-with-house-greeting-docker-a9116f/1/diff.patch), [snapshot](./evals-cases-eval-ts-greets-ada-f5df99/fake-with-house-greeting-docker-a9116f/1/snapshots/final) |
+| <a id="attempt-evals-cases-eval-ts-greets-grace-fake-plain-docker-1-8cf04872"></a>A3 | greets | Fake | plain | Grace | fail | not reported | 324ms | 1 | 2 files (lines not recorded) | [transcript](./evals-cases-eval-ts-greets-grace-a7b5e5/fake-plain-docker-98d88a/1/transcript.jsonl), [diff](./evals-cases-eval-ts-greets-grace-a7b5e5/fake-plain-docker-98d88a/1/diff.patch), [snapshot](./evals-cases-eval-ts-greets-grace-a7b5e5/fake-plain-docker-98d88a/1/snapshots/final) |
+| <a id="attempt-evals-cases-eval-ts-greets-grace-fake-with-house-greeting-do-1a35d459"></a>A4 | greets | Fake | with-house-greeting | Grace | pass | not reported | 148ms | 1 | 1 file (lines not recorded) | [transcript](./evals-cases-eval-ts-greets-grace-a7b5e5/fake-with-house-greeting-docker-a9116f/1/transcript.jsonl), [diff](./evals-cases-eval-ts-greets-grace-a7b5e5/fake-with-house-greeting-docker-a9116f/1/diff.patch), [snapshot](./evals-cases-eval-ts-greets-grace-a7b5e5/fake-with-house-greeting-docker-a9116f/1/snapshots/final) |
+| <a id="attempt-evals-greet-eval-ts-writes-greet-js-fake-fake-fake-1-601c6d4b"></a>A5 | writes greet.js | Fake | n/a | n/a | pass | not reported | 9ms | 1 | 2 files (lines not recorded) | [snapshot](./evals-greet-eval-ts-writes-greet-js-df720a/fake-fake-fake-dc13e2/1/snapshots/final) |
+| <a id="attempt-evals-greet-eval-ts-fails-its-check-and-its-judge-fake-fake-b3f77b75"></a>A6 | fails its check and its judge | Fake | n/a | n/a | fail | not reported | 21ms | 1 | 2 files (lines not recorded) | [transcript](./evals-greet-eval-ts-fails-its-check-and-its-judge-035df6/fake-fake-fake-dc13e2/1/transcript.jsonl), [diff](./evals-greet-eval-ts-fails-its-check-and-its-judge-035df6/fake-fake-fake-dc13e2/1/diff.patch), [snapshot](./evals-greet-eval-ts-fails-its-check-and-its-judge-035df6/fake-fake-fake-dc13e2/1/snapshots/final) |
+| <a id="attempt-evals-greet-eval-ts-never-starts-broken-fake-fake-1-d9fe8f94"></a>A7 | never starts | broken | n/a | n/a | infra error | not reported | 0ms | 0 | not recorded | [snapshot](./evals-greet-eval-ts-never-starts-dd13ad/broken-fake-fake-ce01f3/1/snapshots/final) |
+| <a id="attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-pl-a824be0d"></a>A8 | house greeting › writes a greeting | Fake | plain | n/a | pass | not reported | 324ms | 1 | 2 files (lines not recorded) | [snapshot](./evals-skill-eval-ts-house-greeting-writes-a-greeting-2c149c/fake-plain-docker-98d88a/1/snapshots/final) |
+| <a id="attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-wi-6ee93722"></a>A9 | house greeting › writes a greeting | Fake | with-house-greeting | n/a | pass | not reported | 163ms | 1 | 1 file (lines not recorded) | [snapshot](./evals-skill-eval-ts-house-greeting-writes-a-greeting-2c149c/fake-with-house-greeting-docker-a9116f/1/snapshots/final) |
+| <a id="attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-pl-3db5eb54"></a>A10 | house greeting › writes a greeting | Fake | plain | n/a | pass | not reported | 291ms | 1 | 2 files (lines not recorded) | [snapshot](./evals-skill-eval-ts-house-greeting-writes-a-greeting-2c149c/fake-plain-docker-98d88a/2/snapshots/final) |
+| <a id="attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-wi-53dfffd4"></a>A11 | house greeting › writes a greeting | Fake | with-house-greeting | n/a | pass | not reported | 187ms | 1 | 1 file (lines not recorded) | [snapshot](./evals-skill-eval-ts-house-greeting-writes-a-greeting-2c149c/fake-with-house-greeting-docker-a9116f/2/snapshots/final) |
+| <a id="attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-pl-495e1b9a"></a>A12 | house greeting › writes a greeting | Fake | plain | n/a | pass | not reported | 397ms | 1 | 2 files (lines not recorded) | [snapshot](./evals-skill-eval-ts-house-greeting-writes-a-greeting-2c149c/fake-plain-docker-98d88a/3/snapshots/final) |
+| <a id="attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-wi-7259f15d"></a>A13 | house greeting › writes a greeting | Fake | with-house-greeting | n/a | pass | not reported | 171ms | 1 | 1 file (lines not recorded) | [snapshot](./evals-skill-eval-ts-house-greeting-writes-a-greeting-2c149c/fake-with-house-greeting-docker-a9116f/3/snapshots/final) |
+| <a id="attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-pl-38ee5383"></a>A14 | house greeting › writes a greeting | Fake | plain | n/a | pass | not reported | 373ms | 1 | 2 files (lines not recorded) | [snapshot](./evals-skill-eval-ts-house-greeting-writes-a-greeting-2c149c/fake-plain-docker-98d88a/4/snapshots/final) |
+| <a id="attempt-evals-skill-eval-ts-house-greeting-writes-a-greeting-fake-wi-07c11122"></a>A15 | house greeting › writes a greeting | Fake | with-house-greeting | n/a | pass | not reported | 145ms | 1 | 1 file (lines not recorded) | [snapshot](./evals-skill-eval-ts-house-greeting-writes-a-greeting-2c149c/fake-with-house-greeting-docker-a9116f/4/snapshots/final) |

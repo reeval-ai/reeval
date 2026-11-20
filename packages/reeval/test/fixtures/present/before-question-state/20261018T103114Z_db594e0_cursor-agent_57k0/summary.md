@@ -1,6 +1,6 @@
 # Run 20261018T103114Z_db594e0_cursor-agent_57k0
 
-7 of 9 counted attempts passed · 13 infra errors. 29s wall time. Tokens: not reported. Cost: not reported. db594e0.
+8 of 13 counted attempts passed · 13 infra errors. 29s wall time. Tokens: not reported. Cost: not reported. db594e0.
 
 Run `20261018T103114Z_db594e0_cursor-agent_57k0` by cursor-agent, 2026-10-18, reeval 0.9.0, varying runs per cell.
 
@@ -354,9 +354,16 @@ Run `20261018T103114Z_db594e0_cursor-agent_57k0` by cursor-agent, 2026-10-18, re
 
 #### Pairwise: Which greeting reads more like our house style?
 
-| A | B | A won | B won | Ties |
-| --- | --- | --- | --- | --- |
-| plain | with-house-greeting | 0 of 2 | 2 of 2 | 0 ties |
+| Side | Won |
+| --- | --- |
+| plain | 0 of 2 |
+| with-house-greeting | 2 of 2 |
+
+0 ties.
+
+#### Not answered: Which greeting handles a missing name?
+
+The model call failed: Rate limit exceeded (429).
 
 ### Next
 

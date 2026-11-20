@@ -66,4 +66,4 @@ Evals: 1 pass.
 
 | ID | Eval | Coding harness | Outcome | Tokens | Agent time | Tool calls | Diff | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="attempt-evals-phased-eval-ts-phased-fake-phased-docker-1-819ae943"></a>A1 | phased | Fake | pass | not reported | 169ms | 2 | not recorded | [transcript](./evals-phased-eval-ts-phased-a1125a/fake-phased-docker-63a94c/1/transcript.jsonl), [diff](./evals-phased-eval-ts-phased-a1125a/fake-phased-docker-63a94c/1/diff.patch) |
+| <a id="attempt-evals-phased-eval-ts-phased-fake-phased-docker-1-819ae943"></a>A1 | phased | Fake | pass | not reported | 169ms | 2 | not recorded | [transcript](./evals-phased-eval-ts-phased-a1125a/fake-phased-docker-63a94c/1/transcript.jsonl), [diff](./evals-phased-eval-ts-phased-a1125a/fake-phased-docker-63a94c/1/diff.patch), [snapshot](./evals-phased-eval-ts-phased-a1125a/fake-phased-docker-63a94c/1/snapshots/final) |

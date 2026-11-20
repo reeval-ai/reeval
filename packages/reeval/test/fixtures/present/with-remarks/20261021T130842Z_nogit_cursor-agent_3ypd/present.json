@@ -26,12 +26,12 @@
     },
     "counted": {
       "k": 3,
-      "n": 5,
-      "text": "3 of 5"
+      "n": 7,
+      "text": "3 of 7"
     },
     "infraError": 0,
     "canceled": 0,
-    "attempts": "3 of 5 counted attempts passed",
+    "attempts": "3 of 7 counted attempts passed",
     "servedBy": []
   },
   "tally": {
@@ -115,7 +115,9 @@
       "anchor": "coin",
       "name": "coin",
       "file": "evals/coin.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 3 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -324,14 +326,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["33% passed, 95% CI 6% to 79%"]
+      "stats": [
+        "33% passed, 95% CI 6% to 79%"
+      ]
     },
     {
       "id": "evals/skill.eval.ts › skill helps",
       "anchor": "skill-helps",
       "name": "skill helps",
       "file": "evals/skill.eval.ts",
-      "shapes": ["A/B"],
+      "shapes": [
+        "A/B"
+      ],
       "design": "1 coding harness, 2 arms, 4 attempts",
       "state": "ran",
       "verdict": "pass",
@@ -637,7 +643,9 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["marked +100 pts (95% CI +7 pts to +100 pts)"]
+      "stats": [
+        "marked +100 pts (95% CI +7 pts to +100 pts)"
+      ]
     }
   ],
   "actions": [],
@@ -684,7 +692,9 @@
         "value": "all"
       }
     ],
-    "warnings": ["Not a git repository, so the code under test isn't pinned."]
+    "warnings": [
+      "Not a git repository, so the code under test isn't pinned."
+    ]
   },
   "attemptIndex": [
     {

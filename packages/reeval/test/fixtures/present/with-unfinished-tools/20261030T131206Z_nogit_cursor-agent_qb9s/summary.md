@@ -64,4 +64,4 @@ Evals: 1 pass.
 
 | ID | Eval | Coding harness | Outcome | Tokens | Agent time | Tool calls | Diff | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="attempt-evals-unfinished-eval-ts-a-read-the-harness-never-finished-f-dd21ec77"></a>A1 | a read the harness never finished | Fake | pass | not reported | 3ms | 3 | 1 file (lines not recorded) | [transcript](./evals-unfinished-eval-ts-a-read-the-harness-never-finished-c64c66/fake-fake-fake-dc13e2/1/transcript.jsonl), [diff](./evals-unfinished-eval-ts-a-read-the-harness-never-finished-c64c66/fake-fake-fake-dc13e2/1/diff.patch) |
+| <a id="attempt-evals-unfinished-eval-ts-a-read-the-harness-never-finished-f-dd21ec77"></a>A1 | a read the harness never finished | Fake | pass | not reported | 3ms | 3 | 1 file (lines not recorded) | [transcript](./evals-unfinished-eval-ts-a-read-the-harness-never-finished-c64c66/fake-fake-fake-dc13e2/1/transcript.jsonl), [diff](./evals-unfinished-eval-ts-a-read-the-harness-never-finished-c64c66/fake-fake-fake-dc13e2/1/diff.patch), [snapshot](./evals-unfinished-eval-ts-a-read-the-harness-never-finished-c64c66/fake-fake-fake-dc13e2/1/snapshots/final) |

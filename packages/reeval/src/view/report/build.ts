@@ -20,7 +20,7 @@ import { runCost } from '../cost.ts'
 import { costPerSuccess, effortSample, filesChanged, formatCount } from '../effort.ts'
 import { caseLabel } from '../family.ts'
 import { checksByLabel, checkTries, labeledJudgments } from '../judgments.ts'
-import { attemptAnswerRows, isUngatedMiss } from '../model.ts'
+import { attemptAnswerRows, isUngatedMiss, notRunYet } from '../model.ts'
 import { observedLine, observedTallies } from '../observations.ts'
 import type { RunRemarks } from '../remarks.ts'
 import { runScope } from '../scope.ts'
@@ -2098,7 +2098,7 @@ function buildJudgments(
     const ties = ans.votes.filter((v) => v.winner === 'tie').length
     for (const cut of ['within', 'across'] as const) {
       const rates = ans.rates.filter((r) => r.cut === cut)
-      if (rates.length < 2) {
+      if (rates.length !== 2) {
         for (const r of rates) {
           pairwise.push({
             question: ans.question,
@@ -2345,6 +2345,24 @@ function concernsOf(e: EvalEntry, remarks: RunRemarks | null) {
   )
 }
 
+function unansweredOf(e: EvalEntry): Pick<EvalSection, 'unanswered'> {
+  const unanswered: NonNullable<EvalSection['unanswered']> = []
+  for (const a of e.answers ?? []) {
+    if (a.error !== undefined) {
+      unanswered.push({ question: a.question, text: `The model call failed: ${a.error}` })
+    }
+  }
+  for (const row of attemptAnswerRows(e)) {
+    const failed = row.answers.filter((a) => a.error !== null)
+    if (!failed.length) continue
+    unanswered.push({
+      question: row.question,
+      text: `${failed.length} of ${row.answers.length} not answered: ${failed[0]?.error}`,
+    })
+  }
+  return unanswered.length ? { unanswered } : {}
+}
+
 function nextOf(e: EvalEntry, remarks: RunRemarks | null): { next?: NextStep[] } {
   const next: NextStep[] = concernsOf(e, remarks).flatMap((r) =>
     r.fix?.edit
@@ -2430,11 +2448,13 @@ function buildEvalSection(ctx: Ctx, e: EvalEntry, displayName: string): EvalSect
     group: e.group,
     state: e.todo
       ? 'todo'
-      : e.skip || e.outcome === 'skipped'
-        ? 'skipped'
-        : e.attempts.some((a) => a.outcome !== 'skipped')
-          ? 'ran'
-          : 'not-run',
+      : notRunYet(ctx.record, e)
+        ? 'not-run'
+        : e.skip || e.outcome === 'skipped'
+          ? 'skipped'
+          : e.attempts.some((a) => a.outcome !== 'skipped')
+            ? 'ran'
+            : 'not-run',
     outcome: e.outcome,
     file: e.file,
     shapes,
@@ -2446,6 +2466,7 @@ function buildEvalSection(ctx: Ctx, e: EvalEntry, displayName: string): EvalSect
     discovery: buildDiscovery(e, ctx.facts),
     judgments: buildJudgments(e, ctx.ids, ctx.record),
     qualitative: buildQualitative(e, ctx.ids, ctx.linkBase, ctx.hrefs, ctx.hrefByKey),
+    ...unansweredOf(e),
     captures: buildCaptures(e, ctx.ids, ctx.linkBase, ctx.hrefs, ctx.hrefByKey, ctx.pages),
     failures: buildFailures(e, ctx.ids, ctx.linkBase, ctx.hrefs, ctx.hrefByKey, ctx.remarks),
     ...nextOf(e, ctx.remarks),
@@ -2896,6 +2917,7 @@ function buildAttemptIndex(ctx: Ctx): AttemptIndexRow[] {
             .map((q) => q.input?.path)
             .filter((p): p is string => Boolean(p))
             .map((p) => withBase(linkBase, p)),
+          ...snapshotOf(a, linkBase),
         },
         href,
       })
@@ -2916,6 +2938,11 @@ function recordedRemarks(record: RunRecord): RunRemarks | null {
 }
 
 /** The only reader of a `RunRecord` for a report. Pure and deterministic. */
+function snapshotOf(a: AttemptRecord, linkBase: string | undefined): { snapshot?: string } {
+  const path = a.snapshots?.find((s) => s.name === 'final')?.path
+  return path ? { snapshot: withBase(linkBase, path) } : {}
+}
+
 export function buildRunReport(record: RunRecord, options: RunReportOptions = {}): RunReport {
   const evals = selectedEvals(record, options.evals)
   if (evals.length === 0) {

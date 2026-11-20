@@ -96,5 +96,5 @@ Evals: 2 pass.
 
 | ID | Eval | Coding harness | Outcome | Tokens | Agent time | Tool calls | Diff | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="attempt-evals-canary-eval-ts-canary-fake-open-boat-68c24521-1-ab349ef7"></a>A1 | canary | Fake | pass | not reported | 97ms | 1 | not recorded | n/a |
-| <a id="attempt-evals-lands-eval-ts-lands-fake-closed-boat-68c24521-1-474983e7"></a>A2 | lands | Fake | pass | not reported | 72ms | 1 | not recorded | n/a |
+| <a id="attempt-evals-canary-eval-ts-canary-fake-open-boat-68c24521-1-ab349ef7"></a>A1 | canary | Fake | pass | not reported | 97ms | 1 | not recorded | [snapshot](./evals-canary-eval-ts-canary-d06886/fake-open-boat-68c24521-92f4d2/1/snapshots/final) |
+| <a id="attempt-evals-lands-eval-ts-lands-fake-closed-boat-68c24521-1-474983e7"></a>A2 | lands | Fake | pass | not reported | 72ms | 1 | not recorded | [snapshot](./evals-lands-eval-ts-lands-2fc777/fake-closed-boat-68c24521-61a210/1/snapshots/final) |

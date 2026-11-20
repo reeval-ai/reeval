@@ -737,6 +737,7 @@ const evalSectionSchema = z.strictObject({
   discovery: z.array(discoveryRateSchema),
   judgments: judgmentBreakdownSchema.nullable(),
   qualitative: z.array(qualitativeAnswersSchema),
+  unanswered: z.array(z.strictObject({ question: z.string(), text: z.string() })).optional(),
   captures: captureGallerySchema.nullable(),
   failures: failureClustersSchema.nullable(),
   next: z
@@ -984,6 +985,7 @@ const attemptIndexRowSchema: z.ZodType<AttemptIndexRow> = z.strictObject({
     diff: z.string().nullable(),
     captures: z.array(z.strictObject({ name: z.string(), href: z.string() })),
     questions: z.array(z.string()),
+    snapshot: z.string().optional(),
   }),
   href: z.string(),
 })

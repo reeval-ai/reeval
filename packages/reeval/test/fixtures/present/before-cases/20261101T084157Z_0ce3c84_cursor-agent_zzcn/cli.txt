@@ -1,5 +1,5 @@
 Run 20261101T084157Z_0ce3c84_cursor-agent_zzcn
-10 of 13 counted attempts passed · 1s wall time · tokens not reported · cost not reported · 0ce3c84
+12 of 18 counted attempts passed · 1s wall time · tokens not reported · cost not reported · 0ce3c84
 
 PASS           rated
                67% passed · 2 of 3 attempts

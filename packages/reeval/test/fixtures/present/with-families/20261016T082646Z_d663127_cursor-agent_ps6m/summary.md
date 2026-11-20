@@ -1,6 +1,6 @@
 # Run 20261016T082646Z_d663127_cursor-agent_ps6m
 
-7 of 9 counted attempts passed · 13 infra errors. 9s wall time. Tokens: not reported. Cost: not reported. d663127.
+8 of 13 counted attempts passed · 13 infra errors. 9s wall time. Tokens: not reported. Cost: not reported. d663127.
 
 Run `20261016T082646Z_d663127_cursor-agent_ps6m` by cursor-agent, 2026-10-16, reeval 0.8.0, varying runs per cell.
 
@@ -308,9 +308,16 @@ Run `20261016T082646Z_d663127_cursor-agent_ps6m` by cursor-agent, 2026-10-16, re
 
 #### Pairwise: Which greeting reads more like our house style?
 
-| A | B | A won | B won | Ties |
-| --- | --- | --- | --- | --- |
-| plain | with-house-greeting | 0 of 2 | 2 of 2 | 0 ties |
+| Side | Won |
+| --- | --- |
+| plain | 0 of 2 |
+| with-house-greeting | 2 of 2 |
+
+0 ties.
+
+#### Not answered: Which greeting handles a missing name?
+
+The model call failed: Rate limit exceeded (429).
 
 ### Next
 

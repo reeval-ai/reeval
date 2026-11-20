@@ -1,6 +1,6 @@
 # Run 20261028T133333Z_709a56b_cursor-agent_e793
 
-7 of 8 counted attempts passed · 1 infra error. 28s wall time. Tokens: not reported. Cost: not reported. 709a56b.
+11 of 14 counted attempts passed · 1 infra error. 28s wall time. Tokens: not reported. Cost: not reported. 709a56b.
 
 Run `20261028T133333Z_709a56b_cursor-agent_e793` by cursor-agent, 2026-10-28, reeval 0.15.1, varying runs per cell.
 
@@ -213,9 +213,12 @@ Run `20261028T133333Z_709a56b_cursor-agent_e793` by cursor-agent, 2026-10-28, re
 
 #### Pairwise: Which greeting reads more like our house style?
 
-| A | B | A won | B won | Ties |
-| --- | --- | --- | --- | --- |
-| plain | with-house-greeting | 0 of 8 | 8 of 8 | 0 ties |
+| Side | Won |
+| --- | --- |
+| plain | 0 of 8 |
+| with-house-greeting | 8 of 8 |
+
+0 ties.
 
 #### Answers: How did the agent pick its greeting?
 
@@ -229,6 +232,10 @@ Run `20261028T133333Z_709a56b_cursor-agent_e793` by cursor-agent, 2026-10-28, re
 - It followed the prompt. ([A11](./evals-skill-eval-ts-house-greeting-writes-a-greeting-2c149c/fake-with-house-greeting-docker-a9116f/2/transcript.jsonl), Fake)
 - It followed the prompt. ([A13](./evals-skill-eval-ts-house-greeting-writes-a-greeting-2c149c/fake-with-house-greeting-docker-a9116f/3/transcript.jsonl), Fake)
 - It followed the prompt. ([A15](./evals-skill-eval-ts-house-greeting-writes-a-greeting-2c149c/fake-with-house-greeting-docker-a9116f/4/transcript.jsonl), Fake)
+
+#### Not answered: Which greeting handles a missing name?
+
+The model call failed: Rate limit exceeded (429).
 
 ### Next
 

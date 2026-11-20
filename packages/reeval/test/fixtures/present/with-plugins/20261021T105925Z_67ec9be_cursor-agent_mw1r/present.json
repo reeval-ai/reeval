@@ -90,7 +90,9 @@
       "anchor": "places-the-plugin",
       "name": "places the plugin",
       "file": "evals/review.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -228,7 +230,9 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     }
   ],
   "actions": [],

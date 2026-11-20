@@ -66,4 +66,4 @@ Evals: 1 pass.
 
 | ID | Eval | Coding harness | Outcome | Tokens | Agent time | Tool calls | Diff | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="attempt-evals-listed-eval-ts-listed-fake-listed-docker-1-9b45b07c"></a>A1 | listed | Fake | pass | not reported | 140ms | 2 | not recorded | [transcript](./evals-listed-eval-ts-listed-241a9d/fake-listed-docker-b8667d/1/transcript.jsonl), [diff](./evals-listed-eval-ts-listed-241a9d/fake-listed-docker-b8667d/1/diff.patch) |
+| <a id="attempt-evals-listed-eval-ts-listed-fake-listed-docker-1-9b45b07c"></a>A1 | listed | Fake | pass | not reported | 140ms | 2 | not recorded | [transcript](./evals-listed-eval-ts-listed-241a9d/fake-listed-docker-b8667d/1/transcript.jsonl), [diff](./evals-listed-eval-ts-listed-241a9d/fake-listed-docker-b8667d/1/diff.patch), [snapshot](./evals-listed-eval-ts-listed-241a9d/fake-listed-docker-b8667d/1/snapshots/final) |

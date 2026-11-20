@@ -1,6 +1,6 @@
 # Run 20261020T205330Z_da3d797_cursor-agent_1k52
 
-18 of 35 counted attempts passed · 1 infra error. 2s wall time. Tokens: not reported. Cost: not reported. da3d797.
+22 of 56 counted attempts passed · 1 infra error. 2s wall time. Tokens: not reported. Cost: not reported. da3d797.
 
 Run `20261020T205330Z_da3d797_cursor-agent_1k52` by cursor-agent, 2026-10-20, reeval 0.10.0, varying runs per cell.
 

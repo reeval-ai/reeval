@@ -98,7 +98,9 @@
       "anchor": "takes-its-time",
       "name": "takes its time",
       "file": "evals/slow.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 3 attempts",
       "state": "ran",
       "verdict": "pass",
@@ -282,7 +284,9 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 44% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 44% to 100%"
+      ]
     }
   ],
   "actions": [],

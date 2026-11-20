@@ -162,12 +162,17 @@ function sectionLines(
       ).map((l) => `${INDENT}${l}`)
     case 'questions':
       return e.questions.flatMap((q) => [
-        `${INDENT}${clip(q.question, free)}`,
+        `${INDENT}${clip(q.kind === 'pairwise' && q.cut ? `${q.question} (${q.cut})` : q.question, free)}`,
         q.kind === 'choices'
           ? `${INDENT}  ${q.options.map((o) => `${o.label} ${o.count.text}`).join(', ')}${q.noPick ? `, ${q.noPick}` : ''}`
           : q.kind === 'pairwise'
-            ? `${INDENT}  ${q.a} ${q.aWins.text}, ${q.b} ${q.bWins.text}, ${q.ties.text}`
-            : `${INDENT}  ${q.answered.text} answered`,
+            ? `${INDENT}  ${[...q.sides.map((s) => `${s.label} ${s.wins.text}`), q.ties.text].join(', ')}`
+            : q.kind === 'unanswered'
+              ? `${INDENT}  ${q.text}`
+              : `${INDENT}  ${q.answered.text} answered`,
+        ...(q.kind === 'answers'
+          ? q.entries.slice(0, 1).map((a) => `${INDENT}  ${a.harness}  ${clip(a.text, free - 2)}`)
+          : []),
       ])
     case 'judgments':
       return e.judgments.map(

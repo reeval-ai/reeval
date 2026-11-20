@@ -66,4 +66,4 @@ Evals: 1 pass.
 
 | ID | Eval | Coding harness | Outcome | Tokens | Agent time | Tool calls | Diff | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="attempt-evals-metadata-eval-ts-probes-metadata-fake-proxied-docker-1-ab67ed1c"></a>A1 | probes metadata | Fake | pass | not reported | 164ms | 2 | not recorded | [transcript](./evals-metadata-eval-ts-probes-metadata-c447b4/fake-proxied-docker-e69ee5/1/transcript.jsonl), [diff](./evals-metadata-eval-ts-probes-metadata-c447b4/fake-proxied-docker-e69ee5/1/diff.patch) |
+| <a id="attempt-evals-metadata-eval-ts-probes-metadata-fake-proxied-docker-1-ab67ed1c"></a>A1 | probes metadata | Fake | pass | not reported | 164ms | 2 | not recorded | [transcript](./evals-metadata-eval-ts-probes-metadata-c447b4/fake-proxied-docker-e69ee5/1/transcript.jsonl), [diff](./evals-metadata-eval-ts-probes-metadata-c447b4/fake-proxied-docker-e69ee5/1/diff.patch), [snapshot](./evals-metadata-eval-ts-probes-metadata-c447b4/fake-proxied-docker-e69ee5/1/snapshots/final) |

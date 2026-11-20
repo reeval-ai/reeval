@@ -1,5 +1,5 @@
 Run 20261021T130823Z_nogit_cursor-agent_kq9t
-3 of 5 counted attempts passed · 9s wall time · tokens not reported · cost not reported
+3 of 7 counted attempts passed · 9s wall time · tokens not reported · cost not reported
 
 FAIL           coin
                33% passed · 1 of 3 attempts

@@ -84,7 +84,9 @@
       "anchor": "writes-greetjs",
       "name": "writes greet.js",
       "file": "evals/greet.es.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -208,14 +210,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/greet.es.ts › greets in French",
       "anchor": "greets-in-french",
       "name": "greets in French",
       "file": "evals/greet.es.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 0 attempts",
       "state": "skipped",
       "verdict": "skipped",

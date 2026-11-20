@@ -416,18 +416,14 @@ describe('snapshots through the CLI', () => {
     assert.equal(app?.type === 'file' && app.data.toString(), 'export const answer = 42\n')
   })
 
-  test("a failed attempt's result block prints its snapshot with -v", async () => {
+  test("a failed attempt's snapshot is linked from summary.md's attempt index", async () => {
     const p = await project('snapshots-failed', {
       'reeval.config.ts': fakeConfig({ harness: WRITES }),
       'evals/app.eval.ts': evalFile('{}', 'something else'),
     })
     const run = await runCli(p.dir, ['run', '-v'])
     assert.equal(run.code, 1, run.stdout + run.stderr)
-    const { run: record } = readRun(p.dir)
-    assert.match(
-      run.stdout,
-      new RegExp(`Snapshot: \\.reeval/runs/${record.runId}/\\S+/1/snapshots/final`),
-    )
+    assert.match(readRun(p.dir).read('summary.md'), /\[snapshot\]\(\.\/\S+\/1\/snapshots\/final\)/)
   })
 
   test("debug.keep prunes older runs' snapshots, and reeval clean the rest", async () => {

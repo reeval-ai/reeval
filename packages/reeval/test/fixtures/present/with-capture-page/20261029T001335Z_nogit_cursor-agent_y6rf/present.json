@@ -100,7 +100,9 @@
       "anchor": "captures-a-page-that-renders",
       "name": "captures a page that renders",
       "file": "evals/pages.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -253,14 +255,18 @@
       "remarks": [
         "(note) 2 page errors in capture \"sign-up\", listed in evals-pages-eval-ts-captures-a-page-that-renders-96d33f/fake-site-docker-a17d85/1/artifacts/sign-up.capture.json"
       ],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/pages.eval.ts › captures a page that throws",
       "anchor": "captures-a-page-that-throws",
       "name": "captures a page that throws",
       "file": "evals/pages.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -413,14 +419,18 @@
       "remarks": [
         "(note) 1 page error in capture \"blank\", listed in evals-pages-eval-ts-captures-a-page-that-throws-01af2a/fake-site-docker-a17d85/1/artifacts/blank.capture.json"
       ],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/pages.eval.ts › captures a missing page",
       "anchor": "captures-a-missing-page",
       "name": "captures a missing page",
       "file": "evals/pages.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -571,7 +581,9 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     }
   ],
   "actions": [],
@@ -657,6 +669,10 @@
         {
           "name": "sign-up",
           "href": "./evals-pages-eval-ts-captures-a-page-that-renders-96d33f/fake-site-docker-a17d85/1/artifacts/sign-up.png"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-pages-eval-ts-captures-a-page-that-renders-96d33f/fake-site-docker-a17d85/1/snapshots/final"
         }
       ]
     },
@@ -693,6 +709,10 @@
         {
           "name": "blank",
           "href": "./evals-pages-eval-ts-captures-a-page-that-throws-01af2a/fake-site-docker-a17d85/1/artifacts/blank.png"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-pages-eval-ts-captures-a-page-that-throws-01af2a/fake-site-docker-a17d85/1/snapshots/final"
         }
       ]
     },
@@ -729,6 +749,10 @@
         {
           "name": "login",
           "href": "./evals-pages-eval-ts-captures-a-missing-page-a7187c/fake-site-docker-a17d85/1/artifacts/login.png"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-pages-eval-ts-captures-a-missing-page-a7187c/fake-site-docker-a17d85/1/snapshots/final"
         }
       ]
     }

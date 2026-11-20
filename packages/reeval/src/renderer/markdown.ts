@@ -123,14 +123,18 @@ function questionLines(q: Question): string[] {
       ]
     case 'pairwise':
       return [
-        `#### Pairwise: ${q.question}`,
+        `#### Pairwise: ${q.question}${q.cut ? ` (${q.cut})` : ''}`,
         '',
         table(
-          ['A', 'B', 'A won', 'B won', 'Ties'],
-          [[q.a, q.b, q.aWins.text, q.bWins.text, q.ties.text]],
+          ['Side', 'Won'],
+          q.sides.map((s) => [s.label, s.wins.text]),
         ),
         '',
+        `${q.ties.text}.`,
+        '',
       ]
+    case 'unanswered':
+      return [`#### Not answered: ${q.question}`, '', sentence(q.text), '']
     case 'answers': {
       const shown = q.entries.slice(0, ANSWERS_SHOWN)
       return [

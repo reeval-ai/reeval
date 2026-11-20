@@ -32,12 +32,12 @@
     },
     "counted": {
       "k": 2,
-      "n": 4,
-      "text": "2 of 4"
+      "n": 5,
+      "text": "2 of 5"
     },
     "infraError": 5,
     "canceled": 0,
-    "attempts": "2 of 4 counted attempts passed · 5 infra errors",
+    "attempts": "2 of 5 counted attempts passed · 5 infra errors",
     "servedBy": []
   },
   "tally": {
@@ -107,7 +107,9 @@
       "name": "Fake",
       "model": null,
       "label": "Fake",
-      "servedModels": ["fake-1[fast=true]"],
+      "servedModels": [
+        "fake-1[fast=true]"
+      ],
       "gateway": null,
       "attempts": {
         "value": 5,
@@ -133,7 +135,9 @@
       "anchor": "writes-greetjs",
       "name": "writes greet.js",
       "file": "evals/greet.es.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "2 coding harnesses, 2 attempts",
       "state": "ran",
       "verdict": "infra-error",
@@ -312,14 +316,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/greet.es.ts › fails its check",
       "anchor": "fails-its-check",
       "name": "fails its check",
       "file": "evals/greet.es.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "2 coding harnesses, 2 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -507,14 +515,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["0% passed, 95% CI 0% to 79%"]
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
     },
     {
       "id": "evals/greet.es.ts › fails its judge",
       "anchor": "fails-its-judge",
       "name": "fails its judge",
       "file": "evals/greet.es.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "2 coding harnesses, 2 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -713,14 +725,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["0% passed, 95% CI 0% to 79%"]
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
     },
     {
       "id": "evals/greet.es.ts › is skipped for now",
       "anchor": "is-skipped-for-now",
       "name": "is skipped for now",
       "file": "evals/greet.es.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "2 coding harnesses, 0 attempts",
       "state": "skipped",
       "verdict": "skipped",
@@ -754,7 +770,9 @@
       "anchor": "greets-in-welsh",
       "name": "greets in Welsh",
       "file": "evals/greet.es.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 0 attempts",
       "state": "todo",
       "verdict": "todo",
@@ -788,7 +806,9 @@
       "anchor": "greets-in-the-house-style",
       "name": "house greeting › greets in the house style",
       "file": "evals/skill.es.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "2 coding harnesses, 2 arms, 4 attempts",
       "state": "ran",
       "verdict": "infra-error",

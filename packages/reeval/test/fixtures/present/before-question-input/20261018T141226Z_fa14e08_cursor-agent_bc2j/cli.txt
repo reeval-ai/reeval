@@ -1,5 +1,5 @@
 Run 20261018T141226Z_fa14e08_cursor-agent_bc2j
-7 of 9 counted attempts passed · 13 infra errors · 27s wall time · tokens not reported · cost not reported · fa14e08
+8 of 13 counted attempts passed · 13 infra errors · 27s wall time · tokens not reported · cost not reported · fa14e08
 
 FAIL           greets %s
                plain 0% vs with-house-greeting 100%: too few runs, not by minLift 20 · 0 of 2 vs 2 of 2 attempts · left out: 4 infra errors
@@ -54,6 +54,8 @@ INFRA ERROR    house greeting › writes a greeting
                infra error, 2 of 4, all on broken: the fake sandbox fell over
                Which greeting reads more like our house style?
                  plain 0 of 2, with-house-greeting 2 of 2, 0 ties
+               Which greeting handles a missing name?
+                 The model call failed: Rate limit exceeded (429)
                Saturated: every arm hit 100% across all tasks. This comparison catches regressions; add harder tasks to separate variants.
 
 Evals: 3 fail · 5 infra errors · 1 skipped · 1 todo

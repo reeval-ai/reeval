@@ -1,5 +1,5 @@
 Run 20261025T201323Z_e097aaf_cursor-agent_9kkm
-7 of 9 counted attempts passed · 13 infra errors · 32s wall time · tokens not reported · cost not reported · e097aaf
+8 of 13 counted attempts passed · 13 infra errors · 32s wall time · tokens not reported · cost not reported · e097aaf
 
 FAIL           greets %s
                plain 0% vs with-house-greeting 100%: too few runs, not by minLift 20 · 0 of 2 vs 2 of 2 attempts · left out: 4 infra errors
@@ -50,6 +50,7 @@ INFRA ERROR    house greeting › greets in the house style
                  no 1 of 2, yes 1 of 2
                How did the agent pick its greeting?
                  2 of 2 answered
+                 Fake  It followed the prompt.
 
 INFRA ERROR    house greeting › writes a greeting
                plain 100% vs with-house-greeting 100%: too few runs · 1 of 1 vs 1 of 1 attempt · left out: 2 infra errors
@@ -62,6 +63,9 @@ INFRA ERROR    house greeting › writes a greeting
                  plain 0 of 2, with-house-greeting 2 of 2, 0 ties
                How did the agent pick its greeting?
                  2 of 2 answered
+                 Fake  It followed the prompt.
+               Which greeting handles a missing name?
+                 The model call failed: Rate limit exceeded (429)
                Saturated: every arm hit 100% across all tasks. This comparison catches regressions; add harder tasks to separate variants.
 
 Evals: 3 fail · 5 infra errors · 1 skipped · 1 todo

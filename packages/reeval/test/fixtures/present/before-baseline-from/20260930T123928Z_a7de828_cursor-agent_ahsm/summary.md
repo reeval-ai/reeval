@@ -1,6 +1,6 @@
 # Run 20260930T123928Z_a7de828_cursor-agent_ahsm
 
-3 of 5 counted attempts passed · 7 infra errors. 1s wall time. Tokens: not reported. Cost: not reported. a7de828.
+4 of 7 counted attempts passed · 7 infra errors. 1s wall time. Tokens: not reported. Cost: not reported. a7de828.
 
 Run `20260930T123928Z_a7de828_cursor-agent_ahsm` by cursor-agent, 2026-09-30, reeval 0.3.0, 1 run per cell.
 
@@ -202,9 +202,16 @@ Run `20260930T123928Z_a7de828_cursor-agent_ahsm` by cursor-agent, 2026-09-30, re
 
 #### Pairwise: Which greeting reads more like our house style?
 
-| A | B | A won | B won | Ties |
-| --- | --- | --- | --- | --- |
-| plain | with-house-greeting | 0 of 2 | 2 of 2 | 0 ties |
+| Side | Won |
+| --- | --- |
+| plain | 0 of 2 |
+| with-house-greeting | 2 of 2 |
+
+0 ties.
+
+#### Not answered: Which greeting handles a missing name?
+
+The model call failed: Rate limit exceeded (429).
 
 ### Next
 

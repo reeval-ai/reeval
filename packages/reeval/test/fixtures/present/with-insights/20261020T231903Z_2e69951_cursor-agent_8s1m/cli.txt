@@ -1,5 +1,5 @@
 Run 20261020T231903Z_2e69951_cursor-agent_8s1m
-22 of 41 counted attempts passed · 1 infra error · 2s wall time · tokens not reported · cost not reported · 2e69951
+26 of 62 counted attempts passed · 1 infra error · 2s wall time · tokens not reported · cost not reported · 2e69951
 
 FAIL           recommends Genkit for $task
                67% passed · 4 of 6 attempts

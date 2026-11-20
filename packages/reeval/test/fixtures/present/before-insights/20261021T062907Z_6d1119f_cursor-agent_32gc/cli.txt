@@ -1,5 +1,5 @@
 Run 20261021T062907Z_6d1119f_cursor-agent_32gc
-22 of 41 counted attempts passed · 1 infra error · 2s wall time · tokens not reported · cost not reported · 6d1119f
+26 of 62 counted attempts passed · 1 infra error · 2s wall time · tokens not reported · cost not reported · 6d1119f
 
 FAIL           recommends Genkit for $task
                67% passed · 4 of 6 attempts

@@ -62,4 +62,4 @@ Evals: 1 pass.
 
 | ID | Eval | Coding harness | Outcome | Tokens | Agent time | Tool calls | Diff | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="attempt-evals-vm-eval-ts-works-in-a-macos-vm-fake-tart-macos-sequoia-11eaeeb0"></a>A1 | works in a macOS VM | Fake | pass | not reported | 0ms | 0 | not recorded | [transcript](./evals-vm-eval-ts-works-in-a-macos-vm-92d8e0/fake-tart-macos-sequoia-base-15-6-8c94ed/1/transcript.jsonl), [diff](./evals-vm-eval-ts-works-in-a-macos-vm-92d8e0/fake-tart-macos-sequoia-base-15-6-8c94ed/1/diff.patch) |
+| <a id="attempt-evals-vm-eval-ts-works-in-a-macos-vm-fake-tart-macos-sequoia-11eaeeb0"></a>A1 | works in a macOS VM | Fake | pass | not reported | 0ms | 0 | not recorded | [transcript](./evals-vm-eval-ts-works-in-a-macos-vm-92d8e0/fake-tart-macos-sequoia-base-15-6-8c94ed/1/transcript.jsonl), [diff](./evals-vm-eval-ts-works-in-a-macos-vm-92d8e0/fake-tart-macos-sequoia-base-15-6-8c94ed/1/diff.patch), [snapshot](./evals-vm-eval-ts-works-in-a-macos-vm-92d8e0/fake-tart-macos-sequoia-base-15-6-8c94ed/1/snapshots/final) |

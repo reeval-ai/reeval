@@ -290,6 +290,7 @@ export class PlainRenderer implements Renderer {
           verbose: (this.#o.verbosity ?? 0) > 0,
           width: this.#columns,
           pointer: pointerLine(e.summaryPath),
+          ...(e.notRun ? { notRun: e.notRun } : {}),
         })
         for (const line of lines) this.#write(line)
         return

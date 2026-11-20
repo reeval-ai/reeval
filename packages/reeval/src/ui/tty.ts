@@ -483,6 +483,7 @@ export class InteractiveRenderer implements Renderer {
         verbose,
         width: sizeOf(this.#o.out as NodeJS.WriteStream).columns,
         pointer,
+        ...(event.notRun ? { notRun: event.notRun } : {}),
       }),
       ...(status ? [status] : []),
     ]

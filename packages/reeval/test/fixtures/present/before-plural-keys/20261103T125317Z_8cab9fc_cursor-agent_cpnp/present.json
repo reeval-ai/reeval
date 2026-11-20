@@ -32,12 +32,12 @@
     },
     "counted": {
       "k": 0,
-      "n": 3,
-      "text": "0 of 3"
+      "n": 5,
+      "text": "0 of 5"
     },
     "infraError": 0,
     "canceled": 0,
-    "attempts": "0 of 3 counted attempts passed",
+    "attempts": "0 of 5 counted attempts passed",
     "servedBy": []
   },
   "tally": {
@@ -107,7 +107,9 @@
       "anchor": "discovery-s",
       "name": "discovery: %s",
       "file": "evals/discovery.eval.ts",
-      "shapes": ["A/B"],
+      "shapes": [
+        "A/B"
+      ],
       "design": "2 prompts, 1 coding harness, 2 arms, 4 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -115,12 +117,41 @@
       "headline": {
         "task": "discovery: %s",
         "metric": {
-          "kind": "rate",
-          "value": {
-            "value": 0,
-            "text": "0%"
+          "kind": "compare",
+          "baseline": {
+            "label": "plain",
+            "rate": {
+              "k": 0,
+              "n": 2,
+              "rate": 0,
+              "text": "0%",
+              "of": "0 of 2",
+              "interval": "0% to 66%"
+            }
           },
-          "label": "passed",
+          "variant": {
+            "label": "with-skill",
+            "rate": {
+              "k": 0,
+              "n": 2,
+              "rate": 0,
+              "text": "0%",
+              "of": "0 of 2",
+              "interval": "0% to 66%"
+            }
+          },
+          "effect": null,
+          "effectText": null
+        },
+        "foot": "0 of 2 vs 0 of 2 attempts",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "plain",
+          "label": "plain",
+          "role": "baseline",
+          "gated": false,
           "rate": {
             "k": 0,
             "n": 2,
@@ -128,24 +159,42 @@
             "text": "0%",
             "of": "0 of 2",
             "interval": "0% to 66%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
           }
         },
-        "foot": "0 of 2 attempts",
-        "left": null
-      },
-      "arms": [
         {
-          "id": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
-          "label": "plain",
-          "role": "baseline",
-          "gated": false,
+          "id": "with-skill",
+          "label": "with-skill",
+          "role": "variant",
+          "gated": true,
           "rate": {
             "k": 0,
-            "n": 4,
+            "n": 2,
             "rate": 0,
             "text": "0%",
-            "of": "0 of 4",
-            "interval": "0% to 49%"
+            "of": "0 of 2",
+            "interval": "0% to 66%"
           },
           "infraError": 0,
           "canceled": 0,
@@ -177,7 +226,7 @@
           "key": "evals/discovery.eval.ts › discovery: add user authentication # fake/plain/fake#1",
           "href": "./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-plain-fake-57f9db/1/transcript.jsonl",
           "harness": "Fake",
-          "arm": null,
+          "arm": "plain",
           "case": "add user authentication",
           "outcome": "fail",
           "outcomeText": "fail",
@@ -200,7 +249,7 @@
           "key": "evals/discovery.eval.ts › discovery: add user authentication # fake/with-skill/fake#1",
           "href": "./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
           "harness": "Fake",
-          "arm": null,
+          "arm": "with-skill",
           "case": "add user authentication",
           "outcome": "fail",
           "outcomeText": "fail",
@@ -223,7 +272,7 @@
           "key": "evals/discovery.eval.ts › discovery: add social login and email/password auth # fake/plain/fake#1",
           "href": "./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-plain-fake-57f9db/1/transcript.jsonl",
           "harness": "Fake",
-          "arm": null,
+          "arm": "plain",
           "case": "add social login and email/password auth",
           "outcome": "fail",
           "outcomeText": "fail",
@@ -246,7 +295,7 @@
           "key": "evals/discovery.eval.ts › discovery: add social login and email/password auth # fake/with-skill/fake#1",
           "href": "./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
           "harness": "Fake",
-          "arm": null,
+          "arm": "with-skill",
           "case": "add social login and email/password auth",
           "outcome": "fail",
           "outcomeText": "fail",
@@ -350,7 +399,30 @@
       ],
       "effort": [
         {
-          "label": "all attempts",
+          "label": "plain",
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "toolCalls": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "label": "with-skill",
           "tokens": {
             "value": null,
             "text": "no passing attempts"
@@ -380,14 +452,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["0% passed, 95% CI 0% to 66%", "task average 0%"]
+      "stats": [
+        "task average 0%"
+      ]
     },
     {
       "id": "evals/options.eval.ts › renamed options › writes greet.js",
       "anchor": "writes-greetjs",
       "name": "renamed options › writes greet.js",
       "file": "evals/options.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "fail",
@@ -546,7 +622,9 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["0% passed, 95% CI 0% to 79%"]
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
     }
   ],
   "actions": [],
@@ -601,7 +679,7 @@
       "anchor": "attempt-evals-discovery-eval-ts-discovery-add-user-authentication-fa-337001ea",
       "eval": "discovery: %s",
       "harness": "Fake",
-      "arm": null,
+      "arm": "plain",
       "case": "add user authentication",
       "outcomeText": "fail",
       "tokens": {
@@ -625,6 +703,10 @@
         {
           "name": "diff",
           "href": "./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-plain-fake-57f9db/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-plain-fake-57f9db/1/snapshots/final"
         }
       ]
     },
@@ -633,7 +715,7 @@
       "anchor": "attempt-evals-discovery-eval-ts-discovery-add-user-authentication-fa-f2b6cfbf",
       "eval": "discovery: %s",
       "harness": "Fake",
-      "arm": null,
+      "arm": "with-skill",
       "case": "add user authentication",
       "outcomeText": "fail",
       "tokens": {
@@ -657,6 +739,10 @@
         {
           "name": "diff",
           "href": "./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-with-skill-fake-14b6ac/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-with-skill-fake-14b6ac/1/snapshots/final"
         }
       ]
     },
@@ -665,7 +751,7 @@
       "anchor": "attempt-evals-discovery-eval-ts-discovery-add-social-login-and-email-8cd5764c",
       "eval": "discovery: %s",
       "harness": "Fake",
-      "arm": null,
+      "arm": "plain",
       "case": "add social login and email/password auth",
       "outcomeText": "fail",
       "tokens": {
@@ -689,6 +775,10 @@
         {
           "name": "diff",
           "href": "./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-plain-fake-57f9db/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-plain-fake-57f9db/1/snapshots/final"
         }
       ]
     },
@@ -697,7 +787,7 @@
       "anchor": "attempt-evals-discovery-eval-ts-discovery-add-social-login-and-email-cb4c258a",
       "eval": "discovery: %s",
       "harness": "Fake",
-      "arm": null,
+      "arm": "with-skill",
       "case": "add social login and email/password auth",
       "outcomeText": "fail",
       "tokens": {
@@ -721,6 +811,10 @@
         {
           "name": "diff",
           "href": "./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-with-skill-fake-14b6ac/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-with-skill-fake-14b6ac/1/snapshots/final"
         }
       ]
     },
@@ -753,6 +847,10 @@
         {
           "name": "diff",
           "href": "./evals-options-eval-ts-renamed-options-writes-greet-js-b9f9b0/fake-app-fake-e80a19/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-options-eval-ts-renamed-options-writes-greet-js-b9f9b0/fake-app-fake-e80a19/1/snapshots/final"
         }
       ]
     }

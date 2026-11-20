@@ -187,7 +187,7 @@ type ArmDef = { id: string; env: string; label: string; role: ArmRow['role']; ga
 const armLabel = (env: string, label: string) => (env === '-' ? 'baseline' : label)
 
 function armDefs(attempts: readonly AttemptIndexRow[], cmp: VariantComparison | null): ArmDef[] {
-  if (cmp?.arms.length) {
+  if (cmp && cmp.arms.length > 1) {
     return cmp.arms.map((a) => ({
       id: a.id,
       env: a.environment,
@@ -447,15 +447,20 @@ function casesOf(s: EvalSection): CaseRow[] {
   const p = s.primary
   const tasks = p && p.kind !== 'regression' ? p.tasks : undefined
   if (!tasks || tasks.length < 2) return []
+  const columns = [...new Set(tasks.flatMap((t) => Object.keys(t.cells)))]
+  const total = tasks.some((t) => t.total)
   return tasks.map((t) => ({
     label: t.label,
     cells: [
-      ...Object.entries(t.cells).map(([column, cell]) => ({
-        column: column === '-' ? 'baseline' : column,
-        rate: cell.rate.n > 0 ? rate(cell.rate) : null,
-      })),
-      ...(t.total
-        ? [{ column: 'total', rate: t.total.rate.n > 0 ? rate(t.total.rate) : null }]
+      ...columns.map((column) => {
+        const cell = t.cells[column]
+        return {
+          column: column === '-' ? 'baseline' : column,
+          rate: cell && cell.rate.n > 0 ? rate(cell.rate) : null,
+        }
+      }),
+      ...(total
+        ? [{ column: 'total', rate: t.total && t.total.rate.n > 0 ? rate(t.total.rate) : null }]
         : []),
     ],
   }))
@@ -488,15 +493,25 @@ function questionsOf(s: EvalSection, label: (id: string) => string): Question[] 
       noPick: c.noPick ? `${c.noPick} without a pick` : null,
     })
   }
-  for (const p of s.judgments?.pairwise ?? []) {
+  const pairwise = s.judgments?.pairwise ?? []
+  const groups = new Map<string, typeof pairwise>()
+  for (const p of pairwise) {
+    const key = JSON.stringify([p.question, p.cut])
+    groups.set(key, [...(groups.get(key) ?? []), p])
+  }
+  for (const rows of groups.values()) {
+    const [first] = rows
+    if (!first) continue
+    const cuts = new Set(pairwise.filter((p) => p.question === first.question).map((p) => p.cut))
     out.push({
       kind: 'pairwise',
-      question: p.question,
-      a: armLabel(p.a, p.a),
-      b: armLabel(p.b, p.b),
-      aWins: count(p.aWins, p.pairs),
-      bWins: count(p.bWins, p.pairs),
-      ties: figure(p.ties, plural(p.ties, 'tie')),
+      question: first.question,
+      cut: cuts.size > 1 ? first.cut : null,
+      sides: rows.flatMap((p) => [
+        { label: armLabel(p.a, p.a), wins: count(p.aWins, p.pairs) },
+        ...(p.b === 'rest' ? [] : [{ label: armLabel(p.b, p.b), wins: count(p.bWins, p.pairs) }]),
+      ]),
+      ties: figure(first.ties, plural(first.ties, 'tie')),
     })
   }
   for (const q of s.qualitative) {
@@ -510,6 +525,17 @@ function questionsOf(s: EvalSection, label: (id: string) => string): Question[] 
         cite: cite(e.attempt),
       })),
     })
+  }
+  for (const u of s.unanswered ?? []) {
+    const blank = (q: Question) =>
+      q.question === u.question &&
+      ((q.kind === 'answers' && q.answered.k === 0) ||
+        (q.kind === 'choices' && q.options.every((o) => o.count.k === 0)))
+    const at = out.findLastIndex((q) => q.question === u.question)
+    const entry: Question = { kind: 'unanswered', question: u.question, text: u.text }
+    if (at === -1) out.push(entry)
+    else if (blank(out[at] as Question)) out[at] = entry
+    else out.splice(at + 1, 0, entry)
   }
   return out
 }
@@ -528,7 +554,9 @@ function presentEval(
     armOf(
       d,
       attempts,
-      cmp?.summary.find((r) => r.arm === d.label || r.arm === d.id || r.arm === d.env),
+      cmp && cmp.arms.length > 1
+        ? cmp.summary.find((r) => r.arm === d.label || r.arm === d.id || r.arm === d.env)
+        : undefined,
       graded,
     ),
   )
@@ -689,7 +717,12 @@ function harnessesOf(report: RunReport): HarnessRow[] {
 }
 
 /** The presentation of a run report: every surface renders this and nothing else. */
-export function present(report: RunReport): RunPresentation {
+export function present(full: RunReport): RunPresentation {
+  // A record can keep a skipped attempt that had started; it has no outcome to show.
+  const report = {
+    ...full,
+    attempts: full.attempts.filter((a) => (a.outcome as string) !== 'skipped'),
+  }
   const h = report.header
   const harnesses = harnessesOf(report)
   const labelOf = new Map(harnesses.map((x) => [x.id, x.label]))
@@ -756,6 +789,8 @@ export function present(report: RunReport): RunPresentation {
         )
       : null
   const p = report.provenance
+  const passedAll = h.tally.passed + h.tally.ungated.passed
+  const countedAll = h.tally.counted + h.tally.ungated.passed + h.tally.ungated.failed - canceled
   return {
     presentationVersion: 1,
     header: {
@@ -779,11 +814,11 @@ export function present(report: RunReport): RunPresentation {
       wall: h.wall,
       tokens: h.tokens?.total ?? tokensFigure(null),
       cost: cost ?? figure(null, NOT_REPORTED),
-      counted: count(h.tally.passed, h.tally.counted - canceled),
+      counted: count(passedAll, countedAll),
       infraError: infra,
       canceled,
       attempts: [
-        `${h.tally.passed} of ${plural(h.tally.counted - canceled, 'counted attempt')} passed`,
+        `${passedAll} of ${plural(countedAll, 'counted attempt')} passed`,
         infra ? plural(infra, 'infra error') : null,
         canceled ? `${canceled} canceled` : null,
       ]
@@ -837,6 +872,7 @@ export function present(report: RunReport): RunPresentation {
         ...(a.links.diff ? [{ name: 'diff', href: a.links.diff }] : []),
         ...a.links.captures,
         ...a.links.questions.map((href, i) => ({ name: `q${i + 1}`, href })),
+        ...(a.links.snapshot ? [{ name: 'snapshot', href: a.links.snapshot }] : []),
       ],
     })),
   }

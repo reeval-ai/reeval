@@ -84,7 +84,9 @@
       "anchor": "works-in-a-macos-vm",
       "name": "works in a macOS VM",
       "file": "evals/vm.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -222,7 +224,9 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     }
   ],
   "actions": [],
@@ -301,6 +305,10 @@
         {
           "name": "diff",
           "href": "./evals-vm-eval-ts-works-in-a-macos-vm-92d8e0/fake-tart-macos-sequoia-base-15-6-8c94ed/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-vm-eval-ts-works-in-a-macos-vm-92d8e0/fake-tart-macos-sequoia-base-15-6-8c94ed/1/snapshots/final"
         }
       ]
     }

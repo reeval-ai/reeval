@@ -42,15 +42,15 @@ describe('named check results', () => {
     const p = await compareProject('checks-compare')
     const r = await runCli(p.dir)
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    // The eval list names the failed check and the arm it failed on; a passing compare stays open.
+    // The eval names the failed check and the arm it failed on.
     assert.match(
       r.stdout,
-      /^ {5}✗ house style {2}failed on the control 2 of 2 · expected\n {7}expected file styled\.txt to exist · evals\/s\.eval\.ts:12$/m,
+      /^ +failed check, 2 of 4, all on plain, not gated: house style\n +expected file styled\.txt to exist\n +at evals\/s\.eval\.ts:12$/m,
     )
     assert.doesNotMatch(r.stdout, /toSucceed/, 'a check that never ran did not fail')
     // Assertions by arm: house style fails on the control; toSucceed is n/a there (never reached).
     const matrix =
-      /## Assertions by arm[\s\S]*\| house style \| toHaveFile \| 0 of 2 \| 2 of 2 \|[\s\S]*\| toSucceed test -f ok\.txt \| toSucceed \| n\/a \| 2 of 2 \|/
+      /### Checks[\s\S]*\| house style \| toHaveFile \| [^|]+ \| 0 of 2 \| 2 of 2 \|[\s\S]*\| toSucceed test -f ok\.txt \| toSucceed \| [^|]+ \| n\/a \| 2 of 2 \|/
 
     const { run, read } = readRun(p.dir)
     const entry = run.evals[0]
@@ -124,7 +124,7 @@ describe('named check results', () => {
     ])
 
     const agent = await runCli(p.dir, ['run'], { env: { REEVAL_UI: 'agent' } })
-    assert.match(agent.stdout, /^ {4}✗ house style {2}failed on the control 2 of 2 · expected$/m)
+    assert.match(agent.stdout, /^ +failed check, 2 of 4, all on plain, not gated: house style$/m)
   })
 
   test('a check both arms fail names the variant, then the ungated control as such', async () => {
@@ -143,10 +143,8 @@ evaluate('greets', { compare: { control: plain, variants: [styled] }, runs: 2 },
     })
     const r = await runCli(p.dir)
     assert.equal(r.code, 1, r.stdout + r.stderr)
-    assert.match(
-      r.stdout,
-      /✗ writes ok\.txt {2}failed on styled 2 of 2 · the control 2 of 2 too, which isn't gated$/m,
-    )
+    assert.match(r.stdout, /^ +plain +0% +0 of 2 +baseline\n +styled +0% +0 of 2 +variant$/m)
+    assert.match(r.stdout, /^ +failed check, 4 of 4: writes ok\.txt$/m)
   })
 
   test('without a compare the attempts record their assertions and the result has no check matrix', async () => {

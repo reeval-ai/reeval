@@ -31,13 +31,13 @@
       "text": "not reported"
     },
     "counted": {
-      "k": 7,
-      "n": 9,
-      "text": "7 of 9"
+      "k": 8,
+      "n": 13,
+      "text": "8 of 13"
     },
     "infraError": 13,
     "canceled": 0,
-    "attempts": "7 of 9 counted attempts passed · 13 infra errors",
+    "attempts": "8 of 13 counted attempts passed · 13 infra errors",
     "servedBy": []
   },
   "tally": {
@@ -179,7 +179,9 @@
       "name": "Fake",
       "model": null,
       "label": "Fake",
-      "servedModels": ["fake-1[fast=true]"],
+      "servedModels": [
+        "fake-1[fast=true]"
+      ],
       "gateway": null,
       "attempts": {
         "value": 13,
@@ -205,7 +207,9 @@
       "anchor": "greets-s",
       "name": "greets %s",
       "file": "evals/cases.eval.ts",
-      "shapes": ["A/B"],
+      "shapes": [
+        "A/B"
+      ],
       "design": "2 prompts, 2 coding harnesses, 2 arms, 8 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -690,14 +694,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["with-house-greeting +100 pts (95% CI +7 pts to +100 pts)"]
+      "stats": [
+        "with-house-greeting +100 pts (95% CI +7 pts to +100 pts)"
+      ]
     },
     {
       "id": "evals/cases.eval.ts › writes greet.js for Ada",
       "anchor": "writes-greetjs-for-ada",
       "name": "writes greet.js for Ada",
       "file": "evals/cases.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "2 coding harnesses, 2 attempts",
       "state": "ran",
       "verdict": "infra-error",
@@ -883,14 +891,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/cases.eval.ts › writes greet.js for Grace",
       "anchor": "writes-greetjs-for-grace",
       "name": "writes greet.js for Grace",
       "file": "evals/cases.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "2 coding harnesses, 2 attempts",
       "state": "ran",
       "verdict": "infra-error",
@@ -1076,14 +1088,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/greet.eval.ts › writes greet.js",
       "anchor": "writes-greetjs",
       "name": "writes greet.js",
       "file": "evals/greet.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "2 coding harnesses, 2 attempts",
       "state": "ran",
       "verdict": "infra-error",
@@ -1301,14 +1317,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/greet.eval.ts › fails its check",
       "anchor": "fails-its-check",
       "name": "fails its check",
       "file": "evals/greet.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "2 coding harnesses, 2 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -1514,14 +1534,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["0% passed, 95% CI 0% to 79%"]
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
     },
     {
       "id": "evals/greet.eval.ts › fails its judge",
       "anchor": "fails-its-judge",
       "name": "fails its judge",
       "file": "evals/greet.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "2 coding harnesses, 2 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -1742,14 +1766,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["0% passed, 95% CI 0% to 79%"]
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
     },
     {
       "id": "evals/greet.eval.ts › is skipped for now",
       "anchor": "is-skipped-for-now",
       "name": "is skipped for now",
       "file": "evals/greet.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "2 coding harnesses, 0 attempts",
       "state": "skipped",
       "verdict": "skipped",
@@ -1783,7 +1811,9 @@
       "anchor": "greets-in-welsh",
       "name": "greets in Welsh",
       "file": "evals/greet.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 0 attempts",
       "state": "todo",
       "verdict": "todo",
@@ -1817,7 +1847,9 @@
       "anchor": "greets-in-the-house-style",
       "name": "house greeting › greets in the house style",
       "file": "evals/skill.eval.ts",
-      "shapes": ["A/B"],
+      "shapes": [
+        "A/B"
+      ],
       "design": "2 coding harnesses, 2 arms, 4 attempts",
       "state": "ran",
       "verdict": "infra-error",
@@ -2211,14 +2243,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["with-house-greeting +100 pts (95% CI -12 pts to +100 pts)"]
+      "stats": [
+        "with-house-greeting +100 pts (95% CI -12 pts to +100 pts)"
+      ]
     },
     {
       "id": "evals/skill.eval.ts › house greeting › writes a greeting",
       "anchor": "writes-a-greeting",
       "name": "house greeting › writes a greeting",
       "file": "evals/skill.eval.ts",
-      "shapes": ["A/B"],
+      "shapes": [
+        "A/B"
+      ],
       "design": "2 coding harnesses, 2 arms, 4 attempts",
       "state": "ran",
       "verdict": "infra-error",
@@ -2526,18 +2562,25 @@
         {
           "kind": "pairwise",
           "question": "Which greeting reads more like our house style?",
-          "a": "plain",
-          "b": "with-house-greeting",
-          "aWins": {
-            "k": 0,
-            "n": 2,
-            "text": "0 of 2"
-          },
-          "bWins": {
-            "k": 2,
-            "n": 2,
-            "text": "2 of 2"
-          },
+          "cut": null,
+          "sides": [
+            {
+              "label": "plain",
+              "wins": {
+                "k": 0,
+                "n": 2,
+                "text": "0 of 2"
+              }
+            },
+            {
+              "label": "with-house-greeting",
+              "wins": {
+                "k": 2,
+                "n": 2,
+                "text": "2 of 2"
+              }
+            }
+          ],
           "ties": {
             "value": 0,
             "text": "0 ties"
@@ -2569,6 +2612,11 @@
               }
             }
           ]
+        },
+        {
+          "kind": "unanswered",
+          "question": "Which greeting handles a missing name?",
+          "text": "The model call failed: Rate limit exceeded (429)"
         }
       ],
       "judgments": [],
@@ -2579,7 +2627,9 @@
       "remarks": [
         "Saturated: every arm hit 100% across all tasks. This comparison catches regressions; add harder tasks to separate variants."
       ],
-      "stats": ["with-house-greeting ±0 pts (95% CI -79 pts to +79 pts)"]
+      "stats": [
+        "with-house-greeting ±0 pts (95% CI -79 pts to +79 pts)"
+      ]
     }
   ],
   "actions": [],

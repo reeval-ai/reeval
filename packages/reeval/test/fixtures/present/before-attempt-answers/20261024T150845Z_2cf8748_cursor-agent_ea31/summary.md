@@ -1,6 +1,6 @@
 # Run 20261024T150845Z_2cf8748_cursor-agent_ea31
 
-7 of 9 counted attempts passed · 13 infra errors. 32s wall time. Tokens: not reported. Cost: not reported. 2cf8748.
+8 of 13 counted attempts passed · 13 infra errors. 32s wall time. Tokens: not reported. Cost: not reported. 2cf8748.
 
 Run `20261024T150845Z_2cf8748_cursor-agent_ea31` by cursor-agent, 2026-10-24, reeval 0.13.0, varying runs per cell.
 
@@ -354,9 +354,16 @@ Run `20261024T150845Z_2cf8748_cursor-agent_ea31` by cursor-agent, 2026-10-24, re
 
 #### Pairwise: Which greeting reads more like our house style?
 
-| A | B | A won | B won | Ties |
-| --- | --- | --- | --- | --- |
-| plain | with-house-greeting | 0 of 2 | 2 of 2 | 0 ties |
+| Side | Won |
+| --- | --- |
+| plain | 0 of 2 |
+| with-house-greeting | 2 of 2 |
+
+0 ties.
+
+#### Not answered: Which greeting handles a missing name?
+
+The model call failed: Rate limit exceeded (429).
 
 ### Next
 

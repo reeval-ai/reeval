@@ -102,5 +102,5 @@ Evals: 1 fail · 1 pass.
 
 | ID | Eval | Coding harness | Outcome | Tokens | Agent time | Tool calls | Diff | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="attempt-evals-canary-eval-ts-canary-fake-busy-docker-1-115b72c5"></a>A1 | canary | Fake | fail | not reported | 0ms | 0 | not recorded | n/a |
-| <a id="attempt-evals-lands-eval-ts-lands-fake-busy-docker-1-2ad5830f"></a>A2 | lands | Fake | pass | not reported | 0ms | 0 | not recorded | n/a |
+| <a id="attempt-evals-canary-eval-ts-canary-fake-busy-docker-1-115b72c5"></a>A1 | canary | Fake | fail | not reported | 0ms | 0 | not recorded | [snapshot](./evals-canary-eval-ts-canary-d06886/fake-busy-docker-bb19e8/1/snapshots/final) |
+| <a id="attempt-evals-lands-eval-ts-lands-fake-busy-docker-1-2ad5830f"></a>A2 | lands | Fake | pass | not reported | 0ms | 0 | not recorded | [snapshot](./evals-lands-eval-ts-lands-2fc777/fake-busy-docker-bb19e8/1/snapshots/final) |

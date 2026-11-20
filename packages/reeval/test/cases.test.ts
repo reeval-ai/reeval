@@ -190,7 +190,7 @@ evaluate('rated', { cases: ['a', 'b', 'c', 'd', 'e'], gate: { passRate: 0.7 } },
 })
 
 describe('reeval run prints an eval with cases', () => {
-  test('the compact count says how many hidden cases failed, and a check names their runs', async () => {
+  test('the case table gives each case its rate, and the interactive list opens it at five rows', async () => {
     const keys = Array.from({ length: 12 }, (_, i) => `q${i + 1}`)
     const p = await project('cases-compact-count', {
       'reeval.config.ts': fakeConfig(),
@@ -203,8 +203,9 @@ evaluate('bank', { cases: ${JSON.stringify(keys)}, runs: 2 }, async (c, k) => {
     })
     const r = await runCli(p.dir, ['run', '--ui', 'plain'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
-    assert.match(r.stdout, /\+4 more cases: 2 failed, 2 passed \(-v\)$/m)
-    assert.match(r.stdout, /ok {2}failed on q1 \(2 of 2 runs\), q2 \(2 of 2 runs\)/)
+    assert.match(r.stdout, /^ +q1 +0% +0 of 2$/m)
+    assert.match(r.stdout, /^ +q12 +100% +2 of 2$/m)
+    assert.match(r.stdout, /^ +failed check, 20 of 24: ok$/m)
 
     const { run } = readRun(p.dir)
     const [row] = statusList({
@@ -242,9 +243,9 @@ evaluate(
     const r = await runCli(p.dir, ['run', '--ui', 'plain', '-v'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.equal(
-      r.stdout.match(/paired over 6 cases, 95% interval [−+]\d+…[−+]\d+ points/g)?.length,
+      r.stdout.match(/^ +skilled \+100 pts \(95% CI [-+]\d+ pts to [-+]\d+ pts\)$/gm)?.length,
       1,
     )
-    assert.doesNotMatch(r.stdout, /difference [−+]\d+ points/, 'no unpaired difference per case')
+    assert.equal(r.stdout.match(/95% CI/g)?.length, 1, 'no unpaired difference per case')
   })
 })

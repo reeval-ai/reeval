@@ -103,7 +103,9 @@
       "anchor": "edits-through-a-subagent",
       "name": "edits through a subagent",
       "file": "subagent.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "3 coding harnesses, 3 attempts",
       "state": "ran",
       "verdict": "pass",
@@ -362,7 +364,9 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 44% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 44% to 100%"
+      ]
     }
   ],
   "actions": [],
@@ -453,6 +457,10 @@
         {
           "name": "diff",
           "href": "./subagent-eval-ts-edits-through-a-subagent-8d6785/cursor-composer-2-5-puzzle-docker-e8df09/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./subagent-eval-ts-edits-through-a-subagent-8d6785/cursor-composer-2-5-puzzle-docker-e8df09/1/snapshots/final"
         }
       ]
     },
@@ -485,6 +493,10 @@
         {
           "name": "diff",
           "href": "./subagent-eval-ts-edits-through-a-subagent-8d6785/claude-code-claude-sonnet-5-effort-medium-puzzle-docker-f3d2d8/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./subagent-eval-ts-edits-through-a-subagent-8d6785/claude-code-claude-sonnet-5-effort-medium-puzzle-docker-f3d2d8/1/snapshots/final"
         }
       ]
     },
@@ -517,6 +529,10 @@
         {
           "name": "diff",
           "href": "./subagent-eval-ts-edits-through-a-subagent-8d6785/codex-gpt-5-6-luna-effort-medium-puzzle-docker-e17139/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./subagent-eval-ts-edits-through-a-subagent-8d6785/codex-gpt-5-6-luna-effort-medium-puzzle-docker-e17139/1/snapshots/final"
         }
       ]
     }

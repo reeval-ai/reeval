@@ -1,5 +1,5 @@
 Run 20261102T195335Z_f81fd99_cursor-agent_ah0s
-10 of 13 counted attempts passed · 1s wall time · tokens not reported · cost not reported · f81fd99
+12 of 18 counted attempts passed · 1s wall time · tokens not reported · cost not reported · f81fd99
 
 PASS           rated
                67% passed · 2 of 3 attempts

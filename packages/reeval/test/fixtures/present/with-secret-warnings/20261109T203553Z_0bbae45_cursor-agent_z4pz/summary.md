@@ -65,4 +65,4 @@ Evals: 1 pass.
 
 | ID | Eval | Coding harness | Outcome | Tokens | Agent time | Tool calls | Diff | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="attempt-evals-sends-eval-ts-sends-the-key-off-its-host-fake-keys-doc-e840a9ae"></a>A1 | sends the key off its host | Fake | pass | not reported | 119ms | 1 | not recorded | [transcript](./evals-sends-eval-ts-sends-the-key-off-its-host-7fc63b/fake-keys-docker-a10e17/1/transcript.jsonl), [diff](./evals-sends-eval-ts-sends-the-key-off-its-host-7fc63b/fake-keys-docker-a10e17/1/diff.patch) |
+| <a id="attempt-evals-sends-eval-ts-sends-the-key-off-its-host-fake-keys-doc-e840a9ae"></a>A1 | sends the key off its host | Fake | pass | not reported | 119ms | 1 | not recorded | [transcript](./evals-sends-eval-ts-sends-the-key-off-its-host-7fc63b/fake-keys-docker-a10e17/1/transcript.jsonl), [diff](./evals-sends-eval-ts-sends-the-key-off-its-host-7fc63b/fake-keys-docker-a10e17/1/diff.patch), [snapshot](./evals-sends-eval-ts-sends-the-key-off-its-host-7fc63b/fake-keys-docker-a10e17/1/snapshots/final) |

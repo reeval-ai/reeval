@@ -160,7 +160,9 @@
       "anchor": "writes-hellotxt",
       "name": "writes hello.txt",
       "file": "evals/hello.es.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "7 coding harnesses, 7 attempts",
       "state": "ran",
       "verdict": "pass",
@@ -571,7 +573,9 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 65% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 65% to 100%"
+      ]
     }
   ],
   "actions": [],

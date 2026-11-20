@@ -206,8 +206,9 @@ export function sectionTexts(p: RunPresentation, s: Section): string[] {
     case 'questions':
       for (const q of e?.questions ?? []) {
         if (q.kind === 'choices') for (const o of q.options) out.push(o.count.text)
-        if (q.kind === 'pairwise') out.push(q.aWins.text, q.bWins.text, q.ties.text)
+        if (q.kind === 'pairwise') out.push(...q.sides.map((s) => s.wins.text), q.ties.text)
         if (q.kind === 'answers') out.push(q.answered.text)
+        if (q.kind === 'unanswered') out.push(q.text)
       }
       break
     case 'judgments':

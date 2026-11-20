@@ -185,13 +185,13 @@ const node = (cwd, args, env) =>
 const compiled = (cwd, args, env) =>
   sh(join(alone, exe), args, { cwd, env: { ...process.env, XDG_CACHE_HOME: cache, ...env } })
 /** The last line that says how the run went, e.g. `16 pass` or `1 fail · 1 pass`. */
-/** The tally on the run's `Done in …` line, without the time. */
+/** The run's `Evals: …` tally line. */
 const outcome = (r) =>
   stripVTControlCharacters(r.stdout + r.stderr)
     .split('\n')
-    .filter((l) => l.startsWith('Done in '))
+    .filter((l) => l.startsWith('Evals: '))
     .at(-1)
-    ?.replace(/^Done in [^·]+· /, '')
+    ?.slice('Evals: '.length)
     .trim()
 const planned = (r) =>
   JSON.parse(r.stdout).evals.map((e) => `${e.file} › ${e.name} ${JSON.stringify(e.cells ?? [])}`)
@@ -301,7 +301,7 @@ if (docker.status === 0) {
   const r = compiled(fixture, ['run'], { REEVAL_FIXTURE_SANDBOX: 'docker' })
   check(
     'a Docker attempt behind the gateway',
-    r.status === 1 && outcome(r) === '1 failed · 1 passed',
+    r.status === 1 && outcome(r) === '1 fail · 1 pass',
     outcome(r) ?? why(r),
   )
   rmSync(fixture, { recursive: true, force: true })

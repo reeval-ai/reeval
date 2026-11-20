@@ -31,13 +31,13 @@
       "text": "not reported"
     },
     "counted": {
-      "k": 18,
-      "n": 35,
-      "text": "18 of 35"
+      "k": 22,
+      "n": 56,
+      "text": "22 of 56"
     },
     "infraError": 1,
     "canceled": 0,
-    "attempts": "18 of 35 counted attempts passed · 1 infra error",
+    "attempts": "22 of 56 counted attempts passed · 1 infra error",
     "servedBy": []
   },
   "tally": {
@@ -446,7 +446,9 @@
       "anchor": "adds-a-name-button-that-builds",
       "name": "adds a $name button that builds",
       "file": "evals/family.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "3 prompts, 1 coding harness, 3 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -759,14 +761,19 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["67% passed, 95% CI 21% to 94%", "task average 67%"]
+      "stats": [
+        "67% passed, 95% CI 21% to 94%",
+        "task average 67%"
+      ]
     },
     {
       "id": "evals/family.eval.ts › greets in the house style",
       "anchor": "greets-s-in-the-house-style",
       "name": "greets %s in the house style",
       "file": "evals/family.eval.ts",
-      "shapes": ["A/B"],
+      "shapes": [
+        "A/B"
+      ],
       "design": "4 prompts, 1 coding harness, 2 arms, 8 attempts",
       "state": "ran",
       "verdict": "pass",
@@ -1281,14 +1288,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["with-skill +100 pts (95% CI +31 pts to +100 pts)"]
+      "stats": [
+        "with-skill +100 pts (95% CI +31 pts to +100 pts)"
+      ]
     },
     {
       "id": "evals/harnesses.eval.ts › greets in the house style on each agent",
       "anchor": "greets-in-the-house-style-on-each-agent",
       "name": "greets in the house style on each agent",
       "file": "evals/harnesses.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "2 coding harnesses, 2 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -1531,14 +1542,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["50% passed, 95% CI 9% to 91%"]
+      "stats": [
+        "50% passed, 95% CI 9% to 91%"
+      ]
     },
     {
       "id": "evals/harnesses.eval.ts › learns the house style from the skill",
       "anchor": "learns-the-house-style-from-the-skill",
       "name": "learns the house style from the skill",
       "file": "evals/harnesses.eval.ts",
-      "shapes": ["A/B"],
+      "shapes": [
+        "A/B"
+      ],
       "design": "2 coding harnesses, 2 arms, 16 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -2160,14 +2175,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["with-skill +50 pts (95% CI +7 pts to +78 pts)"]
+      "stats": [
+        "with-skill +50 pts (95% CI +7 pts to +78 pts)"
+      ]
     },
     {
       "id": "evals/measure.eval.ts › greets in the house style",
       "anchor": "greets-in-the-house-style",
       "name": "greets in the house style",
       "file": "evals/measure.eval.ts",
-      "shapes": ["A/B"],
+      "shapes": [
+        "A/B"
+      ],
       "design": "1 coding harness, 3 arms, 12 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -2799,7 +2818,9 @@
       "anchor": "keeps-the-plain-greeting",
       "name": "keeps the plain greeting",
       "file": "evals/measure.eval.ts",
-      "shapes": ["A/B"],
+      "shapes": [
+        "A/B"
+      ],
       "design": "1 coding harness, 2 arms, 8 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -3205,14 +3226,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["with-skill -100 pts (95% CI -100 pts to -31 pts)"]
+      "stats": [
+        "with-skill -100 pts (95% CI -100 pts to -31 pts)"
+      ]
     },
     {
       "id": "evals/measure.eval.ts › greets once",
       "anchor": "greets-once",
       "name": "greets once",
       "file": "evals/measure.eval.ts",
-      "shapes": ["A/B"],
+      "shapes": [
+        "A/B"
+      ],
       "design": "1 coding harness, 2 arms, 2 attempts",
       "state": "ran",
       "verdict": "pass",
@@ -3468,14 +3493,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["with-skill +100 pts (95% CI -12 pts to +100 pts)"]
+      "stats": [
+        "with-skill +100 pts (95% CI -12 pts to +100 pts)"
+      ]
     },
     {
       "id": "evals/results.eval.ts › writes greet.js",
       "anchor": "writes-greetjs",
       "name": "writes greet.js",
       "file": "evals/results.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -3613,14 +3642,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/results.eval.ts › greets in French",
       "anchor": "greets-in-french",
       "name": "greets in French",
       "file": "evals/results.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "fail",
@@ -3792,14 +3825,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["0% passed, 95% CI 0% to 79%"]
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
     },
     {
       "id": "evals/results.eval.ts › explains why greet.js fails",
       "anchor": "explains-why-greetjs-fails",
       "name": "explains why greet.js fails",
       "file": "evals/results.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 2 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -3994,14 +4031,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["50% passed, 95% CI 9% to 91%"]
+      "stats": [
+        "50% passed, 95% CI 9% to 91%"
+      ]
     },
     {
       "id": "evals/results.eval.ts › reads the fixture repo",
       "anchor": "reads-the-fixture-repo",
       "name": "reads the fixture repo",
       "file": "evals/results.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "fail",
@@ -4146,14 +4187,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["0% passed, 95% CI 0% to 79%"]
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
     },
     {
       "id": "evals/results.eval.ts › starts its sandbox",
       "anchor": "starts-its-sandbox",
       "name": "starts its sandbox",
       "file": "evals/results.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "infra-error",
@@ -4269,7 +4314,9 @@
       "anchor": "greets-in-welsh",
       "name": "greets in Welsh",
       "file": "evals/results.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 0 attempts",
       "state": "skipped",
       "verdict": "skipped",
@@ -4303,7 +4350,9 @@
       "anchor": "greets-in-klingon",
       "name": "greets in Klingon",
       "file": "evals/results.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 0 attempts",
       "state": "todo",
       "verdict": "todo",

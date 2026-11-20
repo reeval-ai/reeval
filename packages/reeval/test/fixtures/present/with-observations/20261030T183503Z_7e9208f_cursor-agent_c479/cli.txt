@@ -1,5 +1,5 @@
 Run 20261030T183503Z_7e9208f_cursor-agent_c479
-7 of 8 counted attempts passed · 1 infra error · 10s wall time · tokens not reported · cost not reported · 7e9208f
+11 of 14 counted attempts passed · 1 infra error · 10s wall time · tokens not reported · cost not reported · 7e9208f
 
 FAIL           greets %s
                plain 0% vs with-house-greeting 100%: too few runs, not by minLift 20 · 0 of 2 vs 2 of 2 attempts
@@ -41,6 +41,9 @@ PASS           house greeting › writes a greeting
                  plain 0 of 8, with-house-greeting 8 of 8, 0 ties
                How did the agent pick its greeting?
                  8 of 8 answered
+                 Fake  It followed the prompt.
+               Which greeting handles a missing name?
+                 The model call failed: Rate limit exceeded (429)
                Saturated: every arm hit 100% across all tasks. This comparison catches regressions; add harder tasks to separate variants.
                (observed) greeting on plain: hello 4
                (observed) greeting on with-house-greeting: ahoy 4

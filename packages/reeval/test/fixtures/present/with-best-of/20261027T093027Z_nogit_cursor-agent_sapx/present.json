@@ -124,7 +124,9 @@
       "anchor": "agrees",
       "name": "agrees",
       "file": "bo.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 2 attempts",
       "state": "ran",
       "verdict": "pass",
@@ -285,14 +287,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 34% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 34% to 100%"
+      ]
     },
     {
       "id": "bo.eval.ts › splits",
       "anchor": "splits",
       "name": "splits",
       "file": "bo.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 3 attempts",
       "state": "ran",
       "verdict": "pass",
@@ -497,14 +503,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["67% passed, 95% CI 21% to 94%"]
+      "stats": [
+        "67% passed, 95% CI 21% to 94%"
+      ]
     },
     {
       "id": "bo.eval.ts › fails twice",
       "anchor": "fails-twice",
       "name": "fails twice",
       "file": "bo.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 4 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -740,7 +750,9 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["25% passed, 95% CI 5% to 70%"]
+      "stats": [
+        "25% passed, 95% CI 5% to 70%"
+      ]
     }
   ],
   "actions": [],
@@ -787,7 +799,9 @@
         "value": "all"
       }
     ],
-    "warnings": ["Not a git repository, so the code under test isn't pinned."]
+    "warnings": [
+      "Not a git repository, so the code under test isn't pinned."
+    ]
   },
   "attemptIndex": [
     {

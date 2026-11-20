@@ -1,6 +1,6 @@
 # Run 20260929T222130Z_fbc30c8_cursor-agent_33kp
 
-3 of 5 counted attempts passed · 7 infra errors. 921ms wall time. Tokens: not reported. Cost: not reported. fbc30c8.
+4 of 7 counted attempts passed · 7 infra errors. 921ms wall time. Tokens: not reported. Cost: not reported. fbc30c8.
 
 Run `20260929T222130Z_fbc30c8_cursor-agent_33kp` by cursor-agent, 2026-09-29, reeval 0.2.0, 1 run per cell.
 
@@ -202,9 +202,16 @@ Run `20260929T222130Z_fbc30c8_cursor-agent_33kp` by cursor-agent, 2026-09-29, re
 
 #### Pairwise: Which greeting reads more like our house style?
 
-| A | B | A won | B won | Ties |
-| --- | --- | --- | --- | --- |
-| plain | with-house-greeting | 0 of 2 | 2 of 2 | 0 ties |
+| Side | Won |
+| --- | --- |
+| plain | 0 of 2 |
+| with-house-greeting | 2 of 2 |
+
+0 ties.
+
+#### Not answered: Which greeting handles a missing name?
+
+The model call failed: Rate limit exceeded (429).
 
 ### Next
 

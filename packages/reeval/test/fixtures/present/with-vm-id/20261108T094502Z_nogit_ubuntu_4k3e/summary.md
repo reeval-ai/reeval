@@ -100,5 +100,5 @@ Evals: 1 fail · 1 pass.
 
 | ID | Eval | Coding harness | Outcome | Tokens | Agent time | Tool calls | Diff | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="attempt-evals-lands-eval-ts-lands-fake-vm-daytona-1-071ac09e"></a>A1 | lands | Fake | pass | not reported | 0ms | 0 | not recorded | n/a |
-| <a id="attempt-evals-canary-eval-ts-canary-fake-vm-daytona-1-17b3bc0b"></a>A2 | canary | Fake | fail | not reported | 0ms | 0 | not recorded | n/a |
+| <a id="attempt-evals-lands-eval-ts-lands-fake-vm-daytona-1-071ac09e"></a>A1 | lands | Fake | pass | not reported | 0ms | 0 | not recorded | [snapshot](./evals-lands-eval-ts-lands-2fc777/fake-vm-daytona-8ae316/1/snapshots/final) |
+| <a id="attempt-evals-canary-eval-ts-canary-fake-vm-daytona-1-17b3bc0b"></a>A2 | canary | Fake | fail | not reported | 0ms | 0 | not recorded | [snapshot](./evals-canary-eval-ts-canary-d06886/fake-vm-daytona-8ae316/1/snapshots/final) |

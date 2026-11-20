@@ -189,6 +189,8 @@ export type EvalSection = {
   discovery: DiscoveryRate[]
   judgments: JudgmentBreakdown | null
   qualitative: QualitativeAnswers[]
+  /** Each question some answers are missing from, and why: `2 of 2 not answered: …`. */
+  unanswered?: Array<{ question: string; text: string }>
   captures: CaptureGallery | null
   failures: FailureClusters | null
   /** What to change next: each concern remark that names an edit, as that edit and where. */
@@ -917,6 +919,8 @@ export type AttemptIndexRow = {
     diff: string | null
     captures: Array<{ name: string; href: string }>
     questions: string[]
+    /** The workspace's final snapshot; absent when none was kept. */
+    snapshot?: string
   }
   /** The target every `AttemptRef` to this attempt uses. */
   href: string

@@ -89,7 +89,9 @@
       "anchor": "canary",
       "name": "canary",
       "file": "evals/canary.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "fail",
@@ -248,14 +250,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["0% passed, 95% CI 0% to 79%"]
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
     },
     {
       "id": "evals/lands.eval.ts › lands",
       "anchor": "lands",
       "name": "lands",
       "file": "evals/lands.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -393,7 +399,9 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     }
   ],
   "actions": [],
@@ -467,7 +475,12 @@
         "text": "0"
       },
       "diff": "not recorded",
-      "links": []
+      "links": [
+        {
+          "name": "snapshot",
+          "href": "./evals-canary-eval-ts-canary-d06886/fake-busy-docker-bb19e8/1/snapshots/final"
+        }
+      ]
     },
     {
       "id": "A2",
@@ -490,7 +503,12 @@
         "text": "0"
       },
       "diff": "not recorded",
-      "links": []
+      "links": [
+        {
+          "name": "snapshot",
+          "href": "./evals-lands-eval-ts-lands-2fc777/fake-busy-docker-bb19e8/1/snapshots/final"
+        }
+      ]
     }
   ]
 }

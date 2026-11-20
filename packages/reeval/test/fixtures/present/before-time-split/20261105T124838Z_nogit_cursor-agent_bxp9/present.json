@@ -78,7 +78,9 @@
       "anchor": "slow-install",
       "name": "slow install",
       "file": "probe.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "2 coding harnesses, 2 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -287,7 +289,9 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["50% passed, 95% CI 9% to 91%"]
+      "stats": [
+        "50% passed, 95% CI 9% to 91%"
+      ]
     }
   ],
   "actions": [],
@@ -374,6 +378,10 @@
         {
           "name": "diff",
           "href": "./probe-eval-ts-slow-install-d3cb47/cursor-composer-2-5-probe-docker-91f80e/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./probe-eval-ts-slow-install-d3cb47/cursor-composer-2-5-probe-docker-91f80e/1/snapshots/final"
         }
       ]
     },
@@ -406,6 +414,10 @@
         {
           "name": "diff",
           "href": "./probe-eval-ts-slow-install-d3cb47/claude-code-claude-sonnet-5-probe-docker-ec3e0a/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./probe-eval-ts-slow-install-d3cb47/claude-code-claude-sonnet-5-probe-docker-ec3e0a/1/snapshots/final"
         }
       ]
     }

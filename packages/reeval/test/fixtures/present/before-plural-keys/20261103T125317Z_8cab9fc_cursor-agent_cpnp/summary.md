@@ -1,6 +1,6 @@
 # Run 20261103T125317Z_8cab9fc_cursor-agent_cpnp
 
-0 of 3 counted attempts passed. 891ms wall time. Tokens: not reported. Cost: not reported. 8cab9fc.
+0 of 5 counted attempts passed. 891ms wall time. Tokens: not reported. Cost: not reported. 8cab9fc.
 
 Run `20261103T125317Z_8cab9fc_cursor-agent_cpnp` by cursor-agent, 2026-11-03, reeval 0.18.0, varying runs per cell.
 
@@ -20,9 +20,16 @@ Run `20261103T125317Z_8cab9fc_cursor-agent_cpnp` by cursor-agent, 2026-11-03, re
 
 `evals/discovery.eval.ts`. A/B. 2 prompts, 1 coding harness, 2 arms, 4 attempts. Verdict: fail.
 
-**0% passed**
+**plain 0% vs with-skill 0%**
 
-0 of 2 attempts.
+0 of 2 vs 0 of 2 attempts.
+
+### Arms
+
+| Arm | Pass rate | Passed | Effect | Left out |
+| --- | --- | --- | --- | --- |
+| plain | 0% | 0 of 2 | baseline | none |
+| with-skill | 0% | 0 of 2 | variant | none |
 
 ### By task
 
@@ -33,12 +40,12 @@ Run `20261103T125317Z_8cab9fc_cursor-agent_cpnp` by cursor-agent, 2026-11-03, re
 
 ### Attempts
 
-| Attempt | Coding harness | Case | Outcome | Tokens | Agent time | Cost | Why |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| [A1](./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-plain-fake-57f9db/1/transcript.jsonl) | Fake | add user authentication | fail | not reported | 0ms | not reported | expected file greet.js to exist |
-| [A2](./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-with-skill-fake-14b6ac/1/transcript.jsonl) | Fake | add user authentication | fail | not reported | 0ms | not reported | expected file greet.js to exist |
-| [A3](./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-plain-fake-57f9db/1/transcript.jsonl) | Fake | add social login and email/password auth | fail | not reported | 0ms | not reported | expected file greet.js to exist |
-| [A4](./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-with-skill-fake-14b6ac/1/transcript.jsonl) | Fake | add social login and email/password auth | fail | not reported | 0ms | not reported | expected file greet.js to exist |
+| Attempt | Coding harness | Arm | Case | Outcome | Tokens | Agent time | Cost | Why |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| [A1](./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-plain-fake-57f9db/1/transcript.jsonl) | Fake | plain | add user authentication | fail | not reported | 0ms | not reported | expected file greet.js to exist |
+| [A2](./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-with-skill-fake-14b6ac/1/transcript.jsonl) | Fake | with-skill | add user authentication | fail | not reported | 0ms | not reported | expected file greet.js to exist |
+| [A3](./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-plain-fake-57f9db/1/transcript.jsonl) | Fake | plain | add social login and email/password auth | fail | not reported | 0ms | not reported | expected file greet.js to exist |
+| [A4](./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-with-skill-fake-14b6ac/1/transcript.jsonl) | Fake | with-skill | add social login and email/password auth | fail | not reported | 0ms | not reported | expected file greet.js to exist |
 
 ### Checks
 
@@ -56,7 +63,8 @@ Run `20261103T125317Z_8cab9fc_cursor-agent_cpnp` by cursor-agent, 2026-11-03, re
 
 | Group | Median tokens | Median tool calls | Median agent time | Median cost | Cost per pass |
 | --- | --- | --- | --- | --- | --- |
-| all attempts | no passing attempts | no passing attempts | no passing attempts | no passing attempts | not reported |
+| plain | no passing attempts | no passing attempts | no passing attempts | no passing attempts | not reported |
+| with-skill | no passing attempts | no passing attempts | no passing attempts | no passing attempts | not reported |
 
 ## renamed options › writes greet.js
 
@@ -111,10 +119,10 @@ Evals: 2 fail.
 
 ## Attempt index
 
-| ID | Eval | Coding harness | Case | Outcome | Tokens | Agent time | Tool calls | Diff | Evidence |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <a id="attempt-evals-discovery-eval-ts-discovery-add-user-authentication-fa-337001ea"></a>A1 | discovery: %s | Fake | add user authentication | fail | not reported | 0ms | 0 | not recorded | [transcript](./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-plain-fake-57f9db/1/transcript.jsonl), [diff](./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-plain-fake-57f9db/1/diff.patch) |
-| <a id="attempt-evals-discovery-eval-ts-discovery-add-user-authentication-fa-f2b6cfbf"></a>A2 | discovery: %s | Fake | add user authentication | fail | not reported | 0ms | 0 | not recorded | [transcript](./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-with-skill-fake-14b6ac/1/transcript.jsonl), [diff](./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-with-skill-fake-14b6ac/1/diff.patch) |
-| <a id="attempt-evals-discovery-eval-ts-discovery-add-social-login-and-email-8cd5764c"></a>A3 | discovery: %s | Fake | add social login and email/password auth | fail | not reported | 0ms | 0 | not recorded | [transcript](./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-plain-fake-57f9db/1/transcript.jsonl), [diff](./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-plain-fake-57f9db/1/diff.patch) |
-| <a id="attempt-evals-discovery-eval-ts-discovery-add-social-login-and-email-cb4c258a"></a>A4 | discovery: %s | Fake | add social login and email/password auth | fail | not reported | 0ms | 0 | not recorded | [transcript](./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-with-skill-fake-14b6ac/1/transcript.jsonl), [diff](./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-with-skill-fake-14b6ac/1/diff.patch) |
-| <a id="attempt-evals-options-eval-ts-renamed-options-writes-greet-js-fake-a-7aa1685a"></a>A5 | renamed options › writes greet.js | Fake | n/a | fail | not reported | 0ms | 0 | not recorded | [transcript](./evals-options-eval-ts-renamed-options-writes-greet-js-b9f9b0/fake-app-fake-e80a19/1/transcript.jsonl), [diff](./evals-options-eval-ts-renamed-options-writes-greet-js-b9f9b0/fake-app-fake-e80a19/1/diff.patch) |
+| ID | Eval | Coding harness | Arm | Case | Outcome | Tokens | Agent time | Tool calls | Diff | Evidence |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| <a id="attempt-evals-discovery-eval-ts-discovery-add-user-authentication-fa-337001ea"></a>A1 | discovery: %s | Fake | plain | add user authentication | fail | not reported | 0ms | 0 | not recorded | [transcript](./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-plain-fake-57f9db/1/transcript.jsonl), [diff](./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-plain-fake-57f9db/1/diff.patch), [snapshot](./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-plain-fake-57f9db/1/snapshots/final) |
+| <a id="attempt-evals-discovery-eval-ts-discovery-add-user-authentication-fa-f2b6cfbf"></a>A2 | discovery: %s | Fake | with-skill | add user authentication | fail | not reported | 0ms | 0 | not recorded | [transcript](./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-with-skill-fake-14b6ac/1/transcript.jsonl), [diff](./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-with-skill-fake-14b6ac/1/diff.patch), [snapshot](./evals-discovery-eval-ts-discovery-add-user-authentication-e8dd58/fake-with-skill-fake-14b6ac/1/snapshots/final) |
+| <a id="attempt-evals-discovery-eval-ts-discovery-add-social-login-and-email-8cd5764c"></a>A3 | discovery: %s | Fake | plain | add social login and email/password auth | fail | not reported | 0ms | 0 | not recorded | [transcript](./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-plain-fake-57f9db/1/transcript.jsonl), [diff](./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-plain-fake-57f9db/1/diff.patch), [snapshot](./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-plain-fake-57f9db/1/snapshots/final) |
+| <a id="attempt-evals-discovery-eval-ts-discovery-add-social-login-and-email-cb4c258a"></a>A4 | discovery: %s | Fake | with-skill | add social login and email/password auth | fail | not reported | 0ms | 0 | not recorded | [transcript](./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-with-skill-fake-14b6ac/1/transcript.jsonl), [diff](./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-with-skill-fake-14b6ac/1/diff.patch), [snapshot](./evals-discovery-eval-ts-discovery-add-social-login-and-email-ea6ace/fake-with-skill-fake-14b6ac/1/snapshots/final) |
+| <a id="attempt-evals-options-eval-ts-renamed-options-writes-greet-js-fake-a-7aa1685a"></a>A5 | renamed options › writes greet.js | Fake | n/a | n/a | fail | not reported | 0ms | 0 | not recorded | [transcript](./evals-options-eval-ts-renamed-options-writes-greet-js-b9f9b0/fake-app-fake-e80a19/1/transcript.jsonl), [diff](./evals-options-eval-ts-renamed-options-writes-greet-js-b9f9b0/fake-app-fake-e80a19/1/diff.patch), [snapshot](./evals-options-eval-ts-renamed-options-writes-greet-js-b9f9b0/fake-app-fake-e80a19/1/snapshots/final) |

@@ -89,7 +89,9 @@
       "anchor": "canary",
       "name": "canary",
       "file": "evals/canary.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -227,14 +229,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/lands.eval.ts › lands",
       "anchor": "lands",
       "name": "lands",
       "file": "evals/lands.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -398,7 +404,9 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     }
   ],
   "actions": [],
@@ -449,7 +457,9 @@
         "value": "failures"
       }
     ],
-    "warnings": ["Not a git repository, so the code under test isn't pinned."]
+    "warnings": [
+      "Not a git repository, so the code under test isn't pinned."
+    ]
   },
   "attemptIndex": [
     {
@@ -473,7 +483,12 @@
         "text": "1"
       },
       "diff": "not recorded",
-      "links": []
+      "links": [
+        {
+          "name": "snapshot",
+          "href": "./evals-canary-eval-ts-canary-d06886/fake-open-boat-68c24521-92f4d2/1/snapshots/final"
+        }
+      ]
     },
     {
       "id": "A2",
@@ -496,7 +511,12 @@
         "text": "1"
       },
       "diff": "not recorded",
-      "links": []
+      "links": [
+        {
+          "name": "snapshot",
+          "href": "./evals-lands-eval-ts-lands-2fc777/fake-closed-boat-68c24521-61a210/1/snapshots/final"
+        }
+      ]
     }
   ]
 }

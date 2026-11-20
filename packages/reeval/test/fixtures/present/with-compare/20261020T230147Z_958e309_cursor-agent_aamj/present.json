@@ -147,7 +147,9 @@
       "anchor": "bills-in-minor-units-with-the-billing-doc",
       "name": "bills in minor units with the billing doc",
       "file": "evals/billing.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -285,14 +287,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/buttons.eval.ts › adds a button that builds",
       "anchor": "adds-a-name-button-that-builds",
       "name": "adds a $name button that builds",
       "file": "evals/buttons.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "3 prompts, 1 coding harness, 3 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -592,14 +598,19 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["67% passed, 95% CI 21% to 94%", "task average 67%"]
+      "stats": [
+        "67% passed, 95% CI 21% to 94%",
+        "task average 67%"
+      ]
     },
     {
       "id": "evals/greet.eval.ts › greets in the house style",
       "anchor": "greets-in-the-house-style",
       "name": "greets in the house style",
       "file": "evals/greet.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -763,14 +774,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/greet.eval.ts › writes greet.js",
       "anchor": "writes-greetjs",
       "name": "writes greet.js",
       "file": "evals/greet.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -908,14 +923,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/greet.eval.ts › greets in French",
       "anchor": "greets-in-french",
       "name": "greets in French",
       "file": "evals/greet.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "fail",
@@ -1074,14 +1093,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["0% passed, 95% CI 0% to 79%"]
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
     },
     {
       "id": "evals/greet.eval.ts › greets in German",
       "anchor": "greets-in-german",
       "name": "greets in German",
       "file": "evals/greet.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "fail",
@@ -1240,7 +1263,9 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["0% passed, 95% CI 0% to 79%"]
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
     }
   ],
   "actions": [],

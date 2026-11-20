@@ -31,13 +31,13 @@
       "text": "not reported"
     },
     "counted": {
-      "k": 10,
-      "n": 13,
-      "text": "10 of 13"
+      "k": 12,
+      "n": 18,
+      "text": "12 of 18"
     },
     "infraError": 0,
     "canceled": 0,
-    "attempts": "10 of 13 counted attempts passed",
+    "attempts": "12 of 18 counted attempts passed",
     "servedBy": []
   },
   "tally": {
@@ -193,7 +193,9 @@
       "anchor": "rated",
       "name": "rated",
       "file": "evals/cases.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "3 prompts, 1 coding harness, 3 attempts",
       "state": "ran",
       "verdict": "pass",
@@ -480,14 +482,19 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["67% passed, 95% CI 21% to 94%", "task average 67%"]
+      "stats": [
+        "67% passed, 95% CI 21% to 94%",
+        "task average 67%"
+      ]
     },
     {
       "id": "evals/cases.eval.ts › strict",
       "anchor": "strict",
       "name": "strict",
       "file": "evals/cases.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "2 prompts, 1 coding harness, 4 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -774,14 +781,19 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["50% passed, 95% CI 15% to 85%", "task average 50%"]
+      "stats": [
+        "50% passed, 95% CI 15% to 85%",
+        "task average 50%"
+      ]
     },
     {
       "id": "evals/cases.eval.ts › lands",
       "anchor": "lands",
       "name": "lands",
       "file": "evals/cases.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 2 arms, 2 attempts",
       "state": "ran",
       "verdict": "pass",
@@ -1069,14 +1081,18 @@
       "remarks": [
         "Saturated: every arm hit 100% across all tasks. This comparison catches regressions; add harder tasks to separate variants."
       ],
-      "stats": ["task average 100%"]
+      "stats": [
+        "task average 100%"
+      ]
     },
     {
       "id": "evals/cases.eval.ts › lifted",
       "anchor": "lifted",
       "name": "lifted",
       "file": "evals/cases.eval.ts",
-      "shapes": ["A/B"],
+      "shapes": [
+        "A/B"
+      ],
       "design": "3 prompts, 1 coding harness, 2 arms, 6 attempts",
       "state": "ran",
       "verdict": "fail",
@@ -1514,14 +1530,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["with-skill +100 pts (95% CI +21 pts to +100 pts)"]
+      "stats": [
+        "with-skill +100 pts (95% CI +21 pts to +100 pts)"
+      ]
     },
     {
       "id": "evals/cases.eval.ts › alone",
       "anchor": "alone",
       "name": "alone",
       "file": "evals/cases.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "1 coding harness, 1 attempt",
       "state": "ran",
       "verdict": "pass",
@@ -1645,14 +1665,18 @@
       "regression": null,
       "next": [],
       "remarks": [],
-      "stats": ["100% passed, 95% CI 21% to 100%"]
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
     },
     {
       "id": "evals/cases.eval.ts › picks",
       "anchor": "picks",
       "name": "picks",
       "file": "evals/cases.eval.ts",
-      "shapes": ["Task"],
+      "shapes": [
+        "Task"
+      ],
       "design": "2 prompts, 1 coding harness, 2 attempts",
       "state": "ran",
       "verdict": "ungated",
@@ -1798,8 +1822,12 @@
       "captures": [],
       "regression": null,
       "next": [],
-      "remarks": ["(observed) pick: drizzle 1 · prisma 1"],
-      "stats": ["100% passed, 95% CI 34% to 100%"]
+      "remarks": [
+        "(observed) pick: drizzle 1 · prisma 1"
+      ],
+      "stats": [
+        "100% passed, 95% CI 34% to 100%"
+      ]
     }
   ],
   "actions": [],
@@ -1878,6 +1906,10 @@
         {
           "name": "diff",
           "href": "./evals-cases-eval-ts-rated-a-abff7a/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-rated-a-abff7a/fake-fake-fake-dc13e2/1/snapshots/final"
         }
       ]
     },
@@ -1910,6 +1942,10 @@
         {
           "name": "diff",
           "href": "./evals-cases-eval-ts-rated-b-bb88b3/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-rated-b-bb88b3/fake-fake-fake-dc13e2/1/snapshots/final"
         }
       ]
     },
@@ -1942,6 +1978,10 @@
         {
           "name": "diff",
           "href": "./evals-cases-eval-ts-rated-c-3922df/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-rated-c-3922df/fake-fake-fake-dc13e2/1/snapshots/final"
         }
       ]
     },
@@ -1974,6 +2014,10 @@
         {
           "name": "diff",
           "href": "./evals-cases-eval-ts-strict-x-6c40d5/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-strict-x-6c40d5/fake-fake-fake-dc13e2/1/snapshots/final"
         }
       ]
     },
@@ -2006,6 +2050,10 @@
         {
           "name": "diff",
           "href": "./evals-cases-eval-ts-strict-y-ad030a/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-strict-y-ad030a/fake-fake-fake-dc13e2/1/snapshots/final"
         }
       ]
     },
@@ -2030,7 +2078,12 @@
         "text": "0"
       },
       "diff": "not recorded",
-      "links": []
+      "links": [
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-lands-next-ada082/fake-next-app-fake-23258a/1/snapshots/final"
+        }
+      ]
     },
     {
       "id": "A7",
@@ -2053,7 +2106,12 @@
         "text": "0"
       },
       "diff": "not recorded",
-      "links": []
+      "links": [
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-lands-vite-e54e84/fake-vite-app-fake-f801b9/1/snapshots/final"
+        }
+      ]
     },
     {
       "id": "A8",
@@ -2084,6 +2142,10 @@
         {
           "name": "diff",
           "href": "./evals-cases-eval-ts-lifted-ada-39ad15/fake-plain-fake-57f9db/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-lifted-ada-39ad15/fake-plain-fake-57f9db/1/snapshots/final"
         }
       ]
     },
@@ -2116,6 +2178,10 @@
         {
           "name": "diff",
           "href": "./evals-cases-eval-ts-lifted-ada-39ad15/fake-with-skill-fake-14b6ac/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-lifted-ada-39ad15/fake-with-skill-fake-14b6ac/1/snapshots/final"
         }
       ]
     },
@@ -2148,6 +2214,10 @@
         {
           "name": "diff",
           "href": "./evals-cases-eval-ts-lifted-grace-7415c1/fake-plain-fake-57f9db/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-lifted-grace-7415c1/fake-plain-fake-57f9db/1/snapshots/final"
         }
       ]
     },
@@ -2180,6 +2250,10 @@
         {
           "name": "diff",
           "href": "./evals-cases-eval-ts-lifted-grace-7415c1/fake-with-skill-fake-14b6ac/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-lifted-grace-7415c1/fake-with-skill-fake-14b6ac/1/snapshots/final"
         }
       ]
     },
@@ -2212,6 +2286,10 @@
         {
           "name": "diff",
           "href": "./evals-cases-eval-ts-lifted-linus-6dcc1e/fake-plain-fake-57f9db/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-lifted-linus-6dcc1e/fake-plain-fake-57f9db/1/snapshots/final"
         }
       ]
     },
@@ -2244,6 +2322,10 @@
         {
           "name": "diff",
           "href": "./evals-cases-eval-ts-lifted-linus-6dcc1e/fake-with-skill-fake-14b6ac/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-lifted-linus-6dcc1e/fake-with-skill-fake-14b6ac/1/snapshots/final"
         }
       ]
     },
@@ -2276,6 +2358,10 @@
         {
           "name": "diff",
           "href": "./evals-cases-eval-ts-alone-only-36f851/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-alone-only-36f851/fake-fake-fake-dc13e2/1/snapshots/final"
         }
       ]
     },
@@ -2308,6 +2394,10 @@
         {
           "name": "diff",
           "href": "./evals-cases-eval-ts-picks-p1-ceb45b/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-picks-p1-ceb45b/fake-fake-fake-dc13e2/1/snapshots/final"
         }
       ]
     },
@@ -2340,6 +2430,10 @@
         {
           "name": "diff",
           "href": "./evals-cases-eval-ts-picks-p2-834bea/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-picks-p2-834bea/fake-fake-fake-dc13e2/1/snapshots/final"
         }
       ]
     },
@@ -2372,6 +2466,10 @@
         {
           "name": "diff",
           "href": "./evals-cases-eval-ts-strict-x-6c40d5/fake-fake-fake-dc13e2/2/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-strict-x-6c40d5/fake-fake-fake-dc13e2/2/snapshots/final"
         }
       ]
     },
@@ -2404,6 +2502,10 @@
         {
           "name": "diff",
           "href": "./evals-cases-eval-ts-strict-y-ad030a/fake-fake-fake-dc13e2/2/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-strict-y-ad030a/fake-fake-fake-dc13e2/2/snapshots/final"
         }
       ]
     }
