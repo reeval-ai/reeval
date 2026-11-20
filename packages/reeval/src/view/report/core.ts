@@ -9,11 +9,13 @@ export {
   diffLinesText,
   durationFigure,
   figure,
+  headlinePrimaryText,
   headlineResultText,
   judgeScoreText,
   MEASURE_TEXT,
   medianWithDelta,
   pctDelta,
+  percentFigure,
   percentText,
   proportion,
   proportionText,
@@ -25,6 +27,7 @@ export {
   tokensFigure,
   tokensText,
   usdFigure,
+  wilsonRangeText,
 } from './format.ts'
 export {
   type AttemptIdMap,

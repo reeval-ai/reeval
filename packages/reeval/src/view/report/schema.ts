@@ -50,7 +50,9 @@ import type {
   RunReport,
   RunTally,
   Spread,
+  TaskCell,
   TaskResults,
+  TaskRow,
   VariantComparison,
 } from './types.ts'
 
@@ -141,11 +143,20 @@ const quoteSchema: z.ZodType<Quote> = z.strictObject({
   input: z.string().nullable(),
 })
 
+const passMetricLeadSchema = z.enum(['pass-rate', 'task-pass-rate', 'pass@k', 'pass^k'])
+const explicitKSchema = z.number().int().min(2)
+
 const otherVariantSchema = z.strictObject({
   variant: armRefSchema,
   points: deltaSchema,
   interval: intervalSchema,
   rate: rateSchema,
+  taskRate: figureSchema.optional(),
+  taskPoints: deltaSchema.optional(),
+  k: explicitKSchema.optional(),
+  passAtK: figureSchema.optional(),
+  passHatK: figureSchema.optional(),
+  passKOmitted: z.string().optional(),
 })
 
 const tiedLeadSchema = z.strictObject({
@@ -183,9 +194,16 @@ export const headlinePrimarySchema: z.ZodType<HeadlinePrimary> = z.discriminated
   z.strictObject({
     kind: z.literal('pass-rate'),
     rate: rateSchema,
+    taskRate: figureSchema.optional(),
+    tasks: z.number().int().min(2).optional(),
     assertions: z.number().int().positive(),
     harnesses: z.number().int().positive(),
     outcome: z.enum(['passed', 'found', 'used']),
+    metric: passMetricLeadSchema.optional(),
+    k: explicitKSchema.optional(),
+    passAtK: figureSchema.optional(),
+    passHatK: figureSchema.optional(),
+    passKOmitted: z.string().optional(),
   }),
   z.strictObject({
     kind: z.literal('lift'),
@@ -195,6 +213,20 @@ export const headlinePrimarySchema: z.ZodType<HeadlinePrimary> = z.discriminated
     interval: intervalSchema,
     baselineRate: rateSchema,
     variantRate: rateSchema,
+    baselineTaskRate: figureSchema.optional(),
+    variantTaskRate: figureSchema.optional(),
+    taskPoints: deltaSchema.optional(),
+    tasks: z.number().int().min(2).optional(),
+    metric: passMetricLeadSchema.optional(),
+    k: explicitKSchema.optional(),
+    baselinePassAtK: figureSchema.optional(),
+    variantPassAtK: figureSchema.optional(),
+    passAtKPoints: deltaSchema.optional(),
+    baselinePassHatK: figureSchema.optional(),
+    variantPassHatK: figureSchema.optional(),
+    passHatKPoints: deltaSchema.optional(),
+    passKOmitted: z.string().optional(),
+    saturated: z.boolean().optional(),
     others: z.array(otherVariantSchema),
   }),
   z.strictObject({
@@ -202,8 +234,16 @@ export const headlinePrimarySchema: z.ZodType<HeadlinePrimary> = z.discriminated
     baseline: armRefSchema,
     variant: armRefSchema,
     rate: rateSchema,
+    taskRate: figureSchema.optional(),
+    tasks: z.number().int().min(2).optional(),
     assertions: z.number().int().positive(),
     lead: tiedLeadSchema,
+    metric: passMetricLeadSchema.optional(),
+    k: explicitKSchema.optional(),
+    passAtK: figureSchema.optional(),
+    passHatK: figureSchema.optional(),
+    passKOmitted: z.string().optional(),
+    saturated: z.boolean().optional(),
   }),
   z.strictObject({
     kind: z.literal('choice'),
@@ -249,6 +289,11 @@ const headlineResultSchema: z.ZodType<HeadlineResult> = z.discriminatedUnion('ki
     kind: z.literal('pass-rate'),
     passed: proportionSchema,
     outcome: z.enum(['passed', 'found', 'used']),
+    taskRate: z.number().optional(),
+    metric: passMetricLeadSchema.optional(),
+    k: explicitKSchema.optional(),
+    passAtK: z.number().optional(),
+    passHatK: z.number().optional(),
   }),
   z.strictObject({
     kind: z.literal('lift'),
@@ -256,9 +301,18 @@ const headlineResultSchema: z.ZodType<HeadlineResult> = z.discriminatedUnion('ki
     variant: z.string(),
     baselinePassed: proportionSchema,
     variantPassed: proportionSchema,
+    baselineTaskRate: z.number().optional(),
+    variantTaskRate: z.number().optional(),
     points: z.number(),
     lo: z.number(),
     hi: z.number(),
+    metric: passMetricLeadSchema.optional(),
+    k: explicitKSchema.optional(),
+    baselinePassAtK: z.number().optional(),
+    variantPassAtK: z.number().optional(),
+    baselinePassHatK: z.number().optional(),
+    variantPassHatK: z.number().optional(),
+    saturated: z.boolean().optional(),
   }),
   z.strictObject({
     kind: z.literal('tied-ceiling'),
@@ -268,6 +322,11 @@ const headlineResultSchema: z.ZodType<HeadlineResult> = z.discriminatedUnion('ki
     measure: measureKeySchema,
     baselineMedian: z.number(),
     variantMedian: z.number(),
+    metric: passMetricLeadSchema.optional(),
+    k: explicitKSchema.optional(),
+    passAtK: z.number().optional(),
+    passHatK: z.number().optional(),
+    saturated: z.boolean().optional(),
   }),
   z.strictObject({
     kind: z.literal('choice'),
@@ -311,6 +370,7 @@ const evalHeadlineSchema: z.ZodType<EvalHeadline> = z.strictObject({
   fairness: fairnessSchema,
   primary: headlinePrimarySchema,
   foot: z.string(),
+  saturated: z.boolean().optional(),
 })
 
 const checkCellSchema: z.ZodType<CheckCell> = z.strictObject({
@@ -331,10 +391,31 @@ const assertionRowSchema: z.ZodType<AssertionRow> = z.strictObject({
   total: checkCellSchema,
 })
 
+const taskCellSchema: z.ZodType<TaskCell> = z.strictObject({
+  rate: rateSchema,
+  k: explicitKSchema.optional(),
+  passAtK: figureSchema.optional(),
+  passHatK: figureSchema.optional(),
+  passKOmitted: z.string().optional(),
+})
+
+const taskRowSchema: z.ZodType<TaskRow> = z.strictObject({
+  task: z.string(),
+  label: z.string(),
+  cells: z.record(z.string(), taskCellSchema),
+  total: taskCellSchema.nullable(),
+})
+
 const breakdownRowSchema: z.ZodType<BreakdownRow> = z.strictObject({
   keys: z.array(z.string()),
   rate: rateSchema.nullable(),
+  taskRate: figureSchema.nullable().optional(),
+  k: explicitKSchema.optional(),
+  passAtK: figureSchema.optional(),
+  passHatK: figureSchema.optional(),
+  passKOmitted: z.string().optional(),
   measures: measureCellsSchema,
+  costPerSuccess: figureSchema.nullable().optional(),
 })
 
 const taskResultsSchema = z.strictObject({
@@ -344,6 +425,13 @@ const taskResultsSchema = z.strictObject({
   axes: z.array(z.string()),
   breakdown: z.array(breakdownRowSchema),
   median: breakdownRowSchema.nullable(),
+  metric: passMetricLeadSchema.optional(),
+  k: explicitKSchema.optional(),
+  passAtK: figureSchema.optional(),
+  passHatK: figureSchema.optional(),
+  passKOmitted: z.string().optional(),
+  costReported: z.boolean().optional(),
+  tasks: z.array(taskRowSchema).optional(),
 })
 
 const armSchema: z.ZodType<Arm> = z.strictObject({
@@ -379,18 +467,33 @@ const measureVsBaselineRecordSchema: z.ZodType<
 const armRowSchema: z.ZodType<ArmRow> = z.strictObject({
   arm: z.string(),
   rate: rateSchema,
+  taskRate: figureSchema.optional(),
+  taskLift: deltaSchema.nullable().optional(),
+  k: explicitKSchema.optional(),
+  passAtK: figureSchema.optional(),
+  passHatK: figureSchema.optional(),
+  passKOmitted: z.string().optional(),
   lift: deltaSchema.nullable(),
   interval: intervalSchema.nullable(),
   verdict: z.enum(['baseline', 'helped', 'made-worse', 'within-noise', 'too-few-runs']),
   verdictScope: z.literal('pass-rate'),
   measures: measureVsBaselineRecordSchema,
+  costPerSuccess: figureSchema.nullable().optional(),
+  costPerSuccessDelta: deltaSchema.nullable().optional(),
 })
 
 const effortPivotRowSchema: z.ZodType<EffortPivotRow> = z.strictObject({
   harness: z.string(),
   arm: z.string(),
   rate: rateSchema,
+  taskRate: figureSchema.optional(),
+  k: explicitKSchema.optional(),
+  passAtK: figureSchema.optional(),
+  passHatK: figureSchema.optional(),
+  passKOmitted: z.string().optional(),
   measures: measureVsBaselineRecordSchema,
+  costPerSuccess: figureSchema.nullable().optional(),
+  costPerSuccessDelta: deltaSchema.nullable().optional(),
 })
 
 const behaviorRowSchema: z.ZodType<BehaviorRow> = z.strictObject({
@@ -406,6 +509,8 @@ const contrastRowSchema: z.ZodType<ContrastRow> = z.strictObject({
   sandbox: z.string().optional(),
   fromPassed: proportionSchema.optional(),
   toPassed: proportionSchema.optional(),
+  taskDelta: deltaSchema.optional(),
+  brokenTasks: z.array(z.string()).optional(),
   measure: z.union([z.literal('pass-rate'), measureKeySchema]),
   delta: deltaSchema,
   interval: intervalSchema.nullable(),
@@ -417,7 +522,13 @@ const variantComparisonSchema = z.strictObject({
   kind: z.literal('comparison'),
   arms: z.array(armSchema),
   uniformLead: z.string().nullable(),
+  metric: passMetricLeadSchema.optional(),
+  k: explicitKSchema.optional(),
+  costReported: z.boolean().optional(),
+  saturated: z.boolean().optional(),
+  saturationNote: z.string().nullable().optional(),
   summary: z.array(armRowSchema),
+  tasks: z.array(taskRowSchema).optional(),
   assertionsByArm: z.array(assertionRowSchema),
   behavior: z.array(behaviorRowSchema),
   contrasts: z.array(contrastRowSchema),
@@ -622,6 +733,9 @@ const evalSectionSchema = z.strictObject({
   qualitative: z.array(qualitativeAnswersSchema),
   captures: captureGallerySchema.nullable(),
   failures: failureClustersSchema.nullable(),
+  next: z
+    .array(z.strictObject({ kind: z.string(), text: z.string(), at: z.string().nullable() }))
+    .optional(),
 }) as z.ZodType<EvalSection>
 
 const runTallySchema: z.ZodType<RunTally> = z.strictObject({
@@ -887,6 +1001,8 @@ export type _SameAsSchema = [
   Assert<Same<z.infer<typeof headlineResultSchema>, HeadlineResult>>,
   Assert<Same<z.infer<typeof judgeScoreSchema>, JudgeScore>>,
   Assert<Same<z.infer<typeof proportionSchema>, Proportion>>,
+  Assert<Same<z.infer<typeof taskCellSchema>, TaskCell>>,
+  Assert<Same<z.infer<typeof taskRowSchema>, TaskRow>>,
   Assert<Same<z.infer<typeof taskResultsSchema>, TaskResults>>,
   Assert<Same<z.infer<typeof variantComparisonSchema>, VariantComparison>>,
   Assert<Same<z.infer<typeof regressionChangesSchema>, RegressionChanges>>,
@@ -956,7 +1072,9 @@ export const REPORT_SCHEMAS: Record<string, z.ZodType> = {
   RunReport: runReportSchema,
   RunTally: runTallySchema,
   Spread: spreadSchema,
+  TaskCell: taskCellSchema,
   TaskResults: taskResultsSchema,
+  TaskRow: taskRowSchema,
   VariantComparison: variantComparisonSchema,
 }
 

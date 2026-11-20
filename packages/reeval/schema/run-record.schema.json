@@ -2119,6 +2119,48 @@
             "$ref": "#/$defs/FamilyLift"
           }
         },
+        "metric": {
+          "description": "Primary pass/fail metric configured for this evaluation when set (`PassMetric`).",
+          "anyOf": [
+            {
+              "enum": ["pass-rate", "task-pass-rate"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "k": {
+                  "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass@k` and `pass^k`.",
+                  "type": "number"
+                },
+                "lead": {
+                  "description": "Which metric leads in headlines; default `'pass-rate'`.",
+                  "enum": ["pass-rate", "pass@k", "pass^k", "task-pass-rate"]
+                }
+              },
+              "required": ["k"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "passAtK": {
+                  "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass@k`, making `pass@k` the lead.",
+                  "type": "number"
+                }
+              },
+              "required": ["passAtK"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "passHatK": {
+                  "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass^k`, making `pass^k` the lead.",
+                  "type": "number"
+                }
+              },
+              "required": ["passHatK"]
+            }
+          ]
+        },
         "name": {
           "type": "string"
         },
@@ -3592,6 +3634,48 @@
                 }
               ]
             },
+            "metric": {
+              "description": "Primary pass/fail metric set in config when configured.",
+              "anyOf": [
+                {
+                  "enum": ["pass-rate", "task-pass-rate"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "k": {
+                      "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass@k` and `pass^k`.",
+                      "type": "number"
+                    },
+                    "lead": {
+                      "description": "Which metric leads in headlines; default `'pass-rate'`.",
+                      "enum": ["pass-rate", "pass@k", "pass^k", "task-pass-rate"]
+                    }
+                  },
+                  "required": ["k"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "passAtK": {
+                      "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass@k`, making `pass@k` the lead.",
+                      "type": "number"
+                    }
+                  },
+                  "required": ["passAtK"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "passHatK": {
+                      "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass^k`, making `pass^k` the lead.",
+                      "type": "number"
+                    }
+                  },
+                  "required": ["passHatK"]
+                }
+              ]
+            },
             "runs": {
               "description": "The config's `runs` (with `bestOf`, the most a cell runs); 1 when it sets none, though a compare's cells then run 4 each.",
               "type": "number"
@@ -3752,6 +3836,47 @@
                       "items": {
                         "type": "string"
                       }
+                    },
+                    "metric": {
+                      "anyOf": [
+                        {
+                          "enum": ["pass-rate", "task-pass-rate"]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "k": {
+                              "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass@k` and `pass^k`.",
+                              "type": "number"
+                            },
+                            "lead": {
+                              "description": "Which metric leads in headlines; default `'pass-rate'`.",
+                              "enum": ["pass-rate", "pass@k", "pass^k", "task-pass-rate"]
+                            }
+                          },
+                          "required": ["k"]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "passAtK": {
+                              "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass@k`, making `pass@k` the lead.",
+                              "type": "number"
+                            }
+                          },
+                          "required": ["passAtK"]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "passHatK": {
+                              "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass^k`, making `pass^k` the lead.",
+                              "type": "number"
+                            }
+                          },
+                          "required": ["passHatK"]
+                        }
+                      ]
                     },
                     "runs": {
                       "description": "With `bestOf`, the most attempts a cell runs.",

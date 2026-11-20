@@ -87,6 +87,9 @@ class EvalOptions(TypedDict, total=False):
     gate: Literal["all", "observe"] | Mapping[str, float]
     """`"all"` (every attempt passes), `{"pass_rate": 0.8}`, or `"observe"` (nothing gates: the
     attempts run and are recorded, and only run and infra errors fail the eval)."""
+    metric: Literal["pass-rate", "task-pass-rate"] | Mapping[str, Any]
+    """`'pass-rate'`, `'task-pass-rate'`, `{'pass_at_k': k}`, `{'pass_hat_k': k}`, or
+    `{'k': k, 'lead': ...}` with integer `k >= 2`."""
     harnesses: Harness | Sequence[Harness] | Mapping[str, Any]
     judge: JudgeDefaults
     pin: Sequence[str]

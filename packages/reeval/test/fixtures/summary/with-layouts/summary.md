@@ -58,7 +58,7 @@ Run `20261020T205330Z_da3d797_cursor-agent_1k52` by cursor-agent, 2026-10-20, re
 
 **67% passed**
 
-2 of 3 counted attempts passed on all 3 assertions. 1 coding harness.
+2 of 3 trials passed on all 3 assertions. Task-averaged: 67% across 3 tasks. 1 coding harness.
 
 ### Assertions
 
@@ -68,11 +68,19 @@ Run `20261020T205330Z_da3d797_cursor-agent_1k52` by cursor-agent, 2026-10-20, re
 | build | toSucceed | 2 of 3 | 2 of 3 |
 | types | toSucceed | 2 of 2 | 2 of 2 |
 
+### By task
+
+| Task | Pass rate | Trials |
+| --- | --- | --- |
+| reset | 100% | 1 of 1 |
+| double | 0% | 0 of 1 |
+| clear | 100% | 1 of 1 |
+
 ### By Coding harness
 
-| Coding harness | Pass rate | Tokens | Tool calls | Turns | Cost | Agent time | Files changed | Lines added | Lines removed |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| fake | 67% | not reported | 1 | 1 | not reported | <0.1s | 1 | not reported | not reported |
+| Coding harness | Pass rate | Task avg | Tokens | Tool calls | Turns | Cost | Agent time | Files changed | Lines added | Lines removed |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| fake | 67% | 67% | not reported | 1 | 1 | not reported | <0.1s | 1 | not reported | not reported |
 
 ### Failures and caveats
 
@@ -88,17 +96,26 @@ with-skill against the plain baseline
 
 **with-skill vs plain: +100 pts pass rate (100% vs 0%)**
 
-n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts.
+4 vs 4 trials. 95% CI +31 pts to +100 pts. No failures in 4 trials on with-skill (95% Wilson CI 51% to 100%). Task-averaged: 100% vs 0% (+100 pts across 4 tasks).
 
 ### Baseline vs. variants
 
 - **plain** (`sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9`): baseline
 - **with-skill** (`sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7`): variant: with-skill
 
-| Arm | Pass rate | Lift | Pass-rate verdict | Tokens | Tool calls | Turns | Cost | Agent time | Files changed | Lines added | Lines removed |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| plain | 0% | n/a | Baseline | not reported | 1 | 1 | not reported | <0.1s | 1 | not reported | not reported |
-| with-skill | 100% | +100 pts | Helped | not reported | 1 (±0%) | 1 (±0%) | not reported | <0.1s (+40%) | 1 (±0%) | not reported | not reported |
+| Arm | Pass rate | Lift | Pass-rate verdict | Task avg | Tokens | Tool calls | Turns | Cost | Agent time | Files changed | Lines added | Lines removed |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| plain | 0% | n/a | Baseline | 0% | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| with-skill | 100% | +100 pts | Helped | 100% | not reported | 1 | 1 | not reported | <0.1s | 1 | not reported | not reported |
+
+### By task
+
+| Task | plain | with-skill |
+| --- | --- | --- |
+| Ada | 0% (0 of 1) | 100% (1 of 1) |
+| Grace | 0% (0 of 1) | 100% (1 of 1) |
+| Linus | 0% (0 of 1) | 100% (1 of 1) |
+| Edsger | 0% (0 of 1) | 100% (1 of 1) |
 
 ### Assertions by arm
 
@@ -108,10 +125,10 @@ n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts.
 
 ### Effort by coding harness
 
-| Coding harness | Arm | Pass rate | Tokens | Tool calls | Turns | Cost | Agent time | Files changed | Lines added | Lines removed |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| fake | plain | 0% | not reported | 1 | 1 | not reported | <0.1s | 1 | not reported | not reported |
-| fake | with-skill | 100% | not reported | 1 (±0%) | 1 (±0%) | not reported | <0.1s (+40%) | 1 (±0%) | not reported | not reported |
+| Coding harness | Arm | Pass rate | Task avg | Tokens | Tool calls | Turns | Cost | Agent time | Files changed | Lines added | Lines removed |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| fake | plain | 0% | 0% | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| fake | with-skill | 100% | 100% | not reported | 1 | 1 | not reported | <0.1s | 1 | not reported | not reported |
 
 ### Failures and caveats
 
@@ -125,7 +142,7 @@ n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts.
 
 **50% passed**
 
-1 of 2 counted attempts passed on all 3 assertions. 2 coding harnesses.
+1 of 2 trials passed on all 3 assertions. 2 coding harnesses.
 
 ### Assertions
 
@@ -140,7 +157,7 @@ n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts.
 | Coding harness | Pass rate | Tokens | Tool calls | Turns | Cost | Agent time | Files changed | Lines added | Lines removed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | skilled | 100% | not reported | 0 | 1 | not reported | <0.1s | 1 | not reported | not reported |
-| terse | 0% | not reported | 0 | 1 | not reported | <0.1s | 1 | not reported | not reported |
+| terse | 0% | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | **Median** | 50% | not reported | 0 | 1 | not reported | <0.1s | 1 | not reported | not reported |
 
 ### Failures and caveats
@@ -157,7 +174,7 @@ with-skill against the plain baseline
 
 **with-skill vs plain: +50 pts pass rate (50% vs 0%)**
 
-n = 8 vs 8 counted attempts. 95% CI +7 pts to +78 pts.
+8 vs 8 trials. 95% CI +7 pts to +78 pts.
 
 ### Baseline vs. variants
 
@@ -166,8 +183,8 @@ n = 8 vs 8 counted attempts. 95% CI +7 pts to +78 pts.
 
 | Arm | Pass rate | Lift | Pass-rate verdict | Tokens | Tool calls | Turns | Cost | Agent time | Files changed | Lines added | Lines removed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| plain | 0% | n/a | Baseline | not reported | 0 | 1 | not reported | <0.1s | 1 | not reported | not reported |
-| with-skill | 50% | +50 pts | Helped | not reported | 0 | 1 (±0%) | not reported | <0.1s (+150%) | 1 (±0%) | not reported | not reported |
+| plain | 0% | n/a | Baseline | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| with-skill | 50% | +50 pts | Helped | not reported | 0 | 1 | not reported | <0.1s | 1 | not reported | not reported |
 
 ### Assertions by arm
 
@@ -179,10 +196,10 @@ n = 8 vs 8 counted attempts. 95% CI +7 pts to +78 pts.
 
 | Coding harness | Arm | Pass rate | Tokens | Tool calls | Turns | Cost | Agent time | Files changed | Lines added | Lines removed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| learner | plain | 0% | not reported | 0 | 1 | not reported | <0.1s | 1 | not reported | not reported |
-| learner | with-skill | 100% | not reported | 0 | 1 (±0%) | not reported | <0.1s (+86%) | 1 (±0%) | not reported | not reported |
-| terse | plain | 0% | not reported | 0 | 1 | not reported | <0.1s | 1 | not reported | not reported |
-| terse | with-skill | 0% | not reported | 0 | 1 (±0%) | not reported | <0.1s (-25%) | 1 (±0%) | not reported | not reported |
+| learner | plain | 0% | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| learner | with-skill | 100% | not reported | 0 | 1 | not reported | <0.1s | 1 | not reported | not reported |
+| terse | plain | 0% | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| terse | with-skill | 0% | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 
 ### Failures and caveats
 
@@ -198,7 +215,7 @@ with-skill against the plain baseline
 
 **with-skill vs plain: +100 pts pass rate (100% vs 0%)**
 
-n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts.
+4 vs 4 trials. 95% CI +31 pts to +100 pts. No failures in 4 trials on with-skill (95% Wilson CI 51% to 100%).
 
 ### Baseline vs. variants
 
@@ -208,9 +225,9 @@ n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts.
 
 | Arm | Pass rate | Lift | Pass-rate verdict | Tokens | Tool calls | Turns | Cost | Agent time | Files changed | Lines added | Lines removed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| plain | 0% | n/a | Baseline | not reported | 1 | 1 | not reported | <0.1s | 1 | not reported | not reported |
-| with-skill | 100% | +100 pts | Helped | not reported | 1 (±0%) | 1 (±0%) | not reported | <0.1s (+60%) | 1 (±0%) | not reported | not reported |
-| with-doc | 0% | ±0 pts | Within noise | not reported | 1 (±0%) | 1 (±0%) | not reported | <0.1s (+80%) | 1 (±0%) | not reported | not reported |
+| plain | 0% | n/a | Baseline | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| with-skill | 100% | +100 pts | Helped | not reported | 1 | 1 | not reported | <0.1s | 1 | not reported | not reported |
+| with-doc | 0% | ±0 pts | Within noise | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 
 ### Assertions by arm
 
@@ -232,9 +249,9 @@ n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts.
 
 | Coding harness | Arm | Pass rate | Tokens | Tool calls | Turns | Cost | Agent time | Files changed | Lines added | Lines removed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| fake | plain | 0% | not reported | 1 | 1 | not reported | <0.1s | 1 | not reported | not reported |
-| fake | with-skill | 100% | not reported | 1 (±0%) | 1 (±0%) | not reported | <0.1s (+60%) | 1 (±0%) | not reported | not reported |
-| fake | with-doc | 0% | not reported | 1 (±0%) | 1 (±0%) | not reported | <0.1s (+80%) | 1 (±0%) | not reported | not reported |
+| fake | plain | 0% | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| fake | with-skill | 100% | not reported | 1 | 1 | not reported | <0.1s | 1 | not reported | not reported |
+| fake | with-doc | 0% | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 
 ### Failures and caveats
 
@@ -250,7 +267,7 @@ with-skill against the plain baseline
 
 **with-skill vs plain: -100 pts pass rate (0% vs 100%)**
 
-n = 4 vs 4 counted attempts. 95% CI -100 pts to -31 pts.
+4 vs 4 trials. 95% CI -100 pts to -31 pts. No failures in 4 trials on plain (95% Wilson CI 51% to 100%).
 
 ### Baseline vs. variants
 
@@ -260,7 +277,7 @@ n = 4 vs 4 counted attempts. 95% CI -100 pts to -31 pts.
 | Arm | Pass rate | Lift | Pass-rate verdict | Tokens | Tool calls | Turns | Cost | Agent time | Files changed | Lines added | Lines removed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | plain | 100% | n/a | Baseline | not reported | 1 | 1 | not reported | <0.1s | 1 | not reported | not reported |
-| with-skill | 0% | -100 pts | Made worse | not reported | 1 (±0%) | 1 (±0%) | not reported | <0.1s (-83%) | 1 (±0%) | not reported | not reported |
+| with-skill | 0% | -100 pts | Made worse | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 
 ### Assertions by arm
 
@@ -273,7 +290,7 @@ n = 4 vs 4 counted attempts. 95% CI -100 pts to -31 pts.
 | Coding harness | Arm | Pass rate | Tokens | Tool calls | Turns | Cost | Agent time | Files changed | Lines added | Lines removed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | fake | plain | 100% | not reported | 1 | 1 | not reported | <0.1s | 1 | not reported | not reported |
-| fake | with-skill | 0% | not reported | 1 (±0%) | 1 (±0%) | not reported | <0.1s (-83%) | 1 (±0%) | not reported | not reported |
+| fake | with-skill | 0% | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 
 ### Failures and caveats
 
@@ -289,7 +306,7 @@ with-skill against the plain baseline
 
 **with-skill vs plain: +100 pts pass rate (100% vs 0%)**
 
-n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. 1 per side is below 4, so this cannot come back helped or made worse.
+1 vs 1 trials. 95% CI -12 pts to +100 pts. No failures in 1 trial on with-skill (95% Wilson CI 21% to 100%). 1 trial per side is below 4, so this cannot come back helped or made worse.
 
 ### Baseline vs. variants
 
@@ -298,8 +315,8 @@ n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. 1 per side is below 4, 
 
 | Arm | Pass rate | Lift | Pass-rate verdict | Tokens | Tool calls | Turns | Cost | Agent time | Files changed | Lines added | Lines removed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| plain | 0% | n/a | Baseline | not reported | 1 | 1 | not reported | <0.1s | 1 | not reported | not reported |
-| with-skill | 100% | +100 pts | Too few runs | not reported | 1 (±0%) | 1 (±0%) | not reported | <0.1s (-25%) | 1 (±0%) | not reported | not reported |
+| plain | 0% | n/a | Baseline | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| with-skill | 100% | +100 pts | Too few runs | not reported | 1 | 1 | not reported | <0.1s | 1 | not reported | not reported |
 
 ### Assertions by arm
 
@@ -311,8 +328,8 @@ n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. 1 per side is below 4, 
 
 | Coding harness | Arm | Pass rate | Tokens | Tool calls | Turns | Cost | Agent time | Files changed | Lines added | Lines removed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| fake | plain | 0% | not reported | 1 | 1 | not reported | <0.1s | 1 | not reported | not reported |
-| fake | with-skill | 100% | not reported | 1 (±0%) | 1 (±0%) | not reported | <0.1s (-25%) | 1 (±0%) | not reported | not reported |
+| fake | plain | 0% | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| fake | with-skill | 100% | not reported | 1 | 1 | not reported | <0.1s | 1 | not reported | not reported |
 
 ### Failures and caveats
 
@@ -326,7 +343,7 @@ n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. 1 per side is below 4, 
 
 **100% passed**
 
-1 of 1 counted attempts passed on all 1 assertions. 1 coding harness.
+No failures in 1 trial on 1 assertion (95% Wilson CI 21% to 100%); small sample does not rule out failures. 1 coding harness.
 
 ### Assertions
 
@@ -346,7 +363,7 @@ n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. 1 per side is below 4, 
 
 **0% passed**
 
-0 of 1 counted attempts passed on all 2 assertions. 1 coding harness.
+0 of 1 trial passed on all 2 assertions. 1 coding harness.
 
 ### Assertions
 
@@ -359,7 +376,7 @@ n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. 1 per side is below 4, 
 
 | Coding harness | Pass rate | Tokens | Tool calls | Turns | Cost | Agent time | Files changed | Lines added | Lines removed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| fake | 0% | not reported | 1 | 1 | not reported | <0.1s | 1 | not reported | not reported |
+| fake | 0% | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 
 ### Failures and caveats
 
@@ -373,7 +390,7 @@ n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. 1 per side is below 4, 
 
 **50% passed**
 
-1 of 2 counted attempts passed on all 2 assertions. 1 coding harness.
+1 of 2 trials passed on all 2 assertions. 1 coding harness.
 
 ### Assertions
 
@@ -400,7 +417,7 @@ n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. 1 per side is below 4, 
 
 **Median tokens: not reported**
 
-No attempt reported usage.
+No trial reported usage.
 
 ### Failures and caveats
 
@@ -414,7 +431,7 @@ No attempt reported usage.
 
 **Median tokens: not reported**
 
-No attempt reported usage.
+No trial reported usage.
 
 ### Failures and caveats
 
@@ -428,7 +445,7 @@ No attempt reported usage.
 
 **Median tokens: not reported**
 
-No attempt reported usage.
+No trial reported usage.
 
 ## greets in Klingon
 
@@ -436,7 +453,7 @@ No attempt reported usage.
 
 **Median tokens: not reported**
 
-No attempt reported usage.
+No trial reported usage.
 
 ## State
 

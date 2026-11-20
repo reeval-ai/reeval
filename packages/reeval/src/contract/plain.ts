@@ -14,6 +14,8 @@ import type {
   GitWorkspace,
   HostFile,
   McpServer,
+  PassMetric,
+  PassMetricLead,
   PhasedEgress,
   PluginMarketplace,
   PluginPart,
@@ -99,6 +101,18 @@ export const gatePolicySchema = z.union([
   z.literal('all'),
   z.strictObject({ passRate: z.number().gt(0).max(1) }),
   z.literal('observe'),
+])
+
+export const passMetricLeadSchema = z.enum(['pass-rate', 'task-pass-rate', 'pass@k', 'pass^k'])
+
+const explicitK = z.number().int().min(2)
+
+export const passMetricSchema: z.ZodType<PassMetric> = z.union([
+  z.literal('pass-rate'),
+  z.literal('task-pass-rate'),
+  z.strictObject({ passAtK: explicitK }),
+  z.strictObject({ passHatK: explicitK }),
+  z.strictObject({ k: explicitK, lead: passMetricLeadSchema.optional() }),
 ])
 
 const snapshotWhen = z.union([z.boolean(), z.literal('turns')])
@@ -298,6 +312,8 @@ export const gitWorkspaceSchema = z.strictObject({
 
 export type _SameAsSchema = [
   Assert<Same<z.infer<typeof gatePolicySchema>, GatePolicy>>,
+  Assert<Same<z.infer<typeof passMetricLeadSchema>, PassMetricLead>>,
+  Assert<Same<z.infer<typeof passMetricSchema>, PassMetric>>,
   Assert<Same<z.infer<typeof snapshotOptionSchema>, SnapshotOption>>,
   Assert<Same<z.infer<typeof egressPolicySchema>, EgressPolicy>>,
   Assert<Same<z.infer<typeof phasedEgressSchema>, PhasedEgress>>,
@@ -362,6 +378,13 @@ const GATE_SHAPE =
 /** reeval's sentence for a gate that isn't one, or undefined. */
 export const gateProblem = (value: unknown, where: string) =>
   refusal(gatePolicySchema, value, () => `gate in ${where} ${GATE_SHAPE} (got ${got(value)})`)
+
+const METRIC_SHAPE =
+  "is 'pass-rate' (the default), 'task-pass-rate', { passAtK: k }, { passHatK: k }, or { k, lead? } with a whole number k of at least 2"
+
+/** reeval's sentence for a `metric` setting that isn't one, or undefined. */
+export const metricProblem = (value: unknown, where: string) =>
+  refusal(passMetricSchema, value, () => `metric in ${where} ${METRIC_SHAPE} (got ${got(value)})`)
 
 const SNAPSHOT_SHAPE =
   "is true (after the checks), 'turns' (after each c.send too), false, or { when, compress }, e.g. snapshot: { compress: true }"

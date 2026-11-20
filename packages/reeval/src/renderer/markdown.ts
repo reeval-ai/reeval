@@ -3,8 +3,10 @@
 
 import {
   changeSideText,
+  headlinePrimaryText,
   headlineResultText,
   medianWithDelta,
+  proportionText,
   remarkLine,
 } from '../view/report/format.ts'
 import { attemptAnchorId } from '../view/report/ids.ts'
@@ -13,7 +15,6 @@ import {
   contrastMeasureLabel,
   DISCOVERY_SOURCE_LABEL,
   MEASURE_LABEL,
-  PASS_RATE_OUTCOME_LABEL,
   verdictLabel,
 } from '../view/report/labels.ts'
 import type {
@@ -27,6 +28,7 @@ import type {
   ChoiceBreakdown,
   ContrastRow,
   DiscoveryRate,
+  EffortPivotRow,
   EvalHeadline,
   EvalSection,
   ExecutiveRollup,
@@ -35,6 +37,7 @@ import type {
   IntegrityIssue,
   JudgmentBreakdown,
   MeasureKey,
+  PassMetricLead,
   ProvenanceState,
   QualitativeAnswers,
   RegressionChanges,
@@ -42,7 +45,9 @@ import type {
   RosterRow,
   RunHeader,
   RunReport,
+  TaskCell,
   TaskResults,
+  TaskRow,
   VariantComparison,
 } from '../view/report/types.ts'
 
@@ -108,31 +113,7 @@ function shapeLabel(shapes: EvalSection['shapes']): string {
 }
 
 function headlineBold(primary: HeadlinePrimary): string {
-  switch (primary.kind) {
-    case 'pass-rate':
-      return `**${primary.rate.text} ${PASS_RATE_OUTCOME_LABEL[primary.outcome]}**`
-    case 'lift':
-      return `**${primary.variant.label} vs ${primary.baseline.label}: ${primary.points.text} pass rate (${primary.variantRate.text} vs ${primary.baselineRate.text})**`
-    case 'tied-ceiling':
-      return `**${primary.variant.label} vs ${primary.baseline.label}: tied at 100% pass rate, median ${MEASURE_LABEL[primary.lead.measure].toLowerCase()} ${primary.lead.delta.text} (${primary.lead.variant.text} vs ${primary.lead.baseline.text})**`
-    case 'choice':
-      return `**${primary.question}: ${primary.options.map((o) => `${o.label} ${o.count}`).join(', ')}**`
-    case 'measure':
-      return `**Median ${primary.label}: ${primary.spread.median.text}**`
-    case 'judge':
-      return `**${primary.label}: median ${primary.spread.median.text} on ${primary.scale[0]} to ${primary.scale[1]}**`
-    case 'text':
-      return `**${primary.question}**`
-    case 'regression': {
-      const parts = [
-        primary.worse ? `${primary.worse} worse` : null,
-        primary.fixed ? `${primary.fixed} fixed` : null,
-      ].filter(Boolean)
-      const counts = parts.length ? parts.join(', ') : 'no gated flips'
-      if (!primary.lead) return `**${counts}**`
-      return `**${counts}: ${primary.lead.signal}, ${changeSideText(primary.lead, 'prior')} to ${changeSideText(primary.lead, 'current')}**`
-    }
-  }
+  return `**${headlinePrimaryText(primary)}**`
 }
 
 function headerLine(header: RunHeader): string {
@@ -204,27 +185,143 @@ function renderHeadline(headline: EvalHeadline, blockLevel: number): string[] {
   return lines
 }
 
-function measureCells(row: BreakdownRow | ArmRow): string[] {
-  const measures =
-    'measures' in row
-      ? (row as BreakdownRow).measures
-      : Object.fromEntries(
-          MEASURE_ORDER.map((k) => {
-            const m = (row as ArmRow).measures[k]
-            return [k, m?.value ?? null] as const
-          }),
-        )
-  return MEASURE_ORDER.map((k) => {
-    if ('lift' in row) {
-      const m = (row as ArmRow).measures[k]
-      if (!m?.value) return 'not reported'
-      const base = medianWithDelta(m.value.median.text, m.delta)
-      if (m.lower) return `${base}, ${m.lower.text} harnesses lower`
-      return base
+type PassCol = {
+  id: PassMetricLead
+  header: string
+}
+
+function orderedPassCols(
+  metric: PassMetricLead | undefined,
+  k: number | undefined,
+  showTaskRate: boolean,
+  showPassK: boolean,
+): PassCol[] {
+  const cols: PassCol[] = [
+    { id: 'pass-rate', header: 'Pass rate' },
+    ...(showTaskRate ? [{ id: 'task-pass-rate' as const, header: 'Task avg' }] : []),
+    ...(showPassK
+      ? [
+          { id: 'pass@k' as const, header: k !== undefined ? `Pass@${k}` : 'Pass@k' },
+          { id: 'pass^k' as const, header: k !== undefined ? `Pass^${k}` : 'Pass^k' },
+        ]
+      : []),
+  ]
+  if (!metric || metric === 'pass-rate') return cols
+  const idx = cols.findIndex((c) => c.id === metric)
+  if (idx <= 0) return cols
+  const picked = cols[idx]!
+  return [picked, ...cols.slice(0, idx), ...cols.slice(idx + 1)]
+}
+
+function passCellsFor(
+  row: {
+    rate: BreakdownRow['rate']
+    taskRate?: BreakdownRow['taskRate']
+    passAtK?: BreakdownRow['passAtK']
+    passHatK?: BreakdownRow['passHatK']
+  },
+  cols: readonly PassCol[],
+): string[] {
+  return cols.map((col) => {
+    switch (col.id) {
+      case 'pass-rate':
+        return row.rate?.text ?? 'n/a'
+      case 'task-pass-rate':
+        return row.taskRate?.text ?? 'n/a'
+      case 'pass@k':
+        return row.passAtK?.text ?? 'n/a'
+      case 'pass^k':
+        return row.passHatK?.text ?? 'n/a'
+      default:
+        return 'n/a'
     }
-    const s = (measures as BreakdownRow['measures'])[k]
-    return s ? s.median.text : 'not reported'
   })
+}
+
+function measureHeaders(showCostPerSuccess: boolean): string[] {
+  const out: string[] = []
+  for (const k of MEASURE_ORDER) {
+    out.push(MEASURE_LABEL[k])
+    if (k === 'costUsd' && showCostPerSuccess) out.push('Cost per success')
+  }
+  return out
+}
+
+function measureCells(
+  row: BreakdownRow | ArmRow | EffortPivotRow,
+  showCostPerSuccess = false,
+): string[] {
+  const zeroPasses = Boolean(row.rate && row.rate.n > 0 && row.rate.k === 0)
+  const missingText = zeroPasses ? 'n/a' : 'not reported'
+  const out: string[] = []
+  for (const k of MEASURE_ORDER) {
+    if ('lift' in row || 'harness' in row) {
+      const m = (row as ArmRow | EffortPivotRow).measures[k]
+      if (!m?.value) {
+        out.push(missingText)
+      } else {
+        const base = medianWithDelta(m.value.median.text, m.delta)
+        out.push(m.lower ? `${base}, ${m.lower.text} harnesses lower` : base)
+      }
+    } else {
+      const s = (row as BreakdownRow).measures[k]
+      out.push(s ? s.median.text : missingText)
+    }
+    if (k === 'costUsd' && showCostPerSuccess) {
+      if (!row.costPerSuccess) {
+        out.push('n/a')
+      } else if ('costPerSuccessDelta' in row && row.costPerSuccessDelta) {
+        out.push(medianWithDelta(row.costPerSuccess.text, row.costPerSuccessDelta))
+      } else {
+        out.push(row.costPerSuccess.text)
+      }
+    }
+  }
+  return out
+}
+
+function formatTaskCellText(cell: TaskCell | null | undefined): string {
+  if (!cell || cell.rate.n <= 0) return 'n/a'
+  const base = `${cell.rate.text} (${proportionText(cell.rate)})`
+  if (cell.k !== undefined && cell.passAtK && cell.passHatK) {
+    return `${base}, Pass@${cell.k} ${cell.passAtK.text}, Pass^${cell.k} ${cell.passHatK.text}`
+  }
+  return base
+}
+
+function taskRowsMarkdown(
+  tasks: TaskRow[],
+  columns: string[],
+  metric: PassMetricLead | undefined,
+  k: number | undefined,
+  includeTotal: boolean,
+): string {
+  if (includeTotal && columns.length === 1) {
+    const col = columns[0]!
+    const showPassK = tasks.some((t) => (t.cells[col] ?? t.total)?.passAtK !== undefined)
+    const passCols = orderedPassCols(metric, k, false, showPassK)
+    return table(
+      ['Task', ...passCols.map((c) => c.header), 'Trials'],
+      tasks.map((t) => {
+        const cell = t.cells[col] ?? t.total
+        if (!cell) return [t.label, ...passCols.map(() => 'n/a'), 'n/a']
+        return [
+          t.label,
+          ...passCellsFor(cell, passCols),
+          cell.rate.n > 0 ? proportionText(cell.rate) : 'n/a',
+        ]
+      }),
+    )
+  }
+  const headers = ['Task', ...columns, ...(includeTotal ? ['Total'] : [])]
+  return table(
+    headers,
+    tasks.map((t) => [
+      t.label,
+      ...columns.map((c) => formatTaskCellText(t.cells[c])),
+      ...(includeTotal ? [formatTaskCellText(t.total)] : []),
+    ]),
+  )
 }
 
 function assertionTable(columns: string[], rows: AssertionRow[]): string {
@@ -244,26 +341,47 @@ function taskMarkdown(primary: TaskResults, blockLevel: number): string[] {
     lines.push(h(blockLevel, 'Assertions'), '')
     lines.push(assertionTable(primary.columns, primary.assertions), '')
   }
+  if (primary.tasks && primary.tasks.length > 1) {
+    lines.push(h(blockLevel, 'By task'), '')
+    lines.push(
+      taskRowsMarkdown(primary.tasks, primary.columns, primary.metric, primary.k, true),
+      '',
+    )
+  }
   if (primary.breakdown.length) {
     const axisTitle =
       primary.axes.length === 1 && primary.axes[0] === 'harness'
         ? 'By coding harness'
         : `By ${primary.axes.join(' / ')}`
     lines.push(h(blockLevel, axisTitle), '')
-    const headers = [...primary.axes, 'Pass rate', ...MEASURE_ORDER.map((k) => MEASURE_LABEL[k])]
+    const allRows = primary.median ? [...primary.breakdown, primary.median] : primary.breakdown
+    const showTaskRate = allRows.some((r) => r.taskRate != null)
+    const showPassK = allRows.some((r) => r.passAtK != null)
+    const showCostPerSuccess =
+      primary.costReported ??
+      allRows.some((r) => r.costPerSuccess != null || r.measures.costUsd != null)
+    const passCols = orderedPassCols(primary.metric, primary.k, showTaskRate, showPassK)
+    const headers = [
+      ...primary.axes,
+      ...passCols.map((c) => c.header),
+      ...measureHeaders(showCostPerSuccess),
+    ]
     const rows = primary.breakdown.map((r) => [
       ...r.keys,
-      r.rate?.text ?? 'n/a',
-      ...measureCells(r),
+      ...passCellsFor(r, passCols),
+      ...measureCells(r, showCostPerSuccess),
     ])
     if (primary.median) {
       rows.push([
         ...primary.median.keys.map(() => '**Median**'),
-        primary.median.rate?.text ?? 'n/a',
-        ...measureCells(primary.median),
+        ...passCellsFor(primary.median, passCols),
+        ...measureCells(primary.median, showCostPerSuccess),
       ])
     }
     lines.push(table(headers, rows), '')
+    if (primary.k !== undefined && !showPassK && primary.passKOmitted) {
+      lines.push(`Pass@${primary.k} and Pass^${primary.k} omitted: ${primary.passKOmitted}.`, '')
+    }
   }
   return lines
 }
@@ -282,22 +400,66 @@ function comparisonMarkdown(primary: VariantComparison, blockLevel: number): str
   if (primary.uniformLead) {
     lines.push(primary.uniformLead, '')
   }
+  if (primary.saturationNote) {
+    lines.push(primary.saturationNote, '')
+  }
+  const showCostPerSuccess =
+    primary.costReported ??
+    primary.summary.some((r) => r.costPerSuccess != null || r.measures.costUsd != null)
   if (primary.summary.length) {
-    const headers = [
-      'Arm',
-      'Pass rate',
-      'Lift',
-      'Pass-rate verdict',
-      ...MEASURE_ORDER.map((k) => MEASURE_LABEL[k]),
-    ]
-    const rows = primary.summary.map((r) => [
-      r.arm,
-      r.rate.text,
-      r.lift?.text ?? 'n/a',
-      verdictLabel(r.verdict),
-      ...measureCells(r),
-    ])
+    const showTaskRate = primary.summary.some((r) => r.taskRate != null)
+    const showPassK = primary.summary.some((r) => r.passAtK != null)
+    const kVal = primary.k ?? primary.summary.find((r) => r.k !== undefined)?.k
+    const passCols = orderedPassCols(primary.metric, kVal, showTaskRate, showPassK)
+    const leadCol = passCols[0]!
+    const extraPassCols = passCols.slice(1)
+    const leadFirst = leadCol.id !== 'pass-rate'
+    const headers = leadFirst
+      ? [
+          'Arm',
+          leadCol.header,
+          ...extraPassCols.map((c) => c.header),
+          'Lift',
+          'Pass-rate verdict',
+          ...measureHeaders(showCostPerSuccess),
+        ]
+      : [
+          'Arm',
+          leadCol.header,
+          'Lift',
+          'Pass-rate verdict',
+          ...extraPassCols.map((c) => c.header),
+          ...measureHeaders(showCostPerSuccess),
+        ]
+    const rows = primary.summary.map((r) => {
+      const cells = passCellsFor(r, passCols)
+      return leadFirst
+        ? [
+            r.arm,
+            ...cells,
+            r.lift?.text ?? 'n/a',
+            verdictLabel(r.verdict),
+            ...measureCells(r, showCostPerSuccess),
+          ]
+        : [
+            r.arm,
+            cells[0]!,
+            r.lift?.text ?? 'n/a',
+            verdictLabel(r.verdict),
+            ...cells.slice(1),
+            ...measureCells(r, showCostPerSuccess),
+          ]
+    })
     lines.push(table(headers, rows), '')
+    const omittedReason = primary.summary.find((r) => r.passKOmitted)?.passKOmitted
+    if (kVal !== undefined && !showPassK && omittedReason) {
+      lines.push(`Pass@${kVal} and Pass^${kVal} omitted: ${omittedReason}.`, '')
+    }
+  }
+  if (primary.tasks && primary.tasks.length > 1) {
+    lines.push(h(blockLevel, 'By task'), '')
+    const cols = primary.arms.map((a) => a.label)
+    lines.push(taskRowsMarkdown(primary.tasks, cols, primary.metric, primary.k, false), '')
   }
   if (primary.assertionsByArm.length) {
     lines.push(h(blockLevel, 'Assertions by arm'), '')
@@ -308,6 +470,8 @@ function comparisonMarkdown(primary: VariantComparison, blockLevel: number): str
     lines.push(h(blockLevel, 'Pairwise contrasts'), '')
     const showHarness = primary.contrasts.some((c) => c.harness !== undefined)
     const showSandbox = new Set(primary.contrasts.map((c) => c.sandbox)).size > 1
+    const showTaskDelta = primary.contrasts.some((c) => c.taskDelta !== undefined)
+    const showBroken = primary.contrasts.some((c) => (c.brokenTasks?.length ?? 0) > 0)
     lines.push(
       table(
         [
@@ -317,8 +481,10 @@ function comparisonMarkdown(primary: VariantComparison, blockLevel: number): str
           ...(showSandbox ? ['Sandbox'] : []),
           'Measure',
           'Delta',
+          ...(showTaskDelta ? ['Task-avg delta'] : []),
           'Interval',
           'Pass-rate verdict',
+          ...(showBroken ? ['0%-pass tasks'] : []),
         ],
         primary.contrasts.map((c: ContrastRow) => [
           c.from,
@@ -327,8 +493,10 @@ function comparisonMarkdown(primary: VariantComparison, blockLevel: number): str
           ...(showSandbox ? [c.sandbox ?? 'n/a'] : []),
           contrastMeasureLabel(c.measure),
           c.delta.text,
+          ...(showTaskDelta ? [c.taskDelta?.text ?? 'n/a'] : []),
           c.interval?.text ?? 'n/a',
           verdictLabel(c.verdict),
+          ...(showBroken ? [c.brokenTasks?.length ? c.brokenTasks.join(', ') : 'none'] : []),
         ]),
       ),
       '',
@@ -336,21 +504,21 @@ function comparisonMarkdown(primary: VariantComparison, blockLevel: number): str
   }
   if (primary.effortByHarness.length) {
     lines.push(h(blockLevel, 'Effort by coding harness'), '')
+    const showTaskRate = primary.effortByHarness.some((r) => r.taskRate != null)
+    const showPassK = primary.effortByHarness.some((r) => r.passAtK != null)
+    const kVal = primary.k ?? primary.effortByHarness.find((r) => r.k !== undefined)?.k
+    const passCols = orderedPassCols(primary.metric, kVal, showTaskRate, showPassK)
     const headers = [
       'Coding harness',
       'Arm',
-      'Pass rate',
-      ...MEASURE_ORDER.map((k) => MEASURE_LABEL[k]),
+      ...passCols.map((c) => c.header),
+      ...measureHeaders(showCostPerSuccess),
     ]
     const rows = primary.effortByHarness.map((r) => [
       r.harness === 'Median' ? '**Median**' : r.harness,
       r.arm,
-      r.rate.text,
-      ...MEASURE_ORDER.map((k) => {
-        const m = r.measures[k]
-        if (!m?.value) return 'not reported'
-        return medianWithDelta(m.value.median.text, m.delta)
-      }),
+      ...passCellsFor(r, passCols),
+      ...measureCells(r, showCostPerSuccess),
     ])
     lines.push(table(headers, rows), '')
   }
@@ -644,6 +812,11 @@ function evalSectionMarkdown(section: EvalSection, single: boolean): string {
       const cites = citeList(claim.cites)
       lines.push(`- ${claim.text}${cites ? ` ${cites}` : ''}`)
     }
+    lines.push('')
+  }
+  if (section.next?.length) {
+    lines.push(h(blockLevel, 'Next'), '')
+    for (const n of section.next) lines.push(`- ${n.at ? `At ${n.at}: ` : ''}${n.text}.`)
     lines.push('')
   }
   if (section.primary?.kind === 'task') lines.push(...taskMarkdown(section.primary, blockLevel))

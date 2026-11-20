@@ -10,6 +10,7 @@ import type {
   Count,
   Delta,
   Figure,
+  HeadlinePrimary,
   HeadlineResult,
   Interval,
   MeasureKey,
@@ -151,6 +152,18 @@ export const proportionText = ({ k, n }: Proportion): string => `${k} of ${n}`
 export const percentText = ({ k, n }: Proportion): string =>
   n <= 0 ? 'n/a' : `${Math.round((k / n) * 100)}%`
 
+/** A `[0, 1]` rate as a `Figure` (`75%`, or `n/a` when null/undefined). */
+export function percentFigure(rate: number | null | undefined): Figure {
+  if (rate === null || rate === undefined || !Number.isFinite(rate)) return figure(null, 'n/a')
+  return figure(rate, `${Math.round(rate * 100)}%`)
+}
+
+/** A `[0, 1]` Wilson interval as `51% to 100%`; `n/a` when null. */
+export function wilsonRangeText(interval: Interval | null): string {
+  if (!interval) return 'n/a'
+  return `${Math.round(interval.lo * 100)}% to ${Math.round(interval.hi * 100)}%`
+}
+
 /** How each measure's values print in a table cell. */
 export const MEASURE_TEXT: Record<MeasureKey, (n: number) => string> = {
   tokens: tokensText,
@@ -184,10 +197,50 @@ export function changeSideText(row: ChangeRow, side: 'prior' | 'current'): strin
 /** An eval's headline in one line, the rollup's `Primary result` cell. */
 export function headlineResultText(r: HeadlineResult): string {
   switch (r.kind) {
-    case 'pass-rate':
-      return `${percentText(r.passed)} ${PASS_RATE_OUTCOME_LABEL[r.outcome]}`
-    case 'lift':
+    case 'pass-rate': {
+      const word = PASS_RATE_OUTCOME_LABEL[r.outcome]
+      if (r.metric === 'task-pass-rate' && r.taskRate !== undefined) {
+        return `${Math.round(r.taskRate * 100)}% ${word} (task avg)`
+      }
+      if (r.metric === 'pass@k' && r.k !== undefined && r.passAtK !== undefined) {
+        const pct = `${Math.round(r.passAtK * 100)}%`
+        return r.outcome === 'passed' ? `${pct} pass@${r.k}` : `${pct} ${word} (pass@${r.k})`
+      }
+      if (r.metric === 'pass^k' && r.k !== undefined && r.passHatK !== undefined) {
+        const pct = `${Math.round(r.passHatK * 100)}%`
+        return r.outcome === 'passed' ? `${pct} pass^${r.k}` : `${pct} ${word} (pass^${r.k})`
+      }
+      return `${percentText(r.passed)} ${word}`
+    }
+    case 'lift': {
+      if (
+        r.metric === 'task-pass-rate' &&
+        r.variantTaskRate !== undefined &&
+        r.baselineTaskRate !== undefined
+      ) {
+        const delta = ptsDelta(r.variantTaskRate - r.baselineTaskRate).text
+        return `${r.variant} vs ${r.baseline}: ${delta} task-avg pass rate (${Math.round(r.variantTaskRate * 100)}% vs ${Math.round(r.baselineTaskRate * 100)}%)`
+      }
+      if (
+        r.metric === 'pass@k' &&
+        r.k !== undefined &&
+        r.variantPassAtK !== undefined &&
+        r.baselinePassAtK !== undefined
+      ) {
+        const delta = ptsDelta(r.variantPassAtK - r.baselinePassAtK).text
+        return `${r.variant} vs ${r.baseline}: ${delta} pass@${r.k} (${Math.round(r.variantPassAtK * 100)}% vs ${Math.round(r.baselinePassAtK * 100)}%)`
+      }
+      if (
+        r.metric === 'pass^k' &&
+        r.k !== undefined &&
+        r.variantPassHatK !== undefined &&
+        r.baselinePassHatK !== undefined
+      ) {
+        const delta = ptsDelta(r.variantPassHatK - r.baselinePassHatK).text
+        return `${r.variant} vs ${r.baseline}: ${delta} pass^${r.k} (${Math.round(r.variantPassHatK * 100)}% vs ${Math.round(r.baselinePassHatK * 100)}%)`
+      }
       return `${r.variant} vs ${r.baseline}: ${ptsDelta(r.points).text} pass rate (${percentText(r.variantPassed)} vs ${percentText(r.baselinePassed)})`
+    }
     case 'tied-ceiling': {
       const text = MEASURE_TEXT[r.measure]
       const delta = pctDelta(r.variantMedian, r.baselineMedian).text
@@ -213,8 +266,87 @@ export function headlineResultText(r: HeadlineResult): string {
   }
 }
 
+/** An `EvalHeadline.primary` formatted as its lead line (without surrounding `**`). */
+export function headlinePrimaryText(primary: HeadlinePrimary): string {
+  switch (primary.kind) {
+    case 'pass-rate': {
+      const word = PASS_RATE_OUTCOME_LABEL[primary.outcome]
+      if (primary.metric === 'task-pass-rate' && primary.taskRate?.value != null) {
+        return `${primary.taskRate.text} ${word} (task avg)`
+      }
+      if (
+        primary.metric === 'pass@k' &&
+        primary.k !== undefined &&
+        primary.passAtK?.value != null
+      ) {
+        return primary.outcome === 'passed'
+          ? `${primary.passAtK.text} pass@${primary.k}`
+          : `${primary.passAtK.text} ${word} (pass@${primary.k})`
+      }
+      if (
+        primary.metric === 'pass^k' &&
+        primary.k !== undefined &&
+        primary.passHatK?.value != null
+      ) {
+        return primary.outcome === 'passed'
+          ? `${primary.passHatK.text} pass^${primary.k}`
+          : `${primary.passHatK.text} ${word} (pass^${primary.k})`
+      }
+      return `${primary.rate.text} ${word}`
+    }
+    case 'lift': {
+      if (
+        primary.metric === 'task-pass-rate' &&
+        primary.taskPoints &&
+        primary.variantTaskRate &&
+        primary.baselineTaskRate
+      ) {
+        return `${primary.variant.label} vs ${primary.baseline.label}: ${primary.taskPoints.text} task-avg pass rate (${primary.variantTaskRate.text} vs ${primary.baselineTaskRate.text})`
+      }
+      if (
+        primary.metric === 'pass@k' &&
+        primary.k !== undefined &&
+        primary.passAtKPoints &&
+        primary.variantPassAtK &&
+        primary.baselinePassAtK
+      ) {
+        return `${primary.variant.label} vs ${primary.baseline.label}: ${primary.passAtKPoints.text} pass@${primary.k} (${primary.variantPassAtK.text} vs ${primary.baselinePassAtK.text})`
+      }
+      if (
+        primary.metric === 'pass^k' &&
+        primary.k !== undefined &&
+        primary.passHatKPoints &&
+        primary.variantPassHatK &&
+        primary.baselinePassHatK
+      ) {
+        return `${primary.variant.label} vs ${primary.baseline.label}: ${primary.passHatKPoints.text} pass^${primary.k} (${primary.variantPassHatK.text} vs ${primary.baselinePassHatK.text})`
+      }
+      return `${primary.variant.label} vs ${primary.baseline.label}: ${primary.points.text} pass rate (${primary.variantRate.text} vs ${primary.baselineRate.text})`
+    }
+    case 'tied-ceiling':
+      return `${primary.variant.label} vs ${primary.baseline.label}: tied at ${primary.rate.text} pass rate, median ${measurePhrase(primary.lead.measure)} ${primary.lead.delta.text} (${primary.lead.variant.text} vs ${primary.lead.baseline.text})`
+    case 'choice':
+      return `${primary.question}: ${primary.options.map((o) => `${o.label} ${o.count}`).join(', ')}`
+    case 'measure':
+      return `Median ${primary.label}: ${primary.spread.median.text}`
+    case 'judge':
+      return `${primary.label}: median ${primary.spread.median.text} on ${primary.scale[0]} to ${primary.scale[1]}`
+    case 'text':
+      return primary.question
+    case 'regression': {
+      const parts = [
+        primary.worse ? `${primary.worse} worse` : null,
+        primary.fixed ? `${primary.fixed} fixed` : null,
+      ].filter(Boolean)
+      const counts = parts.length ? parts.join(', ') : 'no gated flips'
+      if (!primary.lead) return counts
+      return `${counts}: ${primary.lead.signal}, ${changeSideText(primary.lead, 'prior')} to ${changeSideText(primary.lead, 'current')}`
+    }
+  }
+}
+
 /** `source:file#L12` as `file:12`, as the CLI's Worth knowing line prints it. */
-const remarkLocation = (at: string) => at.replace(/^source:/, '').replace(/#L(\d+)$/, ':$1')
+export const remarkLocation = (at: string) => at.replace(/^source:/, '').replace(/#L(\d+)$/, ':$1')
 
 /** A remark with its fix as one plain line. */
 export function remarkLine(r: { text: string; fix?: Remark['fix'] | null }): string {

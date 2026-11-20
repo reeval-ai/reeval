@@ -5,7 +5,7 @@ import type { AttemptRecord, EvalEntry } from '../history/types.ts'
 import { mannWhitney, median, minimumP, quantile } from '../stats.ts'
 import type { TimeSplit } from '../types.ts'
 import { formatTokens, totalTokens } from '../usage.ts'
-import { formatUsd } from './cost.ts'
+import { formatUsd, sumCosts } from './cost.ts'
 
 /** Below this two-sided p, an effort difference is an effect. */
 export const EFFORT_ALPHA = 0.05
@@ -248,8 +248,36 @@ export function contrastEffort(
 export const cellSamples = (e: Pick<EvalEntry, 'attempts'>, cellKey: string): EffortSample[] =>
   e.attempts.filter((a) => a.cell === cellKey && counted(a)).map(effortSample)
 
+/** The passing attempts (`outcome === 'pass'`) of one cell of an eval, as effort samples. */
+export const passingSamples = (e: Pick<EvalEntry, 'attempts'>, cellKey: string): EffortSample[] =>
+  e.attempts.filter((a) => a.cell === cellKey && a.outcome === 'pass').map(effortSample)
+
 export const cellEffort = (e: Pick<EvalEntry, 'attempts'>, cellKey: string) =>
   effortOf(cellSamples(e, cellKey))
+
+/** Effort over passing attempts only; null when 0 attempts in the cell passed. */
+export const passingCellEffort = (e: Pick<EvalEntry, 'attempts'>, cellKey: string) =>
+  effortOf(passingSamples(e, cellKey))
+
+/**
+ * Total USD cost across all counted attempts divided by passing attempts; null when cost was not
+ * reported, when some token-consuming counted attempt had no cost, or when 0 attempts passed.
+ */
+export function costPerSuccess(
+  attempts: ReadonlyArray<Pick<AttemptRecord, 'outcome' | 'cost' | 'usage'>>,
+): number | null {
+  const pool = attempts.filter(counted)
+  const passing = pool.filter((a) => a.outcome === 'pass').length
+  if (passing === 0) return null
+  const total = sumCosts(
+    pool.map((a) => ({
+      cost: a.cost,
+      used: Boolean(a.usage && totalTokens(a.usage) > 0),
+    })),
+  )
+  if (!total || total.unpriced) return null
+  return Math.round((total.usd / passing) * 1e6) / 1e6
+}
 
 /** A variant cell's effort against its control's, in the same run; null for controls. */
 export function cellContrast(
