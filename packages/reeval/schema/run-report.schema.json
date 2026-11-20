@@ -1696,6 +1696,10 @@
         },
         "label": {
           "type": "string"
+        },
+        "message": {
+          "description": "An `assertion` cluster's failure message, its first attempt's, as that attempt's `error` has it when the check ended the body; absent on other kinds, whose `label` is the message.",
+          "type": "string"
         }
       },
       "required": ["at", "attempts", "count", "kind", "label"]

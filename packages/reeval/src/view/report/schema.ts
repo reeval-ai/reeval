@@ -562,6 +562,7 @@ const failureClusterSchema: z.ZodType<FailureCluster> = z.strictObject({
   kind: z.enum(['assertion', 'turn-error', 'infra-error', 'capture-error', 'error']),
   label: z.string(),
   at: z.string().nullable(),
+  message: z.string().optional(),
   count: countSchema,
   attempts: z.array(attemptRefSchema),
 })

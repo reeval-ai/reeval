@@ -1097,6 +1097,7 @@
             "kind": "assertion",
             "label": "build",
             "at": null,
+            "message": "build: expected command to succeed, exit code 1",
             "count": {
               "k": 1,
               "n": 3,
@@ -1749,6 +1750,7 @@
             "kind": "assertion",
             "label": "house greeting",
             "at": null,
+            "message": "house greeting: expected command to succeed, exit code 1",
             "count": {
               "k": 4,
               "n": 8,
@@ -2174,6 +2176,7 @@
             "kind": "assertion",
             "label": "house greeting",
             "at": null,
+            "message": "house greeting: expected command to succeed, exit code 1",
             "count": {
               "k": 1,
               "n": 2,
@@ -3068,6 +3071,7 @@
             "kind": "assertion",
             "label": "house greeting",
             "at": null,
+            "message": "house greeting: expected command to succeed, exit code 1",
             "count": {
               "k": 12,
               "n": 16,
@@ -4259,6 +4263,7 @@
             "kind": "assertion",
             "label": "house greeting",
             "at": null,
+            "message": "house greeting: expected command to succeed, exit code 1",
             "count": {
               "k": 8,
               "n": 12,
@@ -4946,6 +4951,7 @@
             "kind": "assertion",
             "label": "says hello",
             "at": null,
+            "message": "says hello: expected command to succeed, exit code 1",
             "count": {
               "k": 4,
               "n": 8,
@@ -5613,6 +5619,7 @@
             "kind": "assertion",
             "label": "house greeting",
             "at": null,
+            "message": "house greeting: expected command to succeed, exit code 1",
             "count": {
               "k": 1,
               "n": 2,
@@ -5965,6 +5972,7 @@
             "kind": "assertion",
             "label": "french greeting",
             "at": null,
+            "message": "french greeting: expected command to succeed, exit code 1",
             "count": {
               "k": 1,
               "n": 1,
@@ -6164,6 +6172,7 @@
             "kind": "assertion",
             "label": "names the root cause",
             "at": null,
+            "message": "names the root cause: expected 'Docker is down' to contain 'null'",
             "count": {
               "k": 1,
               "n": 2,

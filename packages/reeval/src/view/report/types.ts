@@ -564,6 +564,11 @@ export type FailureCluster = {
   kind: 'assertion' | 'turn-error' | 'infra-error' | 'capture-error' | 'error'
   label: string
   at: string | null
+  /**
+   * An `assertion` cluster's failure message, its first attempt's, as that attempt's `error` has
+   * it when the check ended the body; absent on other kinds, whose `label` is the message.
+   */
+  message?: string
   /** Members of the eval's counted attempts. */
   count: Count
   attempts: AttemptRef[]

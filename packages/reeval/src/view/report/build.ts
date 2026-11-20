@@ -1638,6 +1638,7 @@ function buildFailures(
     label: string,
     at: string | null,
     attempt: AttemptRecord,
+    message?: string,
   ) => {
     const ref = attemptRef(ids, e, attempt, linkBase, hrefs, hrefByKey)
     if (!ref) return
@@ -1652,6 +1653,7 @@ function buildFailures(
       kind,
       label,
       at,
+      ...(message ? { message } : {}),
       count: countOf(1, counted.length),
       attempts: [ref],
     })
@@ -1661,7 +1663,12 @@ function buildFailures(
     for (const x of a.assertions ?? []) {
       if (x.status !== 'fail') continue
       failedAssertion = true
-      add('assertion', x.label, x.at ?? null, a)
+      const own = x.message ?? ''
+      const message =
+        own && a.error?.kind === 'assertion' && a.error.message.startsWith(own)
+          ? a.error.message
+          : own
+      add('assertion', x.label, x.at ?? null, a, messageLine(message))
     }
     let turnError = false
     for (const t of a.turns) {

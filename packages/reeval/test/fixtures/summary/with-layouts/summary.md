@@ -76,9 +76,9 @@ Run `20261020T205330Z_da3d797_cursor-agent_1k52` by cursor-agent, 2026-10-20, re
 
 ### Failures and caveats
 
-| Kind | Label | At | Count | Attempts |
-| --- | --- | --- | --- | --- |
-| assertion | build | n/a | 1 of 3 | [A2](./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/transcript.jsonl) |
+| Kind | Label | Message | At | Count | Attempts |
+| --- | --- | --- | --- | --- | --- |
+| assertion | build | build: expected command to succeed, exit code 1 | n/a | 1 of 3 | [A2](./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/transcript.jsonl) |
 
 ## greets %s in the house style
 
@@ -115,9 +115,9 @@ n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts.
 
 ### Failures and caveats
 
-| Kind | Label | At | Count | Attempts |
-| --- | --- | --- | --- | --- |
-| assertion | house greeting | n/a | 4 of 8 | [A4](./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/transcript.jsonl), [A6](./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/… |
+| Kind | Label | Message | At | Count | Attempts |
+| --- | --- | --- | --- | --- | --- |
+| assertion | house greeting | house greeting: expected command to succeed, exit code 1 | n/a | 4 of 8 | [A4](./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/transcript.jsonl), [A6](./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/… |
 
 ## greets in the house style on each agent
 
@@ -145,9 +145,9 @@ n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts.
 
 ### Failures and caveats
 
-| Kind | Label | At | Count | Attempts |
-| --- | --- | --- | --- | --- |
-| assertion | house greeting | n/a | 1 of 2 | [A13](./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/transcript.jsonl) |
+| Kind | Label | Message | At | Count | Attempts |
+| --- | --- | --- | --- | --- | --- |
+| assertion | house greeting | house greeting: expected command to succeed, exit code 1 | n/a | 1 of 2 | [A13](./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/transcript.jsonl) |
 
 ## learns the house style from the skill
 
@@ -186,9 +186,9 @@ n = 8 vs 8 counted attempts. 95% CI +7 pts to +78 pts.
 
 ### Failures and caveats
 
-| Kind | Label | At | Count | Attempts |
-| --- | --- | --- | --- | --- |
-| assertion | house greeting | n/a | 12 of 16 | [A14](./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/transcript.jsonl), [A30](./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/… |
+| Kind | Label | Message | At | Count | Attempts |
+| --- | --- | --- | --- | --- | --- |
+| assertion | house greeting | house greeting: expected command to succeed, exit code 1 | n/a | 12 of 16 | [A14](./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/transcript.jsonl), [A30](./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/… |
 
 ## greets in the house style
 
@@ -238,9 +238,9 @@ n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts.
 
 ### Failures and caveats
 
-| Kind | Label | At | Count | Attempts |
-| --- | --- | --- | --- | --- |
-| assertion | house greeting | n/a | 8 of 12 | [A18](./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/transcript.jsonl), [A34](./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/tran… |
+| Kind | Label | Message | At | Count | Attempts |
+| --- | --- | --- | --- | --- | --- |
+| assertion | house greeting | house greeting: expected command to succeed, exit code 1 | n/a | 8 of 12 | [A18](./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/transcript.jsonl), [A34](./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/tran… |
 
 ## keeps the plain greeting
 
@@ -277,9 +277,9 @@ n = 4 vs 4 counted attempts. 95% CI -100 pts to -31 pts.
 
 ### Failures and caveats
 
-| Kind | Label | At | Count | Attempts |
-| --- | --- | --- | --- | --- |
-| assertion | says hello | n/a | 4 of 8 | [A22](./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/transcript.jsonl), [A38](./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6a… |
+| Kind | Label | Message | At | Count | Attempts |
+| --- | --- | --- | --- | --- | --- |
+| assertion | says hello | says hello: expected command to succeed, exit code 1 | n/a | 4 of 8 | [A22](./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/transcript.jsonl), [A38](./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6a… |
 
 ## greets once
 
@@ -316,9 +316,9 @@ n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. 1 per side is below 4, 
 
 ### Failures and caveats
 
-| Kind | Label | At | Count | Attempts |
-| --- | --- | --- | --- | --- |
-| assertion | house greeting | n/a | 1 of 2 | [A23](./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/transcript.jsonl) |
+| Kind | Label | Message | At | Count | Attempts |
+| --- | --- | --- | --- | --- | --- |
+| assertion | house greeting | house greeting: expected command to succeed, exit code 1 | n/a | 1 of 2 | [A23](./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/transcript.jsonl) |
 
 ## writes greet.js
 
@@ -363,9 +363,9 @@ n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. 1 per side is below 4, 
 
 ### Failures and caveats
 
-| Kind | Label | At | Count | Attempts |
-| --- | --- | --- | --- | --- |
-| assertion | french greeting | n/a | 1 of 1 | [A26](./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/transcript.jsonl) |
+| Kind | Label | Message | At | Count | Attempts |
+| --- | --- | --- | --- | --- | --- |
+| assertion | french greeting | french greeting: expected command to succeed, exit code 1 | n/a | 1 of 1 | [A26](./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/transcript.jsonl) |
 
 ## explains why greet.js fails
 
@@ -390,9 +390,9 @@ n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. 1 per side is below 4, 
 
 ### Failures and caveats
 
-| Kind | Label | At | Count | Attempts |
-| --- | --- | --- | --- | --- |
-| assertion | names the root cause | n/a | 1 of 2 | [A39](./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/transcript.jsonl) |
+| Kind | Label | Message | At | Count | Attempts |
+| --- | --- | --- | --- | --- | --- |
+| assertion | names the root cause | names the root cause: expected 'Docker is down' to contain 'null' | n/a | 1 of 2 | [A39](./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/transcript.jsonl) |
 
 ## reads the fixture repo
 
@@ -404,9 +404,9 @@ No attempt reported usage.
 
 ### Failures and caveats
 
-| Kind | Label | At | Count | Attempts |
-| --- | --- | --- | --- | --- |
-| error | the fixture repo is missing | n/a | 1 of 1 | [A28](./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/transcript.jsonl) |
+| Kind | Label | Message | At | Count | Attempts |
+| --- | --- | --- | --- | --- | --- |
+| error | the fixture repo is missing | n/a | n/a | 1 of 1 | [A28](./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/transcript.jsonl) |
 
 ## starts its sandbox
 
@@ -418,9 +418,9 @@ No attempt reported usage.
 
 ### Failures and caveats
 
-| Kind | Label | At | Count | Attempts |
-| --- | --- | --- | --- | --- |
-| infra-error | the fake sandbox fell over | n/a | 1 of 1 | [A29](#attempt-evals-results-eval-ts-starts-its-sandbox-broken-fake-1-4c10815a) |
+| Kind | Label | Message | At | Count | Attempts |
+| --- | --- | --- | --- | --- | --- |
+| infra-error | the fake sandbox fell over | n/a | n/a | 1 of 1 | [A29](#attempt-evals-results-eval-ts-starts-its-sandbox-broken-fake-1-4c10815a) |
 
 ## greets in Welsh
 

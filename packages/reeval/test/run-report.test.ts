@@ -750,6 +750,8 @@ describe('RunReport chart data', () => {
     const citing = (key: string) =>
       clusters.filter((c) => c.attempts.some((ref) => ref.id === id(key))).map((c) => c.kind)
     assert.deepEqual(citing(a.key), ['assertion'])
+    const shown = clusters.find((c) => c.kind === 'assertion' && c.label === 'tests pass')
+    assert.equal(shown?.message, 'tests pass: expected 0 to be 1', 'its message moves onto it')
     assert.deepEqual(citing(b.key), ['error'], 'an error with no failed assertion keeps its own')
   })
 
