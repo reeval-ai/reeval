@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.32.0](https://github.com/reeval-ai/reeval/compare/v0.31.0...v0.32.0) (2026-11-20)
+
+
+### Features
+
+* **cli:** brand-color the home screen mark and share one tagline ([#1082](https://github.com/reeval-ai/reeval/issues/1082)) ([faf0a8f](https://github.com/reeval-ai/reeval/commit/faf0a8fb7c6331cc66b2a011d675cbddbdb9447e))
+* **sandbox:** pass /dev/kvm into docker() with devices: ['kvm'] ([#1090](https://github.com/reeval-ai/reeval/issues/1090)) ([78ebb0c](https://github.com/reeval-ai/reeval/commit/78ebb0ca100538611b4a68d9576309d3e311d724))
+* **transcript:** record the http status and size of claude code's web fetches ([#1089](https://github.com/reeval-ai/reeval/issues/1089)) ([241a24e](https://github.com/reeval-ai/reeval/commit/241a24e9b6efe3f5e6e9de17b16a40ca25563609))
+
 ## [0.31.0](https://github.com/reeval-ai/reeval/compare/v0.30.1...v0.31.0) (2026-11-17)
 
 
