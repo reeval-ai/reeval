@@ -33,7 +33,7 @@ export type { TartOptions } from './contract/tart.ts'
  * At run time the agent, setup steps and checks run as the unprivileged `reeval` user with every
  * capability dropped, `no-new-privileges`, and `memory`, `cpus` and `pids` limits, with `swap`
  * (as much as `memory` by default) on top of `memory`. `root: true` opts an eval into root;
- * `capabilities` adds specific ones back.
+ * `capabilities` adds specific ones back. `devices: ['kvm']` passes in `/dev/kvm`, and its group.
  */
 export function docker(options: DockerOptions = {}): DockerSandboxDescriptor {
   return containerSandbox(options, 'docker')

@@ -132,6 +132,8 @@ type Feature = {
   loopback?: true
   /** Needs POSIX file modes on the host, so the fake tier skips on Windows. */
   posixModes?: true
+  /** A host device the Docker tier passes in, so it skips on a host without one. */
+  hostDevice?: string
   /**
    * Every eval and attempt, when the defaults can't name them: several harnesses or a family's
    * cases. Fake tier only, where the ids are fixed.
@@ -2420,6 +2422,14 @@ export const features: Feature[] = [
     env: 'plain',
     canaryEnv: 'rooted',
     canary: /expected '0 00000000000000cf \/ 0' to be '10001 0000000000000000 \/ 10001'/,
+  },
+  {
+    dir: 'sandbox/kvm-device',
+    tiers: ['docker'],
+    env: 'kvm',
+    canaryEnv: 'plain',
+    canary: /expected 'refused' to be 'opened'/,
+    hostDevice: '/dev/kvm',
   },
   {
     // Docker and Podman only: every exec goes through engine/umask-0000, which starts it at
@@ -5691,8 +5701,14 @@ function attemptTrails(project: string): string {
 const FIXTURE_STOP_MS = { fake: 10_000, docker: 30_000, podman: 30_000, real: 30_000 } as const
 const FIXTURE_GRACE_MS = { fake: 5_000, docker: 20_000, podman: 20_000, real: 20_000 } as const
 
-function skipTier(tier: Tier, image?: BakedHarness, posixModes?: true): string | false {
+function skipTier(
+  tier: Tier,
+  image?: BakedHarness,
+  posixModes?: true,
+  hostDevice?: string,
+): string | false {
   if (only && !only.includes(tier)) return `REEVAL_FIXTURE_TIERS=${only.join(',')}`
+  if (hostDevice && !existsSync(hostDevice)) return `needs ${hostDevice} on the host`
   if (tier === 'fake' && posixModes && process.platform === 'win32')
     return 'Windows has no executable bit'
   if (tier === 'real')
@@ -5719,7 +5735,7 @@ function fixtureTests(tiers: Tier[], pick: (f: Feature) => boolean = () => true)
         f.timeoutMs?.[tier] ??
         { fake: FAKE_TIMEOUT_MS, docker: 240_000, podman: 240_000, real: 600_000 }[tier]
       test(`${rowName(f)} [${tier}]`, {
-        skip: skipTier(tier, f.image, f.posixModes),
+        skip: skipTier(tier, f.image, f.posixModes, f.hostDevice),
         // The run's own deadline starts once it holds the loopback, which it may wait for.
         timeout: timeout + (f.loopback ? LOOPBACK_WAIT_MS : 0),
       }, async (t) => {

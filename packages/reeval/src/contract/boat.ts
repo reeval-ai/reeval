@@ -87,6 +87,7 @@ export type _SameAsSchema = [
 const NOT_ON_BOAT: Record<string, string> = {
   root: 'the agent, setup steps and checks run as the unprivileged reeval user, and a Boat sandbox has no root mode yet',
   capabilities: 'a VM has no container capabilities to add',
+  devices: 'a Boat VM gets no host devices',
   memory: "pick a machine size with type: 'small' (4 GB), 'default', 'large' or 'xlarge'",
   cpus: "pick a machine size with type: 'small' (2 vCPUs), 'default', 'large' or 'xlarge'",
   swap: "pick a machine size with type: 'small' (4 GB), 'default', 'large' or 'xlarge'",

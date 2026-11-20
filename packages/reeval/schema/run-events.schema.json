@@ -2404,6 +2404,13 @@
           "description": "CPUs the container may use, fractions allowed. Default 2, capped at the Docker host's.",
           "type": "number"
         },
+        "devices": {
+          "description": "Host devices to pass in, by name: `'kvm'` is `/dev/kvm`, read-write, with its group added so the sandbox user can open it. Docker and Podman on this machine only.",
+          "type": "array",
+          "items": {
+            "const": "kvm"
+          }
+        },
         "dockerfile": {
           "description": "A Dockerfile, absolute or relative to the directory of the file it's written in, built from its directory with `REEVAL_BASE` set to reeval's sandbox image and cached by content hash.",
           "type": "string"
@@ -3251,7 +3258,7 @@
           "type": "number"
         },
         "sandboxWarnings": {
-          "description": "Its sandbox runs as root or with capabilities added back; empty for a skipped eval.",
+          "description": "Its sandbox runs as root, with capabilities added back or with host devices; empty for a skipped eval.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/SandboxWarning"
@@ -7250,7 +7257,7 @@
           "const": "reeval-run"
         },
         "plan": {
-          "description": "What the run planned before it started, and each level whose sandbox ran as root or with capabilities added back.",
+          "description": "What the run planned before it started, and each level whose sandbox ran as root, with capabilities added back or with host devices.",
           "type": "object",
           "properties": {
             "attempts": {
@@ -7622,11 +7629,18 @@
       ]
     },
     "SandboxWarning": {
-      "description": "A `SandboxWarning` describes a sandbox with more privilege than the default `reeval` user: `docker({ root: true })` or `docker({ capabilities })`. One per level that set such a sandbox, however many evaluations inherit it.",
+      "description": "A `SandboxWarning` describes a sandbox with more privilege than the default `reeval` user: `docker({ root: true })`, `docker({ capabilities })` or `docker({ devices })`. One per level that set such a sandbox, however many evaluations inherit it.",
       "type": "object",
       "properties": {
         "capabilities": {
           "description": "The capabilities added back, for `capabilities`.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "devices": {
+          "description": "The host devices passed in, for `devices`.",
           "type": "array",
           "items": {
             "type": "string"
@@ -7644,14 +7658,14 @@
           ]
         },
         "kind": {
-          "enum": ["capabilities", "root"]
+          "enum": ["capabilities", "devices", "root"]
         },
         "level": {
           "description": "Which level set the sandbox.",
           "enum": ["config", "eval", "group", "profile"]
         },
         "message": {
-          "description": "The line reeval prints after `⚠  Warning:`, in red for root and orange for capabilities.",
+          "description": "The line reeval prints after `⚠  Warning:`, in red for root and orange for the others.",
           "type": "string"
         },
         "where": {

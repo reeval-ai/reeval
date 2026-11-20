@@ -172,10 +172,17 @@ describe('sandbox kinds', () => {
     assert.deepEqual(sandboxKind(docker()).privileges(docker({ root: true })), {
       root: true,
       capabilities: [],
+      devices: [],
     })
     assert.deepEqual(sandboxKind(docker()).privileges(docker({ capabilities: ['NET_RAW'] })), {
       root: false,
       capabilities: ['NET_RAW'],
+      devices: [],
+    })
+    assert.deepEqual(sandboxKind(docker()).privileges(docker({ devices: ['kvm'] })), {
+      root: false,
+      capabilities: [],
+      devices: ['kvm'],
     })
     assert.deepEqual(sandboxKind(fakeSandbox()).privileges(fakeSandbox()), {
       root: false,

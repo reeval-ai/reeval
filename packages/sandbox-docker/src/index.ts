@@ -54,6 +54,7 @@ export {
   toolchainDockerfile,
   usesReevalBase,
 } from './build-image.ts'
+export { DeviceError, deviceGid, type SandboxDevice } from './devices.ts'
 export {
   type DockerOptions,
   type DockerResult,

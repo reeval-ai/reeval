@@ -1590,6 +1590,15 @@ describe('sandbox privilege warnings', { concurrency: CLIS }, () => {
         message:
           'extra capabilities in the sandbox: evaluate("installs deps") (docker({ capabilities: [\'NET_ADMIN\'] }))',
       },
+      {
+        kind: 'devices',
+        level: 'eval',
+        where: 'evaluate("boots an emulator")',
+        file: 'evals/p.eval.ts',
+        devices: ['kvm'],
+        message:
+          'host devices in the sandbox: evaluate("boots an emulator") (docker({ devices: [\'kvm\'] }))',
+      },
     ])
   })
 
@@ -1616,6 +1625,10 @@ describe('sandbox privilege warnings', { concurrency: CLIS }, () => {
     assert.match(
       gh.stdout,
       /^::warning title=Sandbox has extra capabilities::extra capabilities in the sandbox: reeval\.config\.ts/m,
+    )
+    assert.match(
+      gh.stdout,
+      /^::warning file=evals\/p\.eval\.ts,title=Sandbox has host devices::host devices in the sandbox: evaluate\("boots an emulator"\) \(docker\(\{ devices: \['kvm'\] \}\)\)$/m,
     )
   })
 

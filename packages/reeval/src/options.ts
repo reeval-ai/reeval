@@ -1368,7 +1368,8 @@ export function sandboxWarnings(
   const seen = new Set<string>()
   for (const a of attempts) {
     const privileges = sandboxKind(a.sandbox).privileges(a.sandbox)
-    if (!privileges.root && !privileges.capabilities.length) continue
+    const devices = privileges.devices ?? []
+    if (!privileges.root && !privileges.capabilities.length && !devices.length) continue
     const where = sandboxSetBy(a, resolved, origin.configFile)
     const level = levelOf(where)
     const file = level === 'eval' || level === 'group' ? origin.file : null
@@ -1394,6 +1395,15 @@ export function sandboxWarnings(
           capabilities: [...privileges.capabilities],
           message,
         })
+      }
+    }
+    if (devices.length) {
+      const list = devices.map((d) => `'${d}'`).join(', ')
+      const message = `host devices in the sandbox: ${where} (docker({ devices: [${list}] }))`
+      const key = `${file}\0${message}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        out.push({ kind: 'devices', level, where, file, devices: [...devices], message })
       }
     }
   }

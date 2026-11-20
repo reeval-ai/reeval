@@ -4,6 +4,7 @@
 // egress gateway. Each probe has a twin that must see the opposite, so it can fail.
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import http from 'node:http'
 import type net from 'node:net'
 import { after, before, describe, test } from 'node:test'
@@ -194,6 +195,20 @@ describe('sandbox confinement in Docker', {
     assert.equal(rp.effective, rootSet)
     assert.equal(rp.bounding, rootSet)
     assert.equal(rp.noNewPrivs, '1')
+  })
+
+  test('devices: kvm gives the sandbox user /dev/kvm read-write through its group, and no capability', {
+    skip: (ENGINE === 'podman' || !existsSync('/dev/kvm')) && 'needs /dev/kvm on a Docker host',
+  }, async () => {
+    const probe = `id -u; awk '/^CapEff/ {print $2}' /proc/self/status; stat -c '%t:%T' /dev/kvm; ( : <> /dev/kvm ) 2>/dev/null && echo opened || echo refused`
+    const s = await open({ devices: ['kvm'] })
+    assert.equal(
+      (await s.run({ command: probe })).stdout,
+      '10001\n0000000000000000\na:e8\nopened\n',
+    )
+    // Twin: without devices the container has no /dev/kvm.
+    const plain = await open()
+    assert.match((await plain.run({ command: probe })).stdout, /refused\n$/)
   })
 
   test('default limits: memory with as much swap on top, CPUs and processes', async () => {

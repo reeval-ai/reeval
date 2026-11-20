@@ -53,6 +53,8 @@ export const dockerKey = (
   return JSON.stringify({
     harness: kind,
     image: { image, from, dockerfile, install },
+    // Preflight checks the devices against the image, as the user the sandbox runs as.
+    ...(sandbox.devices?.length ? { devices: sandbox.devices, root: !!sandbox.root } : {}),
     ...(plugins.length ? { plugins: plugins.map(pluginBuildId) } : {}),
   })
 }
