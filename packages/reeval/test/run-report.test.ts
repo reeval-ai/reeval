@@ -600,7 +600,7 @@ describe('RunReport chart data', () => {
     }
   })
 
-  test('an A/B eval in the rollup has a median tokens figure', () => {
+  test('an A/B eval in the rollup has a median tokens figure per arm', () => {
     const { record } = onTwoHarnesses()
     let tokens = 1000
     for (const e of record.evals) {
@@ -613,8 +613,16 @@ describe('RunReport chart data', () => {
     const ab = report.rollup?.rows.find((r) => r.shapes.includes('ab'))
     assert.ok(ab)
     assert.equal(ab.result?.kind === 'lift' || ab.result?.kind === 'tied-ceiling', true)
-    assert.equal(typeof ab.medianTokens.value, 'number')
-    assert.notEqual(ab.medianTokens.text, 'not reported')
+    assert.equal(ab.medianTokens.value, null)
+    const section = report.evals.find((s) => s.id === ab.evalId)
+    assert.ok(section?.primary?.kind === 'comparison')
+    assert.deepEqual(
+      ab.medianTokensByArm?.map((a) => a.arm),
+      section.primary.summary.map((r) => r.arm),
+    )
+    for (const a of ab.medianTokensByArm ?? []) {
+      assert.equal(typeof a.tokens.value, 'number')
+    }
   })
 
   test('each attempt carries its token and time split and its judge calls', () => {

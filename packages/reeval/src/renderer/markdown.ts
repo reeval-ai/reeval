@@ -688,7 +688,9 @@ export const blockMarkdown: BlockMarkdown = {
             `[${r.name}](#${r.anchor})`,
             `${r.shapes.join(', ')}; ${r.design}`,
             r.result ? headlineResultText(r.result) : r.primary,
-            r.medianTokens.text,
+            r.medianTokensByArm?.some((a) => a.tokens.value !== null)
+              ? r.medianTokensByArm.map((a) => `${a.arm} ${a.tokens.text}`).join('; ')
+              : r.medianTokens.text,
           ]),
         ),
         '',

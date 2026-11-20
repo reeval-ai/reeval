@@ -1979,7 +1979,6 @@ function buildRoster(evals: EvalEntry[], record: RunRecord): RosterRow[] {
 
 function buildRollup(
   sections: EvalSection[],
-  evals: ReadonlyMap<string, EvalEntry>,
   analysis: AnalysisDoc | null,
 ): ExecutiveRollup | null {
   if (sections.length < 2 && !analysis?.analysis.tldr) return null
@@ -2013,14 +2012,22 @@ function buildRollup(
         design: s.design,
         primary: headlineResultText(result),
         result,
-        medianTokens: rollupTokens(s, evals.get(s.id)),
+        medianTokens: rollupTokens(s),
+        ...(s.primary?.kind === 'comparison'
+          ? {
+              medianTokensByArm: s.primary.summary.map((r) => ({
+                arm: r.arm,
+                tokens: r.measures.tokens?.value?.median ?? tokensFigure(null),
+              })),
+            }
+          : {}),
       }
     }),
     findings,
   }
 }
 
-function rollupTokens(s: EvalSection, e: EvalEntry | undefined): Figure {
+function rollupTokens(s: EvalSection): Figure {
   if (s.headline.primary.kind === 'measure' && s.headline.primary.unit === 'tokens') {
     return s.headline.primary.spread.median
   }
@@ -2030,10 +2037,6 @@ function rollupTokens(s: EvalSection, e: EvalEntry | undefined): Figure {
         s.primary.breakdown[0]?.measures.tokens?.median.value ??
         null,
     )
-  }
-  if (s.primary?.kind === 'comparison' && e) {
-    const counted = e.attempts.filter((a) => countedOutcome(a.outcome))
-    return tokensFigure(measuresOf(counted).tokens?.median.value ?? null)
   }
   return tokensFigure(null)
 }
@@ -2174,7 +2177,7 @@ export function buildRunReport(record: RunRecord, options: RunReportOptions = {}
 
   const sections = evals.map((e) => buildEvalSection(ctx, e, names.get(e.key) ?? e.name))
   const single = sections.length === 1
-  const rollup = buildRollup(sections, new Map(evals.map((e) => [e.key, e])), ctx.analysis)
+  const rollup = buildRollup(sections, ctx.analysis)
   const roster = buildRoster(evals, record)
 
   return {

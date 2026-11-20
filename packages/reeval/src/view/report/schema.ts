@@ -707,6 +707,9 @@ const executiveRollupSchema: z.ZodType<ExecutiveRollup> = z.strictObject({
       primary: z.string(),
       result: headlineResultSchema.optional(),
       medianTokens: figureSchema,
+      medianTokensByArm: z
+        .array(z.strictObject({ arm: z.string(), tokens: figureSchema }))
+        .optional(),
     }),
   ),
   findings: z.array(reportClaimSchema),
