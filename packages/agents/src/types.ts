@@ -67,6 +67,10 @@ export type TranscriptEvent = EventTime &
         url: string
         /** Whether the fetch succeeded; null when the harness never reported its result. */
         ok: boolean | null
+        /** The HTTP status the harness reports for the fetch; absent when it reports none. */
+        status?: number
+        /** The size of the fetched content the harness reports, in bytes; absent when it reports none. */
+        bytes?: number
         durationMs: number | null
         /** True when a shell-like tool or edit ran at least two minutes. */
         stalled?: boolean

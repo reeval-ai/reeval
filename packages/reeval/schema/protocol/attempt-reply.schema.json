@@ -843,6 +843,10 @@
             "atMs": {
               "type": "number"
             },
+            "bytes": {
+              "description": "The size of the fetched content the harness reports, in bytes; absent when it reports none.",
+              "type": "number"
+            },
             "durationInferred": {
               "description": "Set when the harness never reported the call's end, so `durationMs` runs to the next event's `atMs` (the turn's end for the last).",
               "type": "boolean",
@@ -858,6 +862,10 @@
             "stalled": {
               "description": "True when a shell-like tool or edit ran at least two minutes.",
               "type": "boolean"
+            },
+            "status": {
+              "description": "The HTTP status the harness reports for the fetch; absent when it reports none.",
+              "type": "number"
             },
             "subagent": {
               "description": "The `toolCallId` of the subagent call whose agent made this call; absent for the agent's own.",
