@@ -512,6 +512,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A1",
@@ -884,6 +885,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A4",
@@ -1363,6 +1365,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A12",
@@ -1662,6 +1665,62 @@
             "value": null,
             "text": "not reported"
           }
+        }
+      ],
+      "byHarness": [
+        {
+          "label": "learner",
+          "cells": [
+            {
+              "column": "plain",
+              "rate": {
+                "k": 0,
+                "n": 4,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 4",
+                "interval": "0% to 49%"
+              }
+            },
+            {
+              "column": "with-skill",
+              "rate": {
+                "k": 4,
+                "n": 4,
+                "rate": 1,
+                "text": "100%",
+                "of": "4 of 4",
+                "interval": "51% to 100%"
+              }
+            }
+          ]
+        },
+        {
+          "label": "terse",
+          "cells": [
+            {
+              "column": "plain",
+              "rate": {
+                "k": 0,
+                "n": 4,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 4",
+                "interval": "0% to 49%"
+              }
+            },
+            {
+              "column": "with-skill",
+              "rate": {
+                "k": 0,
+                "n": 4,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 4",
+                "interval": "0% to 49%"
+              }
+            }
+          ]
         }
       ],
       "attempts": [
@@ -2333,6 +2392,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A18",
@@ -2931,6 +2991,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A21",
@@ -3348,6 +3409,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A23",
@@ -3568,6 +3630,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A25",
@@ -3717,6 +3780,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A26",
@@ -3900,6 +3964,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A27",
@@ -4106,6 +4171,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A28",
@@ -4250,6 +4316,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A29",
@@ -4331,6 +4398,7 @@
         "left": null
       },
       "arms": [],
+      "byHarness": [],
       "attempts": [],
       "cases": [],
       "checks": [],
@@ -4367,6 +4435,7 @@
         "left": null
       },
       "arms": [],
+      "byHarness": [],
       "attempts": [],
       "cases": [],
       "checks": [],

@@ -147,10 +147,13 @@ function metricTexts(m: Metric): string[] {
 /**
  * The strings a section's render must hold verbatim: its figures, counts, rates, headline,
  * verdict and effect words. Free text (messages, quotes, questions) may be clipped, so it's out.
+ * The breakdowns behind a chart (rates by harness, picks by group, each judge score) print from
+ * `full`, so `brief` leaves them out.
  */
-export function sectionTexts(p: RunPresentation, s: Section): string[] {
+export function sectionTexts(p: RunPresentation, s: Section, detail: Detail = 'full'): string[] {
   const e = s.eval
   const out: string[] = []
+  const rows = detail !== 'brief'
   switch (s.kind) {
     case 'run':
       out.push(p.header.title, p.header.wall.text, p.header.attempts, ...p.header.servedBy)
@@ -171,6 +174,12 @@ export function sectionTexts(p: RunPresentation, s: Section): string[] {
         out.push(a.label, a.rate.text, a.rate.of)
         if (a.effectText) out.push(a.effectText)
         if (a.left) out.push(a.left)
+      }
+      if (rows) {
+        for (const h of e?.byHarness ?? []) {
+          out.push(h.label)
+          for (const cell of h.cells) if (cell.rate) out.push(cell.rate.text, cell.rate.of)
+        }
       }
       break
     case 'cases':
@@ -205,7 +214,13 @@ export function sectionTexts(p: RunPresentation, s: Section): string[] {
       break
     case 'questions':
       for (const q of e?.questions ?? []) {
-        if (q.kind === 'choices') for (const o of q.options) out.push(o.count.text)
+        if (q.kind === 'choices') {
+          for (const o of q.options) out.push(o.count.text)
+          if (rows) {
+            for (const r of q.rows) out.push(r.label, ...r.picks.map((x) => x.count.text))
+            for (const x of q.passByPick) out.push(x.rate.text, x.rate.of)
+          }
+        }
         if (q.kind === 'pairwise') out.push(...q.sides.map((s) => s.wins.text), q.ties.text)
         if (q.kind === 'answers') out.push(q.answered.text)
         if (q.kind === 'unanswered') out.push(q.text)
@@ -215,6 +230,7 @@ export function sectionTexts(p: RunPresentation, s: Section): string[] {
       for (const j of e?.judgments ?? []) {
         out.push(j.threshold, j.median.text)
         if (j.atOrAbove) out.push(j.atOrAbove.text)
+        if (rows) for (const x of j.scores) out.push(x.attempt.id, x.score.text)
       }
       break
     case 'discovery':

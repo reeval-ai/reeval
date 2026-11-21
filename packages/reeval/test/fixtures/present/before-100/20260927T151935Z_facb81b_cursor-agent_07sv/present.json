@@ -150,6 +150,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A1",
@@ -236,6 +237,7 @@
         "left": null
       },
       "arms": [],
+      "byHarness": [],
       "attempts": [],
       "cases": [],
       "checks": [],

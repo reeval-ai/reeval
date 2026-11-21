@@ -156,6 +156,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A1",

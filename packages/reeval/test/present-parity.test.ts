@@ -36,7 +36,7 @@ function holds(name: string, p: RunPresentation, detail: Detail, out: string, se
   for (const f of FORBIDDEN_OUTPUT) assert.doesNotMatch(out, f.pattern, `${name}: ${f.name}`)
   const text = out.replace(/\\\|/g, '|')
   for (const s of seen) {
-    for (const t of sectionTexts(p, s)) {
+    for (const t of sectionTexts(p, s, detail)) {
       assert.ok(text.includes(t), `${name}: ${s.id} prints ${JSON.stringify(t)}`)
       assert.doesNotMatch(t, /^(Yes|No)$/, `${name}: ${s.id}`)
     }

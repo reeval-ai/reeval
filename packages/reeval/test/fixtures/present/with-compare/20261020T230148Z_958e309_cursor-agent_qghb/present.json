@@ -213,6 +213,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A1",
@@ -383,6 +384,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A2",
@@ -674,6 +676,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A5",
@@ -857,6 +860,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A6",
@@ -1006,6 +1010,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A7",
@@ -1176,6 +1181,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A8",

@@ -226,6 +226,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A1",
@@ -565,7 +566,91 @@
             "value": 1,
             "text": "1.00"
           },
-          "atOrAbove": null
+          "atOrAbove": null,
+          "scale": [
+            0,
+            1
+          ],
+          "thresholdValue": null,
+          "scores": [
+            {
+              "attempt": {
+                "id": "A1",
+                "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/cursor-composer-2-5-docker-76739b/1/transcript.jsonl"
+              },
+              "group": "Cursor · composer-2.5",
+              "score": {
+                "value": 1,
+                "text": "1.00"
+              }
+            },
+            {
+              "attempt": {
+                "id": "A2",
+                "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/claude-code-claude-sonnet-5-docker-35eb43/1/transcript.jsonl"
+              },
+              "group": "Claude Code · claude-sonnet-5",
+              "score": {
+                "value": 1,
+                "text": "1.00"
+              }
+            },
+            {
+              "attempt": {
+                "id": "A3",
+                "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/antigravity-gemini-3-8-flash-medium-docker-4d994b/1/transcript.jsonl"
+              },
+              "group": "Antigravity · gemini-3.8-flash-medium",
+              "score": {
+                "value": 1,
+                "text": "1.00"
+              }
+            },
+            {
+              "attempt": {
+                "id": "A4",
+                "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/opencode-gemini-3-8-flash-docker-ad8642/1/transcript.jsonl"
+              },
+              "group": "OpenCode · gemini-3.8-flash",
+              "score": {
+                "value": 1,
+                "text": "1.00"
+              }
+            },
+            {
+              "attempt": {
+                "id": "A5",
+                "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/goose-gemini-3-8-flash-docker-4d2757/1/transcript.jsonl"
+              },
+              "group": "Goose · gemini-3.8-flash",
+              "score": {
+                "value": 1,
+                "text": "1.00"
+              }
+            },
+            {
+              "attempt": {
+                "id": "A6",
+                "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/pi-gemini-3-8-flash-docker-12b197/1/transcript.jsonl"
+              },
+              "group": "pi · gemini-3.8-flash",
+              "score": {
+                "value": 1,
+                "text": "1.00"
+              }
+            },
+            {
+              "attempt": {
+                "id": "A7",
+                "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/codex-gpt-5-4-mini-docker-afcfca/1/transcript.jsonl"
+              },
+              "group": "Codex · gpt-5.4-mini",
+              "score": {
+                "value": 1,
+                "text": "1.00"
+              }
+            }
+          ]
         }
       ],
       "discovery": [],

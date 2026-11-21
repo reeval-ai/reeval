@@ -443,10 +443,72 @@ function statsOf(s: EvalSection, metric: Metric, arms: ArmRow[]): string[] {
   return out
 }
 
-function casesOf(s: EvalSection): CaseRow[] {
+/** Pass rates of `rows` × `columns` attempt groups, with a total when there are two columns or more. */
+function rateGrid(
+  attempts: readonly AttemptIndexRow[],
+  rows: Array<{ label: string; has: (a: AttemptIndexRow) => boolean }>,
+  columns: Array<{ label: string; has: (a: AttemptIndexRow) => boolean }>,
+): CaseRow[] {
+  const rateIn = (pool: readonly AttemptIndexRow[]) => {
+    const c = counted(pool)
+    return c.length ? rateFor(c.filter((a) => a.outcome === 'pass').length, c.length) : null
+  }
+  return rows.map((r) => {
+    const own = attempts.filter(r.has)
+    return {
+      label: r.label,
+      cells: [
+        ...columns.map((col) => ({ column: col.label, rate: rateIn(own.filter(col.has)) })),
+        ...(columns.length > 1 ? [{ column: 'total', rate: rateIn(own) }] : []),
+      ],
+    }
+  })
+}
+
+/** Each harness's pass rate on each arm, when two or more arms ran on two or more harnesses. */
+function byHarnessOf(
+  attempts: readonly AttemptIndexRow[],
+  defs: readonly ArmDef[],
+  graded: boolean,
+  label: (id: string) => string,
+): CaseRow[] {
+  const harnesses = [...new Set(counted(attempts).map((a) => a.harness))]
+  if (!graded || defs.length < 2 || harnesses.length < 2) return []
+  return rateGrid(
+    attempts,
+    harnesses.map((h) => ({ label: label(h), has: (a) => a.harness === h })),
+    defs.map((d) => ({ label: d.label, has: (a) => (a.arm ?? '') === d.env })),
+  ).map((r) => ({ ...r, cells: r.cells.filter((c) => c.column !== 'total') }))
+}
+
+function casesOf(
+  s: EvalSection,
+  attempts: readonly AttemptIndexRow[],
+  defs: readonly ArmDef[],
+  graded: boolean,
+  label: (id: string) => string,
+): CaseRow[] {
   const p = s.primary
   const tasks = p && p.kind !== 'regression' ? p.tasks : undefined
-  if (!tasks || tasks.length < 2) return []
+  if (!tasks) {
+    // A report built before it kept task rows still has each attempt's case.
+    const cases = [...new Set(counted(attempts).flatMap((a) => (a.case ? [a.case] : [])))]
+    if (!graded || cases.length < 2) return []
+    const harnesses = [...new Set(counted(attempts).map((a) => a.harness))]
+    const columns =
+      defs.length > 1
+        ? defs.map((d) => ({
+            label: d.label,
+            has: (a: AttemptIndexRow) => (a.arm ?? '') === d.env,
+          }))
+        : harnesses.map((h) => ({ label: label(h), has: (a: AttemptIndexRow) => a.harness === h }))
+    return rateGrid(
+      attempts,
+      cases.map((c) => ({ label: c, has: (a) => a.case === c })),
+      columns,
+    )
+  }
+  if (tasks.length < 2) return []
   const columns = [...new Set(tasks.flatMap((t) => Object.keys(t.cells)))]
   const total = tasks.some((t) => t.total)
   return tasks.map((t) => ({
@@ -482,15 +544,43 @@ function checksOf(s: EvalSection): CheckRow[] {
   }))
 }
 
-function questionsOf(s: EvalSection, label: (id: string) => string): Question[] {
+function questionsOf(
+  s: EvalSection,
+  label: (id: string) => string,
+  arm: (env: string) => string,
+): Question[] {
   const out: Question[] = []
   for (const c of s.choices) {
     const n = c.options.reduce((sum, o) => sum + o.count, 0) + c.noPick
+    const vary = (pick: (r: (typeof c.rows)[number]) => string | null) =>
+      new Set(c.rows.map(pick)).size > 1
+    const byArm = vary((r) => r.arm)
+    const byPrompt = vary((r) => r.prompt)
+    const byHarness = vary((r) => r.harness)
     out.push({
       kind: 'choices',
       question: c.question,
       options: c.options.map((o) => ({ label: o.label, count: count(o.count, n) })),
       noPick: c.noPick ? `${c.noPick} without a pick` : null,
+      rows:
+        c.rows.length > 1
+          ? c.rows.map((r) => ({
+              label: [
+                byArm && r.arm !== null ? arm(r.arm) : null,
+                byPrompt ? r.prompt : null,
+                byHarness ? label(r.harness) : null,
+              ]
+                .filter(Boolean)
+                .join(' / '),
+              picks: c.options.map((o) => ({
+                label: o.label,
+                count: count(r.counts[o.label] ?? 0, r.attempts),
+              })),
+            }))
+          : [],
+      passByPick: c.passByPick
+        .filter((x) => x.rate.n > 0)
+        .map((x) => ({ label: x.option, rate: rate(x.rate) })),
     })
   }
   const pairwise = s.judgments?.pairwise ?? []
@@ -598,6 +688,7 @@ function presentEval(
     verdictText: VERDICT_TEXT[verdict],
     headline: { task: name, metric, foot, left: state === 'ran' ? leftOut(attempts) : null },
     arms,
+    byHarness: byHarnessOf(attempts, defs, graded, label),
     attempts: attempts.map(
       (a): AttemptRow => ({
         id: a.id,
@@ -620,7 +711,7 @@ function presentEval(
         cost: a.cost ? figure(a.cost.usd, a.cost.text) : figure(null, NOT_REPORTED),
       }),
     ),
-    cases: casesOf(s),
+    cases: casesOf(s, attempts, defs, graded, label),
     checks: checksOf(s),
     failures: (s.failures?.clusters ?? []).map((f) => ({
       kind: f.cause ?? f.kind,
@@ -634,14 +725,31 @@ function presentEval(
       attempts: f.attempts.map(cite),
     })),
     effort,
-    questions: questionsOf(s, label),
-    judgments: (s.judgments?.scores ?? []).map((j) => ({
-      label: j.label,
-      question: j.question,
-      threshold: j.threshold === null ? 'diagnostic' : judgeScoreText(j.threshold),
-      median: j.spread.median,
-      atOrAbove: j.atOrAbove ? count(j.atOrAbove.k, j.atOrAbove.n) : null,
-    })),
+    questions: questionsOf(s, label, (env) => envLabel.get(env) ?? armLabel(env, env)),
+    judgments: (s.judgments?.scores ?? []).map((j) => {
+      const hp = s.headline.primary
+      return {
+        label: j.label,
+        question: j.question,
+        threshold: j.threshold === null ? 'diagnostic' : judgeScoreText(j.threshold),
+        median: j.spread.median,
+        atOrAbove: j.atOrAbove ? count(j.atOrAbove.k, j.atOrAbove.n) : null,
+        scale: (hp.kind === 'judge' && hp.label === j.label ? hp.scale : [0, 1]) as [
+          number,
+          number,
+        ],
+        thresholdValue: j.threshold,
+        scores: (j.scores ?? []).flatMap((x) => {
+          const a = attempts.find((row) => row.key === x.key)
+          if (!a) return []
+          const group =
+            arms.length > 1 && a.arm !== null
+              ? (envLabel.get(a.arm) ?? armLabel(a.arm, a.arm))
+              : label(a.harness)
+          return [{ attempt: cite(a), group, score: figure(x.score, judgeScoreText(x.score)) }]
+        }),
+      }
+    }),
     discovery: s.discovery.map((d) => ({
       what: d.what,
       found: count(d.found.k, d.found.n),

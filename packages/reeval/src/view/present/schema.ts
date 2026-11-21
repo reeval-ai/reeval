@@ -245,6 +245,15 @@ export const questionSchema = z.discriminatedUnion('kind', [
     options: z.array(z.strictObject({ label: text, count: countSchema })),
     /** `2 without a pick`; null when every attempt picked. */
     noPick: text.nullable(),
+    /** The same picks per arm, harness or prompt group: `react-with-firebase / Codex`. */
+    rows: z.array(
+      z.strictObject({
+        label: text,
+        picks: z.array(z.strictObject({ label: text, count: countSchema })),
+      }),
+    ),
+    /** The eval's pass rate among the attempts that made each pick. */
+    passByPick: z.array(z.strictObject({ label: text, rate: rateSchema })),
   }),
   z.strictObject({
     kind: z.literal('pairwise'),
@@ -277,6 +286,12 @@ export const judgmentSchema = z.strictObject({
   median: figureSchema,
   /** At or above the threshold; null on a diagnostic judgment. */
   atOrAbove: countSchema.nullable(),
+  /** The judge's fixed scale, low to high. */
+  scale: z.tuple([z.number(), z.number()]),
+  /** The pass mark as a number; null on a diagnostic judgment. */
+  thresholdValue: z.number().nullable(),
+  /** Each attempt's score; `group` is its arm, or its harness in a one-arm eval. */
+  scores: z.array(z.strictObject({ attempt: citeSchema, group: text, score: figureSchema })),
 })
 
 export const discoverySchema = z.strictObject({
@@ -340,6 +355,8 @@ export const evalSchema = z.strictObject({
     left: text.nullable(),
   }),
   arms: z.array(armSchema),
+  /** Each harness's pass rate per arm, when two or more arms ran on two or more harnesses. */
+  byHarness: z.array(caseSchema),
   attempts: z.array(attemptSchema),
   cases: z.array(caseSchema),
   checks: z.array(checkSchema),

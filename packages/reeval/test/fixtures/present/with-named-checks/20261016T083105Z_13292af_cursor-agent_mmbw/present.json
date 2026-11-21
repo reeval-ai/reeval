@@ -222,6 +222,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A1",
@@ -368,7 +369,25 @@
             "k": 1,
             "n": 1,
             "text": "1 of 1"
-          }
+          },
+          "scale": [
+            0,
+            1
+          ],
+          "thresholdValue": 0.8,
+          "scores": [
+            {
+              "attempt": {
+                "id": "A1",
+                "href": "./evals-greet-eval-ts-writes-greet-js-df720a/fake-fake-fake-dc13e2/1/transcript.jsonl"
+              },
+              "group": "Fake",
+              "score": {
+                "value": 0.8,
+                "text": "0.80"
+              }
+            }
+          ]
         }
       ],
       "discovery": [],
@@ -451,6 +470,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A3",
@@ -668,6 +688,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A5",
@@ -817,7 +838,25 @@
             "k": 0,
             "n": 1,
             "text": "0 of 1"
-          }
+          },
+          "scale": [
+            0,
+            1
+          ],
+          "thresholdValue": 0.95,
+          "scores": [
+            {
+              "attempt": {
+                "id": "A5",
+                "href": "./evals-greet-eval-ts-fails-its-judge-d8c87c/fake-fake-fake-dc13e2/1/transcript.jsonl"
+              },
+              "group": "Fake",
+              "score": {
+                "value": 0.8,
+                "text": "0.80"
+              }
+            }
+          ]
         }
       ],
       "discovery": [],
@@ -851,6 +890,7 @@
         "left": null
       },
       "arms": [],
+      "byHarness": [],
       "attempts": [],
       "cases": [],
       "checks": [],
@@ -887,6 +927,7 @@
         "left": null
       },
       "arms": [],
+      "byHarness": [],
       "attempts": [],
       "cases": [],
       "checks": [],
@@ -1019,6 +1060,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A7",
@@ -1373,6 +1415,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A11",

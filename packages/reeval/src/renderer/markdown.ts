@@ -119,6 +119,21 @@ function questionLines(q: Question): string[] {
           q.options.map((o) => [o.label, o.count.text]),
         ),
         ...(q.noPick ? ['', sentence(q.noPick)] : []),
+        ...(q.rows.length
+          ? [
+              '',
+              table(
+                ['Group', ...q.options.map((o) => o.label)],
+                q.rows.map((r) => [r.label, ...r.picks.map((x) => x.count.text)]),
+              ),
+            ]
+          : []),
+        ...(q.passByPick.length
+          ? [
+              '',
+              `Passed by pick: ${q.passByPick.map((x) => `${x.label} ${x.rate.text} (${x.rate.of})`).join(', ')}.`,
+            ]
+          : []),
         '',
       ]
     case 'pairwise':
@@ -196,6 +211,18 @@ function sectionLines(p: RunPresentation, s: Section): string[] {
             a.left ?? 'none',
           ]),
         ),
+        ...(e.byHarness.length
+          ? [
+              '',
+              table(
+                ['Coding harness', ...(e.byHarness[0]?.cells.map((c) => c.column) ?? [])],
+                e.byHarness.map((h) => [
+                  h.label,
+                  ...h.cells.map((x) => (x.rate ? `${x.rate.text} (${x.rate.of})` : 'n/a')),
+                ]),
+              ),
+            ]
+          : []),
       ]
     case 'cases': {
       const columns = e.cases[0]?.cells.map((c) => c.column) ?? []
@@ -316,6 +343,12 @@ function sectionLines(p: RunPresentation, s: Section): string[] {
             ...(tallied ? [j.atOrAbove?.text ?? 'n/a'] : []),
           ]),
         ),
+        ...e.judgments
+          .filter((j) => j.scores.length)
+          .flatMap((j) => [
+            '',
+            `Scores for ${j.label}: ${j.scores.map((x) => `${link(x.attempt)} ${x.score.text}`).join(', ')}.`,
+          ]),
       ]
     }
     case 'discovery':

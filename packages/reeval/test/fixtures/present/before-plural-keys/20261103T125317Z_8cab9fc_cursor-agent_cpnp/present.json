@@ -220,6 +220,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A1",
@@ -527,6 +528,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A5",

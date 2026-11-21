@@ -57,6 +57,8 @@ Run `20260927T161031Z_cc7e11c_cursor-agent_a3yh` by cursor-agent, 2026-09-27, re
 | --- | --- | --- | --- |
 | Did the agent create hello.txt containing hi | Did the agent create hello.txt containing hi? | diagnostic | 1.00 |
 
+Scores for Did the agent create hello.txt containing hi: [A1](./evals-hello-es-ts-writes-hello-txt-28ad5d/cursor-composer-2-5-docker-76739b/1/transcript.jsonl) 1.00, [A2](./evals-hello-es-ts-writes-hello-txt-28ad5d/claude-code-claude-sonnet-5-docker-35eb43/1/transcript.jsonl) 1.00, [A3](./evals-hello-es-ts-writes-hello-txt-28ad5d/antigravity-gemini-3-8-flash-medium-docker-4d994b/1/transcript.jsonl) 1.00, [A4](./evals-hello-es-ts-writes-hello-txt-28ad5d/opencode-gemini-3-8-flash-docker-ad8642/1/transcript.jsonl) 1.00, [A5](./evals-hello-es-ts-writes-hello-txt-28ad5d/goose-gemini-3-8-flash-docker-4d2757/1/transcript.jsonl) 1.00, [A6](./evals-hello-es-ts-writes-hello-txt-28ad5d/pi-gemini-3-8-flash-docker-12b197/1/transcript.jsonl) 1.00, [A7](./evals-hello-es-ts-writes-hello-txt-28ad5d/codex-gpt-5-4-mini-docker-afcfca/1/transcript.jsonl) 1.00.
+
 ## Tally
 
 Evals: 1 pass.

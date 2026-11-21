@@ -103,6 +103,8 @@ Run `20261109T210424Z_b52cac5_cursor-agent_fkea` by cursor-agent, 2026-11-09, re
 | --- | --- | --- | --- | --- |
 | Does greet.js export greet | Does greet.js export greet? | 0.80 | 0.80 | 1 of 1 |
 
+Scores for Does greet.js export greet: [A5](#attempt-evals-greet-eval-ts-writes-greet-js-fake-fake-fake-1-601c6d4b) 0.80.
+
 ## fails its check and its judge
 
 `evals/greet.eval.ts`. Task. 1 coding harness, 1 attempt. Verdict: fail.
@@ -142,6 +144,8 @@ Run `20261109T210424Z_b52cac5_cursor-agent_fkea` by cursor-agent, 2026-11-09, re
 | Judgment | Question | Threshold | Median | At or above |
 | --- | --- | --- | --- | --- |
 | Is greet.js perfect | Is greet.js perfect? | 0.95 | 0.80 | 0 of 1 |
+
+Scores for Is greet.js perfect: [A6](./evals-greet-eval-ts-fails-its-check-and-its-judge-035df6/fake-fake-fake-dc13e2/1/transcript.jsonl) 0.80.
 
 ## never starts
 
@@ -210,6 +214,13 @@ Run `20261109T210424Z_b52cac5_cursor-agent_fkea` by cursor-agent, 2026-11-09, re
 | --- | --- |
 | no | 4 of 8 |
 | yes | 4 of 8 |
+
+| Group | no | yes |
+| --- | --- | --- |
+| plain | 4 of 4 | 0 of 4 |
+| with-house-greeting | 0 of 4 | 4 of 4 |
+
+Passed by pick: no 100% (4 of 4), yes 100% (4 of 4).
 
 #### Pairwise: Which greeting reads more like our house style?
 

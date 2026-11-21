@@ -290,6 +290,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A1",
@@ -615,6 +616,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A5",
@@ -709,7 +711,25 @@
             "k": 1,
             "n": 1,
             "text": "1 of 1"
-          }
+          },
+          "scale": [
+            0,
+            1
+          ],
+          "thresholdValue": 0.8,
+          "scores": [
+            {
+              "attempt": {
+                "id": "A5",
+                "href": "./evals-greet-eval-ts-writes-greet-js-df720a/fake-fake-fake-dc13e2/1/transcript.jsonl"
+              },
+              "group": "Fake",
+              "score": {
+                "value": 0.8,
+                "text": "0.80"
+              }
+            }
+          ]
         }
       ],
       "discovery": [],
@@ -792,6 +812,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A6",
@@ -927,7 +948,25 @@
             "k": 0,
             "n": 1,
             "text": "0 of 1"
-          }
+          },
+          "scale": [
+            0,
+            1
+          ],
+          "thresholdValue": 0.95,
+          "scores": [
+            {
+              "attempt": {
+                "id": "A6",
+                "href": "./evals-greet-eval-ts-fails-its-check-and-its-judge-035df6/fake-fake-fake-dc13e2/1/transcript.jsonl"
+              },
+              "group": "Fake",
+              "score": {
+                "value": 0.8,
+                "text": "0.80"
+              }
+            }
+          ]
         }
       ],
       "discovery": [],
@@ -998,6 +1037,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A7",
@@ -1079,6 +1119,7 @@
         "left": null
       },
       "arms": [],
+      "byHarness": [],
       "attempts": [],
       "cases": [],
       "checks": [],
@@ -1115,6 +1156,7 @@
         "left": null
       },
       "arms": [],
+      "byHarness": [],
       "attempts": [],
       "cases": [],
       "checks": [],
@@ -1247,6 +1289,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A8",
@@ -1506,7 +1549,75 @@
               }
             }
           ],
-          "noPick": null
+          "noPick": null,
+          "rows": [
+            {
+              "label": "plain",
+              "picks": [
+                {
+                  "label": "no",
+                  "count": {
+                    "k": 4,
+                    "n": 4,
+                    "text": "4 of 4"
+                  }
+                },
+                {
+                  "label": "yes",
+                  "count": {
+                    "k": 0,
+                    "n": 4,
+                    "text": "0 of 4"
+                  }
+                }
+              ]
+            },
+            {
+              "label": "with-house-greeting",
+              "picks": [
+                {
+                  "label": "no",
+                  "count": {
+                    "k": 0,
+                    "n": 4,
+                    "text": "0 of 4"
+                  }
+                },
+                {
+                  "label": "yes",
+                  "count": {
+                    "k": 4,
+                    "n": 4,
+                    "text": "4 of 4"
+                  }
+                }
+              ]
+            }
+          ],
+          "passByPick": [
+            {
+              "label": "no",
+              "rate": {
+                "k": 4,
+                "n": 4,
+                "rate": 1,
+                "text": "100%",
+                "of": "4 of 4",
+                "interval": "51% to 100%"
+              }
+            },
+            {
+              "label": "yes",
+              "rate": {
+                "k": 4,
+                "n": 4,
+                "rate": 1,
+                "text": "100%",
+                "of": "4 of 4",
+                "interval": "51% to 100%"
+              }
+            }
+          ]
         },
         {
           "kind": "pairwise",

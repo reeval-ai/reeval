@@ -52,6 +52,8 @@ Run `20260928T070748Z_37aef1d_cursor-agent_h9qy` by cursor-agent, 2026-09-28, re
 | --- | --- | --- | --- |
 | Does greet.js export greet | Does greet.js export greet? | diagnostic | 0.80 |
 
+Scores for Does greet.js export greet: [A1](./evals-greet-es-ts-writes-greet-js-4857ff/fake-fake-70e87d/1/transcript.jsonl) 0.80.
+
 ## fails its check
 
 `evals/greet.es.ts`. Task. 2 coding harnesses, 2 attempts. Verdict: fail.
@@ -113,6 +115,8 @@ Run `20260928T070748Z_37aef1d_cursor-agent_h9qy` by cursor-agent, 2026-09-28, re
 | Judgment | Question | Threshold | Median |
 | --- | --- | --- | --- |
 | Is greet.js perfect | Is greet.js perfect? | diagnostic | 0.80 |
+
+Scores for Is greet.js perfect: [A5](./evals-greet-es-ts-fails-its-judge-fa3d03/fake-fake-70e87d/1/transcript.jsonl) 0.80.
 
 ## is skipped for now
 

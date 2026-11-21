@@ -184,6 +184,11 @@ Run `20261020T205330Z_da3d797_cursor-agent_1k52` by cursor-agent, 2026-10-20, re
 | plain | 0% | 0 of 8 | baseline | none |
 | with-skill | 50% | 4 of 8 | helped | none |
 
+| Coding harness | plain | with-skill |
+| --- | --- | --- |
+| learner | 0% (0 of 4) | 100% (4 of 4) |
+| terse | 0% (0 of 4) | 0% (0 of 4) |
+
 ### Attempts
 
 | Attempt | Coding harness | Arm | Outcome | Tokens | Agent time | Cost | Why |

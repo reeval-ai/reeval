@@ -232,6 +232,11 @@ Run `20261021T062907Z_6d1119f_cursor-agent_32gc` by cursor-agent, 2026-10-21, re
 | plain | 0% | 0 of 8 | baseline | none |
 | with-skill | 50% | 4 of 8 | helped | none |
 
+| Coding harness | plain | with-skill |
+| --- | --- | --- |
+| learner | 0% (0 of 4) | 100% (4 of 4) |
+| terse | 0% (0 of 4) | 0% (0 of 4) |
+
 ### Attempts
 
 | Attempt | Coding harness | Arm | Outcome | Tokens | Agent time | Cost | Why |

@@ -320,6 +320,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A1",
@@ -769,6 +770,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A9",
@@ -966,6 +968,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A11",
@@ -1163,6 +1166,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A13",
@@ -1309,7 +1313,25 @@
             "k": 1,
             "n": 1,
             "text": "1 of 1"
-          }
+          },
+          "scale": [
+            0,
+            1
+          ],
+          "thresholdValue": 0.8,
+          "scores": [
+            {
+              "attempt": {
+                "id": "A13",
+                "href": "./evals-greet-eval-ts-writes-greet-js-df720a/fake-fake-fake-dc13e2/1/transcript.jsonl"
+              },
+              "group": "Fake",
+              "score": {
+                "value": 0.8,
+                "text": "0.80"
+              }
+            }
+          ]
         }
       ],
       "discovery": [],
@@ -1392,6 +1414,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A15",
@@ -1609,6 +1632,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A17",
@@ -1758,7 +1782,25 @@
             "k": 0,
             "n": 1,
             "text": "0 of 1"
-          }
+          },
+          "scale": [
+            0,
+            1
+          ],
+          "thresholdValue": 0.95,
+          "scores": [
+            {
+              "attempt": {
+                "id": "A17",
+                "href": "./evals-greet-eval-ts-fails-its-judge-d8c87c/fake-fake-fake-dc13e2/1/transcript.jsonl"
+              },
+              "group": "Fake",
+              "score": {
+                "value": 0.8,
+                "text": "0.80"
+              }
+            }
+          ]
         }
       ],
       "discovery": [],
@@ -1792,6 +1834,7 @@
         "left": null
       },
       "arms": [],
+      "byHarness": [],
       "attempts": [],
       "cases": [],
       "checks": [],
@@ -1828,6 +1871,7 @@
         "left": null
       },
       "arms": [],
+      "byHarness": [],
       "attempts": [],
       "cases": [],
       "checks": [],
@@ -1960,6 +2004,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A19",
@@ -2314,6 +2359,7 @@
           }
         }
       ],
+      "byHarness": [],
       "attempts": [
         {
           "id": "A23",

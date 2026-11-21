@@ -56,6 +56,7 @@ function sectionLines(
   width: number,
   style: Required<RunReportTextStyle>,
   verbose: boolean,
+  rows: boolean,
 ): string[] {
   const e = s.eval as EvalPresentation
   const free = Math.max(20, width - INDENT.length)
@@ -110,7 +111,16 @@ function sectionLines(
           a.effectText ?? a.role,
           a.left ? `left out: ${a.left}` : '',
         ]),
-      ).map((l) => `${INDENT}${l}`)
+      )
+        .map((l) => `${INDENT}${l}`)
+        .concat(
+          rows
+            ? e.byHarness.map(
+                (h) =>
+                  `${INDENT}${h.label}: ${h.cells.map((x) => `${x.column} ${x.rate ? `${x.rate.text} (${x.rate.of})` : 'n/a'}`).join(', ')}`,
+              )
+            : [],
+        )
     case 'cases': {
       // With one column, its total says it again.
       const shown = (cells: (typeof e.cases)[number]['cells']) =>
@@ -170,15 +180,32 @@ function sectionLines(
             : q.kind === 'unanswered'
               ? `${INDENT}  ${q.text}`
               : `${INDENT}  ${q.answered.text} answered`,
+        ...(rows && q.kind === 'choices'
+          ? [
+              ...q.rows.map(
+                (r) =>
+                  `${INDENT}  ${r.label}: ${r.picks.map((x) => `${x.label} ${x.count.text}`).join(', ')}`,
+              ),
+              ...(q.passByPick.length
+                ? [
+                    `${INDENT}  passed by pick: ${q.passByPick.map((x) => `${x.label} ${x.rate.text} (${x.rate.of})`).join(', ')}`,
+                  ]
+                : []),
+            ]
+          : []),
         ...(q.kind === 'answers'
           ? q.entries.slice(0, 1).map((a) => `${INDENT}  ${a.harness}  ${clip(a.text, free - 2)}`)
           : []),
       ])
     case 'judgments':
-      return e.judgments.map(
-        (j) =>
-          `${INDENT}${j.label}: median ${j.median.text}, threshold ${j.threshold}${j.atOrAbove ? `, ${j.atOrAbove.text} at or above` : ''}`,
-      )
+      return e.judgments.flatMap((j) => [
+        `${INDENT}${j.label}: median ${j.median.text}, threshold ${j.threshold}${j.atOrAbove ? `, ${j.atOrAbove.text} at or above` : ''}`,
+        ...(rows && j.scores.length
+          ? [
+              `${INDENT}  scores: ${j.scores.map((x) => `${x.attempt.id} ${x.score.text}`).join(', ')}`,
+            ]
+          : []),
+      ])
     case 'discovery':
       return e.discovery.map(
         (d) =>
@@ -230,7 +257,8 @@ export function runReportText(p: RunPresentation, options: RunReportTextOptions 
   let prev: Section | null = null
   for (const s of sectionsOf(p, options.detail ?? 'brief')) {
     options.onSection?.(s)
-    const block = sectionLines(p, s, width, style, options.detail === 'verbose')
+    const detail = options.detail ?? 'brief'
+    const block = sectionLines(p, s, width, style, detail === 'verbose', detail !== 'brief')
     if (block.length === 0) continue
     if (prev && !(s.eval && prev.eval === s.eval)) out.push('')
     out.push(...block)

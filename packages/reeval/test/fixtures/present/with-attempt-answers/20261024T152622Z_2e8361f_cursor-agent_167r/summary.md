@@ -186,6 +186,8 @@ Run `20261024T152622Z_2e8361f_cursor-agent_167r` by cursor-agent, 2026-10-24, re
 | --- | --- | --- | --- | --- |
 | Does greet.js export greet | Does greet.js export greet? | 0.80 | 0.80 | 1 of 1 |
 
+Scores for Does greet.js export greet: [A13](./evals-greet-eval-ts-writes-greet-js-df720a/fake-fake-fake-dc13e2/1/transcript.jsonl) 0.80.
+
 ## fails its check
 
 `evals/greet.eval.ts`. Task. 2 coding harnesses, 2 attempts. Verdict: fail.
@@ -260,6 +262,8 @@ Run `20261024T152622Z_2e8361f_cursor-agent_167r` by cursor-agent, 2026-10-24, re
 | --- | --- | --- | --- | --- |
 | Is greet.js perfect | Is greet.js perfect? | 0.95 | 0.80 | 0 of 1 |
 
+Scores for Is greet.js perfect: [A17](./evals-greet-eval-ts-fails-its-judge-d8c87c/fake-fake-fake-dc13e2/1/transcript.jsonl) 0.80.
+
 ## is skipped for now
 
 `evals/greet.eval.ts`. Task. 2 coding harnesses, 0 attempts. Verdict: skipped.
@@ -322,6 +326,13 @@ Run `20261024T152622Z_2e8361f_cursor-agent_167r` by cursor-agent, 2026-10-24, re
 | no | 1 of 2 |
 | yes | 1 of 2 |
 
+| Group | no | yes |
+| --- | --- | --- |
+| plain | 1 of 1 | 0 of 1 |
+| with-house-greeting | 0 of 1 | 1 of 1 |
+
+Passed by pick: no 0% (0 of 1), yes 100% (1 of 1).
+
 #### Answers: How did the agent pick its greeting?
 
 2 of 2 answered.
@@ -374,6 +385,13 @@ Run `20261024T152622Z_2e8361f_cursor-agent_167r` by cursor-agent, 2026-10-24, re
 | --- | --- |
 | no | 1 of 2 |
 | yes | 1 of 2 |
+
+| Group | no | yes |
+| --- | --- | --- |
+| plain | 1 of 1 | 0 of 1 |
+| with-house-greeting | 0 of 1 | 1 of 1 |
+
+Passed by pick: no 100% (1 of 1), yes 100% (1 of 1).
 
 #### Pairwise: Which greeting reads more like our house style?
 
