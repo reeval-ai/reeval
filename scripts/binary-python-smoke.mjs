@@ -315,7 +315,7 @@ try {
 check(
   'Ctrl-C on reeval run through the launcher: reeval saves the run as interrupted and exits 130',
   stopped.status === 130 &&
-    stopped.out.includes('Interrupted: attempts') &&
+    stopped.out.includes('The run stopped early (interrupted).') &&
     status === 'interrupted',
 )
 
