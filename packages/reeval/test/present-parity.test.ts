@@ -105,4 +105,25 @@ describe('presentation', () => {
     )
     assert.ok(brief.length < full.length)
   })
+
+  test('prints only the sections the filter keeps, as the whole report prints them', () => {
+    const entry = corpusEntries().find((e) => e.name === 'with-layouts')
+    const file = entry?.runs.at(-1)?.file
+    assert.ok(file)
+    const p = present(buildRunReport(readableRecord(JSON.parse(readFileSync(file, 'utf8')))))
+    const e = p.evals[0]
+    assert.ok(e)
+    const keep = (s: Section) => s.eval === e
+    const seen: Section[] = []
+    const md = runReportMarkdown(p, { sections: keep, onSection: (s) => seen.push(s) })
+    assert.deepEqual(
+      seen.map((s) => s.id),
+      sectionsOf(p, 'full')
+        .filter(keep)
+        .map((s) => s.id),
+    )
+    assert.ok(runReportMarkdown(p).includes(md.trimEnd()))
+    const cli = runReportText(p, { detail: 'full', sections: keep })
+    assert.ok(runReportText(p, { detail: 'full' }).includes(cli.trimEnd()))
+  })
 })

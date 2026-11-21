@@ -29,6 +29,8 @@ export const FORBIDDEN_OUTPUT = [
 export type RunReportMarkdownOptions = {
   /** Called with each section as it's printed, in order. */
   onSection?: (section: Section) => void
+  /** Prints only the sections it keeps, such as one eval's. */
+  sections?: (section: Section) => boolean
 }
 
 const ANSWERS_SHOWN = 12
@@ -481,6 +483,7 @@ export function runReportMarkdown(
 ): string {
   const parts: string[] = []
   for (const s of sectionsOf(p, 'full')) {
+    if (options.sections && !options.sections(s)) continue
     options.onSection?.(s)
     parts.push(sectionLines(p, s).join('\n'), '')
   }

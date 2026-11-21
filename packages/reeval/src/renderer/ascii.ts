@@ -27,6 +27,8 @@ export type RunReportTextOptions = {
   style?: RunReportTextStyle
   /** Called with each section as it's printed, in order. */
   onSection?: (section: Section) => void
+  /** Prints only the sections it keeps, such as one eval's. */
+  sections?: (section: Section) => boolean
 }
 
 const VERDICT_WIDTH = 13
@@ -256,6 +258,7 @@ export function runReportText(p: RunPresentation, options: RunReportTextOptions 
   const out: string[] = []
   let prev: Section | null = null
   for (const s of sectionsOf(p, options.detail ?? 'brief')) {
+    if (options.sections && !options.sections(s)) continue
     options.onSection?.(s)
     const detail = options.detail ?? 'brief'
     const block = sectionLines(p, s, width, style, detail === 'verbose', detail !== 'brief')
