@@ -1,49 +1,20 @@
-// `reeval/renderer/markdown`: a `RunReport` as Markdown, the one renderer behind summary.md,
-// `reeval show --md`, `reeval compare --md`, the MCP server's `md` and `reeval analyze --save`.
-
-import { medianWithDelta } from '../view/report/format.ts'
-import { attemptAnchorId } from '../view/report/ids.ts'
+// `reeval/renderer/markdown`: a run's presentation as Markdown, the one renderer behind summary.md
+// and `reeval show --md`. It prints every section `sectionsOf(p, 'full')` lists, in that order, and
+// formats nothing: each figure's text comes from `present()`.
 import {
-  COMPARE_STATUS_LABEL,
-  contrastMeasureLabel,
-  DISCOVERY_SOURCE_LABEL,
-  MEASURE_LABEL,
-  PASS_RATE_OUTCOME_LABEL,
-  verdictLabel,
-} from '../view/report/labels.ts'
-import type {
-  ArmRow,
-  AssertionRow,
-  AttemptIndexRow,
-  AttemptRef,
-  BlockMarkdown,
-  BreakdownRow,
-  CaptureGallery,
-  ChoiceBreakdown,
-  ContrastRow,
-  DiscoveryRate,
-  EvalHeadline,
-  EvalSection,
-  ExecutiveRollup,
-  FailureClusters,
-  HeadlinePrimary,
-  IntegrityIssue,
-  JudgmentBreakdown,
-  MeasureKey,
-  ProvenanceState,
-  QualitativeAnswers,
-  RegressionChanges,
-  ReportClaim,
-  RosterRow,
-  RunHeader,
-  RunReport,
-  TaskResults,
-  VariantComparison,
-} from '../view/report/types.ts'
+  type Cite,
+  type EvalPresentation,
+  metricText,
+  type Question,
+  type RunPresentation,
+  type Section,
+  sectionsOf,
+} from '../view/present/index.ts'
 
 export type { BlockMarkdown } from '../view/report/types.ts'
+export { blockMarkdown } from './report-blocks.ts'
 
-/** Shared by summary tests and reeval-components check-text. */
+/** What no text render may print. Shared by the renderers' tests and reeval-components. */
 export const FORBIDDEN_OUTPUT = [
   { name: 'em or en dash', pattern: /[\u2013\u2014]/ },
   { name: 'arrow', pattern: /[\u2190-\u21ff\u27f0-\u27ff]|-[>]|=[>]/ },
@@ -55,774 +26,467 @@ export const FORBIDDEN_OUTPUT = [
   { name: 'bold pseudo-heading', pattern: /^\*\*[^*]+\.\*\*$/m },
 ] as const
 
-const MEASURE_ORDER: MeasureKey[] = [
-  'tokens',
-  'toolCalls',
-  'turns',
-  'costUsd',
-  'agentMs',
-  'filesChanged',
-  'linesAdded',
-  'linesRemoved',
-]
-
-function escapeCell(s: string): string {
-  return s.replace(/\|/g, '\\|').replace(/\n/g, ' ')
+export type RunReportMarkdownOptions = {
+  /** Called with each section as it's printed, in order. */
+  onSection?: (section: Section) => void
+  /** Prints only the sections it keeps, such as one eval's. */
+  sections?: (section: Section) => boolean
 }
 
-function clipCell(s: string, max = 200): string {
-  const t = escapeCell(s)
+const ANSWERS_SHOWN = 12
+
+function cell(s: string, max = Number.POSITIVE_INFINITY): string {
+  const t =
+    s
+      .replace(/\|/g, '\\|')
+      .replace(/\s*\n\s*/g, ' ')
+      .trim() || 'n/a'
   return t.length > max ? `${t.slice(0, max - 1)}…` : t
 }
 
 function table(headers: string[], rows: string[][]): string {
   if (rows.length === 0) return ''
-  const head = `| ${headers.map(escapeCell).join(' | ')} |`
-  const sep = `| ${headers.map(() => '---').join(' | ')} |`
-  const body = rows.map((r) => `| ${r.map((c) => clipCell(c)).join(' | ')} |`).join('\n')
-  return `${head}\n${sep}\n${body}`
+  return [
+    `| ${headers.join(' | ')} |`,
+    `| ${headers.map(() => '---').join(' | ')} |`,
+    ...rows.map((r) => `| ${r.map((c) => cell(c)).join(' | ')} |`),
+  ].join('\n')
 }
 
-function citeList(cites: AttemptRef[]): string {
-  if (cites.length === 0) return ''
-  return cites.map((c) => `[${c.id}](${c.href})`).join(', ')
-}
+/** Free text, which a table cell holds to one short line. */
+const clip = (s: string) => cell(s, 200).replace(/\\\|/g, '|')
 
-function h(level: number, text: string): string {
-  return `${'#'.repeat(level)} ${text}`
-}
+const sentence = (s: string) => (/[.!?]$/.test(s) ? s : `${s}.`)
 
-/** `source:file#L12` → `file:12`, matching the CLI's Worth knowing line. */
-const remarkLocation = (at: string) => at.replace(/^source:/, '').replace(/#L(\d+)$/, ':$1')
+const link = (c: Cite) => `[${c.id}](${c.href})`
+const links = (cites: Cite[]) => cites.map(link).join(', ')
+const optional = <T>(rows: T[], pick: (r: T) => string | null) => rows.some((r) => pick(r) !== null)
 
-function formatRemark(r: { text: string; fix?: { at: string; edit: string } | null }): string {
-  if (!r.fix?.at) return r.text
-  return r.fix.edit
-    ? `${r.text} Fix at ${remarkLocation(r.fix.at)}: ${r.fix.edit}.`
-    : `${r.text} At ${remarkLocation(r.fix.at)}.`
-}
-
-function shapeLabel(shapes: EvalSection['shapes']): string {
-  const map = {
-    task: 'Task',
-    ab: 'A/B',
-    discoverability: 'Discoverability',
-    regression: 'Regression',
-  } as const
-  return shapes.map((s) => map[s]).join(', ')
-}
-
-function headlineBold(primary: HeadlinePrimary): string {
-  switch (primary.kind) {
-    case 'pass-rate':
-      return `**${primary.rate.text} ${PASS_RATE_OUTCOME_LABEL[primary.outcome]}**`
-    case 'lift':
-      return `**${primary.variant.label} vs ${primary.baseline.label}: ${primary.points.text} pass rate (${primary.variantRate.text} vs ${primary.baselineRate.text})**`
-    case 'tied-ceiling':
-      return `**${primary.variant.label} vs ${primary.baseline.label}: tied at 100% pass rate, median ${MEASURE_LABEL[primary.lead.measure].toLowerCase()} ${primary.lead.delta.text} (${primary.lead.variant.text} vs ${primary.lead.baseline.text})**`
-    case 'choice':
-      return `**${primary.question}: ${primary.options.map((o) => `${o.label} ${o.count}`).join(', ')}**`
-    case 'measure':
-      return `**Median ${primary.label}: ${primary.spread.median.text}**`
-    case 'judge':
-      return `**${primary.label}: median ${primary.spread.median.text} on ${primary.scale[0]} to ${primary.scale[1]}**`
-    case 'text':
-      return `**${primary.question}**`
-    case 'regression': {
-      const parts = [
-        primary.worse ? `${primary.worse} worse` : null,
-        primary.fixed ? `${primary.fixed} fixed` : null,
-      ].filter(Boolean)
-      const counts = parts.length ? parts.join(', ') : 'no gated flips'
-      if (!primary.lead) return `**${counts}**`
-      return `**${counts}: ${primary.lead.signal}, ${primary.lead.prior} to ${primary.lead.current}**`
-    }
-  }
-}
-
-function headerLine(header: RunHeader): string {
-  const { tally } = header
-  const parts: string[] = []
-  if (header.status !== 'complete') {
-    parts.push(`Run stopped early (${header.status}).`)
-  }
-  if (tally.counted > 0) {
-    parts.push(`${tally.passed} of ${tally.counted} counted attempts passed`)
-  } else {
-    parts.push(`${tally.counted} counted attempts`)
-  }
-  if (tally.reclassified > 0) {
-    parts[parts.length - 1] += `, ${tally.reclassified} reclassified as infra error`
-  }
-  if (tally.infraError > tally.reclassified) {
-    parts[parts.length - 1] += `, ${tally.infraError} infra errors`
-  }
-  parts[parts.length - 1] += '.'
-  parts.push(`${header.wall.text} wall time.`)
-  if (header.tokens) {
-    parts.push(`${header.tokens.total.text} tokens (${header.tokens.cacheRead.text} cache reads).`)
-  }
-  if (header.cost) {
-    const basis =
-      header.cost.basis === 'estimated'
-        ? ' (est.)'
-        : header.cost.basis === 'mixed'
-          ? ' (mixed)'
-          : ''
-    const bits = [
-      header.cost.agent ? `agent ${header.cost.agent.text}` : null,
-      header.cost.judge ? `judge ${header.cost.judge.text}` : null,
-    ].filter(Boolean)
-    if (bits.length) {
-      parts.push(`${bits.join(', ')}${basis}.`)
-    } else if (header.cost.total) {
-      parts.push(`total ${header.cost.total.text}${basis}.`)
-    } else {
-      parts.push('No USD cost recorded.')
-    }
-  } else {
-    parts.push('No USD cost recorded.')
-  }
-  if (header.git) {
-    const dirty = header.git.dirty ? ' (dirty)' : ''
-    const repo = header.git.repo ? `${header.git.repo}@` : ''
-    parts.push(`${repo}${header.git.sha.slice(0, 7)}${dirty}.`)
-  }
-  return parts.join(' ')
-}
-
-function renderHeadline(headline: EvalHeadline, blockLevel: number): string[] {
-  const lines: string[] = []
-  if (headline.kicker) lines.push(headline.kicker, '')
-  lines.push(headlineBold(headline.primary))
-  if (headline.primary.kind === 'text' && headline.primary.lead) {
-    const q = headline.primary.lead
-    lines.push('')
-    if (headline.primary.leadRole === 'representative') {
-      lines.push(`Showing 1 of ${headline.primary.answered.k} answers as representative.`, '')
-    }
-    lines.push(`> ${clipCell(q.text, 400)} ([${q.attempt.id}, ${q.harness}](${q.attempt.href}))`)
-  }
-  lines.push('')
-  lines.push(headline.foot)
-  void blockLevel
-  return lines
-}
-
-function measureCells(row: BreakdownRow | ArmRow): string[] {
-  const measures =
-    'measures' in row
-      ? (row as BreakdownRow).measures
-      : Object.fromEntries(
-          MEASURE_ORDER.map((k) => {
-            const m = (row as ArmRow).measures[k]
-            return [k, m?.value ?? null] as const
-          }),
-        )
-  return MEASURE_ORDER.map((k) => {
-    if ('lift' in row) {
-      const m = (row as ArmRow).measures[k]
-      if (!m?.value) return 'not reported'
-      const base = medianWithDelta(m.value.median.text, m.delta)
-      if (m.lower) return `${base}, ${m.lower.text} harnesses lower`
-      return base
-    }
-    const s = (measures as BreakdownRow['measures'])[k]
-    return s ? s.median.text : 'not reported'
-  })
-}
-
-function assertionTable(columns: string[], rows: AssertionRow[]): string {
-  const headers = ['Assertion', 'Matcher', ...columns, 'Total']
-  const body = rows.map((r) => [
-    r.label,
-    r.matcher,
-    ...columns.map((c) => r.cells[c]?.text ?? 'n/a'),
-    r.total.text,
-  ])
-  return table(headers, body)
-}
-
-function taskMarkdown(primary: TaskResults, blockLevel: number): string[] {
-  const lines: string[] = []
-  if (primary.assertions.length) {
-    lines.push(h(blockLevel, 'Assertions'), '')
-    lines.push(assertionTable(primary.columns, primary.assertions), '')
-  }
-  if (primary.breakdown.length) {
-    const axisTitle =
-      primary.axes.length === 1 && primary.axes[0] === 'harness'
-        ? 'By coding harness'
-        : `By ${primary.axes.join(' / ')}`
-    lines.push(h(blockLevel, axisTitle), '')
-    const headers = [...primary.axes, 'Pass rate', ...MEASURE_ORDER.map((k) => MEASURE_LABEL[k])]
-    const rows = primary.breakdown.map((r) => [
-      ...r.keys,
-      r.rate?.text ?? 'n/a',
-      ...measureCells(r),
-    ])
-    if (primary.median) {
-      rows.push([
-        ...primary.median.keys.map(() => '**Median**'),
-        primary.median.rate?.text ?? 'n/a',
-        ...measureCells(primary.median),
-      ])
-    }
-    lines.push(table(headers, rows), '')
-  }
-  return lines
-}
-
-function comparisonMarkdown(primary: VariantComparison, blockLevel: number): string[] {
-  const lines: string[] = []
-  lines.push(h(blockLevel, 'Baseline vs. variants'), '')
-  if (primary.arms.length) {
-    lines.push(
-      primary.arms
-        .map((a) => `- **${a.label}** (\`${a.id}\`): ${a.role}${a.change ? `: ${a.change}` : ''}`)
-        .join('\n'),
-      '',
-    )
-  }
-  if (primary.uniformLead) {
-    lines.push(primary.uniformLead, '')
-  }
-  if (primary.summary.length) {
-    const headers = [
-      'Arm',
-      'Pass rate',
-      'Lift',
-      'Pass-rate verdict',
-      ...MEASURE_ORDER.map((k) => MEASURE_LABEL[k]),
-    ]
-    const rows = primary.summary.map((r) => [
-      r.arm,
-      r.rate.text,
-      r.lift?.text ?? 'n/a',
-      verdictLabel(r.verdict),
-      ...measureCells(r),
-    ])
-    lines.push(table(headers, rows), '')
-  }
-  if (primary.assertionsByArm.length) {
-    lines.push(h(blockLevel, 'Assertions by arm'), '')
-    const cols = primary.arms.map((a) => a.label)
-    lines.push(assertionTable(cols, primary.assertionsByArm), '')
-  }
-  if (primary.contrasts.length) {
-    lines.push(h(blockLevel, 'Pairwise contrasts'), '')
-    lines.push(
-      table(
-        ['From', 'To', 'Measure', 'Delta', 'Interval', 'Pass-rate verdict'],
-        primary.contrasts.map((c: ContrastRow) => [
-          c.from,
-          c.to,
-          contrastMeasureLabel(c.measure),
-          c.delta.text,
-          c.interval?.text ?? 'n/a',
-          verdictLabel(c.verdict),
-        ]),
-      ),
-      '',
-    )
-  }
-  if (primary.effortByHarness.length) {
-    lines.push(h(blockLevel, 'Effort by coding harness'), '')
-    const headers = [
-      'Coding harness',
-      'Arm',
-      'Pass rate',
-      ...MEASURE_ORDER.map((k) => MEASURE_LABEL[k]),
-    ]
-    const rows = primary.effortByHarness.map((r) => [
-      r.harness === 'Median' ? '**Median**' : r.harness,
-      r.arm,
-      r.rate.text,
-      ...MEASURE_ORDER.map((k) => {
-        const m = r.measures[k]
-        if (!m?.value) return 'not reported'
-        return medianWithDelta(m.value.median.text, m.delta)
-      }),
-    ])
-    lines.push(table(headers, rows), '')
-  }
-  return lines
-}
-
-function regressionMarkdown(primary: RegressionChanges, blockLevel: number): string[] {
-  const priorBits = [
-    primary.prior.startedAt.slice(0, 10),
-    primary.prior.gitSha ? primary.prior.gitSha.slice(0, 7) : null,
-    primary.prior.branch,
-    primary.prior.runId,
-  ].filter(Boolean)
-  const lines: string[] = [h(blockLevel, `Changes since ${priorBits.join(', ')}`), '']
-  lines.push(`Prior run by ${primary.prior.author} on ${primary.prior.startedAt.slice(0, 10)}.`, '')
-  if (primary.whatChanged.length) {
-    lines.push(h(blockLevel + 1, 'What changed'), '')
-    for (const line of primary.whatChanged) lines.push(`- ${line}`)
-    lines.push('')
-  }
-  if (primary.rows.length) {
-    lines.push(
-      table(
-        ['Signal', 'Kind', 'Harness', 'Prior', 'Current', 'Delta', 'Status', 'Gate'],
-        primary.rows.map((r) => [
-          r.signal,
-          r.kind,
-          r.harness ?? 'n/a',
-          r.prior,
-          r.current,
-          r.delta?.text ?? 'n/a',
-          COMPARE_STATUS_LABEL[r.status],
-          r.gate ? 'gate' : 'ungated',
-        ]),
-      ),
-      '',
-    )
-  }
-  if (primary.unchanged.length) {
-    lines.push(`<details><summary>Unchanged (${primary.unchanged.length})</summary>`, '')
-    lines.push(
-      table(
-        ['Signal', 'Kind', 'Prior', 'Current'],
-        primary.unchanged.map((r) => [r.signal, r.kind, r.prior, r.current]),
-      ),
-      '',
-      '</details>',
-      '',
-    )
-  }
-  return lines
-}
-
-function choicesMarkdown(choices: ChoiceBreakdown[], blockLevel: number): string[] {
-  const lines: string[] = []
-  for (const c of choices) {
-    lines.push(h(blockLevel, `Choices: ${c.question}`), '')
-    lines.push(
-      c.options.map((o) => `${o.label} ${o.count}`).join(', ') +
-        (c.noPick ? `; ${c.noPick} without a pick` : ''),
-      '',
-    )
-    if (c.rows.length) {
-      const optionLabels = c.options.map((o) => o.label)
-      const showArm = c.rows.some((r) => r.arm !== null)
-      const headers = [
-        ...(showArm ? ['Arm'] : []),
-        'Prompt',
-        'Coding harness',
-        ...optionLabels,
-        'Attempts',
-      ]
-      lines.push(
-        table(
-          headers,
-          c.rows.map((r) => [
-            ...(showArm ? [r.arm ?? 'n/a'] : []),
-            r.prompt ?? 'n/a',
-            r.harness,
-            ...optionLabels.map((o) => String(r.counts[o] ?? 0)),
-            String(r.attempts),
-          ]),
-        ),
-        '',
-      )
-    }
-    if (c.passByPick.length) {
-      lines.push(h(blockLevel + 1, 'Pass rate by pick'), '')
-      lines.push(
-        table(
-          ['Pick', 'Pass rate', 'n'],
-          c.passByPick.map((p) => [p.option, p.rate.text, String(p.rate.n)]),
-        ),
-        '',
-      )
-    }
-  }
-  return lines
-}
-
-function discoveryMarkdown(rows: DiscoveryRate[], blockLevel: number): string[] {
-  const lines: string[] = []
-  for (const d of rows) {
-    lines.push(h(blockLevel, `Discovery: ${d.what}`), '')
-    lines.push(`${d.found.text} found.`, '')
-    if (d.rows.length) {
-      lines.push(
-        table(
-          ['Coding harness', 'Found'],
-          d.rows.map((r) => [r.keys.join(' / '), r.found.text]),
-        ),
-        '',
-      )
-    }
-    if (d.sources.length) {
-      lines.push(
-        table(
-          ['Source', 'Count'],
-          d.sources.map((s) => [DISCOVERY_SOURCE_LABEL[s.source], String(s.count)]),
-        ),
-        '',
-      )
-    }
-  }
-  return lines
-}
-
-function judgmentsMarkdown(j: JudgmentBreakdown, blockLevel: number): string[] {
-  const lines: string[] = []
-  if (j.scores.length) {
-    lines.push(h(blockLevel, 'Judgments'), '')
-    const showAt = j.scores.some((s) => s.atOrAbove !== null)
-    const headers = [
-      'Label',
-      'Question',
-      'Threshold',
-      'Keys',
-      'Median',
-      ...(showAt ? ['At or above'] : []),
-    ]
-    lines.push(
-      table(
-        headers,
-        j.scores.map((s) => [
-          s.label,
-          s.question,
-          s.threshold === null ? 'diagnostic' : String(s.threshold),
-          s.keys.join(' / ') || 'n/a',
-          s.spread.median.text,
-          ...(showAt ? [s.atOrAbove?.text ?? 'n/a'] : []),
-        ]),
-      ),
-      '',
-    )
-  }
-  if (j.pairwise.length) {
-    lines.push(h(blockLevel, 'Pairwise review'), '')
-    lines.push(
-      table(
-        ['Question', 'Cut', 'A', 'B', 'A wins', 'B wins', 'Ties', 'Pairs'],
-        j.pairwise.map((p) => [
-          p.question,
-          p.cut,
-          p.a,
-          p.b,
-          String(p.aWins),
-          String(p.bWins),
-          String(p.ties),
-          String(p.pairs),
-        ]),
-      ),
-      '',
-    )
-    const withReasons = j.pairwise.flatMap((p) =>
-      p.reasons.map((r) => ({ question: p.question, ...r })),
-    )
-    if (withReasons.length) {
-      lines.push(h(blockLevel + 1, 'Pairwise reasons'), '')
-      for (const r of withReasons) {
-        const cites = citeList(r.cites)
-        lines.push(`- ${clipCell(r.text, 300)}${cites ? ` (${cites})` : ''}`)
-      }
-      lines.push('')
-    }
-  }
-  return lines
-}
-
-function qualitativeMarkdown(rows: QualitativeAnswers[], blockLevel: number): string[] {
-  const lines: string[] = []
-  for (const q of rows) {
-    lines.push(h(blockLevel, `Answers: ${q.question}`), '')
-    lines.push(`${q.answered.text} answered.`, '')
-    const shown = q.entries.slice(0, 12)
-    for (const e of shown) {
-      lines.push(`- ${clipCell(e.text, 240)} ([${e.attempt.id}, ${e.harness}](${e.attempt.href}))`)
-    }
-    if (q.entries.length > shown.length) {
-      lines.push(`- …and ${q.entries.length - shown.length} more.`)
-    }
-    lines.push('')
-  }
-  return lines
-}
-
-function capturesMarkdown(gallery: CaptureGallery, blockLevel: number): string[] {
-  const lines: string[] = [h(blockLevel, 'Captures'), '']
-  const showArm = gallery.rows.some((r) => r.arm !== null)
-  const showNotes = gallery.rows.some((r) => r.shots.some((s) => s.meta))
-  const rows: string[][] = []
-  for (const r of gallery.rows) {
-    for (const shot of r.shots) {
-      const link = shot.href ? `[${shot.name}](${shot.href})` : `${shot.name} (not kept)`
-      rows.push([
-        r.harness,
-        ...(showArm ? [r.arm ?? 'n/a'] : []),
-        r.case ?? 'n/a',
-        link,
-        shot.status === null ? 'n/a' : String(shot.status),
-        shot.pageErrors === null ? 'n/a' : String(shot.pageErrors),
-        ...(showNotes ? [shot.meta ?? 'n/a'] : []),
-        shot.attempt.id,
-      ])
-    }
-  }
-  lines.push(
-    table(
-      [
-        'Coding harness',
-        ...(showArm ? ['Arm'] : []),
-        'Case',
-        'Capture',
-        'HTTP',
-        'Page errors',
-        ...(showNotes ? ['Notes'] : []),
-        'Attempt',
-      ],
-      rows,
-    ),
+function runLines(p: RunPresentation): string[] {
+  const h = p.header
+  const facts = [
+    `${h.attempts}.`,
+    `${h.wall.text} wall time.`,
+    `Tokens: ${h.tokens.text}.`,
+    `Cost: ${h.cost.text}.`,
+    ...(h.git ? [`${h.git.text}.`] : []),
+  ]
+  const served = h.servedBy.map((t) => `- ${t}`)
+  const meta = [
+    `Run \`${h.runId}\` by ${h.author}`,
+    h.date,
+    `reeval ${h.reeval}`,
+    ...(h.profile ? [`profile \`${h.profile}\``] : []),
+    h.runs,
+  ].join(', ')
+  return [
+    `# ${h.title}`,
     '',
-  )
+    ...(h.stopped ? [`The run ${h.stopped}.`, ''] : []),
+    facts.join(' '),
+    '',
+    sentence(meta),
+    ...(served.length ? ['', ...served] : []),
+  ]
+}
+
+function headLines(p: RunPresentation, e: EvalPresentation): string[] {
+  const m = e.headline.metric
+  const lines = [
+    // A one-eval report's title is the eval's name already.
+    ...(p.evals.length === 1 && p.header.title === e.name ? [] : [`## ${e.name}`, '']),
+    `\`${e.file}\`. ${e.shapes.join(', ')}. ${e.design}. Verdict: ${e.verdictText}.`,
+  ]
+  if (m.kind === 'none') return lines
+  const effect = m.kind === 'compare' && m.effectText ? `: ${m.effectText}` : ''
+  lines.push('', `**${metricText(m)}${effect}**`)
+  if (m.kind === 'quote' && m.text) {
+    lines.push('', `> ${cell(m.text, 400)}${m.cite ? ` (${link(m.cite)})` : ''}`)
+  }
+  const foot = [e.headline.foot, e.headline.left ? `Left out: ${e.headline.left}` : null]
+    .filter(Boolean)
+    .join('. ')
+  if (foot) lines.push('', sentence(foot))
   return lines
 }
 
-function failuresMarkdown(f: FailureClusters, blockLevel: number): string[] {
-  const lines: string[] = [h(blockLevel, 'Failures and caveats'), '']
-  if (f.clusters.length) {
-    lines.push(
-      table(
-        ['Kind', 'Label', 'At', 'Count', 'Attempts'],
-        f.clusters.map((c) => [c.kind, c.label, c.at ?? 'n/a', c.count.text, citeList(c.attempts)]),
-      ),
-      '',
-    )
-  }
-  if (f.remarks.length) {
-    lines.push(h(blockLevel + 1, 'Worth knowing'), '')
-    for (const r of f.remarks) {
-      lines.push(`- (${r.severity}) ${formatRemark(r)}`)
-    }
-    lines.push('')
-  }
-  return lines
-}
-
-function evalSectionMarkdown(section: EvalSection, single: boolean): string {
-  const blockLevel = single ? 2 : 3
-  const lines: string[] = []
-  if (!single) {
-    lines.push(h(2, section.name), '')
-  }
-  lines.push(`\`${section.file}\`. ${shapeLabel(section.shapes)}. ${section.design}.`, '')
-  lines.push(...renderHeadline(section.headline, blockLevel), '')
-  if (section.insights.length) {
-    lines.push(h(blockLevel, 'Key findings'), '')
-    for (const claim of section.insights) {
-      const cites = citeList(claim.cites)
-      lines.push(`- ${claim.text}${cites ? ` ${cites}` : ''}`)
-    }
-    lines.push('')
-  }
-  if (section.primary?.kind === 'task') lines.push(...taskMarkdown(section.primary, blockLevel))
-  if (section.primary?.kind === 'comparison') {
-    lines.push(...comparisonMarkdown(section.primary, blockLevel))
-  }
-  if (section.primary?.kind === 'regression') {
-    lines.push(...regressionMarkdown(section.primary, blockLevel))
-  }
-  lines.push(...choicesMarkdown(section.choices, blockLevel))
-  lines.push(...discoveryMarkdown(section.discovery, blockLevel))
-  if (section.judgments) lines.push(...judgmentsMarkdown(section.judgments, blockLevel))
-  lines.push(...qualitativeMarkdown(section.qualitative, blockLevel))
-  if (section.captures) lines.push(...capturesMarkdown(section.captures, blockLevel))
-  if (section.failures) lines.push(...failuresMarkdown(section.failures, blockLevel))
-  return lines.join('\n').replace(/\n{3,}/g, '\n\n')
-}
-
-export const blockMarkdown: BlockMarkdown = {
-  runHeader(header, _single) {
-    void _single
-    return [`# ${header.title}`, '', headerLine(header), ''].join('\n')
-  },
-  integrity(issues) {
-    if (issues.length === 0) return ''
-    const caution = issues.some((i) => i.severity === 'error')
-    const lines = [
-      `> [!${caution ? 'CAUTION' : 'WARNING'}]`,
-      '> Integrity: read these before the results.',
-      '>',
-      ...issues.map((i) => {
-        const cites = citeList(i.cites)
-        return `> - ${i.text}${cites ? ` ${cites}` : ''}`
-      }),
-      '',
-    ]
-    return lines.join('\n')
-  },
-  rollup(rollup) {
-    const lines: string[] = [h(2, 'Summary'), '']
-    if (rollup.lead) {
-      lines.push(rollup.lead.text, '')
-    }
-    if (rollup.rows.length) {
-      lines.push(
+function questionLines(q: Question): string[] {
+  switch (q.kind) {
+    case 'choices':
+      return [
+        `#### Choices: ${q.question}`,
+        '',
         table(
-          ['Evaluation', 'Shape / arms', 'Primary result', 'Effort'],
-          rollup.rows.map((r) => [
-            `[${r.name}](#${r.anchor})`,
-            `${r.shapes.join(', ')}; ${r.design}`,
-            r.primary,
-            r.medianTokens.text,
+          ['Pick', 'Attempts'],
+          q.options.map((o) => [o.label, o.count.text]),
+        ),
+        ...(q.noPick ? ['', sentence(q.noPick)] : []),
+        ...(q.rows.length
+          ? [
+              '',
+              table(
+                ['Group', ...q.options.map((o) => o.label)],
+                q.rows.map((r) => [r.label, ...r.picks.map((x) => x.count.text)]),
+              ),
+            ]
+          : []),
+        ...(q.passByPick.length
+          ? [
+              '',
+              `Passed by pick: ${q.passByPick.map((x) => `${x.label} ${x.rate.text} (${x.rate.of})`).join(', ')}.`,
+            ]
+          : []),
+        '',
+      ]
+    case 'pairwise':
+      return [
+        `#### Pairwise: ${q.question}${q.cut ? ` (${q.cut})` : ''}`,
+        '',
+        table(
+          ['Side', 'Won'],
+          q.sides.map((s) => [s.label, s.wins.text]),
+        ),
+        '',
+        `${q.ties.text}.`,
+        '',
+      ]
+    case 'unanswered':
+      return [`#### Not answered: ${q.question}`, '', sentence(q.text), '']
+    case 'answers': {
+      const shown = q.entries.slice(0, ANSWERS_SHOWN)
+      return [
+        `#### Answers: ${q.question}`,
+        '',
+        `${q.answered.text} answered.`,
+        '',
+        ...shown.map((a) => `- ${cell(a.text, 240)} (${link(a.cite)}, ${a.harness})`),
+        ...(q.entries.length > shown.length
+          ? [`- …and ${q.entries.length - shown.length} more.`]
+          : []),
+        '',
+      ]
+    }
+  }
+}
+
+function sectionLines(p: RunPresentation, s: Section): string[] {
+  const e = s.eval as EvalPresentation
+  switch (s.kind) {
+    case 'run':
+      return runLines(p)
+    case 'caveats': {
+      const caution = p.caveats.some((c) => c.severity === 'error')
+      return [
+        `> [!${caution ? 'CAUTION' : 'WARNING'}]`,
+        '> Read these before the results.',
+        '>',
+        ...p.caveats.map((c) => `> - ${c.text}${c.cites.length ? ` ${links(c.cites)}` : ''}`),
+      ]
+    }
+    case 'harnesses':
+      return [
+        '## Coding harnesses',
+        '',
+        table(
+          ['Coding harness', 'Served models', 'Gateway', 'Attempts'],
+          p.harnesses.map((h) => [
+            h.label,
+            h.servedModels.join(', ') || 'n/a',
+            h.gateway ?? 'n/a',
+            h.attempts.text,
+          ]),
+        ),
+      ]
+    case 'eval':
+      return headLines(p, e)
+    case 'arms':
+      return [
+        '### Arms',
+        '',
+        table(
+          ['Arm', 'Pass rate', 'Passed', 'Effect', 'Left out'],
+          e.arms.map((a) => [
+            a.label,
+            a.rate.text,
+            a.rate.of,
+            a.effectText ?? a.role,
+            a.left ?? 'none',
+          ]),
+        ),
+        ...(e.byHarness.length
+          ? [
+              '',
+              table(
+                ['Coding harness', ...(e.byHarness[0]?.cells.map((c) => c.column) ?? [])],
+                e.byHarness.map((h) => [
+                  h.label,
+                  ...h.cells.map((x) => (x.rate ? `${x.rate.text} (${x.rate.of})` : 'n/a')),
+                ]),
+              ),
+            ]
+          : []),
+      ]
+    case 'cases': {
+      const columns = e.cases[0]?.cells.map((c) => c.column) ?? []
+      return [
+        '### By task',
+        '',
+        table(
+          ['Task', ...columns],
+          e.cases.map((c) => [
+            c.label,
+            ...c.cells.map((x) => (x.rate ? `${x.rate.text} (${x.rate.of})` : 'n/a')),
+          ]),
+        ),
+      ]
+    }
+    case 'attempts': {
+      const arm = optional(e.attempts, (a) => a.arm)
+      const kase = optional(e.attempts, (a) => a.case)
+      return [
+        '### Attempts',
+        '',
+        table(
+          [
+            'Attempt',
+            'Coding harness',
+            ...(arm ? ['Arm'] : []),
+            ...(kase ? ['Case'] : []),
+            'Outcome',
+            'Tokens',
+            'Agent time',
+            'Cost',
+            'Why',
+          ],
+          e.attempts.map((a) => [
+            link(a),
+            a.harness,
+            ...(arm ? [a.arm ?? 'n/a'] : []),
+            ...(kase ? [a.case ?? 'n/a'] : []),
+            a.outcomeText,
+            a.tokens.text,
+            a.agentTime.text,
+            a.cost.text,
+            clip(a.note ?? 'n/a'),
+          ]),
+        ),
+      ]
+    }
+    case 'checks': {
+      const columns = e.checks[0]?.cells.map((c) => c.column) ?? []
+      return [
+        '### Checks',
+        '',
+        table(
+          ['Check', 'Matcher', 'At', ...columns, 'Total'],
+          e.checks.map((c) => [
+            c.label,
+            c.matcher,
+            c.at ?? 'n/a',
+            ...c.cells.map((x) => x.text),
+            c.total,
+          ]),
+        ),
+      ]
+    }
+    case 'failures':
+      return [
+        '### Failures',
+        '',
+        table(
+          ['Kind', 'What', 'Message', 'At', 'Count', 'Attempts'],
+          e.failures.map((f) => [
+            f.kindText,
+            f.label,
+            clip(f.message ?? 'n/a'),
+            f.at ?? 'n/a',
+            f.where ? `${f.count.text}, ${f.where}` : f.count.text,
+            links(f.attempts),
+          ]),
+        ),
+      ]
+    case 'effort':
+      return [
+        '### Effort',
+        '',
+        table(
+          [
+            'Group',
+            'Median tokens',
+            'Median tool calls',
+            'Median agent time',
+            'Median cost',
+            'Cost per pass',
+          ],
+          e.effort.map((r) => [
+            r.label,
+            r.tokens.text,
+            r.toolCalls.text,
+            r.agentTime.text,
+            r.cost.text,
+            r.costPerPass.text,
+          ]),
+        ),
+      ]
+    case 'questions':
+      return ['### Questions', '', ...e.questions.flatMap(questionLines)]
+    case 'judgments': {
+      const tallied = e.judgments.some((j) => j.atOrAbove !== null)
+      return [
+        '### Judgments',
+        '',
+        table(
+          ['Judgment', 'Question', 'Threshold', 'Median', ...(tallied ? ['At or above'] : [])],
+          e.judgments.map((j) => [
+            j.label,
+            j.question,
+            j.threshold,
+            j.median.text,
+            ...(tallied ? [j.atOrAbove?.text ?? 'n/a'] : []),
+          ]),
+        ),
+        ...e.judgments
+          .filter((j) => j.scores.length)
+          .flatMap((j) => [
+            '',
+            `Scores for ${j.label}: ${j.scores.map((x) => `${link(x.attempt)} ${x.score.text}`).join(', ')}.`,
+          ]),
+      ]
+    }
+    case 'discovery':
+      return [
+        '### Discovery',
+        '',
+        ...e.discovery.flatMap((d) => [
+          `${d.what}: found in ${d.found.text}.`,
+          '',
+          table(
+            ['Group', 'Found'],
+            d.rows.map((r) => [r.label, r.found.text]),
+          ),
+          '',
+        ]),
+      ]
+    case 'captures':
+      return [
+        '### Captures',
+        '',
+        table(
+          ['Capture', 'Coding harness', 'Arm', 'Case', 'Status', 'Attempt'],
+          e.captures.map((c) => [
+            c.href ? `[${c.name}](${c.href})` : `${c.name} (not kept)`,
+            c.harness,
+            c.arm ?? 'n/a',
+            c.case ?? 'n/a',
+            c.status,
+            link(c.attempt),
+          ]),
+        ),
+      ]
+    case 'regression': {
+      const r = e.regression
+      if (!r) return []
+      return [
+        `### Changes since ${r.prior}, ${r.priorRunId}`,
+        '',
+        `Prior run by ${r.priorAuthor}.`,
+        '',
+        ...(r.whatChanged.length
+          ? ['What changed:', '', ...r.whatChanged.map((w) => `- ${w}`), '']
+          : []),
+        table(
+          ['Signal', 'Kind', 'Coding harness', 'Prior', 'Current', 'Delta', 'Status'],
+          r.rows.map((x) => [
+            x.signal,
+            x.kind,
+            x.harness ?? 'n/a',
+            x.prior,
+            x.current,
+            x.delta,
+            x.status,
           ]),
         ),
         '',
-      )
+        sentence(r.unchanged.text),
+      ]
     }
-    if (rollup.findings.length) {
-      lines.push(h(3, 'Key findings across evaluations'), '')
-      for (const f of rollup.findings) {
-        lines.push(`- ${f.text}${citeList(f.cites) ? ` ${citeList(f.cites)}` : ''}`)
-      }
-      lines.push('')
-    }
-    return lines.join('\n')
-  },
-  roster(rows) {
-    if (rows.length === 0) return ''
-    return [
-      h(2, 'Coding harnesses'),
-      '',
-      table(
-        ['Coding harness', 'Model', 'Effort', 'Served models', 'Gateway', 'Attempts'],
-        rows.map((r: RosterRow) => [
-          r.harness,
-          r.model ?? 'n/a',
-          r.effort ?? 'n/a',
-          r.servedModels.join(', ') || 'n/a',
-          r.gateway ?? 'n/a',
-          String(r.attempts),
-        ]),
-      ),
-      '',
-    ].join('\n')
-  },
-  evalSection(section, single) {
-    return evalSectionMarkdown(section, single)
-  },
-  actions(claims) {
-    if (claims.length === 0) return ''
-    const lines = [h(2, 'Recommended actions'), '']
-    for (const c of claims) {
-      lines.push(`- ${c.text}${citeList(c.cites) ? ` ${citeList(c.cites)}` : ''}`)
-    }
-    lines.push('')
-    return lines.join('\n')
-  },
-  provenance(state: ProvenanceState) {
-    const lines = [h(2, 'State'), '']
-    const rows = state.rows.map((r) => [r.field, r.value])
-    rows.push(['Artifacts', state.artifacts])
-    rows.push(['Record', `[${state.record.split('/').pop()}](${state.record})`])
-    if (state.context.count > 0) {
-      rows.push(['Context', `${state.context.count} files`])
-    }
-    lines.push(table(['Field', 'Value'], rows), '')
-    if (state.context.count > 5) {
-      lines.push(
-        `<details><summary>All ${state.context.count} context files</summary>`,
+    case 'next':
+      return [
+        '### Next',
+        '',
+        ...e.next.map((n) => `- ${n.at ? `At ${n.at}: ` : ''}${sentence(n.text)}`),
+        ...e.remarks.map((r) => `- ${r}`),
+      ]
+    case 'stats':
+      return ['### Statistics', '', ...e.stats.map((t) => `- ${t}`)]
+    case 'actions':
+      return [
+        '## Recommended actions',
+        '',
+        ...p.actions.map((a) => `- ${a.text}${a.cites.length ? ` ${links(a.cites)}` : ''}`),
+      ]
+    case 'tally':
+      return ['## Tally', '', sentence(`Evals: ${p.tally.text}`)]
+    case 'provenance':
+      return [
+        '## State',
         '',
         table(
-          ['Path', 'sha256'],
-          state.context.files.map((f) => [f.path, f.sha256.replace(/^sha256:/, '').slice(0, 12)]),
+          ['Field', 'Value'],
+          p.provenance.rows.map((r) => [r.field, r.value]),
         ),
+        ...p.provenance.warnings.flatMap((w) => ['', `> **Warning:** ${w}`]),
+      ]
+    case 'attempt-index': {
+      const arm = optional(p.attemptIndex, (a) => a.arm)
+      const kase = optional(p.attemptIndex, (a) => a.case)
+      return [
+        '## Attempt index',
         '',
-        '</details>',
-        '',
-      )
-    } else if (state.context.count > 0) {
-      lines.push(
         table(
-          ['Path', 'sha256'],
-          state.context.files.map((f) => [f.path, f.sha256.replace(/^sha256:/, '').slice(0, 12)]),
+          [
+            'ID',
+            'Eval',
+            'Coding harness',
+            ...(arm ? ['Arm'] : []),
+            ...(kase ? ['Case'] : []),
+            'Outcome',
+            'Tokens',
+            'Agent time',
+            'Tool calls',
+            'Diff',
+            'Evidence',
+          ],
+          p.attemptIndex.map((a) => [
+            `<a id="${a.anchor}"></a>${a.id}`,
+            a.eval,
+            a.harness,
+            ...(arm ? [a.arm ?? 'n/a'] : []),
+            ...(kase ? [a.case ?? 'n/a'] : []),
+            a.outcomeText,
+            a.tokens.text,
+            a.agentTime.text,
+            a.toolCalls.text,
+            a.diff,
+            a.links.map((l) => `[${l.name}](${l.href})`).join(', ') || 'n/a',
+          ]),
         ),
-        '',
-      )
+      ]
     }
-    for (const w of state.warnings) lines.push(`> **Warning:** ${w}`, '')
-    return lines.join('\n')
-  },
-  attemptIndex(rows: AttemptIndexRow[], _single) {
-    void _single
-    if (rows.length === 0) return ''
-    const lines = [h(2, 'Attempt index'), '']
-    lines.push(
-      table(
-        [
-          'ID',
-          'Eval',
-          'Coding harness',
-          'Arm / Case',
-          'Outcome',
-          'Tokens',
-          'Agent time',
-          'Tools',
-          'Diff',
-          'Evidence',
-        ],
-        rows.map((r) => {
-          const evidence = [
-            r.links.transcript ? `[transcript](${r.links.transcript})` : null,
-            r.links.diff ? `[diff](${r.links.diff})` : null,
-            ...r.links.captures.map((c) => `[${c.name}](${c.href})`),
-            ...r.links.questions.map((q, i) => `[q${i + 1}](${q})`),
-          ]
-            .filter(Boolean)
-            .join(', ')
-          return [
-            `<a id="${attemptAnchorId(r.key)}"></a>${r.id}`,
-            r.evalId,
-            r.harness,
-            [r.arm, r.case].filter(Boolean).join(' / ') || 'n/a',
-            r.reclassified ? `${r.outcome} (reclassified)` : r.outcome,
-            r.tokens.text,
-            r.agentMs.text,
-            r.toolCalls.text,
-            r.diff?.text ?? 'not recorded',
-            evidence || 'n/a',
-          ]
-        }),
-      ),
-      '',
-    )
-    return lines.join('\n')
-  },
+  }
 }
 
-/** Render a `RunReport` to standalone GFM. */
-export function runReportMarkdown(report: RunReport): string {
+/** A run's presentation as standalone GFM: every section, in the order every surface uses. */
+export function runReportMarkdown(
+  p: RunPresentation,
+  options: RunReportMarkdownOptions = {},
+): string {
   const parts: string[] = []
-  parts.push(`# ${report.header.title}`)
-  parts.push('')
-  parts.push(headerLine(report.header))
-  parts.push('')
-  const meta = `Run \`${report.runId}\` by ${report.header.author}, ${report.header.startedAt.slice(0, 10)}, reeval ${report.header.reeval}${report.header.profile ? `, profile \`${report.header.profile}\`` : ''}, ${
-    report.header.runsPerCell === null
-      ? 'varying runs per cell'
-      : `${report.header.runsPerCell} run${report.header.runsPerCell === 1 ? '' : 's'} per cell`
-  }.`
-  parts.push(meta)
-  parts.push('')
-  if (report.integrity.length) parts.push(blockMarkdown.integrity(report.integrity))
-  if (report.rollup) parts.push(blockMarkdown.rollup(report.rollup))
-  if (report.roster.length) parts.push(blockMarkdown.roster(report.roster))
-  for (const section of report.evals) {
-    parts.push(blockMarkdown.evalSection(section, report.single))
-    parts.push('')
+  for (const s of sectionsOf(p, 'full')) {
+    if (options.sections && !options.sections(s)) continue
+    options.onSection?.(s)
+    parts.push(sectionLines(p, s).join('\n'), '')
   }
-  if (report.actions.length) parts.push(blockMarkdown.actions(report.actions))
-  parts.push(blockMarkdown.provenance(report.provenance))
-  parts.push(blockMarkdown.attemptIndex(report.attempts, report.single))
   return `${parts
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')

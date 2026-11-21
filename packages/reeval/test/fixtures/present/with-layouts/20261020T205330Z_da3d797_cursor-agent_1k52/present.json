@@ -1,0 +1,6317 @@
+{
+  "presentationVersion": 1,
+  "header": {
+    "title": "Run 20261020T205330Z_da3d797_cursor-agent_1k52",
+    "runId": "20261020T205330Z_da3d797_cursor-agent_1k52",
+    "status": "complete",
+    "stopped": null,
+    "startedAt": "2026-10-20T20:53:30.523Z",
+    "date": "2026-10-20",
+    "author": "cursor-agent",
+    "reeval": "0.10.0",
+    "profile": null,
+    "runs": "varying runs per cell",
+    "git": {
+      "repo": null,
+      "branch": "master",
+      "sha": "da3d797c474fb274ad31c2ec068498023c8b9cc1",
+      "dirty": false,
+      "text": "da3d797"
+    },
+    "wall": {
+      "value": 1754,
+      "text": "2s"
+    },
+    "tokens": {
+      "value": null,
+      "text": "not reported"
+    },
+    "cost": {
+      "value": null,
+      "text": "not reported"
+    },
+    "counted": {
+      "k": 18,
+      "n": 35,
+      "text": "18 of 35"
+    },
+    "infraError": 1,
+    "canceled": 0,
+    "attempts": "18 of 35 counted attempts passed · 1 infra error",
+    "servedBy": []
+  },
+  "tally": {
+    "pass": 3,
+    "fail": 8,
+    "infraError": 1,
+    "canceled": 0,
+    "skipped": 1,
+    "todo": 1,
+    "notRun": 0,
+    "ungated": 0,
+    "text": "8 fail · 3 pass · 1 infra error · 1 skipped · 1 todo"
+  },
+  "caveats": [
+    {
+      "severity": "warn",
+      "text": "adds a $name button that builds: 3 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "evals/family.eval.ts › adds a button that builds",
+      "cites": [
+        {
+          "id": "A1",
+          "href": "./evals-family-eval-ts-adds-a-reset-button-that-builds-5f0694/fake-fake-70e87d/1/transcript.jsonl"
+        },
+        {
+          "id": "A2",
+          "href": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/transcript.jsonl"
+        },
+        {
+          "id": "A3",
+          "href": "./evals-family-eval-ts-adds-a-clear-button-that-builds-ddd4f5/fake-fake-70e87d/1/transcript.jsonl"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "greets %s in the house style: Check \"house greeting\" never passes on the baseline and always passes on a variant; it may not apply to the baseline.",
+      "evalId": "evals/family.eval.ts › greets in the house style",
+      "cites": []
+    },
+    {
+      "severity": "warn",
+      "text": "greets %s in the house style: 8 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "evals/family.eval.ts › greets in the house style",
+      "cites": [
+        {
+          "id": "A4",
+          "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "id": "A5",
+          "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        },
+        {
+          "id": "A6",
+          "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "id": "A7",
+          "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        },
+        {
+          "id": "A8",
+          "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "id": "A9",
+          "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        },
+        {
+          "id": "A10",
+          "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "id": "A11",
+          "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "greets in the house style on each agent: 2 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "evals/harnesses.eval.ts › greets in the house style on each agent",
+      "cites": [
+        {
+          "id": "A12",
+          "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/skilled-fake-cd398f/1/transcript.jsonl"
+        },
+        {
+          "id": "A13",
+          "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/transcript.jsonl"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "learns the house style from the skill: Check \"house greeting\" never passes on the baseline and always passes on a variant on coding harness learner; it may not apply to the baseline.",
+      "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
+      "cites": []
+    },
+    {
+      "severity": "warn",
+      "text": "learns the house style from the skill: 16 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
+      "cites": [
+        {
+          "id": "A14",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/transcript.jsonl"
+        },
+        {
+          "id": "A30",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/transcript.jsonl"
+        },
+        {
+          "id": "A40",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/transcript.jsonl"
+        },
+        {
+          "id": "A48",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/transcript.jsonl"
+        },
+        {
+          "id": "A15",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/1/transcript.jsonl"
+        },
+        {
+          "id": "A31",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/2/transcript.jsonl"
+        },
+        {
+          "id": "A41",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/3/transcript.jsonl"
+        },
+        {
+          "id": "A50",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/4/transcript.jsonl"
+        },
+        {
+          "id": "A16",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/transcript.jsonl"
+        },
+        {
+          "id": "A32",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/transcript.jsonl"
+        },
+        {
+          "id": "A42",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/transcript.jsonl"
+        },
+        {
+          "id": "A51",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/transcript.jsonl"
+        },
+        {
+          "id": "A17",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/transcript.jsonl"
+        },
+        {
+          "id": "A33",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/transcript.jsonl"
+        },
+        {
+          "id": "A43",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/transcript.jsonl"
+        },
+        {
+          "id": "A52",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/transcript.jsonl"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "greets in the house style: Check \"house greeting\" never passes on the baseline and always passes on a variant; it may not apply to the baseline.",
+      "evalId": "evals/measure.eval.ts › greets in the house style",
+      "cites": []
+    },
+    {
+      "severity": "warn",
+      "text": "greets in the house style: 12 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "evals/measure.eval.ts › greets in the house style",
+      "cites": [
+        {
+          "id": "A18",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "id": "A34",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/transcript.jsonl"
+        },
+        {
+          "id": "A44",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/transcript.jsonl"
+        },
+        {
+          "id": "A53",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/transcript.jsonl"
+        },
+        {
+          "id": "A19",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        },
+        {
+          "id": "A35",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/2/transcript.jsonl"
+        },
+        {
+          "id": "A45",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/3/transcript.jsonl"
+        },
+        {
+          "id": "A54",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/4/transcript.jsonl"
+        },
+        {
+          "id": "A20",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/transcript.jsonl"
+        },
+        {
+          "id": "A36",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/transcript.jsonl"
+        },
+        {
+          "id": "A46",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/transcript.jsonl"
+        },
+        {
+          "id": "A55",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/transcript.jsonl"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "keeps the plain greeting: 8 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "evals/measure.eval.ts › keeps the plain greeting",
+      "cites": [
+        {
+          "id": "A21",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "id": "A37",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/2/transcript.jsonl"
+        },
+        {
+          "id": "A47",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/3/transcript.jsonl"
+        },
+        {
+          "id": "A56",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/4/transcript.jsonl"
+        },
+        {
+          "id": "A22",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        },
+        {
+          "id": "A38",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/transcript.jsonl"
+        },
+        {
+          "id": "A49",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/transcript.jsonl"
+        },
+        {
+          "id": "A57",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/transcript.jsonl"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "greets once: Check \"house greeting\" never passes on the baseline and always passes on a variant; it may not apply to the baseline.",
+      "evalId": "evals/measure.eval.ts › greets once",
+      "cites": []
+    },
+    {
+      "severity": "warn",
+      "text": "greets once: 2 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "evals/measure.eval.ts › greets once",
+      "cites": [
+        {
+          "id": "A23",
+          "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "id": "A24",
+          "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "writes greet.js: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/results.eval.ts › writes greet.js",
+      "cites": [
+        {
+          "id": "A25",
+          "href": "./evals-results-eval-ts-writes-greet-js-3064b7/fake-fake-70e87d/1/transcript.jsonl"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "greets in French: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/results.eval.ts › greets in French",
+      "cites": [
+        {
+          "id": "A26",
+          "href": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/transcript.jsonl"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "explains why greet.js fails: 2 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "evals/results.eval.ts › explains why greet.js fails",
+      "cites": [
+        {
+          "id": "A27",
+          "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/1/transcript.jsonl"
+        },
+        {
+          "id": "A39",
+          "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/transcript.jsonl"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "reads the fixture repo: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/results.eval.ts › reads the fixture repo",
+      "cites": [
+        {
+          "id": "A28",
+          "href": "./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/transcript.jsonl"
+        }
+      ]
+    }
+  ],
+  "harnesses": [
+    {
+      "id": "fake",
+      "name": "Fake",
+      "model": null,
+      "label": "Fake",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 38,
+        "text": "38 attempts"
+      }
+    },
+    {
+      "id": "skilled",
+      "name": "skilled",
+      "model": null,
+      "label": "skilled",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 1,
+        "text": "1 attempt"
+      }
+    },
+    {
+      "id": "terse",
+      "name": "terse",
+      "model": null,
+      "label": "terse",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 9,
+        "text": "9 attempts"
+      }
+    },
+    {
+      "id": "learner",
+      "name": "learner",
+      "model": null,
+      "label": "learner",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 8,
+        "text": "8 attempts"
+      }
+    },
+    {
+      "id": "broken",
+      "name": "broken",
+      "model": null,
+      "label": "broken",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 1,
+        "text": "1 attempt"
+      }
+    }
+  ],
+  "evals": [
+    {
+      "id": "evals/family.eval.ts › adds a button that builds",
+      "anchor": "adds-a-name-button-that-builds",
+      "name": "adds a $name button that builds",
+      "file": "evals/family.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "3 prompts, 1 coding harness, 3 attempts",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "adds a $name button that builds",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0.6666666666666666,
+            "text": "67%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 2,
+            "n": 3,
+            "rate": 0.6666666666666666,
+            "text": "67%",
+            "of": "2 of 3",
+            "interval": "21% to 94%"
+          }
+        },
+        "foot": "2 of 3 attempts",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "-",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 2,
+            "n": 3,
+            "rate": 0.6666666666666666,
+            "text": "67%",
+            "of": "2 of 3",
+            "interval": "21% to 94%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 7,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A1",
+          "key": "evals/family.eval.ts › adds a reset button that builds # fake/-/fake#1",
+          "href": "./evals-family-eval-ts-adds-a-reset-button-that-builds-5f0694/fake-fake-70e87d/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": "reset",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 8,
+            "text": "8ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A2",
+          "key": "evals/family.eval.ts › adds a double button that builds # fake/-/fake#1",
+          "href": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": "double",
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "build: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 5,
+            "text": "5ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A3",
+          "key": "evals/family.eval.ts › adds a clear button that builds # fake/-/fake#1",
+          "href": "./evals-family-eval-ts-adds-a-clear-button-that-builds-ddd4f5/fake-fake-70e87d/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": "clear",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 6,
+            "text": "6ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [
+        {
+          "label": "reset",
+          "cells": [
+            {
+              "column": "fake",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            },
+            {
+              "column": "total",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            }
+          ]
+        },
+        {
+          "label": "double",
+          "cells": [
+            {
+              "column": "fake",
+              "rate": {
+                "k": 0,
+                "n": 1,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 1",
+                "interval": "0% to 79%"
+              }
+            },
+            {
+              "column": "total",
+              "rate": {
+                "k": 0,
+                "n": 1,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 1",
+                "interval": "0% to 79%"
+              }
+            }
+          ]
+        },
+        {
+          "label": "clear",
+          "cells": [
+            {
+              "column": "fake",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            },
+            {
+              "column": "total",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            }
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "writes greet.js",
+          "matcher": "toHaveFile",
+          "at": null,
+          "failed": false,
+          "cells": [
+            {
+              "column": "Fake",
+              "text": "3 of 3"
+            }
+          ],
+          "total": "3 of 3"
+        },
+        {
+          "label": "build",
+          "matcher": "toSucceed",
+          "at": null,
+          "failed": true,
+          "cells": [
+            {
+              "column": "Fake",
+              "text": "2 of 3"
+            }
+          ],
+          "total": "2 of 3"
+        },
+        {
+          "label": "types",
+          "matcher": "toSucceed",
+          "at": null,
+          "failed": false,
+          "cells": [
+            {
+              "column": "Fake",
+              "text": "2 of 2"
+            }
+          ],
+          "total": "2 of 2"
+        }
+      ],
+      "failures": [
+        {
+          "kind": "assertion",
+          "kindText": "failed check",
+          "label": "build",
+          "message": "expected command to succeed, exit code 1",
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 3,
+            "text": "1 of 3"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A2",
+              "href": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/transcript.jsonl"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 7,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "67% passed, 95% CI 21% to 94%",
+        "task average 67%"
+      ]
+    },
+    {
+      "id": "evals/family.eval.ts › greets in the house style",
+      "anchor": "greets-s-in-the-house-style",
+      "name": "greets %s in the house style",
+      "file": "evals/family.eval.ts",
+      "shapes": [
+        "A/B"
+      ],
+      "design": "4 prompts, 1 coding harness, 2 arms, 8 attempts",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "greets %s in the house style",
+        "metric": {
+          "kind": "compare",
+          "baseline": {
+            "label": "plain",
+            "rate": {
+              "k": 0,
+              "n": 4,
+              "rate": 0,
+              "text": "0%",
+              "of": "0 of 4",
+              "interval": "0% to 49%"
+            }
+          },
+          "variant": {
+            "label": "with-skill",
+            "rate": {
+              "k": 4,
+              "n": 4,
+              "rate": 1,
+              "text": "100%",
+              "of": "4 of 4",
+              "interval": "51% to 100%"
+            }
+          },
+          "effect": "helped",
+          "effectText": "helped"
+        },
+        "foot": "0 of 4 vs 4 of 4 attempts",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+          "label": "plain",
+          "role": "baseline",
+          "gated": false,
+          "rate": {
+            "k": 0,
+            "n": 4,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 4",
+            "interval": "0% to 49%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
+          "label": "with-skill",
+          "role": "variant",
+          "gated": true,
+          "rate": {
+            "k": 4,
+            "n": 4,
+            "rate": 1,
+            "text": "100%",
+            "of": "4 of 4",
+            "interval": "51% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": "helped",
+          "effectText": "helped",
+          "lift": "with-skill +100 pts (95% CI +31 pts to +100 pts)",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 3.5,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A4",
+          "key": "evals/family.eval.ts › greets Ada in the house style # fake/plain/fake#1",
+          "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "plain",
+          "case": "Ada",
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 7,
+            "text": "7ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A5",
+          "key": "evals/family.eval.ts › greets Ada in the house style # fake/with-skill/fake#1",
+          "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-skill",
+          "case": "Ada",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "1ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A6",
+          "key": "evals/family.eval.ts › greets Grace in the house style # fake/plain/fake#1",
+          "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "plain",
+          "case": "Grace",
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "1ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A7",
+          "key": "evals/family.eval.ts › greets Grace in the house style # fake/with-skill/fake#1",
+          "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-skill",
+          "case": "Grace",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 10,
+            "text": "10ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A8",
+          "key": "evals/family.eval.ts › greets Linus in the house style # fake/plain/fake#1",
+          "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "plain",
+          "case": "Linus",
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 2,
+            "text": "2ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A9",
+          "key": "evals/family.eval.ts › greets Linus in the house style # fake/with-skill/fake#1",
+          "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-skill",
+          "case": "Linus",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 2,
+            "text": "2ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A10",
+          "key": "evals/family.eval.ts › greets Edsger in the house style # fake/plain/fake#1",
+          "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "plain",
+          "case": "Edsger",
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 3,
+            "text": "3ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A11",
+          "key": "evals/family.eval.ts › greets Edsger in the house style # fake/with-skill/fake#1",
+          "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-skill",
+          "case": "Edsger",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 5,
+            "text": "5ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [
+        {
+          "label": "Ada",
+          "cells": [
+            {
+              "column": "plain",
+              "rate": {
+                "k": 0,
+                "n": 1,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 1",
+                "interval": "0% to 79%"
+              }
+            },
+            {
+              "column": "with-skill",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            }
+          ]
+        },
+        {
+          "label": "Grace",
+          "cells": [
+            {
+              "column": "plain",
+              "rate": {
+                "k": 0,
+                "n": 1,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 1",
+                "interval": "0% to 79%"
+              }
+            },
+            {
+              "column": "with-skill",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            }
+          ]
+        },
+        {
+          "label": "Linus",
+          "cells": [
+            {
+              "column": "plain",
+              "rate": {
+                "k": 0,
+                "n": 1,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 1",
+                "interval": "0% to 79%"
+              }
+            },
+            {
+              "column": "with-skill",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            }
+          ]
+        },
+        {
+          "label": "Edsger",
+          "cells": [
+            {
+              "column": "plain",
+              "rate": {
+                "k": 0,
+                "n": 1,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 1",
+                "interval": "0% to 79%"
+              }
+            },
+            {
+              "column": "with-skill",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            }
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "house greeting",
+          "matcher": "toSucceed",
+          "at": null,
+          "failed": true,
+          "cells": [
+            {
+              "column": "plain",
+              "text": "0 of 4"
+            },
+            {
+              "column": "with-skill",
+              "text": "4 of 4"
+            }
+          ],
+          "total": "4 of 8"
+        }
+      ],
+      "failures": [
+        {
+          "kind": "assertion",
+          "kindText": "failed check",
+          "label": "house greeting",
+          "message": "expected command to succeed, exit code 1",
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 4,
+            "n": 8,
+            "text": "4 of 8"
+          },
+          "where": "all on plain, not gated",
+          "attempts": [
+            {
+              "id": "A4",
+              "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/transcript.jsonl"
+            },
+            {
+              "id": "A6",
+              "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/transcript.jsonl"
+            },
+            {
+              "id": "A8",
+              "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/transcript.jsonl"
+            },
+            {
+              "id": "A10",
+              "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/transcript.jsonl"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "plain",
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "toolCalls": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "label": "with-skill",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 3.5,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "with-skill +100 pts (95% CI +31 pts to +100 pts)"
+      ]
+    },
+    {
+      "id": "evals/harnesses.eval.ts › greets in the house style on each agent",
+      "anchor": "greets-in-the-house-style-on-each-agent",
+      "name": "greets in the house style on each agent",
+      "file": "evals/harnesses.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "2 coding harnesses, 2 attempts",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "greets in the house style on each agent",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0.5,
+            "text": "50%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 2,
+            "rate": 0.5,
+            "text": "50%",
+            "of": "1 of 2",
+            "interval": "9% to 91%"
+          }
+        },
+        "foot": "1 of 2 attempts · skilled 1 of 1, terse 0 of 1",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "-",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 2,
+            "rate": 0.5,
+            "text": "50%",
+            "of": "1 of 2",
+            "interval": "9% to 91%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A12",
+          "key": "evals/harnesses.eval.ts › greets in the house style on each agent # skilled/-/fake#1",
+          "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/skilled-fake-cd398f/1/transcript.jsonl",
+          "harness": "skilled",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "1ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A13",
+          "key": "evals/harnesses.eval.ts › greets in the house style on each agent # terse/-/fake#1",
+          "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/transcript.jsonl",
+          "harness": "terse",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 8,
+            "text": "8ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [
+        {
+          "label": "writes greet.js",
+          "matcher": "toHaveFile",
+          "at": null,
+          "failed": false,
+          "cells": [
+            {
+              "column": "skilled",
+              "text": "1 of 1"
+            },
+            {
+              "column": "terse",
+              "text": "1 of 1"
+            }
+          ],
+          "total": "2 of 2"
+        },
+        {
+          "label": "house greeting",
+          "matcher": "toSucceed",
+          "at": null,
+          "failed": true,
+          "cells": [
+            {
+              "column": "skilled",
+              "text": "1 of 1"
+            },
+            {
+              "column": "terse",
+              "text": "0 of 1"
+            }
+          ],
+          "total": "1 of 2"
+        },
+        {
+          "label": "exclaims",
+          "matcher": "toSucceed",
+          "at": null,
+          "failed": false,
+          "cells": [
+            {
+              "column": "skilled",
+              "text": "1 of 1"
+            },
+            {
+              "column": "terse",
+              "text": "n/a"
+            }
+          ],
+          "total": "1 of 1"
+        }
+      ],
+      "failures": [
+        {
+          "kind": "assertion",
+          "kindText": "failed check",
+          "label": "house greeting",
+          "message": "expected command to succeed, exit code 1",
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 2,
+            "text": "1 of 2"
+          },
+          "where": "all on terse",
+          "attempts": [
+            {
+              "id": "A13",
+              "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/transcript.jsonl"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "skilled",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "label": "terse",
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "toolCalls": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "50% passed, 95% CI 9% to 91%"
+      ]
+    },
+    {
+      "id": "evals/harnesses.eval.ts › learns the house style from the skill",
+      "anchor": "learns-the-house-style-from-the-skill",
+      "name": "learns the house style from the skill",
+      "file": "evals/harnesses.eval.ts",
+      "shapes": [
+        "A/B"
+      ],
+      "design": "2 coding harnesses, 2 arms, 16 attempts",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "learns the house style from the skill",
+        "metric": {
+          "kind": "compare",
+          "baseline": {
+            "label": "plain",
+            "rate": {
+              "k": 0,
+              "n": 8,
+              "rate": 0,
+              "text": "0%",
+              "of": "0 of 8",
+              "interval": "0% to 32%"
+            }
+          },
+          "variant": {
+            "label": "with-skill",
+            "rate": {
+              "k": 4,
+              "n": 8,
+              "rate": 0.5,
+              "text": "50%",
+              "of": "4 of 8",
+              "interval": "22% to 78%"
+            }
+          },
+          "effect": "helped",
+          "effectText": "helped"
+        },
+        "foot": "0 of 8 vs 4 of 8 attempts",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+          "label": "plain",
+          "role": "baseline",
+          "gated": false,
+          "rate": {
+            "k": 0,
+            "n": 8,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 8",
+            "interval": "0% to 32%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
+          "label": "with-skill",
+          "role": "variant",
+          "gated": true,
+          "rate": {
+            "k": 4,
+            "n": 8,
+            "rate": 0.5,
+            "text": "50%",
+            "of": "4 of 8",
+            "interval": "22% to 78%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": "helped",
+          "effectText": "helped",
+          "lift": "with-skill +50 pts (95% CI +7 pts to +78 pts)",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 6.5,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [
+        {
+          "label": "learner",
+          "cells": [
+            {
+              "column": "plain",
+              "rate": {
+                "k": 0,
+                "n": 4,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 4",
+                "interval": "0% to 49%"
+              }
+            },
+            {
+              "column": "with-skill",
+              "rate": {
+                "k": 4,
+                "n": 4,
+                "rate": 1,
+                "text": "100%",
+                "of": "4 of 4",
+                "interval": "51% to 100%"
+              }
+            }
+          ]
+        },
+        {
+          "label": "terse",
+          "cells": [
+            {
+              "column": "plain",
+              "rate": {
+                "k": 0,
+                "n": 4,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 4",
+                "interval": "0% to 49%"
+              }
+            },
+            {
+              "column": "with-skill",
+              "rate": {
+                "k": 0,
+                "n": 4,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 4",
+                "interval": "0% to 49%"
+              }
+            }
+          ]
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A14",
+          "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#1",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/transcript.jsonl",
+          "harness": "learner",
+          "arm": "plain",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 7,
+            "text": "7ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A15",
+          "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/with-skill/fake#1",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/1/transcript.jsonl",
+          "harness": "learner",
+          "arm": "with-skill",
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 7,
+            "text": "7ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A16",
+          "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#1",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/transcript.jsonl",
+          "harness": "terse",
+          "arm": "plain",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 3,
+            "text": "3ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A17",
+          "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#1",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/transcript.jsonl",
+          "harness": "terse",
+          "arm": "with-skill",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "1ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A30",
+          "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#2",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/transcript.jsonl",
+          "harness": "learner",
+          "arm": "plain",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "1ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A31",
+          "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/with-skill/fake#2",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/2/transcript.jsonl",
+          "harness": "learner",
+          "arm": "with-skill",
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 8,
+            "text": "8ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A32",
+          "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#2",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/transcript.jsonl",
+          "harness": "terse",
+          "arm": "plain",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "1ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A33",
+          "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#2",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/transcript.jsonl",
+          "harness": "terse",
+          "arm": "with-skill",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 14,
+            "text": "14ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A40",
+          "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#3",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/transcript.jsonl",
+          "harness": "learner",
+          "arm": "plain",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "1ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A41",
+          "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/with-skill/fake#3",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/3/transcript.jsonl",
+          "harness": "learner",
+          "arm": "with-skill",
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 4,
+            "text": "4ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A42",
+          "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#3",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/transcript.jsonl",
+          "harness": "terse",
+          "arm": "plain",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "1ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A43",
+          "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#3",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/transcript.jsonl",
+          "harness": "terse",
+          "arm": "with-skill",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A48",
+          "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#4",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/transcript.jsonl",
+          "harness": "learner",
+          "arm": "plain",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 6,
+            "text": "6ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A50",
+          "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/with-skill/fake#4",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/4/transcript.jsonl",
+          "harness": "learner",
+          "arm": "with-skill",
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 6,
+            "text": "6ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A51",
+          "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#4",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/transcript.jsonl",
+          "harness": "terse",
+          "arm": "plain",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 3,
+            "text": "3ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A52",
+          "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#4",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/transcript.jsonl",
+          "harness": "terse",
+          "arm": "with-skill",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 2,
+            "text": "2ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [
+        {
+          "label": "house greeting",
+          "matcher": "toSucceed",
+          "at": null,
+          "failed": true,
+          "cells": [
+            {
+              "column": "plain",
+              "text": "0 of 8"
+            },
+            {
+              "column": "with-skill",
+              "text": "4 of 8"
+            }
+          ],
+          "total": "4 of 16"
+        }
+      ],
+      "failures": [
+        {
+          "kind": "assertion",
+          "kindText": "failed check",
+          "label": "house greeting",
+          "message": "expected command to succeed, exit code 1",
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 12,
+            "n": 16,
+            "text": "12 of 16"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A14",
+              "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/transcript.jsonl"
+            },
+            {
+              "id": "A30",
+              "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/transcript.jsonl"
+            },
+            {
+              "id": "A40",
+              "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/transcript.jsonl"
+            },
+            {
+              "id": "A48",
+              "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/transcript.jsonl"
+            },
+            {
+              "id": "A16",
+              "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/transcript.jsonl"
+            },
+            {
+              "id": "A32",
+              "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/transcript.jsonl"
+            },
+            {
+              "id": "A42",
+              "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/transcript.jsonl"
+            },
+            {
+              "id": "A51",
+              "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/transcript.jsonl"
+            },
+            {
+              "id": "A17",
+              "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/transcript.jsonl"
+            },
+            {
+              "id": "A33",
+              "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/transcript.jsonl"
+            },
+            {
+              "id": "A43",
+              "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/transcript.jsonl"
+            },
+            {
+              "id": "A52",
+              "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/transcript.jsonl"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "plain",
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "toolCalls": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "label": "with-skill",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 6.5,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "with-skill +50 pts (95% CI +7 pts to +78 pts)"
+      ]
+    },
+    {
+      "id": "evals/measure.eval.ts › greets in the house style",
+      "anchor": "greets-in-the-house-style",
+      "name": "greets in the house style",
+      "file": "evals/measure.eval.ts",
+      "shapes": [
+        "A/B"
+      ],
+      "design": "1 coding harness, 3 arms, 12 attempts",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "greets in the house style",
+        "metric": {
+          "kind": "compare",
+          "baseline": {
+            "label": "plain",
+            "rate": {
+              "k": 0,
+              "n": 4,
+              "rate": 0,
+              "text": "0%",
+              "of": "0 of 4",
+              "interval": "0% to 49%"
+            }
+          },
+          "variant": {
+            "label": "with-skill",
+            "rate": {
+              "k": 4,
+              "n": 4,
+              "rate": 1,
+              "text": "100%",
+              "of": "4 of 4",
+              "interval": "51% to 100%"
+            }
+          },
+          "effect": "helped",
+          "effectText": "helped"
+        },
+        "foot": "0 of 4 vs 4 of 4 attempts",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+          "label": "plain",
+          "role": "baseline",
+          "gated": false,
+          "rate": {
+            "k": 0,
+            "n": 4,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 4",
+            "interval": "0% to 49%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
+          "label": "with-skill",
+          "role": "variant",
+          "gated": true,
+          "rate": {
+            "k": 4,
+            "n": 4,
+            "rate": 1,
+            "text": "100%",
+            "of": "4 of 4",
+            "interval": "51% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": "helped",
+          "effectText": "helped",
+          "lift": "with-skill +100 pts (95% CI +31 pts to +100 pts)",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 4,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "sha256:4f15431ec693f3866e401362fea4634044b87652bded6bb599a035a762ecd345",
+          "label": "with-doc",
+          "role": "variant",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 4,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 4",
+            "interval": "0% to 49%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": "same",
+          "effectText": "same",
+          "lift": "with-doc ±0 pts (95% CI -49 pts to +49 pts)",
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A18",
+          "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#1",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "plain",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 6,
+            "text": "6ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A19",
+          "key": "evals/measure.eval.ts › greets in the house style # fake/with-skill/fake#1",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-skill",
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 9,
+            "text": "9ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A20",
+          "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#1",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-doc",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 8,
+            "text": "8ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A34",
+          "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#2",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "plain",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 2,
+            "text": "2ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A35",
+          "key": "evals/measure.eval.ts › greets in the house style # fake/with-skill/fake#2",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/2/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-skill",
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 5,
+            "text": "5ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A36",
+          "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#2",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-doc",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 5,
+            "text": "5ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A44",
+          "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#3",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "plain",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "1ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A45",
+          "key": "evals/measure.eval.ts › greets in the house style # fake/with-skill/fake#3",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/3/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-skill",
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "1ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A46",
+          "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#3",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-doc",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 4,
+            "text": "4ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A53",
+          "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#4",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "plain",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 3,
+            "text": "3ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A54",
+          "key": "evals/measure.eval.ts › greets in the house style # fake/with-skill/fake#4",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/4/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-skill",
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 3,
+            "text": "3ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A55",
+          "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#4",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-doc",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 4,
+            "text": "4ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [
+        {
+          "label": "writes greet.js",
+          "matcher": "toHaveFile",
+          "at": null,
+          "failed": false,
+          "cells": [
+            {
+              "column": "plain",
+              "text": "4 of 4"
+            },
+            {
+              "column": "with-skill",
+              "text": "4 of 4"
+            },
+            {
+              "column": "with-doc",
+              "text": "4 of 4"
+            }
+          ],
+          "total": "12 of 12"
+        },
+        {
+          "label": "house greeting",
+          "matcher": "toSucceed",
+          "at": null,
+          "failed": true,
+          "cells": [
+            {
+              "column": "plain",
+              "text": "0 of 4"
+            },
+            {
+              "column": "with-skill",
+              "text": "4 of 4"
+            },
+            {
+              "column": "with-doc",
+              "text": "0 of 4"
+            }
+          ],
+          "total": "4 of 12"
+        },
+        {
+          "label": "exclaims",
+          "matcher": "toSucceed",
+          "at": null,
+          "failed": false,
+          "cells": [
+            {
+              "column": "plain",
+              "text": "n/a"
+            },
+            {
+              "column": "with-skill",
+              "text": "4 of 4"
+            },
+            {
+              "column": "with-doc",
+              "text": "n/a"
+            }
+          ],
+          "total": "4 of 4"
+        }
+      ],
+      "failures": [
+        {
+          "kind": "assertion",
+          "kindText": "failed check",
+          "label": "house greeting",
+          "message": "expected command to succeed, exit code 1",
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 8,
+            "n": 12,
+            "text": "8 of 12"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A18",
+              "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/transcript.jsonl"
+            },
+            {
+              "id": "A34",
+              "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/transcript.jsonl"
+            },
+            {
+              "id": "A44",
+              "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/transcript.jsonl"
+            },
+            {
+              "id": "A53",
+              "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/transcript.jsonl"
+            },
+            {
+              "id": "A20",
+              "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/transcript.jsonl"
+            },
+            {
+              "id": "A36",
+              "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/transcript.jsonl"
+            },
+            {
+              "id": "A46",
+              "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/transcript.jsonl"
+            },
+            {
+              "id": "A55",
+              "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/transcript.jsonl"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "plain",
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "toolCalls": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "label": "with-skill",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 4,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "label": "with-doc",
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "toolCalls": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "with-skill +100 pts (95% CI +31 pts to +100 pts)",
+        "with-doc ±0 pts (95% CI -49 pts to +49 pts)",
+        "with-skill vs plain on Fake: Pass rate +100 pts (95% CI +31 pts to +100 pts), helped",
+        "with-doc vs plain on Fake: Pass rate ±0 pts (95% CI -49 pts to +49 pts), within noise",
+        "with-doc vs with-skill on Fake: Pass rate -100 pts (95% CI -100 pts to -31 pts), made worse"
+      ]
+    },
+    {
+      "id": "evals/measure.eval.ts › keeps the plain greeting",
+      "anchor": "keeps-the-plain-greeting",
+      "name": "keeps the plain greeting",
+      "file": "evals/measure.eval.ts",
+      "shapes": [
+        "A/B"
+      ],
+      "design": "1 coding harness, 2 arms, 8 attempts",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "keeps the plain greeting",
+        "metric": {
+          "kind": "compare",
+          "baseline": {
+            "label": "plain",
+            "rate": {
+              "k": 4,
+              "n": 4,
+              "rate": 1,
+              "text": "100%",
+              "of": "4 of 4",
+              "interval": "51% to 100%"
+            }
+          },
+          "variant": {
+            "label": "with-skill",
+            "rate": {
+              "k": 0,
+              "n": 4,
+              "rate": 0,
+              "text": "0%",
+              "of": "0 of 4",
+              "interval": "0% to 49%"
+            }
+          },
+          "effect": "made-worse",
+          "effectText": "made it worse"
+        },
+        "foot": "4 of 4 vs 0 of 4 attempts",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+          "label": "plain",
+          "role": "baseline",
+          "gated": false,
+          "rate": {
+            "k": 4,
+            "n": 4,
+            "rate": 1,
+            "text": "100%",
+            "of": "4 of 4",
+            "interval": "51% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 3,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
+          "label": "with-skill",
+          "role": "variant",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 4,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 4",
+            "interval": "0% to 49%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": "made-worse",
+          "effectText": "made it worse",
+          "lift": "with-skill -100 pts (95% CI -100 pts to -31 pts)",
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A21",
+          "key": "evals/measure.eval.ts › keeps the plain greeting # fake/plain/fake#1",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "plain",
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 10,
+            "text": "10ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A22",
+          "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#1",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-skill",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "says hello: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "1ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A37",
+          "key": "evals/measure.eval.ts › keeps the plain greeting # fake/plain/fake#2",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/2/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "plain",
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "1ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A38",
+          "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#2",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-skill",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "says hello: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "1ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A47",
+          "key": "evals/measure.eval.ts › keeps the plain greeting # fake/plain/fake#3",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/3/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "plain",
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 2,
+            "text": "2ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A49",
+          "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#3",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-skill",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "says hello: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A56",
+          "key": "evals/measure.eval.ts › keeps the plain greeting # fake/plain/fake#4",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/4/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "plain",
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 4,
+            "text": "4ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A57",
+          "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#4",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-skill",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "says hello: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [
+        {
+          "label": "says hello",
+          "matcher": "toSucceed",
+          "at": null,
+          "failed": true,
+          "cells": [
+            {
+              "column": "plain",
+              "text": "4 of 4"
+            },
+            {
+              "column": "with-skill",
+              "text": "0 of 4"
+            }
+          ],
+          "total": "4 of 8"
+        }
+      ],
+      "failures": [
+        {
+          "kind": "assertion",
+          "kindText": "failed check",
+          "label": "says hello",
+          "message": "expected command to succeed, exit code 1",
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 4,
+            "n": 8,
+            "text": "4 of 8"
+          },
+          "where": "all on with-skill",
+          "attempts": [
+            {
+              "id": "A22",
+              "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+            },
+            {
+              "id": "A38",
+              "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/transcript.jsonl"
+            },
+            {
+              "id": "A49",
+              "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/transcript.jsonl"
+            },
+            {
+              "id": "A57",
+              "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/transcript.jsonl"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "plain",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 3,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "label": "with-skill",
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "toolCalls": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "with-skill -100 pts (95% CI -100 pts to -31 pts)"
+      ]
+    },
+    {
+      "id": "evals/measure.eval.ts › greets once",
+      "anchor": "greets-once",
+      "name": "greets once",
+      "file": "evals/measure.eval.ts",
+      "shapes": [
+        "A/B"
+      ],
+      "design": "1 coding harness, 2 arms, 2 attempts",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "greets once",
+        "metric": {
+          "kind": "compare",
+          "baseline": {
+            "label": "plain",
+            "rate": {
+              "k": 0,
+              "n": 1,
+              "rate": 0,
+              "text": "0%",
+              "of": "0 of 1",
+              "interval": "0% to 79%"
+            }
+          },
+          "variant": {
+            "label": "with-skill",
+            "rate": {
+              "k": 1,
+              "n": 1,
+              "rate": 1,
+              "text": "100%",
+              "of": "1 of 1",
+              "interval": "21% to 100%"
+            }
+          },
+          "effect": "too-few",
+          "effectText": "too few runs"
+        },
+        "foot": "0 of 1 vs 1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+          "label": "plain",
+          "role": "baseline",
+          "gated": false,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
+          "label": "with-skill",
+          "role": "variant",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": "too-few",
+          "effectText": "too few runs",
+          "lift": "with-skill +100 pts (95% CI -12 pts to +100 pts)",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 3,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A23",
+          "key": "evals/measure.eval.ts › greets once # fake/plain/fake#1",
+          "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "plain",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "house greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 4,
+            "text": "4ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A24",
+          "key": "evals/measure.eval.ts › greets once # fake/with-skill/fake#1",
+          "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-skill",
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 3,
+            "text": "3ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [
+        {
+          "label": "house greeting",
+          "matcher": "toSucceed",
+          "at": null,
+          "failed": true,
+          "cells": [
+            {
+              "column": "plain",
+              "text": "0 of 1"
+            },
+            {
+              "column": "with-skill",
+              "text": "1 of 1"
+            }
+          ],
+          "total": "1 of 2"
+        }
+      ],
+      "failures": [
+        {
+          "kind": "assertion",
+          "kindText": "failed check",
+          "label": "house greeting",
+          "message": "expected command to succeed, exit code 1",
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 2,
+            "text": "1 of 2"
+          },
+          "where": "all on plain, not gated",
+          "attempts": [
+            {
+              "id": "A23",
+              "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/transcript.jsonl"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "plain",
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "toolCalls": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "label": "with-skill",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 3,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "with-skill +100 pts (95% CI -12 pts to +100 pts)"
+      ]
+    },
+    {
+      "id": "evals/results.eval.ts › writes greet.js",
+      "anchor": "writes-greetjs",
+      "name": "writes greet.js",
+      "file": "evals/results.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "writes greet.js",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "-",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A25",
+          "key": "evals/results.eval.ts › writes greet.js # fake/-/fake#1",
+          "href": "./evals-results-eval-ts-writes-greet-js-3064b7/fake-fake-70e87d/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "1ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [
+        {
+          "label": "writes greet.js",
+          "matcher": "toHaveFile",
+          "at": null,
+          "failed": false,
+          "cells": [
+            {
+              "column": "Fake",
+              "text": "1 of 1"
+            }
+          ],
+          "total": "1 of 1"
+        }
+      ],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
+    },
+    {
+      "id": "evals/results.eval.ts › greets in French",
+      "anchor": "greets-in-french",
+      "name": "greets in French",
+      "file": "evals/results.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "greets in French",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0,
+            "text": "0%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          }
+        },
+        "foot": "0 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "-",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A26",
+          "key": "evals/results.eval.ts › greets in French # fake/-/fake#1",
+          "href": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "french greeting: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 6,
+            "text": "6ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [
+        {
+          "label": "writes greet.js",
+          "matcher": "toHaveFile",
+          "at": null,
+          "failed": false,
+          "cells": [
+            {
+              "column": "Fake",
+              "text": "1 of 1"
+            }
+          ],
+          "total": "1 of 1"
+        },
+        {
+          "label": "french greeting",
+          "matcher": "toSucceed",
+          "at": null,
+          "failed": true,
+          "cells": [
+            {
+              "column": "Fake",
+              "text": "0 of 1"
+            }
+          ],
+          "total": "0 of 1"
+        }
+      ],
+      "failures": [
+        {
+          "kind": "assertion",
+          "kindText": "failed check",
+          "label": "french greeting",
+          "message": "expected command to succeed, exit code 1",
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 1,
+            "text": "1 of 1"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A26",
+              "href": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/transcript.jsonl"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "toolCalls": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
+    },
+    {
+      "id": "evals/results.eval.ts › explains why greet.js fails",
+      "anchor": "explains-why-greetjs-fails",
+      "name": "explains why greet.js fails",
+      "file": "evals/results.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 2 attempts",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "explains why greet.js fails",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0.5,
+            "text": "50%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 2,
+            "rate": 0.5,
+            "text": "50%",
+            "of": "1 of 2",
+            "interval": "9% to 91%"
+          }
+        },
+        "foot": "1 of 2 attempts",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "-",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 2,
+            "rate": 0.5,
+            "text": "50%",
+            "of": "1 of 2",
+            "interval": "9% to 91%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 6,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A27",
+          "key": "evals/results.eval.ts › explains why greet.js fails # fake/-/fake#1",
+          "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 6,
+            "text": "6ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A39",
+          "key": "evals/results.eval.ts › explains why greet.js fails # fake/-/fake#2",
+          "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "names the root cause: expected 'Docker is down' to contain 'null'",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "1ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [
+        {
+          "label": "writes greet.js",
+          "matcher": "toHaveFile",
+          "at": null,
+          "failed": false,
+          "cells": [
+            {
+              "column": "Fake",
+              "text": "2 of 2"
+            }
+          ],
+          "total": "2 of 2"
+        },
+        {
+          "label": "names the root cause",
+          "matcher": "toContain",
+          "at": null,
+          "failed": true,
+          "cells": [
+            {
+              "column": "Fake",
+              "text": "1 of 2"
+            }
+          ],
+          "total": "1 of 2"
+        }
+      ],
+      "failures": [
+        {
+          "kind": "assertion",
+          "kindText": "failed check",
+          "label": "names the root cause",
+          "message": "expected 'Docker is down' to contain 'null'",
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 2,
+            "text": "1 of 2"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A39",
+              "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/transcript.jsonl"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 6,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "50% passed, 95% CI 9% to 91%"
+      ]
+    },
+    {
+      "id": "evals/results.eval.ts › reads the fixture repo",
+      "anchor": "reads-the-fixture-repo",
+      "name": "reads the fixture repo",
+      "file": "evals/results.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "reads the fixture repo",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0,
+            "text": "0%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          }
+        },
+        "foot": "0 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "-",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 7,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A28",
+          "key": "evals/results.eval.ts › reads the fixture repo # fake/-/fake#1",
+          "href": "./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "the fixture repo is missing",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 7,
+            "text": "7ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "error",
+          "kindText": "error",
+          "label": "the fixture repo is missing",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 1,
+            "text": "1 of 1"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A28",
+              "href": "./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/transcript.jsonl"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 7,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
+    },
+    {
+      "id": "evals/results.eval.ts › starts its sandbox",
+      "anchor": "starts-its-sandbox",
+      "name": "starts its sandbox",
+      "file": "evals/results.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "infra-error",
+      "verdictText": "infra error",
+      "headline": {
+        "task": "starts its sandbox",
+        "metric": {
+          "kind": "none",
+          "text": "no counted attempts"
+        },
+        "foot": "",
+        "left": "1 infra error"
+      },
+      "arms": [
+        {
+          "id": "-",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 0,
+            "rate": null,
+            "text": "n/a",
+            "of": "0 of 0",
+            "interval": null
+          },
+          "infraError": 1,
+          "canceled": 0,
+          "left": "1 infra error",
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "not reported"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A29",
+          "key": "evals/results.eval.ts › starts its sandbox # broken/-/fake#1",
+          "href": "#attempt-evals-results-eval-ts-starts-its-sandbox-broken-fake-1-4c10815a",
+          "harness": "broken",
+          "arm": null,
+          "case": null,
+          "outcome": "infra-error",
+          "outcomeText": "infra error",
+          "note": "the fake sandbox fell over",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "infra-error",
+          "kindText": "infra error",
+          "label": "the fake sandbox fell over",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 1,
+            "text": "1 of 1"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A29",
+              "href": "#attempt-evals-results-eval-ts-starts-its-sandbox-broken-fake-1-4c10815a"
+            }
+          ]
+        }
+      ],
+      "effort": [],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": []
+    },
+    {
+      "id": "evals/results.eval.ts › greets in Welsh",
+      "anchor": "greets-in-welsh",
+      "name": "greets in Welsh",
+      "file": "evals/results.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 0 attempts",
+      "state": "skipped",
+      "verdict": "skipped",
+      "verdictText": "skipped",
+      "headline": {
+        "task": "greets in Welsh",
+        "metric": {
+          "kind": "none",
+          "text": "skipped"
+        },
+        "foot": "",
+        "left": null
+      },
+      "arms": [],
+      "byHarness": [],
+      "attempts": [],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": []
+    },
+    {
+      "id": "evals/results.eval.ts › greets in Klingon",
+      "anchor": "greets-in-klingon",
+      "name": "greets in Klingon",
+      "file": "evals/results.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 0 attempts",
+      "state": "todo",
+      "verdict": "todo",
+      "verdictText": "todo",
+      "headline": {
+        "task": "greets in Klingon",
+        "metric": {
+          "kind": "none",
+          "text": "todo"
+        },
+        "foot": "",
+        "left": null
+      },
+      "arms": [],
+      "byHarness": [],
+      "attempts": [],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": []
+    }
+  ],
+  "actions": [],
+  "provenance": {
+    "rows": [
+      {
+        "field": "Executed at",
+        "value": "da3d797c474f on master, clean (the commit that adds this record is later)"
+      },
+      {
+        "field": "Lockfiles",
+        "value": "none found"
+      },
+      {
+        "field": "Images",
+        "value": "none (fake sandbox)"
+      },
+      {
+        "field": "Harnesses",
+        "value": "broken, fake, learner, skilled, terse"
+      },
+      {
+        "field": "Environments",
+        "value": "plain eca09e8f139f; with-doc 4f15431ec693; with-skill 7b5dd0e29b0d · skills house-greeting"
+      },
+      {
+        "field": "Judge",
+        "value": "none by default · threshold 0.8 · version 5ca76dcaadfa"
+      },
+      {
+        "field": "Packages",
+        "value": "@vitest/expect 5.0.5 · jiti 2.7.0 · @reeval/harness-antigravity 0.1.8 · @reeval/harness-opencode 0.2.8 · @reeval/harness-goose 0.1.3 · @reeval/harness-pi 0.2.7 · @reeval/harness-cursor-sdk 0.1.5 · @ai-sdk/harness-claude-code 1.0.158-patch.6c1cff12 · @reeval/harness-codex 0.1.7 · @reeval/harness-fx 0.1.0 · @reeval/harness-grok-build 0.1.0 · ai 7.0.143 · @ai-sdk/harness 1.0.154 · @ai-sdk/google 4.0.99 · @ai-sdk/typesafe-ai 3.0.21"
+      },
+      {
+        "field": "reeval",
+        "value": "0.10.0 · node 22.23.3 · typescript evals · linux/x64"
+      },
+      {
+        "field": "Runner",
+        "value": "local · cursor-agent"
+      },
+      {
+        "field": "Artifacts",
+        "value": "all"
+      }
+    ],
+    "warnings": []
+  },
+  "attemptIndex": [
+    {
+      "id": "A1",
+      "anchor": "attempt-evals-family-eval-ts-adds-a-reset-button-that-builds-fake-fa-46f7c626",
+      "eval": "adds a $name button that builds",
+      "harness": "Fake",
+      "arm": null,
+      "case": "reset",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 8,
+        "text": "8ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-family-eval-ts-adds-a-reset-button-that-builds-5f0694/fake-fake-70e87d/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-family-eval-ts-adds-a-reset-button-that-builds-5f0694/fake-fake-70e87d/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A2",
+      "anchor": "attempt-evals-family-eval-ts-adds-a-double-button-that-builds-fake-f-ca4ac309",
+      "eval": "adds a $name button that builds",
+      "harness": "Fake",
+      "arm": null,
+      "case": "double",
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 5,
+        "text": "5ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A3",
+      "anchor": "attempt-evals-family-eval-ts-adds-a-clear-button-that-builds-fake-fa-48c1eacd",
+      "eval": "adds a $name button that builds",
+      "harness": "Fake",
+      "arm": null,
+      "case": "clear",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 6,
+        "text": "6ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-family-eval-ts-adds-a-clear-button-that-builds-ddd4f5/fake-fake-70e87d/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-family-eval-ts-adds-a-clear-button-that-builds-ddd4f5/fake-fake-70e87d/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A4",
+      "anchor": "attempt-evals-family-eval-ts-greets-ada-in-the-house-style-fake-plai-f4b3372c",
+      "eval": "greets %s in the house style",
+      "harness": "Fake",
+      "arm": "plain",
+      "case": "Ada",
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 7,
+        "text": "7ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A5",
+      "anchor": "attempt-evals-family-eval-ts-greets-ada-in-the-house-style-fake-with-964f85b0",
+      "eval": "greets %s in the house style",
+      "harness": "Fake",
+      "arm": "with-skill",
+      "case": "Ada",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-with-skill-fake-14b6ac/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A6",
+      "anchor": "attempt-evals-family-eval-ts-greets-grace-in-the-house-style-fake-pl-5cb45d61",
+      "eval": "greets %s in the house style",
+      "harness": "Fake",
+      "arm": "plain",
+      "case": "Grace",
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A7",
+      "anchor": "attempt-evals-family-eval-ts-greets-grace-in-the-house-style-fake-wi-7365a4f2",
+      "eval": "greets %s in the house style",
+      "harness": "Fake",
+      "arm": "with-skill",
+      "case": "Grace",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 10,
+        "text": "10ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-with-skill-fake-14b6ac/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A8",
+      "anchor": "attempt-evals-family-eval-ts-greets-linus-in-the-house-style-fake-pl-eb7b33d8",
+      "eval": "greets %s in the house style",
+      "harness": "Fake",
+      "arm": "plain",
+      "case": "Linus",
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 2,
+        "text": "2ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A9",
+      "anchor": "attempt-evals-family-eval-ts-greets-linus-in-the-house-style-fake-wi-9abfbf79",
+      "eval": "greets %s in the house style",
+      "harness": "Fake",
+      "arm": "with-skill",
+      "case": "Linus",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 2,
+        "text": "2ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-with-skill-fake-14b6ac/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A10",
+      "anchor": "attempt-evals-family-eval-ts-greets-edsger-in-the-house-style-fake-p-b88846b5",
+      "eval": "greets %s in the house style",
+      "harness": "Fake",
+      "arm": "plain",
+      "case": "Edsger",
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 3,
+        "text": "3ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A11",
+      "anchor": "attempt-evals-family-eval-ts-greets-edsger-in-the-house-style-fake-w-f5a9277a",
+      "eval": "greets %s in the house style",
+      "harness": "Fake",
+      "arm": "with-skill",
+      "case": "Edsger",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 5,
+        "text": "5ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-with-skill-fake-14b6ac/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A12",
+      "anchor": "attempt-evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-aab48036",
+      "eval": "greets in the house style on each agent",
+      "harness": "skilled",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/skilled-fake-cd398f/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/skilled-fake-cd398f/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A13",
+      "anchor": "attempt-evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-6d9ab342",
+      "eval": "greets in the house style on each agent",
+      "harness": "terse",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 8,
+        "text": "8ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A14",
+      "anchor": "attempt-evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-1b8b374a",
+      "eval": "learns the house style from the skill",
+      "harness": "learner",
+      "arm": "plain",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 7,
+        "text": "7ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A15",
+      "anchor": "attempt-evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-d691dd5f",
+      "eval": "learns the house style from the skill",
+      "harness": "learner",
+      "arm": "with-skill",
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 7,
+        "text": "7ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A16",
+      "anchor": "attempt-evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-05999227",
+      "eval": "learns the house style from the skill",
+      "harness": "terse",
+      "arm": "plain",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 3,
+        "text": "3ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A17",
+      "anchor": "attempt-evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-2f63870b",
+      "eval": "learns the house style from the skill",
+      "harness": "terse",
+      "arm": "with-skill",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A18",
+      "anchor": "attempt-evals-measure-eval-ts-greets-in-the-house-style-fake-plain-f-f0de9894",
+      "eval": "greets in the house style",
+      "harness": "Fake",
+      "arm": "plain",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 6,
+        "text": "6ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A19",
+      "anchor": "attempt-evals-measure-eval-ts-greets-in-the-house-style-fake-with-sk-f081c724",
+      "eval": "greets in the house style",
+      "harness": "Fake",
+      "arm": "with-skill",
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 9,
+        "text": "9ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A20",
+      "anchor": "attempt-evals-measure-eval-ts-greets-in-the-house-style-fake-with-do-804bdfa3",
+      "eval": "greets in the house style",
+      "harness": "Fake",
+      "arm": "with-doc",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 8,
+        "text": "8ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A21",
+      "anchor": "attempt-evals-measure-eval-ts-keeps-the-plain-greeting-fake-plain-fa-d90e98c8",
+      "eval": "keeps the plain greeting",
+      "harness": "Fake",
+      "arm": "plain",
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 10,
+        "text": "10ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A22",
+      "anchor": "attempt-evals-measure-eval-ts-keeps-the-plain-greeting-fake-with-ski-b148dc8e",
+      "eval": "keeps the plain greeting",
+      "harness": "Fake",
+      "arm": "with-skill",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A23",
+      "anchor": "attempt-evals-measure-eval-ts-greets-once-fake-plain-fake-1-480ff2e7",
+      "eval": "greets once",
+      "harness": "Fake",
+      "arm": "plain",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 4,
+        "text": "4ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A24",
+      "anchor": "attempt-evals-measure-eval-ts-greets-once-fake-with-skill-fake-1-7809d38d",
+      "eval": "greets once",
+      "harness": "Fake",
+      "arm": "with-skill",
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 3,
+        "text": "3ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-with-skill-fake-14b6ac/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A25",
+      "anchor": "attempt-evals-results-eval-ts-writes-greet-js-fake-fake-1-b2237357",
+      "eval": "writes greet.js",
+      "harness": "Fake",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-results-eval-ts-writes-greet-js-3064b7/fake-fake-70e87d/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-results-eval-ts-writes-greet-js-3064b7/fake-fake-70e87d/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A26",
+      "anchor": "attempt-evals-results-eval-ts-greets-in-french-fake-fake-1-d942bbe3",
+      "eval": "greets in French",
+      "harness": "Fake",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 6,
+        "text": "6ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A27",
+      "anchor": "attempt-evals-results-eval-ts-explains-why-greet-js-fails-fake-fake-6cb1c3fc",
+      "eval": "explains why greet.js fails",
+      "harness": "Fake",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 6,
+        "text": "6ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A28",
+      "anchor": "attempt-evals-results-eval-ts-reads-the-fixture-repo-fake-fake-1-d63d2b80",
+      "eval": "reads the fixture repo",
+      "harness": "Fake",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 7,
+        "text": "7ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A29",
+      "anchor": "attempt-evals-results-eval-ts-starts-its-sandbox-broken-fake-1-4c10815a",
+      "eval": "starts its sandbox",
+      "harness": "broken",
+      "arm": null,
+      "case": null,
+      "outcomeText": "infra error",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    },
+    {
+      "id": "A30",
+      "anchor": "attempt-evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-c86c0a41",
+      "eval": "learns the house style from the skill",
+      "harness": "learner",
+      "arm": "plain",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A31",
+      "anchor": "attempt-evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-6f739a01",
+      "eval": "learns the house style from the skill",
+      "harness": "learner",
+      "arm": "with-skill",
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 8,
+        "text": "8ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/2/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/2/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A32",
+      "anchor": "attempt-evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-5e1fcb2e",
+      "eval": "learns the house style from the skill",
+      "harness": "terse",
+      "arm": "plain",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A33",
+      "anchor": "attempt-evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-d6824c1f",
+      "eval": "learns the house style from the skill",
+      "harness": "terse",
+      "arm": "with-skill",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 14,
+        "text": "14ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A34",
+      "anchor": "attempt-evals-measure-eval-ts-greets-in-the-house-style-fake-plain-f-318d79e8",
+      "eval": "greets in the house style",
+      "harness": "Fake",
+      "arm": "plain",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 2,
+        "text": "2ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A35",
+      "anchor": "attempt-evals-measure-eval-ts-greets-in-the-house-style-fake-with-sk-cab70fbb",
+      "eval": "greets in the house style",
+      "harness": "Fake",
+      "arm": "with-skill",
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 5,
+        "text": "5ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/2/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/2/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A36",
+      "anchor": "attempt-evals-measure-eval-ts-greets-in-the-house-style-fake-with-do-4f184348",
+      "eval": "greets in the house style",
+      "harness": "Fake",
+      "arm": "with-doc",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 5,
+        "text": "5ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A37",
+      "anchor": "attempt-evals-measure-eval-ts-keeps-the-plain-greeting-fake-plain-fa-ecdfd1bb",
+      "eval": "keeps the plain greeting",
+      "harness": "Fake",
+      "arm": "plain",
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/2/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/2/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A38",
+      "anchor": "attempt-evals-measure-eval-ts-keeps-the-plain-greeting-fake-with-ski-bb825eed",
+      "eval": "keeps the plain greeting",
+      "harness": "Fake",
+      "arm": "with-skill",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A39",
+      "anchor": "attempt-evals-results-eval-ts-explains-why-greet-js-fails-fake-fake-9de57c33",
+      "eval": "explains why greet.js fails",
+      "harness": "Fake",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A40",
+      "anchor": "attempt-evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-4f687ff2",
+      "eval": "learns the house style from the skill",
+      "harness": "learner",
+      "arm": "plain",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A41",
+      "anchor": "attempt-evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-c2928f02",
+      "eval": "learns the house style from the skill",
+      "harness": "learner",
+      "arm": "with-skill",
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 4,
+        "text": "4ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/3/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/3/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A42",
+      "anchor": "attempt-evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-d9693e1c",
+      "eval": "learns the house style from the skill",
+      "harness": "terse",
+      "arm": "plain",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A43",
+      "anchor": "attempt-evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-8fd86056",
+      "eval": "learns the house style from the skill",
+      "harness": "terse",
+      "arm": "with-skill",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A44",
+      "anchor": "attempt-evals-measure-eval-ts-greets-in-the-house-style-fake-plain-f-ce57417c",
+      "eval": "greets in the house style",
+      "harness": "Fake",
+      "arm": "plain",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A45",
+      "anchor": "attempt-evals-measure-eval-ts-greets-in-the-house-style-fake-with-sk-b347945c",
+      "eval": "greets in the house style",
+      "harness": "Fake",
+      "arm": "with-skill",
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/3/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/3/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A46",
+      "anchor": "attempt-evals-measure-eval-ts-greets-in-the-house-style-fake-with-do-391c1fe8",
+      "eval": "greets in the house style",
+      "harness": "Fake",
+      "arm": "with-doc",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 4,
+        "text": "4ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A47",
+      "anchor": "attempt-evals-measure-eval-ts-keeps-the-plain-greeting-fake-plain-fa-7f30bcc4",
+      "eval": "keeps the plain greeting",
+      "harness": "Fake",
+      "arm": "plain",
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 2,
+        "text": "2ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/3/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/3/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A48",
+      "anchor": "attempt-evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-6f5476fa",
+      "eval": "learns the house style from the skill",
+      "harness": "learner",
+      "arm": "plain",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 6,
+        "text": "6ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A49",
+      "anchor": "attempt-evals-measure-eval-ts-keeps-the-plain-greeting-fake-with-ski-c3b7e35c",
+      "eval": "keeps the plain greeting",
+      "harness": "Fake",
+      "arm": "with-skill",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A50",
+      "anchor": "attempt-evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-d80b5942",
+      "eval": "learns the house style from the skill",
+      "harness": "learner",
+      "arm": "with-skill",
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 6,
+        "text": "6ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/4/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/4/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A51",
+      "anchor": "attempt-evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-cdbe902d",
+      "eval": "learns the house style from the skill",
+      "harness": "terse",
+      "arm": "plain",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 3,
+        "text": "3ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A52",
+      "anchor": "attempt-evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-e277ce18",
+      "eval": "learns the house style from the skill",
+      "harness": "terse",
+      "arm": "with-skill",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 2,
+        "text": "2ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A53",
+      "anchor": "attempt-evals-measure-eval-ts-greets-in-the-house-style-fake-plain-f-004549a0",
+      "eval": "greets in the house style",
+      "harness": "Fake",
+      "arm": "plain",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 3,
+        "text": "3ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A54",
+      "anchor": "attempt-evals-measure-eval-ts-greets-in-the-house-style-fake-with-sk-7d020d3e",
+      "eval": "greets in the house style",
+      "harness": "Fake",
+      "arm": "with-skill",
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 3,
+        "text": "3ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/4/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/4/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A55",
+      "anchor": "attempt-evals-measure-eval-ts-greets-in-the-house-style-fake-with-do-4b5eea40",
+      "eval": "greets in the house style",
+      "harness": "Fake",
+      "arm": "with-doc",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 4,
+        "text": "4ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A56",
+      "anchor": "attempt-evals-measure-eval-ts-keeps-the-plain-greeting-fake-plain-fa-2998de66",
+      "eval": "keeps the plain greeting",
+      "harness": "Fake",
+      "arm": "plain",
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 4,
+        "text": "4ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/4/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/4/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A57",
+      "anchor": "attempt-evals-measure-eval-ts-keeps-the-plain-greeting-fake-with-ski-31cb69b7",
+      "eval": "keeps the plain greeting",
+      "harness": "Fake",
+      "arm": "with-skill",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/diff.patch"
+        }
+      ]
+    }
+  ]
+}

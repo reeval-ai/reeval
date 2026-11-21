@@ -1,0 +1,15 @@
+Run 20261029T001335Z_nogit_cursor-agent_y6rf
+3 of 3 counted attempts passed · 4s wall time · tokens not reported · cost not reported
+
+PASS           captures a page that renders
+               100% passed · 1 of 1 attempt
+               (note) 2 page errors in capture "sign-up", listed in evals-pages-eval-ts-captures-a-page-that-renders-96d33f/fake-site-docker-a17d85/1/artifacts/sign-up.capture.json
+
+PASS           captures a page that throws
+               100% passed · 1 of 1 attempt
+               (note) 1 page error in capture "blank", listed in evals-pages-eval-ts-captures-a-page-that-throws-01af2a/fake-site-docker-a17d85/1/artifacts/blank.capture.json
+
+PASS           captures a missing page
+               100% passed · 1 of 1 attempt
+
+Evals: 3 pass

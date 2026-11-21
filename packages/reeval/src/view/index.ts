@@ -25,6 +25,8 @@ export type {
   CapturePage,
   CapturePageFile,
   Outcome,
+  PassMetric,
+  PassMetricLead,
   SandboxWarning,
   TranscriptEvent,
 } from '../types.ts'

@@ -1401,7 +1401,7 @@ describe('reeval run --events and reeval attach', () => {
       assert.equal(await exited, 0)
       assert.equal(attached.code, 0, attached.stderr)
       assert.equal(attached.stdout, ran)
-      assert.match(attached.stdout, /✓ waits/)
+      assert.match(attached.stdout, /^PASS +waits$/m)
     } finally {
       run.kill()
     }

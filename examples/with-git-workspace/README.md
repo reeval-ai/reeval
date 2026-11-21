@@ -37,7 +37,8 @@ host, before any attempt, and names the commit every attempt starts from:
   ◆  Running...
 
 with-git-workspace.eval.ts
-└─ ✓ adds subtract to a pinned repository  1 of 1 run passed
+PASS           adds subtract to a pinned repository
+               100% passed · 1 of 1 attempt
 ```
 
 A branch or no `ref` warns in the plan, since the code under the eval could change between runs.

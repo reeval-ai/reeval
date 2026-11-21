@@ -126,6 +126,7 @@ function configLevel(config: ResolvedConfig): Cascading {
     runs,
     bestOf,
     gate: config.gate,
+    metric: config.metric,
     env: config.env,
     egress: config.egress !== undefined ? { inherited: config.egress } : {},
     judge: config.judge,

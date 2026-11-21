@@ -16,6 +16,10 @@
         "environmentDigest": {
           "type": ["string", "null"]
         },
+        "gated": {
+          "description": "Whether every one of the arm's cells is gated (a baseline's default `gate: 'none'` isn't).",
+          "type": "boolean"
+        },
         "id": {
           "type": "string"
         },
@@ -54,6 +58,28 @@
         "arm": {
           "type": "string"
         },
+        "costPerSuccess": {
+          "description": "Total counted cost divided by passing attempts; null when cost unreported or 0 passes.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Figure"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "costPerSuccessDelta": {
+          "description": "Percentage delta of costPerSuccess against baseline; null on baseline or when either side is null.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Delta"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "interval": {
           "anyOf": [
             {
@@ -63,6 +89,12 @@
               "type": "null"
             }
           ]
+        },
+        "k": {
+          "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 9007199254740991
         },
         "lift": {
           "anyOf": [
@@ -113,8 +145,40 @@
             "turns"
           ]
         },
+        "missedMinLift": {
+          "description": "The compare's `minLift` (0 to 1) when this variant's lift fell below it, failing its gate.",
+          "type": "number"
+        },
+        "passAtK": {
+          "description": "Unweighted mean of unbiased per-task Pass@k when every task has `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passHatK": {
+          "description": "Unweighted mean of unbiased per-task Pass^k when every task has `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passKOmitted": {
+          "description": "Reason Pass@k and Pass^k were omitted on this arm when `k` was requested and some task has `n < k`.",
+          "type": "string"
+        },
         "rate": {
+          "description": "Pooled pass rate across counted attempts on this arm.",
           "$ref": "#/$defs/Rate"
+        },
+        "taskLift": {
+          "description": "Equal-weight cross-task point lift against baseline when more than 1 task ran; null on baseline.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Delta"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "taskRate": {
+          "description": "Equal-weight mean pass rate across tasks when more than 1 task ran.",
+          "$ref": "#/$defs/Figure"
         },
         "verdict": {
           "description": "Pass-rate certainty only; measure direction lives in measure cells.",
@@ -258,11 +322,63 @@
         "agentMs": {
           "$ref": "#/$defs/Figure"
         },
+        "answers": {
+          "description": "Each question asked of the attempt on its own, in asked order; `model` is the one that served it.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "choice": {
+                "description": "Null on a free-text question and when the call failed.",
+                "type": ["string", "null"]
+              },
+              "error": {
+                "description": "Why there's no answer; null when the call succeeded.",
+                "type": ["string", "null"]
+              },
+              "model": {
+                "type": "string"
+              },
+              "question": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": ["choice", "error", "model", "question", "text"]
+          }
+        },
         "arm": {
           "type": ["string", "null"]
         },
         "case": {
           "type": ["string", "null"]
+        },
+        "cost": {
+          "description": "What the harness or gateway said it cost, else its tokens at list price; null when unpriced.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "basis": {
+                  "type": "string",
+                  "enum": ["reported", "estimated"]
+                },
+                "text": {
+                  "type": "string"
+                },
+                "usd": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              },
+              "required": ["basis", "text", "usd"]
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "diff": {
           "description": "Lines exclude lockfiles; null counts print `not recorded`.",
@@ -310,12 +426,56 @@
             }
           ]
         },
+        "error": {
+          "description": "Why the attempt failed, its message's first informative line; null when nothing did. An `assertion` error is the failed `expect` that ended the body, so its message repeats one of `failed`'s when the eval had one.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["assertion", "timeout", "aborted", "infra", "judge"]
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": ["kind", "message"]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "evalId": {
           "type": "string"
         },
         "facts": {
           "description": "What its transcript shows it did, from the report's `facts`; absent when the report had none for it, such as a passing attempt whose transcript `evidence` didn't keep.",
           "$ref": "#/$defs/AttemptFacts"
+        },
+        "failed": {
+          "description": "Each failed assertion, in the order the eval made them; `message` is its first informative line.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "at": {
+                "type": ["string", "null"]
+              },
+              "label": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": ["at", "label", "message"]
+          }
+        },
+        "gated": {
+          "description": "Whether the attempt's cell is gated, so its outcome counts toward the pass rate.",
+          "type": "boolean"
         },
         "harness": {
           "type": "string"
@@ -326,6 +486,33 @@
         },
         "id": {
           "type": "string"
+        },
+        "judgments": {
+          "description": "The attempt's judge calls, in call order, labeled as `JudgeRow.label`.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "gated": {
+                "description": "Whether a `toPass` assertion gated on it.",
+                "type": "boolean"
+              },
+              "label": {
+                "type": "string"
+              },
+              "score": {
+                "type": "number"
+              },
+              "threshold": {
+                "type": "number"
+              },
+              "verdict": {
+                "type": "string",
+                "enum": ["pass", "fail"]
+              }
+            },
+            "required": ["gated", "label", "score", "threshold", "verdict"]
+          }
         },
         "key": {
           "description": "`AttemptRecord.key`.",
@@ -358,6 +545,10 @@
                 "type": "string"
               }
             },
+            "snapshot": {
+              "description": "The workspace's final snapshot; absent when none was kept.",
+              "type": "string"
+            },
             "transcript": {
               "type": ["string", "null"]
             }
@@ -371,6 +562,70 @@
         "reclassified": {
           "type": "boolean"
         },
+        "time": {
+          "description": "Where the attempt's time went, by phase, and the agent's turns by what they waited on.",
+          "type": "object",
+          "properties": {
+            "agent": {
+              "description": "Null when no turn split its time.",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "modelMs": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "otherMs": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "toolMs": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "waitingMs": {
+                      "type": "number",
+                      "minimum": 0
+                    }
+                  },
+                  "required": ["modelMs", "otherMs", "toolMs", "waitingMs"]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "agentMs": {
+              "type": "number",
+              "minimum": 0
+            },
+            "checksMs": {
+              "type": "number",
+              "minimum": 0
+            },
+            "diffMs": {
+              "type": "number",
+              "minimum": 0
+            },
+            "judgeMs": {
+              "type": "number",
+              "minimum": 0
+            },
+            "setupMs": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": ["agent", "agentMs", "checksMs", "diffMs", "judgeMs", "setupMs"]
+        },
         "tokens": {
           "$ref": "#/$defs/Figure"
         },
@@ -379,6 +634,48 @@
         },
         "turnError": {
           "type": ["string", "null"]
+        },
+        "usage": {
+          "description": "The tokens `tokens` adds up; null when the harness reported none, absent before it.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "cacheRead": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "cacheWrite": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "input": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "output": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "reasoning": {
+                  "description": "Of `output`; null when the harness doesn't say.",
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": ["cacheRead", "cacheWrite", "input", "output", "reasoning"]
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -448,6 +745,23 @@
     "BreakdownRow": {
       "type": "object",
       "properties": {
+        "costPerSuccess": {
+          "description": "Total counted cost divided by passing attempts; null when cost unreported or 0 passes.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Figure"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "k": {
+          "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 9007199254740991
+        },
         "keys": {
           "description": "One value per axis, repeated on every row.",
           "type": "array",
@@ -458,10 +772,34 @@
         "measures": {
           "$ref": "#/$defs/MeasureCells"
         },
+        "passAtK": {
+          "description": "Unweighted mean of unbiased per-task Pass@k when every task has `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passHatK": {
+          "description": "Unweighted mean of unbiased per-task Pass^k when every task has `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passKOmitted": {
+          "description": "Reason Pass@k and Pass^k were omitted when `k` was requested and some task has `n < k`.",
+          "type": "string"
+        },
         "rate": {
+          "description": "Pooled pass rate across counted attempts in this group.",
           "anyOf": [
             {
               "$ref": "#/$defs/Rate"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "taskRate": {
+          "description": "Equal-weight mean pass rate across tasks when more than 1 task ran.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Figure"
             },
             {
               "type": "null"
@@ -535,6 +873,16 @@
         "current": {
           "type": "string"
         },
+        "currentPassed": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Proportion"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "delta": {
           "anyOf": [
             {
@@ -556,7 +904,19 @@
           "enum": ["outcome", "assertion", "judgment", "choice", "measure", "observation"]
         },
         "prior": {
+          "description": "`priorPassed` as text when set, else the comparison's own value.",
           "type": "string"
+        },
+        "priorPassed": {
+          "description": "The prior run's counted attempts that passed; null when the row has no counts.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Proportion"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "signal": {
           "type": "string"
@@ -686,10 +1046,34 @@
               "harness": {
                 "type": "string"
               },
+              "picks": {
+                "description": "Each option's count out of the row's attempts, in `options` order.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "k": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "n": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "option": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["k", "n", "option"]
+                }
+              },
               "prompt": {
                 "type": ["string", "null"]
               },
               "text": {
+                "description": "`counts` as text.",
                 "type": "string"
               }
             },
@@ -700,12 +1084,28 @@
       "required": ["noPick", "options", "passByPick", "question", "rows"]
     },
     "ContrastRow": {
+      "description": "`from` against `to` on one coding harness and sandbox: each pair has a row per harness (and sandbox), whose interval is over that cell's attempts alone.",
       "type": "object",
       "properties": {
+        "brokenTasks": {
+          "description": "Tasks where `from` scored 0% on multi-task evaluations; omitted when none or single-task.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "delta": {
           "$ref": "#/$defs/Delta"
         },
         "from": {
+          "type": "string"
+        },
+        "fromPassed": {
+          "description": "`from`'s counted attempts that passed.",
+          "$ref": "#/$defs/Proportion"
+        },
+        "harness": {
+          "description": "The coding harness both cells ran on; absent in reports built before it.",
           "type": "string"
         },
         "interval": {
@@ -739,8 +1139,20 @@
             }
           ]
         },
+        "sandbox": {
+          "description": "The sandbox both cells ran in.",
+          "type": "string"
+        },
+        "taskDelta": {
+          "description": "Equal-weight cross-task point delta (`from` minus `to`) when more than 1 task ran.",
+          "$ref": "#/$defs/Delta"
+        },
         "to": {
           "type": "string"
+        },
+        "toPassed": {
+          "description": "`to`'s counted attempts that passed.",
+          "$ref": "#/$defs/Proportion"
         },
         "verdict": {
           "type": "string",
@@ -849,9 +1261,37 @@
         "arm": {
           "type": "string"
         },
+        "costPerSuccess": {
+          "description": "Total counted cost divided by passing attempts; null when cost unreported or 0 passes.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Figure"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "costPerSuccessDelta": {
+          "description": "Percentage delta of costPerSuccess against this harness's baseline; null on baseline or when either side is null.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Delta"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "harness": {
           "description": "A harness label, or `Median` for the cross-harness row.",
           "type": "string"
+        },
+        "k": {
+          "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 9007199254740991
         },
         "measures": {
           "type": "object",
@@ -892,8 +1332,25 @@
             "turns"
           ]
         },
+        "passAtK": {
+          "description": "Unweighted mean of unbiased per-task Pass@k when every task has `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passHatK": {
+          "description": "Unweighted mean of unbiased per-task Pass^k when every task has `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passKOmitted": {
+          "description": "Reason Pass@k and Pass^k were omitted when `k` was requested and some task has `n < k`.",
+          "type": "string"
+        },
         "rate": {
+          "description": "Pooled pass rate for this harness and arm.",
           "$ref": "#/$defs/Rate"
+        },
+        "taskRate": {
+          "description": "Equal-weight mean pass rate across tasks when more than 1 task ran.",
+          "$ref": "#/$defs/Figure"
         }
       },
       "required": ["arm", "harness", "measures", "rate"]
@@ -915,6 +1372,10 @@
         },
         "primary": {
           "$ref": "#/$defs/HeadlinePrimary"
+        },
+        "saturated": {
+          "description": "True when every arm in a pass/fail comparison hit 100% across all tasks.",
+          "type": "boolean"
         },
         "task": {
           "description": "The eval's name: the heading above the headline.",
@@ -969,6 +1430,13 @@
         "file": {
           "type": "string"
         },
+        "group": {
+          "description": "The `describe` groups the eval sits in, outermost first; absent in reports built before it.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "headline": {
           "$ref": "#/$defs/EvalHeadline"
         },
@@ -995,6 +1463,44 @@
         "name": {
           "description": "Unique in the report; `<name> (<file>)` when two evals share a name.",
           "type": "string"
+        },
+        "next": {
+          "description": "What to change next: each concern remark that names an edit, as that edit and where.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "at": {
+                "type": ["string", "null"]
+              },
+              "kind": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": ["at", "kind", "text"]
+          }
+        },
+        "notes": {
+          "description": "Each check that needed its `c.exec` retries (`\"npm test\" passed on try 2 of 3.`), and the first capture whose page had page errors, with the run folder's file that lists them; unset when none.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "observed": {
+          "description": "Each `c.observe` name's values tallied, per arm or harness when they differ: `orm: drizzle 9 · prisma 3`.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outcome": {
+          "description": "`EvalEntry.outcome`; absent in reports built before it.",
+          "type": "string",
+          "enum": ["pass", "fail", "infra_error", "skipped"]
         },
         "primary": {
           "description": "Null on a check-free eval, whose first choice, judge, or measure block leads.",
@@ -1028,6 +1534,34 @@
           "items": {
             "type": "string",
             "enum": ["task", "ab", "discoverability", "regression"]
+          }
+        },
+        "state": {
+          "description": "Whether it ran; absent in reports built before it, where no attempts reads as `not-run`.",
+          "type": "string",
+          "enum": ["ran", "skipped", "todo", "not-run"]
+        },
+        "suggestions": {
+          "description": "Each suggestion remark on the eval, as its line; unset when there are none.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unanswered": {
+          "description": "Each question some answers are missing from, and why: `2 of 2 not answered: …`.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "question": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": ["question", "text"]
           }
         }
       },
@@ -1086,14 +1620,351 @@
                 "type": "string"
               },
               "medianTokens": {
+                "description": "Over the eval's counted attempts; not reported on an A/B eval, whose arms are in `medianTokensByArm`.",
                 "$ref": "#/$defs/Figure"
+              },
+              "medianTokensByArm": {
+                "description": "Each arm's median tokens, from its summary row, on an A/B eval.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "arm": {
+                      "type": "string"
+                    },
+                    "tokens": {
+                      "$ref": "#/$defs/Figure"
+                    }
+                  },
+                  "required": ["arm", "tokens"]
+                }
               },
               "name": {
                 "type": "string"
               },
               "primary": {
-                "description": "The eval's headline in one cell, in its native unit.",
+                "description": "The eval's headline in one cell, in its native unit: `result` as text.",
                 "type": "string"
+              },
+              "result": {
+                "description": "The headline as numbers; absent in reports built before it.",
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "k": {
+                        "type": "integer",
+                        "minimum": 2,
+                        "maximum": 9007199254740991
+                      },
+                      "kind": {
+                        "type": "string",
+                        "const": "pass-rate"
+                      },
+                      "metric": {
+                        "type": "string",
+                        "enum": ["pass-rate", "task-pass-rate", "pass@k", "pass^k"]
+                      },
+                      "outcome": {
+                        "type": "string",
+                        "enum": ["passed", "found", "used"]
+                      },
+                      "passAtK": {
+                        "type": "number"
+                      },
+                      "passed": {
+                        "$ref": "#/$defs/Proportion"
+                      },
+                      "passHatK": {
+                        "type": "number"
+                      },
+                      "taskRate": {
+                        "description": "Equal-weight cross-task pass rate [0, 1] when more than 1 task ran.",
+                        "type": "number"
+                      }
+                    },
+                    "required": ["kind", "outcome", "passed"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "baseline": {
+                        "type": "string"
+                      },
+                      "baselinePassAtK": {
+                        "type": "number"
+                      },
+                      "baselinePassed": {
+                        "$ref": "#/$defs/Proportion"
+                      },
+                      "baselinePassHatK": {
+                        "type": "number"
+                      },
+                      "baselineTaskRate": {
+                        "description": "Equal-weight cross-task baseline pass rate [0, 1] when more than 1 task ran.",
+                        "type": "number"
+                      },
+                      "hi": {
+                        "type": "number"
+                      },
+                      "k": {
+                        "type": "integer",
+                        "minimum": 2,
+                        "maximum": 9007199254740991
+                      },
+                      "kind": {
+                        "type": "string",
+                        "const": "lift"
+                      },
+                      "lo": {
+                        "type": "number"
+                      },
+                      "metric": {
+                        "type": "string",
+                        "enum": ["pass-rate", "task-pass-rate", "pass@k", "pass^k"]
+                      },
+                      "points": {
+                        "description": "Pass-rate points as a fraction (`1` is +100 pts), with its 95% interval.",
+                        "type": "number"
+                      },
+                      "saturated": {
+                        "type": "boolean"
+                      },
+                      "variant": {
+                        "type": "string"
+                      },
+                      "variantPassAtK": {
+                        "type": "number"
+                      },
+                      "variantPassed": {
+                        "$ref": "#/$defs/Proportion"
+                      },
+                      "variantPassHatK": {
+                        "type": "number"
+                      },
+                      "variantTaskRate": {
+                        "description": "Equal-weight cross-task variant pass rate [0, 1] when more than 1 task ran.",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "baseline",
+                      "baselinePassed",
+                      "hi",
+                      "kind",
+                      "lo",
+                      "points",
+                      "variant",
+                      "variantPassed"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "baseline": {
+                        "type": "string"
+                      },
+                      "baselineMedian": {
+                        "type": "number"
+                      },
+                      "k": {
+                        "type": "integer",
+                        "minimum": 2,
+                        "maximum": 9007199254740991
+                      },
+                      "kind": {
+                        "type": "string",
+                        "const": "tied-ceiling"
+                      },
+                      "measure": {
+                        "type": "string",
+                        "enum": [
+                          "tokens",
+                          "toolCalls",
+                          "turns",
+                          "costUsd",
+                          "agentMs",
+                          "filesChanged",
+                          "linesAdded",
+                          "linesRemoved"
+                        ]
+                      },
+                      "metric": {
+                        "type": "string",
+                        "enum": ["pass-rate", "task-pass-rate", "pass@k", "pass^k"]
+                      },
+                      "passAtK": {
+                        "type": "number"
+                      },
+                      "passed": {
+                        "$ref": "#/$defs/Proportion"
+                      },
+                      "passHatK": {
+                        "type": "number"
+                      },
+                      "saturated": {
+                        "type": "boolean"
+                      },
+                      "variant": {
+                        "type": "string"
+                      },
+                      "variantMedian": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "baseline",
+                      "baselineMedian",
+                      "kind",
+                      "measure",
+                      "passed",
+                      "variant",
+                      "variantMedian"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "attempts": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "kind": {
+                        "type": "string",
+                        "const": "choice"
+                      },
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "count": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "label": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["count", "label"]
+                        }
+                      },
+                      "question": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["attempts", "kind", "options", "question"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "measure"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "median": {
+                        "description": "Null when no attempt reported it.",
+                        "type": ["number", "null"]
+                      },
+                      "n": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "unit": {
+                        "type": "string",
+                        "enum": ["tokens", "ms", "usd", "count", "lines", "files"]
+                      }
+                    },
+                    "required": ["kind", "label", "median", "n", "unit"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "judge"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "median": {
+                        "type": ["number", "null"]
+                      },
+                      "n": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "scale": {
+                        "type": "array",
+                        "prefixItems": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ],
+                        "items": false,
+                        "minItems": 2,
+                        "maxItems": 2
+                      }
+                    },
+                    "required": ["kind", "label", "median", "n", "scale"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "answered": {
+                        "$ref": "#/$defs/Proportion"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "const": "text"
+                      },
+                      "question": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["answered", "kind", "question"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "fixed": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "kind": {
+                        "type": "string",
+                        "const": "regression"
+                      },
+                      "lead": {
+                        "anyOf": [
+                          {
+                            "$ref": "#/$defs/ChangeRow"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "worse": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["fixed", "kind", "lead", "worse"]
+                  }
+                ]
               },
               "shapes": {
                 "type": "array",
@@ -1121,15 +1992,29 @@
             "$ref": "#/$defs/AttemptRef"
           }
         },
+        "cause": {
+          "description": "An `error` cluster's attempts timed out or the run canceled them; unset for any other error.",
+          "type": "string",
+          "enum": ["timeout", "canceled"]
+        },
         "count": {
           "description": "Members of the eval's counted attempts.",
           "$ref": "#/$defs/Count"
         },
+        "detail": {
+          "description": "The rest of the first attempt's failure text, past the line `message` or `label` keeps.",
+          "type": "string"
+        },
         "kind": {
+          "description": "`error` is an attempt error no other cluster explains: never the failed `expect` behind an `assertion` cluster, and an `infra-error` is never the turn error behind a `turn-error` one.",
           "type": "string",
           "enum": ["assertion", "turn-error", "infra-error", "capture-error", "error"]
         },
         "label": {
+          "type": "string"
+        },
+        "message": {
+          "description": "An `assertion` cluster's failure message, its first attempt's, as that attempt's `error` has it when the check ended the body; absent on other kinds, whose `label` is the message.",
           "type": "string"
         }
       },
@@ -1176,6 +2061,10 @@
                   "observe-throws"
                 ]
               },
+              "line": {
+                "description": "`text`, with `fix`'s place when it names no edit (`… At evals/a.eval.ts:12.`); an edit is in the section's `next`.",
+                "type": "string"
+              },
               "severity": {
                 "type": "string",
                 "enum": ["concern", "suggestion"]
@@ -1218,17 +2107,51 @@
               "exclusiveMinimum": 0,
               "maximum": 9007199254740991
             },
+            "k": {
+              "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 9007199254740991
+            },
             "kind": {
               "type": "string",
               "const": "pass-rate"
+            },
+            "metric": {
+              "description": "Which pass/fail metric leads when explicitly configured.",
+              "type": "string",
+              "enum": ["pass-rate", "task-pass-rate", "pass@k", "pass^k"]
             },
             "outcome": {
               "description": "Product outcome noun: passed (default), found, or used.",
               "type": "string",
               "enum": ["passed", "found", "used"]
             },
+            "passAtK": {
+              "description": "Unweighted mean of unbiased per-task `1 - C(n - c, k) / C(n, k)` when every task has `n >= k`.",
+              "$ref": "#/$defs/Figure"
+            },
+            "passHatK": {
+              "description": "Unweighted mean of unbiased per-task `C(c, k) / C(n, k)` when every task has `n >= k`.",
+              "$ref": "#/$defs/Figure"
+            },
+            "passKOmitted": {
+              "description": "Reason Pass@k and Pass^k were omitted when `k` was requested (`needs k trials per task ...`).",
+              "type": "string"
+            },
             "rate": {
+              "description": "Pooled pass rate across gated counted attempts (default lead).",
               "$ref": "#/$defs/Rate"
+            },
+            "taskRate": {
+              "description": "Equal-weight mean pass rate across tasks when more than 1 task ran.",
+              "$ref": "#/$defs/Figure"
+            },
+            "tasks": {
+              "description": "Distinct task count when more than 1 task ran.",
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 9007199254740991
             }
           },
           "required": ["assertions", "harnesses", "kind", "outcome", "rate"]
@@ -1239,15 +2162,38 @@
             "baseline": {
               "$ref": "#/$defs/ArmRef"
             },
+            "baselinePassAtK": {
+              "description": "Baseline unweighted unbiased Pass@k when every task has `n >= k`.",
+              "$ref": "#/$defs/Figure"
+            },
+            "baselinePassHatK": {
+              "description": "Baseline unweighted unbiased Pass^k when every task has `n >= k`.",
+              "$ref": "#/$defs/Figure"
+            },
             "baselineRate": {
               "$ref": "#/$defs/Rate"
+            },
+            "baselineTaskRate": {
+              "description": "Equal-weight cross-task baseline pass rate when more than 1 task ran.",
+              "$ref": "#/$defs/Figure"
             },
             "interval": {
               "$ref": "#/$defs/Interval"
             },
+            "k": {
+              "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 9007199254740991
+            },
             "kind": {
               "type": "string",
               "const": "lift"
+            },
+            "metric": {
+              "description": "Which pass/fail metric leads when explicitly configured.",
+              "type": "string",
+              "enum": ["pass-rate", "task-pass-rate", "pass@k", "pass^k"]
             },
             "others": {
               "description": "Every other variant, with its own interval; never dropped.",
@@ -1258,11 +2204,31 @@
                   "interval": {
                     "$ref": "#/$defs/Interval"
                   },
+                  "k": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 9007199254740991
+                  },
+                  "passAtK": {
+                    "$ref": "#/$defs/Figure"
+                  },
+                  "passHatK": {
+                    "$ref": "#/$defs/Figure"
+                  },
+                  "passKOmitted": {
+                    "type": "string"
+                  },
                   "points": {
                     "$ref": "#/$defs/Delta"
                   },
                   "rate": {
                     "$ref": "#/$defs/Rate"
+                  },
+                  "taskPoints": {
+                    "$ref": "#/$defs/Delta"
+                  },
+                  "taskRate": {
+                    "$ref": "#/$defs/Figure"
                   },
                   "variant": {
                     "$ref": "#/$defs/ArmRef"
@@ -1271,14 +2237,53 @@
                 "required": ["interval", "points", "rate", "variant"]
               }
             },
-            "points": {
+            "passAtKPoints": {
+              "description": "Variant minus baseline Pass@k points when both arms satisfy `n >= k`.",
               "$ref": "#/$defs/Delta"
+            },
+            "passHatKPoints": {
+              "description": "Variant minus baseline Pass^k points when both arms satisfy `n >= k`.",
+              "$ref": "#/$defs/Delta"
+            },
+            "passKOmitted": {
+              "description": "Reason Pass@k and Pass^k were omitted when `k` was requested (`needs k trials per task ...`).",
+              "type": "string"
+            },
+            "points": {
+              "description": "Pooled pass-rate point difference (default lead).",
+              "$ref": "#/$defs/Delta"
+            },
+            "saturated": {
+              "description": "True when every arm hit 100% across all tasks.",
+              "type": "boolean"
+            },
+            "taskPoints": {
+              "description": "Equal-weight cross-task point difference (`variant` minus `baseline`) when more than 1 task ran.",
+              "$ref": "#/$defs/Delta"
+            },
+            "tasks": {
+              "description": "Distinct task count when more than 1 task ran.",
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 9007199254740991
             },
             "variant": {
               "$ref": "#/$defs/ArmRef"
             },
+            "variantPassAtK": {
+              "description": "Variant unweighted unbiased Pass@k when every task has `n >= k`.",
+              "$ref": "#/$defs/Figure"
+            },
+            "variantPassHatK": {
+              "description": "Variant unweighted unbiased Pass^k when every task has `n >= k`.",
+              "$ref": "#/$defs/Figure"
+            },
             "variantRate": {
               "$ref": "#/$defs/Rate"
+            },
+            "variantTaskRate": {
+              "description": "Equal-weight cross-task variant pass rate when more than 1 task ran.",
+              "$ref": "#/$defs/Figure"
             }
           },
           "required": [
@@ -1302,6 +2307,12 @@
             },
             "baseline": {
               "$ref": "#/$defs/ArmRef"
+            },
+            "k": {
+              "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 9007199254740991
             },
             "kind": {
               "type": "string",
@@ -1335,8 +2346,39 @@
               },
               "required": ["baseline", "delta", "measure", "variant"]
             },
+            "metric": {
+              "description": "Which pass/fail metric leads when explicitly configured.",
+              "type": "string",
+              "enum": ["pass-rate", "task-pass-rate", "pass@k", "pass^k"]
+            },
+            "passAtK": {
+              "description": "Unweighted unbiased Pass@k across tasks when every task has `n >= k`.",
+              "$ref": "#/$defs/Figure"
+            },
+            "passHatK": {
+              "description": "Unweighted unbiased Pass^k across tasks when every task has `n >= k`.",
+              "$ref": "#/$defs/Figure"
+            },
+            "passKOmitted": {
+              "description": "Reason Pass@k and Pass^k were omitted when `k` was requested.",
+              "type": "string"
+            },
             "rate": {
               "$ref": "#/$defs/Rate"
+            },
+            "saturated": {
+              "description": "True when every arm hit 100% across all tasks.",
+              "type": "boolean"
+            },
+            "taskRate": {
+              "description": "Equal-weight cross-task pass rate when more than 1 task ran.",
+              "$ref": "#/$defs/Figure"
+            },
+            "tasks": {
+              "description": "Distinct task count when more than 1 task ran.",
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 9007199254740991
             },
             "variant": {
               "$ref": "#/$defs/ArmRef"
@@ -1606,6 +2648,13 @@
         "question": {
           "type": "string"
         },
+        "scores": {
+          "description": "Each score behind `spread`, one per judge call; absent in reports built before it.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JudgeScore"
+          }
+        },
         "spread": {
           "$ref": "#/$defs/Spread"
         },
@@ -1614,6 +2663,38 @@
         }
       },
       "required": ["assertion", "atOrAbove", "keys", "label", "question", "spread", "threshold"]
+    },
+    "JudgeScore": {
+      "type": "object",
+      "properties": {
+        "attempt": {
+          "description": "The attempt's index id (`A3`) and `AttemptRecord.key`.",
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "keys": {
+          "description": "One value per `JudgeRow.keys` axis.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outcome": {
+          "type": "string",
+          "enum": ["pass", "fail", "infra_error", "canceled"]
+        },
+        "score": {
+          "type": "number"
+        },
+        "verdict": {
+          "description": "The judge's own verdict on its threshold.",
+          "type": "string",
+          "enum": ["pass", "fail"]
+        }
+      },
+      "required": ["attempt", "key", "keys", "outcome", "score", "verdict"]
     },
     "JudgmentBreakdown": {
       "type": "object",
@@ -1838,6 +2919,23 @@
         }
       },
       "required": ["a", "aWins", "b", "bWins", "cut", "pairs", "question", "reasons", "ties"]
+    },
+    "Proportion": {
+      "description": "A proportion as its counts, `k` of `n`; a renderer derives the rate, interval and text.",
+      "type": "object",
+      "properties": {
+        "k": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": ["k", "n"]
     },
     "ProvenanceState": {
       "type": "object",
@@ -2180,6 +3278,10 @@
                       "type": "null"
                     }
                   ]
+                },
+                "unpriced": {
+                  "description": "The priced parts' sum left out this many that had no price; unset when none.",
+                  "type": "number"
                 }
               },
               "required": ["agent", "basis", "judge", "total"]
@@ -2188,6 +3290,13 @@
               "type": "null"
             }
           ]
+        },
+        "errors": {
+          "description": "Each error outside any attempt, as its first line; unset when there were none.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "git": {
           "description": "`repo` is the basename of `git.remote`.",
@@ -2250,6 +3359,22 @@
             }
           },
           "required": ["configKey", "profile", "subset"]
+        },
+        "servedBy": {
+          "description": "The upstream providers a gateway named for each harness's calls; unset when it named none.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "harness": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": ["harness", "text"]
+          }
         },
         "startedAt": {
           "type": "string"
@@ -2465,6 +3590,33 @@
       },
       "required": ["median", "n", "q1", "q3"]
     },
+    "TaskCell": {
+      "type": "object",
+      "properties": {
+        "k": {
+          "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 9007199254740991
+        },
+        "passAtK": {
+          "description": "Unbiased `1 - C(n - c, k) / C(n, k)` on this task when `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passHatK": {
+          "description": "Unbiased `C(c, k) / C(n, k)` on this task when `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passKOmitted": {
+          "description": "Reason Pass@k and Pass^k were omitted on this task when `n < k`.",
+          "type": "string"
+        },
+        "rate": {
+          "$ref": "#/$defs/Rate"
+        }
+      },
+      "required": ["rate"]
+    },
     "TaskResults": {
       "type": "object",
       "properties": {
@@ -2492,6 +3644,16 @@
             "type": "string"
           }
         },
+        "costReported": {
+          "description": "True when at least one counted attempt reported USD cost.",
+          "type": "boolean"
+        },
+        "k": {
+          "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 9007199254740991
+        },
         "kind": {
           "type": "string",
           "const": "task"
@@ -2506,9 +3668,68 @@
               "type": "null"
             }
           ]
+        },
+        "metric": {
+          "description": "Which pass/fail metric leads when explicitly configured.",
+          "type": "string",
+          "enum": ["pass-rate", "task-pass-rate", "pass@k", "pass^k"]
+        },
+        "passAtK": {
+          "description": "Overall unweighted unbiased Pass@k across tasks when every task has `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passHatK": {
+          "description": "Overall unweighted unbiased Pass^k across tasks when every task has `n >= k`.",
+          "$ref": "#/$defs/Figure"
+        },
+        "passKOmitted": {
+          "description": "Reason Pass@k and Pass^k were omitted when `k` was requested and some task has `n < k`.",
+          "type": "string"
+        },
+        "tasks": {
+          "description": "Per-task pass rates when more than 1 task ran.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TaskRow"
+          }
         }
       },
       "required": ["assertions", "axes", "breakdown", "columns", "kind", "median"]
+    },
+    "TaskRow": {
+      "type": "object",
+      "properties": {
+        "cells": {
+          "description": "One entry per column key (coding harness on task evals, arm label on comparisons).",
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/TaskCell"
+          }
+        },
+        "label": {
+          "description": "Human-readable task label.",
+          "type": "string"
+        },
+        "task": {
+          "description": "Stable task key (`CaseRecord.key` or prompt key).",
+          "type": "string"
+        },
+        "total": {
+          "description": "Overall task score across gated/counted attempts on task evals; null on arm comparisons.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TaskCell"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": ["cells", "label", "task", "total"]
     },
     "VariantComparison": {
       "type": "object",
@@ -2539,20 +3760,50 @@
             "$ref": "#/$defs/ContrastRow"
           }
         },
+        "costReported": {
+          "description": "True when at least one counted attempt reported USD cost.",
+          "type": "boolean"
+        },
         "effortByHarness": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/EffortPivotRow"
           }
         },
+        "k": {
+          "description": "Explicit trial count `k` when Pass@k / Pass^k were requested.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 9007199254740991
+        },
         "kind": {
           "type": "string",
           "const": "comparison"
+        },
+        "metric": {
+          "description": "Which pass/fail metric leads when explicitly configured.",
+          "type": "string",
+          "enum": ["pass-rate", "task-pass-rate", "pass@k", "pass^k"]
+        },
+        "saturated": {
+          "description": "True when every arm hit 100% across all tasks.",
+          "type": "boolean"
+        },
+        "saturationNote": {
+          "description": "Plain-language saturation explanation when `saturated` is true; null otherwise.",
+          "type": ["string", "null"]
         },
         "summary": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/ArmRow"
+          }
+        },
+        "tasks": {
+          "description": "Per-task pass rates by arm when more than 1 task ran.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TaskRow"
           }
         },
         "uniformLead": {

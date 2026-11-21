@@ -4,7 +4,6 @@
 // grouped log orders too, and on a TTY one status line under them that's rewritten in place.
 import { plural } from '../text.ts'
 import type { SandboxWarning } from '../types.ts'
-import { suiteResult } from '../view/suite.ts'
 import { type Colors, colors, stripAnsi } from './colors.ts'
 import type {
   AttemptRef,
@@ -26,9 +25,10 @@ import {
   progressLine,
 } from './format.ts'
 import { noticeLines, PrepareLines, planLines, startLine } from './header.ts'
-import { LiveList, listLines, progressText } from './list.ts'
+import { LiveList, progressText } from './list.ts'
 import type { OutputOptions } from './mode.ts'
-import { pointerLine, statusList } from './status.ts'
+import { resultLines } from './results.ts'
+import { pointerLine } from './status.ts'
 import { Tagger } from './tags.ts'
 
 export type RendererOptions = {
@@ -285,17 +285,14 @@ export class PlainRenderer implements Renderer {
       case 'run-end': {
         this.#clearStatus()
         if (!this.#blank) this.#write('')
-        const verbose = (this.#o.verbosity ?? 0) > 0
-        const list = statusList({
-          record: e.record,
-          suite: suiteResult(e.record),
+        const lines = resultLines(e.record, c, {
           remarks: e.remarks ?? null,
-          verbose,
+          verbose: (this.#o.verbosity ?? 0) > 0,
+          width: this.#columns,
+          pointer: pointerLine(e.summaryPath),
           ...(e.notRun ? { notRun: e.notRun } : {}),
         })
-        for (const line of listLines(list, c, true, pointerLine(e.summaryPath), verbose)) {
-          this.#write(line)
-        }
+        for (const line of lines) this.#write(line)
         return
       }
     }

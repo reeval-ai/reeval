@@ -29,15 +29,16 @@ one profile you need.
 with a remark saying why:
 
 ```text
-with-egress-allow-all.eval.ts
-└─ ✗ reads an SSH banner over raw TCP  0 of 1 run passed
-     Failed on fake.
-     ✗ toSucceed bash banner.sh  failed 1 of 1 run
-       expected command to succeed, exit code 1 · with-egress-allow-all.eval.ts:12
-       stderr: banner.sh: line 2: github.com: Temporary failure in name resolution
-     ✗ toMatch /^SSH-2\.0-/      failed 1 of 1 run
-       expected '' to match /^SSH-2\.0-/ · with-egress-allow-all.eval.ts:13
-     Worth knowing: Only HTTP(S) leaves under egress 'proxy'; set egress: 'allow-all' at with-egress-allow-all.eval.ts:5 for raw TCP or UDP.
+FAIL           reads an SSH banner over raw TCP
+               0% passed · 0 of 1 attempt
+               failed check, 1 of 1: toSucceed bash banner.sh
+                 expected command to succeed, exit code 1
+                 at with-egress-allow-all.eval.ts:12
+               failed check, 1 of 1: toMatch /^SSH-2\.0-/
+                 expected '' to match /^SSH-2\.0-/
+                 at with-egress-allow-all.eval.ts:13
+               Next: at with-egress-allow-all.eval.ts:5, set egress: 'allow-all' on the eval if it needs raw TCP or UDP, or point the client at HTTPS_PROXY
+               (concern) It failed with "…" and nothing reached the egress gateway: under egress 'proxy' only HTTP(S) through the gateway leaves the sandbox, so raw TCP, UDP, SSH and database connections fail.
 ```
 
 `reeval run -v` prints the remark's whole sentence, with the error it saw and the fix.

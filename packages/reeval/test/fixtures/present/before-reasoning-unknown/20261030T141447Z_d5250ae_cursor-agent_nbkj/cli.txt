@@ -1,0 +1,7 @@
+edits and reasons
+9 of 9 counted attempts passed · 59s wall time · tokens 530k · cost not reported · d5250ae (dirty)
+
+PASS           edits and reasons
+               100% passed · 9 of 9 attempts · Cursor · composer-2.5 1 of 1, Claude Code · claude-sonnet-5[effort=medium] 1 of 1, Codex · gpt-5.6-luna[effort=medium] 1 of 1, Antigravity · gemini-3.8-flash-medium 1 of 1, OpenCode · gemini-3.8-flash 1 of 1, Goose · gemini-3.8-flash 1 of 1, pi · gemini-3.8-flash 1 of 1, fx · gpt-5.5 1 of 1, Grok Build · grok-4.6 1 of 1
+
+Evals: 1 pass

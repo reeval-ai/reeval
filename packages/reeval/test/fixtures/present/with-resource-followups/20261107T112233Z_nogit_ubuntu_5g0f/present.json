@@ -1,0 +1,520 @@
+{
+  "presentationVersion": 1,
+  "header": {
+    "title": "Run 20261107T112233Z_nogit_ubuntu_5g0f",
+    "runId": "20261107T112233Z_nogit_ubuntu_5g0f",
+    "status": "complete",
+    "stopped": null,
+    "startedAt": "2026-11-07T11:22:33.434Z",
+    "date": "2026-11-07",
+    "author": "ubuntu",
+    "reeval": "0.21.0",
+    "profile": null,
+    "runs": "1 run per cell",
+    "git": null,
+    "wall": {
+      "value": 8070,
+      "text": "8s"
+    },
+    "tokens": {
+      "value": null,
+      "text": "not reported"
+    },
+    "cost": {
+      "value": null,
+      "text": "not reported"
+    },
+    "counted": {
+      "k": 1,
+      "n": 2,
+      "text": "1 of 2"
+    },
+    "infraError": 0,
+    "canceled": 0,
+    "attempts": "1 of 2 counted attempts passed",
+    "servedBy": []
+  },
+  "tally": {
+    "pass": 1,
+    "fail": 1,
+    "infraError": 0,
+    "canceled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "notRun": 0,
+    "ungated": 0,
+    "text": "1 fail · 1 pass"
+  },
+  "caveats": [
+    {
+      "severity": "warn",
+      "text": "canary: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/canary.eval.ts › canary",
+      "cites": [
+        {
+          "id": "A1",
+          "href": "#attempt-evals-canary-eval-ts-canary-fake-busy-docker-1-115b72c5"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "lands: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/lands.eval.ts › lands",
+      "cites": [
+        {
+          "id": "A2",
+          "href": "#attempt-evals-lands-eval-ts-lands-fake-busy-docker-1-2ad5830f"
+        }
+      ]
+    }
+  ],
+  "harnesses": [
+    {
+      "id": "fake",
+      "name": "Fake",
+      "model": null,
+      "label": "Fake",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 2,
+        "text": "2 attempts"
+      }
+    }
+  ],
+  "evals": [
+    {
+      "id": "evals/canary.eval.ts › canary",
+      "anchor": "canary",
+      "name": "canary",
+      "file": "evals/canary.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "canary",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0,
+            "text": "0%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          }
+        },
+        "foot": "0 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "busy",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A1",
+          "key": "evals/canary.eval.ts › canary # fake/busy/docker#1",
+          "href": "#attempt-evals-canary-eval-ts-canary-fake-busy-docker-1-115b72c5",
+          "harness": "Fake",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "expected 0 to be greater than or equal to 2",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [
+        {
+          "label": "toBeGreaterThanOrEqual 2",
+          "matcher": "toBeGreaterThanOrEqual",
+          "at": "evals/canary.eval.ts:6",
+          "failed": true,
+          "cells": [
+            {
+              "column": "Fake",
+              "text": "0 of 1"
+            }
+          ],
+          "total": "0 of 1"
+        }
+      ],
+      "failures": [
+        {
+          "kind": "assertion",
+          "kindText": "failed check",
+          "label": "toBeGreaterThanOrEqual 2",
+          "message": "expected 0 to be greater than or equal to 2",
+          "detail": null,
+          "at": "evals/canary.eval.ts:6",
+          "count": {
+            "k": 1,
+            "n": 1,
+            "text": "1 of 1"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A1",
+              "href": "#attempt-evals-canary-eval-ts-canary-fake-busy-docker-1-115b72c5"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "toolCalls": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
+    },
+    {
+      "id": "evals/lands.eval.ts › lands",
+      "anchor": "lands",
+      "name": "lands",
+      "file": "evals/lands.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "lands",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "busy",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A2",
+          "key": "evals/lands.eval.ts › lands # fake/busy/docker#1",
+          "href": "#attempt-evals-lands-eval-ts-lands-fake-busy-docker-1-2ad5830f",
+          "harness": "Fake",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [
+        {
+          "label": "toBeGreaterThanOrEqual 2",
+          "matcher": "toBeGreaterThanOrEqual",
+          "at": "evals/lands.eval.ts:7",
+          "failed": false,
+          "cells": [
+            {
+              "column": "Fake",
+              "text": "1 of 1"
+            }
+          ],
+          "total": "1 of 1"
+        }
+      ],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
+    }
+  ],
+  "actions": [],
+  "provenance": {
+    "rows": [
+      {
+        "field": "Executed at",
+        "value": "not a git repository"
+      },
+      {
+        "field": "Lockfiles",
+        "value": "none found"
+      },
+      {
+        "field": "Images",
+        "value": "reeval-sandbox:cursor-0.1.9 · id ea04ec11a87c · no registry digest (built locally) · CLI @cursor/sdk 1.0.40"
+      },
+      {
+        "field": "Harnesses",
+        "value": "fake"
+      },
+      {
+        "field": "Resources",
+        "value": "docker 1 vCPU 512 MiB: 2 attempts · CPU 3.3 s (avg 0.84, peak 1.00 cores) · memory peak 306 MiB"
+      },
+      {
+        "field": "Environments",
+        "value": "busy eca09e8f139f"
+      },
+      {
+        "field": "Judge",
+        "value": "none by default · threshold 0.8 · version a3ce9d328e88"
+      },
+      {
+        "field": "Packages",
+        "value": "@vitest/expect 5.0.5 · jiti 2.7.0 · @reeval/harness-antigravity 0.1.16 · @reeval/harness-opencode 0.2.16 · @reeval/harness-goose 0.1.16 · @reeval/harness-pi 0.2.9 · @reeval/harness-cursor-sdk 0.1.9 · @ai-sdk/harness-claude-code 1.0.176-patch.a9d56a8c · @reeval/harness-codex 0.1.13 · @reeval/harness-fx 0.1.11 · @reeval/harness-grok-build 0.1.12 · ai 7.0.161 · @ai-sdk/harness 1.0.172 · @ai-sdk/anthropic 4.0.95 · @ai-sdk/google 4.0.110 · @ai-sdk/openai 4.0.107 · @ai-sdk/typesafe-ai 3.0.32"
+      },
+      {
+        "field": "reeval",
+        "value": "0.21.0 · node 22.23.4 · typescript evals · linux/x64"
+      },
+      {
+        "field": "Runner",
+        "value": "local · ubuntu"
+      },
+      {
+        "field": "Artifacts",
+        "value": "all"
+      }
+    ],
+    "warnings": [
+      "Image reeval-sandbox:cursor-0.1.9 isn't pushed, so an exact rerun needs this machine's image (id ea04ec11a87c).",
+      "Not a git repository, so the code under test isn't pinned."
+    ]
+  },
+  "attemptIndex": [
+    {
+      "id": "A1",
+      "anchor": "attempt-evals-canary-eval-ts-canary-fake-busy-docker-1-115b72c5",
+      "eval": "canary",
+      "harness": "Fake",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "snapshot",
+          "href": "./evals-canary-eval-ts-canary-d06886/fake-busy-docker-bb19e8/1/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A2",
+      "anchor": "attempt-evals-lands-eval-ts-lands-fake-busy-docker-1-2ad5830f",
+      "eval": "lands",
+      "harness": "Fake",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "snapshot",
+          "href": "./evals-lands-eval-ts-lands-2fc777/fake-busy-docker-bb19e8/1/snapshots/final"
+        }
+      ]
+    }
+  ]
+}

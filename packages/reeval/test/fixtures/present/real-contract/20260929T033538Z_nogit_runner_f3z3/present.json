@@ -1,0 +1,2275 @@
+{
+  "presentationVersion": 1,
+  "header": {
+    "title": "Run 20260929T033538Z_nogit_runner_f3z3",
+    "runId": "20260929T033538Z_nogit_runner_f3z3",
+    "status": "complete",
+    "stopped": null,
+    "startedAt": "2026-09-29T03:35:38.563Z",
+    "date": "2026-09-29",
+    "author": "runner",
+    "reeval": "0.0.1",
+    "profile": null,
+    "runs": "1 run per cell",
+    "git": null,
+    "wall": {
+      "value": 105402,
+      "text": "1m 45s"
+    },
+    "tokens": {
+      "value": 326481,
+      "text": "326k"
+    },
+    "cost": {
+      "value": null,
+      "text": "not reported"
+    },
+    "counted": {
+      "k": 6,
+      "n": 12,
+      "text": "6 of 12"
+    },
+    "infraError": 0,
+    "canceled": 0,
+    "attempts": "6 of 12 counted attempts passed",
+    "servedBy": []
+  },
+  "tally": {
+    "pass": 6,
+    "fail": 6,
+    "infraError": 0,
+    "canceled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "notRun": 0,
+    "ungated": 0,
+    "text": "6 fail · 6 pass"
+  },
+  "caveats": [
+    {
+      "severity": "warn",
+      "text": "edit and run canary: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/edit-and-run.eval.ts › edit and run canary",
+      "cites": [
+        {
+          "id": "A2",
+          "href": "#attempt-evals-edit-and-run-eval-ts-edit-and-run-canary-claude-code-c-3f0d7c3a"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "egress canary: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/egress.eval.ts › egress canary",
+      "cites": [
+        {
+          "id": "A4",
+          "href": "#attempt-evals-egress-eval-ts-egress-canary-claude-code-claude-haiku-76ab9e2e"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "key canary: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/key.eval.ts › key canary",
+      "cites": [
+        {
+          "id": "A6",
+          "href": "#attempt-evals-key-eval-ts-key-canary-claude-code-claude-haiku-4-5-pl-a835233c"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "mcp canary: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/mcp.eval.ts › mcp canary",
+      "cites": [
+        {
+          "id": "A8",
+          "href": "#attempt-evals-mcp-eval-ts-mcp-canary-claude-code-claude-haiku-4-5-st-d0a1c32e"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "rules canary: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/rules.eval.ts › rules canary",
+      "cites": [
+        {
+          "id": "A10",
+          "href": "#attempt-evals-rules-eval-ts-rules-canary-claude-code-claude-haiku-4-707ef0ba"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "skill canary: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/skill.eval.ts › skill canary",
+      "cites": [
+        {
+          "id": "A12",
+          "href": "#attempt-evals-skill-eval-ts-skill-canary-claude-code-claude-haiku-4-bc259512"
+        }
+      ]
+    }
+  ],
+  "harnesses": [
+    {
+      "id": "claude-code:claude-haiku-4-5",
+      "name": "Claude Code",
+      "model": "claude-haiku-4-5",
+      "label": "Claude Code · claude-haiku-4-5",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 12,
+        "text": "12 attempts"
+      }
+    }
+  ],
+  "evals": [
+    {
+      "id": "evals/edit-and-run.eval.ts › edit and run",
+      "anchor": "edit-and-run",
+      "name": "edit and run",
+      "file": "evals/edit-and-run.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "edit and run",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "notes",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": 87420,
+            "text": "87k"
+          },
+          "agentTime": {
+            "value": 8274,
+            "text": "8.3s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A1",
+          "key": "evals/edit-and-run.eval.ts › edit and run # claude-code:claude-haiku-4-5/notes/docker#1",
+          "href": "./evals-edit-and-run-eval-ts-edit-and-run-db761a/claude-code-claude-haiku-4-5-notes-docker-13c892/1/transcript.jsonl",
+          "harness": "Claude Code · claude-haiku-4-5",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": 87420,
+            "text": "87k"
+          },
+          "agentTime": {
+            "value": 8274,
+            "text": "8s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": 87420,
+            "text": "87k"
+          },
+          "toolCalls": {
+            "value": 2,
+            "text": "2"
+          },
+          "agentTime": {
+            "value": 8274,
+            "text": "8.3s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
+    },
+    {
+      "id": "evals/edit-and-run.eval.ts › edit and run canary",
+      "anchor": "edit-and-run-canary",
+      "name": "edit and run canary",
+      "file": "evals/edit-and-run.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "edit and run canary",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0,
+            "text": "0%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          }
+        },
+        "foot": "0 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "notes",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A2",
+          "key": "evals/edit-and-run.eval.ts › edit and run canary # claude-code:claude-haiku-4-5/notes/docker#1",
+          "href": "#attempt-evals-edit-and-run-eval-ts-edit-and-run-canary-claude-code-c-3f0d7c3a",
+          "harness": "Claude Code · claude-haiku-4-5",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "expected 'status: draft' to be 'status: final' // Object.is equality",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "error",
+          "kindText": "error",
+          "label": "expected 'status: draft' to be 'status: final' // Object.is equality",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 1,
+            "text": "1 of 1"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A2",
+              "href": "#attempt-evals-edit-and-run-eval-ts-edit-and-run-canary-claude-code-c-3f0d7c3a"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
+    },
+    {
+      "id": "evals/egress.eval.ts › egress",
+      "anchor": "egress",
+      "name": "egress",
+      "file": "evals/egress.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "egress",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "closed",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": 43747,
+            "text": "44k"
+          },
+          "agentTime": {
+            "value": 8326,
+            "text": "8.3s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A3",
+          "key": "evals/egress.eval.ts › egress # claude-code:claude-haiku-4-5/closed/docker#1",
+          "href": "./evals-egress-eval-ts-egress-ae6df0/claude-code-claude-haiku-4-5-closed-docker-57fce2/1/transcript.jsonl",
+          "harness": "Claude Code · claude-haiku-4-5",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": 43747,
+            "text": "44k"
+          },
+          "agentTime": {
+            "value": 8326,
+            "text": "8s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": 43747,
+            "text": "44k"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 8326,
+            "text": "8.3s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
+    },
+    {
+      "id": "evals/egress.eval.ts › egress canary",
+      "anchor": "egress-canary",
+      "name": "egress canary",
+      "file": "evals/egress.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "egress canary",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0,
+            "text": "0%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          }
+        },
+        "foot": "0 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "closed",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A4",
+          "key": "evals/egress.eval.ts › egress canary # claude-code:claude-haiku-4-5/closed/docker#1",
+          "href": "#attempt-evals-egress-eval-ts-egress-canary-claude-code-claude-haiku-76ab9e2e",
+          "harness": "Claude Code · claude-haiku-4-5",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "expected '403 000' to match /^200 /",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "error",
+          "kindText": "error",
+          "label": "expected '403 000' to match /^200 /",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 1,
+            "text": "1 of 1"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A4",
+              "href": "#attempt-evals-egress-eval-ts-egress-canary-claude-code-claude-haiku-76ab9e2e"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
+    },
+    {
+      "id": "evals/key.eval.ts › key",
+      "anchor": "key",
+      "name": "key",
+      "file": "evals/key.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "key",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "scanned",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": 21417,
+            "text": "21k"
+          },
+          "agentTime": {
+            "value": 3157,
+            "text": "3.2s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A5",
+          "key": "evals/key.eval.ts › key # claude-code:claude-haiku-4-5/scanned/docker#1",
+          "href": "./evals-key-eval-ts-key-187a81/claude-code-claude-haiku-4-5-scanned-docker-eb062a/1/transcript.jsonl",
+          "harness": "Claude Code · claude-haiku-4-5",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": 21417,
+            "text": "21k"
+          },
+          "agentTime": {
+            "value": 3157,
+            "text": "3s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": 21417,
+            "text": "21k"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 3157,
+            "text": "3.2s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
+    },
+    {
+      "id": "evals/key.eval.ts › key canary",
+      "anchor": "key-canary",
+      "name": "key canary",
+      "file": "evals/key.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "key canary",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0,
+            "text": "0%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          }
+        },
+        "foot": "0 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "planted",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A6",
+          "key": "evals/key.eval.ts › key canary # claude-code:claude-haiku-4-5/planted/docker#1",
+          "href": "#attempt-evals-key-eval-ts-key-canary-claude-code-claude-haiku-4-5-pl-a835233c",
+          "harness": "Claude Code · claude-haiku-4-5",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "expected [ '/proc/1/environ (raw)', …(4) ] to deeply equal []",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "error",
+          "kindText": "error",
+          "label": "expected [ '/proc/1/environ (raw)', …(4) ] to deeply equal []",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 1,
+            "text": "1 of 1"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A6",
+              "href": "#attempt-evals-key-eval-ts-key-canary-claude-code-claude-haiku-4-5-pl-a835233c"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
+    },
+    {
+      "id": "evals/mcp.eval.ts › mcp",
+      "anchor": "mcp",
+      "name": "mcp",
+      "file": "evals/mcp.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "mcp",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "stamped",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": 65008,
+            "text": "65k"
+          },
+          "agentTime": {
+            "value": 7260,
+            "text": "7.3s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A7",
+          "key": "evals/mcp.eval.ts › mcp # claude-code:claude-haiku-4-5/stamped/docker#1",
+          "href": "./evals-mcp-eval-ts-mcp-a42bcd/claude-code-claude-haiku-4-5-stamped-docker-7e166c/1/transcript.jsonl",
+          "harness": "Claude Code · claude-haiku-4-5",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": 65008,
+            "text": "65k"
+          },
+          "agentTime": {
+            "value": 7260,
+            "text": "7s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": 65008,
+            "text": "65k"
+          },
+          "toolCalls": {
+            "value": 2,
+            "text": "2"
+          },
+          "agentTime": {
+            "value": 7260,
+            "text": "7.3s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
+    },
+    {
+      "id": "evals/mcp.eval.ts › mcp canary",
+      "anchor": "mcp-canary",
+      "name": "mcp canary",
+      "file": "evals/mcp.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "mcp canary",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0,
+            "text": "0%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          }
+        },
+        "foot": "0 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "stamped",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A8",
+          "key": "evals/mcp.eval.ts › mcp canary # claude-code:claude-haiku-4-5/stamped/docker#1",
+          "href": "#attempt-evals-mcp-eval-ts-mcp-canary-claude-code-claude-haiku-4-5-st-d0a1c32e",
+          "harness": "Claude Code · claude-haiku-4-5",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "expected '' to contain 'tools/call'",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "error",
+          "kindText": "error",
+          "label": "expected '' to contain 'tools/call'",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 1,
+            "text": "1 of 1"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A8",
+              "href": "#attempt-evals-mcp-eval-ts-mcp-canary-claude-code-claude-haiku-4-5-st-d0a1c32e"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
+    },
+    {
+      "id": "evals/rules.eval.ts › rules",
+      "anchor": "rules",
+      "name": "rules",
+      "file": "evals/rules.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "rules",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "ruled",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": 43570,
+            "text": "44k"
+          },
+          "agentTime": {
+            "value": 6104,
+            "text": "6.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A9",
+          "key": "evals/rules.eval.ts › rules # claude-code:claude-haiku-4-5/ruled/docker#1",
+          "href": "./evals-rules-eval-ts-rules-f3fd8d/claude-code-claude-haiku-4-5-ruled-docker-a010bf/1/transcript.jsonl",
+          "harness": "Claude Code · claude-haiku-4-5",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": 43570,
+            "text": "44k"
+          },
+          "agentTime": {
+            "value": 6104,
+            "text": "6s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": 43570,
+            "text": "44k"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 6104,
+            "text": "6.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
+    },
+    {
+      "id": "evals/rules.eval.ts › rules canary",
+      "anchor": "rules-canary",
+      "name": "rules canary",
+      "file": "evals/rules.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "rules canary",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0,
+            "text": "0%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          }
+        },
+        "foot": "0 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "ruled",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A10",
+          "key": "evals/rules.eval.ts › rules canary # claude-code:claude-haiku-4-5/ruled/docker#1",
+          "href": "#attempt-evals-rules-eval-ts-rules-canary-claude-code-claude-haiku-4-707ef0ba",
+          "harness": "Claude Code · claude-haiku-4-5",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "expected null to be 'TANGERINE-41' // Object.is equality",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "error",
+          "kindText": "error",
+          "label": "expected null to be 'TANGERINE-41' // Object.is equality",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 1,
+            "text": "1 of 1"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A10",
+              "href": "#attempt-evals-rules-eval-ts-rules-canary-claude-code-claude-haiku-4-707ef0ba"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
+    },
+    {
+      "id": "evals/skill.eval.ts › skill",
+      "anchor": "skill",
+      "name": "skill",
+      "file": "evals/skill.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "skill",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "skilled",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": 65319,
+            "text": "65k"
+          },
+          "agentTime": {
+            "value": 5835,
+            "text": "5.8s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A11",
+          "key": "evals/skill.eval.ts › skill # claude-code:claude-haiku-4-5/skilled/docker#1",
+          "href": "./evals-skill-eval-ts-skill-468cc8/claude-code-claude-haiku-4-5-skilled-docker-7add5d/1/transcript.jsonl",
+          "harness": "Claude Code · claude-haiku-4-5",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": 65319,
+            "text": "65k"
+          },
+          "agentTime": {
+            "value": 5835,
+            "text": "6s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": 65319,
+            "text": "65k"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 5835,
+            "text": "5.8s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
+    },
+    {
+      "id": "evals/skill.eval.ts › skill canary",
+      "anchor": "skill-canary",
+      "name": "skill canary",
+      "file": "evals/skill.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "skill canary",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0,
+            "text": "0%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          }
+        },
+        "foot": "0 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "skilled",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A12",
+          "key": "evals/skill.eval.ts › skill canary # claude-code:claude-haiku-4-5/skilled/docker#1",
+          "href": "#attempt-evals-skill-eval-ts-skill-canary-claude-code-claude-haiku-4-bc259512",
+          "harness": "Claude Code · claude-haiku-4-5",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "expected null to be 'PROBE-7F3K-QUILL' // Object.is equality",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "error",
+          "kindText": "error",
+          "label": "expected null to be 'PROBE-7F3K-QUILL' // Object.is equality",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 1,
+            "text": "1 of 1"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A12",
+              "href": "#attempt-evals-skill-eval-ts-skill-canary-claude-code-claude-haiku-4-bc259512"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
+    }
+  ],
+  "actions": [],
+  "provenance": {
+    "rows": [
+      {
+        "field": "Executed at",
+        "value": "not a git repository"
+      },
+      {
+        "field": "Lockfiles",
+        "value": "none found"
+      },
+      {
+        "field": "Images",
+        "value": "reeval-sandbox:claude-code-1.0.128-patch.5d1c985c · id 13db7c0f24b7 · no registry digest (built locally) · CLI 2.1.276 (Claude Code)"
+      },
+      {
+        "field": "Harnesses",
+        "value": "claude-code:claude-haiku-4-5 (model claude-haiku-4-5, served claude-haiku-4-5)"
+      },
+      {
+        "field": "Environments",
+        "value": "closed 62b9fdc93469; notes a9fe919c0f6d; planted 76aaffdb150e; ruled 3b6bc71a36c7; scanned 5c768772c7e8; skilled 31d96fe99677 · skills contract-probe; stamped a7c2720c31fc · mcp stamp"
+      },
+      {
+        "field": "Judge",
+        "value": "none by default · threshold 0.8 · version 0e2a4839495b"
+      },
+      {
+        "field": "Packages",
+        "value": "@vitest/expect 5.0.2 · jiti 2.7.0 · @reeval/harness-antigravity 0.1.0 · @reeval/harness-opencode 0.2.0 · @reeval/harness-goose 0.1.0 · @reeval/harness-pi 0.1.0 · @reeval/harness-cursor-sdk 0.1.0 · @ai-sdk/harness-claude-code 1.0.128-patch.5d1c985c · @reeval/harness-codex 0.1.0 · ai 7.0.114 · @ai-sdk/harness 1.0.124 · @ai-sdk/google 4.0.79 · @ai-sdk/typesafe-ai 3.0.6"
+      },
+      {
+        "field": "reeval",
+        "value": "0.0.1 · node 24.21.0 · linux/x64"
+      },
+      {
+        "field": "Runner",
+        "value": "local · runner"
+      },
+      {
+        "field": "Artifacts",
+        "value": "all"
+      },
+      {
+        "field": "Context",
+        "value": "4 files"
+      }
+    ],
+    "warnings": [
+      "Image reeval-sandbox:claude-code-1.0.128-patch.5d1c985c isn't pushed, so an exact rerun needs this machine's image (id 13db7c0f24b7).",
+      "Not a git repository, so the code under test isn't pinned."
+    ]
+  },
+  "attemptIndex": [
+    {
+      "id": "A1",
+      "anchor": "attempt-evals-edit-and-run-eval-ts-edit-and-run-claude-code-claude-h-f0dc1f2a",
+      "eval": "edit and run",
+      "harness": "Claude Code · claude-haiku-4-5",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": 87420,
+        "text": "87k"
+      },
+      "agentTime": {
+        "value": 8274,
+        "text": "8s"
+      },
+      "toolCalls": {
+        "value": 2,
+        "text": "2"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-edit-and-run-eval-ts-edit-and-run-db761a/claude-code-claude-haiku-4-5-notes-docker-13c892/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-edit-and-run-eval-ts-edit-and-run-db761a/claude-code-claude-haiku-4-5-notes-docker-13c892/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A2",
+      "anchor": "attempt-evals-edit-and-run-eval-ts-edit-and-run-canary-claude-code-c-3f0d7c3a",
+      "eval": "edit and run canary",
+      "harness": "Claude Code · claude-haiku-4-5",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    },
+    {
+      "id": "A3",
+      "anchor": "attempt-evals-egress-eval-ts-egress-claude-code-claude-haiku-4-5-clo-91cd4f5a",
+      "eval": "egress",
+      "harness": "Claude Code · claude-haiku-4-5",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": 43747,
+        "text": "44k"
+      },
+      "agentTime": {
+        "value": 8326,
+        "text": "8s"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-egress-eval-ts-egress-ae6df0/claude-code-claude-haiku-4-5-closed-docker-57fce2/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-egress-eval-ts-egress-ae6df0/claude-code-claude-haiku-4-5-closed-docker-57fce2/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A4",
+      "anchor": "attempt-evals-egress-eval-ts-egress-canary-claude-code-claude-haiku-76ab9e2e",
+      "eval": "egress canary",
+      "harness": "Claude Code · claude-haiku-4-5",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    },
+    {
+      "id": "A5",
+      "anchor": "attempt-evals-key-eval-ts-key-claude-code-claude-haiku-4-5-scanned-d-94a13220",
+      "eval": "key",
+      "harness": "Claude Code · claude-haiku-4-5",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": 21417,
+        "text": "21k"
+      },
+      "agentTime": {
+        "value": 3157,
+        "text": "3s"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-key-eval-ts-key-187a81/claude-code-claude-haiku-4-5-scanned-docker-eb062a/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-key-eval-ts-key-187a81/claude-code-claude-haiku-4-5-scanned-docker-eb062a/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A6",
+      "anchor": "attempt-evals-key-eval-ts-key-canary-claude-code-claude-haiku-4-5-pl-a835233c",
+      "eval": "key canary",
+      "harness": "Claude Code · claude-haiku-4-5",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    },
+    {
+      "id": "A7",
+      "anchor": "attempt-evals-mcp-eval-ts-mcp-claude-code-claude-haiku-4-5-stamped-d-d63a0e81",
+      "eval": "mcp",
+      "harness": "Claude Code · claude-haiku-4-5",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": 65008,
+        "text": "65k"
+      },
+      "agentTime": {
+        "value": 7260,
+        "text": "7s"
+      },
+      "toolCalls": {
+        "value": 2,
+        "text": "2"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-mcp-eval-ts-mcp-a42bcd/claude-code-claude-haiku-4-5-stamped-docker-7e166c/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-mcp-eval-ts-mcp-a42bcd/claude-code-claude-haiku-4-5-stamped-docker-7e166c/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A8",
+      "anchor": "attempt-evals-mcp-eval-ts-mcp-canary-claude-code-claude-haiku-4-5-st-d0a1c32e",
+      "eval": "mcp canary",
+      "harness": "Claude Code · claude-haiku-4-5",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    },
+    {
+      "id": "A9",
+      "anchor": "attempt-evals-rules-eval-ts-rules-claude-code-claude-haiku-4-5-ruled-ee265c80",
+      "eval": "rules",
+      "harness": "Claude Code · claude-haiku-4-5",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": 43570,
+        "text": "44k"
+      },
+      "agentTime": {
+        "value": 6104,
+        "text": "6s"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-rules-eval-ts-rules-f3fd8d/claude-code-claude-haiku-4-5-ruled-docker-a010bf/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-rules-eval-ts-rules-f3fd8d/claude-code-claude-haiku-4-5-ruled-docker-a010bf/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A10",
+      "anchor": "attempt-evals-rules-eval-ts-rules-canary-claude-code-claude-haiku-4-707ef0ba",
+      "eval": "rules canary",
+      "harness": "Claude Code · claude-haiku-4-5",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    },
+    {
+      "id": "A11",
+      "anchor": "attempt-evals-skill-eval-ts-skill-claude-code-claude-haiku-4-5-skill-f87719c0",
+      "eval": "skill",
+      "harness": "Claude Code · claude-haiku-4-5",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": 65319,
+        "text": "65k"
+      },
+      "agentTime": {
+        "value": 5835,
+        "text": "6s"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-skill-eval-ts-skill-468cc8/claude-code-claude-haiku-4-5-skilled-docker-7add5d/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-skill-eval-ts-skill-468cc8/claude-code-claude-haiku-4-5-skilled-docker-7add5d/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A12",
+      "anchor": "attempt-evals-skill-eval-ts-skill-canary-claude-code-claude-haiku-4-bc259512",
+      "eval": "skill canary",
+      "harness": "Claude Code · claude-haiku-4-5",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    }
+  ]
+}

@@ -13,9 +13,7 @@ import {
   type DetailMark,
   type StatusFile,
   type StatusIcon,
-  type StatusList,
   type StatusRow,
-  shownDetail,
 } from './status.ts'
 
 export const ICON: Record<StatusIcon, string> = {
@@ -81,87 +79,11 @@ export function detailSegments(c: Colors, line: DetailLine, glyph?: string): Seg
   ]
 }
 
-export function paintDetail(c: Colors, line: DetailLine, glyph?: string): string {
-  const parts = detailSegments(c, line, glyph).map((s) => (s.text ? s.paint(s.text) : ''))
-  return `${'  '.repeat(line.depth)}${parts.join('')}`
-}
-
 const NAME_MAX = 60
 
 /** The name column's width in a file: its longest name, at most `NAME_MAX`. */
 export const nameWidth = (rows: StatusRow[]) =>
   Math.min(NAME_MAX, Math.max(0, ...rows.map((r) => r.name.length)))
-
-const fit = (name: string, width: number) =>
-  name.length > width ? `${name.slice(0, width - 1)}…` : name.padEnd(width)
-
-export const rowText = (c: Colors, row: StatusRow, width: number, glyph?: string) =>
-  `${paintIcon(c, row.icon, glyph)} ${fit(row.name, width)}  ${c.dim(row.summary)}`.trimEnd()
-
-export type ListTextOptions = {
-  colors: Colors
-  /** `├─`/`└─` before each row and `│` down a detail; off for coding agents. */
-  glyphs: boolean
-  /** Which rows print their detail. */
-  expand: (row: StatusRow) => boolean
-  /** The full detail (`-v`), not the compact one. */
-  full?: boolean
-}
-
-/** Each file's heading and rows, a blank line between files. */
-export function fileLines(files: StatusFile[], o: ListTextOptions): string[] {
-  const c = o.colors
-  const out: string[] = []
-  for (const [i, file] of files.entries()) {
-    if (i) out.push('')
-    out.push(c.bold(file.path))
-    const width = nameWidth(file.rows)
-    for (const [j, row] of file.rows.entries()) {
-      const last = j === file.rows.length - 1
-      const branch = o.glyphs ? c.dim(last ? '└─ ' : '├─ ') : '  '
-      out.push(`${branch}${rowText(c, row, width)}`)
-      if (!o.expand(row)) continue
-      const down = o.glyphs ? c.dim(last ? '     ' : '│    ') : '    '
-      for (const line of shownDetail(row.detail, o.full ?? false)) {
-        out.push(`${down}${paintDetail(c, line)}`.trimEnd())
-      }
-    }
-  }
-  return out
-}
-
-/**
- * The whole list once, as the run ends: failures, compares and evals with remarks expanded (with `-v`, every
- * row), other passes on one line each. `full` adds the detail the interactive list keeps behind
- * `→ more` (the rest of each message, file excerpts, snapshots); `-v` implies it.
- */
-export function listLines(
-  list: StatusList,
-  c: Colors,
-  glyphs: boolean,
-  pointer: string,
-  verbose = false,
-  full = verbose,
-): string[] {
-  const expand = (row: StatusRow) =>
-    row.detail.length > 0 &&
-    (verbose ||
-      row.compare ||
-      row.answers ||
-      row.remarks > 0 ||
-      row.icon === 'fail' ||
-      row.icon === 'canceled')
-  return [
-    ...list.errors.flatMap((e) => [c.red(`error: ${e.split('\n')[0] ?? ''}`)]),
-    ...(list.errors.length ? [''] : []),
-    ...fileLines(list.files, { colors: c, glyphs, expand, full }),
-    '',
-    ...(list.hiddenRemarks ? [c.dim(`+${plural(list.hiddenRemarks, 'more remark')} (-v)`)] : []),
-    ...list.notes.map((n) => c.yellow(n)),
-    list.done,
-    c.dim(pointer),
-  ]
-}
 
 type LiveAttempt = {
   key: string

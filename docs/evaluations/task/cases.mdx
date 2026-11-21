@@ -86,19 +86,14 @@ with-cases.eval.ts › adds a function to src/math.js  1          —         1 
 </Step>
 <Step title="Run the evaluation">
 
-Run the evaluation. It prints one row; a failure, or `-v`, adds a row per case and a column per cell:
+Run the evaluation. It prints one block; a failure adds a row per case:
 
 ```text
-with-cases.eval.ts
-  ✓ adds a function to src/math.js  3 of 3 runs passed · 3 cases
-    Passed all 3 cases.
-      case      fake
-    ✓ subtract  1 of 1
-    ✓ multiply  1 of 1
-    ✓ power     1 of 1
+PASS           adds a function to src/math.js
+               100% passed · 3 of 3 attempts
 ```
 
-Past eight cases, the table lists only the failed ones; `-v` lists every case. While the run goes, each attempt names its case: `fake · power #1 agent turn 1`.
+While the run goes, each attempt names its case: `fake · power #1 agent turn 1`.
 
 </Step>
 </Steps>
@@ -120,22 +115,27 @@ evaluate(
 )
 ```
 
-Two of three cases pass, a rate of 67%, so the evaluation passes (shown with `-v`):
+Two of three cases pass, a rate of 67%, so the evaluation passes:
 
 ```text
-evals/rate.eval.ts
-  ✓ rate  2 of 3 runs passed · 3 cases
-    2 of 3 cases passed; c failed.
-    Pass rate over the cases: 67%, clearing passRate 0.6.
-      case  fake
-    ✓ a     1 of 1
-    ✓ b     1 of 1
-    ✗ c     0 of 1
-    ✗ not.toBe c  failed on c
-      expected 'c' not to be 'c' // Object.is equality · evals/rate.eval.ts:8
+PASS           rate
+               67% passed · 2 of 3 attempts
+               failed check, 1 of 3: not.toBe c
+                 expected 'c' not to be 'c' // Object.is equality
+                 at evals/rate.eval.ts:8
 ```
 
-Under the default `'all'`, every case must pass, and a failing case fails the evaluation: `Failed on c; 2 of 3 cases passed.` A case whose every attempt hit an infra error makes the evaluation an infra error, unless another case fails.
+Under the default `'all'`, or below `passRate`, a failing case fails the evaluation, and its block lists each case:
+
+```text
+FAIL           rate
+               67% passed · 2 of 3 attempts
+               a  100%  1 of 1
+               b  100%  1 of 1
+               c  0%    0 of 1
+```
+
+A case whose every attempt hit an infra error makes the evaluation an infra error, unless another case fails.
 
 In the record, the cases are rows in the evaluation's `cases`. Case `c` keeps its `fail`, and the rate over the cases decides the evaluation, its exit code and the tally. `reeval compare` shows a case that flipped as `now fails` or `now passes`, and `--fail-on-regression` reads the evaluation's gate over its cases.
 
@@ -168,16 +168,13 @@ The `reeval run --dry-run` notes list each pair left out, such as `where exclude
 Cases with `compare` report one effect per variant, paired by case, and the case table puts the control's column first:
 
 ```text
-evals/compare.eval.ts
-  ✓ writes Drizzle schemas  6 of 6 variant runs passed · 6 cases
-    The with-drizzle variant helped.
-    arm            passed  verdict  vs control
-    app (control)  1 of 6
-    with-drizzle   6 of 6  helped   "schema compiles" +83 pts
-      case      app (control)  with-drizzle
-    ✓ users     1 of 1         1 of 1
-    ✓ posts     0 of 1         1 of 1
-    …
+PASS           documents a function
+               math 0% vs jsdoc 100%: helped · 0 of 6 vs 6 of 6 attempts
+               math   0%    0 of 6  baseline
+               jsdoc  100%  6 of 6  helped
+               failed check, 6 of 12, all on math, not gated: JSDoc block
+                 expected src/math.js to match /\*\/\s*export function subtract\b/
+                 at with-case-lift.eval.ts:19
 ```
  For more information, see [Lift](/results/compare/lift) and [`compare`](/reference/options#compare). For a runnable project, see [`with-case-lift`](https://github.com/reeval-ai/reeval/tree/main/examples/with-case-lift).
 

@@ -1,0 +1,30 @@
+Run 20261020T230148Z_958e309_cursor-agent_qghb
+4 of 8 counted attempts passed · 944ms wall time · tokens not reported · cost not reported · 958e309
+
+FAIL           bills in minor units with the billing doc
+               0% passed · 0 of 1 attempt
+               failed check, 1 of 1: amount in minor units
+                 expected command to succeed, exit code 1
+
+PASS           adds a $name button that builds
+               100% passed · 3 of 3 attempts
+
+FAIL           greets in the house style
+               0% passed · 0 of 1 attempt
+               failed check, 1 of 1: house greeting
+                 expected command to succeed, exit code 1
+
+PASS           writes greet.js
+               100% passed · 1 of 1 attempt
+
+FAIL           greets in French
+               0% passed · 0 of 1 attempt
+               failed check, 1 of 1: french greeting
+                 expected command to succeed, exit code 1
+
+FAIL           greets in Spanish
+               0% passed · 0 of 1 attempt
+               failed check, 1 of 1: spanish greeting
+                 expected command to succeed, exit code 1
+
+Evals: 4 fail · 2 pass

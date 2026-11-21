@@ -1,0 +1,2519 @@
+{
+  "presentationVersion": 1,
+  "header": {
+    "title": "Run 20261102T195335Z_f81fd99_cursor-agent_ah0s",
+    "runId": "20261102T195335Z_f81fd99_cursor-agent_ah0s",
+    "status": "complete",
+    "stopped": null,
+    "startedAt": "2026-11-02T19:53:35.473Z",
+    "date": "2026-11-02",
+    "author": "cursor-agent",
+    "reeval": "0.18.0",
+    "profile": null,
+    "runs": "varying runs per cell",
+    "git": {
+      "repo": null,
+      "branch": "master",
+      "sha": "f81fd992da39a6946a8e78c786dadee26fb013ad",
+      "dirty": false,
+      "text": "f81fd99"
+    },
+    "wall": {
+      "value": 1198,
+      "text": "1s"
+    },
+    "tokens": {
+      "value": null,
+      "text": "not reported"
+    },
+    "cost": {
+      "value": null,
+      "text": "not reported"
+    },
+    "counted": {
+      "k": 10,
+      "n": 13,
+      "text": "10 of 13"
+    },
+    "infraError": 0,
+    "canceled": 0,
+    "attempts": "10 of 13 counted attempts passed",
+    "servedBy": []
+  },
+  "tally": {
+    "pass": 3,
+    "fail": 2,
+    "infraError": 0,
+    "canceled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "notRun": 0,
+    "ungated": 1,
+    "text": "2 fail · 3 pass · 1 not gated"
+  },
+  "caveats": [
+    {
+      "severity": "warn",
+      "text": "rated: 3 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "evals/cases.eval.ts › rated",
+      "cites": [
+        {
+          "id": "A1",
+          "href": "./evals-cases-eval-ts-rated-a-abff7a/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        },
+        {
+          "id": "A2",
+          "href": "./evals-cases-eval-ts-rated-b-bb88b3/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        },
+        {
+          "id": "A3",
+          "href": "./evals-cases-eval-ts-rated-c-3922df/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "strict: 4 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "evals/cases.eval.ts › strict",
+      "cites": [
+        {
+          "id": "A4",
+          "href": "./evals-cases-eval-ts-strict-x-6c40d5/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        },
+        {
+          "id": "A17",
+          "href": "./evals-cases-eval-ts-strict-x-6c40d5/fake-fake-fake-dc13e2/2/transcript.jsonl"
+        },
+        {
+          "id": "A5",
+          "href": "./evals-cases-eval-ts-strict-y-ad030a/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        },
+        {
+          "id": "A18",
+          "href": "./evals-cases-eval-ts-strict-y-ad030a/fake-fake-fake-dc13e2/2/transcript.jsonl"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "lands: 2 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "evals/cases.eval.ts › lands",
+      "cites": [
+        {
+          "id": "A6",
+          "href": "#attempt-evals-cases-eval-ts-lands-next-fake-next-app-fake-1-c813fa57"
+        },
+        {
+          "id": "A7",
+          "href": "#attempt-evals-cases-eval-ts-lands-vite-fake-vite-app-fake-1-c28ccb36"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "lifted: Check \"has the skill\" never passes on the baseline and always passes on a variant; it may not apply to the baseline.",
+      "evalId": "evals/cases.eval.ts › lifted",
+      "cites": []
+    },
+    {
+      "severity": "warn",
+      "text": "lifted: 6 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "evals/cases.eval.ts › lifted",
+      "cites": [
+        {
+          "id": "A8",
+          "href": "./evals-cases-eval-ts-lifted-ada-39ad15/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "id": "A9",
+          "href": "./evals-cases-eval-ts-lifted-ada-39ad15/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        },
+        {
+          "id": "A10",
+          "href": "./evals-cases-eval-ts-lifted-grace-7415c1/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "id": "A11",
+          "href": "./evals-cases-eval-ts-lifted-grace-7415c1/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        },
+        {
+          "id": "A12",
+          "href": "./evals-cases-eval-ts-lifted-linus-6dcc1e/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "id": "A13",
+          "href": "./evals-cases-eval-ts-lifted-linus-6dcc1e/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "alone: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/cases.eval.ts › alone",
+      "cites": [
+        {
+          "id": "A14",
+          "href": "./evals-cases-eval-ts-alone-only-36f851/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "picks: 2 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "evals/cases.eval.ts › picks",
+      "cites": [
+        {
+          "id": "A15",
+          "href": "./evals-cases-eval-ts-picks-p1-ceb45b/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        },
+        {
+          "id": "A16",
+          "href": "./evals-cases-eval-ts-picks-p2-834bea/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        }
+      ]
+    }
+  ],
+  "harnesses": [
+    {
+      "id": "fake",
+      "name": "Fake",
+      "model": null,
+      "label": "Fake",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 18,
+        "text": "18 attempts"
+      }
+    }
+  ],
+  "evals": [
+    {
+      "id": "evals/cases.eval.ts › rated",
+      "anchor": "rated",
+      "name": "rated",
+      "file": "evals/cases.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "3 prompts, 1 coding harness, 3 attempts",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "rated",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0.6666666666666666,
+            "text": "67%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 2,
+            "n": 3,
+            "rate": 0.6666666666666666,
+            "text": "67%",
+            "of": "2 of 3",
+            "interval": "21% to 94%"
+          }
+        },
+        "foot": "2 of 3 attempts",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "fake",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 2,
+            "n": 3,
+            "rate": 0.6666666666666666,
+            "text": "67%",
+            "of": "2 of 3",
+            "interval": "21% to 94%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A1",
+          "key": "evals/cases.eval.ts › rated [a] # fake/fake/fake#1",
+          "href": "./evals-cases-eval-ts-rated-a-abff7a/fake-fake-fake-dc13e2/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": "a",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A2",
+          "key": "evals/cases.eval.ts › rated [b] # fake/fake/fake#1",
+          "href": "./evals-cases-eval-ts-rated-b-bb88b3/fake-fake-fake-dc13e2/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": "b",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A3",
+          "key": "evals/cases.eval.ts › rated [c] # fake/fake/fake#1",
+          "href": "./evals-cases-eval-ts-rated-c-3922df/fake-fake-fake-dc13e2/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": "c",
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "passes its case: expected 'c' not to be 'c' // Object.is equality",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [
+        {
+          "label": "a",
+          "cells": [
+            {
+              "column": "fake",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            },
+            {
+              "column": "total",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            }
+          ]
+        },
+        {
+          "label": "b",
+          "cells": [
+            {
+              "column": "fake",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            },
+            {
+              "column": "total",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            }
+          ]
+        },
+        {
+          "label": "c",
+          "cells": [
+            {
+              "column": "fake",
+              "rate": {
+                "k": 0,
+                "n": 1,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 1",
+                "interval": "0% to 79%"
+              }
+            },
+            {
+              "column": "total",
+              "rate": {
+                "k": 0,
+                "n": 1,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 1",
+                "interval": "0% to 79%"
+              }
+            }
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "passes its case",
+          "matcher": "not.toBe",
+          "at": "evals/cases.eval.ts:22",
+          "failed": true,
+          "cells": [
+            {
+              "column": "Fake",
+              "text": "2 of 3"
+            }
+          ],
+          "total": "2 of 3"
+        }
+      ],
+      "failures": [
+        {
+          "kind": "assertion",
+          "kindText": "failed check",
+          "label": "passes its case",
+          "message": "expected 'c' not to be 'c' // Object.is equality",
+          "detail": null,
+          "at": "evals/cases.eval.ts:22",
+          "count": {
+            "k": 1,
+            "n": 3,
+            "text": "1 of 3"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A3",
+              "href": "./evals-cases-eval-ts-rated-c-3922df/fake-fake-fake-dc13e2/1/transcript.jsonl"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "67% passed, 95% CI 21% to 94%",
+        "task average 67%"
+      ]
+    },
+    {
+      "id": "evals/cases.eval.ts › strict",
+      "anchor": "strict",
+      "name": "strict",
+      "file": "evals/cases.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "2 prompts, 1 coding harness, 4 attempts",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "strict",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0.5,
+            "text": "50%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 2,
+            "n": 4,
+            "rate": 0.5,
+            "text": "50%",
+            "of": "2 of 4",
+            "interval": "15% to 85%"
+          }
+        },
+        "foot": "2 of 4 attempts",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "fake",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 2,
+            "n": 4,
+            "rate": 0.5,
+            "text": "50%",
+            "of": "2 of 4",
+            "interval": "15% to 85%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A4",
+          "key": "evals/cases.eval.ts › strict [x] # fake/fake/fake#1",
+          "href": "./evals-cases-eval-ts-strict-x-6c40d5/fake-fake-fake-dc13e2/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": "x",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A5",
+          "key": "evals/cases.eval.ts › strict [y] # fake/fake/fake#1",
+          "href": "./evals-cases-eval-ts-strict-y-ad030a/fake-fake-fake-dc13e2/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": "y",
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "passes its case: expected 'y' to be 'x' // Object.is equality",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A17",
+          "key": "evals/cases.eval.ts › strict [x] # fake/fake/fake#2",
+          "href": "./evals-cases-eval-ts-strict-x-6c40d5/fake-fake-fake-dc13e2/2/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": "x",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A18",
+          "key": "evals/cases.eval.ts › strict [y] # fake/fake/fake#2",
+          "href": "./evals-cases-eval-ts-strict-y-ad030a/fake-fake-fake-dc13e2/2/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": "y",
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "passes its case: expected 'y' to be 'x' // Object.is equality",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [
+        {
+          "label": "x",
+          "cells": [
+            {
+              "column": "fake",
+              "rate": {
+                "k": 2,
+                "n": 2,
+                "rate": 1,
+                "text": "100%",
+                "of": "2 of 2",
+                "interval": "34% to 100%"
+              }
+            },
+            {
+              "column": "total",
+              "rate": {
+                "k": 2,
+                "n": 2,
+                "rate": 1,
+                "text": "100%",
+                "of": "2 of 2",
+                "interval": "34% to 100%"
+              }
+            }
+          ]
+        },
+        {
+          "label": "y",
+          "cells": [
+            {
+              "column": "fake",
+              "rate": {
+                "k": 0,
+                "n": 2,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 2",
+                "interval": "0% to 66%"
+              }
+            },
+            {
+              "column": "total",
+              "rate": {
+                "k": 0,
+                "n": 2,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 2",
+                "interval": "0% to 66%"
+              }
+            }
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "passes its case",
+          "matcher": "toBe",
+          "at": "evals/cases.eval.ts:28",
+          "failed": true,
+          "cells": [
+            {
+              "column": "Fake",
+              "text": "2 of 4"
+            }
+          ],
+          "total": "2 of 4"
+        }
+      ],
+      "failures": [
+        {
+          "kind": "assertion",
+          "kindText": "failed check",
+          "label": "passes its case",
+          "message": "expected 'y' to be 'x' // Object.is equality",
+          "detail": null,
+          "at": "evals/cases.eval.ts:28",
+          "count": {
+            "k": 2,
+            "n": 4,
+            "text": "2 of 4"
+          },
+          "where": null,
+          "attempts": [
+            {
+              "id": "A5",
+              "href": "./evals-cases-eval-ts-strict-y-ad030a/fake-fake-fake-dc13e2/1/transcript.jsonl"
+            },
+            {
+              "id": "A18",
+              "href": "./evals-cases-eval-ts-strict-y-ad030a/fake-fake-fake-dc13e2/2/transcript.jsonl"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "50% passed, 95% CI 15% to 85%",
+        "task average 50%"
+      ]
+    },
+    {
+      "id": "evals/cases.eval.ts › lands",
+      "anchor": "lands",
+      "name": "lands",
+      "file": "evals/cases.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 2 arms, 2 attempts",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "lands",
+        "metric": {
+          "kind": "compare",
+          "baseline": {
+            "label": "next-app",
+            "rate": {
+              "k": 1,
+              "n": 1,
+              "rate": 1,
+              "text": "100%",
+              "of": "1 of 1",
+              "interval": "21% to 100%"
+            }
+          },
+          "variant": {
+            "label": "vite-app",
+            "rate": {
+              "k": 1,
+              "n": 1,
+              "rate": 1,
+              "text": "100%",
+              "of": "1 of 1",
+              "interval": "21% to 100%"
+            }
+          },
+          "effect": null,
+          "effectText": null
+        },
+        "foot": "1 of 1 vs 1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "next-app",
+          "label": "next-app",
+          "role": "baseline",
+          "gated": false,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "vite-app",
+          "label": "vite-app",
+          "role": "variant",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A6",
+          "key": "evals/cases.eval.ts › lands [next] # fake/next-app/fake#1",
+          "href": "#attempt-evals-cases-eval-ts-lands-next-fake-next-app-fake-1-c813fa57",
+          "harness": "Fake",
+          "arm": "next-app",
+          "case": "next",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A7",
+          "key": "evals/cases.eval.ts › lands [vite] # fake/vite-app/fake#1",
+          "href": "#attempt-evals-cases-eval-ts-lands-vite-fake-vite-app-fake-1-c28ccb36",
+          "harness": "Fake",
+          "arm": "vite-app",
+          "case": "vite",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [
+        {
+          "label": "next",
+          "cells": [
+            {
+              "column": "fake",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            },
+            {
+              "column": "total",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            }
+          ]
+        },
+        {
+          "label": "vite",
+          "cells": [
+            {
+              "column": "fake",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            },
+            {
+              "column": "total",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            }
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "runs on its own stack",
+          "matcher": "toBe",
+          "at": "evals/cases.eval.ts:40",
+          "failed": false,
+          "cells": [
+            {
+              "column": "Fake",
+              "text": "2 of 2"
+            }
+          ],
+          "total": "2 of 2"
+        }
+      ],
+      "failures": [],
+      "effort": [
+        {
+          "label": "next-app",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "label": "vite-app",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [
+        "Saturated: every arm hit 100% across all tasks. This comparison catches regressions; add harder tasks to separate variants."
+      ],
+      "stats": [
+        "task average 100%"
+      ]
+    },
+    {
+      "id": "evals/cases.eval.ts › lifted",
+      "anchor": "lifted",
+      "name": "lifted",
+      "file": "evals/cases.eval.ts",
+      "shapes": [
+        "A/B"
+      ],
+      "design": "3 prompts, 1 coding harness, 2 arms, 6 attempts",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "lifted",
+        "metric": {
+          "kind": "compare",
+          "baseline": {
+            "label": "plain",
+            "rate": {
+              "k": 0,
+              "n": 3,
+              "rate": 0,
+              "text": "0%",
+              "of": "0 of 3",
+              "interval": "0% to 56%"
+            }
+          },
+          "variant": {
+            "label": "with-skill",
+            "rate": {
+              "k": 3,
+              "n": 3,
+              "rate": 1,
+              "text": "100%",
+              "of": "3 of 3",
+              "interval": "44% to 100%"
+            }
+          },
+          "effect": "too-few",
+          "effectText": "too few runs, not by minLift 50"
+        },
+        "foot": "0 of 3 vs 3 of 3 attempts",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+          "label": "plain",
+          "role": "baseline",
+          "gated": false,
+          "rate": {
+            "k": 0,
+            "n": 3,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 3",
+            "interval": "0% to 56%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "sha256:e4cf82b6720e5ed09292e3fb1eb6f153b91dbdbca34ca5cdcbcc1c55c52dc6eb",
+          "label": "with-skill",
+          "role": "variant",
+          "gated": true,
+          "rate": {
+            "k": 3,
+            "n": 3,
+            "rate": 1,
+            "text": "100%",
+            "of": "3 of 3",
+            "interval": "44% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": "too-few",
+          "effectText": "too few runs, not by minLift 50",
+          "lift": "with-skill +100 pts (95% CI +21 pts to +100 pts)",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A8",
+          "key": "evals/cases.eval.ts › lifted [Ada] # fake/plain/fake#1",
+          "href": "./evals-cases-eval-ts-lifted-ada-39ad15/fake-plain-fake-57f9db/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "plain",
+          "case": "Ada",
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "has the skill: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A9",
+          "key": "evals/cases.eval.ts › lifted [Ada] # fake/with-skill/fake#1",
+          "href": "./evals-cases-eval-ts-lifted-ada-39ad15/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-skill",
+          "case": "Ada",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A10",
+          "key": "evals/cases.eval.ts › lifted [Grace] # fake/plain/fake#1",
+          "href": "./evals-cases-eval-ts-lifted-grace-7415c1/fake-plain-fake-57f9db/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "plain",
+          "case": "Grace",
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "has the skill: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A11",
+          "key": "evals/cases.eval.ts › lifted [Grace] # fake/with-skill/fake#1",
+          "href": "./evals-cases-eval-ts-lifted-grace-7415c1/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-skill",
+          "case": "Grace",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A12",
+          "key": "evals/cases.eval.ts › lifted [Linus] # fake/plain/fake#1",
+          "href": "./evals-cases-eval-ts-lifted-linus-6dcc1e/fake-plain-fake-57f9db/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "plain",
+          "case": "Linus",
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "has the skill: expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A13",
+          "key": "evals/cases.eval.ts › lifted [Linus] # fake/with-skill/fake#1",
+          "href": "./evals-cases-eval-ts-lifted-linus-6dcc1e/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-skill",
+          "case": "Linus",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [
+        {
+          "label": "Ada",
+          "cells": [
+            {
+              "column": "plain",
+              "rate": {
+                "k": 0,
+                "n": 1,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 1",
+                "interval": "0% to 79%"
+              }
+            },
+            {
+              "column": "with-skill",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            }
+          ]
+        },
+        {
+          "label": "Grace",
+          "cells": [
+            {
+              "column": "plain",
+              "rate": {
+                "k": 0,
+                "n": 1,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 1",
+                "interval": "0% to 79%"
+              }
+            },
+            {
+              "column": "with-skill",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            }
+          ]
+        },
+        {
+          "label": "Linus",
+          "cells": [
+            {
+              "column": "plain",
+              "rate": {
+                "k": 0,
+                "n": 1,
+                "rate": 0,
+                "text": "0%",
+                "of": "0 of 1",
+                "interval": "0% to 79%"
+              }
+            },
+            {
+              "column": "with-skill",
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "of": "1 of 1",
+                "interval": "21% to 100%"
+              }
+            }
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "label": "has the skill",
+          "matcher": "toSucceed",
+          "at": "evals/cases.eval.ts:53",
+          "failed": true,
+          "cells": [
+            {
+              "column": "plain",
+              "text": "0 of 3"
+            },
+            {
+              "column": "with-skill",
+              "text": "3 of 3"
+            }
+          ],
+          "total": "3 of 6"
+        }
+      ],
+      "failures": [
+        {
+          "kind": "assertion",
+          "kindText": "failed check",
+          "label": "has the skill",
+          "message": "expected command to succeed, exit code 1",
+          "detail": null,
+          "at": "evals/cases.eval.ts:53",
+          "count": {
+            "k": 3,
+            "n": 6,
+            "text": "3 of 6"
+          },
+          "where": "all on plain, not gated",
+          "attempts": [
+            {
+              "id": "A8",
+              "href": "./evals-cases-eval-ts-lifted-ada-39ad15/fake-plain-fake-57f9db/1/transcript.jsonl"
+            },
+            {
+              "id": "A10",
+              "href": "./evals-cases-eval-ts-lifted-grace-7415c1/fake-plain-fake-57f9db/1/transcript.jsonl"
+            },
+            {
+              "id": "A12",
+              "href": "./evals-cases-eval-ts-lifted-linus-6dcc1e/fake-plain-fake-57f9db/1/transcript.jsonl"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "plain",
+          "tokens": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "toolCalls": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "agentTime": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "cost": {
+            "value": null,
+            "text": "no passing attempts"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "label": "with-skill",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "with-skill +100 pts (95% CI +21 pts to +100 pts)"
+      ]
+    },
+    {
+      "id": "evals/cases.eval.ts › alone",
+      "anchor": "alone",
+      "name": "alone",
+      "file": "evals/cases.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "alone",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "fake",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A14",
+          "key": "evals/cases.eval.ts › alone [only] # fake/fake/fake#1",
+          "href": "./evals-cases-eval-ts-alone-only-36f851/fake-fake-fake-dc13e2/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": "only",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
+    },
+    {
+      "id": "evals/cases.eval.ts › picks",
+      "anchor": "picks",
+      "name": "picks",
+      "file": "evals/cases.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "2 prompts, 1 coding harness, 2 attempts",
+      "state": "ran",
+      "verdict": "ungated",
+      "verdictText": "not gated",
+      "headline": {
+        "task": "picks",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 2,
+            "n": 2,
+            "rate": 1,
+            "text": "100%",
+            "of": "2 of 2",
+            "interval": "34% to 100%"
+          }
+        },
+        "foot": "2 of 2 attempts",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "fake",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 2,
+            "n": 2,
+            "rate": 1,
+            "text": "100%",
+            "of": "2 of 2",
+            "interval": "34% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A15",
+          "key": "evals/cases.eval.ts › picks [p1] # fake/fake/fake#1",
+          "href": "./evals-cases-eval-ts-picks-p1-ceb45b/fake-fake-fake-dc13e2/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": "p1",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A16",
+          "key": "evals/cases.eval.ts › picks [p2] # fake/fake/fake#1",
+          "href": "./evals-cases-eval-ts-picks-p2-834bea/fake-fake-fake-dc13e2/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": "p2",
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [
+        "(observed) pick: drizzle 1 · prisma 1"
+      ],
+      "stats": [
+        "100% passed, 95% CI 34% to 100%"
+      ]
+    }
+  ],
+  "actions": [],
+  "provenance": {
+    "rows": [
+      {
+        "field": "Executed at",
+        "value": "f81fd992da39 on master, clean (the commit that adds this record is later)"
+      },
+      {
+        "field": "Lockfiles",
+        "value": "none found"
+      },
+      {
+        "field": "Images",
+        "value": "none (fake sandbox)"
+      },
+      {
+        "field": "Harnesses",
+        "value": "fake"
+      },
+      {
+        "field": "Environments",
+        "value": "fake eca09e8f139f; next-app 39d20a9bc50f; plain eca09e8f139f; vite-app f1698ffe2837; with-skill e4cf82b6720e"
+      },
+      {
+        "field": "Judge",
+        "value": "none by default · threshold 0.8 · version 991ce2915785"
+      },
+      {
+        "field": "Packages",
+        "value": "@vitest/expect 5.0.5 · jiti 2.7.0 · @reeval/harness-antigravity 0.1.13 · @reeval/harness-opencode 0.2.13 · @reeval/harness-goose 0.1.10 · @reeval/harness-pi 0.2.9 · @reeval/harness-cursor-sdk 0.1.8 · @ai-sdk/harness-claude-code 1.0.171-patch.8cc1b324 · @reeval/harness-codex 0.1.10 · @reeval/harness-fx 0.1.5 · @reeval/harness-grok-build 0.1.8 · ai 7.0.156 · @ai-sdk/harness 1.0.167 · @ai-sdk/anthropic 4.0.91 · @ai-sdk/google 4.0.107 · @ai-sdk/openai 4.0.104 · @ai-sdk/typesafe-ai 3.0.29"
+      },
+      {
+        "field": "reeval",
+        "value": "0.18.0 · node 22.23.4 · typescript evals · linux/x64"
+      },
+      {
+        "field": "Runner",
+        "value": "local · cursor-agent"
+      },
+      {
+        "field": "Artifacts",
+        "value": "all"
+      }
+    ],
+    "warnings": []
+  },
+  "attemptIndex": [
+    {
+      "id": "A1",
+      "anchor": "attempt-evals-cases-eval-ts-rated-a-fake-fake-fake-1-76d6255d",
+      "eval": "rated",
+      "harness": "Fake",
+      "arm": null,
+      "case": "a",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-cases-eval-ts-rated-a-abff7a/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-cases-eval-ts-rated-a-abff7a/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-rated-a-abff7a/fake-fake-fake-dc13e2/1/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A2",
+      "anchor": "attempt-evals-cases-eval-ts-rated-b-fake-fake-fake-1-84f730e2",
+      "eval": "rated",
+      "harness": "Fake",
+      "arm": null,
+      "case": "b",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-cases-eval-ts-rated-b-bb88b3/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-cases-eval-ts-rated-b-bb88b3/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-rated-b-bb88b3/fake-fake-fake-dc13e2/1/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A3",
+      "anchor": "attempt-evals-cases-eval-ts-rated-c-fake-fake-fake-1-81b3f213",
+      "eval": "rated",
+      "harness": "Fake",
+      "arm": null,
+      "case": "c",
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-cases-eval-ts-rated-c-3922df/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-cases-eval-ts-rated-c-3922df/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-rated-c-3922df/fake-fake-fake-dc13e2/1/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A4",
+      "anchor": "attempt-evals-cases-eval-ts-strict-x-fake-fake-fake-1-7c6a6431",
+      "eval": "strict",
+      "harness": "Fake",
+      "arm": null,
+      "case": "x",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-cases-eval-ts-strict-x-6c40d5/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-cases-eval-ts-strict-x-6c40d5/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-strict-x-6c40d5/fake-fake-fake-dc13e2/1/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A5",
+      "anchor": "attempt-evals-cases-eval-ts-strict-y-fake-fake-fake-1-b165563b",
+      "eval": "strict",
+      "harness": "Fake",
+      "arm": null,
+      "case": "y",
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-cases-eval-ts-strict-y-ad030a/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-cases-eval-ts-strict-y-ad030a/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-strict-y-ad030a/fake-fake-fake-dc13e2/1/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A6",
+      "anchor": "attempt-evals-cases-eval-ts-lands-next-fake-next-app-fake-1-c813fa57",
+      "eval": "lands",
+      "harness": "Fake",
+      "arm": "next-app",
+      "case": "next",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-lands-next-ada082/fake-next-app-fake-23258a/1/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A7",
+      "anchor": "attempt-evals-cases-eval-ts-lands-vite-fake-vite-app-fake-1-c28ccb36",
+      "eval": "lands",
+      "harness": "Fake",
+      "arm": "vite-app",
+      "case": "vite",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-lands-vite-e54e84/fake-vite-app-fake-f801b9/1/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A8",
+      "anchor": "attempt-evals-cases-eval-ts-lifted-ada-fake-plain-fake-1-907a627b",
+      "eval": "lifted",
+      "harness": "Fake",
+      "arm": "plain",
+      "case": "Ada",
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-cases-eval-ts-lifted-ada-39ad15/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-cases-eval-ts-lifted-ada-39ad15/fake-plain-fake-57f9db/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-lifted-ada-39ad15/fake-plain-fake-57f9db/1/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A9",
+      "anchor": "attempt-evals-cases-eval-ts-lifted-ada-fake-with-skill-fake-1-ed76eee2",
+      "eval": "lifted",
+      "harness": "Fake",
+      "arm": "with-skill",
+      "case": "Ada",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-cases-eval-ts-lifted-ada-39ad15/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-cases-eval-ts-lifted-ada-39ad15/fake-with-skill-fake-14b6ac/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-lifted-ada-39ad15/fake-with-skill-fake-14b6ac/1/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A10",
+      "anchor": "attempt-evals-cases-eval-ts-lifted-grace-fake-plain-fake-1-fd778a7e",
+      "eval": "lifted",
+      "harness": "Fake",
+      "arm": "plain",
+      "case": "Grace",
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-cases-eval-ts-lifted-grace-7415c1/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-cases-eval-ts-lifted-grace-7415c1/fake-plain-fake-57f9db/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-lifted-grace-7415c1/fake-plain-fake-57f9db/1/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A11",
+      "anchor": "attempt-evals-cases-eval-ts-lifted-grace-fake-with-skill-fake-1-58afdae6",
+      "eval": "lifted",
+      "harness": "Fake",
+      "arm": "with-skill",
+      "case": "Grace",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-cases-eval-ts-lifted-grace-7415c1/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-cases-eval-ts-lifted-grace-7415c1/fake-with-skill-fake-14b6ac/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-lifted-grace-7415c1/fake-with-skill-fake-14b6ac/1/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A12",
+      "anchor": "attempt-evals-cases-eval-ts-lifted-linus-fake-plain-fake-1-153ca190",
+      "eval": "lifted",
+      "harness": "Fake",
+      "arm": "plain",
+      "case": "Linus",
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-cases-eval-ts-lifted-linus-6dcc1e/fake-plain-fake-57f9db/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-cases-eval-ts-lifted-linus-6dcc1e/fake-plain-fake-57f9db/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-lifted-linus-6dcc1e/fake-plain-fake-57f9db/1/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A13",
+      "anchor": "attempt-evals-cases-eval-ts-lifted-linus-fake-with-skill-fake-1-f49cb244",
+      "eval": "lifted",
+      "harness": "Fake",
+      "arm": "with-skill",
+      "case": "Linus",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-cases-eval-ts-lifted-linus-6dcc1e/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-cases-eval-ts-lifted-linus-6dcc1e/fake-with-skill-fake-14b6ac/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-lifted-linus-6dcc1e/fake-with-skill-fake-14b6ac/1/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A14",
+      "anchor": "attempt-evals-cases-eval-ts-alone-only-fake-fake-fake-1-f333b73d",
+      "eval": "alone",
+      "harness": "Fake",
+      "arm": null,
+      "case": "only",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-cases-eval-ts-alone-only-36f851/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-cases-eval-ts-alone-only-36f851/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-alone-only-36f851/fake-fake-fake-dc13e2/1/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A15",
+      "anchor": "attempt-evals-cases-eval-ts-picks-p1-fake-fake-fake-1-b97d7821",
+      "eval": "picks",
+      "harness": "Fake",
+      "arm": null,
+      "case": "p1",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-cases-eval-ts-picks-p1-ceb45b/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-cases-eval-ts-picks-p1-ceb45b/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-picks-p1-ceb45b/fake-fake-fake-dc13e2/1/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A16",
+      "anchor": "attempt-evals-cases-eval-ts-picks-p2-fake-fake-fake-1-a17c9a25",
+      "eval": "picks",
+      "harness": "Fake",
+      "arm": null,
+      "case": "p2",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-cases-eval-ts-picks-p2-834bea/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-cases-eval-ts-picks-p2-834bea/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-picks-p2-834bea/fake-fake-fake-dc13e2/1/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A17",
+      "anchor": "attempt-evals-cases-eval-ts-strict-x-fake-fake-fake-2-df60f7b9",
+      "eval": "strict",
+      "harness": "Fake",
+      "arm": null,
+      "case": "x",
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-cases-eval-ts-strict-x-6c40d5/fake-fake-fake-dc13e2/2/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-cases-eval-ts-strict-x-6c40d5/fake-fake-fake-dc13e2/2/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-strict-x-6c40d5/fake-fake-fake-dc13e2/2/snapshots/final"
+        }
+      ]
+    },
+    {
+      "id": "A18",
+      "anchor": "attempt-evals-cases-eval-ts-strict-y-fake-fake-fake-2-6bd1c24b",
+      "eval": "strict",
+      "harness": "Fake",
+      "arm": null,
+      "case": "y",
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-cases-eval-ts-strict-y-ad030a/fake-fake-fake-dc13e2/2/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-cases-eval-ts-strict-y-ad030a/fake-fake-fake-dc13e2/2/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-cases-eval-ts-strict-y-ad030a/fake-fake-fake-dc13e2/2/snapshots/final"
+        }
+      ]
+    }
+  ]
+}

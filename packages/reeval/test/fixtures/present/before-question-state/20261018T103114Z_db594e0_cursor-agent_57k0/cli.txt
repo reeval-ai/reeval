@@ -1,0 +1,61 @@
+Run 20261018T103114Z_db594e0_cursor-agent_57k0
+7 of 9 counted attempts passed · 13 infra errors · 29s wall time · tokens not reported · cost not reported · db594e0
+
+FAIL           greets %s
+               plain 0% vs with-house-greeting 100%: too few runs, not by minLift 20 · 0 of 2 vs 2 of 2 attempts · left out: 4 infra errors
+               plain                0%    0 of 2  baseline                         left out: 2 infra errors
+               with-house-greeting  100%  2 of 2  too few runs, not by minLift 20  left out: 2 infra errors
+               Ada    0%  0 of 1
+               Grace  0%  0 of 1
+               infra error, 4 of 8, all on broken: the fake sandbox fell over
+               failed check, 2 of 8, all on plain, not gated: toSucceed grep -q Ahoy greet.js
+                 expected command to succeed, exit code 1
+
+INFRA ERROR    writes greet.js for Ada
+               100% passed · 1 of 1 attempt · left out: 1 infra error
+               infra error, 1 of 2, all on broken: the fake sandbox fell over
+
+INFRA ERROR    writes greet.js for Grace
+               100% passed · 1 of 1 attempt · left out: 1 infra error
+               infra error, 1 of 2, all on broken: the fake sandbox fell over
+
+INFRA ERROR    writes greet.js
+               100% passed · 1 of 1 attempt · left out: 1 infra error
+               infra error, 1 of 2, all on broken: the fake sandbox fell over
+
+FAIL           fails its check
+               0% passed · 0 of 1 attempt · left out: 1 infra error
+               failed check, 1 of 2, all on Fake: toSucceed grep -q Bonjour greet.js
+                 expected command to succeed, exit code 1
+               infra error, 1 of 2, all on broken: the fake sandbox fell over
+
+FAIL           fails its judge
+               0% passed · 0 of 1 attempt · left out: 1 infra error
+               failed check, 1 of 2, all on Fake: toPass Is greet.js perfect?
+                 judge score 0.80 is below 0.95 for "Is greet.js perfect?" (fake)
+               infra error, 1 of 2, all on broken: the fake sandbox fell over
+
+SKIPPED        is skipped for now
+
+TODO           greets in Welsh
+
+INFRA ERROR    house greeting › greets in the house style
+               plain 0% vs with-house-greeting 100%: too few runs · 0 of 1 vs 1 of 1 attempt · left out: 2 infra errors
+               plain                0%    0 of 1  baseline      left out: 1 infra error
+               with-house-greeting  100%  1 of 1  too few runs  left out: 1 infra error
+               infra error, 2 of 4, all on broken: the fake sandbox fell over
+               failed check, 1 of 4, all on plain, not gated: house greeting
+                 expected command to succeed, exit code 1
+
+INFRA ERROR    house greeting › writes a greeting
+               plain 100% vs with-house-greeting 100%: too few runs · 1 of 1 vs 1 of 1 attempt · left out: 2 infra errors
+               plain                100%  1 of 1  baseline      left out: 1 infra error
+               with-house-greeting  100%  1 of 1  too few runs  left out: 1 infra error
+               infra error, 2 of 4, all on broken: the fake sandbox fell over
+               Which greeting reads more like our house style?
+                 plain 0 of 2, with-house-greeting 2 of 2, 0 ties
+               Which greeting handles a missing name?
+                 The model call failed: Rate limit exceeded (429)
+               Saturated: every arm hit 100% across all tasks. This comparison catches regressions; add harder tasks to separate variants.
+
+Evals: 3 fail · 5 infra errors · 1 skipped · 1 todo

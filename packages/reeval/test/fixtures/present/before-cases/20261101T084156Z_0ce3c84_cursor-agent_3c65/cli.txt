@@ -1,0 +1,42 @@
+Run 20261101T084156Z_0ce3c84_cursor-agent_3c65
+10 of 13 counted attempts passed · 1s wall time · tokens not reported · cost not reported · 0ce3c84
+
+PASS           rated
+               67% passed · 2 of 3 attempts
+               failed check, 1 of 3: passes its case
+                 expected 'c' not to be 'c' // Object.is equality
+                 at evals/cases.eval.ts:14
+
+FAIL           strict
+               50% passed · 2 of 4 attempts
+               x  100%  2 of 2
+               y  0%    0 of 2
+               failed check, 2 of 4: passes its case
+                 expected 'y' to be 'x' // Object.is equality
+                 at evals/cases.eval.ts:20
+
+PASS           lands
+               next-app 100% vs vite-app 100% · 1 of 1 vs 1 of 1 attempt
+               next-app  100%  1 of 1  baseline
+               vite-app  100%  1 of 1  variant
+               Saturated: every arm hit 100% across all tasks. This comparison catches regressions; add harder tasks to separate variants.
+
+FAIL           lifted
+               plain 0% vs with-skill 100%: too few runs, not by minLift 50 · 0 of 3 vs 3 of 3 attempts
+               plain       0%    0 of 3  baseline
+               with-skill  100%  3 of 3  too few runs, not by minLift 50
+               Ada    0%  0 of 1
+               Grace  0%  0 of 1
+               Linus  0%  0 of 1
+               failed check, 3 of 6, all on plain, not gated: has the skill
+                 expected command to succeed, exit code 1
+                 at evals/cases.eval.ts:42
+
+PASS           alone
+               100% passed · 1 of 1 attempt
+
+NOT GATED      picks
+               100% passed · 2 of 2 attempts
+               (observed) pick: drizzle 1 · prisma 1
+
+Evals: 2 fail · 3 pass · 1 not gated

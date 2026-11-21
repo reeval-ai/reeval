@@ -4,6 +4,7 @@ import { colors } from '../ui/colors.ts'
 import { tallyLine } from '../ui/layout.ts'
 import { type AttemptFacts, attemptFacts } from '../view/classify.ts'
 import { harnessLabel, languageLabel, runtimeLabel, transcriptByLine } from '../view/model.ts'
+import { present } from '../view/present/index.ts'
 import { buildRunReport, type RunReportOptions } from '../view/report/index.ts'
 import { runResourcesLine } from '../view/resources.ts'
 import { suiteResult } from '../view/suite.ts'
@@ -108,11 +109,11 @@ export function stateRows(
 }
 
 /**
- * Markdown for people and agents landing on a run cold. Built from `buildRunReport`
- * so every surface shares one view-model.
+ * Markdown for people and agents landing on a run cold, from the run's presentation, which
+ * every surface renders.
  */
 export function renderSummary(run: RunRecord, opts: RunReportOptions = {}): string {
-  return runReportMarkdown(buildRunReport(run, { links: { base: './' }, ...opts }))
+  return runReportMarkdown(present(buildRunReport(run, { links: { base: './' }, ...opts })))
 }
 
 /** Each attempt's facts from the transcript `record` keeps, as `files` holds it to write. */
@@ -138,7 +139,7 @@ export const REPORT_FILE = 'report.json'
 export function summaryFiles(run: RunRecord, opts: RunReportOptions = {}): Map<string, Buffer> {
   const report = buildRunReport(run, { links: { base: './' }, ...opts })
   return new Map([
-    ['summary.md', Buffer.from(runReportMarkdown(report))],
+    ['summary.md', Buffer.from(runReportMarkdown(present(report)))],
     [REPORT_FILE, Buffer.from(`${JSON.stringify(report, null, 2)}\n`)],
   ])
 }

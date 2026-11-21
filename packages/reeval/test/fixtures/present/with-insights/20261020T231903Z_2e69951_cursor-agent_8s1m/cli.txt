@@ -1,0 +1,86 @@
+Run 20261020T231903Z_2e69951_cursor-agent_8s1m
+22 of 41 counted attempts passed · 1 infra error · 2s wall time · tokens not reported · cost not reported · 2e69951
+
+FAIL           recommends Genkit for $task
+               67% passed · 4 of 6 attempts
+               a chat app      100%  2 of 2
+               a RAG pipeline  100%  2 of 2
+               a Python agent  0%    0 of 2
+               failed check, 2 of 6: names no other framework
+                 expected 'I would build this with Genkit. If yo…' not to contain 'LangChain'
+
+FAIL           adds a $name button that builds
+               67% passed · 2 of 3 attempts
+               reset   100%  1 of 1
+               double  0%    0 of 1
+               clear   100%  1 of 1
+               failed check, 1 of 3: build
+                 expected command to succeed, exit code 1
+
+PASS           greets %s in the house style
+               plain 0% vs with-skill 100%: helped · 0 of 4 vs 4 of 4 attempts
+               plain       0%    0 of 4  baseline
+               with-skill  100%  4 of 4  helped
+               failed check, 4 of 8, all on plain, not gated: house greeting
+                 expected command to succeed, exit code 1
+
+FAIL           greets in the house style on each agent
+               50% passed · 1 of 2 attempts · skilled 1 of 1, terse 0 of 1
+               failed check, 1 of 2, all on terse: house greeting
+                 expected command to succeed, exit code 1
+
+FAIL           learns the house style from the skill
+               plain 0% vs with-skill 50%: helped · 0 of 8 vs 4 of 8 attempts
+               plain       0%   0 of 8  baseline
+               with-skill  50%  4 of 8  helped
+               failed check, 12 of 16: house greeting
+                 expected command to succeed, exit code 1
+
+FAIL           greets in the house style
+               plain 0% vs with-skill 100%: helped · 0 of 4 vs 4 of 4 attempts
+               plain       0%    0 of 4  baseline
+               with-skill  100%  4 of 4  helped
+               with-doc    0%    0 of 4  same
+               failed check, 8 of 12: house greeting
+                 expected command to succeed, exit code 1
+
+FAIL           keeps the plain greeting
+               plain 100% vs with-skill 0%: made it worse · 4 of 4 vs 0 of 4 attempts
+               plain       100%  4 of 4  baseline
+               with-skill  0%    0 of 4  made it worse
+               failed check, 4 of 8, all on with-skill: says hello
+                 expected command to succeed, exit code 1
+
+PASS           greets once
+               plain 0% vs with-skill 100%: too few runs · 0 of 1 vs 1 of 1 attempt
+               plain       0%    0 of 1  baseline
+               with-skill  100%  1 of 1  too few runs
+               failed check, 1 of 2, all on plain, not gated: house greeting
+                 expected command to succeed, exit code 1
+
+PASS           writes greet.js
+               100% passed · 1 of 1 attempt
+
+FAIL           greets in French
+               0% passed · 0 of 1 attempt
+               failed check, 1 of 1: french greeting
+                 expected command to succeed, exit code 1
+
+FAIL           explains why greet.js fails
+               50% passed · 1 of 2 attempts
+               failed check, 1 of 2: names the root cause
+                 expected 'Docker is down' to contain 'null'
+
+FAIL           reads the fixture repo
+               0% passed · 0 of 1 attempt
+               error, 1 of 1: the fixture repo is missing
+
+INFRA ERROR    starts its sandbox
+               left out: 1 infra error
+               infra error, 1 of 1: the fake sandbox fell over
+
+SKIPPED        greets in Welsh
+
+TODO           greets in Klingon
+
+Evals: 9 fail · 3 pass · 1 infra error · 1 skipped · 1 todo

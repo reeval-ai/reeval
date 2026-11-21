@@ -1,0 +1,10 @@
+Run 20261028T144604Z_nogit_cursor-agent_6bgc
+2 of 2 counted attempts passed · 2s wall time · tokens not reported · cost not reported
+
+PASS           serves on PORT
+               100% passed · 1 of 1 attempt
+
+PASS           serves on its own port
+               100% passed · 1 of 1 attempt
+
+Evals: 2 pass

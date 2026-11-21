@@ -1,0 +1,7 @@
+works in a macOS VM
+1 of 1 counted attempt passed · 864ms wall time · tokens not reported · cost not reported · 4cdd2eb
+
+PASS           works in a macOS VM
+               100% passed · 1 of 1 attempt
+
+Evals: 1 pass

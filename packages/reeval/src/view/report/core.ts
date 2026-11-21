@@ -3,21 +3,31 @@
 
 export { buildRunReport, type ReportLinks, type RunReportOptions } from './build.ts'
 export {
+  changeSideText,
   countFigure,
   countOf,
   diffLinesText,
   durationFigure,
   figure,
+  headlinePrimaryText,
+  headlineResultText,
   judgeScoreText,
+  MEASURE_TEXT,
   medianWithDelta,
   pctDelta,
+  percentFigure,
+  percentText,
+  proportion,
+  proportionText,
   ptsDelta,
   ptsInterval,
   rateOf,
+  remarkLine,
   spreadOf,
   tokensFigure,
   tokensText,
   usdFigure,
+  wilsonRangeText,
 } from './format.ts'
 export {
   type AttemptIdMap,

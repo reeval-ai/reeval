@@ -21,6 +21,7 @@ import type {
   McpStartup,
   Observation,
   Outcome,
+  PassMetric,
   PhaseTimings,
   ResolvedJudgeStateOptions,
   Revision,
@@ -37,6 +38,7 @@ import type {
   WebEventType,
 } from '../types.ts'
 import type { CellEffort } from '../view/effort.ts'
+import type { Remark } from '../view/remarks.ts'
 
 /**
  * One path the attempt's workspace diff changed. Optional line counts come from
@@ -517,6 +519,8 @@ export type EvalEntry = {
   tags: string[]
   /** The baseline environment, when the evaluation uses `compare`. */
   compare?: EvalCompareMeta
+  /** Primary pass/fail metric configured for this evaluation when set (`PassMetric`). */
+  metric?: PassMetric
   /**
    * Over gated cells, the outcome is `fail` if any failed, else `infra_error` if any is (a cell is
    * `infra_error` only when nothing counted), else `skipped` if all were, else `pass`. An ungated
@@ -970,6 +974,7 @@ export type RunRecord = {
       runs?: number
       /** Set by `defaults.runs: { bestOf }`. */
       bestOf?: number
+      metric?: PassMetric
       timeout?: string | number
       env?: string[]
     }
@@ -982,6 +987,12 @@ export type RunRecord = {
   } | null
   /** How `reeval run` was started; `--resume` plans with it again. Unset in older records. */
   invocation?: RunInvocation
+  /**
+   * What the run said about the evals themselves (`remarks.json`'s remarks), so every report of
+   * the run prints the same ones. They never change a verdict, count or exit code. Unset when the
+   * run raised none, and in older records.
+   */
+  remarks?: Remark[]
   /**
    * What the run planned before it started, and each level whose sandbox ran as root, with
    * capabilities added back or with host devices.
@@ -1008,6 +1019,8 @@ export type RunRecord = {
     runs: number
     /** Set by the config's `runs: { bestOf }`. */
     bestOf?: number
+    /** Primary pass/fail metric set in config when configured. */
+    metric?: PassMetric
     judgeModel: string | null
     threshold: number
     timeoutMs: number

@@ -167,14 +167,14 @@ function sh(command, args, cwd, env = {}) {
   return { ...r, out }
 }
 const reeval = (cwd, args, env) => sh(binary, args, cwd, env)
-/** The tally on the run's `Done in …` line, e.g. `1 failed · 2 passed`. */
+/** The run's `Evals: …` tally line, e.g. `1 fail · 2 pass`. */
 const outcome = (r) =>
   r.out
     .split('\n')
     .map((l) => l.trim())
-    .filter((l) => l.startsWith('Done in '))
+    .filter((l) => l.startsWith('Evals: '))
     .at(-1)
-    ?.replace(/^Done in [^·]+· /, '')
+    ?.slice('Evals: '.length)
 
 const failures = []
 const check = (name, ok) => {
@@ -197,8 +197,8 @@ for (const version of versions) {
   check(
     `Python ${version}: greet and judged pass, the canary fails`,
     run.status === 1 &&
-      outcome(run) === '1 failed · 2 passed' &&
-      /(?:^|[├└]─ )✗ canary {2}/m.test(run.out) &&
+      outcome(run) === '1 fail · 2 pass' &&
+      /^FAIL +canary$/m.test(run.out) &&
       /missing\.py|never written/.test(run.out),
   )
 }
@@ -209,7 +209,7 @@ for (const f of ['pyproject.toml', 'uv.lock']) renameSync(join(dir, f), join(dir
 const venv = reeval(dir, ['run'], { SMOKE_PYTHON: last })
 check(
   `Python ${last} from .venv, without uv: the canary fails`,
-  venv.status === 1 && outcome(venv) === '1 failed · 2 passed',
+  venv.status === 1 && outcome(venv) === '1 fail · 2 pass',
 )
 
 // The SDK's own `reeval` command: it fetches this binary from its release directory, checks it
@@ -240,7 +240,7 @@ const name = basename(positionals[0])
 check(
   `uv run reeval: the SDK downloads ${name}, checks it and runs the evals`,
   shim.status === 1 &&
-    outcome(shim) === '1 failed · 2 passed' &&
+    outcome(shim) === '1 fail · 2 pass' &&
     shim.out.includes(`downloading ${name}`) &&
     !shim.out.includes('SHA256SUMS only') &&
     existsSync(join(shimCache, 'reeval', 'bin', version, name)),
@@ -315,7 +315,7 @@ try {
 check(
   'Ctrl-C on reeval run through the launcher: reeval saves the run as interrupted and exits 130',
   stopped.status === 130 &&
-    stopped.out.includes('Interrupted: attempts') &&
+    stopped.out.includes('The run stopped early (interrupted).') &&
     status === 'interrupted',
 )
 
@@ -331,7 +331,7 @@ if (values['platform-wheel']) {
   check(
     `uv run reeval from ${basename(own)}: its own binary, reeval ${version}, runs the evals, offline`,
     r.status === 1 &&
-      outcome(r) === '1 failed · 2 passed' &&
+      outcome(r) === '1 fail · 2 pass' &&
       !r.out.includes('downloading') &&
       v.stdout.trim() === version,
   )
@@ -343,10 +343,7 @@ if (values['platform-wheel']) {
   const pr = sh(pip.reeval, ['run'], pipProject, { ...ownEnv, SMOKE_PYTHON: last })
   check(
     `pip install ${basename(own)}: its own binary runs the evals on the venv's Python, offline`,
-    pip.ok &&
-      pv.stdout.trim() === version &&
-      pr.status === 1 &&
-      outcome(pr) === '1 failed · 2 passed',
+    pip.ok && pv.stdout.trim() === version && pr.status === 1 && outcome(pr) === '1 fail · 2 pass',
   )
 
   const links = pipVenv(

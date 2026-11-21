@@ -178,17 +178,13 @@ function blockOf(stdout: string, name: string): string {
   return lines.slice(start, end < 0 ? undefined : end).join('\n')
 }
 
-/** An eval's entry in `reeval run`'s status list, its row and detail lines, without the tree. */
+/** An eval's block in `reeval run`'s results: its verdict line and the lines under it. */
 function entryOf(stdout: string, name: string): string {
   const lines = stdout.split('\n')
-  const row = new RegExp(`^\\s*(?:[├└]─ )?\\S+ ${name}  `)
-  const start = lines.findIndex((l) => row.test(l))
+  const start = lines.findIndex((l) => l.startsWith(' ', 13) && l.slice(15) === name)
   assert.ok(start >= 0, `no entry for ${name}\n${stdout}`)
-  const end = lines.findIndex((l, i) => i > start && (!l.trim() || /^\s*[├└]─ /.test(l)))
-  return lines
-    .slice(start, end < 0 ? undefined : end)
-    .map((l, i) => (i === 0 ? l.replace(/^\s*[├└]─ /, '') : l.replace(/^(?:│ {2}| {3})/, '')))
-    .join('\n')
+  const end = lines.findIndex((l, i) => i > start && !l.trim())
+  return lines.slice(start, end < 0 ? undefined : end).join('\n')
 }
 
 const studioSource = (project: string) => ({
@@ -1908,7 +1904,7 @@ export const features: Feature[] = [
         ['horse', 'battery', 'staple', 'and', 'more', 'words'].join('-').slice(-29),
       ]
       const env = { CURSOR_AGENT: '1', REEVAL_FIXTURE_SANDBOX: tier }
-      const agent = await runCli(project, ['run', '--events'], { env })
+      const agent = await runCli(project, ['run', '--events', '-v'], { env })
       assert.equal(agent.code, 1, agent.stdout + agent.stderr)
       assert.match(agent.stdout, /\[REDACTED\] w/)
       for (const part of kept) {
@@ -2039,7 +2035,7 @@ export const features: Feature[] = [
         assert.doesNotMatch(text, /sk-ant-|reeval-fixture-not-a-key/, `${where} has the key`)
       }
       // Twin: the same search finds the masked case in the Attempt index.
-      assert.notEqual(filesContaining(runDir, 'plain / [REDACTED]'), '')
+      assert.match(readFileSync(join(runDir, 'summary.md'), 'utf8'), /\[REDACTED\]/)
     },
   },
   {
@@ -3846,7 +3842,7 @@ export const features: Feature[] = [
       assert.deepEqual(observed('canary'), want, 'a failed attempt keeps what it observed')
       assert.match(
         stdout,
-        /Observed:\n[│ ]+orm +drizzle 1\n[│ ]+deps +drizzle-orm 1 · pg 1 · 1 attempt$/m,
+        /^ +\(observed\) orm: drizzle 1\n +\(observed\) deps: drizzle-orm 1 · pg 1 · 1 attempt\n/m,
       )
     },
   },
@@ -3880,7 +3876,7 @@ export const features: Feature[] = [
         assert.match(
           entry,
           new RegExp(
-            `^ +✗ ${label} +failed 1 of 1 run\\n +.+ · evals/lands\\.eval\\.ts:${line}$`,
+            `^ +failed check, 1 of 1: ${label}\\n +.+\\n +at evals/lands\\.eval\\.ts:${line}$`,
             'm',
           ),
         )
@@ -3914,12 +3910,9 @@ export const features: Feature[] = [
       assert.equal(canary?.exitCode, 1)
       assert.equal(canary?.retries, undefined, 'a check without retries records no tries')
       assert.equal(canary?.tries, undefined)
-      assert.match(
-        entryOf(stdout, 'lands'),
-        /^ +Worth knowing: "flaky passes" passed on try 2 of 3\.$/m,
-      )
+      assert.match(entryOf(stdout, 'lands'), /^ +\(note\) "flaky passes" passed on try 2 of 3\.$/m)
       const summary = readFileSync(join(runDir, 'summary.md'), 'utf8')
-      assert.match(summary, /## lands[\s\S]*\| flaky passes \| toSucceed \| 1 of 1 \|/)
+      assert.match(summary, /## lands[\s\S]*\| flaky passes \| toSucceed \| [^|]+ \| 1 of 1 \|/)
     },
   },
   {
@@ -4151,10 +4144,7 @@ export const features: Feature[] = [
       assert.deepEqual(page.failedRequests, [{ method: 'GET', url: '/missing.js', status: 404 }])
       assert.match(
         entryOf(stdout, 'lands'),
-        new RegExp(
-          `^ +Worth knowing: 2 page errors in capture "home" → \\.reeval/runs/${run.runId}/.+/artifacts/home\\.capture\\.json$`,
-          'm',
-        ),
+        /^ +\(note\) 2 page errors in capture "home", listed in \S+\/artifacts\/home\.capture\.json$/m,
       )
       assert.match(
         stdout,
@@ -4849,18 +4839,13 @@ export const features: Feature[] = [
         )
       assert.match(
         stdout,
-        /^Done in \S+ · 1 failed · 1 passed$/m,
+        /^Evals: 1 fail · 1 pass$/m,
         'the tally counts each eval with cases once',
       )
-      assert.match(
-        stdout,
-        /✗ canary {2}2 of 3 runs passed · 3 cases\n +Failed on c; 2 of 3 cases passed\.\n +Pass rate over the cases: 67%, below passRate 0\.7\.\n +case {2}fake\n +✓ a {5}1 of 1\n +✓ b {5}1 of 1\n +✗ c {5}0 of 1\n/,
-      )
+      assert.match(entryOf(stdout, 'canary'), /^FAIL {11}canary\n {15}67% passed · 2 of 3 attempts/)
       assert.deepEqual(rates('lands'), [[0.667, 0.6, 'pass']], 'the rate over the cases clears 0.6')
       assert.deepEqual(rates('canary'), [[0.667, 0.7, 'fail']], 'and is below 0.7')
       const summary = readFileSync(join(runDir, 'summary.md'), 'utf8')
-      assert.match(summary, /\| \[lands\]\(#lands\) \|[\s\S]*\| 67% passed \|/)
-      assert.match(summary, /\| \[canary\]\(#canary\) \|[\s\S]*\| 67% passed \|/)
       assert.match(summary, /^## lands[\s\S]*\*\*67% passed\*\*/m)
       assert.match(summary, /^## canary[\s\S]*\*\*67% passed\*\*/m)
     },
@@ -4971,8 +4956,11 @@ export const features: Feature[] = [
         ['none'],
         "gate: 'observe' records its cells ungated",
       )
-      assert.match(stdout, /^└─ ● lands {2}0 of 1 run passed$/m)
-      assert.match(stdout, /^Done in \S+ · 1 failed · 1 ran$/m)
+      assert.match(
+        entryOf(stdout, 'lands'),
+        /^NOT GATED {6}lands\n {15}0% passed · 0 of 1 attempt$/m,
+      )
+      assert.match(stdout, /^Evals: 1 fail · 1 not gated$/m)
     },
   },
   {
@@ -5097,7 +5085,7 @@ export const features: Feature[] = [
         unpriced: 1,
       })
       assert.equal(run.cost.judgeUsd, undefined)
-      assert.match(stdout, /^Done in .* · \$0\.26 \(est\., 1 unpriced\)$/m)
+      assert.match(stdout, / · cost agent \$0\.26 \(est\., 1 unpriced\)$/m)
     },
   },
   {
@@ -5138,8 +5126,11 @@ export const features: Feature[] = [
         assert.equal(cell.bestOf, 3)
         assert.deepEqual(cell.gate, { passRate: 0.5 })
       }
-      assert.match(entryOf(stdout, 'canary'), /✗ canary {2}0 of 2 runs passed$/m)
-      assert.match(entryOf(stdout, 'lands'), /✓ lands {2}2 of 3 runs passed$/)
+      assert.match(
+        entryOf(stdout, 'canary'),
+        /^FAIL {11}canary\n {15}0% passed · 0 of 2 attempts$/m,
+      )
+      assert.match(entryOf(stdout, 'lands'), /^PASS {11}lands\n {15}67% passed · 2 of 3 attempts$/m)
     },
   },
   {
@@ -5148,17 +5139,21 @@ export const features: Feature[] = [
     env: '-',
     canary: /second try: expected 1 to be 2/,
     record: ({ stdout }) => {
-      assert.equal(entryOf(stdout, 'lands').trim(), '✓ lands  1 of 1 run passed')
+      assert.equal(
+        entryOf(stdout, 'lands'),
+        ['PASS           lands', '               100% passed · 1 of 1 attempt'].join('\n'),
+      )
       assert.equal(
         entryOf(stdout, 'canary'),
         [
-          '✗ canary  0 of 1 run passed',
-          '  Failed on fake.',
-          '  ✗ second try  failed 1 of 1 run',
-          '    expected 1 to be 2 // Object.is equality · evals/canary.eval.ts:5',
+          'FAIL           canary',
+          '               0% passed · 0 of 1 attempt',
+          '               failed check, 1 of 1: second try',
+          '                 expected 1 to be 2 // Object.is equality',
+          '                 at evals/canary.eval.ts:5',
         ].join('\n'),
       )
-      assert.match(stdout, /\nDone in \S+ · 1 failed · 1 passed\n/)
+      assert.match(stdout, /\nEvals: 1 fail · 1 pass\n/)
     },
   },
   {
@@ -5201,9 +5196,9 @@ export const features: Feature[] = [
         { pass: 0, notGated: 1, fail: 1 },
       )
       const summary = readFileSync(join(runDir, 'summary.md'), 'utf8')
-      assert.match(summary, /\| \[lands\]\(#lands\) \| ab;[\s\S]*marked vs plain/)
       assert.match(summary, /^## lands$/m)
-      assert.match(summary, /### Baseline vs\. variants/)
+      assert.match(summary, /\*\*plain 0% vs marked 0%: too few runs\*\*/)
+      assert.match(summary, /### Arms/)
       assert.doesNotMatch(summary, /\b100% pass rate\b/)
       const recorded = await runCli(project, ['record'])
       assert.equal(recorded.code, 0, recorded.stdout + recorded.stderr)
@@ -5222,16 +5217,21 @@ export const features: Feature[] = [
     landsPass: ['marked'],
     canary: /has the marker: expected (file )?marker\.txt/,
     record: ({ stdout }) => {
-      assert.match(
+      assert.equal(
         entryOf(stdout, 'lands'),
-        /✓ lands {2}1 of 1 variant run passed\n +The marked variant helped\.\n +arm +passed {2}verdict\n +plain \(control\) {2}0 of 1\n +marked +1 of 1 {2}helped\n +✗ has the marker {2}failed on the control · expected\n/,
+        [
+          'PASS           lands',
+          '               plain 0% vs marked 100%: too few runs · 0 of 1 vs 1 of 1 attempt',
+          '               plain   0%    0 of 1  baseline',
+          '               marked  100%  1 of 1  too few runs',
+          '               failed check, 1 of 2, all on plain, not gated: has the marker',
+          '                 expected file marker.txt to exist',
+          '                 at evals/lands.eval.ts:6',
+          '               Next: at evals/lands.eval.ts:5, set runs: 4, where a difference this size would hold',
+          '               (concern) The marked variant passed 1 of 1 run and the control 0 of 1: better by 100 points, but on too few runs for the difference to hold.',
+        ].join('\n'),
       )
-      assert.match(
-        entryOf(stdout, 'lands'),
-        /\n +Worth knowing: 1 run per side; set runs: 4 at evals\/lands\.eval\.ts:5 to confirm this difference\.$/,
-      )
-      assert.match(entryOf(stdout, 'canary'), /^ +marked +0 of 1 {2}same$/m)
-      assert.doesNotMatch(stdout, /%|pass@1/)
+      assert.match(entryOf(stdout, 'canary'), /^ +marked +0% +0 of 1 {2}too few runs$/m)
     },
   },
   {
@@ -5249,10 +5249,22 @@ export const features: Feature[] = [
       },
     },
     record: ({ stdout }) => {
-      assert.equal(entryOf(stdout, 'lands').trim(), '✓ lands  2 of 2 runs passed')
-      assert.match(
+      assert.equal(
+        entryOf(stdout, 'lands'),
+        [
+          'PASS           lands',
+          '               100% passed · 2 of 2 attempts · writer 1 of 1, copier 1 of 1',
+        ].join('\n'),
+      )
+      assert.equal(
         entryOf(stdout, 'canary'),
-        /✗ canary {2}1 of 2 runs passed\n +writer passed 1 of 1, idler 0 of 1\.\n +✗ writes out\.txt {2}failed 1 of 2 runs, on idler\n +expected file out\.txt to exist · evals\/canary\.eval\.ts:7$/,
+        [
+          'FAIL           canary',
+          '               50% passed · 1 of 2 attempts · writer 1 of 1, idler 0 of 1',
+          '               failed check, 1 of 2, all on idler: writes out.txt',
+          '                 expected file out.txt to exist',
+          '                 at evals/canary.eval.ts:7',
+        ].join('\n'),
       )
     },
   },
@@ -5288,13 +5300,14 @@ export const features: Feature[] = [
       const lands = entryOf(stdout, 'lands')
       assert.match(
         lands,
-        /✓ lands {2}2 of 2 variant runs passed\n +The marked variant helped\.\n +arm +passed {2}verdict\n +plain \(control\) {2}0 of 2\n +marked +2 of 2 {2}helped\n/,
+        /^PASS {11}lands\n {15}plain 0% vs marked 100%: too few runs · 0 of 2 vs 2 of 2 attempts\n {15}plain {3}0% {4}0 of 2 {2}baseline\n {15}marked {2}100% {2}2 of 2 {2}too few runs\n/,
       )
-      assert.match(lands, /^ +✗ has the marker {2}failed on the control · expected$/m)
+      assert.match(lands, /^ +failed check, 2 of 4, all on plain, not gated: has the marker$/m)
       assert.match(
         lands,
-        /\n +Worth knowing: 1 run per side; set runs: 4 at evals\/lands\.eval\.ts:7 to confirm these differences\.$/,
+        /^ +Next: at evals\/lands\.eval\.ts:7, set runs: 4, where a difference this size would hold$/m,
       )
+      assert.match(lands, /^ +\(concern\) .* 1 more variant is too\.$/m)
     },
   },
   {
@@ -5312,12 +5325,23 @@ export const features: Feature[] = [
       },
     },
     record: ({ stdout }) => {
-      assert.match(stdout, /✓ lands {2}2 of 2 runs passed · 2 cases\n\n/)
-      assert.match(
-        stdout,
-        /✗ canary {2}1 of 2 runs passed · 2 cases\n +Failed on green; 1 of 2 cases passed\.\n +case {3}fake\n +✓ red {4}1 of 1\n +✗ green {2}0 of 1\n +✗ is red {2}failed on green\n +expected 'green' to be 'red'/,
+      assert.equal(
+        entryOf(stdout, 'lands'),
+        ['PASS           lands', '               100% passed · 2 of 2 attempts'].join('\n'),
       )
-      assert.match(stdout, /\nDone in \S+ · 1 failed · 1 passed\n/)
+      assert.equal(
+        entryOf(stdout, 'canary'),
+        [
+          'FAIL           canary',
+          '               50% passed · 1 of 2 attempts',
+          '               red    100%  1 of 1',
+          '               green  0%    0 of 1',
+          '               failed check, 1 of 2: is red',
+          "                 expected 'green' to be 'red' // Object.is equality",
+          '                 at evals/canary.eval.ts:5',
+        ].join('\n'),
+      )
+      assert.match(stdout, /\nEvals: 1 fail · 1 pass\n/)
     },
   },
   {
@@ -5335,7 +5359,7 @@ export const features: Feature[] = [
         /"reached"/,
         "a check the baseline never reached didn't fail",
       )
-      assert.match(entryOf(stdout, 'canary'), /^ +✗ reached +failed on the control$/m)
+      assert.match(entryOf(stdout, 'canary'), /^ +failed check, 1 of 2, all on plain: reached$/m)
     },
   },
   {
@@ -5351,9 +5375,9 @@ export const features: Feature[] = [
     record: ({ stdout }) => {
       assert.match(
         entryOf(stdout, 'lands'),
-        /✗ lands {2}0 of 1 run passed\n +No run finished\.\n +✗ 1 run hit an infrastructure error\n +setup step 1\/1 "touch ran"/,
+        /^INFRA ERROR {4}lands\n {15}left out: 1 infra error\n {15}infra error, 1 of 1: setup step 1\/1 "touch ran"/,
       )
-      assert.match(stdout, /\nDone in \S+ · 1 failed · 1 infra error\n/)
+      assert.match(stdout, /\nEvals: 1 fail · 1 infra error\n/)
     },
   },
   {
@@ -5410,11 +5434,11 @@ export const features: Feature[] = [
       const summary = readFileSync(join(runDir, 'summary.md'), 'utf8')
       assert.match(
         blockOf(summary, 'lands'),
-        /### Assertions by arm[\s\S]*\| runs true \| toSucceed \| 1 of 1 \| 0 of 1 \|[\s\S]*\| is the control \| toBe \| 1 of 1 \| n\/a \|/,
+        /### Checks[\s\S]*\| runs true \| toSucceed \| [^|]+ \| 1 of 1 \| 0 of 1 \|[\s\S]*\| is the control \| toBe \| [^|]+ \| 1 of 1 \| n\/a \|/,
       )
       assert.match(
         blockOf(summary, 'canary'),
-        /### Assertions by arm[\s\S]*\| runs true \| toSucceed \| 2 of 2 \| 2 of 2 \|/,
+        /### Checks[\s\S]*\| runs true \| toSucceed \| [^|]+ \| 2 of 2 \| 2 of 2 \|/,
       )
       assert.doesNotMatch(blockOf(summary, 'canary'), /not run/)
     },
@@ -5553,7 +5577,7 @@ export const features: Feature[] = [
         ],
         'an eval declared skipped, or in a skipped group, is marked skip; one that ran is not',
       )
-      assert.match(stdout, /– parked +skipped$/m, 'a complete run shows a declared skip as skipped')
+      assert.match(stdout, /^SKIPPED +parked$/m, 'a complete run shows a declared skip as skipped')
     },
   },
   {

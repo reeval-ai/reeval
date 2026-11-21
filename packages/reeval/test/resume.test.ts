@@ -1088,7 +1088,7 @@ evaluate.skip('sk', async () => {})
     const left = readRun(p.dir).run
     assert.equal(left.status, 'interrupted')
     const shown = await runCli(p.dir, ['show', left.runId])
-    assert.match(shown.stdout, /^not run +sk$/m, shown.stdout)
+    assert.match(shown.stdout, /^NOT RUN +sk$/m, shown.stdout)
   })
 
   test('a filtered resume of a quit keeps what its progress file planned, and exits on what it ran', async () => {

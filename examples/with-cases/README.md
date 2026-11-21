@@ -25,19 +25,18 @@ claude-code` runs the same evals on Claude Code, and `--profile <name>` on any o
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the eval's row: one eval with three cases. When a case fails, the eval
-fails, and a table lists each case. Here the fake agent's `power` multiplies instead:
+**What to look at:** the eval's block: one eval with three cases. When a case fails, the eval
+fails, and its block lists each case. Here the fake agent's `power` multiplies instead:
 
 ```text
-with-cases.eval.ts
-  ✗ adds a function to src/math.js  2 of 3 runs passed · 3 cases
-    Failed on power; 2 of 3 cases passed.
-      case      fake
-    ✓ subtract  1 of 1
-    ✓ multiply  1 of 1
-    ✗ power     0 of 1
-    ✗ toBe 32  failed on power
-      expected '10' to be '32' // Object.is equality · with-cases.eval.ts:22
+FAIL           adds a function to src/math.js
+               67% passed · 2 of 3 attempts
+               subtract  100%  1 of 1
+               multiply  100%  1 of 1
+               power     0%    0 of 1
+               failed check, 1 of 3: toBe 32
+                 expected '10' to be '32' // Object.is equality
+                 at with-cases.eval.ts:22
 ```
 
 `pnpm reeval run --dry-run` plans the eval as one row, and after a run

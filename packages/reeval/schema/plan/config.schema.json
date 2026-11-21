@@ -1937,6 +1937,63 @@
       "required": ["kind"],
       "additionalProperties": false
     },
+    "PassMetric": {
+      "description": "Pass/fail reporting metric configuration: `'pass-rate'` (pooled default), `'task-pass-rate'` (equal-weight mean across tasks), `{ passAtK: k }`, `{ passHatK: k }`, or `{ k, lead? }` for unbiased `pass@k` and `pass^k` at explicit trial count `k` (`k >= 2`).",
+      "anyOf": [
+        {
+          "type": "string",
+          "const": "pass-rate"
+        },
+        {
+          "type": "string",
+          "const": "task-pass-rate"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "passAtK": {
+              "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass@k`, making `pass@k` the lead.",
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": ["passAtK"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "passHatK": {
+              "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass^k`, making `pass^k` the lead.",
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": ["passHatK"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass@k` and `pass^k`.",
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 9007199254740991
+            },
+            "lead": {
+              "description": "Which metric leads in headlines; default `'pass-rate'`.",
+              "type": "string",
+              "enum": ["pass-rate", "task-pass-rate", "pass@k", "pass^k"]
+            }
+          },
+          "required": ["k"],
+          "additionalProperties": false
+        }
+      ]
+    },
     "PhasedEgress": {
       "description": "An egress policy per phase of the attempt: `setup` covers its files and setup steps, `agent` the harness's start, every turn and every check after them. A phase it leaves unset keeps the policy it inherits.",
       "type": "object",
@@ -2484,6 +2541,10 @@
           "description": "Defaults for `c.judge()`, merged field by field over the config's.",
           "$ref": "#/$defs/ConfigJudgeData"
         },
+        "metric": {
+          "description": "Which pass/fail metric leads in reports when per-task trials are 2 or more.",
+          "$ref": "#/$defs/PassMetric"
+        },
         "question": {
           "description": "Defaults for every question, merged over the config's.",
           "$ref": "#/$defs/QuestionOptions"
@@ -2752,6 +2813,10 @@
         "judge": {
           "description": "Defaults for `c.judge()`, merged field by field down the cascade.",
           "$ref": "#/$defs/ConfigJudgeData"
+        },
+        "metric": {
+          "description": "Which pass/fail metric leads in reports when per-task trials are 2 or more; default `'pass-rate'`.",
+          "$ref": "#/$defs/PassMetric"
         },
         "profiles": {
           "description": "Named presets of `defaults`, `limit`, `judge`, `budget`, `record` and `tags`.",

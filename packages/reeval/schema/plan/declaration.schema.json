@@ -1153,6 +1153,48 @@
               "description": "Defaults for `c.judge()`, merged field by field down the cascade.",
               "$ref": "#/$defs/ConfigJudgeOptions"
             },
+            "metric": {
+              "description": "Which pass/fail metric leads in reports when per-task trials are 2 or more; default `'pass-rate'`.",
+              "anyOf": [
+                {
+                  "enum": ["pass-rate", "task-pass-rate"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "k": {
+                      "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass@k` and `pass^k`.",
+                      "type": "number"
+                    },
+                    "lead": {
+                      "description": "Which metric leads in headlines; default `'pass-rate'`.",
+                      "enum": ["pass-rate", "pass@k", "pass^k", "task-pass-rate"]
+                    }
+                  },
+                  "required": ["k"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "passAtK": {
+                      "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass@k`, making `pass@k` the lead.",
+                      "type": "number"
+                    }
+                  },
+                  "required": ["passAtK"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "passHatK": {
+                      "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass^k`, making `pass^k` the lead.",
+                      "type": "number"
+                    }
+                  },
+                  "required": ["passHatK"]
+                }
+              ]
+            },
             "pin": {
               "description": "Keys a profile's `limit` may not narrow for this group or eval.",
               "type": "array",
@@ -1472,6 +1514,48 @@
             "judge": {
               "description": "Defaults for `c.judge()`, merged field by field down the cascade.",
               "$ref": "#/$defs/ConfigJudgeOptions"
+            },
+            "metric": {
+              "description": "Which pass/fail metric leads in reports when per-task trials are 2 or more; default `'pass-rate'`.",
+              "anyOf": [
+                {
+                  "enum": ["pass-rate", "task-pass-rate"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "k": {
+                      "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass@k` and `pass^k`.",
+                      "type": "number"
+                    },
+                    "lead": {
+                      "description": "Which metric leads in headlines; default `'pass-rate'`.",
+                      "enum": ["pass-rate", "pass@k", "pass^k", "task-pass-rate"]
+                    }
+                  },
+                  "required": ["k"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "passAtK": {
+                      "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass@k`, making `pass@k` the lead.",
+                      "type": "number"
+                    }
+                  },
+                  "required": ["passAtK"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "passHatK": {
+                      "description": "Explicit trial count `k` (`>= 2`) for unbiased `pass^k`, making `pass^k` the lead.",
+                      "type": "number"
+                    }
+                  },
+                  "required": ["passHatK"]
+                }
+              ]
             },
             "pin": {
               "description": "Keys a profile's `limit` may not narrow for this group or eval.",

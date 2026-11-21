@@ -1,0 +1,29 @@
+Run 20260927T160436Z_82137cd_cursor-agent_j7cm
+2 of 4 counted attempts passed · 5 infra errors · 907ms wall time · tokens not reported · cost not reported · 82137cd
+
+INFRA ERROR    writes greet.js
+               100% passed · 1 of 1 attempt · left out: 1 infra error
+               infra error, 1 of 2, all on broken: the fake sandbox fell over
+
+FAIL           fails its check
+               0% passed · 0 of 1 attempt · left out: 1 infra error
+               error, 1 of 2, all on Fake: expected command to succeed, exit code 1
+               infra error, 1 of 2, all on broken: the fake sandbox fell over
+
+FAIL           fails its judge
+               0% passed · 0 of 1 attempt · left out: 1 infra error
+               error, 1 of 2, all on Fake: judge score 0.80 is below 0.95 for "Is greet.js perfect?" (fake)
+               infra error, 1 of 2, all on broken: the fake sandbox fell over
+
+SKIPPED        is skipped for now
+
+TODO           greets in Welsh
+
+INFRA ERROR    house greeting › greets in the house style
+               baseline 0% vs with-house-greeting 100% · 0 of 1 vs 1 of 1 attempt · left out: 2 infra errors
+               baseline             0%    0 of 1  baseline  left out: 1 infra error
+               with-house-greeting  100%  1 of 1  variant   left out: 1 infra error
+               infra error, 2 of 4, all on broken: the fake sandbox fell over
+               error, 1 of 4, all on baseline, not gated: expected command to succeed, exit code 1
+
+Evals: 2 fail · 2 infra errors · 1 skipped · 1 todo

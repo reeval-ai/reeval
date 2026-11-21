@@ -579,6 +579,7 @@ class Seen {
         name: e.name,
         tags: e.attempt?.tags ?? [],
         ...(e.attempt?.plan.compare ? { compare: e.attempt.plan.compare } : {}),
+        ...(e.attempt?.plan.metric ? { metric: e.attempt.plan.metric } : {}),
         ...(e.attempt?.family ? { family: familyOf(e.attempt.family) } : {}),
         ...(e.attempt?.plan.excluded ? { excluded: e.attempt.plan.excluded } : {}),
         fingerprint: '',
@@ -735,6 +736,7 @@ async function addPreviousAttempt(
   seen.add(null, cell, stub)
   seen.addKept(previous, kept, cell, beforeCell?.environmentDigest ?? null, e.attempt !== undefined)
   const entry = seen.entry(stub, sources, { source, revision })
+  if (!entry.metric && before?.metric) entry.metric = before.metric
   // Unplanned this time, the case keeps the pairs `where` left it out of.
   if (!e.attempt && !entry.excluded && before?.excluded) entry.excluded = before.excluded
   const created = !entry.cells.some((c) => c.key === cell.key)
@@ -1595,6 +1597,7 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
                 (profile.defaults.environments || profile.defaults.sandbox) &&
                 sandboxId(profileSandbox(config, profile.defaults)),
               ...(profile.defaults.runs !== undefined ? runsOf(profile.defaults.runs) : {}),
+              ...(profile.defaults.metric !== undefined ? { metric: profile.defaults.metric } : {}),
               timeout: profile.defaults.timeout,
               env: profile.defaults.env && Object.keys(profile.defaults.env).sort(),
             }),
@@ -1617,6 +1620,7 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
       sandbox: plannedSandboxes(input.plan.sandboxes, profileSandbox(config, profile?.defaults)),
       environment: config.environments.map((e) => e.name).join(', ') || null,
       ...(config.runs !== undefined ? runsOf(config.runs) : { runs: 1 }),
+      ...(config.metric !== undefined ? { metric: config.metric } : {}),
       judgeModel,
       threshold: runJudge.threshold,
       timeoutMs: config.timeoutMs,

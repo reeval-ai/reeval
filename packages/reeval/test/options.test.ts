@@ -69,9 +69,9 @@ group('g', { runs: 2 }, () => {
     assert.match(r.stdout, /^\[writes#2 bad\] ▶ evals\/m\.eval\.ts › g › writes ok\.txt$/m)
     assert.match(
       r.stdout,
-      /✗ g › writes ok\.txt {2}2 of 4 runs passed\n[│ ]+good passed 2 of 2, bad 0 of 2\.\n[│ ]+✗ toHaveFile ok\.txt {2}failed 2 of 4 runs, all on bad\n[│ ]+expected file ok\.txt to exist · evals\/m\.eval\.ts:6\n/,
+      /^FAIL {11}g › writes ok\.txt\n {15}50% passed · 2 of 4 attempts · good 2 of 2, bad 0 of 2\n {15}failed check, 2 of 4, all on bad: toHaveFile ok\.txt\n {17}expected file ok\.txt to exist\n {17}at evals\/m\.eval\.ts:6\n/im,
     )
-    assert.match(r.stdout, /^Done in \S+ · 1 failed$/m)
+    assert.match(r.stdout, /^Evals: 1 fail$/m)
     const thirds = await project('matrix-thirds', {
       'reeval.config.ts': config('', `fakeHarness({ id: 'one' })`),
       'evals/t.eval.ts': `import { evaluate } from 'reeval'
@@ -85,10 +85,9 @@ evaluate('two of three', { runs: 3, gate: { passRate: 0.5 } }, async (c) => {
     assert.equal(rounded.code, 0, rounded.stdout + rounded.stderr)
     assert.match(
       rounded.stdout,
-      /✓ two of three {2}2 of 3 runs passed$/m,
-      'counts read N of M, never a percentage',
+      /^PASS {11}two of three\n {15}67% passed · 2 of 3 attempts$/m,
+      'the rate leads, its count beside it',
     )
-    assert.doesNotMatch(rounded.stdout, /\d%/)
     const { run, evals } = readRun(p.dir)
     assert.equal(run.summary.attempts, 4)
     assert.deepEqual(
@@ -317,10 +316,9 @@ evaluate(
     // The family is one row, its arms pooled over the cases. Agent time can hold either way on a
     // slow runner, so the vs control cell may lead with it.
     const pooled =
-      /✓ writes ok\.txt {2}6 of 6 variant runs passed · 6 cases\n[│ ]+The skilled variant helped\.\n[│ ]+arm +passed {2}verdict {2}vs control\n[│ ]+base \(control\) {2}0 of 6\n[│ ]+skilled +6 of 6 {2}helped {3}(?:(?:\d+(?:\.\d)?× |\d+% )?(?:slower|faster) · )?"toHaveFile ok\.txt" \+100 pts\n[│ ]+case {6}base \(control\) {2}skilled\n[│ ]+✓ ada {7}0 of 1 {10}1 of 1\n/
+      /^PASS {11}writes ok\.txt\n {15}base 0% vs skilled 100%: helped · 0 of 6 vs 6 of 6 attempts\n {15}base {5}0% {4}0 of 6 {2}baseline\n {15}skilled {2}100% {2}6 of 6 {2}helped\n {15}failed check, 6 of 12, all on base, not gated: toHaveFile ok\.txt\n/m
     assert.match(r.stdout, pooled)
-    assert.doesNotMatch(r.stdout, /Failed cases/, 'every case passed')
-    assert.match(r.stdout, /^Done in \S+ · 1 passed$/m, 'the eval with cases counts once')
+    assert.match(r.stdout, /^Evals: 1 pass$/m, 'the eval with cases counts once')
 
     const { evals, read } = readRun(p.dir)
     const [ev] = evals
@@ -355,13 +353,13 @@ evaluate(
     )
     assert.equal(ev?.outcome, 'pass')
     const summary = read('summary.md')
-    assert.match(summary, /^## Baseline vs\. variants$/m)
-    assert.match(summary, /^\| Arm \| Pass rate \| Lift \| Pass-rate verdict \|/m)
-    assert.match(summary, /^\| base \| 0% \| n\/a \| Baseline \|/m)
-    assert.match(summary, /^\| skilled \| 100% \| \+100 pts \| Helped \|/m)
+    assert.match(summary, /^### Arms$/m)
+    assert.match(summary, /^\| base \| 0% \| 0 of 6 \| baseline \| none \|$/m)
+    assert.match(summary, /^\| skilled \| 100% \| 6 of 6 \| helped \| none \|$/m)
+    assert.match(summary, /^\| ada \| 0% \(0 of 1\) \| 100% \(1 of 1\) \|$/m)
     assert.match(
       summary,
-      /^\| toHaveFile ok\.txt \| toHaveFile \| 0 of 6 \| 6 of 6 \| 6 of 12 \|$/m,
+      /^\| toHaveFile ok\.txt \| toHaveFile \| evals\/e\.eval\.ts:12 \| 0 of 6 \| 6 of 6 \| 6 of 12 \|$/m,
     )
 
     const agent = await runCli(p.dir, ['run', '--ui', 'agent'])
@@ -415,14 +413,9 @@ evaluate(
     assert.equal(r.code, 1, r.stdout + r.stderr)
     assert.match(
       r.stdout,
-      /✗ writes ok\.txt {2}6 of 6 variant runs passed · 6 cases\n[│ ]+The skilled variant helped\.\n[│ ]+arm +passed {2}verdict +vs control\n[│ ]+base \(control\) {2}0 of 6\n[│ ]+skilled +6 of 6 {2}helped, not by minLift 60 {2}(?:(?:\d+(?:\.\d)?× |\d+% )?(?:slower|faster) · )?"toHaveFile ok\.txt" \+100 pts\n/,
+      /^FAIL {11}writes ok\.txt\n {15}base 0% vs skilled 100%: helped, not by minLift 60 · 0 of 6 vs 6 of 6 attempts\n {15}base {5}0% {4}0 of 6 {2}baseline\n {15}skilled {2}100% {2}6 of 6 {2}helped, not by minLift 60\n/m,
     )
-    assert.doesNotMatch(r.stdout, /Failed cases/, 'every case passed on its own')
-    assert.match(
-      r.stdout,
-      /^Done in \S+ · 1 failed$/m,
-      'the pooled gate fails the eval, counted once',
-    )
+    assert.match(r.stdout, /^Evals: 1 fail$/m, 'the pooled gate fails the eval, counted once')
     const [ev] = readRun(p.dir).evals
     assert.equal(ev?.outcome, 'fail')
     assert.ok(
@@ -451,10 +444,7 @@ evaluate(
     ])
     assert.deepEqual(JSON.parse(paired.stdout), [{ small_sample: 1 }], 'three cases are too few')
     // Three pairs are too few for the lift to hold, however one-sided they are: it shows the direction.
-    assert.match(
-      r.stdout,
-      /^[│ ]+skilled +6 of 6 {2}helped {3}(?:(?:\d+(?:\.\d)?× |\d+% )?(?:slower|faster) · )?"toHaveFile ok\.txt" \+100 pts$/m,
-    )
+    assert.match(r.stdout, /^ {15}skilled {2}100% {2}6 of 6 {2}helped$/m)
   })
 
   test('variants run next to the control, lift is stored, and the control is not gated', async () => {
@@ -479,9 +469,9 @@ group('g', { compare: { control: base, variants: [skilled] }, runs: 2 }, () => {
     assert.match(r.stdout, /^ {2}➜ {2}Scope: +1 eval file · 1 eval · 2 cells · 4 attempts$/m)
     // A successful compare reads as one: the control's expected misses aren't failures.
     const block =
-      /✓ g › writes ok\.txt {2}2 of 2 variant runs passed\n[│ ]+The skilled variant helped\.\n[│ ]+arm +passed {2}verdict\n[│ ]+base \(control\) {2}0 of 2\n[│ ]+skilled +2 of 2 {2}helped\n[│ ]+✗ toHaveFile ok\.txt {2}failed on the control 2 of 2 · expected\n/
+      /^PASS {11}g › writes ok\.txt\n {15}base 0% vs skilled 100%: too few runs · 0 of 2 vs 2 of 2 attempts\n {15}base {5}0% {4}0 of 2 {2}baseline\n {15}skilled {2}100% {2}2 of 2 {2}too few runs\n {15}failed check, 2 of 4, all on base, not gated: toHaveFile ok\.txt\n/m
     assert.match(r.stdout, block)
-    assert.match(r.stdout, /^Done in \S+ · 1 passed · 2 ran$|^Done in \S+ · 1 passed$/m)
+    assert.match(r.stdout, /^Evals: 1 pass$/m)
 
     const color = await runCli(p.dir, ['run'], { env: { FORCE_COLOR: '1' } })
     assert.equal(color.code, 0, color.stdout + color.stderr)
@@ -499,15 +489,24 @@ group('g', { compare: { control: base, variants: [skilled] }, runs: 2 }, () => {
     assert.equal(gha.stdout.match(/^::group::/gm)?.length, 4, 'expected misses collapse too')
 
     const md = readRun(p.dir).read('summary.md')
-    assert.match(md, /^## Baseline vs\. variants$/m)
-    assert.match(md, /^\| Arm \| Pass rate \| Lift \| Pass-rate verdict \|/m)
-    assert.match(md, /^\| base \| 0% \| n\/a \| Baseline \|/m)
-    assert.match(md, /^\| skilled \| 100% \| \+100 pts \| Too few runs \|/m)
-    assert.match(md, /^\| Assertion \| Matcher \| base \| skilled \| Total \|$/m)
-    assert.match(md, /^\| toBe base \| toBe \| 2 of 2 \| n\/a \| 2 of 2 \|$/m)
-    assert.match(md, /^\| toHaveFile ok\.txt \| toHaveFile \| 0 of 2 \| 2 of 2 \| 2 of 4 \|$/m)
-    assert.match(md, /^## Failures and caveats$/m)
-    assert.match(md, /^\| assertion \| toHaveFile ok\.txt \|/m)
+    assert.match(md, /^### Arms$/m)
+    assert.match(md, /^\| Arm \| Pass rate \| Passed \| Effect \| Left out \|$/m)
+    assert.match(md, /^\| base \| 0% \| 0 of 2 \| baseline \| none \|$/m)
+    assert.match(md, /^\| skilled \| 100% \| 2 of 2 \| too few runs \| none \|$/m)
+    assert.match(md, /^\| Check \| Matcher \| At \| base \| skilled \| Total \|$/m)
+    assert.match(
+      md,
+      /^\| toBe base \| toBe \| evals\/c\.eval\.ts:7 \| 2 of 2 \| n\/a \| 2 of 2 \|$/m,
+    )
+    assert.match(
+      md,
+      /^\| toHaveFile ok\.txt \| toHaveFile \| evals\/c\.eval\.ts:8 \| 0 of 2 \| 2 of 2 \| 2 of 4 \|$/m,
+    )
+    assert.match(md, /^### Failures$/m)
+    assert.match(
+      md,
+      /^\| failed check \| toHaveFile ok\.txt \| .* \| 2 of 4, all on base, not gated \|/m,
+    )
     const { run, evals } = readRun(p.dir)
     const [e] = evals
     assert.equal(e?.outcome, 'pass', 'the ungated control fails without failing the eval')
@@ -565,13 +564,13 @@ evaluate('no worse', { runs: 1, compare: { control: base, variants: [skilled], m
     // The canary: a gated control's failure is still a failure; only the ungated miss moves.
     assert.match(
       r.stdout,
-      /✗ all gated {2}1 of 2 runs passed\n[│ ]+Failed on the control; the skilled variant helped\.\n[│ ]+arm +passed {2}verdict\n[│ ]+base \(control\) {2}0 of 1\n[│ ]+skilled +1 of 1 {2}helped\n[│ ]+✗ toHaveFile ok\.txt {2}failed on the control\n/,
+      /^FAIL {11}all gated\n {15}base 0% vs skilled 100%: too few runs · 0 of 1 vs 1 of 1 attempt\n {15}base {5}0% {4}0 of 1 {2}baseline\n {15}skilled {2}100% {2}1 of 1 {2}too few runs\n {15}failed check, 1 of 2, all on base: toHaveFile ok\.txt\n/m,
     )
     assert.match(
       r.stdout,
-      /● no worse +1 of 2 runs passed\n[│ ]+The skilled variant made it worse\.\n[│ ]+arm +passed {2}verdict\n[│ ]+base \(control\) {2}1 of 1\n[│ ]+skilled +0 of 1 {2}made it worse, not by minLift 50\n(?:[│ ]+.+\n)*?[│ ]+the variant is worse\n/,
+      /^NOT GATED {6}no worse\n {15}base 100% vs skilled 0%: too few runs, not by minLift 50 · 1 of 1 vs 0 of 1 attempt\n(?: {15}.+\n)*? {15}error, 1 of 2, all on skilled, not gated: the variant is worse\n/m,
     )
-    assert.match(r.stdout, /^Done in \S+ · 1 failed · 1 ran$/m)
+    assert.match(r.stdout, /^Evals: 1 fail · 1 not gated$/m)
   })
 
   test('compare.harness scopes variants; other harnesses run the control only', async () => {
@@ -637,10 +636,10 @@ group('rated', { gate: { passRate: 0.6 } }, () => {
     ])
     assert.match(
       r.stdout,
-      /✗ default +4 of 5 runs passed\n[│ ]+Passed 4 of 5 on fake\.\n(?:[│ ]+.+\n)*?[│ ]+the third attempt fails\n/,
+      /^FAIL {11}default\n {15}80% passed · 4 of 5 attempts\n {15}error, 1 of 5: the third attempt fails\n/m,
     )
-    assert.match(r.stdout, /✓ at 0\.8 +4 of 5 runs passed$/m)
-    assert.match(r.stdout, /^Done in \S+ · 3 failed · 2 passed$/m)
+    assert.match(r.stdout, /^PASS {11}at 0\.8\n {15}80% passed · 4 of 5 attempts$/m)
+    assert.match(r.stdout, /^Evals: 3 fail · 2 pass$/m)
 
     const quiet = await runCli(p.dir, ['run', 'at 0.8'])
     assert.equal(quiet.code, 0, quiet.stdout + quiet.stderr)
@@ -1883,7 +1882,7 @@ evaluate('greets', { runs: 1, compare: { control: plain, variants: [withSkill] }
     })
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.match(r.stdout, /^\[greets#1 with-skill\] ▶ evals\/e\.eval\.ts › greets/m)
-    assert.match(r.stdout, /^[│ ]+with-skill +1 of 1 {2}helped$/m)
+    assert.match(r.stdout, /^ {15}with-skill {2}100% {2}1 of 1 {2}too few runs$/m)
     const { run, evals, dir } = readRun(p.dir)
     const envs = Object.fromEntries(run.environments.map((e) => [e.name, e]))
     assert.deepEqual(Object.keys(envs).sort(), ['plain', 'with-skill'])

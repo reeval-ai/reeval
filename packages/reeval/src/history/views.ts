@@ -1,10 +1,11 @@
+import { runReportText } from '../renderer/ascii.ts'
 import { formatDuration } from '../text.ts'
 import type { Outcome } from '../types.ts'
-import { render } from '../ui/layout.ts'
 import { cellsChanged } from '../view/compare.ts'
 import { isNotGatedPass } from '../view/model.ts'
+import { present } from '../view/present/index.ts'
 import type { RunRemarks } from '../view/remarks.ts'
-import { suiteResult } from '../view/suite.ts'
+import { buildRunReport } from '../view/report/index.ts'
 import { warnings } from './state.ts'
 import { OUTCOME_MARK, runTally, stateRows } from './summary.ts'
 import type { HistoryEntry, RunRecord } from './types.ts'
@@ -185,6 +186,6 @@ export function formatShow(
     ...rows.map(([k, v]) => `  ${k.padEnd(width)}  ${v}`),
     ...warnings(run, opts.cloudRunId).map((w) => `  ! ${w}`),
     '',
-    ...render(suiteResult(run), opts.remarks ?? null, { color: false, verbose: false }),
+    runReportText(present(buildRunReport(run, { remarks: opts.remarks ?? null }))).trimEnd(),
   ].join('\n')
 }

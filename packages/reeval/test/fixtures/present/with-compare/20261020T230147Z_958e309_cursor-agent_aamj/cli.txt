@@ -1,0 +1,31 @@
+Run 20261020T230147Z_958e309_cursor-agent_aamj
+5 of 8 counted attempts passed · 1s wall time · tokens not reported · cost not reported · 958e309
+
+PASS           bills in minor units with the billing doc
+               100% passed · 1 of 1 attempt
+
+FAIL           adds a $name button that builds
+               67% passed · 2 of 3 attempts
+               reset   100%  1 of 1
+               double  0%    0 of 1
+               clear   100%  1 of 1
+               failed check, 1 of 3: build
+                 expected command to succeed, exit code 1
+
+PASS           greets in the house style
+               100% passed · 1 of 1 attempt
+
+PASS           writes greet.js
+               100% passed · 1 of 1 attempt
+
+FAIL           greets in French
+               0% passed · 0 of 1 attempt
+               failed check, 1 of 1: french greeting
+                 expected command to succeed, exit code 1
+
+FAIL           greets in German
+               0% passed · 0 of 1 attempt
+               failed check, 1 of 1: german greeting
+                 expected command to succeed, exit code 1
+
+Evals: 3 fail · 3 pass

@@ -1,0 +1,950 @@
+{
+  "presentationVersion": 1,
+  "header": {
+    "title": "writes hello.txt",
+    "runId": "20260927T161031Z_cc7e11c_cursor-agent_a3yh",
+    "status": "complete",
+    "stopped": null,
+    "startedAt": "2026-09-27T16:10:31.317Z",
+    "date": "2026-09-27",
+    "author": "cursor-agent",
+    "reeval": "0.0.1",
+    "profile": null,
+    "runs": "1 run per cell",
+    "git": {
+      "repo": null,
+      "branch": "master",
+      "sha": "cc7e11c20a21d79b33f614def179c7c0b25cfa1f",
+      "dirty": false,
+      "text": "cc7e11c"
+    },
+    "wall": {
+      "value": 40263,
+      "text": "40s"
+    },
+    "tokens": {
+      "value": 198592,
+      "text": "199k"
+    },
+    "cost": {
+      "value": null,
+      "text": "not reported"
+    },
+    "counted": {
+      "k": 7,
+      "n": 7,
+      "text": "7 of 7"
+    },
+    "infraError": 0,
+    "canceled": 0,
+    "attempts": "7 of 7 counted attempts passed",
+    "servedBy": []
+  },
+  "tally": {
+    "pass": 1,
+    "fail": 0,
+    "infraError": 0,
+    "canceled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "notRun": 0,
+    "ungated": 0,
+    "text": "1 pass"
+  },
+  "caveats": [
+    {
+      "severity": "warn",
+      "text": "2 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "evals/hello.es.ts › writes hello.txt",
+      "cites": [
+        {
+          "id": "A4",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/opencode-gemini-3-8-flash-docker-ad8642/1/transcript.jsonl"
+        },
+        {
+          "id": "A5",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/goose-gemini-3-8-flash-docker-4d2757/1/transcript.jsonl"
+        }
+      ]
+    }
+  ],
+  "harnesses": [
+    {
+      "id": "cursor:composer-2.5",
+      "name": "Cursor",
+      "model": "composer-2.5",
+      "label": "Cursor · composer-2.5",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 1,
+        "text": "1 attempt"
+      }
+    },
+    {
+      "id": "claude-code:claude-sonnet-5",
+      "name": "Claude Code",
+      "model": "claude-sonnet-5",
+      "label": "Claude Code · claude-sonnet-5",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 1,
+        "text": "1 attempt"
+      }
+    },
+    {
+      "id": "antigravity:gemini-3.8-flash-medium",
+      "name": "Antigravity",
+      "model": "gemini-3.8-flash-medium",
+      "label": "Antigravity · gemini-3.8-flash-medium",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 1,
+        "text": "1 attempt"
+      }
+    },
+    {
+      "id": "opencode:gemini-3.8-flash",
+      "name": "OpenCode",
+      "model": "gemini-3.8-flash",
+      "label": "OpenCode · gemini-3.8-flash",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 1,
+        "text": "1 attempt"
+      }
+    },
+    {
+      "id": "goose:gemini-3.8-flash",
+      "name": "Goose",
+      "model": "gemini-3.8-flash",
+      "label": "Goose · gemini-3.8-flash",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 1,
+        "text": "1 attempt"
+      }
+    },
+    {
+      "id": "pi:gemini-3.8-flash",
+      "name": "pi",
+      "model": "gemini-3.8-flash",
+      "label": "pi · gemini-3.8-flash",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 1,
+        "text": "1 attempt"
+      }
+    },
+    {
+      "id": "codex:gpt-5.4-mini",
+      "name": "Codex",
+      "model": "gpt-5.4-mini",
+      "label": "Codex · gpt-5.4-mini",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 1,
+        "text": "1 attempt"
+      }
+    }
+  ],
+  "evals": [
+    {
+      "id": "evals/hello.es.ts › writes hello.txt",
+      "anchor": "writes-hellotxt",
+      "name": "writes hello.txt",
+      "file": "evals/hello.es.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "7 coding harnesses, 7 attempts",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "writes hello.txt",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 7,
+            "n": 7,
+            "rate": 1,
+            "text": "100%",
+            "of": "7 of 7",
+            "interval": "65% to 100%"
+          }
+        },
+        "foot": "7 of 7 attempts · Cursor · composer-2.5 1 of 1, Claude Code · claude-sonnet-5 1 of 1, Antigravity · gemini-3.8-flash-medium 1 of 1, OpenCode · gemini-3.8-flash 1 of 1, Goose · gemini-3.8-flash 1 of 1, pi · gemini-3.8-flash 1 of 1, Codex · gpt-5.4-mini 1 of 1",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "-",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 7,
+            "n": 7,
+            "rate": 1,
+            "text": "100%",
+            "of": "7 of 7",
+            "interval": "65% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": 32197,
+            "text": "32k"
+          },
+          "agentTime": {
+            "value": 6851,
+            "text": "6.9s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "byHarness": [],
+      "attempts": [
+        {
+          "id": "A1",
+          "key": "evals/hello.es.ts › writes hello.txt # cursor:composer-2.5/-/docker#1",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/cursor-composer-2-5-docker-76739b/1/transcript.jsonl",
+          "harness": "Cursor · composer-2.5",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": 22671,
+            "text": "23k"
+          },
+          "agentTime": {
+            "value": 6219,
+            "text": "6s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A2",
+          "key": "evals/hello.es.ts › writes hello.txt # claude-code:claude-sonnet-5/-/docker#1",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/claude-code-claude-sonnet-5-docker-35eb43/1/transcript.jsonl",
+          "harness": "Claude Code · claude-sonnet-5",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": 86225,
+            "text": "86k"
+          },
+          "agentTime": {
+            "value": 6851,
+            "text": "7s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A3",
+          "key": "evals/hello.es.ts › writes hello.txt # antigravity:gemini-3.8-flash-medium/-/docker#1",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/antigravity-gemini-3-8-flash-medium-docker-4d994b/1/transcript.jsonl",
+          "harness": "Antigravity · gemini-3.8-flash-medium",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": 50781,
+            "text": "51k"
+          },
+          "agentTime": {
+            "value": 24155,
+            "text": "24s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A4",
+          "key": "evals/hello.es.ts › writes hello.txt # opencode:gemini-3.8-flash/-/docker#1",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/opencode-gemini-3-8-flash-docker-ad8642/1/transcript.jsonl",
+          "harness": "OpenCode · gemini-3.8-flash",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 6317,
+            "text": "6s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A5",
+          "key": "evals/hello.es.ts › writes hello.txt # goose:gemini-3.8-flash/-/docker#1",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/goose-gemini-3-8-flash-docker-4d2757/1/transcript.jsonl",
+          "harness": "Goose · gemini-3.8-flash",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 11151,
+            "text": "11s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A6",
+          "key": "evals/hello.es.ts › writes hello.txt # pi:gemini-3.8-flash/-/docker#1",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/pi-gemini-3-8-flash-docker-12b197/1/transcript.jsonl",
+          "harness": "pi · gemini-3.8-flash",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": 6718,
+            "text": "6,718"
+          },
+          "agentTime": {
+            "value": 15751,
+            "text": "16s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A7",
+          "key": "evals/hello.es.ts › writes hello.txt # codex:gpt-5.4-mini/-/docker#1",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/codex-gpt-5-4-mini-docker-afcfca/1/transcript.jsonl",
+          "harness": "Codex · gpt-5.4-mini",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": 32197,
+            "text": "32k"
+          },
+          "agentTime": {
+            "value": 6259,
+            "text": "6s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [
+        {
+          "label": "Cursor · composer-2.5",
+          "tokens": {
+            "value": 22671,
+            "text": "23k"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 6219,
+            "text": "6.2s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "label": "Claude Code · claude-sonnet-5",
+          "tokens": {
+            "value": 86225,
+            "text": "86k"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 6851,
+            "text": "6.9s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "label": "Antigravity · gemini-3.8-flash-medium",
+          "tokens": {
+            "value": 50781,
+            "text": "51k"
+          },
+          "toolCalls": {
+            "value": 2,
+            "text": "2"
+          },
+          "agentTime": {
+            "value": 24155,
+            "text": "24s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "label": "OpenCode · gemini-3.8-flash",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 6317,
+            "text": "6.3s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "label": "Goose · gemini-3.8-flash",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 11151,
+            "text": "11s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "label": "pi · gemini-3.8-flash",
+          "tokens": {
+            "value": 6718,
+            "text": "6,718"
+          },
+          "toolCalls": {
+            "value": 2,
+            "text": "2"
+          },
+          "agentTime": {
+            "value": 15751,
+            "text": "16s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "label": "Codex · gpt-5.4-mini",
+          "tokens": {
+            "value": 32197,
+            "text": "32k"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 6259,
+            "text": "6.3s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [
+        {
+          "label": "Did the agent create hello.txt containing hi",
+          "question": "Did the agent create hello.txt containing hi?",
+          "threshold": "diagnostic",
+          "median": {
+            "value": 1,
+            "text": "1.00"
+          },
+          "atOrAbove": null,
+          "scale": [
+            0,
+            1
+          ],
+          "thresholdValue": null,
+          "scores": [
+            {
+              "attempt": {
+                "id": "A1",
+                "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/cursor-composer-2-5-docker-76739b/1/transcript.jsonl"
+              },
+              "group": "Cursor · composer-2.5",
+              "score": {
+                "value": 1,
+                "text": "1.00"
+              }
+            },
+            {
+              "attempt": {
+                "id": "A2",
+                "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/claude-code-claude-sonnet-5-docker-35eb43/1/transcript.jsonl"
+              },
+              "group": "Claude Code · claude-sonnet-5",
+              "score": {
+                "value": 1,
+                "text": "1.00"
+              }
+            },
+            {
+              "attempt": {
+                "id": "A3",
+                "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/antigravity-gemini-3-8-flash-medium-docker-4d994b/1/transcript.jsonl"
+              },
+              "group": "Antigravity · gemini-3.8-flash-medium",
+              "score": {
+                "value": 1,
+                "text": "1.00"
+              }
+            },
+            {
+              "attempt": {
+                "id": "A4",
+                "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/opencode-gemini-3-8-flash-docker-ad8642/1/transcript.jsonl"
+              },
+              "group": "OpenCode · gemini-3.8-flash",
+              "score": {
+                "value": 1,
+                "text": "1.00"
+              }
+            },
+            {
+              "attempt": {
+                "id": "A5",
+                "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/goose-gemini-3-8-flash-docker-4d2757/1/transcript.jsonl"
+              },
+              "group": "Goose · gemini-3.8-flash",
+              "score": {
+                "value": 1,
+                "text": "1.00"
+              }
+            },
+            {
+              "attempt": {
+                "id": "A6",
+                "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/pi-gemini-3-8-flash-docker-12b197/1/transcript.jsonl"
+              },
+              "group": "pi · gemini-3.8-flash",
+              "score": {
+                "value": 1,
+                "text": "1.00"
+              }
+            },
+            {
+              "attempt": {
+                "id": "A7",
+                "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/codex-gpt-5-4-mini-docker-afcfca/1/transcript.jsonl"
+              },
+              "group": "Codex · gpt-5.4-mini",
+              "score": {
+                "value": 1,
+                "text": "1.00"
+              }
+            }
+          ]
+        }
+      ],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "100% passed, 95% CI 65% to 100%"
+      ]
+    }
+  ],
+  "actions": [],
+  "provenance": {
+    "rows": [
+      {
+        "field": "Executed at",
+        "value": "cc7e11c20a21 on master, clean (the commit that adds this record is later)"
+      },
+      {
+        "field": "Lockfiles",
+        "value": "none found"
+      },
+      {
+        "field": "Images",
+        "value": "evalsuite-sandbox:antigravity-0.1.0 · id 3159ee84597a · no registry digest (built locally) · CLI 1.2.11; evalsuite-sandbox:claude-code-1.0.128-patch.5d1c985c · id a6823b9ac9f2 · no registry digest (built locally) · CLI 2.1.276 (Claude Code); evalsuite-sandbox:codex-0.1.0 · id 276a4ca7ed53 · no registry digest (built locally) · CLI codex-cli 0.157.1; evalsuite-sandbox:cursor-0.1.0 · id b163d6043340 · no registry digest (built locally) · CLI @cursor/sdk 1.0.32; evalsuite-sandbox:goose-0.1.0 · id a4ee1a7ae356 · no registry digest (built locally) · CLI 1.52.0; evalsuite-sandbox:opencode-0.1.0 · id 49a6832a5c36 · no registry digest (built locally) · CLI 1.18.32; evalsuite-sandbox:pi-0.1.0 · id a898580c1d8c · no registry digest (built locally) · CLI 0.87.1"
+      },
+      {
+        "field": "Harnesses",
+        "value": "antigravity:gemini-3.8-flash-medium (model gemini-3.8-flash-medium, served gemini-3.8-flash-medium), claude-code:claude-sonnet-5 (model claude-sonnet-5, served claude-sonnet-5), codex:gpt-5.4-mini (model gpt-5.4-mini, served gpt-5.4-mini-2026-03-17[effort=medium]), cursor:composer-2.5 (model composer-2.5, served composer-2.5[fast=true]), goose:gemini-3.8-flash (model gemini-3.8-flash, served gemini-3.8-flash), opencode:gemini-3.8-flash (model gemini-3.8-flash, served gemini-3.8-flash), pi:gemini-3.8-flash (model gemini-3.8-flash, served gemini-3.8-flash)"
+      },
+      {
+        "field": "Environments",
+        "value": "none"
+      },
+      {
+        "field": "Judge",
+        "value": "google/gemini-3.8-flash (served gemini-3.8-flash) · threshold 0.8 · version e0f032315413"
+      },
+      {
+        "field": "Packages",
+        "value": "vitest 5.0.2 · @evalsuite/harness-antigravity 0.1.0 · @evalsuite/harness-opencode 0.1.0 · @evalsuite/harness-goose 0.1.0 · @evalsuite/harness-pi 0.1.0 · @evalsuite/harness-cursor-sdk 0.1.0 · @ai-sdk/harness-claude-code 1.0.128-patch.5d1c985c · @evalsuite/harness-codex 0.1.0 · ai 7.0.114 · @ai-sdk/harness 1.0.124 · @ai-sdk/google 4.0.79 · @ai-sdk/typesafe-ai 3.0.6"
+      },
+      {
+        "field": "reeval",
+        "value": "0.0.1 · node 22.14.0 · linux/x64"
+      },
+      {
+        "field": "Runner",
+        "value": "local · cursor-agent"
+      },
+      {
+        "field": "Artifacts",
+        "value": "all"
+      },
+      {
+        "field": "Context",
+        "value": "70 files"
+      }
+    ],
+    "warnings": [
+      "Image evalsuite-sandbox:antigravity-0.1.0 isn't pushed, so an exact rerun needs this machine's image (id 3159ee84597a).",
+      "Image evalsuite-sandbox:claude-code-1.0.128-patch.5d1c985c isn't pushed, so an exact rerun needs this machine's image (id a6823b9ac9f2).",
+      "Image evalsuite-sandbox:codex-0.1.0 isn't pushed, so an exact rerun needs this machine's image (id 276a4ca7ed53).",
+      "Image evalsuite-sandbox:cursor-0.1.0 isn't pushed, so an exact rerun needs this machine's image (id b163d6043340).",
+      "Image evalsuite-sandbox:goose-0.1.0 isn't pushed, so an exact rerun needs this machine's image (id a4ee1a7ae356).",
+      "Image evalsuite-sandbox:opencode-0.1.0 isn't pushed, so an exact rerun needs this machine's image (id 49a6832a5c36).",
+      "Image evalsuite-sandbox:pi-0.1.0 isn't pushed, so an exact rerun needs this machine's image (id a898580c1d8c)."
+    ]
+  },
+  "attemptIndex": [
+    {
+      "id": "A1",
+      "anchor": "attempt-evals-hello-es-ts-writes-hello-txt-cursor-composer-2-5-docke-8be95459",
+      "eval": "writes hello.txt",
+      "harness": "Cursor · composer-2.5",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": 22671,
+        "text": "23k"
+      },
+      "agentTime": {
+        "value": 6219,
+        "text": "6s"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/cursor-composer-2-5-docker-76739b/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/cursor-composer-2-5-docker-76739b/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A2",
+      "anchor": "attempt-evals-hello-es-ts-writes-hello-txt-claude-code-claude-sonnet-ee427bd4",
+      "eval": "writes hello.txt",
+      "harness": "Claude Code · claude-sonnet-5",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": 86225,
+        "text": "86k"
+      },
+      "agentTime": {
+        "value": 6851,
+        "text": "7s"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/claude-code-claude-sonnet-5-docker-35eb43/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/claude-code-claude-sonnet-5-docker-35eb43/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A3",
+      "anchor": "attempt-evals-hello-es-ts-writes-hello-txt-antigravity-gemini-3-8-fl-712cee2c",
+      "eval": "writes hello.txt",
+      "harness": "Antigravity · gemini-3.8-flash-medium",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": 50781,
+        "text": "51k"
+      },
+      "agentTime": {
+        "value": 24155,
+        "text": "24s"
+      },
+      "toolCalls": {
+        "value": 2,
+        "text": "2"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/antigravity-gemini-3-8-flash-medium-docker-4d994b/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/antigravity-gemini-3-8-flash-medium-docker-4d994b/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A4",
+      "anchor": "attempt-evals-hello-es-ts-writes-hello-txt-opencode-gemini-3-8-flash-abc34026",
+      "eval": "writes hello.txt",
+      "harness": "OpenCode · gemini-3.8-flash",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 6317,
+        "text": "6s"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/opencode-gemini-3-8-flash-docker-ad8642/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/opencode-gemini-3-8-flash-docker-ad8642/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A5",
+      "anchor": "attempt-evals-hello-es-ts-writes-hello-txt-goose-gemini-3-8-flash-do-2c94dd3f",
+      "eval": "writes hello.txt",
+      "harness": "Goose · gemini-3.8-flash",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 11151,
+        "text": "11s"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/goose-gemini-3-8-flash-docker-4d2757/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/goose-gemini-3-8-flash-docker-4d2757/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A6",
+      "anchor": "attempt-evals-hello-es-ts-writes-hello-txt-pi-gemini-3-8-flash-docke-3f4907fe",
+      "eval": "writes hello.txt",
+      "harness": "pi · gemini-3.8-flash",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": 6718,
+        "text": "6,718"
+      },
+      "agentTime": {
+        "value": 15751,
+        "text": "16s"
+      },
+      "toolCalls": {
+        "value": 2,
+        "text": "2"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/pi-gemini-3-8-flash-docker-12b197/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/pi-gemini-3-8-flash-docker-12b197/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A7",
+      "anchor": "attempt-evals-hello-es-ts-writes-hello-txt-codex-gpt-5-4-mini-docker-59ec5290",
+      "eval": "writes hello.txt",
+      "harness": "Codex · gpt-5.4-mini",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": 32197,
+        "text": "32k"
+      },
+      "agentTime": {
+        "value": 6259,
+        "text": "6s"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/codex-gpt-5-4-mini-docker-afcfca/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-hello-es-ts-writes-hello-txt-28ad5d/codex-gpt-5-4-mini-docker-afcfca/1/diff.patch"
+        }
+      ]
+    }
+  ]
+}

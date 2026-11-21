@@ -38,7 +38,8 @@ one profile you need.
   ◆  Running...
 
 with-podman.eval.ts
-└─ ✓ adds a tested multiply function  1 of 1 run passed
+PASS           adds a tested multiply function
+               100% passed · 1 of 1 attempt
 ```
 
 Rootless Podman without those cgroup controllers stops the run before it starts, rather than run
