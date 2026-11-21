@@ -1,0 +1,7 @@
+writes hello.txt
+7 of 7 counted attempts passed · 40s wall time · tokens 199k · cost not reported · cc7e11c
+
+PASS           writes hello.txt
+               100% passed · 7 of 7 attempts · Cursor · composer-2.5 1 of 1, Claude Code · claude-sonnet-5 1 of 1, Antigravity · gemini-3.8-flash-medium 1 of 1, OpenCode · gemini-3.8-flash 1 of 1, Goose · gemini-3.8-flash 1 of 1, pi · gemini-3.8-flash 1 of 1, Codex · gpt-5.4-mini 1 of 1
+
+Evals: 1 pass

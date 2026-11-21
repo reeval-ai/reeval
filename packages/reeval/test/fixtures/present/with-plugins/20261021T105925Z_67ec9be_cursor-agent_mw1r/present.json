@@ -1,0 +1,313 @@
+{
+  "presentationVersion": 1,
+  "header": {
+    "title": "places the plugin",
+    "runId": "20261021T105925Z_67ec9be_cursor-agent_mw1r",
+    "status": "complete",
+    "stopped": null,
+    "startedAt": "2026-10-21T10:59:25.383Z",
+    "date": "2026-10-21",
+    "author": "cursor-agent",
+    "reeval": "0.11.0",
+    "profile": null,
+    "runs": "1 run per cell",
+    "git": {
+      "repo": null,
+      "branch": "master",
+      "sha": "67ec9be0279e30da64b1b9280c806e09da2941af",
+      "dirty": true,
+      "text": "67ec9be (dirty)"
+    },
+    "wall": {
+      "value": 756,
+      "text": "756ms"
+    },
+    "tokens": {
+      "value": null,
+      "text": "not reported"
+    },
+    "cost": {
+      "value": null,
+      "text": "not reported"
+    },
+    "counted": {
+      "k": 1,
+      "n": 1,
+      "text": "1 of 1"
+    },
+    "infraError": 0,
+    "canceled": 0,
+    "attempts": "1 of 1 counted attempt passed",
+    "servedBy": []
+  },
+  "tally": {
+    "pass": 1,
+    "fail": 0,
+    "infraError": 0,
+    "canceled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "notRun": 0,
+    "ungated": 0,
+    "text": "1 pass"
+  },
+  "caveats": [
+    {
+      "severity": "warn",
+      "text": "The worktree was dirty; an exact rerun needs the saved worktree patch.",
+      "evalId": null,
+      "cites": []
+    },
+    {
+      "severity": "warn",
+      "text": "1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/review.eval.ts › places the plugin",
+      "cites": [
+        {
+          "id": "A1",
+          "href": "#attempt-evals-review-eval-ts-places-the-plugin-fake-review-fake-1-609e2d9c"
+        }
+      ]
+    }
+  ],
+  "harnesses": [
+    {
+      "id": "fake",
+      "name": "Fake",
+      "model": null,
+      "label": "Fake",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 1,
+        "text": "1 attempt"
+      }
+    }
+  ],
+  "evals": [
+    {
+      "id": "evals/review.eval.ts › places the plugin",
+      "anchor": "places-the-plugin",
+      "name": "places the plugin",
+      "file": "evals/review.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "places the plugin",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "review",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A1",
+          "key": "evals/review.eval.ts › places the plugin # fake/review/fake#1",
+          "href": "#attempt-evals-review-eval-ts-places-the-plugin-fake-review-fake-1-609e2d9c",
+          "harness": "Fake",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [
+        {
+          "label": "toContain Review",
+          "matcher": "toContain",
+          "at": null,
+          "failed": false,
+          "cells": [
+            {
+              "column": "Fake",
+              "text": "1 of 1"
+            }
+          ],
+          "total": "1 of 1"
+        }
+      ],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 0,
+            "text": "0"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
+    }
+  ],
+  "actions": [],
+  "provenance": {
+    "rows": [
+      {
+        "field": "Executed at",
+        "value": "67ec9be0279e on master, dirty (the commit that adds this record is later)"
+      },
+      {
+        "field": "Uncommitted",
+        "value": "worktree.patch, 209 bytes, sha256 036992c5a143"
+      },
+      {
+        "field": "Lockfiles",
+        "value": "none found"
+      },
+      {
+        "field": "Images",
+        "value": "none (fake sandbox)"
+      },
+      {
+        "field": "Harnesses",
+        "value": "fake"
+      },
+      {
+        "field": "Environments",
+        "value": "review 84e3a3e69397 · skills review-lint"
+      },
+      {
+        "field": "Judge",
+        "value": "none by default · threshold 0.8 · version 232cbb65edee"
+      },
+      {
+        "field": "Packages",
+        "value": "@vitest/expect 5.0.5 · jiti 2.7.0 · @reeval/harness-antigravity 0.1.8 · @reeval/harness-opencode 0.2.8 · @reeval/harness-goose 0.1.3 · @reeval/harness-pi 0.2.7 · @reeval/harness-cursor-sdk 0.1.5 · @ai-sdk/harness-claude-code 1.0.160-patch.907f9184 · @reeval/harness-codex 0.1.7 · @reeval/harness-fx 0.1.0 · @reeval/harness-grok-build 0.1.0 · ai 7.0.145 · @ai-sdk/harness 1.0.156 · @ai-sdk/google 4.0.100 · @ai-sdk/typesafe-ai 3.0.22"
+      },
+      {
+        "field": "reeval",
+        "value": "0.11.0 · node 22.23.3 · typescript evals · linux/x64"
+      },
+      {
+        "field": "Runner",
+        "value": "local · cursor-agent"
+      },
+      {
+        "field": "Artifacts",
+        "value": "all"
+      }
+    ],
+    "warnings": []
+  },
+  "attemptIndex": [
+    {
+      "id": "A1",
+      "anchor": "attempt-evals-review-eval-ts-places-the-plugin-fake-review-fake-1-609e2d9c",
+      "eval": "places the plugin",
+      "harness": "Fake",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    }
+  ]
+}

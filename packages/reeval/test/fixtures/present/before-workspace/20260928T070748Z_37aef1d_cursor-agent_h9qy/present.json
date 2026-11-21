@@ -1,0 +1,1445 @@
+{
+  "presentationVersion": 1,
+  "header": {
+    "title": "Run 20260928T070748Z_37aef1d_cursor-agent_h9qy",
+    "runId": "20260928T070748Z_37aef1d_cursor-agent_h9qy",
+    "status": "complete",
+    "stopped": null,
+    "startedAt": "2026-09-28T07:07:48.189Z",
+    "date": "2026-09-28",
+    "author": "cursor-agent",
+    "reeval": "0.0.1",
+    "profile": null,
+    "runs": "1 run per cell",
+    "git": {
+      "repo": null,
+      "branch": "master",
+      "sha": "37aef1d4f651557492629e65d990e2b78300c92c",
+      "dirty": false,
+      "text": "37aef1d"
+    },
+    "wall": {
+      "value": 877,
+      "text": "877ms"
+    },
+    "tokens": {
+      "value": null,
+      "text": "not reported"
+    },
+    "cost": {
+      "value": null,
+      "text": "not reported"
+    },
+    "counted": {
+      "k": 2,
+      "n": 4,
+      "text": "2 of 4"
+    },
+    "infraError": 5,
+    "canceled": 0,
+    "attempts": "2 of 4 counted attempts passed · 5 infra errors",
+    "servedBy": []
+  },
+  "tally": {
+    "pass": 0,
+    "fail": 2,
+    "infraError": 2,
+    "canceled": 0,
+    "skipped": 1,
+    "todo": 1,
+    "notRun": 0,
+    "ungated": 0,
+    "text": "2 fail · 2 infra errors · 1 skipped · 1 todo"
+  },
+  "caveats": [
+    {
+      "severity": "warn",
+      "text": "writes greet.js: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/greet.es.ts › writes greet.js",
+      "cites": [
+        {
+          "id": "A1",
+          "href": "./evals-greet-es-ts-writes-greet-js-4857ff/fake-fake-70e87d/1/transcript.jsonl"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "fails its check: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/greet.es.ts › fails its check",
+      "cites": [
+        {
+          "id": "A3",
+          "href": "./evals-greet-es-ts-fails-its-check-c4ea17/fake-fake-70e87d/1/transcript.jsonl"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "fails its judge: 1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/greet.es.ts › fails its judge",
+      "cites": [
+        {
+          "id": "A5",
+          "href": "./evals-greet-es-ts-fails-its-judge-fa3d03/fake-fake-70e87d/1/transcript.jsonl"
+        }
+      ]
+    },
+    {
+      "severity": "warn",
+      "text": "house greeting › greets in the house style: 2 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "evals/skill.es.ts › house greeting › greets in the house style",
+      "cites": [
+        {
+          "id": "A7",
+          "href": "./evals-skill-es-ts-house-greeting-greets-in-the-house-style-55be48/fake-fake-70e87d/1/transcript.jsonl"
+        },
+        {
+          "id": "A8",
+          "href": "./evals-skill-es-ts-house-greeting-greets-in-the-house-style-55be48/fake-with-house-greeting-fake-7a7667/1/transcript.jsonl"
+        }
+      ]
+    }
+  ],
+  "harnesses": [
+    {
+      "id": "fake",
+      "name": "Fake",
+      "model": null,
+      "label": "Fake",
+      "servedModels": [
+        "fake-1[fast=true]"
+      ],
+      "gateway": null,
+      "attempts": {
+        "value": 5,
+        "text": "5 attempts"
+      }
+    },
+    {
+      "id": "broken",
+      "name": "broken",
+      "model": null,
+      "label": "broken",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 5,
+        "text": "5 attempts"
+      }
+    }
+  ],
+  "evals": [
+    {
+      "id": "evals/greet.es.ts › writes greet.js",
+      "anchor": "writes-greetjs",
+      "name": "writes greet.js",
+      "file": "evals/greet.es.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "2 coding harnesses, 2 attempts",
+      "state": "ran",
+      "verdict": "infra-error",
+      "verdictText": "infra error",
+      "headline": {
+        "task": "writes greet.js",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": "1 infra error"
+      },
+      "arms": [
+        {
+          "id": "-",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 1,
+          "canceled": 0,
+          "left": "1 infra error",
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 6,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A1",
+          "key": "evals/greet.es.ts › writes greet.js # fake/-/fake#1",
+          "href": "./evals-greet-es-ts-writes-greet-js-4857ff/fake-fake-70e87d/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 6,
+            "text": "6ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A2",
+          "key": "evals/greet.es.ts › writes greet.js # broken/-/fake#1",
+          "href": "#attempt-evals-greet-es-ts-writes-greet-js-broken-fake-1-34ddfa0b",
+          "harness": "broken",
+          "arm": null,
+          "case": null,
+          "outcome": "infra-error",
+          "outcomeText": "infra error",
+          "note": "the fake sandbox fell over",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "infra-error",
+          "kindText": "infra error",
+          "label": "the fake sandbox fell over",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 2,
+            "text": "1 of 2"
+          },
+          "where": "all on broken",
+          "attempts": [
+            {
+              "id": "A2",
+              "href": "#attempt-evals-greet-es-ts-writes-greet-js-broken-fake-1-34ddfa0b"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 6,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [
+        {
+          "label": "Does greet.js export greet",
+          "question": "Does greet.js export greet?",
+          "threshold": "diagnostic",
+          "median": {
+            "value": 0.8,
+            "text": "0.80"
+          },
+          "atOrAbove": null
+        }
+      ],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
+    },
+    {
+      "id": "evals/greet.es.ts › fails its check",
+      "anchor": "fails-its-check",
+      "name": "fails its check",
+      "file": "evals/greet.es.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "2 coding harnesses, 2 attempts",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "fails its check",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0,
+            "text": "0%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          }
+        },
+        "foot": "0 of 1 attempt",
+        "left": "1 infra error"
+      },
+      "arms": [
+        {
+          "id": "-",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 1,
+          "canceled": 0,
+          "left": "1 infra error",
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 6,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A3",
+          "key": "evals/greet.es.ts › fails its check # fake/-/fake#1",
+          "href": "./evals-greet-es-ts-fails-its-check-c4ea17/fake-fake-70e87d/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 6,
+            "text": "6ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A4",
+          "key": "evals/greet.es.ts › fails its check # broken/-/fake#1",
+          "href": "#attempt-evals-greet-es-ts-fails-its-check-broken-fake-1-99845ba1",
+          "harness": "broken",
+          "arm": null,
+          "case": null,
+          "outcome": "infra-error",
+          "outcomeText": "infra error",
+          "note": "the fake sandbox fell over",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "error",
+          "kindText": "error",
+          "label": "expected command to succeed, exit code 1",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 2,
+            "text": "1 of 2"
+          },
+          "where": "all on Fake",
+          "attempts": [
+            {
+              "id": "A3",
+              "href": "./evals-greet-es-ts-fails-its-check-c4ea17/fake-fake-70e87d/1/transcript.jsonl"
+            }
+          ]
+        },
+        {
+          "kind": "infra-error",
+          "kindText": "infra error",
+          "label": "the fake sandbox fell over",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 2,
+            "text": "1 of 2"
+          },
+          "where": "all on broken",
+          "attempts": [
+            {
+              "id": "A4",
+              "href": "#attempt-evals-greet-es-ts-fails-its-check-broken-fake-1-99845ba1"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 6,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
+    },
+    {
+      "id": "evals/greet.es.ts › fails its judge",
+      "anchor": "fails-its-judge",
+      "name": "fails its judge",
+      "file": "evals/greet.es.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "2 coding harnesses, 2 attempts",
+      "state": "ran",
+      "verdict": "fail",
+      "verdictText": "fail",
+      "headline": {
+        "task": "fails its judge",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 0,
+            "text": "0%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          }
+        },
+        "foot": "0 of 1 attempt",
+        "left": "1 infra error"
+      },
+      "arms": [
+        {
+          "id": "-",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 1,
+          "canceled": 0,
+          "left": "1 infra error",
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 3,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A5",
+          "key": "evals/greet.es.ts › fails its judge # fake/-/fake#1",
+          "href": "./evals-greet-es-ts-fails-its-judge-fa3d03/fake-fake-70e87d/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "judge score 0.80 is below 0.95 for \"Is greet.js perfect?\" (fake)",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 3,
+            "text": "3ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A6",
+          "key": "evals/greet.es.ts › fails its judge # broken/-/fake#1",
+          "href": "#attempt-evals-greet-es-ts-fails-its-judge-broken-fake-1-d48578be",
+          "harness": "broken",
+          "arm": null,
+          "case": null,
+          "outcome": "infra-error",
+          "outcomeText": "infra error",
+          "note": "the fake sandbox fell over",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "error",
+          "kindText": "error",
+          "label": "judge score 0.80 is below 0.95 for \"Is greet.js perfect?\" (fake)",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 2,
+            "text": "1 of 2"
+          },
+          "where": "all on Fake",
+          "attempts": [
+            {
+              "id": "A5",
+              "href": "./evals-greet-es-ts-fails-its-judge-fa3d03/fake-fake-70e87d/1/transcript.jsonl"
+            }
+          ]
+        },
+        {
+          "kind": "infra-error",
+          "kindText": "infra error",
+          "label": "the fake sandbox fell over",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 2,
+            "text": "1 of 2"
+          },
+          "where": "all on broken",
+          "attempts": [
+            {
+              "id": "A6",
+              "href": "#attempt-evals-greet-es-ts-fails-its-judge-broken-fake-1-d48578be"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 3,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [
+        {
+          "label": "Is greet.js perfect",
+          "question": "Is greet.js perfect?",
+          "threshold": "diagnostic",
+          "median": {
+            "value": 0.8,
+            "text": "0.80"
+          },
+          "atOrAbove": null
+        }
+      ],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "0% passed, 95% CI 0% to 79%"
+      ]
+    },
+    {
+      "id": "evals/greet.es.ts › is skipped for now",
+      "anchor": "is-skipped-for-now",
+      "name": "is skipped for now",
+      "file": "evals/greet.es.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "2 coding harnesses, 0 attempts",
+      "state": "skipped",
+      "verdict": "skipped",
+      "verdictText": "skipped",
+      "headline": {
+        "task": "is skipped for now",
+        "metric": {
+          "kind": "none",
+          "text": "skipped"
+        },
+        "foot": "",
+        "left": null
+      },
+      "arms": [],
+      "attempts": [],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": []
+    },
+    {
+      "id": "evals/greet.es.ts › greets in Welsh",
+      "anchor": "greets-in-welsh",
+      "name": "greets in Welsh",
+      "file": "evals/greet.es.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 0 attempts",
+      "state": "todo",
+      "verdict": "todo",
+      "verdictText": "todo",
+      "headline": {
+        "task": "greets in Welsh",
+        "metric": {
+          "kind": "none",
+          "text": "todo"
+        },
+        "foot": "",
+        "left": null
+      },
+      "arms": [],
+      "attempts": [],
+      "cases": [],
+      "checks": [],
+      "failures": [],
+      "effort": [],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": []
+    },
+    {
+      "id": "evals/skill.es.ts › house greeting › greets in the house style",
+      "anchor": "greets-in-the-house-style",
+      "name": "house greeting › greets in the house style",
+      "file": "evals/skill.es.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "2 coding harnesses, 2 arms, 4 attempts",
+      "state": "ran",
+      "verdict": "infra-error",
+      "verdictText": "infra error",
+      "headline": {
+        "task": "house greeting › greets in the house style",
+        "metric": {
+          "kind": "compare",
+          "baseline": {
+            "label": "baseline",
+            "rate": {
+              "k": 0,
+              "n": 1,
+              "rate": 0,
+              "text": "0%",
+              "of": "0 of 1",
+              "interval": "0% to 79%"
+            }
+          },
+          "variant": {
+            "label": "with-house-greeting",
+            "rate": {
+              "k": 1,
+              "n": 1,
+              "rate": 1,
+              "text": "100%",
+              "of": "1 of 1",
+              "interval": "21% to 100%"
+            }
+          },
+          "effect": null,
+          "effectText": null
+        },
+        "foot": "0 of 1 vs 1 of 1 attempt",
+        "left": "2 infra errors"
+      },
+      "arms": [
+        {
+          "id": "-",
+          "label": "baseline",
+          "role": "baseline",
+          "gated": false,
+          "rate": {
+            "k": 0,
+            "n": 1,
+            "rate": 0,
+            "text": "0%",
+            "of": "0 of 1",
+            "interval": "0% to 79%"
+          },
+          "infraError": 1,
+          "canceled": 0,
+          "left": "1 infra error",
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 6,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "with-house-greeting",
+          "label": "with-house-greeting",
+          "role": "variant",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 1,
+          "canceled": 0,
+          "left": "1 infra error",
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A7",
+          "key": "evals/skill.es.ts › house greeting › greets in the house style # fake/-/fake#1",
+          "href": "./evals-skill-es-ts-house-greeting-greets-in-the-house-style-55be48/fake-fake-70e87d/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "baseline",
+          "case": null,
+          "outcome": "fail",
+          "outcomeText": "fail",
+          "note": "expected command to succeed, exit code 1",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 6,
+            "text": "6ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A8",
+          "key": "evals/skill.es.ts › house greeting › greets in the house style # fake/with-house-greeting/fake#1",
+          "href": "./evals-skill-es-ts-house-greeting-greets-in-the-house-style-55be48/fake-with-house-greeting-fake-7a7667/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": "with-house-greeting",
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "1ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A9",
+          "key": "evals/skill.es.ts › house greeting › greets in the house style # broken/-/fake#1",
+          "href": "#attempt-evals-skill-es-ts-house-greeting-greets-in-the-house-style-b-3d3b0ac5",
+          "harness": "broken",
+          "arm": "baseline",
+          "case": null,
+          "outcome": "infra-error",
+          "outcomeText": "infra error",
+          "note": "the fake sandbox fell over",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "id": "A10",
+          "key": "evals/skill.es.ts › house greeting › greets in the house style # broken/with-house-greeting/fake#1",
+          "href": "#attempt-evals-skill-es-ts-house-greeting-greets-in-the-house-style-b-2ef8d09d",
+          "harness": "broken",
+          "arm": "with-house-greeting",
+          "case": null,
+          "outcome": "infra-error",
+          "outcomeText": "infra error",
+          "note": "the fake sandbox fell over",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 0,
+            "text": "0ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [],
+      "failures": [
+        {
+          "kind": "infra-error",
+          "kindText": "infra error",
+          "label": "the fake sandbox fell over",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 2,
+            "n": 4,
+            "text": "2 of 4"
+          },
+          "where": "all on broken",
+          "attempts": [
+            {
+              "id": "A9",
+              "href": "#attempt-evals-skill-es-ts-house-greeting-greets-in-the-house-style-b-3d3b0ac5"
+            },
+            {
+              "id": "A10",
+              "href": "#attempt-evals-skill-es-ts-house-greeting-greets-in-the-house-style-b-2ef8d09d"
+            }
+          ]
+        },
+        {
+          "kind": "error",
+          "kindText": "error",
+          "label": "expected command to succeed, exit code 1",
+          "message": null,
+          "detail": null,
+          "at": null,
+          "count": {
+            "k": 1,
+            "n": 4,
+            "text": "1 of 4"
+          },
+          "where": "all on baseline, not gated",
+          "attempts": [
+            {
+              "id": "A7",
+              "href": "./evals-skill-es-ts-house-greeting-greets-in-the-house-style-55be48/fake-fake-70e87d/1/transcript.jsonl"
+            }
+          ]
+        }
+      ],
+      "effort": [
+        {
+          "label": "baseline",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 6,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        },
+        {
+          "label": "with-house-greeting",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 1,
+            "text": "1"
+          },
+          "agentTime": {
+            "value": 1,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": []
+    }
+  ],
+  "actions": [],
+  "provenance": {
+    "rows": [
+      {
+        "field": "Executed at",
+        "value": "37aef1d4f651 on master, clean (the commit that adds this record is later)"
+      },
+      {
+        "field": "Lockfiles",
+        "value": "none found"
+      },
+      {
+        "field": "Images",
+        "value": "none (fake sandbox)"
+      },
+      {
+        "field": "Harnesses",
+        "value": "broken, fake (served fake-1[fast=true])"
+      },
+      {
+        "field": "Environments",
+        "value": "with-house-greeting 7b5dd0e29b0d · skills house-greeting"
+      },
+      {
+        "field": "Judge",
+        "value": "fake · threshold 0.8 · version 6334f0ba15cf"
+      },
+      {
+        "field": "Packages",
+        "value": "@vitest/expect 5.0.2 · jiti 2.7.0 · @evalsuite/harness-antigravity 0.1.0 · @evalsuite/harness-opencode 0.1.0 · @evalsuite/harness-goose 0.1.0 · @evalsuite/harness-pi 0.1.0 · @evalsuite/harness-cursor-sdk 0.1.0 · @ai-sdk/harness-claude-code 1.0.128-patch.5d1c985c · @evalsuite/harness-codex 0.1.0 · ai 7.0.114 · @ai-sdk/harness 1.0.124 · @ai-sdk/google 4.0.79 · @ai-sdk/typesafe-ai 3.0.6"
+      },
+      {
+        "field": "reeval",
+        "value": "0.0.1 · node 22.14.0 · linux/x64"
+      },
+      {
+        "field": "Runner",
+        "value": "local · cursor-agent"
+      },
+      {
+        "field": "Artifacts",
+        "value": "all"
+      }
+    ],
+    "warnings": []
+  },
+  "attemptIndex": [
+    {
+      "id": "A1",
+      "anchor": "attempt-evals-greet-es-ts-writes-greet-js-fake-fake-1-4db1d21c",
+      "eval": "writes greet.js",
+      "harness": "Fake",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 6,
+        "text": "6ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "2 files (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-greet-es-ts-writes-greet-js-4857ff/fake-fake-70e87d/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-greet-es-ts-writes-greet-js-4857ff/fake-fake-70e87d/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A2",
+      "anchor": "attempt-evals-greet-es-ts-writes-greet-js-broken-fake-1-34ddfa0b",
+      "eval": "writes greet.js",
+      "harness": "broken",
+      "arm": null,
+      "case": null,
+      "outcomeText": "infra error",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    },
+    {
+      "id": "A3",
+      "anchor": "attempt-evals-greet-es-ts-fails-its-check-fake-fake-1-69f56e17",
+      "eval": "fails its check",
+      "harness": "Fake",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 6,
+        "text": "6ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "2 files (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-greet-es-ts-fails-its-check-c4ea17/fake-fake-70e87d/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-greet-es-ts-fails-its-check-c4ea17/fake-fake-70e87d/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A4",
+      "anchor": "attempt-evals-greet-es-ts-fails-its-check-broken-fake-1-99845ba1",
+      "eval": "fails its check",
+      "harness": "broken",
+      "arm": null,
+      "case": null,
+      "outcomeText": "infra error",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    },
+    {
+      "id": "A5",
+      "anchor": "attempt-evals-greet-es-ts-fails-its-judge-fake-fake-1-b228c06e",
+      "eval": "fails its judge",
+      "harness": "Fake",
+      "arm": null,
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 3,
+        "text": "3ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "2 files (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-greet-es-ts-fails-its-judge-fa3d03/fake-fake-70e87d/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-greet-es-ts-fails-its-judge-fa3d03/fake-fake-70e87d/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A6",
+      "anchor": "attempt-evals-greet-es-ts-fails-its-judge-broken-fake-1-d48578be",
+      "eval": "fails its judge",
+      "harness": "broken",
+      "arm": null,
+      "case": null,
+      "outcomeText": "infra error",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    },
+    {
+      "id": "A7",
+      "anchor": "attempt-evals-skill-es-ts-house-greeting-greets-in-the-house-style-f-3c55ce08",
+      "eval": "house greeting › greets in the house style",
+      "harness": "Fake",
+      "arm": "baseline",
+      "case": null,
+      "outcomeText": "fail",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 6,
+        "text": "6ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "2 files (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-skill-es-ts-house-greeting-greets-in-the-house-style-55be48/fake-fake-70e87d/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-skill-es-ts-house-greeting-greets-in-the-house-style-55be48/fake-fake-70e87d/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A8",
+      "anchor": "attempt-evals-skill-es-ts-house-greeting-greets-in-the-house-style-f-19bfbc23",
+      "eval": "house greeting › greets in the house style",
+      "harness": "Fake",
+      "arm": "with-house-greeting",
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-skill-es-ts-house-greeting-greets-in-the-house-style-55be48/fake-with-house-greeting-fake-7a7667/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-skill-es-ts-house-greeting-greets-in-the-house-style-55be48/fake-with-house-greeting-fake-7a7667/1/diff.patch"
+        }
+      ]
+    },
+    {
+      "id": "A9",
+      "anchor": "attempt-evals-skill-es-ts-house-greeting-greets-in-the-house-style-b-3d3b0ac5",
+      "eval": "house greeting › greets in the house style",
+      "harness": "broken",
+      "arm": "baseline",
+      "case": null,
+      "outcomeText": "infra error",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    },
+    {
+      "id": "A10",
+      "anchor": "attempt-evals-skill-es-ts-house-greeting-greets-in-the-house-style-b-2ef8d09d",
+      "eval": "house greeting › greets in the house style",
+      "harness": "broken",
+      "arm": "with-house-greeting",
+      "case": null,
+      "outcomeText": "infra error",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "diff": "not recorded",
+      "links": []
+    }
+  ]
+}

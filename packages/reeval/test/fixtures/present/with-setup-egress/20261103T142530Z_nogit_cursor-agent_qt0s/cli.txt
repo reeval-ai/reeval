@@ -1,0 +1,7 @@
+phased
+1 of 1 counted attempt passed · 4s wall time · tokens not reported · cost not reported
+
+PASS           phased
+               100% passed · 1 of 1 attempt
+
+Evals: 1 pass

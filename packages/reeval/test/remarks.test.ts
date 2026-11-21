@@ -158,27 +158,18 @@ const remarksOf = (dir: string, back = 0): RunRemarks | null => {
 }
 
 /**
- * The remarks `reeval run`'s status list printed, one `<eval>: <remark>` line each from under the
- * eval's `Worth knowing:` (or after it, when it's the only one), then the cap's `+N more remark (-v)`; null when it printed none.
+ * The remarks `reeval run` printed, one `<eval>: <remark>` line each from the eval's block (its
+ * `(concern)` lines, and its `Suggestion:` lines under -v), then the cap's `+N more remark (-v)`;
+ * null when it printed none.
  */
 const remarksBlock = (stdout: string) => {
   const lines: string[] = []
   let name = ''
-  let heading = -1
   for (const raw of stdout.split('\n')) {
-    const line = raw.replace(/^[│├└─ ]*/, (m) => ' '.repeat(m.length))
-    const indent = line.length - line.trimStart().length
-    const row = /^ {0,3}[✓✗●–○] (.+?) {2}/.exec(line)
-    if (row) {
-      name = row[1] as string
-      heading = -1
-    } else if (line.trim() === 'Worth knowing:') heading = indent
-    else if (line.trim().startsWith('Worth knowing: ')) {
-      lines.push(`${name}: ${line.trim().slice('Worth knowing: '.length)}`)
-      heading = -1
-    } else if (heading >= 0 && indent > heading && line.trim())
-      lines.push(`${name}: ${line.trim()}`)
-    else heading = -1
+    const row = /^[A-Z][A-Z ]{12} {2}(\S.*)$/.exec(raw)
+    if (row) name = row[1] as string
+    const remark = /^ {15}(?:\((?:concern|suggestion)\) |Suggestion: )(.+)$/.exec(raw)
+    if (remark) lines.push(`${name}: ${remark[1]}`)
     if (/^\+\d+ more remarks? \(-v\)$/.test(raw)) lines.push(raw)
   }
   return lines.length ? lines.join('\n') : null
@@ -758,18 +749,27 @@ evaluate(
 )
 `,
     })
-    const first = remarksBlock((await runCli(p.dir, ['run', '-v'])).stdout) ?? ''
+    const run1 = (await runCli(p.dir, ['run', '-v'])).stdout
+    const first = remarksBlock(run1) ?? ''
     assert.ok(
       first.includes(
-        'skill helps: The marked variant passed 2 of 2 runs and the control 1 of 2: better by 50 points, but on too few runs for the difference to hold. Fix at evals/skill.eval.ts:5: set runs: 6, where a difference this size would hold.',
+        'skill helps: The marked variant passed 2 of 2 runs and the control 1 of 2: better by 50 points, but on too few runs for the difference to hold.',
       ),
       first,
     )
+    assert.match(
+      run1,
+      /^ {15}Next: at evals\/skill\.eval\.ts:5, set runs: 6, where a difference this size would hold$/m,
+    )
     assert.ok(
       first.includes(
-        'fixes: The marked variant, paired over 2 cases: better, but a paired lift needs 6 cases that differ between the arms to hold. Fix at evals/fam.eval.ts:5: add cases, so 6 or more can differ between the arms.',
+        'fixes: The marked variant, paired over 2 cases: better, but a paired lift needs 6 cases that differ between the arms to hold.',
       ),
       first,
+    )
+    assert.match(
+      run1,
+      /^ {15}Next: at evals\/fam\.eval\.ts:5, add cases, so 6 or more can differ between the arms$/m,
     )
     const firstRun = readRun(p.dir).run.runId
     const second = await runCli(p.dir, ['run', '-v'])
@@ -823,17 +823,19 @@ evaluate(
       assert.equal(r.code, 0, r.stdout + r.stderr)
       const block = remarksBlock(r.stdout) ?? ''
       assert.deepEqual(namedIn(block).sort(), ['dead', 'slow'], 'a fast server raises none')
+      assert.match(block, /^slow: MCP server docs took 2(\.\d)?s to start on each of 2 turns\.$/m)
       assert.match(
-        block,
-        /^slow: MCP server docs took 2(\.\d)?s to start on each of 2 turns\. Fix at evals\/slow\.eval\.ts:5: install what docs needs in the image/m,
+        r.stdout,
+        /^ {15}Next: at evals\/slow\.eval\.ts:5, install what docs needs in the image/m,
       )
       assert.match(
         block,
-        /^dead: MCP server docs never answered within the start-up timeout on each of 2 turns\. Fix at \S+: run docs's command in the sandbox with c\.exec/m,
+        /^dead: MCP server docs never answered within the start-up timeout on each of 2 turns\.$/m,
       )
+      assert.match(r.stdout, /^ {15}Next: at \S+, run docs's command in the sandbox with c\.exec/m)
     }
     const shown = await runCli(p.dir, ['show'])
-    assert.match(shown.stdout, /Remarks:\n(.*\n)* {2}slow: MCP server docs took/)
+    assert.match(shown.stdout, /^ {15}\(concern\) MCP server docs took/m)
 
     const record = only(readRun(p.dir).run, 'fast')
     const starts = record.evals[0]?.attempts[0]?.turns.map((t) => t.mcpStartup ?? []) ?? []
@@ -905,13 +907,16 @@ evaluate('coin', { runs: 3 }, async (c) => {
       if (i === 2) {
         assert.equal(
           blocks[2]?.split('\n')[0],
-          'coin: "lands heads" passed 2 of 6 tries over 2 runs with nothing changed, so one try can pass or fail it. Fix at evals/coin.eval.ts:8: make "lands heads" check something every good try does, or raise runs so one try doesn\'t decide it.',
+          'coin: "lands heads" passed 2 of 6 tries over 2 runs with nothing changed, so one try can pass or fail it.',
+        )
+        assert.match(
+          r.stdout,
+          /^ {15}Next: at evals\/coin\.eval\.ts:8, make "lands heads" check something every good try does/m,
         )
         const summary = readFileSync(history(recordedRuns(p.dir).at(-1) as string, 'summary.md'))
-        // RunReport: concerns under Failures and caveats → Worth knowing (not the CLI Remarks: block).
         assert.match(
           summary.toString(),
-          /## coin[\s\S]*Worth knowing[\s\S]*\(concern\) "lands heads" passed/,
+          /## coin[\s\S]*### Next[\s\S]*\(concern\) "lands heads" passed/,
         )
       }
     }

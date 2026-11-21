@@ -39,19 +39,25 @@ REEVAL v0.17.2
 
   ◆  Running...
 
-with-concurrency.eval.ts
-└─ ✓ adds a tested multiply function  8 of 8 runs passed
+adds a tested multiply function
+8 of 8 counted attempts passed · 6s wall time · tokens not reported · cost not reported
 
-Done in 7s · 1 passed
+PASS           adds a tested multiply function
+               100% passed · 8 of 8 attempts
+
+Evals: 1 pass
 ```
 
 ```text
 $ pnpm reeval run --concurrency 1
 …
-with-concurrency.eval.ts
-└─ ✓ adds a tested multiply function  8 of 8 runs passed
+adds a tested multiply function
+8 of 8 counted attempts passed · 19s wall time · tokens not reported · cost not reported
 
-Done in 18s · 1 passed
+PASS           adds a tested multiply function
+               100% passed · 8 of 8 attempts
+
+Evals: 1 pass
 ```
 
 | File | What it is |

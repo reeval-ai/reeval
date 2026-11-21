@@ -42,7 +42,10 @@ export async function writeScratchRun(
   const remarks = input.interrupted
     ? null
     : await runRemarks(input.ctx.config, record, (input.ctx.verbosity ?? 0) > 0)
-  if (remarks) artifacts.set(REMARKS_FILE, Buffer.from(`${JSON.stringify(remarks, null, 2)}\n`))
+  if (remarks) {
+    record.remarks = remarks.remarks
+    artifacts.set(REMARKS_FILE, Buffer.from(`${JSON.stringify(remarks, null, 2)}\n`))
+  }
   const facts = keptFacts(record, artifacts)
   for (const [name, bytes] of summaryFiles(record, { remarks, facts })) artifacts.set(name, bytes)
   const scratch = scratchDir(input.ctx.config.root)

@@ -1,0 +1,20 @@
+Run 20261103T125317Z_8cab9fc_cursor-agent_cpnp
+0 of 3 counted attempts passed · 891ms wall time · tokens not reported · cost not reported · 8cab9fc
+
+FAIL           discovery: %s
+               plain 0% vs with-skill 0% · 0 of 2 vs 0 of 2 attempts
+               plain       0%  0 of 2  baseline
+               with-skill  0%  0 of 2  variant
+               add user authentication: plain 0% (0 of 2)
+               add social login and email/password auth: plain 0% (0 of 2)
+               failed check, 4 of 4: toHaveFile greet.js
+                 expected file greet.js to exist
+                 at evals/discovery.eval.ts:13
+
+FAIL           renamed options › writes greet.js
+               0% passed · 0 of 1 attempt
+               failed check, 1 of 1: toHaveFile greet.js
+                 expected file greet.js to exist
+                 at evals/options.eval.ts:11
+
+Evals: 2 fail

@@ -1,0 +1,17 @@
+Run 20261027T093027Z_nogit_cursor-agent_sapx
+5 of 9 counted attempts passed · 785ms wall time · tokens not reported · cost not reported
+
+PASS           agrees
+               100% passed · 2 of 2 attempts
+
+PASS           splits
+               67% passed · 2 of 3 attempts
+               failed check, 1 of 3: toBe 1
+                 expected +0 to be 1 // Object.is equality
+
+FAIL           fails twice
+               25% passed · 1 of 4 attempts
+               failed check, 3 of 4: toBe 1
+                 expected +0 to be 1 // Object.is equality
+
+Evals: 1 fail · 2 pass

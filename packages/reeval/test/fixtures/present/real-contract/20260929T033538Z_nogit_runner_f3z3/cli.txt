@@ -1,0 +1,46 @@
+Run 20260929T033538Z_nogit_runner_f3z3
+6 of 12 counted attempts passed · 1m 45s wall time · tokens 326k · cost not reported
+
+PASS           edit and run
+               100% passed · 1 of 1 attempt
+
+FAIL           edit and run canary
+               0% passed · 0 of 1 attempt
+               error, 1 of 1: expected 'status: draft' to be 'status: final' // Object.is equality
+
+PASS           egress
+               100% passed · 1 of 1 attempt
+
+FAIL           egress canary
+               0% passed · 0 of 1 attempt
+               error, 1 of 1: expected '403 000' to match /^200 /
+
+PASS           key
+               100% passed · 1 of 1 attempt
+
+FAIL           key canary
+               0% passed · 0 of 1 attempt
+               error, 1 of 1: expected [ '/proc/1/environ (raw)', …(4) ] to deeply equal []
+
+PASS           mcp
+               100% passed · 1 of 1 attempt
+
+FAIL           mcp canary
+               0% passed · 0 of 1 attempt
+               error, 1 of 1: expected '' to contain 'tools/call'
+
+PASS           rules
+               100% passed · 1 of 1 attempt
+
+FAIL           rules canary
+               0% passed · 0 of 1 attempt
+               error, 1 of 1: expected null to be 'TANGERINE-41' // Object.is equality
+
+PASS           skill
+               100% passed · 1 of 1 attempt
+
+FAIL           skill canary
+               0% passed · 0 of 1 attempt
+               error, 1 of 1: expected null to be 'PROBE-7F3K-QUILL' // Object.is equality
+
+Evals: 6 fail · 6 pass

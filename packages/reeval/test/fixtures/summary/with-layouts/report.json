@@ -140,7 +140,7 @@
     {
       "kind": "baseline-never-passes",
       "severity": "warn",
-      "text": "Check \"house greeting\" never passes on the baseline and always passes on a variant; it may not apply to the baseline.",
+      "text": "Check \"house greeting\" never passes on the baseline and always passes on a variant on coding harness learner; it may not apply to the baseline.",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "cites": []
     },
@@ -448,6 +448,15 @@
         "shapes": ["task"],
         "design": "3 prompts, 1 coding harness, 3 attempts",
         "primary": "67% passed",
+        "result": {
+          "kind": "pass-rate",
+          "passed": {
+            "k": 2,
+            "n": 3
+          },
+          "outcome": "passed",
+          "taskRate": 0.6666666666666666
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -460,10 +469,44 @@
         "shapes": ["ab"],
         "design": "4 prompts, 1 coding harness, 2 arms, 8 attempts",
         "primary": "with-skill vs plain: +100 pts pass rate (100% vs 0%)",
+        "result": {
+          "kind": "lift",
+          "baseline": "plain",
+          "variant": "with-skill",
+          "baselinePassed": {
+            "k": 0,
+            "n": 4
+          },
+          "variantPassed": {
+            "k": 4,
+            "n": 4
+          },
+          "baselineTaskRate": 0,
+          "variantTaskRate": 1,
+          "points": 1,
+          "lo": 0.30718972942832046,
+          "hi": 1
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
-        }
+        },
+        "medianTokensByArm": [
+          {
+            "arm": "plain",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          },
+          {
+            "arm": "with-skill",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          }
+        ]
       },
       {
         "evalId": "evals/harnesses.eval.ts › greets in the house style on each agent",
@@ -472,6 +515,14 @@
         "shapes": ["task"],
         "design": "2 coding harnesses, 2 attempts",
         "primary": "50% passed",
+        "result": {
+          "kind": "pass-rate",
+          "passed": {
+            "k": 1,
+            "n": 2
+          },
+          "outcome": "passed"
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -484,10 +535,42 @@
         "shapes": ["ab"],
         "design": "2 coding harnesses, 2 arms, 16 attempts",
         "primary": "with-skill vs plain: +50 pts pass rate (50% vs 0%)",
+        "result": {
+          "kind": "lift",
+          "baseline": "plain",
+          "variant": "with-skill",
+          "baselinePassed": {
+            "k": 0,
+            "n": 8
+          },
+          "variantPassed": {
+            "k": 4,
+            "n": 8
+          },
+          "points": 0.5,
+          "lo": 0.0683263240797084,
+          "hi": 0.7847839393037324
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
-        }
+        },
+        "medianTokensByArm": [
+          {
+            "arm": "plain",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          },
+          {
+            "arm": "with-skill",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          }
+        ]
       },
       {
         "evalId": "evals/measure.eval.ts › greets in the house style",
@@ -496,10 +579,49 @@
         "shapes": ["ab"],
         "design": "1 coding harness, 3 arms, 12 attempts",
         "primary": "with-skill vs plain: +100 pts pass rate (100% vs 0%)",
+        "result": {
+          "kind": "lift",
+          "baseline": "plain",
+          "variant": "with-skill",
+          "baselinePassed": {
+            "k": 0,
+            "n": 4
+          },
+          "variantPassed": {
+            "k": 4,
+            "n": 4
+          },
+          "points": 1,
+          "lo": 0.30718972942832046,
+          "hi": 1
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
-        }
+        },
+        "medianTokensByArm": [
+          {
+            "arm": "plain",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          },
+          {
+            "arm": "with-skill",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          },
+          {
+            "arm": "with-doc",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          }
+        ]
       },
       {
         "evalId": "evals/measure.eval.ts › keeps the plain greeting",
@@ -508,10 +630,42 @@
         "shapes": ["ab"],
         "design": "1 coding harness, 2 arms, 8 attempts",
         "primary": "with-skill vs plain: -100 pts pass rate (0% vs 100%)",
+        "result": {
+          "kind": "lift",
+          "baseline": "plain",
+          "variant": "with-skill",
+          "baselinePassed": {
+            "k": 4,
+            "n": 4
+          },
+          "variantPassed": {
+            "k": 0,
+            "n": 4
+          },
+          "points": -1,
+          "lo": -1,
+          "hi": -0.30718972942832046
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
-        }
+        },
+        "medianTokensByArm": [
+          {
+            "arm": "plain",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          },
+          {
+            "arm": "with-skill",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          }
+        ]
       },
       {
         "evalId": "evals/measure.eval.ts › greets once",
@@ -520,10 +674,42 @@
         "shapes": ["ab"],
         "design": "1 coding harness, 2 arms, 2 attempts",
         "primary": "with-skill vs plain: +100 pts pass rate (100% vs 0%)",
+        "result": {
+          "kind": "lift",
+          "baseline": "plain",
+          "variant": "with-skill",
+          "baselinePassed": {
+            "k": 0,
+            "n": 1
+          },
+          "variantPassed": {
+            "k": 1,
+            "n": 1
+          },
+          "points": 1,
+          "lo": -0.12210872433829856,
+          "hi": 1
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
-        }
+        },
+        "medianTokensByArm": [
+          {
+            "arm": "plain",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          },
+          {
+            "arm": "with-skill",
+            "tokens": {
+              "value": null,
+              "text": "not reported"
+            }
+          }
+        ]
       },
       {
         "evalId": "evals/results.eval.ts › writes greet.js",
@@ -532,6 +718,14 @@
         "shapes": ["task"],
         "design": "1 coding harness, 1 attempt",
         "primary": "100% passed",
+        "result": {
+          "kind": "pass-rate",
+          "passed": {
+            "k": 1,
+            "n": 1
+          },
+          "outcome": "passed"
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -544,6 +738,14 @@
         "shapes": ["task"],
         "design": "1 coding harness, 1 attempt",
         "primary": "0% passed",
+        "result": {
+          "kind": "pass-rate",
+          "passed": {
+            "k": 0,
+            "n": 1
+          },
+          "outcome": "passed"
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -556,6 +758,14 @@
         "shapes": ["task"],
         "design": "1 coding harness, 2 attempts",
         "primary": "50% passed",
+        "result": {
+          "kind": "pass-rate",
+          "passed": {
+            "k": 1,
+            "n": 2
+          },
+          "outcome": "passed"
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -568,6 +778,13 @@
         "shapes": ["task"],
         "design": "1 coding harness, 1 attempt",
         "primary": "Median tokens: not reported",
+        "result": {
+          "kind": "measure",
+          "label": "tokens",
+          "unit": "tokens",
+          "median": null,
+          "n": 0
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -580,6 +797,13 @@
         "shapes": ["task"],
         "design": "1 coding harness, 1 attempt",
         "primary": "Median tokens: not reported",
+        "result": {
+          "kind": "measure",
+          "label": "tokens",
+          "unit": "tokens",
+          "median": null,
+          "n": 0
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -592,6 +816,13 @@
         "shapes": ["task"],
         "design": "1 coding harness, 0 attempts",
         "primary": "Median tokens: not reported",
+        "result": {
+          "kind": "measure",
+          "label": "tokens",
+          "unit": "tokens",
+          "median": null,
+          "n": 0
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -604,6 +835,13 @@
         "shapes": ["task"],
         "design": "1 coding harness, 0 attempts",
         "primary": "Median tokens: not reported",
+        "result": {
+          "kind": "measure",
+          "label": "tokens",
+          "unit": "tokens",
+          "median": null,
+          "n": 0
+        },
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -659,6 +897,9 @@
       "id": "evals/family.eval.ts › adds a button that builds",
       "anchor": "adds-a-name-button-that-builds",
       "name": "adds a $name button that builds",
+      "group": [],
+      "state": "ran",
+      "outcome": "fail",
       "file": "evals/family.eval.ts",
       "shapes": ["task"],
       "design": "3 prompts, 1 coding harness, 3 attempts",
@@ -679,11 +920,16 @@
               "text": "+21 pts to +94 pts"
             }
           },
+          "taskRate": {
+            "value": 0.6666666666666666,
+            "text": "67%"
+          },
+          "tasks": 3,
           "assertions": 3,
           "harnesses": 1,
           "outcome": "passed"
         },
-        "foot": "2 of 3 counted attempts passed on all 3 assertions. 1 coding harness."
+        "foot": "2 of 3 trials passed on all 3 assertions. Task-averaged: 67% across 3 tasks. 1 coding harness."
       },
       "insights": [],
       "primary": {
@@ -781,10 +1027,14 @@
                 "text": "+21 pts to +94 pts"
               }
             },
+            "taskRate": {
+              "value": 0.6666666666666666,
+              "text": "67%"
+            },
             "measures": {
               "tokens": null,
               "toolCalls": {
-                "n": 3,
+                "n": 2,
                 "median": {
                   "value": 1,
                   "text": "1"
@@ -799,7 +1049,7 @@
                 }
               },
               "turns": {
-                "n": 3,
+                "n": 2,
                 "median": {
                   "value": 1,
                   "text": "1"
@@ -815,22 +1065,22 @@
               },
               "costUsd": null,
               "agentMs": {
-                "n": 3,
+                "n": 2,
                 "median": {
-                  "value": 6,
+                  "value": 7,
                   "text": "<0.1s"
                 },
                 "q1": {
-                  "value": 5.5,
+                  "value": 6.5,
                   "text": "<0.1s"
                 },
                 "q3": {
-                  "value": 7,
+                  "value": 7.5,
                   "text": "<0.1s"
                 }
               },
               "filesChanged": {
-                "n": 3,
+                "n": 2,
                 "median": {
                   "value": 1,
                   "text": "1"
@@ -846,10 +1096,110 @@
               },
               "linesAdded": null,
               "linesRemoved": null
-            }
+            },
+            "costPerSuccess": null
           }
         ],
-        "median": null
+        "median": null,
+        "costReported": false,
+        "tasks": [
+          {
+            "task": "reset",
+            "label": "reset",
+            "cells": {
+              "fake": {
+                "rate": {
+                  "k": 1,
+                  "n": 1,
+                  "rate": 1,
+                  "text": "100%",
+                  "interval": {
+                    "lo": 0.2065493117918027,
+                    "hi": 1,
+                    "text": "+21 pts to +100 pts"
+                  }
+                }
+              }
+            },
+            "total": {
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "interval": {
+                  "lo": 0.2065493117918027,
+                  "hi": 1,
+                  "text": "+21 pts to +100 pts"
+                }
+              }
+            }
+          },
+          {
+            "task": "double",
+            "label": "double",
+            "cells": {
+              "fake": {
+                "rate": {
+                  "k": 0,
+                  "n": 1,
+                  "rate": 0,
+                  "text": "0%",
+                  "interval": {
+                    "lo": 0,
+                    "hi": 0.7934506882081973,
+                    "text": "0 pts to +79 pts"
+                  }
+                }
+              }
+            },
+            "total": {
+              "rate": {
+                "k": 0,
+                "n": 1,
+                "rate": 0,
+                "text": "0%",
+                "interval": {
+                  "lo": 0,
+                  "hi": 0.7934506882081973,
+                  "text": "0 pts to +79 pts"
+                }
+              }
+            }
+          },
+          {
+            "task": "clear",
+            "label": "clear",
+            "cells": {
+              "fake": {
+                "rate": {
+                  "k": 1,
+                  "n": 1,
+                  "rate": 1,
+                  "text": "100%",
+                  "interval": {
+                    "lo": 0.2065493117918027,
+                    "hi": 1,
+                    "text": "+21 pts to +100 pts"
+                  }
+                }
+              }
+            },
+            "total": {
+              "rate": {
+                "k": 1,
+                "n": 1,
+                "rate": 1,
+                "text": "100%",
+                "interval": {
+                  "lo": 0.2065493117918027,
+                  "hi": 1,
+                  "text": "+21 pts to +100 pts"
+                }
+              }
+            }
+          }
+        ]
       },
       "choices": [],
       "discovery": [],
@@ -862,23 +1212,7 @@
             "kind": "assertion",
             "label": "build",
             "at": null,
-            "count": {
-              "k": 1,
-              "n": 3,
-              "text": "1 of 3"
-            },
-            "attempts": [
-              {
-                "id": "A2",
-                "key": "evals/family.eval.ts › adds a double button that builds # fake/-/fake#1",
-                "href": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/transcript.jsonl"
-              }
-            ]
-          },
-          {
-            "kind": "error",
-            "label": "build: expected command to succeed, exit code 1",
-            "at": null,
+            "message": "build: expected command to succeed, exit code 1",
             "count": {
               "k": 1,
               "n": 3,
@@ -900,6 +1234,9 @@
       "id": "evals/family.eval.ts › greets in the house style",
       "anchor": "greets-s-in-the-house-style",
       "name": "greets %s in the house style",
+      "group": [],
+      "state": "ran",
+      "outcome": "pass",
       "file": "evals/family.eval.ts",
       "shapes": ["ab"],
       "design": "4 prompts, 1 coding harness, 2 arms, 8 attempts",
@@ -949,9 +1286,23 @@
               "text": "+51 pts to +100 pts"
             }
           },
+          "baselineTaskRate": {
+            "value": 0,
+            "text": "0%"
+          },
+          "variantTaskRate": {
+            "value": 1,
+            "text": "100%"
+          },
+          "taskPoints": {
+            "value": 1,
+            "unit": "pts",
+            "text": "+100 pts"
+          },
+          "tasks": 4,
           "others": []
         },
-        "foot": "n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts."
+        "foot": "4 vs 4 trials. 95% CI +31 pts to +100 pts. No failures in 4 trials on with-skill (95% Wilson CI 51% to 100%). Task-averaged: 100% vs 0% (+100 pts across 4 tasks)."
       },
       "insights": [],
       "primary": {
@@ -964,7 +1315,8 @@
             "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
             "role": "baseline",
             "change": null,
-            "prompts": ["p958d3cdc", "pc5434676", "p6870162d", "padc4c17a"]
+            "prompts": ["p958d3cdc", "pc5434676", "p6870162d", "padc4c17a"],
+            "gated": false
           },
           {
             "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
@@ -973,10 +1325,12 @@
             "environmentDigest": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
             "role": "variant",
             "change": "with-skill",
-            "prompts": ["p958d3cdc", "pc5434676", "p6870162d", "padc4c17a"]
+            "prompts": ["p958d3cdc", "pc5434676", "p6870162d", "padc4c17a"],
+            "gated": true
           }
         ],
         "uniformLead": null,
+        "costReported": false,
         "summary": [
           {
             "arm": "plain",
@@ -991,6 +1345,11 @@
                 "text": "0 pts to +49 pts"
               }
             },
+            "taskRate": {
+              "value": 0,
+              "text": "0%"
+            },
+            "taskLift": null,
             "lift": null,
             "interval": null,
             "verdict": "baseline",
@@ -1002,40 +1361,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -1045,40 +1376,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 2.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 1.75,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -1092,7 +1395,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "arm": "with-skill",
@@ -1106,6 +1411,15 @@
                 "hi": 0.9999999999999999,
                 "text": "+51 pts to +100 pts"
               }
+            },
+            "taskRate": {
+              "value": 1,
+              "text": "100%"
+            },
+            "taskLift": {
+              "value": 1,
+              "unit": "pts",
+              "text": "+100 pts"
             },
             "lift": {
               "value": 1,
@@ -1141,11 +1455,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "turns": {
@@ -1164,11 +1474,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -1192,11 +1498,7 @@
                     "text": "<0.1s"
                   }
                 },
-                "delta": {
-                  "value": 0.4,
-                  "unit": "pct",
-                  "text": "+40%"
-                },
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
@@ -1215,11 +1517,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -1232,7 +1530,143 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
+          }
+        ],
+        "tasks": [
+          {
+            "task": "Ada",
+            "label": "Ada",
+            "cells": {
+              "plain": {
+                "rate": {
+                  "k": 0,
+                  "n": 1,
+                  "rate": 0,
+                  "text": "0%",
+                  "interval": {
+                    "lo": 0,
+                    "hi": 0.7934506882081973,
+                    "text": "0 pts to +79 pts"
+                  }
+                }
+              },
+              "with-skill": {
+                "rate": {
+                  "k": 1,
+                  "n": 1,
+                  "rate": 1,
+                  "text": "100%",
+                  "interval": {
+                    "lo": 0.2065493117918027,
+                    "hi": 1,
+                    "text": "+21 pts to +100 pts"
+                  }
+                }
+              }
+            },
+            "total": null
+          },
+          {
+            "task": "Grace",
+            "label": "Grace",
+            "cells": {
+              "plain": {
+                "rate": {
+                  "k": 0,
+                  "n": 1,
+                  "rate": 0,
+                  "text": "0%",
+                  "interval": {
+                    "lo": 0,
+                    "hi": 0.7934506882081973,
+                    "text": "0 pts to +79 pts"
+                  }
+                }
+              },
+              "with-skill": {
+                "rate": {
+                  "k": 1,
+                  "n": 1,
+                  "rate": 1,
+                  "text": "100%",
+                  "interval": {
+                    "lo": 0.2065493117918027,
+                    "hi": 1,
+                    "text": "+21 pts to +100 pts"
+                  }
+                }
+              }
+            },
+            "total": null
+          },
+          {
+            "task": "Linus",
+            "label": "Linus",
+            "cells": {
+              "plain": {
+                "rate": {
+                  "k": 0,
+                  "n": 1,
+                  "rate": 0,
+                  "text": "0%",
+                  "interval": {
+                    "lo": 0,
+                    "hi": 0.7934506882081973,
+                    "text": "0 pts to +79 pts"
+                  }
+                }
+              },
+              "with-skill": {
+                "rate": {
+                  "k": 1,
+                  "n": 1,
+                  "rate": 1,
+                  "text": "100%",
+                  "interval": {
+                    "lo": 0.2065493117918027,
+                    "hi": 1,
+                    "text": "+21 pts to +100 pts"
+                  }
+                }
+              }
+            },
+            "total": null
+          },
+          {
+            "task": "Edsger",
+            "label": "Edsger",
+            "cells": {
+              "plain": {
+                "rate": {
+                  "k": 0,
+                  "n": 1,
+                  "rate": 0,
+                  "text": "0%",
+                  "interval": {
+                    "lo": 0,
+                    "hi": 0.7934506882081973,
+                    "text": "0 pts to +79 pts"
+                  }
+                }
+              },
+              "with-skill": {
+                "rate": {
+                  "k": 1,
+                  "n": 1,
+                  "rate": 1,
+                  "text": "100%",
+                  "interval": {
+                    "lo": 0.2065493117918027,
+                    "hi": 1,
+                    "text": "+21 pts to +100 pts"
+                  }
+                }
+              }
+            },
+            "total": null
           }
         ],
         "assertionsByArm": [
@@ -1288,6 +1722,10 @@
                 "text": "0 pts to +49 pts"
               }
             },
+            "taskRate": {
+              "value": 0,
+              "text": "0%"
+            },
             "measures": {
               "tokens": {
                 "value": null,
@@ -1295,40 +1733,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -1338,40 +1748,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 2.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 1.75,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -1385,7 +1767,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "harness": "fake",
@@ -1400,6 +1784,10 @@
                 "hi": 0.9999999999999999,
                 "text": "+51 pts to +100 pts"
               }
+            },
+            "taskRate": {
+              "value": 1,
+              "text": "100%"
             },
             "measures": {
               "tokens": {
@@ -1423,11 +1811,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "turns": {
@@ -1446,11 +1830,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -1474,11 +1854,7 @@
                     "text": "<0.1s"
                   }
                 },
-                "delta": {
-                  "value": 0.4,
-                  "unit": "pct",
-                  "text": "+40%"
-                },
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
@@ -1497,11 +1873,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -1514,7 +1886,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ]
       },
@@ -1529,38 +1903,7 @@
             "kind": "assertion",
             "label": "house greeting",
             "at": null,
-            "count": {
-              "k": 4,
-              "n": 8,
-              "text": "4 of 8"
-            },
-            "attempts": [
-              {
-                "id": "A4",
-                "key": "evals/family.eval.ts › greets Ada in the house style # fake/plain/fake#1",
-                "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/transcript.jsonl"
-              },
-              {
-                "id": "A6",
-                "key": "evals/family.eval.ts › greets Grace in the house style # fake/plain/fake#1",
-                "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/transcript.jsonl"
-              },
-              {
-                "id": "A8",
-                "key": "evals/family.eval.ts › greets Linus in the house style # fake/plain/fake#1",
-                "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/transcript.jsonl"
-              },
-              {
-                "id": "A10",
-                "key": "evals/family.eval.ts › greets Edsger in the house style # fake/plain/fake#1",
-                "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/transcript.jsonl"
-              }
-            ]
-          },
-          {
-            "kind": "error",
-            "label": "house greeting: expected command to succeed, exit code 1",
-            "at": null,
+            "message": "house greeting: expected command to succeed, exit code 1",
             "count": {
               "k": 4,
               "n": 8,
@@ -1597,6 +1940,9 @@
       "id": "evals/harnesses.eval.ts › greets in the house style on each agent",
       "anchor": "greets-in-the-house-style-on-each-agent",
       "name": "greets in the house style on each agent",
+      "group": [],
+      "state": "ran",
+      "outcome": "fail",
       "file": "evals/harnesses.eval.ts",
       "shapes": ["task"],
       "design": "2 coding harnesses, 2 attempts",
@@ -1621,7 +1967,7 @@
           "harnesses": 2,
           "outcome": "passed"
         },
-        "foot": "1 of 2 counted attempts passed on all 3 assertions. 2 coding harnesses."
+        "foot": "1 of 2 trials passed on all 3 assertions. 2 coding harnesses."
       },
       "insights": [],
       "primary": {
@@ -1811,7 +2157,8 @@
               },
               "linesAdded": null,
               "linesRemoved": null
-            }
+            },
+            "costPerSuccess": null
           },
           {
             "keys": ["terse"],
@@ -1828,70 +2175,15 @@
             },
             "measures": {
               "tokens": null,
-              "toolCalls": {
-                "n": 1,
-                "median": {
-                  "value": 0,
-                  "text": "0"
-                },
-                "q1": {
-                  "value": 0,
-                  "text": "0"
-                },
-                "q3": {
-                  "value": 0,
-                  "text": "0"
-                }
-              },
-              "turns": {
-                "n": 1,
-                "median": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q1": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q3": {
-                  "value": 1,
-                  "text": "1"
-                }
-              },
+              "toolCalls": null,
+              "turns": null,
               "costUsd": null,
-              "agentMs": {
-                "n": 1,
-                "median": {
-                  "value": 8,
-                  "text": "<0.1s"
-                },
-                "q1": {
-                  "value": 8,
-                  "text": "<0.1s"
-                },
-                "q3": {
-                  "value": 8,
-                  "text": "<0.1s"
-                }
-              },
-              "filesChanged": {
-                "n": 1,
-                "median": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q1": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q3": {
-                  "value": 1,
-                  "text": "1"
-                }
-              },
+              "agentMs": null,
+              "filesChanged": null,
               "linesAdded": null,
               "linesRemoved": null
-            }
+            },
+            "costPerSuccess": null
           }
         ],
         "median": {
@@ -1910,7 +2202,7 @@
           "measures": {
             "tokens": null,
             "toolCalls": {
-              "n": 2,
+              "n": 1,
               "median": {
                 "value": 0,
                 "text": "0"
@@ -1925,7 +2217,7 @@
               }
             },
             "turns": {
-              "n": 2,
+              "n": 1,
               "median": {
                 "value": 1,
                 "text": "1"
@@ -1941,22 +2233,22 @@
             },
             "costUsd": null,
             "agentMs": {
-              "n": 2,
+              "n": 1,
               "median": {
-                "value": 4.5,
+                "value": 1,
                 "text": "<0.1s"
               },
               "q1": {
-                "value": 2.75,
+                "value": 1,
                 "text": "<0.1s"
               },
               "q3": {
-                "value": 6.25,
+                "value": 1,
                 "text": "<0.1s"
               }
             },
             "filesChanged": {
-              "n": 2,
+              "n": 1,
               "median": {
                 "value": 1,
                 "text": "1"
@@ -1972,8 +2264,10 @@
             },
             "linesAdded": null,
             "linesRemoved": null
-          }
-        }
+          },
+          "costPerSuccess": null
+        },
+        "costReported": false
       },
       "choices": [],
       "discovery": [],
@@ -1986,23 +2280,7 @@
             "kind": "assertion",
             "label": "house greeting",
             "at": null,
-            "count": {
-              "k": 1,
-              "n": 2,
-              "text": "1 of 2"
-            },
-            "attempts": [
-              {
-                "id": "A13",
-                "key": "evals/harnesses.eval.ts › greets in the house style on each agent # terse/-/fake#1",
-                "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/transcript.jsonl"
-              }
-            ]
-          },
-          {
-            "kind": "error",
-            "label": "house greeting: expected command to succeed, exit code 1",
-            "at": null,
+            "message": "house greeting: expected command to succeed, exit code 1",
             "count": {
               "k": 1,
               "n": 2,
@@ -2024,6 +2302,9 @@
       "id": "evals/harnesses.eval.ts › learns the house style from the skill",
       "anchor": "learns-the-house-style-from-the-skill",
       "name": "learns the house style from the skill",
+      "group": [],
+      "state": "ran",
+      "outcome": "fail",
       "file": "evals/harnesses.eval.ts",
       "shapes": ["ab"],
       "design": "2 coding harnesses, 2 arms, 16 attempts",
@@ -2075,7 +2356,7 @@
           },
           "others": []
         },
-        "foot": "n = 8 vs 8 counted attempts. 95% CI +7 pts to +78 pts."
+        "foot": "8 vs 8 trials. 95% CI +7 pts to +78 pts."
       },
       "insights": [],
       "primary": {
@@ -2088,7 +2369,8 @@
             "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
             "role": "baseline",
             "change": null,
-            "prompts": ["pffbe647e"]
+            "prompts": ["pffbe647e"],
+            "gated": false
           },
           {
             "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
@@ -2097,10 +2379,12 @@
             "environmentDigest": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
             "role": "variant",
             "change": "with-skill",
-            "prompts": ["pffbe647e"]
+            "prompts": ["pffbe647e"],
+            "gated": true
           }
         ],
         "uniformLead": null,
+        "costReported": false,
         "summary": [
           {
             "arm": "plain",
@@ -2126,40 +2410,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 8,
-                  "median": {
-                    "value": 0,
-                    "text": "0"
-                  },
-                  "q1": {
-                    "value": 0,
-                    "text": "0"
-                  },
-                  "q3": {
-                    "value": 0,
-                    "text": "0"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 8,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -2169,40 +2425,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 8,
-                  "median": {
-                    "value": 2,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 3.75,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 8,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -2216,7 +2444,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "arm": "with-skill",
@@ -2251,7 +2481,7 @@
               },
               "toolCalls": {
                 "value": {
-                  "n": 8,
+                  "n": 4,
                   "median": {
                     "value": 0,
                     "text": "0"
@@ -2265,16 +2495,12 @@
                     "text": "0"
                   }
                 },
-                "delta": {
-                  "value": null,
-                  "unit": "pct",
-                  "text": "n/a"
-                },
+                "delta": null,
                 "lower": null
               },
               "turns": {
                 "value": {
-                  "n": 8,
+                  "n": 4,
                   "median": {
                     "value": 1,
                     "text": "1"
@@ -2288,11 +2514,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -2302,13 +2524,13 @@
               },
               "agentMs": {
                 "value": {
-                  "n": 8,
+                  "n": 4,
                   "median": {
-                    "value": 5,
+                    "value": 6.5,
                     "text": "<0.1s"
                   },
                   "q1": {
-                    "value": 1.75,
+                    "value": 5.5,
                     "text": "<0.1s"
                   },
                   "q3": {
@@ -2316,16 +2538,12 @@
                     "text": "<0.1s"
                   }
                 },
-                "delta": {
-                  "value": 1.5,
-                  "unit": "pct",
-                  "text": "+150%"
-                },
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
                 "value": {
-                  "n": 8,
+                  "n": 4,
                   "median": {
                     "value": 1,
                     "text": "1"
@@ -2339,11 +2557,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -2356,7 +2570,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ],
         "assertionsByArm": [
@@ -2419,40 +2635,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 0,
-                    "text": "0"
-                  },
-                  "q1": {
-                    "value": 0,
-                    "text": "0"
-                  },
-                  "q3": {
-                    "value": 0,
-                    "text": "0"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -2462,40 +2650,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 3.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 6.25,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -2509,7 +2669,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "harness": "learner",
@@ -2547,11 +2709,7 @@
                     "text": "0"
                   }
                 },
-                "delta": {
-                  "value": null,
-                  "unit": "pct",
-                  "text": "n/a"
-                },
+                "delta": null,
                 "lower": null
               },
               "turns": {
@@ -2570,11 +2728,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -2598,11 +2752,7 @@
                     "text": "<0.1s"
                   }
                 },
-                "delta": {
-                  "value": 0.8571428571428571,
-                  "unit": "pct",
-                  "text": "+86%"
-                },
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
@@ -2621,11 +2771,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -2638,7 +2784,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "harness": "terse",
@@ -2661,40 +2809,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 0,
-                    "text": "0"
-                  },
-                  "q1": {
-                    "value": 0,
-                    "text": "0"
-                  },
-                  "q3": {
-                    "value": 0,
-                    "text": "0"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -2704,40 +2824,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 2,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 3,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -2751,7 +2843,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "harness": "terse",
@@ -2774,49 +2868,13 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 0,
-                    "text": "0"
-                  },
-                  "q1": {
-                    "value": 0,
-                    "text": "0"
-                  },
-                  "q3": {
-                    "value": 0,
-                    "text": "0"
-                  }
-                },
-                "delta": {
-                  "value": null,
-                  "unit": "pct",
-                  "text": "n/a"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -2825,49 +2883,13 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 0.75,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 5,
-                    "text": "<0.1s"
-                  }
-                },
-                "delta": {
-                  "value": -0.25,
-                  "unit": "pct",
-                  "text": "-25%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -2880,7 +2902,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ]
       },
@@ -2895,78 +2919,7 @@
             "kind": "assertion",
             "label": "house greeting",
             "at": null,
-            "count": {
-              "k": 12,
-              "n": 16,
-              "text": "12 of 16"
-            },
-            "attempts": [
-              {
-                "id": "A14",
-                "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#1",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/transcript.jsonl"
-              },
-              {
-                "id": "A30",
-                "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#2",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/transcript.jsonl"
-              },
-              {
-                "id": "A40",
-                "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#3",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/transcript.jsonl"
-              },
-              {
-                "id": "A48",
-                "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#4",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/transcript.jsonl"
-              },
-              {
-                "id": "A16",
-                "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#1",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/transcript.jsonl"
-              },
-              {
-                "id": "A32",
-                "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#2",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/transcript.jsonl"
-              },
-              {
-                "id": "A42",
-                "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#3",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/transcript.jsonl"
-              },
-              {
-                "id": "A51",
-                "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#4",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/transcript.jsonl"
-              },
-              {
-                "id": "A17",
-                "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#1",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/transcript.jsonl"
-              },
-              {
-                "id": "A33",
-                "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#2",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/transcript.jsonl"
-              },
-              {
-                "id": "A43",
-                "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#3",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/transcript.jsonl"
-              },
-              {
-                "id": "A52",
-                "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#4",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/transcript.jsonl"
-              }
-            ]
-          },
-          {
-            "kind": "error",
-            "label": "house greeting: expected command to succeed, exit code 1",
-            "at": null,
+            "message": "house greeting: expected command to succeed, exit code 1",
             "count": {
               "k": 12,
               "n": 16,
@@ -3043,6 +2996,9 @@
       "id": "evals/measure.eval.ts › greets in the house style",
       "anchor": "greets-in-the-house-style",
       "name": "greets in the house style",
+      "group": [],
+      "state": "ran",
+      "outcome": "fail",
       "file": "evals/measure.eval.ts",
       "shapes": ["ab"],
       "design": "1 coding harness, 3 arms, 12 attempts",
@@ -3122,7 +3078,7 @@
             }
           ]
         },
-        "foot": "n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts."
+        "foot": "4 vs 4 trials. 95% CI +31 pts to +100 pts. No failures in 4 trials on with-skill (95% Wilson CI 51% to 100%)."
       },
       "insights": [],
       "primary": {
@@ -3135,7 +3091,8 @@
             "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
             "role": "baseline",
             "change": null,
-            "prompts": ["pffbe647e"]
+            "prompts": ["pffbe647e"],
+            "gated": false
           },
           {
             "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
@@ -3144,7 +3101,8 @@
             "environmentDigest": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
             "role": "variant",
             "change": "with-skill",
-            "prompts": ["pffbe647e"]
+            "prompts": ["pffbe647e"],
+            "gated": true
           },
           {
             "id": "sha256:4f15431ec693f3866e401362fea4634044b87652bded6bb599a035a762ecd345",
@@ -3153,10 +3111,12 @@
             "environmentDigest": "sha256:4f15431ec693f3866e401362fea4634044b87652bded6bb599a035a762ecd345",
             "role": "variant",
             "change": "with-doc",
-            "prompts": ["pffbe647e"]
+            "prompts": ["pffbe647e"],
+            "gated": true
           }
         ],
         "uniformLead": null,
+        "costReported": false,
         "summary": [
           {
             "arm": "plain",
@@ -3182,40 +3142,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -3225,40 +3157,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 2.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 1.75,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 3.75,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -3272,7 +3176,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "arm": "with-skill",
@@ -3321,11 +3227,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "turns": {
@@ -3344,11 +3246,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -3372,11 +3270,7 @@
                     "text": "<0.1s"
                   }
                 },
-                "delta": {
-                  "value": 0.6,
-                  "unit": "pct",
-                  "text": "+60%"
-                },
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
@@ -3395,11 +3289,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -3412,7 +3302,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "arm": "with-doc",
@@ -3446,49 +3338,13 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -3497,49 +3353,13 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 4.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 5.75,
-                    "text": "<0.1s"
-                  }
-                },
-                "delta": {
-                  "value": 0.8,
-                  "unit": "pct",
-                  "text": "+80%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -3552,7 +3372,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ],
         "assertionsByArm": [
@@ -3691,6 +3513,16 @@
           {
             "from": "with-skill",
             "to": "plain",
+            "harness": "fake",
+            "sandbox": "fake",
+            "fromPassed": {
+              "k": 4,
+              "n": 4
+            },
+            "toPassed": {
+              "k": 0,
+              "n": 4
+            },
             "measure": "pass-rate",
             "delta": {
               "value": 1,
@@ -3708,6 +3540,16 @@
           {
             "from": "with-doc",
             "to": "plain",
+            "harness": "fake",
+            "sandbox": "fake",
+            "fromPassed": {
+              "k": 0,
+              "n": 4
+            },
+            "toPassed": {
+              "k": 0,
+              "n": 4
+            },
             "measure": "pass-rate",
             "delta": {
               "value": 0,
@@ -3725,6 +3567,16 @@
           {
             "from": "with-doc",
             "to": "with-skill",
+            "harness": "fake",
+            "sandbox": "fake",
+            "fromPassed": {
+              "k": 0,
+              "n": 4
+            },
+            "toPassed": {
+              "k": 4,
+              "n": 4
+            },
             "measure": "pass-rate",
             "delta": {
               "value": -1,
@@ -3762,40 +3614,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -3805,40 +3629,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 2.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 1.75,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 3.75,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -3852,7 +3648,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "harness": "fake",
@@ -3890,11 +3688,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "turns": {
@@ -3913,11 +3707,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -3941,11 +3731,7 @@
                     "text": "<0.1s"
                   }
                 },
-                "delta": {
-                  "value": 0.6,
-                  "unit": "pct",
-                  "text": "+60%"
-                },
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
@@ -3964,11 +3750,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -3981,7 +3763,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "harness": "fake",
@@ -4004,49 +3788,13 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -4055,49 +3803,13 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 4.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 5.75,
-                    "text": "<0.1s"
-                  }
-                },
-                "delta": {
-                  "value": 0.8,
-                  "unit": "pct",
-                  "text": "+80%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -4110,7 +3822,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ]
       },
@@ -4125,58 +3839,7 @@
             "kind": "assertion",
             "label": "house greeting",
             "at": null,
-            "count": {
-              "k": 8,
-              "n": 12,
-              "text": "8 of 12"
-            },
-            "attempts": [
-              {
-                "id": "A18",
-                "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#1",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/transcript.jsonl"
-              },
-              {
-                "id": "A34",
-                "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#2",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/transcript.jsonl"
-              },
-              {
-                "id": "A44",
-                "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#3",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/transcript.jsonl"
-              },
-              {
-                "id": "A53",
-                "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#4",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/transcript.jsonl"
-              },
-              {
-                "id": "A20",
-                "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#1",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/transcript.jsonl"
-              },
-              {
-                "id": "A36",
-                "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#2",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/transcript.jsonl"
-              },
-              {
-                "id": "A46",
-                "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#3",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/transcript.jsonl"
-              },
-              {
-                "id": "A55",
-                "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#4",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/transcript.jsonl"
-              }
-            ]
-          },
-          {
-            "kind": "error",
-            "label": "house greeting: expected command to succeed, exit code 1",
-            "at": null,
+            "message": "house greeting: expected command to succeed, exit code 1",
             "count": {
               "k": 8,
               "n": 12,
@@ -4233,6 +3896,9 @@
       "id": "evals/measure.eval.ts › keeps the plain greeting",
       "anchor": "keeps-the-plain-greeting",
       "name": "keeps the plain greeting",
+      "group": [],
+      "state": "ran",
+      "outcome": "fail",
       "file": "evals/measure.eval.ts",
       "shapes": ["ab"],
       "design": "1 coding harness, 2 arms, 8 attempts",
@@ -4284,7 +3950,7 @@
           },
           "others": []
         },
-        "foot": "n = 4 vs 4 counted attempts. 95% CI -100 pts to -31 pts."
+        "foot": "4 vs 4 trials. 95% CI -100 pts to -31 pts. No failures in 4 trials on plain (95% Wilson CI 51% to 100%)."
       },
       "insights": [],
       "primary": {
@@ -4297,7 +3963,8 @@
             "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
             "role": "baseline",
             "change": null,
-            "prompts": ["p951aa46c"]
+            "prompts": ["p951aa46c"],
+            "gated": false
           },
           {
             "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
@@ -4306,10 +3973,12 @@
             "environmentDigest": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
             "role": "variant",
             "change": "with-skill",
-            "prompts": ["p951aa46c"]
+            "prompts": ["p951aa46c"],
+            "gated": true
           }
         ],
         "uniformLead": null,
+        "costReported": false,
         "summary": [
           {
             "arm": "plain",
@@ -4425,7 +4094,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "arm": "with-skill",
@@ -4459,49 +4130,13 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -4510,49 +4145,13 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 0.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 0,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "<0.1s"
-                  }
-                },
-                "delta": {
-                  "value": -0.8333333333333335,
-                  "unit": "pct",
-                  "text": "-83%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -4565,7 +4164,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ],
         "assertionsByArm": [
@@ -4718,7 +4319,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "harness": "fake",
@@ -4741,49 +4344,13 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -4792,49 +4359,13 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 0.5,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 0,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "<0.1s"
-                  }
-                },
-                "delta": {
-                  "value": -0.8333333333333335,
-                  "unit": "pct",
-                  "text": "-83%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 4,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "value": null,
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -4847,7 +4378,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ]
       },
@@ -4862,38 +4395,7 @@
             "kind": "assertion",
             "label": "says hello",
             "at": null,
-            "count": {
-              "k": 4,
-              "n": 8,
-              "text": "4 of 8"
-            },
-            "attempts": [
-              {
-                "id": "A22",
-                "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#1",
-                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
-              },
-              {
-                "id": "A38",
-                "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#2",
-                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/transcript.jsonl"
-              },
-              {
-                "id": "A49",
-                "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#3",
-                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/transcript.jsonl"
-              },
-              {
-                "id": "A57",
-                "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#4",
-                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/transcript.jsonl"
-              }
-            ]
-          },
-          {
-            "kind": "error",
-            "label": "says hello: expected command to succeed, exit code 1",
-            "at": null,
+            "message": "says hello: expected command to succeed, exit code 1",
             "count": {
               "k": 4,
               "n": 8,
@@ -4930,6 +4432,9 @@
       "id": "evals/measure.eval.ts › greets once",
       "anchor": "greets-once",
       "name": "greets once",
+      "group": [],
+      "state": "ran",
+      "outcome": "pass",
       "file": "evals/measure.eval.ts",
       "shapes": ["ab"],
       "design": "1 coding harness, 2 arms, 2 attempts",
@@ -4981,7 +4486,7 @@
           },
           "others": []
         },
-        "foot": "n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. 1 per side is below 4, so this cannot come back helped or made worse."
+        "foot": "1 vs 1 trials. 95% CI -12 pts to +100 pts. No failures in 1 trial on with-skill (95% Wilson CI 21% to 100%). 1 trial per side is below 4, so this cannot come back helped or made worse."
       },
       "insights": [],
       "primary": {
@@ -4994,7 +4499,8 @@
             "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
             "role": "baseline",
             "change": null,
-            "prompts": ["pffbe647e"]
+            "prompts": ["pffbe647e"],
+            "gated": false
           },
           {
             "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
@@ -5003,10 +4509,12 @@
             "environmentDigest": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
             "role": "variant",
             "change": "with-skill",
-            "prompts": ["pffbe647e"]
+            "prompts": ["pffbe647e"],
+            "gated": true
           }
         ],
         "uniformLead": null,
+        "costReported": false,
         "summary": [
           {
             "arm": "plain",
@@ -5032,40 +4540,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 1,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 1,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -5075,40 +4555,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 1,
-                  "median": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 1,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -5122,7 +4574,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "arm": "with-skill",
@@ -5171,11 +4625,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "turns": {
@@ -5194,11 +4644,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -5222,11 +4668,7 @@
                     "text": "<0.1s"
                   }
                 },
-                "delta": {
-                  "value": -0.25,
-                  "unit": "pct",
-                  "text": "-25%"
-                },
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
@@ -5245,11 +4687,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -5262,7 +4700,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ],
         "assertionsByArm": [
@@ -5325,40 +4765,12 @@
                 "lower": null
               },
               "toolCalls": {
-                "value": {
-                  "n": 1,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "turns": {
-                "value": {
-                  "n": 1,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -5368,40 +4780,12 @@
                 "lower": null
               },
               "agentMs": {
-                "value": {
-                  "n": 1,
-                  "median": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  },
-                  "q1": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  },
-                  "q3": {
-                    "value": 4,
-                    "text": "<0.1s"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
               "filesChanged": {
-                "value": {
-                  "n": 1,
-                  "median": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q1": {
-                    "value": 1,
-                    "text": "1"
-                  },
-                  "q3": {
-                    "value": 1,
-                    "text": "1"
-                  }
-                },
+                "value": null,
                 "delta": null,
                 "lower": null
               },
@@ -5415,7 +4799,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           },
           {
             "harness": "fake",
@@ -5453,11 +4839,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "turns": {
@@ -5476,11 +4858,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "costUsd": {
@@ -5504,11 +4882,7 @@
                     "text": "<0.1s"
                   }
                 },
-                "delta": {
-                  "value": -0.25,
-                  "unit": "pct",
-                  "text": "-25%"
-                },
+                "delta": null,
                 "lower": null
               },
               "filesChanged": {
@@ -5527,11 +4901,7 @@
                     "text": "1"
                   }
                 },
-                "delta": {
-                  "value": 0,
-                  "unit": "pct",
-                  "text": "±0%"
-                },
+                "delta": null,
                 "lower": null
               },
               "linesAdded": {
@@ -5544,7 +4914,9 @@
                 "delta": null,
                 "lower": null
               }
-            }
+            },
+            "costPerSuccess": null,
+            "costPerSuccessDelta": null
           }
         ]
       },
@@ -5559,23 +4931,7 @@
             "kind": "assertion",
             "label": "house greeting",
             "at": null,
-            "count": {
-              "k": 1,
-              "n": 2,
-              "text": "1 of 2"
-            },
-            "attempts": [
-              {
-                "id": "A23",
-                "key": "evals/measure.eval.ts › greets once # fake/plain/fake#1",
-                "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/transcript.jsonl"
-              }
-            ]
-          },
-          {
-            "kind": "error",
-            "label": "house greeting: expected command to succeed, exit code 1",
-            "at": null,
+            "message": "house greeting: expected command to succeed, exit code 1",
             "count": {
               "k": 1,
               "n": 2,
@@ -5597,6 +4953,9 @@
       "id": "evals/results.eval.ts › writes greet.js",
       "anchor": "writes-greetjs",
       "name": "writes greet.js",
+      "group": [],
+      "state": "ran",
+      "outcome": "pass",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
       "design": "1 coding harness, 1 attempt",
@@ -5621,7 +4980,7 @@
           "harnesses": 1,
           "outcome": "passed"
         },
-        "foot": "1 of 1 counted attempts passed on all 1 assertions. 1 coding harness."
+        "foot": "No failures in 1 trial on 1 assertion (95% Wilson CI 21% to 100%); small sample does not rule out failures. 1 coding harness."
       },
       "insights": [],
       "primary": {
@@ -5734,10 +5093,12 @@
               },
               "linesAdded": null,
               "linesRemoved": null
-            }
+            },
+            "costPerSuccess": null
           }
         ],
-        "median": null
+        "median": null,
+        "costReported": false
       },
       "choices": [],
       "discovery": [],
@@ -5750,6 +5111,9 @@
       "id": "evals/results.eval.ts › greets in French",
       "anchor": "greets-in-french",
       "name": "greets in French",
+      "group": [],
+      "state": "ran",
+      "outcome": "fail",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
       "design": "1 coding harness, 1 attempt",
@@ -5774,7 +5138,7 @@
           "harnesses": 1,
           "outcome": "passed"
         },
-        "foot": "0 of 1 counted attempts passed on all 2 assertions. 1 coding harness."
+        "foot": "0 of 1 trial passed on all 2 assertions. 1 coding harness."
       },
       "insights": [],
       "primary": {
@@ -5849,73 +5213,19 @@
             },
             "measures": {
               "tokens": null,
-              "toolCalls": {
-                "n": 1,
-                "median": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q1": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q3": {
-                  "value": 1,
-                  "text": "1"
-                }
-              },
-              "turns": {
-                "n": 1,
-                "median": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q1": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q3": {
-                  "value": 1,
-                  "text": "1"
-                }
-              },
+              "toolCalls": null,
+              "turns": null,
               "costUsd": null,
-              "agentMs": {
-                "n": 1,
-                "median": {
-                  "value": 6,
-                  "text": "<0.1s"
-                },
-                "q1": {
-                  "value": 6,
-                  "text": "<0.1s"
-                },
-                "q3": {
-                  "value": 6,
-                  "text": "<0.1s"
-                }
-              },
-              "filesChanged": {
-                "n": 1,
-                "median": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q1": {
-                  "value": 1,
-                  "text": "1"
-                },
-                "q3": {
-                  "value": 1,
-                  "text": "1"
-                }
-              },
+              "agentMs": null,
+              "filesChanged": null,
               "linesAdded": null,
               "linesRemoved": null
-            }
+            },
+            "costPerSuccess": null
           }
         ],
-        "median": null
+        "median": null,
+        "costReported": false
       },
       "choices": [],
       "discovery": [],
@@ -5928,23 +5238,7 @@
             "kind": "assertion",
             "label": "french greeting",
             "at": null,
-            "count": {
-              "k": 1,
-              "n": 1,
-              "text": "1 of 1"
-            },
-            "attempts": [
-              {
-                "id": "A26",
-                "key": "evals/results.eval.ts › greets in French # fake/-/fake#1",
-                "href": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/transcript.jsonl"
-              }
-            ]
-          },
-          {
-            "kind": "error",
-            "label": "french greeting: expected command to succeed, exit code 1",
-            "at": null,
+            "message": "french greeting: expected command to succeed, exit code 1",
             "count": {
               "k": 1,
               "n": 1,
@@ -5966,6 +5260,9 @@
       "id": "evals/results.eval.ts › explains why greet.js fails",
       "anchor": "explains-why-greetjs-fails",
       "name": "explains why greet.js fails",
+      "group": [],
+      "state": "ran",
+      "outcome": "fail",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
       "design": "1 coding harness, 2 attempts",
@@ -5990,7 +5287,7 @@
           "harnesses": 1,
           "outcome": "passed"
         },
-        "foot": "1 of 2 counted attempts passed on all 2 assertions. 1 coding harness."
+        "foot": "1 of 2 trials passed on all 2 assertions. 1 coding harness."
       },
       "insights": [],
       "primary": {
@@ -6066,7 +5363,7 @@
             "measures": {
               "tokens": null,
               "toolCalls": {
-                "n": 2,
+                "n": 1,
                 "median": {
                   "value": 1,
                   "text": "1"
@@ -6081,7 +5378,7 @@
                 }
               },
               "turns": {
-                "n": 2,
+                "n": 1,
                 "median": {
                   "value": 1,
                   "text": "1"
@@ -6097,22 +5394,22 @@
               },
               "costUsd": null,
               "agentMs": {
-                "n": 2,
+                "n": 1,
                 "median": {
-                  "value": 3.5,
+                  "value": 6,
                   "text": "<0.1s"
                 },
                 "q1": {
-                  "value": 2.25,
+                  "value": 6,
                   "text": "<0.1s"
                 },
                 "q3": {
-                  "value": 4.75,
+                  "value": 6,
                   "text": "<0.1s"
                 }
               },
               "filesChanged": {
-                "n": 2,
+                "n": 1,
                 "median": {
                   "value": 1,
                   "text": "1"
@@ -6128,10 +5425,12 @@
               },
               "linesAdded": null,
               "linesRemoved": null
-            }
+            },
+            "costPerSuccess": null
           }
         ],
-        "median": null
+        "median": null,
+        "costReported": false
       },
       "choices": [],
       "discovery": [],
@@ -6144,23 +5443,7 @@
             "kind": "assertion",
             "label": "names the root cause",
             "at": null,
-            "count": {
-              "k": 1,
-              "n": 2,
-              "text": "1 of 2"
-            },
-            "attempts": [
-              {
-                "id": "A39",
-                "key": "evals/results.eval.ts › explains why greet.js fails # fake/-/fake#2",
-                "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/transcript.jsonl"
-              }
-            ]
-          },
-          {
-            "kind": "error",
-            "label": "names the root cause: expected 'Docker is down' to contain 'null'",
-            "at": null,
+            "message": "names the root cause: expected 'Docker is down' to contain 'null'",
             "count": {
               "k": 1,
               "n": 2,
@@ -6182,6 +5465,9 @@
       "id": "evals/results.eval.ts › reads the fixture repo",
       "anchor": "reads-the-fixture-repo",
       "name": "reads the fixture repo",
+      "group": [],
+      "state": "ran",
+      "outcome": "fail",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
       "design": "1 coding harness, 1 attempt",
@@ -6209,7 +5495,7 @@
             }
           }
         },
-        "foot": "No attempt reported usage."
+        "foot": "No trial reported usage."
       },
       "insights": [],
       "primary": null,
@@ -6245,6 +5531,9 @@
       "id": "evals/results.eval.ts › starts its sandbox",
       "anchor": "starts-its-sandbox",
       "name": "starts its sandbox",
+      "group": [],
+      "state": "ran",
+      "outcome": "infra_error",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
       "design": "1 coding harness, 1 attempt",
@@ -6272,7 +5561,7 @@
             }
           }
         },
-        "foot": "No attempt reported usage."
+        "foot": "No trial reported usage."
       },
       "insights": [],
       "primary": null,
@@ -6308,6 +5597,9 @@
       "id": "evals/results.eval.ts › greets in Welsh",
       "anchor": "greets-in-welsh",
       "name": "greets in Welsh",
+      "group": [],
+      "state": "skipped",
+      "outcome": "skipped",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
       "design": "1 coding harness, 0 attempts",
@@ -6335,7 +5627,7 @@
             }
           }
         },
-        "foot": "No attempt reported usage."
+        "foot": "No trial reported usage."
       },
       "insights": [],
       "primary": null,
@@ -6350,6 +5642,9 @@
       "id": "evals/results.eval.ts › greets in Klingon",
       "anchor": "greets-in-klingon",
       "name": "greets in Klingon",
+      "group": [],
+      "state": "todo",
+      "outcome": "skipped",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
       "design": "1 coding harness, 0 attempts",
@@ -6377,7 +5672,7 @@
             }
           }
         },
-        "foot": "No attempt reported usage."
+        "foot": "No trial reported usage."
       },
       "insights": [],
       "primary": null,
@@ -6448,6 +5743,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -6460,11 +5760,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 27,
+        "agentMs": 8,
+        "diffMs": 13,
+        "checksMs": 7,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-adds-a-reset-button-that-builds-5f0694/fake-fake-70e87d/1/transcript.jsonl",
@@ -6484,6 +5794,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [
+        {
+          "label": "build",
+          "at": null,
+          "message": "build: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "build: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -6496,11 +5820,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 19,
+        "agentMs": 5,
+        "diffMs": 15,
+        "checksMs": 8,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/transcript.jsonl",
@@ -6520,6 +5854,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -6532,11 +5871,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 20,
+        "agentMs": 6,
+        "diffMs": 15,
+        "checksMs": 13,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-adds-a-clear-button-that-builds-ddd4f5/fake-fake-70e87d/1/transcript.jsonl",
@@ -6556,6 +5905,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -6568,11 +5931,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 20,
+        "agentMs": 7,
+        "diffMs": 13,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/transcript.jsonl",
@@ -6592,6 +5965,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -6604,11 +5982,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 22,
+        "agentMs": 1,
+        "diffMs": 14,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
@@ -6628,6 +6016,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -6640,11 +6042,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 19,
+        "agentMs": 1,
+        "diffMs": 11,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/transcript.jsonl",
@@ -6664,6 +6076,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -6676,11 +6093,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 25,
+        "agentMs": 10,
+        "diffMs": 9,
+        "checksMs": 6,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
@@ -6700,6 +6127,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -6712,11 +6153,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 16,
+        "agentMs": 2,
+        "diffMs": 12,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/transcript.jsonl",
@@ -6736,6 +6187,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -6748,11 +6204,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 21,
+        "agentMs": 2,
+        "diffMs": 9,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
@@ -6772,6 +6238,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -6784,11 +6264,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 13,
+        "agentMs": 3,
+        "diffMs": 11,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/transcript.jsonl",
@@ -6808,6 +6298,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -6820,11 +6315,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 19,
+        "agentMs": 5,
+        "diffMs": 11,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
@@ -6844,6 +6349,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -6856,11 +6366,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 15,
+        "agentMs": 1,
+        "diffMs": 20,
+        "checksMs": 6,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/skilled-fake-cd398f/1/transcript.jsonl",
@@ -6880,6 +6400,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -6892,11 +6426,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 21,
+        "agentMs": 8,
+        "diffMs": 16,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/transcript.jsonl",
@@ -6916,6 +6460,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -6928,11 +6486,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 23,
+        "agentMs": 7,
+        "diffMs": 11,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/transcript.jsonl",
@@ -6952,6 +6520,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -6964,11 +6537,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 38,
+        "agentMs": 7,
+        "diffMs": 11,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/1/transcript.jsonl",
@@ -6988,6 +6571,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7000,11 +6597,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 12,
+        "agentMs": 3,
+        "diffMs": 9,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/transcript.jsonl",
@@ -7024,6 +6631,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7036,11 +6657,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 12,
+        "agentMs": 1,
+        "diffMs": 9,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/transcript.jsonl",
@@ -7060,6 +6691,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7072,11 +6717,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 21,
+        "agentMs": 6,
+        "diffMs": 15,
+        "checksMs": 6,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/transcript.jsonl",
@@ -7096,6 +6751,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7108,11 +6768,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 32,
+        "agentMs": 9,
+        "diffMs": 13,
+        "checksMs": 7,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
@@ -7132,6 +6802,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7144,11 +6828,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 24,
+        "agentMs": 8,
+        "diffMs": 13,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/transcript.jsonl",
@@ -7168,6 +6862,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7180,11 +6879,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 13,
+        "agentMs": 10,
+        "diffMs": 13,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/1/transcript.jsonl",
@@ -7204,6 +6913,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [
+        {
+          "label": "says hello",
+          "at": null,
+          "message": "says hello: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "says hello: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7216,11 +6939,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 15,
+        "agentMs": 1,
+        "diffMs": 10,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
@@ -7240,6 +6973,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7252,11 +6999,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 10,
+        "agentMs": 4,
+        "diffMs": 9,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/transcript.jsonl",
@@ -7276,6 +7033,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7288,11 +7050,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 18,
+        "agentMs": 3,
+        "diffMs": 11,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-once-98c8e5/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
@@ -7312,6 +7084,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7324,11 +7101,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 14,
+        "agentMs": 1,
+        "diffMs": 10,
+        "checksMs": 0,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-results-eval-ts-writes-greet-js-3064b7/fake-fake-70e87d/1/transcript.jsonl",
@@ -7348,6 +7135,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [
+        {
+          "label": "french greeting",
+          "at": null,
+          "message": "french greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "french greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7360,11 +7161,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 19,
+        "agentMs": 6,
+        "diffMs": 17,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/transcript.jsonl",
@@ -7384,6 +7195,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7396,11 +7212,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 14,
+        "agentMs": 6,
+        "diffMs": 11,
+        "checksMs": 0,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/1/transcript.jsonl",
@@ -7420,6 +7246,14 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": {
+        "kind": "assertion",
+        "message": "the fixture repo is missing"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7432,11 +7266,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 15,
+        "agentMs": 7,
+        "diffMs": 15,
+        "checksMs": 0,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/transcript.jsonl",
@@ -7456,6 +7300,14 @@
       "outcome": "infra_error",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": {
+        "kind": "infra",
+        "message": "the fake sandbox fell over"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7468,6 +7320,16 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 18,
+        "agentMs": 0,
+        "diffMs": 0,
+        "checksMs": 0,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": null,
       "links": {
         "transcript": null,
@@ -7487,6 +7349,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7499,11 +7375,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 16,
+        "agentMs": 1,
+        "diffMs": 14,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/transcript.jsonl",
@@ -7523,6 +7409,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7535,11 +7426,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 19,
+        "agentMs": 8,
+        "diffMs": 12,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/2/transcript.jsonl",
@@ -7559,6 +7460,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7571,11 +7486,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 15,
+        "agentMs": 1,
+        "diffMs": 11,
+        "checksMs": 6,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/transcript.jsonl",
@@ -7595,6 +7520,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7607,11 +7546,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 20,
+        "agentMs": 14,
+        "diffMs": 9,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/transcript.jsonl",
@@ -7631,6 +7580,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7643,11 +7606,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 18,
+        "agentMs": 2,
+        "diffMs": 11,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/transcript.jsonl",
@@ -7667,6 +7640,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7679,11 +7657,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 21,
+        "agentMs": 5,
+        "diffMs": 12,
+        "checksMs": 6,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/2/transcript.jsonl",
@@ -7703,6 +7691,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7715,11 +7717,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 23,
+        "agentMs": 5,
+        "diffMs": 11,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/transcript.jsonl",
@@ -7739,6 +7751,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7751,11 +7768,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 17,
+        "agentMs": 1,
+        "diffMs": 11,
+        "checksMs": 5,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/2/transcript.jsonl",
@@ -7775,6 +7802,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [
+        {
+          "label": "says hello",
+          "at": null,
+          "message": "says hello: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "says hello: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7787,11 +7828,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 12,
+        "agentMs": 1,
+        "diffMs": 9,
+        "checksMs": 5,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/transcript.jsonl",
@@ -7811,6 +7862,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [
+        {
+          "label": "names the root cause",
+          "at": null,
+          "message": "names the root cause: expected 'Docker is down' to contain 'null'"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "names the root cause: expected 'Docker is down' to contain 'null'"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7823,11 +7888,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 9,
+        "agentMs": 1,
+        "diffMs": 10,
+        "checksMs": 0,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/transcript.jsonl",
@@ -7847,6 +7922,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7859,11 +7948,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 13,
+        "agentMs": 1,
+        "diffMs": 12,
+        "checksMs": 6,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/transcript.jsonl",
@@ -7883,6 +7982,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7895,11 +7999,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 17,
+        "agentMs": 4,
+        "diffMs": 15,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/3/transcript.jsonl",
@@ -7919,6 +8033,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7931,11 +8059,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 16,
+        "agentMs": 1,
+        "diffMs": 11,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/transcript.jsonl",
@@ -7955,6 +8093,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -7967,11 +8119,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 18,
+        "agentMs": 0,
+        "diffMs": 9,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/transcript.jsonl",
@@ -7991,6 +8153,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -8003,11 +8179,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 13,
+        "agentMs": 1,
+        "diffMs": 12,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/transcript.jsonl",
@@ -8027,6 +8213,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -8039,11 +8230,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 14,
+        "agentMs": 1,
+        "diffMs": 11,
+        "checksMs": 5,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/3/transcript.jsonl",
@@ -8063,6 +8264,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -8075,11 +8290,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 15,
+        "agentMs": 4,
+        "diffMs": 9,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/transcript.jsonl",
@@ -8099,6 +8324,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -8111,11 +8341,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 13,
+        "agentMs": 2,
+        "diffMs": 9,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/3/transcript.jsonl",
@@ -8135,6 +8375,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -8147,11 +8401,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 11,
+        "agentMs": 6,
+        "diffMs": 12,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/transcript.jsonl",
@@ -8171,6 +8435,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [
+        {
+          "label": "says hello",
+          "at": null,
+          "message": "says hello: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "says hello: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -8183,11 +8461,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 12,
+        "agentMs": 0,
+        "diffMs": 11,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/transcript.jsonl",
@@ -8207,6 +8495,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -8219,11 +8512,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 21,
+        "agentMs": 6,
+        "diffMs": 9,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/4/transcript.jsonl",
@@ -8243,6 +8546,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -8255,11 +8572,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 11,
+        "agentMs": 3,
+        "diffMs": 8,
+        "checksMs": 5,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/transcript.jsonl",
@@ -8279,6 +8606,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -8291,11 +8632,21 @@
         "value": 0,
         "text": "0"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 19,
+        "agentMs": 2,
+        "diffMs": 9,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/transcript.jsonl",
@@ -8315,6 +8666,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -8327,11 +8692,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 11,
+        "agentMs": 3,
+        "diffMs": 11,
+        "checksMs": 5,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/transcript.jsonl",
@@ -8351,6 +8726,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -8363,11 +8743,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 13,
+        "agentMs": 3,
+        "diffMs": 11,
+        "checksMs": 7,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/4/transcript.jsonl",
@@ -8387,6 +8777,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [
+        {
+          "label": "house greeting",
+          "at": null,
+          "message": "house greeting: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "house greeting: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -8399,11 +8803,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 12,
+        "agentMs": 4,
+        "diffMs": 10,
+        "checksMs": 4,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/transcript.jsonl",
@@ -8423,6 +8837,11 @@
       "outcome": "pass",
       "reclassified": false,
       "turnError": null,
+      "gated": false,
+      "failed": [],
+      "error": null,
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -8435,11 +8854,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 9,
+        "agentMs": 4,
+        "diffMs": 9,
+        "checksMs": 2,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/4/transcript.jsonl",
@@ -8459,6 +8888,20 @@
       "outcome": "fail",
       "reclassified": false,
       "turnError": null,
+      "gated": true,
+      "failed": [
+        {
+          "label": "says hello",
+          "at": null,
+          "message": "says hello: expected command to succeed, exit code 1"
+        }
+      ],
+      "error": {
+        "kind": "assertion",
+        "message": "says hello: expected command to succeed, exit code 1"
+      },
+      "cost": null,
+      "answers": [],
       "tokens": {
         "value": null,
         "text": "not reported"
@@ -8471,11 +8914,21 @@
         "value": 1,
         "text": "1"
       },
+      "usage": null,
+      "time": {
+        "setupMs": 11,
+        "agentMs": 0,
+        "diffMs": 8,
+        "checksMs": 3,
+        "judgeMs": 0,
+        "agent": null
+      },
+      "judgments": [],
       "diff": {
         "files": 1,
         "added": null,
         "removed": null,
-        "text": "1 files (lines not recorded)"
+        "text": "1 file (lines not recorded)"
       },
       "links": {
         "transcript": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/transcript.jsonl",

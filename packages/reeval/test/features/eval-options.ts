@@ -22,6 +22,7 @@ export const EVAL_OPTION_SPECS: EvalOptionSpec[] = [
   { key: 'runs', featureId: 'matrix.harness-runs', plan: true },
   { key: 'runs.bestOf', featureId: 'runs.best-of', plan: true, refusals: true },
   { key: 'gate', featureId: 'gate.hint', plan: true, refusals: true },
+  { key: 'metric', featureId: 'summary.metrics', refusals: true },
   { key: 'env', featureId: 'env.vars', refusals: true },
   { key: 'egress', featureId: 'egress', plan: true, refusals: true },
   { key: 'judge', featureId: 'judge', refusals: true },

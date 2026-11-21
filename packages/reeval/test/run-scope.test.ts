@@ -6,10 +6,13 @@ import { corpus, corpusEntries } from '../scripts/schema/corpus.ts'
 import type { RunInvocation, RunRecord } from '../src/history/types.ts'
 import { runReportMarkdown } from '../src/renderer/markdown.ts'
 import { runHeader } from '../src/view/header.ts'
+import { present } from '../src/view/present/index.ts'
 import { readableRecord } from '../src/view/record.ts'
 import { buildRunReport, runReportSchema } from '../src/view/report/index.ts'
 import { runScope } from '../src/view/scope.ts'
 import { sha256Hex } from '../src/view/sha256.ts'
+
+const renderMd = (report: Parameters<typeof present>[0]) => runReportMarkdown(present(report))
 
 type Scoped = RunRecord & {
   profile: NonNullable<RunRecord['profile']>
@@ -218,6 +221,6 @@ describe('runScope', () => {
     const without = structuredClone(report)
     delete without.header.scope
     assert.doesNotThrow(() => runReportSchema.parse(without), 'a report without scope still reads')
-    assert.equal(runReportMarkdown(report), runReportMarkdown(without))
+    assert.equal(renderMd(report), renderMd(without))
   })
 })

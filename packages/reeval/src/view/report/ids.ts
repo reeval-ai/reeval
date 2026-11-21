@@ -1,12 +1,19 @@
-import type { EvalEntry, RunRecord } from '../../history/types.ts'
+import type { AttemptRecord, EvalEntry, RunRecord } from '../../history/types.ts'
 import { sha256Hex } from '../../sha256.ts'
 import { slugify } from '../../slug.ts'
 
 export type AttemptIdMap = ReadonlyMap<string, string>
 
 /**
- * Stable short IDs `A1..AN` for every attempt that started (`seq !== null`),
- * ordered by `seq` across the (optionally filtered) evals. Every block cites
+ * Whether an attempt has an outcome to count or leave out: it started, or it ended before it could
+ * (its file failed to load, its worker died). A skipped one never ran.
+ */
+export const ranAttempt = (a: Pick<AttemptRecord, 'seq' | 'outcome'>) =>
+  a.seq !== null || a.outcome !== 'skipped'
+
+/**
+ * Stable short IDs `A1..AN` for every attempt that ran (`ranAttempt`), ordered by `seq` across the
+ * (optionally filtered) evals, then the ones that ended before they started. Every block cites
  * through this map.
  */
 export function attemptIds(
@@ -16,8 +23,8 @@ export function attemptIds(
   const attempts = record.evals
     .filter((e) => !evalKeys || evalKeys.has(e.key))
     .flatMap((e) => e.attempts.map((a) => ({ eval: e, attempt: a })))
-    .filter((row) => row.attempt.seq !== null)
-    .sort((a, b) => (a.attempt.seq as number) - (b.attempt.seq as number))
+    .filter((row) => ranAttempt(row.attempt))
+    .sort((a, b) => (a.attempt.seq ?? Infinity) - (b.attempt.seq ?? Infinity))
 
   const map = new Map<string, string>()
   let n = 1

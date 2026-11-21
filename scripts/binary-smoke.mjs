@@ -79,14 +79,14 @@ function reeval(cwd, args, env = {}) {
   console.log(args.includes('--json') ? `${out.slice(0, 300)}…` : out)
   return { ...r, out }
 }
-/** The tally on the run's `Done in …` line, e.g. `16 passed` or `1 failed · 1 passed`. */
+/** The run's `Evals: …` tally line, e.g. `16 pass` or `1 fail · 1 pass`. */
 const outcome = (r) =>
   stripVTControlCharacters(r.out)
     .split('\n')
     .map((l) => l.trim())
-    .filter((l) => l.startsWith('Done in '))
+    .filter((l) => l.startsWith('Evals: '))
     .at(-1)
-    ?.replace(/^Done in [^·]+· /, '')
+    ?.slice('Evals: '.length)
 
 const failures = []
 const check = (name, ok) => {
@@ -105,7 +105,7 @@ try {
 } catch {}
 check(`the example plans (${evals} evals)`, plan.status === 0 && evals > 0)
 const run = reeval(example, ['run'])
-check('the example runs', run.status === 0 && /^\d+ passed$/.test(outcome(run) ?? ''))
+check('the example runs', run.status === 0 && /^\d+ pass$/.test(outcome(run) ?? ''))
 
 // follow-redirects, under @daytona/sdk, calls Error.captureStackTrace on an object that isn't an
 // Error, which Bun refuses while Babel's Error.prepareStackTrace hook is installed.
@@ -133,10 +133,7 @@ if (values.docker) {
   const image = reeval(fixture, ['image', 'build'], env)
   check('reeval image build', image.status === 0)
   const r = reeval(fixture, ['run'], env)
-  check(
-    'a Docker attempt behind the gateway',
-    r.status === 1 && outcome(r) === '1 failed · 1 passed',
-  )
+  check('a Docker attempt behind the gateway', r.status === 1 && outcome(r) === '1 fail · 1 pass')
 }
 
 rmSync(alone, { recursive: true, force: true, maxRetries: 5 })
@@ -307,7 +304,7 @@ function bunInstall() {
       } else {
         check(
           `reeval run --bundle installs from ${name} as Bun, with no package manager`,
-          made.status === 0 && installed && r.status === 0 && outcome(r) === '1 passed',
+          made.status === 0 && installed && r.status === 0 && outcome(r) === '1 pass',
         )
       }
     }

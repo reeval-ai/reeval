@@ -115,6 +115,7 @@ export const OWN_EXPORTS: Record<string, () => Promise<unknown>> = {
   '/gateway': () => import('./gateway.ts'),
   '/view': () => import('./view/index.ts'),
   '/view/report': () => import('./view/report/index.ts'),
+  '/view/present': () => import('./view/present/index.ts'),
   '/renderer/markdown': () => import('./renderer/markdown.ts'),
   '/renderer/ascii': () => import('./renderer/ascii.ts'),
   '/testing': () => import('./testing.ts'),

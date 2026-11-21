@@ -7,7 +7,7 @@ import { compareProblem } from './contract/compare.ts'
 import { sandboxProblem } from './contract/docker.ts'
 import { harnessProblem } from './contract/harness.ts'
 import { judgeProblem } from './contract/judge.ts'
-import { gateProblem, snapshotProblem } from './contract/plain.ts'
+import { gateProblem, metricProblem, snapshotProblem } from './contract/plain.ts'
 import {
   isEvaluationModel,
   questionOptionsProblem,
@@ -74,6 +74,7 @@ import type {
   HarnessEdit,
   JudgeOptions,
   PairFactor,
+  PassMetric,
   PinnableKey,
   PlannedEgress,
   PlannedQuestion,
@@ -99,6 +100,7 @@ export const EVAL_OPTION_KEYS = [
   'compare',
   'runs',
   'gate',
+  'metric',
   'env',
   'egress',
   'judge',
@@ -140,6 +142,9 @@ const SUGGEST: Record<string, string> = {
   snapshots: 'snapshot',
   passRate: 'gate',
   threshold: 'gate',
+  primaryMetric: 'metric',
+  passAtK: 'metric',
+  passHatK: 'metric',
 }
 
 /**
@@ -304,6 +309,10 @@ export function checkOptions(options: object, where: string, allowed = KNOWN): v
   const o = options as EvalOptions
   if (o.runs !== undefined) checkRuns(o.runs, where)
   if (o.gate !== undefined) checkGate(o.gate, where)
+  if (o.metric !== undefined) {
+    const problem = metricProblem(o.metric, where)
+    if (problem) throw new UsageError(problem)
+  }
   if (
     o.tags !== undefined &&
     (!Array.isArray(o.tags) || o.tags.some((t) => typeof t !== 'string'))
@@ -680,6 +689,8 @@ export type Resolved = {
   bestOf: number | undefined
   /** Unset means `'all'`. */
   gate: GatePolicy | undefined
+  /** Unset means `'pass-rate'`. */
+  metric?: PassMetric | undefined
   env: EnvVars
   /** From the config and profile defaults, under the environment; from groups and the eval, over it. */
   egress: { inherited?: Egress; own?: Egress }
@@ -744,6 +755,7 @@ function applyLevel(
     out.bestOf = bestOf
   }
   if (options.gate !== undefined) out.gate = options.gate
+  if (options.metric !== undefined) out.metric = options.metric
   if (options.timeout !== undefined) out.timeout = options.timeout
   out.snapshot = mergeSnapshot(out.snapshot, options.snapshot)
   if (options.revision !== undefined) out.revision = options.revision
@@ -1437,6 +1449,7 @@ export function evalPlan(
     runs: resolved.runs,
     ...(resolved.bestOf !== undefined ? { bestOf: resolved.bestOf } : {}),
     ...(resolved.gate !== undefined ? { gate: resolved.gate } : {}),
+    ...(resolved.metric !== undefined ? { metric: resolved.metric } : {}),
     attempts: skip ? 0 : attempts.length,
     notes,
     ...(skip ? { skip } : {}),

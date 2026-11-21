@@ -32,9 +32,10 @@ one profile you need.
   ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 attempt
 …
 with-tags.eval.ts
-└─ ✓ adds multiply  1 of 1 run passed
+PASS           adds multiply
+               100% passed · 1 of 1 attempt
 
-Done in 1s · 1 passed
+Evals: 1 pass
 ```
 
 `pnpm reeval run --tag '!slow' --dry-run` and `pnpm reeval run --profile smoke --dry-run` plan the

@@ -44,11 +44,10 @@ REEVAL v0.17.2
   ⚠  Budget: 2s reached; running attempts finish, queued ones are skipped
 
 with-budget.eval.ts
-└─ ✓ adds a tested multiply function  1 of 1 run passed
+PASS           adds a tested multiply function
+               100% passed · 1 of 1 attempt
 
-Budget reached: attempts that hadn’t started were skipped
-Done in 7s · 1 passed
-Browse it: reeval studio · summary .reeval/runs/…/summary.md
+Evals: 1 pass
 ```
 
 Ask for more attempts than the budget allows and the run stops before it starts, with exit 2;

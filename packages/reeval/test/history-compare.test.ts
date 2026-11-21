@@ -860,7 +860,7 @@ evaluate('${name}', async () => expect('this config').toBe('never run'))
     // Twin: the parent's config, found from its own tree or named with --config, runs its eval.
     const parent = await runCli(join(p.dir, 'evals'))
     assert.equal(parent.code, 1, parent.stdout + parent.stderr)
-    assert.match(parent.stdout, /^└─ ✗ parent {2}0 of 1 run passed$/m)
+    assert.match(parent.stdout, /^FAIL {11}parent$/m)
     const named = await runCli(lib, ['run', '--config', '../../../../reeval.config.ts'])
     assert.equal(named.code, 1, named.stdout + named.stderr)
     assert.deepEqual(

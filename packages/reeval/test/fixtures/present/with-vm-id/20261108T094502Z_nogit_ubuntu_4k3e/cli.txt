@@ -1,0 +1,13 @@
+Run 20261108T094502Z_nogit_ubuntu_4k3e
+1 of 2 counted attempts passed · 8s wall time · tokens not reported · cost not reported
+
+FAIL           canary
+               0% passed · 0 of 1 attempt
+               failed check, 1 of 1: toBe 0
+                 expected 4 to be +0 // Object.is equality
+                 at evals/canary.eval.ts:6
+
+PASS           lands
+               100% passed · 1 of 1 attempt
+
+Evals: 1 fail · 1 pass

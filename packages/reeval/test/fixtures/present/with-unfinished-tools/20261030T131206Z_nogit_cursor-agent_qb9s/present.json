@@ -1,0 +1,312 @@
+{
+  "presentationVersion": 1,
+  "header": {
+    "title": "a read the harness never finished",
+    "runId": "20261030T131206Z_nogit_cursor-agent_qb9s",
+    "status": "complete",
+    "stopped": null,
+    "startedAt": "2026-10-30T13:12:06.188Z",
+    "date": "2026-10-30",
+    "author": "cursor-agent",
+    "reeval": "0.17.0",
+    "profile": null,
+    "runs": "1 run per cell",
+    "git": null,
+    "wall": {
+      "value": 733,
+      "text": "733ms"
+    },
+    "tokens": {
+      "value": null,
+      "text": "not reported"
+    },
+    "cost": {
+      "value": null,
+      "text": "not reported"
+    },
+    "counted": {
+      "k": 1,
+      "n": 1,
+      "text": "1 of 1"
+    },
+    "infraError": 0,
+    "canceled": 0,
+    "attempts": "1 of 1 counted attempt passed",
+    "servedBy": []
+  },
+  "tally": {
+    "pass": 1,
+    "fail": 0,
+    "infraError": 0,
+    "canceled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "notRun": 0,
+    "ungated": 0,
+    "text": "1 pass"
+  },
+  "caveats": [
+    {
+      "severity": "warn",
+      "text": "1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "evals/unfinished.eval.ts › a read the harness never finished",
+      "cites": [
+        {
+          "id": "A1",
+          "href": "./evals-unfinished-eval-ts-a-read-the-harness-never-finished-c64c66/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        }
+      ]
+    }
+  ],
+  "harnesses": [
+    {
+      "id": "fake",
+      "name": "Fake",
+      "model": null,
+      "label": "Fake",
+      "servedModels": [],
+      "gateway": null,
+      "attempts": {
+        "value": 1,
+        "text": "1 attempt"
+      }
+    }
+  ],
+  "evals": [
+    {
+      "id": "evals/unfinished.eval.ts › a read the harness never finished",
+      "anchor": "a-read-the-harness-never-finished",
+      "name": "a read the harness never finished",
+      "file": "evals/unfinished.eval.ts",
+      "shapes": [
+        "Task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "state": "ran",
+      "verdict": "pass",
+      "verdictText": "pass",
+      "headline": {
+        "task": "a read the harness never finished",
+        "metric": {
+          "kind": "rate",
+          "value": {
+            "value": 1,
+            "text": "100%"
+          },
+          "label": "passed",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          }
+        },
+        "foot": "1 of 1 attempt",
+        "left": null
+      },
+      "arms": [
+        {
+          "id": "fake",
+          "label": "all attempts",
+          "role": "only",
+          "gated": true,
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "of": "1 of 1",
+            "interval": "21% to 100%"
+          },
+          "infraError": 0,
+          "canceled": 0,
+          "left": null,
+          "effect": null,
+          "effectText": null,
+          "lift": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 3,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "id": "A1",
+          "key": "evals/unfinished.eval.ts › a read the harness never finished # fake/fake/fake#1",
+          "href": "./evals-unfinished-eval-ts-a-read-the-harness-never-finished-c64c66/fake-fake-fake-dc13e2/1/transcript.jsonl",
+          "harness": "Fake",
+          "arm": null,
+          "case": null,
+          "outcome": "pass",
+          "outcomeText": "pass",
+          "note": null,
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "agentTime": {
+            "value": 3,
+            "text": "3ms"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "cases": [],
+      "checks": [
+        {
+          "label": "toBe BETA\n",
+          "matcher": "toBe",
+          "at": "evals/unfinished.eval.ts:5",
+          "failed": false,
+          "cells": [
+            {
+              "column": "Fake",
+              "text": "1 of 1"
+            }
+          ],
+          "total": "1 of 1"
+        }
+      ],
+      "failures": [],
+      "effort": [
+        {
+          "label": "all attempts",
+          "tokens": {
+            "value": null,
+            "text": "not reported"
+          },
+          "toolCalls": {
+            "value": 3,
+            "text": "3"
+          },
+          "agentTime": {
+            "value": 3,
+            "text": "<0.1s"
+          },
+          "cost": {
+            "value": null,
+            "text": "not reported"
+          },
+          "costPerPass": {
+            "value": null,
+            "text": "not reported"
+          }
+        }
+      ],
+      "questions": [],
+      "judgments": [],
+      "discovery": [],
+      "captures": [],
+      "regression": null,
+      "next": [],
+      "remarks": [],
+      "stats": [
+        "100% passed, 95% CI 21% to 100%"
+      ]
+    }
+  ],
+  "actions": [],
+  "provenance": {
+    "rows": [
+      {
+        "field": "Executed at",
+        "value": "not a git repository"
+      },
+      {
+        "field": "Lockfiles",
+        "value": "none found"
+      },
+      {
+        "field": "Images",
+        "value": "none (fake sandbox)"
+      },
+      {
+        "field": "Harnesses",
+        "value": "fake"
+      },
+      {
+        "field": "Environments",
+        "value": "fake eca09e8f139f"
+      },
+      {
+        "field": "Judge",
+        "value": "none by default · threshold 0.8 · version b7a490837586"
+      },
+      {
+        "field": "Packages",
+        "value": "@vitest/expect 5.0.5 · jiti 2.7.0 · @reeval/harness-antigravity 0.1.12 · @reeval/harness-opencode 0.2.11 · @reeval/harness-goose 0.1.7 · @reeval/harness-pi 0.2.8 · @reeval/harness-cursor-sdk 0.1.6 · @ai-sdk/harness-claude-code 1.0.160-patch.b17cde50 · @reeval/harness-codex 0.1.9 · @reeval/harness-fx 0.1.3 · @reeval/harness-grok-build 0.1.6 · ai 7.0.145 · @ai-sdk/harness 1.0.156 · @ai-sdk/anthropic 4.0.83 · @ai-sdk/google 4.0.100 · @ai-sdk/openai 4.0.97 · @ai-sdk/typesafe-ai 3.0.22"
+      },
+      {
+        "field": "reeval",
+        "value": "0.17.0 · node 22.23.4 · typescript evals · linux/x64"
+      },
+      {
+        "field": "Runner",
+        "value": "local · cursor-agent"
+      },
+      {
+        "field": "Artifacts",
+        "value": "all"
+      }
+    ],
+    "warnings": [
+      "Not a git repository, so the code under test isn't pinned."
+    ]
+  },
+  "attemptIndex": [
+    {
+      "id": "A1",
+      "anchor": "attempt-evals-unfinished-eval-ts-a-read-the-harness-never-finished-f-dd21ec77",
+      "eval": "a read the harness never finished",
+      "harness": "Fake",
+      "arm": null,
+      "case": null,
+      "outcomeText": "pass",
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentTime": {
+        "value": 3,
+        "text": "3ms"
+      },
+      "toolCalls": {
+        "value": 3,
+        "text": "3"
+      },
+      "diff": "1 file (lines not recorded)",
+      "links": [
+        {
+          "name": "transcript",
+          "href": "./evals-unfinished-eval-ts-a-read-the-harness-never-finished-c64c66/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        },
+        {
+          "name": "diff",
+          "href": "./evals-unfinished-eval-ts-a-read-the-harness-never-finished-c64c66/fake-fake-fake-dc13e2/1/diff.patch"
+        },
+        {
+          "name": "snapshot",
+          "href": "./evals-unfinished-eval-ts-a-read-the-harness-never-finished-c64c66/fake-fake-fake-dc13e2/1/snapshots/final"
+        }
+      ]
+    }
+  ]
+}

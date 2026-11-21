@@ -1,6 +1,6 @@
 // `reeval run` on an interactive terminal: the run header as in every mode, then a live list of
 // the evals you can browse with the arrow keys, which stays up once the run ends until you quit
-// it. Quitting leaves the whole list in the scrollback, as a pipe prints it. The list is drawn by
+// it. Quitting leaves the run's results in the scrollback, as a pipe prints them. The list is drawn by
 // `ink-list.ts`, imported only once there's an eval to list; if that import fails, the run prints
 // as a pipe's does, so a broken install costs the list, never the result. Events update the list
 // once per turn of the event loop, so a stream `reeval attach` replays from its start draws once.
@@ -10,9 +10,10 @@ import { suiteResult } from '../view/suite.ts'
 import type { Colors } from './colors.ts'
 import type { OutputStream, ReevalEvent, Renderer } from './events.ts'
 import { endText, startText } from './header.ts'
-import { LiveList, listLines, SPINNER } from './list.ts'
+import { LiveList, SPINNER } from './list.ts'
 import { PlainRenderer, type RendererOptions } from './plain.ts'
-import { onHost, pointerLine, type StatusFile, type StatusList, statusList } from './status.ts'
+import { resultLines } from './results.ts'
+import { onHost, pointerLine, type StatusFile, statusList } from './status.ts'
 
 export type ListState = {
   files: StatusFile[]
@@ -224,7 +225,7 @@ export type InteractiveOptions = RendererOptions & {
 
 type Mounted = { waitUntilExit: () => Promise<unknown>; unmount: () => void }
 type RunEnd = Extract<ReevalEvent, { type: 'run-end' }>
-type Ended = { scrollback: StatusList; verbose: boolean; pointer: string; event: RunEnd }
+type Ended = { verbose: boolean; pointer: string; event: RunEnd }
 
 export class InteractiveRenderer implements Renderer {
   readonly #o: InteractiveOptions
@@ -403,16 +404,14 @@ export class InteractiveRenderer implements Renderer {
   }
 
   #finish(e: RunEnd, host: string | undefined) {
-    const listOf = (verbose: boolean) =>
-      statusList({
-        record: e.record,
-        suite: suiteResult(e.record),
-        remarks: e.remarks ?? null,
-        verbose,
-        ...(e.notRun ? { notRun: e.notRun } : {}),
-        ...(host ? { host } : {}),
-      })
-    const list = listOf(false)
+    const list = statusList({
+      record: e.record,
+      suite: suiteResult(e.record),
+      remarks: e.remarks ?? null,
+      verbose: false,
+      ...(e.notRun ? { notRun: e.notRun } : {}),
+      ...(host ? { host } : {}),
+    })
     const verbose = (this.#o.verbosity ?? 0) > 0
     if (!this.#app) {
       // Nothing was listed (every eval skipped), so there's nothing to browse.
@@ -422,7 +421,7 @@ export class InteractiveRenderer implements Renderer {
     this.#flush()
     this.#stopPolling()
     const pointer = pointerLine(e.summaryPath, host)
-    this.#ended = { scrollback: verbose ? listOf(true) : list, verbose, pointer, event: e }
+    this.#ended = { verbose, pointer, event: e }
     this.#store.set({
       files: list.files,
       ...(this.#store.get().phase ? { phase: endText(e.record.status) } : {}),
@@ -465,7 +464,7 @@ export class InteractiveRenderer implements Renderer {
   }
 
   /**
-   * Until the user quits the list, then the whole list into the scrollback; at once when there's
+   * Until the user quits the list, then the run's results into the scrollback; at once when there's
    * none. Detached from a run that goes on, until the list is down, with nothing printed.
    */
   async wait(): Promise<void> {
@@ -474,12 +473,18 @@ export class InteractiveRenderer implements Renderer {
     await app.waitUntilExit()
     if (!this.#ended) return
     const { phase } = this.#store.get()
-    const { scrollback, verbose, pointer } = this.#ended
+    const { verbose, pointer, event } = this.#ended
     const head = phase ? [`  ${this.#c.teal('◆')}  ${phase}`, ''] : []
     const { status } = this.#store.get()
     const text = [
       ...head,
-      ...listLines(scrollback, this.#c, true, pointer, verbose),
+      ...resultLines(event.record, this.#c, {
+        remarks: event.remarks ?? null,
+        verbose,
+        width: sizeOf(this.#o.out as NodeJS.WriteStream).columns,
+        pointer,
+        ...(event.notRun ? { notRun: event.notRun } : {}),
+      }),
       ...(status ? [status] : []),
     ]
     this.#o.out.write(`${text.join('\n')}\n`)

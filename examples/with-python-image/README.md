@@ -37,7 +37,8 @@ named after the sandbox's `id`:
   ◆  Running...
 
 with-python-image.eval.ts
-└─ ✓ writes and tests fizzbuzz in Python  1 of 1 run passed
+PASS           writes and tests fizzbuzz in Python
+               100% passed · 1 of 1 attempt
 ```
 
 `pnpm reeval image build --dry-run` then shows the image reeval built on the tag's digest:

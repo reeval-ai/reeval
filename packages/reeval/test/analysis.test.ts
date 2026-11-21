@@ -673,13 +673,13 @@ evaluate('greets', { compare: { control: plain, variants: [skilled] }, runs: 2 }
     const first = await runCli(p.dir)
     assert.equal(first.code, 0, first.stdout)
     // Two tries a side is below the effort table's four, so only the arms print.
-    assert.match(first.stdout, /^ +skilled +2 of 2 {2}helped\b/m)
+    assert.match(first.stdout, /^ +skilled +100% +2 of 2 +too few runs$/m)
     assert.doesNotMatch(first.stdout, /^ {2}effort /m)
     const { read } = readRun(p.dir)
     const summary = read('summary.md')
-    assert.match(summary, /^## Baseline vs\. variants$/m)
-    assert.match(summary, /^\| Arm \| Pass rate \| Lift \| Pass-rate verdict \|/m)
-    assert.match(summary, /^\| skilled \| 100% \| \+100 pts \| Too few runs \|/m)
+    assert.match(summary, /^### Arms$/m)
+    assert.match(summary, /^\| Arm \| Pass rate \| Passed \| Effect \| Left out \|$/m)
+    assert.match(summary, /^\| skilled \| 100% \| 2 of 2 \| too few runs \| none \|$/m)
     assert.equal((await runCli(p.dir)).code, 0)
     const compare = await runCli(p.dir, ['compare', 'latest~1', 'latest', '-v'])
     assert.equal(compare.code, 0, compare.stderr)
@@ -1244,7 +1244,7 @@ evaluate('hello', async (c) => {
     assert.equal(run.code, 0, run.stdout)
     assert.match(
       run.stdout,
-      /^ +\S+ +1 of 1 {2}helped\b[^\n]*\n(?: +Pass rate \+100 pts[^\n]*\n)? +difference \+100 points, 95% interval −12…\+100$/m,
+      /^ +skilled \+100 pts \(95% CI -12 pts to \+100 pts\)$/m,
       '-v still prints the interval',
     )
     const { digest } = await digestOf(p.dir)
@@ -1457,16 +1457,16 @@ evaluate('greets', { runs: 1 }, async (c) => {
     assert.doesNotMatch(dry.stdout.split('\n')[0] ?? '', / vs /)
   })
 
-  for (const [runs, lift, verdict, passVerdict] of [
-    [2, '+100 pts (95% +7…+100)', 'effect', 'effect'],
-    [3, '+100 pts (95% +21…+100)', 'effect', 'effect'],
-    [4, '+100 pts (95% +31…+100)', 'effect', 'effect'],
+  for (const [runs, lift, verdict, passVerdict, word] of [
+    [2, '+100 pts (95% +7…+100)', 'effect', 'effect', 'too few runs'],
+    [3, '+100 pts (95% +21…+100)', 'effect', 'effect', 'too few runs'],
+    [4, '+100 pts (95% +31…+100)', 'effect', 'effect', 'helped'],
   ] as const) {
     test(`${runs} against ${runs}: every view gives the same verdict`, async () => {
       const p = await compareProject(`analyze-lift-${runs}`, runs)
       const run = await runCli(p.dir)
       assert.equal(run.code, 0, run.stdout)
-      assert.match(run.stdout, new RegExp(`^ +\\S+ +${runs} of ${runs} {2}helped\\b`, 'm'))
+      assert.match(run.stdout, new RegExp(`^ +\\S+ +100% +${runs} of ${runs} +${word}$`, 'm'))
       const { digest } = await digestOf(p.dir)
       const pass = digest.facts.find((f) => f.kind === 'pass@1')
       const variant = (pass?.cells as Array<{ lift?: string; verdict?: string }> | undefined)?.find(
@@ -1860,27 +1860,28 @@ describe('a study: several arms, every cell ungated', () => {
     const run = await runCli(p.dir)
     assert.equal(run.code, 0, run.stdout + run.stderr)
     const show = await runCli(p.dir, ['show'])
-    // Judges go by their expect labels, a column per arm, the control by its environment.
+    // Judges go by their expect labels, the control by its environment.
     assert.match(
       show.stdout,
-      /^ {2}check {14}no-skill {2}current-skill {2}new-skill\n {2}Social OAuth {7}3 of 3 {4}0 of 3 {9}3 of 3\n {4}judge score 0\.12 is below 0\.8 for "Does it implement social sign-in\?" \(fake\)$/m,
+      /^ +failed check, 3 of 9, all on current-skill, not gated: Social OAuth\n +judge score 0\.12 is below 0\.8 for "Does it implement social sign-in\?" \(fake\)$/m,
       'the control names its judges by their expect labels',
     )
-    assert.match(show.stdout, /^ {2}MFA {16}0 of 3 /m)
+    assert.match(show.stdout, /^ +no-skill 0% vs current-skill 0%/m)
+    assert.match(show.stdout, /^ +failed check, 9 of 9: MFA$/m)
     assert.doesNotMatch(show.stdout, /…social sign-in|Does it upgrade an…/, 'no clipped question')
     const summary = readRun(p.dir).read('summary.md')
     assert.match(
       summary,
-      /^\| Assertion \| Matcher \| no-skill \| current-skill \| new-skill \| Total \|$/m,
+      /^\| Check \| Matcher \| At \| no-skill \| current-skill \| new-skill \| Total \|$/m,
     )
     assert.match(
       summary,
-      /^\| build \| toSucceed \| 3 of 3 \| 3 of 3 \| 3 of 3 \| 9 of 9 \|$/m,
+      /^\| build \| toSucceed \| [^|]+ \| 3 of 3 \| 3 of 3 \| 3 of 3 \| 9 of 9 \|$/m,
       'the build check is labeled and scored per arm',
     )
     assert.match(
       summary,
-      /^\| MFA \| Does it implement multi-factor sign-in\? \| 0\.8 \| .* \| 0\.12 \| 0 of 9 \|$/m,
+      /^\| MFA \| Does it implement multi-factor sign-in\? \| 0\.80 \| 0\.12 \| 0 of 9 \|$/m,
     )
     const { digest } = await digestOf(p.dir, ['--vs', 'none'])
     const pass = digest.facts.find((f) => f.kind === 'pass@1') as { cells: Array<{ cell: string }> }
@@ -2009,17 +2010,19 @@ describe('contrasts: each pair of arms, variant against variant too', () => {
     const p = await project('study-contrasts', studyFiles({ gate: 'observe' }))
     const run = await runCli(p.dir)
     assert.equal(run.code, 0, run.stdout + run.stderr)
-    // Every attempt misses MFA, so pass can't tell the arms apart; the check matrix does.
-    const matrix =
-      /^ {2}check {14}no-skill {2}current-skill {2}new-skill\n {2}Social OAuth {7}3 of 3 {4}0 of 3 {9}3 of 3$/m
-    assert.match(run.stdout, /^ +✗ Social OAuth +failed on current-skill 3 of 3$/m)
-    assert.match((await runCli(p.dir, ['show'])).stdout, matrix)
+    // Every attempt misses MFA, so pass can't tell the arms apart; the failed checks do.
+    const failed = /^ +failed check, 3 of 9, all on current-skill, not gated: Social OAuth$/m
+    assert.match(run.stdout, failed)
+    assert.match((await runCli(p.dir, ['show'])).stdout, failed)
     const summary = readRun(p.dir).read('summary.md')
     assert.match(
       summary,
-      /^\| Assertion \| Matcher \| no-skill \| current-skill \| new-skill \| Total \|$/m,
+      /^\| Check \| Matcher \| At \| no-skill \| current-skill \| new-skill \| Total \|$/m,
     )
-    assert.match(summary, /^\| Social OAuth \| toPass \| 3 of 3 \| 0 of 3 \| 3 of 3 \| 6 of 9 \|$/m)
+    assert.match(
+      summary,
+      /^\| Social OAuth \| toPass \| [^|]+ \| 3 of 3 \| 0 of 3 \| 3 of 3 \| 6 of 9 \|$/m,
+    )
     const rows = await query(
       p.dir,
       'SELECT a_environment, b_environment, a_pass, b_pass, pass_verdict, discriminating, checks FROM contrasts',
@@ -2068,7 +2071,7 @@ describe('contrasts: each pair of arms, variant against variant too', () => {
     const run = await runCli(p.dir)
     assert.equal(run.code, 0, run.stdout + run.stderr)
     assert.doesNotMatch(run.stdout, /contrasts \(each pair/)
-    assert.doesNotMatch((await runCli(p.dir, ['show'])).stdout, /vs current-skill/)
+    assert.doesNotMatch((await runCli(p.dir, ['show'])).stdout, /^ +current-skill \S+ vs /m)
     assert.deepEqual(await query(p.dir, 'SELECT * FROM contrasts'), [])
     const { digest } = await digestOf(p.dir, ['--vs', 'none'])
     assert.equal(digest.facts.filter((f) => f.kind === 'contrast').length, 0)

@@ -35,17 +35,19 @@ one profile you need.
   ⚠  Warning: E2E_TOKEN reaches the checks (c.exec, setup steps) as its real value. It's never in the agent's own environment, but a process a setup step leaves running holds it while the agent works. To give the checks only a placeholder, add the hosts it's sent to, e.g. secret.fromEnv('E2E_TOKEN', { hosts: ['api.example.com'] }).
 …
 with-secret-for-checks.eval.ts
-└─ ✓ keeps the test token from the agent  1 of 1 run passed
+PASS           keeps the test token from the agent
+               100% passed · 1 of 1 attempt
 ```
 
 Change `to: 'checks'` to `to: 'agent'` and the first check fails:
 
 ```text
 with-secret-for-checks.eval.ts
-└─ ✗ keeps the test token from the agent  0 of 1 run passed
-     Failed on fake.
-     ✗ the agent's env  failed 1 of 1 run
-       expected 'CURL_CA_BUNDLE=/etc/ssl/certs/ca-cert…' not to match /^E2E_TOKEN=/m · with-secret-for-checks.eval.ts:12
+FAIL           keeps the test token from the agent
+               0% passed · 0 of 1 attempt
+               failed check, 1 of 1: the agent's env
+                 expected 'CURL_CA_BUNDLE=/etc/ssl/certs/ca-cert…' not to match /^E2E_TOKEN=/m
+                 at with-secret-for-checks.eval.ts:12
 ```
 
 | File | What it is |
