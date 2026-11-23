@@ -377,6 +377,45 @@ for (const harness of Object.keys(translators))
     })
   })
 
+describe("replay: each harness's steps, from its finish-step parts", () => {
+  /**
+   * edit-and-run's events as `<type initial><step>`: through today's translator, each part at its
+   * native event's time, where the harness has one here; else as captured.
+   */
+  const stepsOf = (harness: string, drop?: string) => {
+    const lines = parse(read(harness, 'edit-and-run.raw.jsonl'))
+    const make = translators[harness]
+    let stamped = lines.map((l) => ({ ms: l.ms, part: l.part }))
+    if (make) {
+      const t = make()
+      stamped = lines.flatMap((l) => {
+        const [native] = nativeEvents(JSON.stringify(l))
+        return native ? t.push(JSON.stringify(native)).map((part) => ({ ms: l.ms, part })) : []
+      })
+    }
+    return normalizeStream(stamped.filter((s) => s.part.type !== drop) as never, 0).map(
+      (e) => `${e.type[0]}${e.step ?? '-'}`,
+    )
+  }
+
+  test('one step per model call, but on Codex and Cursor, which report one step a turn', () => {
+    assert.deepEqual(Object.fromEntries(harnesses.map((h) => [h, stepsOf(h).join(' ')])), {
+      antigravity: 't1 f2 t3 t4',
+      codex: 't1 t1 f1 t1',
+      cursor: 'r1 t1 r1 f1 t1 r1 t1',
+      fx: 't1 t1 f2 t3 t4',
+      goose: 't1 f2 t3 t4',
+      'grok-build': 'r1 t1 t1 f2 t3 t4',
+      opencode: 't1 f2 t3 t4',
+      pi: 't1 f2 t3 t4',
+    })
+  })
+
+  test('twin: without its finish-step parts, a capture has no steps', () => {
+    assert.ok(stepsOf('pi', 'finish-step').every((s) => s.endsWith('-')))
+  })
+})
+
 describe('replay: a turn cut short mid-step, through each adapter and HarnessAgent', () => {
   /**
    * The capture's native events up to its first tool result, the step it's in still open (no
@@ -426,9 +465,9 @@ describe('replay: a turn cut short mid-step, through each adapter and HarnessAge
   }
 
   test("twin: a finish with the step's content still open is HarnessAgent's own error", async () => {
-    const parts = cutMidStep('antigravity', { exitCode: 137, aborted: true }).filter(
-      (p) => !(p.type === 'finish-step' && p.finishReason.raw === 'aborted'),
-    )
+    const cut = cutMidStep('antigravity', { exitCode: 137, aborted: true })
+    const closing = cut.findLastIndex((p) => p.type === 'finish-step')
+    const parts = cut.filter((_, i) => i !== closing)
     const { error } = await turnThrough(parts)
     assert.match(String(error), /unclosed step content/)
   })

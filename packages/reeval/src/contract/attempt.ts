@@ -68,7 +68,7 @@ export const turnStatusSchema = z.enum(['completed', 'aborted', 'error'])
 
 export const webEventTypeSchema = z.enum(['web-search', 'web-fetch'])
 
-const at = { ts: z.string(), atMs: z.number() }
+const at = { ts: z.string(), atMs: z.number(), step: z.number().optional() }
 const toolPayload = {
   input: z.unknown().optional(),
   output: z.unknown().optional(),

@@ -4,7 +4,7 @@ import type { FileEditEvent, TokenUsage, TranscriptEvent } from '../types.ts'
 /** One stream part and when it arrived, in ms since the turn started. */
 export type StampedPart = { ms: number; part: { type: string; [key: string]: unknown } }
 
-type Pending = { ms: number; part: StampedPart['part'] }
+type Pending = { ms: number; part: StampedPart['part']; step: number }
 /**
  * `at` places a call recovered after the turn where it happened, not where it was reported;
  * `recovered` times it by the backend's clock alone, since its result arrives after the turn.
@@ -407,7 +407,8 @@ function adapterToolOutput(metadata: unknown): AdapterToolOutput {
  * a step. Edits and web calls keep the call's input and output too. Each tool, edit or web event's
  * `outputView` is `full` for the tools in `fullToolOutput` and for
  * output an adapter read from where its CLI saved it, else `model`. An absolute edit path that
- * `workspace` matches the start of is kept relative to it.
+ * `workspace` matches the start of is kept relative to it. Each event's `step` counts the
+ * `finish-step` parts before the part that opened it, from 1.
  */
 export function normalizeStream(
   parts: StampedPart[],
@@ -445,11 +446,24 @@ export function normalizeStream(
     timing.set(id, t)
   }
 
-  const out: Array<{ at: number; event: TranscriptEvent }> = []
-  const stamp = (at: number) => ({ ts: new Date(startedAt + at).toISOString(), atMs: at })
+  const out: Array<{ at: number; event: TranscriptEvent; placed?: true }> = []
+  const finishes = parts.flatMap(({ ms, part }) => (part.type === 'finish-step' ? [ms] : []))
+  const stamp = (at: number, step: number) => ({
+    ts: new Date(startedAt + at).toISOString(),
+    atMs: at,
+    ...(finishes.length > 0 ? { step } : {}),
+  })
+  let step = 1
   const blocks = new Map<
     string,
-    { type: 'text' | 'reasoning'; ms: number; text: string; durationMs?: number | null }
+    {
+      type: 'text' | 'reasoning'
+      ms: number
+      step: number
+      text: string
+      durationMs?: number | null
+      placed?: true
+    }
   >()
   const pending = new Map<string, Pending>()
 
@@ -479,7 +493,7 @@ export function normalizeStream(
           ? raw.replace(/\r\n/g, '\n')
           : raw
     const base = {
-      ...stamp(call.ms),
+      ...stamp(call.ms, call.step),
       durationMs,
       ...stallFlags(name, durationMs),
       ...(subagent ? { subagent } : {}),
@@ -550,7 +564,7 @@ export function normalizeStream(
         for (const sub of subagentParts(record(part.rawValue))) {
           const id = str(sub.toolCallId)
           if (sub.type === 'tool-call') {
-            pending.set(id, { ms, part: sub })
+            pending.set(id, { ms, part: sub, step })
             continue
           }
           const call = pending.get(id)
@@ -565,8 +579,9 @@ export function normalizeStream(
         blocks.set(str(part.id), {
           type: part.type === 'text-start' ? 'text' : 'reasoning',
           ms: recovered ? Math.max(0, ms - recovered.startedBeforeMs) : ms,
+          step,
           text: '',
-          ...(recovered ? { durationMs: recovered.durationMs } : {}),
+          ...(recovered ? { durationMs: recovered.durationMs, placed: true as const } : {}),
         })
         break
       }
@@ -583,8 +598,9 @@ export function normalizeStream(
         if (block?.text.trim()) {
           out.push({
             at: block.ms,
+            ...(block.placed ? { placed: block.placed } : {}),
             event: {
-              ...stamp(block.ms),
+              ...stamp(block.ms, block.step),
               type: block.type,
               text: block.text,
               durationMs: block.durationMs !== undefined ? block.durationMs : ms - block.ms,
@@ -594,7 +610,7 @@ export function normalizeStream(
         break
       }
       case 'tool-call':
-        if (!isFileChangeEcho(part)) pending.set(str(part.toolCallId), { ms, part })
+        if (!isFileChangeEcho(part)) pending.set(str(part.toolCallId), { ms, part, step })
         break
       case 'tool-result':
       case 'tool-error': {
@@ -607,7 +623,10 @@ export function normalizeStream(
         break
       }
       case 'error':
-        out.push({ at: ms, event: { ...stamp(ms), type: 'error', message: errorText(part.error) } })
+        out.push({
+          at: ms,
+          event: { ...stamp(ms, step), type: 'error', message: errorText(part.error) },
+        })
         break
       // A step that failed while the turn went on: a model call the harness retried (agy's
       // `error_message` steps). Not an `error`: that's what failed the turn, and an `error` part
@@ -615,8 +634,9 @@ export function normalizeStream(
       case 'finish-step':
         if (part.finishReason === 'error') {
           const message = `A model call failed (${str(part.rawFinishReason) || 'error'}), and the agent retried it`
-          out.push({ at: ms, event: { ...stamp(ms), type: 'retry', message } })
+          out.push({ at: ms, event: { ...stamp(ms, step), type: 'retry', message } })
         }
+        step++
         break
     }
   }
@@ -632,7 +652,7 @@ export function normalizeStream(
       streamEndMs === undefined ? null : toolDurationMs(start, call, streamEndMs, t)
     const subagent = str(call.part.subagent)
     const base = {
-      ...stamp(call.ms),
+      ...stamp(call.ms, call.step),
       durationMs,
       ...stallFlags(name, durationMs),
       ...(subagent ? { subagent } : {}),
@@ -683,11 +703,25 @@ export function normalizeStream(
     if (block.text.trim()) {
       out.push({
         at: block.ms,
-        event: { ...stamp(block.ms), type: block.type, text: block.text, durationMs: null },
+        event: {
+          ...stamp(block.ms, block.step),
+          type: block.type,
+          text: block.text,
+          durationMs: null,
+        },
       })
     }
   }
-  return out.sort((a, b) => a.at - b.at).map((e) => e.event)
+  out.sort((a, b) => a.at - b.at)
+  // A block recovered after the turn arrived after its step's `finish-step`: it takes the step of
+  // the event after the place it's put in.
+  for (let i = out.length - 1, next = step; i >= 0; i--) {
+    const { event, placed } = out[i] as (typeof out)[number]
+    if (event.step === undefined) continue
+    if (placed) event.step = next
+    else next = event.step
+  }
+  return out.map((e) => e.event)
 }
 
 /** Whether a harness's reasoning blocks carry their time: streamed, or recovered with it. */

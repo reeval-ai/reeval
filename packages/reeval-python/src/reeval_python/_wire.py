@@ -1939,6 +1939,11 @@ class TokenUsage(TypedDict):
 class TranscriptEvent1(TypedDict):
     atMs: float
     durationMs: float | None
+    # The harness's step in its turn the event came in, from 1: a model call where the adapter
+    # reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's
+    # tools have all returned), the whole turn on Codex and Cursor. Absent when the harness
+    # reports no steps, and on `model-call` events.
+    step: NotRequired[float]
     text: str
     ts: str
     type: Literal["text", "reasoning"]
@@ -1973,6 +1978,11 @@ class TranscriptEventFileEdit(TypedDict):
     removed: float | None
     # True when a shell-like tool or edit ran at least two minutes.
     stalled: NotRequired[bool]
+    # The harness's step in its turn the event came in, from 1: a model call where the adapter
+    # reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's
+    # tools have all returned), the whole turn on Codex and Cursor. Absent when the harness
+    # reports no steps, and on `model-call` events.
+    step: NotRequired[float]
     # The `toolCallId` of the subagent call whose agent made this call; absent for the agent's
     # own.
     subagent: NotRequired[str]
@@ -2009,6 +2019,11 @@ class TranscriptEventWebSearch(TypedDict):
     references: float | None
     # True when a shell-like tool or edit ran at least two minutes.
     stalled: NotRequired[bool]
+    # The harness's step in its turn the event came in, from 1: a model call where the adapter
+    # reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's
+    # tools have all returned), the whole turn on Codex and Cursor. Absent when the harness
+    # reports no steps, and on `model-call` events.
+    step: NotRequired[float]
     # The `toolCallId` of the subagent call whose agent made this call; absent for the agent's
     # own.
     subagent: NotRequired[str]
@@ -2046,6 +2061,11 @@ class TranscriptEventWebFetch(TypedDict):
     stalled: NotRequired[bool]
     # The HTTP status the harness reports for the fetch; absent when it reports none.
     status: NotRequired[float]
+    # The harness's step in its turn the event came in, from 1: a model call where the adapter
+    # reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's
+    # tools have all returned), the whole turn on Codex and Cursor. Absent when the harness
+    # reports no steps, and on `model-call` events.
+    step: NotRequired[float]
     # The `toolCallId` of the subagent call whose agent made this call; absent for the agent's
     # own.
     subagent: NotRequired[str]
@@ -2086,6 +2106,11 @@ class TranscriptEventTool(TypedDict):
     outputView: NotRequired[Literal["model", "full"]]
     # True when a shell-like tool or edit ran at least two minutes.
     stalled: NotRequired[bool]
+    # The harness's step in its turn the event came in, from 1: a model call where the adapter
+    # reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's
+    # tools have all returned), the whole turn on Codex and Cursor. Absent when the harness
+    # reports no steps, and on `model-call` events.
+    step: NotRequired[float]
     # The `toolCallId` of the subagent call whose agent made this call; absent for the agent's
     # own.
     subagent: NotRequired[str]
@@ -2098,6 +2123,11 @@ class TranscriptEventTool(TypedDict):
 class TranscriptEventError(TypedDict):
     atMs: float
     message: str
+    # The harness's step in its turn the event came in, from 1: a model call where the adapter
+    # reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's
+    # tools have all returned), the whole turn on Codex and Cursor. Absent when the harness
+    # reports no steps, and on `model-call` events.
+    step: NotRequired[float]
     ts: str
     type: Literal["error"]
 
@@ -2105,6 +2135,11 @@ class TranscriptEventError(TypedDict):
 class TranscriptEventRetry(TypedDict):
     atMs: float
     message: str
+    # The harness's step in its turn the event came in, from 1: a model call where the adapter
+    # reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's
+    # tools have all returned), the whole turn on Codex and Cursor. Absent when the harness
+    # reports no steps, and on `model-call` events.
+    step: NotRequired[float]
     ts: str
     type: Literal["retry"]
 
@@ -2127,6 +2162,11 @@ class TranscriptEventModelCall(TypedDict):
     role: NotRequired[Literal["main", "side"]]
     # The response's HTTP status; null when none came.
     status: float | None
+    # The harness's step in its turn the event came in, from 1: a model call where the adapter
+    # reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's
+    # tools have all returned), the whole turn on Codex and Cursor. Absent when the harness
+    # reports no steps, and on `model-call` events.
+    step: NotRequired[float]
     # Set on a call that carries the whole turn (Cursor's), so it isn't counted as model time.
     stream: NotRequired[Literal[True]]
     ts: str
