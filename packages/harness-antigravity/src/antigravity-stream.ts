@@ -158,7 +158,12 @@ export class AntigravityStreamTranslator {
     { toolCallId: string; toolName: string; nativeName: string; dynamic: boolean }
   >()
   private saved: AntigravitySavedStep[] = []
+  /**
+   * A model call's tokens, held until the calls it made have gone out: agy reports the response
+   * before its tool steps, and a step's tool calls come before its `finish-step`.
+   */
   private pendingStep: AntigravityUsage | undefined
+  private pendingStepCalledTools = false
   /** Content went out since the last `finish-step`, which `finish` must not leave open. */
   private stepOpen = false
   private stepUsage = false
@@ -330,15 +335,19 @@ export class AntigravityStreamTranslator {
     }
   }
 
-  private flushStep(parts: HarnessV1StreamPart[], next: 'tool-calls' | 'stop') {
+  private flushStep(parts: HarnessV1StreamPart[]) {
     if (!this.pendingStep) return
     this.turnUsage = addUsage(this.turnUsage, this.pendingStep)
     parts.push({
       type: 'finish-step',
-      finishReason: { unified: next, raw: 'agent_response' },
+      finishReason: {
+        unified: this.pendingStepCalledTools ? 'tool-calls' : 'stop',
+        raw: 'agent_response',
+      },
       usage: toUsage(this.pendingStep),
     })
     this.pendingStep = undefined
+    this.pendingStepCalledTools = false
   }
 
   /**
@@ -358,7 +367,7 @@ export class AntigravityStreamTranslator {
   private closeBlocks(parts: HarnessV1StreamPart[]) {
     this.settleReply(parts)
     this.settleFailure(parts, false)
-    this.flushStep(parts, 'stop')
+    this.flushStep(parts)
   }
 
   /** The held reply stood: its text goes out, and its usage ends its step. */
@@ -367,7 +376,7 @@ export class AntigravityStreamTranslator {
     if (!r) return
     this.reply = undefined
     if (r.deltas.length) {
-      this.flushStep(parts, 'stop')
+      this.flushStep(parts)
       const id = `text-${r.index}`
       parts.push({ type: 'text-start', id })
       for (const delta of r.deltas) parts.push({ type: 'text-delta', id, delta })
@@ -375,7 +384,7 @@ export class AntigravityStreamTranslator {
       this.sawText = true
     }
     if (r.usage) {
-      this.flushStep(parts, 'stop')
+      this.flushStep(parts)
       this.pendingStep = r.usage
       this.stepUsage = true
     }
@@ -397,7 +406,7 @@ export class AntigravityStreamTranslator {
     const f = this.failure
     if (!f) return
     this.failure = undefined
-    this.flushStep(parts, 'stop')
+    this.flushStep(parts)
     if (retried) this.retried = true
     if (!retried && !f.usage) return
     if (f.usage) {
@@ -431,7 +440,7 @@ export class AntigravityStreamTranslator {
     this.settleReply(parts)
     if (s.step_type !== 'user_input') this.settleFailure(parts, true)
     if (s.step_type === 'tool' || s.step_type === 'subagent') {
-      this.flushStep(parts, 'tool-calls')
+      if (this.pendingStep) this.pendingStepCalledTools = true
       const info = s.step_type === 'subagent' ? subagentInfo(s) : (s.tool_info ?? {})
       const nativeName = info.name ?? s.tool_name ?? 'unknown'
       let call = this.openTools.get(index)

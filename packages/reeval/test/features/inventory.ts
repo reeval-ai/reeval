@@ -1894,6 +1894,16 @@ export const inventory: InventoryFeature[] = [
   },
 
   {
+    id: 'harness.transcript-step',
+    area: 'Harnesses',
+    name: "Each transcript event's `step`: the harness's step in its turn, from its adapter's `finish-step` parts",
+    unit: [
+      'reeval/test/harness.test.ts',
+      'reeval/test/replay.test.ts',
+      'harness-antigravity/test/stream.test.ts',
+    ],
+  },
+  {
     id: 'harness.stream-format',
     area: 'Harnesses',
     name: "Each agent CLI's native stream: replayed through the adapters, and checked for format drift",

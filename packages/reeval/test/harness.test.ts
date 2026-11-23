@@ -2317,6 +2317,67 @@ describe('a failed tool call keeps its error', () => {
   })
 })
 
+describe("each event's step, from the stream's finish-step parts", () => {
+  type Part = { type: string; [k: string]: unknown }
+  const finish = (finishReason = 'tool-calls'): Part => ({ type: 'finish-step', finishReason })
+  const call = (id: string): Part[] => [
+    { type: 'tool-call', toolCallId: id, toolName: 'bash', input: {} },
+    { type: 'tool-result', toolCallId: id, output: 'ok' },
+  ]
+  const text = (id: string, extra: Record<string, unknown> = {}): Part[] => [
+    { type: 'reasoning-start', id, ...extra },
+    { type: 'reasoning-delta', id, delta: 'thinking' },
+    { type: 'reasoning-end', id },
+  ]
+  const steps = (parts: Part[]) =>
+    normalizeStream(
+      parts.map((part, ms) => ({ ms: ms * 10, part })),
+      0,
+    ).map((e) => [e.type, e.step])
+
+  test('an event is in the step its opening part came in, from 1; a retry in the step that failed', () => {
+    assert.deepEqual(
+      steps([
+        ...text('r1'),
+        ...call('a'),
+        finish(),
+        { type: 'tool-call', toolCallId: 'b', toolName: 'bash', input: {} },
+        finish('error'),
+        { type: 'tool-result', toolCallId: 'b', output: 'ok' },
+        ...call('c'),
+        finish('stop'),
+      ]),
+      [
+        ['reasoning', 1],
+        ['tool', 1],
+        ['tool', 2],
+        ['retry', 2],
+        ['tool', 3],
+      ],
+    )
+  })
+
+  test('a reasoning block recovered after the turn takes the step of the event after its place', () => {
+    // Antigravity's: it arrives at the turn's end, placed 25 ms before, between the two calls.
+    const recovered = { providerMetadata: { antigravity: { startedBeforeMs: 25, durationMs: 1 } } }
+    assert.deepEqual(
+      steps([...call('a'), finish(), ...call('b'), ...text('r', recovered), finish()]),
+      [
+        ['tool', 1],
+        ['reasoning', 2],
+        ['tool', 2],
+      ],
+    )
+  })
+
+  test('twin: a stream with no finish-step gives no step', () => {
+    assert.deepEqual(steps([...text('r'), ...call('a')]), [
+      ['reasoning', undefined],
+      ['tool', undefined],
+    ])
+  })
+})
+
 describe('a refused webSearch is a web-search event', () => {
   const call = (id: string, toolName: string, input: unknown) => ({
     ms: 10,

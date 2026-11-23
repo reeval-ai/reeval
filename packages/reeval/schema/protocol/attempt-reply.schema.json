@@ -715,6 +715,10 @@
             "durationMs": {
               "type": ["number", "null"]
             },
+            "step": {
+              "description": "The harness's step in its turn the event came in, from 1: a model call where the adapter reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's tools have all returned), the whole turn on Codex and Cursor. Absent when the harness reports no steps, and on `model-call` events.",
+              "type": "number"
+            },
             "text": {
               "type": "string"
             },
@@ -783,6 +787,10 @@
             "stalled": {
               "description": "True when a shell-like tool or edit ran at least two minutes.",
               "type": "boolean"
+            },
+            "step": {
+              "description": "The harness's step in its turn the event came in, from 1: a model call where the adapter reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's tools have all returned), the whole turn on Codex and Cursor. Absent when the harness reports no steps, and on `model-call` events.",
+              "type": "number"
             },
             "subagent": {
               "description": "The `toolCallId` of the subagent call whose agent made this call; absent for the agent's own.",
@@ -863,6 +871,10 @@
               "description": "True when a shell-like tool or edit ran at least two minutes.",
               "type": "boolean"
             },
+            "step": {
+              "description": "The harness's step in its turn the event came in, from 1: a model call where the adapter reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's tools have all returned), the whole turn on Codex and Cursor. Absent when the harness reports no steps, and on `model-call` events.",
+              "type": "number"
+            },
             "subagent": {
               "description": "The `toolCallId` of the subagent call whose agent made this call; absent for the agent's own.",
               "type": "string"
@@ -933,6 +945,10 @@
               "description": "The HTTP status the harness reports for the fetch; absent when it reports none.",
               "type": "number"
             },
+            "step": {
+              "description": "The harness's step in its turn the event came in, from 1: a model call where the adapter reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's tools have all returned), the whole turn on Codex and Cursor. Absent when the harness reports no steps, and on `model-call` events.",
+              "type": "number"
+            },
             "subagent": {
               "description": "The `toolCallId` of the subagent call whose agent made this call; absent for the agent's own.",
               "type": "string"
@@ -996,6 +1012,10 @@
               "description": "True when a shell-like tool or edit ran at least two minutes.",
               "type": "boolean"
             },
+            "step": {
+              "description": "The harness's step in its turn the event came in, from 1: a model call where the adapter reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's tools have all returned), the whole turn on Codex and Cursor. Absent when the harness reports no steps, and on `model-call` events.",
+              "type": "number"
+            },
             "subagent": {
               "description": "The `toolCallId` of the subagent call whose agent made this call; absent for the agent's own.",
               "type": "string"
@@ -1036,6 +1056,10 @@
             "message": {
               "type": "string"
             },
+            "step": {
+              "description": "The harness's step in its turn the event came in, from 1: a model call where the adapter reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's tools have all returned), the whole turn on Codex and Cursor. Absent when the harness reports no steps, and on `model-call` events.",
+              "type": "number"
+            },
             "ts": {
               "type": "string"
             },
@@ -1055,6 +1079,10 @@
             },
             "message": {
               "type": "string"
+            },
+            "step": {
+              "description": "The harness's step in its turn the event came in, from 1: a model call where the adapter reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's tools have all returned), the whole turn on Codex and Cursor. Absent when the harness reports no steps, and on `model-call` events.",
+              "type": "number"
             },
             "ts": {
               "type": "string"
@@ -1096,6 +1124,10 @@
             "status": {
               "description": "The response's HTTP status; null when none came.",
               "type": ["number", "null"]
+            },
+            "step": {
+              "description": "The harness's step in its turn the event came in, from 1: a model call where the adapter reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's tools have all returned), the whole turn on Codex and Cursor. Absent when the harness reports no steps, and on `model-call` events.",
+              "type": "number"
             },
             "stream": {
               "description": "Set on a call that carries the whole turn (Cursor's), so it isn't counted as model time.",

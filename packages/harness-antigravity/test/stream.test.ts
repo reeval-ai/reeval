@@ -23,12 +23,12 @@ describe('stream translation', () => {
       parts.map((p) => p.type),
       [
         'stream-start',
-        'finish-step',
         'tool-call',
         'tool-result',
         'finish-step',
         'tool-call',
         'tool-result',
+        'finish-step',
         'text-start',
         'text-delta',
         'text-end',
@@ -62,7 +62,7 @@ describe('stream translation', () => {
       results.every((r) => !('providerExecuted' in r)),
       'not a tool-result field',
     )
-    // The step before a tool finishes as tool-calls, the last one as stop.
+    // A step finishes after the calls its model call made, as tool-calls; the last one as stop.
     const steps = parts.filter((p) => p.type === 'finish-step')
     assert.deepEqual(
       steps.map((s) => s.finishReason.unified),
@@ -169,7 +169,7 @@ describe('stream translation', () => {
   // The real turn cut after its first tool's DONE: a call and its result, no reply after them.
   const midStep = fixture('write-and-run.ndjson').split('\n').slice(0, 5).join('\n')
 
-  test('a turn aborted mid-step closes the step before it finishes, with no error', () => {
+  test('a turn aborted mid-step closes the step, with its tokens, before it finishes, with no error', () => {
     const { parts } = translate(midStep, { exitCode: 137, aborted: true })
     assert.deepEqual(unclosed(parts), [])
     assert.deepEqual(
@@ -178,9 +178,10 @@ describe('stream translation', () => {
     )
     const step = parts.at(-2)
     assert.deepEqual(step?.type === 'finish-step' && step.finishReason, {
-      unified: 'other',
-      raw: 'aborted',
+      unified: 'tool-calls',
+      raw: 'agent_response',
     })
+    assert.ok(step?.type === 'finish-step' && step.usage.inputTokens.total)
     assert.ok(!parts.some((p) => p.type === 'error'))
   })
 
@@ -194,8 +195,8 @@ describe('stream translation', () => {
     const step = parts.at(-3)
     // Not `error`: that's a retried model call to reeval.
     assert.deepEqual(step?.type === 'finish-step' && step.finishReason, {
-      unified: 'other',
-      raw: 'exit 3',
+      unified: 'tool-calls',
+      raw: 'agent_response',
     })
     const error = parts.at(-2)
     assert.match(
@@ -212,8 +213,8 @@ describe('stream translation', () => {
       assert.deepEqual(unclosed(parts), [], status)
       const step = parts.findLast((p) => p.type === 'finish-step')
       assert.deepEqual(step?.type === 'finish-step' && step.finishReason, {
-        unified: status === 'SUCCESS' ? 'stop' : 'other',
-        raw: status,
+        unified: 'tool-calls',
+        raw: 'agent_response',
       })
     }
   })

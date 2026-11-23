@@ -39,8 +39,15 @@ export type ToolPayload = {
  * call the harness never reported a result for (the turn ended or was cut short first) has
  * `ok: null`: it isn't known to have failed, and no failure count includes it.
  */
-export type TranscriptEvent = EventTime &
-  (
+export type TranscriptEvent = EventTime & {
+  /**
+   * The harness's step in its turn the event came in, from 1: a model call where the adapter
+   * reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's
+   * tools have all returned), the whole turn on Codex and Cursor. Absent when the harness reports
+   * no steps, and on `model-call` events.
+   */
+  step?: number
+} & (
     | { type: 'text' | 'reasoning'; text: string; durationMs: number | null }
     | (FileEditEvent &
         ToolPayload & {
