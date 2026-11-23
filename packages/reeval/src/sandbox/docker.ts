@@ -33,6 +33,7 @@ import { heldSecret } from '../secrets-file.ts'
 import { attemptSpan, openSpan } from '../trace/spans.ts'
 import type { DockerSandboxDescriptor } from '../types.ts'
 import type { SandboxOptions } from './index.ts'
+import { composeLabels } from './labels.ts'
 import { type SampleMode, samplerHosts, sharedMeter, startMeter } from './resources.ts'
 import { brokeringRefusal, logGateway } from './start.ts'
 import { InfraError, type NetworkSandbox, type Sandbox } from './types.ts'
@@ -423,7 +424,7 @@ async function startContainer(
     ...(o.capabilities && { capabilities: o.capabilities }),
     ...(o.devices && { devices: o.devices }),
     limits,
-    labels: { [LABEL.run]: options.runId },
+    labels: { [LABEL.run]: options.runId, ...composeLabels(options.runId, options.attempt) },
     lifetimeMs: options.timeoutMs,
     abortSignal: options.signal,
     // A detached container can't start without the gateway.
