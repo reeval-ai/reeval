@@ -12,7 +12,7 @@ import { join } from 'node:path'
 import { after, before, describe, test } from 'node:test'
 import { attemptDebugDir, parseAttemptKey } from '../src/debug/files.ts'
 import type { AttemptRecord, RunRecord } from '../src/history/types.ts'
-import type { PluginPart, TranscriptEvent } from '../src/types.ts'
+import type { PluginPart, TokenUsage, TranscriptEvent } from '../src/types.ts'
 import { isRuntimeState } from '../src/view/classify.ts'
 import type { DebugRequest } from '../src/view/debug.ts'
 import { parseTranscript, type TranscriptLine } from '../src/view/model.ts'
@@ -190,7 +190,7 @@ const withTurns = (run: RunRecord) =>
   run.evals.flatMap((e) => e.attempts).filter((a) => a.turns.length > 0)
 
 type TurnRecord = AttemptRecord['turns'][number] & {
-  usage?: { input: number; output: number; cacheRead: number } | null
+  usage?: TokenUsage | null
   model?: string | null
 }
 
@@ -363,6 +363,35 @@ export const behaviors: Behavior[] = [
           `some turn reads the cache: ${usage}`,
         )
       }
+    },
+  },
+  {
+    name: 'uncached input counted apart from the cache',
+    canary: false,
+    check(ran) {
+      const keys = ['input', 'cacheRead', 'cacheWrite'] as const
+      const sum = (us: Array<TokenUsage | null | undefined>) =>
+        Object.fromEntries(keys.map((k) => [k, us.reduce((n, u) => n + (u?.[k] ?? 0), 0)]))
+      let compared = 0
+      // A subagent's model calls pass the gateway but aren't in its parent turn's usage.
+      const attempts = ran.run.evals
+        .filter((e) => e.name !== 'plugin subagent')
+        .flatMap((e) => e.attempts)
+        .filter((a) => a.turns.length > 0)
+      for (const a of attempts) {
+        const calls = transcriptOf(ran, a).flatMap((e) =>
+          e.type === 'model-call' && e.role !== 'side' ? [e.usage] : [],
+        )
+        // The gateway reads no tokens from Cursor's protobuf, or from a response it couldn't parse.
+        if (!calls.length || calls.some((u) => !u)) continue
+        assert.deepEqual(
+          sum((a.turns as TurnRecord[]).map((t) => t.usage)),
+          sum(calls),
+          `${a.key}: the turns' tokens aren't the gateway's for the same model calls; input excludes cache reads and writes`,
+        )
+        compared++
+      }
+      return compared ? undefined : 'n/a'
     },
   },
   {

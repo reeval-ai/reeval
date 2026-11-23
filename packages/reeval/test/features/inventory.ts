@@ -1808,6 +1808,7 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/harness.test.ts'],
     real: [
       'contract › tokens recorded where the harness reports them',
+      'contract › uncached input counted apart from the cache',
       'contract › served model recorded',
     ],
   },
