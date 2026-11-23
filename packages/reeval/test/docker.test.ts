@@ -157,6 +157,33 @@ evaluate('docker', async (c) => {
     assert.equal(liveContainers(run.runId), '')
   })
 
+  test('labels its containers with the run as a Compose project', docker, async () => {
+    const p = await project('docker-compose-labels', {
+      'reeval.config.ts': config('{}'),
+      'evals/d.eval.ts': `import { execFileSync } from 'node:child_process'
+import { writeFileSync } from 'node:fs'
+import { evaluate } from 'reeval'
+evaluate('Compose Labels!', async (c) => {
+  await c.exec('true')
+  const labels = execFileSync('docker', ['ps', '--filter', 'label=com.docker.compose.service', '--format', '{{json .Labels}}'], { encoding: 'utf8' })
+  writeFileSync('labels.txt', labels)
+})
+`,
+    })
+    const r = await runCli(p.dir, ['run'], slow)
+    assert.equal(r.code, 0, r.stdout + r.stderr)
+    const { run } = readRun(p.dir)
+    const composeProject = run.runId.toLowerCase()
+    const labels = readFileSync(join(p.dir, 'labels.txt'), 'utf8')
+    assert.match(labels, new RegExp(`com\\.docker\\.compose\\.project=${composeProject}[,"]`))
+    assert.match(labels, new RegExp(`${LABEL.run}=${run.runId}[,"]`))
+    assert.match(
+      labels,
+      /com\.docker\.compose\.service=evals-d-eval-ts-compose-labels-[a-z0-9_-]+[,"]/,
+    )
+    assert.equal(liveContainers(run.runId), '')
+  })
+
   test(
     'install bakes into a cached layer; setup runs outside the timeout; secrets reach the container or only checks',
     docker,
