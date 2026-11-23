@@ -18,6 +18,21 @@ export type FileEditEvent = {
 }
 
 /**
+ * The tool call behind a `file-edit`, `web-search` or `web-fetch` event, kept beside its semantic
+ * fields as a `tool` event keeps it. Absent in transcripts from before it was kept.
+ */
+export type ToolPayload = {
+  /** The tool's input, as a `tool` event's `input`. */
+  input?: unknown
+  /** The tool's result, as a `tool` event's `output`; absent when the harness never reported one. */
+  output?: unknown
+  /** What `output` holds, as a `tool` event's `outputView`. */
+  outputView?: 'model' | 'full'
+  /** Set when `output` is only part of the output, as a `tool` event's `outputTruncated`. */
+  outputTruncated?: { bytes: number }
+}
+
+/**
  * Normalized agent events. Each tool call is one event, merged with its result; `durationMs`
  * is wall time until the result arrived (Cursor's own `completed_at_ms` can be earlier). Null
  * when the harness never reported the end. Long shell or edit calls set `stalled: true`. A
@@ -27,19 +42,20 @@ export type FileEditEvent = {
 export type TranscriptEvent = EventTime &
   (
     | { type: 'text' | 'reasoning'; text: string; durationMs: number | null }
-    | (FileEditEvent & {
-        durationMs: number | null
-        /** True when a shell-like tool or edit ran at least two minutes. */
-        stalled?: boolean
-        /**
-         * Set when the harness never reported the call's end, so `durationMs` runs to the next
-         * event's `atMs` (the turn's end for the last).
-         */
-        durationInferred?: true
-        /** The `toolCallId` of the subagent call whose agent made this call; absent for the agent's own. */
-        subagent?: string
-      })
-    | {
+    | (FileEditEvent &
+        ToolPayload & {
+          durationMs: number | null
+          /** True when a shell-like tool or edit ran at least two minutes. */
+          stalled?: boolean
+          /**
+           * Set when the harness never reported the call's end, so `durationMs` runs to the next
+           * event's `atMs` (the turn's end for the last).
+           */
+          durationInferred?: true
+          /** The `toolCallId` of the subagent call whose agent made this call; absent for the agent's own. */
+          subagent?: string
+        })
+    | (ToolPayload & {
         type: 'web-search'
         toolCallId: string
         query: string
@@ -60,8 +76,8 @@ export type TranscriptEvent = EventTime &
         durationInferred?: true
         /** The `toolCallId` of the subagent call whose agent made this call; absent for the agent's own. */
         subagent?: string
-      }
-    | {
+      })
+    | (ToolPayload & {
         type: 'web-fetch'
         toolCallId: string
         url: string
@@ -81,11 +97,15 @@ export type TranscriptEvent = EventTime &
         durationInferred?: true
         /** The `toolCallId` of the subagent call whose agent made this call; absent for the agent's own. */
         subagent?: string
-      }
+      })
     | {
         type: 'tool'
         toolCallId: string
         tool: string
+        /**
+         * The tool's input. `transcript.jsonl` keeps one whose JSON is past 128K characters as
+         * text: its first 96K and last 16K characters, with a line where the rest was cut.
+         */
         input: unknown
         output: unknown
         /**

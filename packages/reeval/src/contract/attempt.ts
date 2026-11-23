@@ -69,6 +69,12 @@ export const turnStatusSchema = z.enum(['completed', 'aborted', 'error'])
 export const webEventTypeSchema = z.enum(['web-search', 'web-fetch'])
 
 const at = { ts: z.string(), atMs: z.number() }
+const toolPayload = {
+  input: z.unknown().optional(),
+  output: z.unknown().optional(),
+  outputView: z.enum(['model', 'full']).optional(),
+  outputTruncated: z.strictObject({ bytes: z.number() }).optional(),
+}
 
 export const transcriptEventSchema = z.discriminatedUnion('type', [
   z.strictObject({
@@ -85,6 +91,7 @@ export const transcriptEventSchema = z.discriminatedUnion('type', [
     kind: z.enum(['create', 'modify', 'write', 'delete']),
     added: nullableNumber,
     removed: nullableNumber,
+    ...toolPayload,
     durationMs: nullableNumber,
     stalled: z.boolean().optional(),
     subagent: z.string().optional(),
@@ -96,6 +103,7 @@ export const transcriptEventSchema = z.discriminatedUnion('type', [
     toolCallId: z.string(),
     query: z.string(),
     references: nullableNumber,
+    ...toolPayload,
     ok: z.boolean().nullable().optional(),
     durationMs: nullableNumber,
     stalled: z.boolean().optional(),
@@ -110,6 +118,7 @@ export const transcriptEventSchema = z.discriminatedUnion('type', [
     ok: z.boolean().nullable(),
     status: z.number().optional(),
     bytes: z.number().optional(),
+    ...toolPayload,
     durationMs: nullableNumber,
     stalled: z.boolean().optional(),
     subagent: z.string().optional(),

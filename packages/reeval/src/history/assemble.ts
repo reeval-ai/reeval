@@ -332,6 +332,12 @@ function withAttemptInput(
 const endOf = (startedAt: string, durationMs: number) =>
   new Date(Date.parse(startedAt) + durationMs).toISOString()
 
+/** `value` as text, when it's longer than `OUTPUT_CAP`. */
+function longText(value: unknown): string | undefined {
+  const raw = typeof value === 'string' ? value : JSON.stringify(value, null, 2)
+  return raw !== undefined && raw.length > OUTPUT_CAP ? raw : undefined
+}
+
 /** One JSON object per line: each turn's prompt, its events, then a `turn-end`. */
 export function transcriptLines(record: EvalRecord): string {
   const lines: string[] = []
@@ -346,21 +352,25 @@ export function transcriptLines(record: EvalRecord): string {
       }),
     )
     for (const event of turn.transcript) {
-      if (event.type === 'tool') {
-        const raw =
-          typeof event.output === 'string' ? event.output : JSON.stringify(event.output, null, 2)
-        if (raw !== undefined && raw.length > OUTPUT_CAP) {
-          const bytes = Math.max(event.outputTruncated?.bytes ?? 0, Buffer.byteLength(raw))
-          lines.push(
-            JSON.stringify({
-              turn: index,
-              ...event,
-              output: capText(raw),
-              outputTruncated: { bytes },
-            }),
-          )
-          continue
-        }
+      if ('input' in event || 'output' in event) {
+        const input = longText(event.input)
+        const output = longText(event.output)
+        lines.push(
+          JSON.stringify({
+            turn: index,
+            ...event,
+            ...(input === undefined ? {} : { input: capText(input) }),
+            ...(output === undefined
+              ? {}
+              : {
+                  output: capText(output),
+                  outputTruncated: {
+                    bytes: Math.max(event.outputTruncated?.bytes ?? 0, Buffer.byteLength(output)),
+                  },
+                }),
+          }),
+        )
+        continue
       }
       lines.push(JSON.stringify({ turn: index, ...event }))
     }

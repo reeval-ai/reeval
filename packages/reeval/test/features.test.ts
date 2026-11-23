@@ -3515,6 +3515,26 @@ export const features: Feature[] = [
     },
   },
   {
+    dir: 'harness/edit-payload',
+    tiers: ['fake', 'docker'],
+    env: 'plain',
+    canary: /to match object \{ input: \{ path: 'big\.txt' \}, …\(1\) \}/,
+    record: ({ run, runDir }) => {
+      const transcript = landed(run)?.files.transcript?.path ?? ''
+      const edit = readFileSync(join(runDir, transcript), 'utf8')
+        .trim()
+        .split('\n')
+        .map((l) => JSON.parse(l))
+        .find((e) => e.type === 'file-edit')
+      assert.equal(edit?.output, 'Wrote big.txt')
+      assert.match(
+        edit.input,
+        /^\{\n {2}"path": "big\.txt",\n[\s\S]*\n\[reeval: truncated \d+ of \d+ characters/,
+      )
+      assert.ok(edit.input.length < 128 * 1024, 'the middle is cut')
+    },
+  },
+  {
     dir: 'harness/turn-aborted-on-timeout',
     tiers: ['fake', 'docker', 'real'],
     env: 'plain',

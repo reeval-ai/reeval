@@ -190,6 +190,38 @@ test("a tool's output past the cap is cut to its ends, with its whole size", asy
   await fits('transcript-line', tool)
 })
 
+test("an edit keeps its call's input and output, a long input cut to its ends", async () => {
+  const content = `${'a'.repeat(OUTPUT_CAP)}${KEY}tail`
+  const write = [
+    {
+      type: 'tool-call',
+      toolCallId: 'w1',
+      toolName: 'write',
+      input: JSON.stringify({ path: 'big.txt', content }),
+    },
+    { type: 'tool-result', toolCallId: 'w1', toolName: 'write', result: 'Wrote big.txt' },
+  ] as HarnessV1StreamPart[]
+  const session = await agent({
+    ...scripted([reply('done', write)]).options,
+    runner: local({ cwd: dir }),
+    credentials: { CURSOR_API_KEY: KEY },
+    out,
+  }).start()
+  const [event] = (await session.send('go').result).transcript.filter((e) => e.type === 'file-edit')
+  assert.deepEqual(event?.type === 'file-edit' && event.input, { path: 'big.txt', content })
+  await session.close()
+  const edit = (await lines('transcript.jsonl')).find((l) => l.type === 'file-edit') as {
+    input: string
+    output: string
+    outputView: string
+  }
+  assert.match(edit.input, /\[truncated \d+ of \d+ characters, sha256 [0-9a-f]{64}\]/)
+  assert.ok(edit.input.includes('[masked]tail'))
+  assert.equal(edit.output, 'Wrote big.txt')
+  assert.equal(edit.outputView, 'model')
+  await fits('transcript-line', edit)
+})
+
 test('a session that fails to start is recorded failed, with why', async () => {
   const a = agent({
     ...scripted([], new Error(`refused ${KEY}`)).options,

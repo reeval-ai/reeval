@@ -1885,6 +1885,13 @@ export const inventory: InventoryFeature[] = [
       'harness-antigravity/test/unit.test.ts',
     ],
   },
+  {
+    id: 'harness.edit-web-payload',
+    area: 'Harnesses',
+    name: "An edit's or web call's tool input and output in the transcript beside its semantic fields, with `outputView`, and a long input or output cut in `transcript.jsonl`",
+    fixtures: ['harness/edit-payload'],
+    unit: ['reeval/test/harness.test.ts', 'agents/test/out.test.ts'],
+  },
 
   {
     id: 'harness.stream-format',

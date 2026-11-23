@@ -127,6 +127,9 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
               kind: before === null ? 'create' : 'modify',
               added: lineCount(content),
               removed: before === null ? 0 : lineCount(before),
+              input: { path, content },
+              output: `Wrote ${path}`,
+              outputView: 'model',
               durationMs: Date.now() - startedAt - time.atMs,
             })
           }
