@@ -404,7 +404,8 @@ function adapterToolOutput(metadata: unknown): AdapterToolOutput {
  * tool call merged with its result, edits normalized to `file-edit`, web tools given their query
  * or URL, and the harness's duplicate `fileChange` events dropped. Cursor's tool durations come
  * from its runner's own `tool_call` events, because tool results are only flushed at the end of
- * a step. Each tool event's `outputView` is `full` for the tools in `fullToolOutput` and for
+ * a step. Edits and web calls keep the call's input and output too. Each tool, edit or web event's
+ * `outputView` is `full` for the tools in `fullToolOutput` and for
  * output an adapter read from where its CLI saved it, else `model`. An absolute edit path that
  * `workspace` matches the start of is kept relative to it.
  */
@@ -483,9 +484,19 @@ export function normalizeStream(
       ...stallFlags(name, durationMs),
       ...(subagent ? { subagent } : {}),
     }
+    const said = replacement ?? adapterToolOutput(end.part.providerMetadata)
+    const payload = {
+      input: toolInput(call.part),
+      output,
+      outputView: said.view ?? (fullByHarness(name) ? ('full' as const) : ('model' as const)),
+      ...(said.bytes !== undefined ? { outputTruncated: { bytes: said.bytes } } : {}),
+    }
     if ((name === 'edit' || name === 'write' || name === 'delete') && !failed) {
       for (const edit of fileEdits(id, output, name, input, inWorkspace)) {
-        out.push({ at: call.ms, event: { ...base, ...edit, ...stallFlags(name, durationMs) } })
+        out.push({
+          at: call.ms,
+          event: { ...base, ...edit, ...payload, ...stallFlags(name, durationMs) },
+        })
       }
       return
     }
@@ -499,6 +510,7 @@ export function normalizeStream(
           query: str(input.searchTerm) || str(input.query),
           references: failed ? null : searchReferences(output),
           ok: !failed,
+          ...payload,
         },
       })
       return
@@ -520,24 +532,14 @@ export function normalizeStream(
             (status === undefined || (status >= 200 && status < 400)),
           ...(status === undefined ? {} : { status }),
           ...(bytes === undefined ? {} : { bytes }),
+          ...payload,
         },
       })
       return
     }
-    const said = replacement ?? adapterToolOutput(end.part.providerMetadata)
     out.push({
       at: call.ms,
-      event: {
-        ...base,
-        type: 'tool',
-        toolCallId: id,
-        tool: name,
-        input: toolInput(call.part),
-        output,
-        outputView: said.view ?? (fullByHarness(name) ? 'full' : 'model'),
-        ...(said.bytes !== undefined ? { outputTruncated: { bytes: said.bytes } } : {}),
-        ok: !failed,
-      },
+      event: { ...base, type: 'tool', toolCallId: id, tool: name, ...payload, ok: !failed },
     })
   }
 
@@ -645,6 +647,7 @@ export function normalizeStream(
           query: str(input.searchTerm) || str(input.query),
           references: null,
           ok: null,
+          input: toolInput(call.part),
         },
       })
       continue
@@ -658,6 +661,7 @@ export function normalizeStream(
           toolCallId: id,
           url: str(input.url),
           ok: null,
+          input: toolInput(call.part),
         },
       })
       continue

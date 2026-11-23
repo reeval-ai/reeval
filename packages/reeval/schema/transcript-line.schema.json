@@ -66,9 +66,29 @@
                 }
               ]
             },
+            "input": {
+              "description": "The tool's input, as a `tool` event's `input`."
+            },
             "kind": {
               "description": "`write` is a whole-file write whose result doesn't say whether the file existed before (Antigravity's, fx's, Goose's, Grok Build's and pi's write tools, for example).",
               "enum": ["create", "delete", "modify", "write"]
+            },
+            "output": {
+              "description": "The tool's result, as a `tool` event's `output`; absent when the harness never reported one."
+            },
+            "outputTruncated": {
+              "description": "Set when `output` is only part of the output, as a `tool` event's `outputTruncated`.",
+              "type": "object",
+              "properties": {
+                "bytes": {
+                  "type": "number"
+                }
+              },
+              "required": ["bytes"]
+            },
+            "outputView": {
+              "description": "What `output` holds, as a `tool` event's `outputView`.",
+              "enum": ["full", "model"]
             },
             "path": {
               "type": "string"
@@ -141,6 +161,9 @@
                 }
               ]
             },
+            "input": {
+              "description": "The tool's input, as a `tool` event's `input`."
+            },
             "ok": {
               "description": "Whether the fetch succeeded; null when the harness never reported its result.",
               "anyOf": [
@@ -151,6 +174,23 @@
                   "type": "null"
                 }
               ]
+            },
+            "output": {
+              "description": "The tool's result, as a `tool` event's `output`; absent when the harness never reported one."
+            },
+            "outputTruncated": {
+              "description": "Set when `output` is only part of the output, as a `tool` event's `outputTruncated`.",
+              "type": "object",
+              "properties": {
+                "bytes": {
+                  "type": "number"
+                }
+              },
+              "required": ["bytes"]
+            },
+            "outputView": {
+              "description": "What `output` holds, as a `tool` event's `outputView`.",
+              "enum": ["full", "model"]
             },
             "stalled": {
               "description": "True when a shell-like tool or edit ran at least two minutes.",
@@ -202,7 +242,106 @@
                 }
               ]
             },
-            "input": {},
+            "input": {
+              "description": "The tool's input, as a `tool` event's `input`."
+            },
+            "ok": {
+              "description": "Whether the search succeeded. Absent means it did; null means the harness never reported its result.",
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "output": {
+              "description": "The tool's result, as a `tool` event's `output`; absent when the harness never reported one."
+            },
+            "outputTruncated": {
+              "description": "Set when `output` is only part of the output, as a `tool` event's `outputTruncated`.",
+              "type": "object",
+              "properties": {
+                "bytes": {
+                  "type": "number"
+                }
+              },
+              "required": ["bytes"]
+            },
+            "outputView": {
+              "description": "What `output` holds, as a `tool` event's `outputView`.",
+              "enum": ["full", "model"]
+            },
+            "query": {
+              "type": "string"
+            },
+            "references": {
+              "description": "How many sources the harness says it used; Cursor sends no URLs or titles.",
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "stalled": {
+              "description": "True when a shell-like tool or edit ran at least two minutes.",
+              "type": "boolean"
+            },
+            "subagent": {
+              "description": "The `toolCallId` of the subagent call whose agent made this call; absent for the agent's own.",
+              "type": "string"
+            },
+            "toolCallId": {
+              "type": "string"
+            },
+            "ts": {
+              "type": "string"
+            },
+            "turn": {
+              "type": "number"
+            },
+            "type": {
+              "const": "web-search"
+            }
+          },
+          "required": [
+            "atMs",
+            "durationMs",
+            "query",
+            "references",
+            "toolCallId",
+            "ts",
+            "turn",
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "atMs": {
+              "type": "number"
+            },
+            "durationInferred": {
+              "description": "Set when the harness never reported the call's end, so `durationMs` runs to the next event's `atMs` (the turn's end for the last).",
+              "const": true
+            },
+            "durationMs": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "input": {
+              "description": "The tool's input. `transcript.jsonl` keeps one whose JSON is past 128K characters as text: its first 96K and last 16K characters, with a line where the rest was cut."
+            },
             "ok": {
               "description": "Whether the call succeeded; null when the harness never reported its result.",
               "anyOf": [
@@ -260,83 +399,6 @@
             "ok",
             "output",
             "tool",
-            "toolCallId",
-            "ts",
-            "turn",
-            "type"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "atMs": {
-              "type": "number"
-            },
-            "durationInferred": {
-              "description": "Set when the harness never reported the call's end, so `durationMs` runs to the next event's `atMs` (the turn's end for the last).",
-              "const": true
-            },
-            "durationMs": {
-              "anyOf": [
-                {
-                  "type": "null"
-                },
-                {
-                  "type": "number"
-                }
-              ]
-            },
-            "ok": {
-              "description": "Whether the search succeeded. Absent means it did; null means the harness never reported its result.",
-              "anyOf": [
-                {
-                  "type": "boolean"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "query": {
-              "type": "string"
-            },
-            "references": {
-              "description": "How many sources the harness says it used; Cursor sends no URLs or titles.",
-              "anyOf": [
-                {
-                  "type": "null"
-                },
-                {
-                  "type": "number"
-                }
-              ]
-            },
-            "stalled": {
-              "description": "True when a shell-like tool or edit ran at least two minutes.",
-              "type": "boolean"
-            },
-            "subagent": {
-              "description": "The `toolCallId` of the subagent call whose agent made this call; absent for the agent's own.",
-              "type": "string"
-            },
-            "toolCallId": {
-              "type": "string"
-            },
-            "ts": {
-              "type": "string"
-            },
-            "turn": {
-              "type": "number"
-            },
-            "type": {
-              "const": "web-search"
-            }
-          },
-          "required": [
-            "atMs",
-            "durationMs",
-            "query",
-            "references",
             "toolCallId",
             "ts",
             "turn",

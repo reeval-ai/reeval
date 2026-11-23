@@ -2078,6 +2078,22 @@ describe('Claude Code transcripts', () => {
         ['/reeval/workspace/notes.md', 'modify', 1, 0],
       ],
     )
+    const write = events.at(-1)
+    assert.ok(write?.type === 'file-edit')
+    assert.deepEqual(
+      [write.input, write.output, write.outputView],
+      [
+        { file_path: '/reeval/workspace/notes.md', content: 'a\nb\n' },
+        {
+          type: 'update',
+          filePath: '/reeval/workspace/notes.md',
+          content: 'a\nb\n',
+          structuredPatch: [],
+          originalFile: 'a\n',
+        },
+        'model',
+      ],
+    )
   })
 
   test("its WebSearch and WebFetch calls become web events, like Cursor's", () => {
@@ -2127,6 +2143,25 @@ describe('Claude Code transcripts', () => {
         ['web-fetch', 'https://nodejs.org/api/test.html', true, 200, 10],
         ['web-fetch', 'https://example.com/missing', false, 404, undefined],
         ['web-search', 'cursor search', 3, true],
+      ],
+    )
+    assert.deepEqual(
+      events.flatMap((e) =>
+        e.type === 'web-search' || e.type === 'web-fetch'
+          ? [[e.input, e.output, e.outputView]]
+          : [],
+      )[1],
+      [
+        { url: 'https://nodejs.org/api/test.html', prompt: 'summarize' },
+        {
+          bytes: 10,
+          code: 200,
+          codeText: 'OK',
+          result: 'x',
+          durationMs: 5,
+          url: 'https://nodejs.org/api/test.html',
+        },
+        'model',
       ],
     )
   })

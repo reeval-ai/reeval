@@ -1944,6 +1944,11 @@ class TranscriptEvent1(TypedDict):
     type: Literal["text", "reasoning"]
 
 
+# Set when `output` is only part of the output, as a `tool` event's `outputTruncated`.
+class TranscriptEventFileEditOutputTruncated(TypedDict):
+    bytes: float
+
+
 class TranscriptEventFileEdit(TypedDict):
     # Line counts, or null when the harness didn't send the content (e.g. deletes).
     added: float | None
@@ -1952,9 +1957,18 @@ class TranscriptEventFileEdit(TypedDict):
     # event's `atMs` (the turn's end for the last).
     durationInferred: NotRequired[Literal[True]]
     durationMs: float | None
+    # The tool's input, as a `tool` event's `input`.
+    input: NotRequired[Any]
     # `write` is a whole-file write whose result doesn't say whether the file existed before
     # (Antigravity's, fx's, Goose's, Grok Build's and pi's write tools, for example).
     kind: Literal["create", "modify", "write", "delete"]
+    # The tool's result, as a `tool` event's `output`; absent when the harness never reported
+    # one.
+    output: NotRequired[Any]
+    # Set when `output` is only part of the output, as a `tool` event's `outputTruncated`.
+    outputTruncated: NotRequired[TranscriptEventFileEditOutputTruncated]
+    # What `output` holds, as a `tool` event's `outputView`.
+    outputView: NotRequired[Literal["model", "full"]]
     path: str
     removed: float | None
     # True when a shell-like tool or edit ran at least two minutes.
@@ -1967,15 +1981,29 @@ class TranscriptEventFileEdit(TypedDict):
     type: Literal["file-edit"]
 
 
+# Set when `output` is only part of the output, as a `tool` event's `outputTruncated`.
+class TranscriptEventWebSearchOutputTruncated(TypedDict):
+    bytes: float
+
+
 class TranscriptEventWebSearch(TypedDict):
     atMs: float
     # Set when the harness never reported the call's end, so `durationMs` runs to the next
     # event's `atMs` (the turn's end for the last).
     durationInferred: NotRequired[Literal[True]]
     durationMs: float | None
+    # The tool's input, as a `tool` event's `input`.
+    input: NotRequired[Any]
     # Whether the search succeeded. Absent means it did; null means the harness never reported
     # its result.
     ok: NotRequired[bool | None]
+    # The tool's result, as a `tool` event's `output`; absent when the harness never reported
+    # one.
+    output: NotRequired[Any]
+    # Set when `output` is only part of the output, as a `tool` event's `outputTruncated`.
+    outputTruncated: NotRequired[TranscriptEventWebSearchOutputTruncated]
+    # What `output` holds, as a `tool` event's `outputView`.
+    outputView: NotRequired[Literal["model", "full"]]
     query: str
     # How many sources the harness says it used; Cursor sends no URLs or titles.
     references: float | None
@@ -1989,6 +2017,11 @@ class TranscriptEventWebSearch(TypedDict):
     type: Literal["web-search"]
 
 
+# Set when `output` is only part of the output, as a `tool` event's `outputTruncated`.
+class TranscriptEventWebFetchOutputTruncated(TypedDict):
+    bytes: float
+
+
 class TranscriptEventWebFetch(TypedDict):
     atMs: float
     # The size of the fetched content the harness reports, in bytes; absent when it reports
@@ -1998,8 +2031,17 @@ class TranscriptEventWebFetch(TypedDict):
     # event's `atMs` (the turn's end for the last).
     durationInferred: NotRequired[Literal[True]]
     durationMs: float | None
+    # The tool's input, as a `tool` event's `input`.
+    input: NotRequired[Any]
     # Whether the fetch succeeded; null when the harness never reported its result.
     ok: bool | None
+    # The tool's result, as a `tool` event's `output`; absent when the harness never reported
+    # one.
+    output: NotRequired[Any]
+    # Set when `output` is only part of the output, as a `tool` event's `outputTruncated`.
+    outputTruncated: NotRequired[TranscriptEventWebFetchOutputTruncated]
+    # What `output` holds, as a `tool` event's `outputView`.
+    outputView: NotRequired[Literal["model", "full"]]
     # True when a shell-like tool or edit ran at least two minutes.
     stalled: NotRequired[bool]
     # The HTTP status the harness reports for the fetch; absent when it reports none.
@@ -2027,6 +2069,8 @@ class TranscriptEventTool(TypedDict):
     # event's `atMs` (the turn's end for the last).
     durationInferred: NotRequired[Literal[True]]
     durationMs: float | None
+    # The tool's input. `transcript.jsonl` keeps one whose JSON is past 128K characters as text:
+    # its first 96K and last 16K characters, with a line where the rest was cut.
     input: Any
     # Whether the call succeeded; null when the harness never reported its result.
     ok: bool | None

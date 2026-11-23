@@ -204,15 +204,30 @@ function maskedDeltas(parts: readonly StampedPart[], secrets: readonly string[])
   return out
 }
 
-/** The transcript event as `transcript.jsonl` has it: a tool's long output cut to its ends. */
+/** `value` as masked text, when it's longer than `OUTPUT_CAP`. */
+function longText(value: unknown, secrets: readonly string[]): string | undefined {
+  const raw = typeof value === 'string' ? value : JSON.stringify(value, null, 2)
+  return raw !== undefined && raw.length > OUTPUT_CAP ? masked(raw, secrets) : undefined
+}
+
+/** The transcript event as `transcript.jsonl` has it: a tool call's long input and output cut to their ends. */
 function line(turn: number, event: TranscriptEvent, secrets: readonly string[]): OutTranscriptLine {
-  if (event.type !== 'tool') return { turn, ...event }
-  const raw =
-    typeof event.output === 'string' ? event.output : JSON.stringify(event.output, null, 2)
-  if (raw === undefined || raw.length <= OUTPUT_CAP) return { turn, ...event }
-  const text = masked(raw, secrets)
-  const bytes = Math.max(event.outputTruncated?.bytes ?? 0, Buffer.byteLength(text))
-  return { turn, ...event, output: capped(text), outputTruncated: { bytes } }
+  if (!('input' in event || 'output' in event)) return { turn, ...event }
+  const input = longText(event.input, secrets)
+  const output = longText(event.output, secrets)
+  return {
+    turn,
+    ...event,
+    ...(input === undefined ? {} : { input: capped(input) }),
+    ...(output === undefined
+      ? {}
+      : {
+          output: capped(output),
+          outputTruncated: {
+            bytes: Math.max(event.outputTruncated?.bytes ?? 0, Buffer.byteLength(output)),
+          },
+        }),
+  }
 }
 
 /**
