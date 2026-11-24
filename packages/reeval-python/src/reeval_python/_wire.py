@@ -1036,6 +1036,21 @@ class ExecResult(TypedDict):
     stdout: str
 
 
+class FakeHarnessDescriptorSubagentsItemUsage(TypedDict):
+    input: float
+    output: float
+
+
+class FakeHarnessDescriptorSubagentsItem(TypedDict):
+    agent: NotRequired[str]
+    events: NotRequired[Literal["streamed", "none"]]
+    files: NotRequired[dict[str, str]]
+    prompt: str
+    status: NotRequired[Literal["completed", "failed", "canceled"] | None]
+    text: NotRequired[str]
+    usage: NotRequired[FakeHarnessDescriptorSubagentsItemUsage]
+
+
 class FakeHarnessDescriptorToolsItem(TypedDict):
     durationMs: NotRequired[float | None]
     input: Any
@@ -1121,6 +1136,13 @@ class FakeHarnessDescriptor(TypedDict):
     # How long the harness's session may take to become ready (its bootstrap and first session)
     # before the attempt is an infra error, after one retry; default 90s.
     startTimeout: NotRequired[Duration]
+    # Subagents the fake agent spawns on every turn, each with an `Agent` call, after its
+    # `tools`. A `streamed` one (the default) reports its writes as `file-edit` events tagged
+    # with that call; a `none` one writes its files unreported. Each subagent's `usage` is added
+    # to the turn's, as a harness that reports its agent's own usage only has it added; one
+    # without `usage` has none it can read. `status` defaults to `completed`; null is a subagent
+    # still running when the turn ended.
+    subagents: NotRequired[list[FakeHarnessDescriptorSubagentsItem]]
     # The fake agent's final message on every turn; default `Done.`.
     text: NotRequired[str]
     # Tool calls the fake agent reports on every turn, before writing files. `ok` defaults to
@@ -1944,6 +1966,8 @@ class TranscriptEvent1(TypedDict):
     # tools have all returned), the whole turn on Codex and Cursor. Absent when the harness
     # reports no steps, and on `model-call` events.
     step: NotRequired[float]
+    # The `toolCallId` of the subagent call whose agent said it; absent for the agent's own.
+    subagent: NotRequired[str]
     text: str
     ts: str
     type: Literal["text", "reasoning"]
@@ -2203,7 +2227,7 @@ class TurnData(TypedDict):
     # such a turn. Usually `[]`; a Cursor turn whose web calls the adapter couldn't recover (its
     # SDK drops them from the stream) is `['web-search', 'web-fetch']`.
     unreported: list[WebEventType]
-    # Tokens the turn used; null when the harness reports none.
+    # Tokens the turn used, its subagents' included; null when the harness reports none.
     usage: TokenUsage | None
 
 

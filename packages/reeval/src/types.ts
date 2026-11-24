@@ -674,8 +674,9 @@ export type FakeHarnessDescriptor = {
    * Subagents the fake agent spawns on every turn, each with an `Agent` call, after its `tools`.
    * A `streamed` one (the default) reports its writes as `file-edit` events tagged with that call;
    * a `none` one writes its files unreported. Each subagent's `usage` is added to the turn's, as
-   * a harness that reports its agent's own usage only has it added. `status` defaults to
-   * `completed`; null is a subagent still running when the turn ended.
+   * a harness that reports its agent's own usage only has it added; one without `usage` has
+   * none it can read. `status` defaults to `completed`; null is a subagent still running when
+   * the turn ended.
    */
   subagents?: Array<{
     prompt: string
@@ -683,7 +684,7 @@ export type FakeHarnessDescriptor = {
     files?: Record<string, string>
     text?: string
     events?: 'streamed' | 'none'
-    usage?: TokenUsage | null
+    usage?: { input: number; output: number }
     status?: 'completed' | 'failed' | 'canceled' | null
   }>
   /** Files and message used instead when the environment gives the agent a skill. */

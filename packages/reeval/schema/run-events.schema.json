@@ -3597,7 +3597,7 @@
           ]
         },
         "subagents": {
-          "description": "Subagents the fake agent spawns on every turn, each with an `Agent` call, after its `tools`. A `streamed` one (the default) reports its writes as `file-edit` events tagged with that call; a `none` one writes its files unreported. Each subagent's `usage` is added to the turn's, as a harness that reports its agent's own usage only has it added. `status` defaults to `completed`; null is a subagent still running when the turn ended.",
+          "description": "Subagents the fake agent spawns on every turn, each with an `Agent` call, after its `tools`. A `streamed` one (the default) reports its writes as `file-edit` events tagged with that call; a `none` one writes its files unreported. Each subagent's `usage` is added to the turn's, as a harness that reports its agent's own usage only has it added; one without `usage` has none it can read. `status` defaults to `completed`; null is a subagent still running when the turn ended.",
           "type": "array",
           "items": {
             "type": "object",
@@ -3633,14 +3633,16 @@
                 "type": "string"
               },
               "usage": {
-                "anyOf": [
-                  {
-                    "$ref": "#/$defs/TokenUsage"
+                "type": "object",
+                "properties": {
+                  "input": {
+                    "type": "number"
                   },
-                  {
-                    "type": "null"
+                  "output": {
+                    "type": "number"
                   }
-                ]
+                },
+                "required": ["input", "output"]
               }
             },
             "required": ["prompt"]

@@ -1348,7 +1348,7 @@
           "$ref": "#/$defs/Duration"
         },
         "subagents": {
-          "description": "Subagents the fake agent spawns on every turn, each with an `Agent` call, after its `tools`. A `streamed` one (the default) reports its writes as `file-edit` events tagged with that call; a `none` one writes its files unreported. Each subagent's `usage` is added to the turn's, as a harness that reports its agent's own usage only has it added. `status` defaults to `completed`; null is a subagent still running when the turn ended.",
+          "description": "Subagents the fake agent spawns on every turn, each with an `Agent` call, after its `tools`. A `streamed` one (the default) reports its writes as `file-edit` events tagged with that call; a `none` one writes its files unreported. Each subagent's `usage` is added to the turn's, as a harness that reports its agent's own usage only has it added; one without `usage` has none it can read. `status` defaults to `completed`; null is a subagent still running when the turn ended.",
           "type": "array",
           "items": {
             "type": "object",
@@ -1387,33 +1387,17 @@
                 "type": "string"
               },
               "usage": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "cacheRead": {
-                        "type": "number"
-                      },
-                      "cacheWrite": {
-                        "type": "number"
-                      },
-                      "input": {
-                        "type": "number"
-                      },
-                      "output": {
-                        "type": "number"
-                      },
-                      "reasoning": {
-                        "type": ["number", "null"]
-                      }
-                    },
-                    "required": ["cacheRead", "cacheWrite", "input", "output", "reasoning"],
-                    "additionalProperties": false
+                "type": "object",
+                "properties": {
+                  "input": {
+                    "type": "number"
                   },
-                  {
-                    "type": "null"
+                  "output": {
+                    "type": "number"
                   }
-                ]
+                },
+                "required": ["input", "output"],
+                "additionalProperties": false
               }
             },
             "required": ["prompt"],
@@ -3864,35 +3848,6 @@
       },
       "required": ["image", "kind"],
       "additionalProperties": false
-    },
-    "TokenUsage": {
-      "description": "The tokens one turn used, as its harness reported them. `input` excludes cache reads and writes (so the prompt was `input + cacheRead + cacheWrite`); `reasoning` is part of `output`.",
-      "type": "object",
-      "properties": {
-        "cacheRead": {
-          "type": "number"
-        },
-        "cacheWrite": {
-          "type": "number"
-        },
-        "input": {
-          "type": "number"
-        },
-        "output": {
-          "type": "number"
-        },
-        "reasoning": {
-          "anyOf": [
-            {
-              "type": "null"
-            },
-            {
-              "type": "number"
-            }
-          ]
-        }
-      },
-      "required": ["cacheRead", "cacheWrite", "input", "output", "reasoning"]
     },
     "ToWorker": {
       "anyOf": [

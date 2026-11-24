@@ -192,7 +192,7 @@ export const fakeHarnessSchema = z.strictObject({
         files: z.record(z.string(), z.string()).optional(),
         text: z.string().optional(),
         events: z.enum(['streamed', 'none']).optional(),
-        usage: tokenUsageSchema.nullable().optional(),
+        usage: z.strictObject({ input: z.number(), output: z.number() }).optional(),
         status: z.enum(['completed', 'failed', 'canceled']).nullable().optional(),
       }),
     )

@@ -207,7 +207,7 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
               status,
               durationMs: spawn.durationMs,
               events: streamed ? 'streamed' : 'none',
-              usage: sub.usage ?? null,
+              usage: sub.usage ? { ...sub.usage, cacheRead: 0, cacheWrite: 0, reasoning: 0 } : null,
               ...(sub.text ? { finalMessage: sub.text } : {}),
             })
           }
