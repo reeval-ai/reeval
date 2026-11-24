@@ -199,6 +199,40 @@ describe('run spans', () => {
     }
   })
 
+  test("each turn's spans go as it ends, and a worker that dies mid-attempt leaves them under an error agent span", async (t) => {
+    const collector = await startCollector(t)
+    const p = await project('spans-otlp-crash', {
+      '.gitignore': '.reeval/\nnode_modules/\nsandboxes/\n',
+      'reeval.config.ts': fakeConfig({ harness }),
+      'evals/a.eval.ts': `import { evaluate } from 'reeval'
+evaluate('dies after a turn', async (c) => {
+  await c.send('write hello.txt')
+  process.kill(process.pid, 'SIGKILL')
+})
+`,
+    })
+    const r = await runCli(p.dir, ['run'], {
+      env: {
+        OTEL_EXPORTER_OTLP_ENDPOINT: collector.url,
+        OTEL_EXPORTER_OTLP_PROTOCOL: 'http/json',
+      },
+    })
+    assert.notEqual(r.code, 0, r.stdout + r.stderr)
+    const sent = (collector.of('/v1/traces') as Json[]).flatMap((b) =>
+      b.resourceSpans.flatMap((rs: Json) => rs.scopeSpans.flatMap((ss: Json) => ss.spans)),
+    )
+    const root = sent.find((s) => s.name === 'invoke_agent fake')
+    const turn = sent.find((s) => s.name === 'turn 1')
+    assert.ok(root && turn, JSON.stringify(sent.map((s) => s.name)))
+    assert.equal(turn.parentSpanId, root.spanId)
+    assert.equal(turn.traceId, root.traceId)
+    assert.equal(root.status.code, 2)
+    assert.equal(
+      root.status.message,
+      'The engine worker exited before the attempt ended (signal SIGKILL)',
+    )
+  })
+
   test('no OTEL_* variable reaches the sandbox, and the headers appear nowhere reeval writes', async (t) => {
     const collector = await startCollector(t)
     const secret = 'otlp-header-secret-4f9a2c'

@@ -8,9 +8,20 @@ import { TimeoutError } from '../errors.ts'
 import { attemptId, attemptKey, evalId, evalSlug, relativeFile } from '../ids.ts'
 import { redactSecrets } from '../redact.ts'
 import { clip, formatDuration } from '../text.ts'
-import { agentSpans } from '../trace/agent-spans.ts'
+import {
+  type AgentAttempt,
+  agentSpans,
+  finishedTurnSpans,
+  openAgentSpan,
+} from '../trace/agent-spans.ts'
 import { otelEnv, otlpProtocol } from '../trace/otlp.ts'
-import { attemptSpan, emitAgentSpans, openSpan, withAttemptSpan } from '../trace/spans.ts'
+import {
+  attemptSpan,
+  emitAgentSpans,
+  openAgentTrace,
+  openSpan,
+  withAttemptSpan,
+} from '../trace/spans.ts'
 import type { AttemptContext, EvalFn } from '../types.ts'
 import { assertionRecords, checkFailure, linkJudgmentAssertions } from './assertions.ts'
 import { capturePage, serveCommand } from './capture.ts'
@@ -111,6 +122,27 @@ async function attemptBody(
 
   const takeContext = contextTaker(a)
   const { exec, readFile, writeFile } = createChecks(a)
+  const tracing = !!otlpProtocol(otelEnv(process.env, ''), 'traces')
+  const agent = (): AgentAttempt => ({
+    runId,
+    evalId: id,
+    key,
+    cell: spec.cell.key,
+    n: spec.n,
+    harness: spec.harness,
+    record: a.record,
+    ...(attemptSpan() && { attemptSpanId: attemptSpan()?.spanId }),
+  })
+  const sentTurns = new Set<number>()
+  const onTurnEnd = (i: number) => {
+    try {
+      const spans = finishedTurnSpans(agent(), i)
+      if (!spans.length) return
+      sentTurns.add(i)
+      emitAgentSpans(spans)
+    } catch {}
+  }
+  if (tracing) openAgentTrace(openAgentSpan(agent()))
 
   const c: AttemptContext = {
     get signal() {
@@ -124,7 +156,7 @@ async function attemptBody(
     serve: (command, port) => serveCommand(a, command, port),
     capture: (target, options) => capturePage(a, target, options),
     attempt: { id: attemptId(spec.cell.key, spec.n), cell: spec.cell, n: spec.n },
-    send: turnSender(a, takeContext, { exec, readFile }),
+    send: turnSender(a, takeContext, { exec, readFile }, tracing ? onTurnEnd : undefined),
     judge: judgeCaller(a, readFile),
   }
   bindAttemptContext(c, a)
@@ -214,20 +246,9 @@ async function attemptBody(
       attemptSpan()?.fail(record.error?.message.split('\n')[0] ?? record.outcome)
     }
     setMeta(await writeRecord(a, stagingDir, id))
-    if (otlpProtocol(otelEnv(process.env, ''), 'traces')) {
+    if (tracing) {
       try {
-        emitAgentSpans(
-          agentSpans({
-            runId,
-            evalId: id,
-            key,
-            cell: spec.cell.key,
-            n: spec.n,
-            harness: spec.harness,
-            record,
-            ...(attemptSpan() && { attemptSpanId: attemptSpan()?.spanId }),
-          }),
-        )
+        emitAgentSpans(agentSpans(agent(), sentTurns))
       } catch {}
     }
     await debug.finish(debug.verbosity === 2 || record.outcome !== 'pass')

@@ -65,6 +65,9 @@ export type EngineOptions = {
 export type Services = {
   /** Answers one call from the worker `owner`; a rejection is the call's error. */
   call(owner: string, service: string, body: unknown): Promise<unknown>
-  /** `owner`'s worker exited: anything it still held is released. */
-  released(owner: string): void
+  /**
+   * `owner`'s worker exited: anything it still held is released. `exit` describes how, when it
+   * exited before its file was done.
+   */
+  released(owner: string, exit?: string): void
 }

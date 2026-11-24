@@ -3006,10 +3006,12 @@ async function executeRun(
     if (otlpConfigured(agentEnv))
       agentTelemetry = startTelemetry({ ...run, env: agentEnv, signals: ['traces'] })
   }
-  const agentSpans = (body: unknown) => {
-    for (const span of Array.isArray(body) ? body : []) agentTelemetry?.span(span)
-  }
-  setLocalAgentSink(agentTelemetry ? agentSpans : undefined)
+  const { agentRelay } = await import('./trace/agent-relay.ts')
+  const agentSpans = agentRelay(
+    (span) => agentTelemetry?.span(span),
+    () => interrupted,
+  )
+  setLocalAgentSink(agentTelemetry ? (body) => agentSpans.call('', body) : undefined)
   if (telemetry) {
     const onEvent = renderer.onEvent.bind(renderer)
     const exporting = telemetry
@@ -3033,11 +3035,14 @@ async function executeRun(
             : service === TRACE
               ? (trace?.call(body) ?? Promise.resolve(null))
               : service === AGENT_TRACE
-                ? Promise.resolve(agentSpans(body)).then(() => null)
+                ? Promise.resolve(agentSpans.call(owner, body)).then(() => null)
                 : service === SECRETS_SERVICE
                   ? Promise.resolve(heldSecrets())
                   : Promise.reject(new Error(`This run has no ${service} service`)),
-        released: (owner) => machines.released(owner),
+        released: (owner, exit) => {
+          machines.released(owner)
+          agentSpans.released(owner, exit)
+        },
       },
       onRunStart: (files) => {
         runStarted = true

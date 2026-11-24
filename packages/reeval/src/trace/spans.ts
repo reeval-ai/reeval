@@ -44,6 +44,15 @@ export function setLocalAgentSink(sink: ((spans: unknown) => void) | undefined):
   localAgent = sink
 }
 
+/**
+ * Tells the run an attempt's agent span has started (`openAgentSpan`), so it can end it as an
+ * error if the attempt's worker exits first. A worker with no service channel is the run itself.
+ */
+export function openAgentTrace(span: unknown): void {
+  if (hasServiceChannel())
+    callService(AGENT_TRACE, { open: span }, async () => null).catch(() => {})
+}
+
 /** Sends an attempt's agent spans (`agent-spans.ts`) to the agent export; never throws. */
 export function emitAgentSpans(spans: readonly unknown[]): void {
   if (hasServiceChannel()) {
