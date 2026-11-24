@@ -91,7 +91,10 @@ export function agentSpans(o: AgentAttempt): AgentSpan[] {
     const turnStart = Date.parse(turn.startedAt)
     const turnId = spanId()
     const turnEnd = turnStart + turn.durationMs
+    // A subagent's calls nest under the first span of the call that spawned it; one call can
+    // record several events (one per file it edits), and each still needs its own span id.
     const toolSpans = new Map<string, string>()
+    const claimed = new Set<string>()
     const turnEvents: NonNullable<AgentSpan['events']> = []
     const tools = turn.transcript.filter((e) => 'toolCallId' in e)
     for (const e of tools) toolSpans.set((e as { toolCallId: string }).toolCallId, spanId())
@@ -137,9 +140,11 @@ export function agentSpans(o: AgentAttempt): AgentSpan[] {
       } else if ('toolCallId' in e) {
         const tool = e.type === 'tool' ? e.tool : (TOOL_NAME[e.type] ?? e.type)
         const ok = 'ok' in e ? e.ok : undefined
+        const own = claimed.has(e.toolCallId) ? spanId() : (toolSpans.get(e.toolCallId) as string)
+        claimed.add(e.toolCallId)
         spans.push({
           traceId,
-          spanId: toolSpans.get(e.toolCallId) as string,
+          spanId: own,
           parentSpanId: (e.subagent && toolSpans.get(e.subagent)) || turnId,
           name: `execute_tool ${tool}`,
           startMs,

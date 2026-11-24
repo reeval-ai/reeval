@@ -131,6 +131,36 @@ test('one trace per attempt: the agent, its turns, and their model and tool call
   )
 })
 
+test('one call that records several events gives each its own span id', () => {
+  const edit = (path: string, atMs: number) => ({
+    type: 'file-edit',
+    toolCallId: 'apply-1',
+    path,
+    kind: 'modify',
+    added: 1,
+    removed: 0,
+    durationMs: 5,
+    ts: at(1000 + atMs),
+    atMs,
+  })
+  const [turn] = record.turns
+  const spans = agentSpans({
+    runId: 'run-1',
+    evalId: 'e1',
+    key: 'k1',
+    cell: 'opencode',
+    n: 1,
+    harness: { kind: 'opencode' } as HarnessDescriptor,
+    record: {
+      ...record,
+      turns: [{ ...turn, transcript: [edit('a.ts', 10), edit('b.ts', 20)] }],
+    } as unknown as EvalRecord,
+  })
+  const ids = spans.map((s) => s.spanId)
+  assert.equal(new Set(ids).size, ids.length)
+  assert.equal(byName(spans, 'execute_tool').length, 2)
+})
+
 test('tokens follow the GenAI conventions, with cache reads and writes inside input', () => {
   const [root] = byName(build(), 'invoke_agent')
   assert.ok(root)
