@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs'
-import { appendFile, readFile, rm } from 'node:fs/promises'
+import { appendFile, readFile, rm, rmdir } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { inspect } from 'node:util'
 import { detectAgent } from 'std-env'
@@ -1603,6 +1603,14 @@ async function runCommand(
     })
   } catch (error) {
     renderer.close()
+    // A run refused before it started leaves no `.reeval/` of its own; the engine's viewer still
+    // reads the refusal from its stream.
+    if (!ENGINE && !continued && !flags.events && eventsTo === eventsFile(root, ctx.runId)) {
+      await eventStream?.end(EXIT.usage)
+      eventStream = undefined
+      await rm(eventsTo, { force: true })
+      for (const dir of [dirname(eventsTo), join(root, '.reeval')]) await rmdir(dir).catch(() => {})
+    }
     if (ctx.retry) await undoRetry(setup.config.root, ctx)
     else if (setup.resume === undefined) {
       await rm(ctx.stagingDir, { recursive: true, force: true })
