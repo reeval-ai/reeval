@@ -1,7 +1,7 @@
 // The run's trace, spans.jsonl: a fake run writes one with the run, its attempts and their phases
 // under it, the record names it, recording keeps it with the run's evidence, and with
-// OTEL_EXPORTER_OTLP_ENDPOINT set the run sends its spans, log records and metrics to a collector
-// during the run.
+// REEVAL_OTEL_EXPORTER_OTLP_ENDPOINT set the run sends its spans, log records and metrics to a
+// collector during the run, while OTEL_* sends only the agents' spans.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
@@ -122,15 +122,15 @@ describe('run spans', () => {
     assert.equal(recorded.read('spans.jsonl'), read('spans.jsonl'))
   })
 
-  test('with OTEL_EXPORTER_OTLP_ENDPOINT set, the run sends spans, log records and metrics', async (t) => {
+  test('with REEVAL_OTEL_EXPORTER_OTLP_ENDPOINT set, the run sends spans, log records and metrics', async (t) => {
     const collector = await startCollector(t)
     const p = await fakeProject('spans-otlp')
     const r = await runCli(p.dir, ['run'], {
       env: {
-        OTEL_EXPORTER_OTLP_ENDPOINT: `${collector.url}/`,
-        OTEL_EXPORTER_OTLP_HEADERS: 'authorization=Bearer%20abc',
-        OTEL_EXPORTER_OTLP_PROTOCOL: 'http/json',
-        OTEL_SERVICE_NAME: 'evals',
+        REEVAL_OTEL_EXPORTER_OTLP_ENDPOINT: `${collector.url}/`,
+        REEVAL_OTEL_EXPORTER_OTLP_HEADERS: 'authorization=Bearer%20abc',
+        REEVAL_OTEL_EXPORTER_OTLP_PROTOCOL: 'http/json',
+        REEVAL_OTEL_SERVICE_NAME: 'evals',
       },
     })
     assert.equal(r.code, 0, r.stdout + r.stderr)
@@ -170,6 +170,33 @@ describe('run spans', () => {
       metrics.some((m) => m.name === 'system.cpu.utilization'),
       'one sample at the end',
     )
+  })
+
+  test("with OTEL_EXPORTER_OTLP_ENDPOINT set, the run sends each attempt's agent spans and nothing of its own", async (t) => {
+    const collector = await startCollector(t)
+    const p = await fakeProject('spans-otlp-agents')
+    const r = await runCli(p.dir, ['run'], {
+      env: {
+        OTEL_EXPORTER_OTLP_ENDPOINT: collector.url,
+        OTEL_EXPORTER_OTLP_PROTOCOL: 'http/json',
+      },
+    })
+    assert.equal(r.code, 0, r.stdout + r.stderr)
+    const { run, read } = readRun(p.dir)
+    assert.deepEqual(collector.of('/v1/logs'), [])
+    assert.deepEqual(collector.of('/v1/metrics'), [])
+    const sent = (collector.of('/v1/traces') as Json[]).flatMap((b) =>
+      b.resourceSpans.flatMap((rs: Json) => rs.scopeSpans.flatMap((ss: Json) => ss.spans)),
+    )
+    const roots = sent.filter((s) => s.name === 'invoke_agent fake')
+    assert.equal(roots.length, 2, JSON.stringify(sent.map((s) => s.name)))
+    assert.ok(!sent.some((s) => s.name === 'reeval.run' || s.name === 'attempt'))
+    const attempts = byName(parseSpans(read('spans.jsonl')), 'attempt').map((a) => a.spanId)
+    for (const root of roots) {
+      assert.equal(root.links[0]?.traceId, traceIdOf(run.runId))
+      assert.ok(attempts.includes(root.links[0]?.spanId), 'linked to its attempt in the run trace')
+      assert.ok(sent.some((s) => s.parentSpanId === root.spanId && s.name === 'turn 1'))
+    }
   })
 
   test('no OTEL_* variable reaches the sandbox, and the headers appear nowhere reeval writes', async (t) => {
@@ -221,6 +248,7 @@ evaluate('sees no OTEL_*', { environments: setup }, async (c) => {
     const honeycomb = 'hcK3y9fQ2mX7pL4vR8tZ1w'
     const bearer = 'bearer-secret-7Qp2Lm9x'
     const basic = 'dXNlcjpiYXNpYy1zZWNyZXQ='
+    const own = 'reeval-own-secret-3Kd8Wq'
     const p = await project('spans-otlp-masked', {
       '.gitignore': '.reeval/\nnode_modules/\nsandboxes/\n',
       'reeval.config.ts': fakeConfig({ harness: `{ files: { 'hello.txt': 'hi\\n' } }` }),
@@ -231,6 +259,7 @@ evaluate('shows the headers', async (c) => {
   const tokens = [process.env.OTEL_EXPORTER_OTLP_TRACES_HEADERS, process.env.OTEL_EXPORTER_OTLP_LOGS_HEADERS]
     .map((h) => decodeURIComponent(String(h)).split(' ')[1])
   console.log('tokens', ...tokens)
+  console.log(process.env.REEVAL_OTEL_EXPORTER_OTLP_HEADERS)
   c.observe('tokens', tokens.join(','))
   c.observe('headers', String(process.env.OTEL_EXPORTER_OTLP_HEADERS))
   expect(process.env.OTEL_EXPORTER_OTLP_HEADERS).toBe('nope')
@@ -244,6 +273,8 @@ evaluate('shows the headers', async (c) => {
         OTEL_EXPORTER_OTLP_TRACES_HEADERS: `authorization=Bearer%20${bearer}`,
         OTEL_EXPORTER_OTLP_LOGS_HEADERS: `authorization=Basic ${basic}`,
         OTEL_EXPORTER_OTLP_PROTOCOL: 'http/json',
+        REEVAL_OTEL_EXPORTER_OTLP_ENDPOINT: collector.url,
+        REEVAL_OTEL_EXPORTER_OTLP_HEADERS: `x-api-key=${own}`,
       },
     })
     assert.equal(r.code, 1, r.stdout + r.stderr)
@@ -252,6 +283,7 @@ evaluate('shows the headers', async (c) => {
     assertNowhere(p.dir, r, honeycomb)
     assertNowhere(p.dir, r, bearer)
     assertNowhere(p.dir, r, basic)
+    assertNowhere(p.dir, r, own)
   })
 
   test("a malformed header value stays out of the export's warning", async (t) => {
@@ -283,9 +315,9 @@ evaluate('writes hello', async (c) => {
     })
     const r = await runCli(p.dir, ['run'], {
       env: {
-        OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `${collector.url}/v1/traces`,
-        OTEL_EXPORTER_OTLP_PROTOCOL: 'http/json',
-        OTEL_BSP_SCHEDULE_DELAY: '100',
+        REEVAL_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `${collector.url}/v1/traces`,
+        REEVAL_OTEL_EXPORTER_OTLP_PROTOCOL: 'http/json',
+        REEVAL_OTEL_BSP_SCHEDULE_DELAY: '100',
       },
     })
     assert.equal(r.code, 0, r.stdout + r.stderr)
@@ -390,14 +422,14 @@ evaluate('throws', async () => {
     const p = await fakeProject('spans-otlp-down')
     const r = await runCli(p.dir, ['run'], {
       env: {
-        OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: 'http://127.0.0.1:1/v1/traces',
-        OTEL_EXPORTER_OTLP_TIMEOUT: '1000',
+        REEVAL_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: 'http://127.0.0.1:1/v1/traces',
+        REEVAL_OTEL_EXPORTER_OTLP_TIMEOUT: '1000',
       },
     })
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.match(
       r.stdout + r.stderr,
-      /OpenTelemetry export: traces: connect ECONNREFUSED 127\.0\.0\.1:1 \(\d+ spans not sent\)/,
+      /OpenTelemetry export: reeval \(REEVAL_OTEL_\*\): traces: connect ECONNREFUSED 127\.0\.0\.1:1 \(\d+ spans not sent\)/,
     )
     assert.ok(readFileSync(join(readRun(p.dir).dir, 'spans.jsonl'), 'utf8').length > 0)
   })
