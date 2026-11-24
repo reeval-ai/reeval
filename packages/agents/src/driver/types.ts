@@ -1,4 +1,12 @@
-import type { CostUsd, TokenUsage, TranscriptEvent, TurnStatus, WebEventType } from '../types.ts'
+import type {
+  CostUsd,
+  SubagentRun,
+  SubagentUsage,
+  TokenUsage,
+  TranscriptEvent,
+  TurnStatus,
+  WebEventType,
+} from '../types.ts'
 import type { ProviderStop } from './provider-stop.ts'
 
 export type HarnessResult = {
@@ -8,8 +16,17 @@ export type HarnessResult = {
   startedAt: string
   durationMs: number
   transcript: TranscriptEvent[]
-  /** Tokens the turn used, when the harness reports them. */
+  /** Tokens the turn used, when the harness reports them, its subagents' included. */
   usage: TokenUsage | null
+  /**
+   * The agent's own share of `usage`, without its subagents'; null when the harness reports only a
+   * total that can't be split. Set only on a turn that spawned a subagent.
+   */
+  agentUsage?: TokenUsage | null
+  /** Whether `usage` counts the turn's subagents; set only on a turn that spawned one. */
+  subagentUsage?: SubagentUsage
+  /** The subagents the turn spawned, in spawn order. */
+  subagents?: SubagentRun[]
   /** The model the harness says served the turn; null when it reports none. */
   model: string | null
   /** Event types the harness can't report, so their absence from `transcript` proves nothing. */

@@ -7,6 +7,7 @@ import { type RunnerSessionOptions, runnerSession } from '../runner-session.ts'
 import type { CostUsd, TokenUsage, TranscriptEvent, TurnStatus } from '../types.ts'
 import { addUsage, tokenUsage } from '../usage.ts'
 import { providerStop } from './provider-stop.ts'
+import { turnSubagents, turnTotals } from './subagents.ts'
 import {
   errorText,
   normalizeStream,
@@ -199,6 +200,7 @@ export type StartAgentOptions = {
     | 'fullToolOutput'
     | 'reasoning'
     | 'unreported'
+    | 'subagents'
   >
   /** The harness's AI SDK adapter, with its auth, model and MCP servers. */
   adapter: HarnessV1
@@ -299,6 +301,19 @@ export async function startAgent(options: StartAgentOptions): Promise<HarnessSes
     )
     return usage
   }
+  const readSandbox = (command: string): Promise<string | undefined> =>
+    Promise.resolve(started.run({ command, abortSignal: AbortSignal.timeout(STORED_USAGE_MS) }))
+      .then(({ exitCode, stdout, stderr }) => {
+        if (exitCode !== 0) throw new Error(`exit ${exitCode}: ${stderr.trim().slice(-300)}`)
+        return stdout
+      })
+      .catch((error: unknown) => {
+        log.log(
+          'harness',
+          `reading ${entry.name}'s subagents' stored usage failed: ${errorText(error)}`,
+        )
+        return undefined
+      })
   let running: ((note: TranscriptEvent) => Promise<HarnessResult>) | undefined
   let turn: { startedAt: number; salvaged?: Promise<TokenUsage | null> } | undefined
   return {
@@ -322,7 +337,7 @@ export async function startAgent(options: StartAgentOptions): Promise<HarnessSes
         extra: TranscriptEvent[] = [],
         reported: TokenUsage | null = stepUsage,
       ): Promise<HarnessResult> => {
-        const usage = reported ?? (await (current.salvaged ?? storedUsage(startedAt)))
+        const own = reported ?? (await (current.salvaged ?? storedUsage(startedAt)))
         const seen = statuses().slice(seenBefore)
         const refused = seen.includes(401)
         // A block that arrived whole was never timed, whatever its start and end parts say.
@@ -371,16 +386,35 @@ export async function startAgent(options: StartAgentOptions): Promise<HarnessSes
               statuses: modelSeen,
             })
         const cost = turnCost(finishMetadata)
+        const subagents = await turnSubagents(
+          entry.subagents,
+          transcript,
+          parts.map((p) => p.part),
+          readSandbox,
+        )
+        const totals =
+          entry.subagents && subagents.length
+            ? turnTotals(entry.subagents.usage, own, subagents, reported === null)
+            : undefined
+        const usage = totals ? totals.usage : own
         return {
           text,
           status,
           usage,
+          ...(totals
+            ? { agentUsage: totals.agentUsage, subagentUsage: totals.subagentUsage, subagents }
+            : {}),
           ...(cost ? { cost } : {}),
           // An adapter that doesn't say takes the network's word: the turn's last model call.
           model: servedModel ?? traffic?.servedModels().slice(servedBefore).at(-1) ?? null,
           unreported: entry.unreported?.(finishMetadata) ?? [],
           steps,
-          reasoningMs: reasoningTime(entry.reasoning, transcript, usage),
+          // The agent's own: a subagent's reasoning runs inside its spawn call's time.
+          reasoningMs: reasoningTime(
+            entry.reasoning,
+            transcript.filter((e) => !('subagent' in e && e.subagent)),
+            own,
+          ),
           startedAt: new Date(startedAt).toISOString(),
           durationMs: Date.now() - startedAt,
           transcript,

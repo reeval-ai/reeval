@@ -5,6 +5,7 @@ import type { HarnessCatalogEntry } from './entry.ts'
 import { LAYOUTS } from './layouts.ts'
 import { cursorMcpServers } from './mcp.ts'
 import { cursorUnreported } from './reported.ts'
+import { cursorSpawns } from './subagents.ts'
 
 export const cursor = {
   ...LAYOUTS.cursor,
@@ -19,4 +20,6 @@ export const cursor = {
   // Web search and fetch: CURSOR_SDK_RECOVERED_TOOLS.
   unreported: cursorUnreported,
   mcpServers: cursorMcpServers,
+  // The SDK's usage for a turn doesn't say whether it counts a subagent's model calls.
+  subagents: { events: 'none', usage: 'unknown', spawns: cursorSpawns },
 } satisfies HarnessCatalogEntry

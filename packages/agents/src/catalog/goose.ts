@@ -3,6 +3,7 @@ import type { HarnessCatalogEntry } from './entry.ts'
 import { LAYOUTS } from './layouts.ts'
 import { gooseMcpServers } from './mcp.ts'
 import { withoutProvider } from './provider-model.ts'
+import { toolSpawns } from './subagents.ts'
 
 export const goose = {
   ...LAYOUTS.goose,
@@ -28,4 +29,6 @@ export const goose = {
   },
   modelId: withoutProvider,
   mcpServers: gooseMcpServers,
+  // `delegate` returns as its subagent starts; the ledger rows the turn added count its calls.
+  subagents: { events: 'none', usage: 'included', spawns: toolSpawns(['delegate'], true) },
 } satisfies HarnessCatalogEntry

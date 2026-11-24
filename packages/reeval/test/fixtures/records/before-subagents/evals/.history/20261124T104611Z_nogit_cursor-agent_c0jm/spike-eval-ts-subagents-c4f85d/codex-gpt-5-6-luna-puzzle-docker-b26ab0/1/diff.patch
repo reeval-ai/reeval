@@ -1,0 +1,14 @@
+diff --git a/src/add.js b/src/add.js
+new file mode 100644
+index 0000000..6e31ef4
+--- /dev/null
++++ b/src/add.js
+@@ -0,0 +1 @@
++export const add = (a, b) => a + b
+diff --git a/src/mul.js b/src/mul.js
+new file mode 100644
+index 0000000..a364e64
+--- /dev/null
++++ b/src/mul.js
+@@ -0,0 +1 @@
++export const mul = (a, b) => a * b

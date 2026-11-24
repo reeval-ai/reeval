@@ -878,6 +878,13 @@
             "$ref": "#/$defs/StartRetry"
           }
         },
+        "subagents": {
+          "description": "The subagents the agent spawned, in spawn order. Their events are in `transcript.jsonl`, each tagged `subagent` with the entry's `id`. Absent when it spawned none.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SubagentRecord"
+          }
+        },
         "timeSplit": {
           "description": "The turns' `timeSplit` added up, its `modelMs` null when any turn's is. Absent when no turn has one.",
           "$ref": "#/$defs/TimeSplit"
@@ -891,6 +898,17 @@
           "items": {
             "type": "object",
             "properties": {
+              "agentUsage": {
+                "description": "The agent's own tokens, its subagents' left out; null when the harness reports only a total it can't split. Absent when the turn spawned no subagent.",
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/TokenUsage"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "callUsage": {
                 "description": "The tokens of each of the turn's main model calls (not its `side` ones) whose response the egress gateway read, in order, so an estimated `cost` prices a call whose prompt is over its model's long-prompt threshold at that tier. Absent when the gateway read none.",
                 "type": "array",
@@ -980,6 +998,10 @@
               "status": {
                 "$ref": "#/$defs/TurnStatus"
               },
+              "subagentUsage": {
+                "description": "Whether `usage` counts the turn's subagents: `counted` (every one), `missing` (some subagent's tokens couldn't be read, or it was still running when the turn ended, so `usage` is a lower bound) or `unknown` (the harness doesn't say whether its total counts them). Absent when the turn spawned no subagent.",
+                "enum": ["counted", "missing", "unknown"]
+              },
               "text": {
                 "type": "string"
               },
@@ -995,7 +1017,7 @@
                 }
               },
               "usage": {
-                "description": "Tokens the turn used; null when the harness reports none.",
+                "description": "Tokens the turn used, its subagents' included (each subagent's are in `subagents`); null when the harness reports none. A record from before reeval counted them has no `subagentUsage`: its Claude Code turns that spawned subagents count the agent's own only.",
                 "anyOf": [
                   {
                     "$ref": "#/$defs/TokenUsage"
@@ -3573,6 +3595,56 @@
               "type": "string"
             }
           ]
+        },
+        "subagents": {
+          "description": "Subagents the fake agent spawns on every turn, each with an `Agent` call, after its `tools`. A `streamed` one (the default) reports its writes as `file-edit` events tagged with that call; a `none` one writes its files unreported. Each subagent's `usage` is added to the turn's, as a harness that reports its agent's own usage only has it added. `status` defaults to `completed`; null is a subagent still running when the turn ended.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "agent": {
+                "type": "string"
+              },
+              "events": {
+                "enum": ["none", "streamed"]
+              },
+              "files": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "prompt": {
+                "type": "string"
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "enum": ["canceled", "completed", "failed"]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "text": {
+                "type": "string"
+              },
+              "usage": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/TokenUsage"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["prompt"]
+          }
         },
         "text": {
           "description": "The fake agent's final message on every turn; default `Done.`.",
@@ -8097,6 +8169,120 @@
         }
       },
       "required": ["error", "waitedMs"]
+    },
+    "SubagentRecord": {
+      "description": "A subagent an attempt's agent spawned (`subagents[]`). `toolCalls` and `fileEdits` count its events in the transcript; null when its harness doesn't report them (`events: 'none'`). `prompt` and `finalMessage` are cut at 8 KB.",
+      "type": "object",
+      "properties": {
+        "agent": {
+          "description": "The kind of agent it ran as, such as Claude Code's `subagent_type`.",
+          "type": "string"
+        },
+        "background": {
+          "description": "True when it ran in the background, its spawn call returning as it started.",
+          "const": true
+        },
+        "durationMs": {
+          "description": "How long it ran; null when unknown.",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "events": {
+          "description": "Whether the harness streams its events (`streamed`) or not (`none`).",
+          "enum": ["none", "streamed"]
+        },
+        "fileEdits": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "finalMessage": {
+          "description": "Its last message, as its spawn call's result or its harness's notice gave it.",
+          "type": "string"
+        },
+        "id": {
+          "description": "The spawn call's `toolCallId`, which the subagent's transcript events carry as `subagent`.",
+          "type": "string"
+        },
+        "model": {
+          "description": "The model that served it.",
+          "type": "string"
+        },
+        "n": {
+          "description": "1, 2, … in spawn order across the attempt.",
+          "type": "number"
+        },
+        "nativeId": {
+          "description": "The harness's own id for it: Claude Code's agent id, Codex's thread id, Cursor's agent id.",
+          "type": "string"
+        },
+        "parent": {
+          "description": "The `id` of the subagent that spawned it; absent for the agent's own.",
+          "type": "string"
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "status": {
+          "description": "How it ended; null when unknown, or it was still running when its turn ended.",
+          "anyOf": [
+            {
+              "enum": ["canceled", "completed", "failed"]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "toolCalls": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "turn": {
+          "description": "The index of the turn that spawned it.",
+          "type": "number"
+        },
+        "usage": {
+          "description": "Its own model calls' tokens, its own subagents' left out; null when they can't be read.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TokenUsage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "durationMs",
+        "events",
+        "fileEdits",
+        "id",
+        "n",
+        "prompt",
+        "status",
+        "toolCalls",
+        "turn",
+        "usage"
+      ]
     },
     "TartHost": {
       "description": "A Mac that runs `tart()`'s VMs over SSH: an SSH destination, or its parts.",

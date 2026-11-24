@@ -341,8 +341,9 @@ function subagentEditOutput(
 }
 
 /**
- * The tool calls and results in a Claude Code subagent's SDK message (`parent_tool_use_id` set),
- * which the bridge passes on only as a `raw` part, as the stream parts its own calls arrive as.
+ * The tool calls and results, text and thinking in a Claude Code subagent's SDK message
+ * (`parent_tool_use_id` set), which the bridge passes on only as a `raw` part, as the stream
+ * parts its own arrive as. Each block arrives whole, so its text has no time of its own.
  */
 function subagentParts(raw: Record<string, unknown>): Array<StampedPart['part']> {
   const parent = raw.parent_tool_use_id
@@ -363,6 +364,12 @@ function subagentParts(raw: Record<string, unknown>): Array<StampedPart['part']>
           subagent: parent,
         },
       ]
+    }
+    if (raw.type === 'assistant' && (block.type === 'text' || block.type === 'thinking')) {
+      const text = str(block.type === 'text' ? block.text : block.thinking)
+      return text.trim()
+        ? [{ type: block.type === 'text' ? 'text' : 'reasoning', text, subagent: parent }]
+        : []
     }
     if (raw.type === 'user' && block.type === 'tool_result') {
       const said = contentText(block.content)
@@ -562,6 +569,19 @@ export function normalizeStream(
     switch (part.type) {
       case 'raw':
         for (const sub of subagentParts(record(part.rawValue))) {
+          if (sub.type === 'text' || sub.type === 'reasoning') {
+            out.push({
+              at: ms,
+              event: {
+                ...stamp(ms, step),
+                type: sub.type,
+                text: str(sub.text),
+                durationMs: null,
+                subagent: str(sub.subagent),
+              },
+            })
+            continue
+          }
           const id = str(sub.toolCallId)
           if (sub.type === 'tool-call') {
             pending.set(id, { ms, part: sub, step })

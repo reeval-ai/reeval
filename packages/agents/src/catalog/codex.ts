@@ -2,6 +2,7 @@
 import type { HarnessCatalogEntry } from './entry.ts'
 import { LAYOUTS } from './layouts.ts'
 import { codexMcpServers } from './mcp.ts'
+import { codexSpawns } from './subagents.ts'
 
 export const codex = {
   ...LAYOUTS.codex,
@@ -23,6 +24,16 @@ export const codex = {
   storedUsage: async () => {
     const m = await import('@reeval/harness-codex')
     return { command: m.codexStoredUsageCommand, parse: m.parseCodexStoredUsage }
+  },
+  // codex exec streams the parent thread only; a sub-agent thread's usage is in its own rollout.
+  subagents: {
+    events: 'none',
+    usage: 'separate',
+    spawns: codexSpawns,
+    stored: async () => {
+      const m = await import('@reeval/harness-codex')
+      return { command: m.codexStoredSubagentsCommand, parse: m.parseCodexStoredSubagents }
+    },
   },
   // Its JSON events carry a command's and an MCP call's whole result; the model gets its start and end.
   fullToolOutput: 'all',

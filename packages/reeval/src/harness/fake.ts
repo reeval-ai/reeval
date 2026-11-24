@@ -1,7 +1,14 @@
 import { randomBytes } from 'node:crypto'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { resolveBridgePort } from '@ai-sdk/harness/utils'
-import { type AgentLog, agentMcp, type HarnessResult, providerStop } from '@reeval/agents'
+import {
+  type AgentLog,
+  agentMcp,
+  type HarnessResult,
+  providerStop,
+  type SubagentRun,
+  turnTotals,
+} from '@reeval/agents'
 import { shellQuote as q } from '@reeval/sandbox-docker/process'
 import { type ResolvedMcpServer, skillFiles } from '../environment/resolve.ts'
 import { redactSecrets } from '../redact.ts'
@@ -95,6 +102,7 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
                 ]
               : []),
           ]
+          const runs: SubagentRun[] = []
           const done = (
             text: string,
             status: 'completed' | 'aborted' | 'error',
@@ -105,6 +113,12 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
             durationMs: descriptor.turnMs ?? Date.now() - startedAt,
             transcript,
             usage: descriptor.usage ?? null,
+            ...(runs.length
+              ? {
+                  ...turnTotals('separate', descriptor.usage ?? null, runs, false),
+                  subagents: runs,
+                }
+              : {}),
             ...(!descriptor.costUsd
               ? {}
               : { cost: { usd: descriptor.costUsd, basis: 'reported' as const, source: 'fake' } }),
@@ -114,7 +128,7 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
           })
           // Cut off, the turn keeps what it did so far, as a real adapter's does.
           running = (note) => ({ ...done('', 'aborted'), transcript: [...transcript, note] })
-          const write = async (path: string, content: string) => {
+          const write = async (path: string, content: string, subagent?: string) => {
             const time = at()
             const before = await sandbox.readFile(path)
             await sandbox.writeFile(path, content)
@@ -131,6 +145,7 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
               output: `Wrote ${path}`,
               outputView: 'model',
               durationMs: Date.now() - startedAt - time.atMs,
+              ...(subagent ? { subagent } : {}),
             })
           }
           if (descriptor.reasoning) {
@@ -152,6 +167,48 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
               outputView: 'model',
               ok: tool.ok === undefined ? true : tool.ok,
               durationMs: tool.durationMs === undefined ? 0 : tool.durationMs,
+            })
+          }
+          for (const sub of descriptor.subagents ?? []) {
+            const time = at()
+            const id = `call_${++calls}`
+            const streamed = sub.events !== 'none'
+            const status = sub.status === undefined ? 'completed' : sub.status
+            const spawn = {
+              ...time,
+              type: 'tool' as const,
+              toolCallId: id,
+              tool: 'Agent',
+              input: { prompt: sub.prompt, ...(sub.agent ? { subagent_type: sub.agent } : {}) },
+              output: sub.text ?? '',
+              outputView: 'model' as const,
+              ok: status === null ? null : status === 'completed',
+              durationMs: 0,
+            }
+            transcript.push(spawn)
+            for (const [path, content] of Object.entries(sub.files ?? {})) {
+              if (streamed) await write(path, content, id)
+              else await sandbox.writeFile(path, content)
+            }
+            if (streamed && sub.text) {
+              transcript.push({
+                ...at(),
+                type: 'text',
+                text: sub.text,
+                durationMs: 0,
+                subagent: id,
+              })
+            }
+            spawn.durationMs = Date.now() - startedAt - time.atMs
+            runs.push({
+              id,
+              ...(sub.agent ? { agent: sub.agent } : {}),
+              prompt: sub.prompt,
+              status,
+              durationMs: spawn.durationMs,
+              events: streamed ? 'streamed' : 'none',
+              usage: sub.usage ?? null,
+              ...(sub.text ? { finalMessage: sub.text } : {}),
             })
           }
           if (flaked) {

@@ -3,6 +3,7 @@ import type { HarnessCatalogEntry } from './entry.ts'
 import { LAYOUTS } from './layouts.ts'
 import { acpMcpServers } from './mcp.ts'
 import { CLAUDE_FORMAT_PARTS } from './plugins.ts'
+import { toolSpawns } from './subagents.ts'
 
 export const grokBuild = {
   ...LAYOUTS['grok-build'],
@@ -22,4 +23,5 @@ export const grokBuild = {
   },
   credential: 'XAI_API_KEY',
   mcpServers: acpMcpServers,
+  subagents: { events: 'none', usage: 'unknown', spawns: toolSpawns(['spawn_subagent']) },
 } satisfies HarnessCatalogEntry

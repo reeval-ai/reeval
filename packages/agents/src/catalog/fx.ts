@@ -2,6 +2,7 @@
 import type { HarnessCatalogEntry } from './entry.ts'
 import { LAYOUTS } from './layouts.ts'
 import { fxMcpServers } from './mcp.ts'
+import { toolSpawns } from './subagents.ts'
 
 export const fx = {
   ...LAYOUTS.fx,
@@ -18,4 +19,6 @@ export const fx = {
   // A command's output is rebuilt from its streamed updates; the model gets a clipped summary.
   fullToolOutput: ['bash'],
   mcpServers: fxMcpServers,
+  // The turn's usage leaves out a subagent's model calls.
+  subagents: { events: 'none', usage: 'separate', spawns: toolSpawns(['subagent']) },
 } satisfies HarnessCatalogEntry
