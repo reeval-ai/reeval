@@ -190,12 +190,23 @@ describe('cli', () => {
     const term = { tty: false, color: false, columns: 80 }
     const token = homeScreen('1', { ...status, signedIn: { token: true } }, term)
     assert.match(token, /^ {2}Signed in with REEVAL_TOKEN$/m)
-    const noEmail = homeScreen('1', { ...status, signedIn: { email: null } }, term)
+    const all = () => true
+    const noEmail = homeScreen('1', { ...status, signedIn: { email: null } }, term, all)
     assert.match(noEmail, /^ {2}Signed in {8}reeval whoami$/m)
-    assert.doesNotMatch(wide, /reeval login/)
     assert.match(
-      homeScreen('1', { ...status, signedIn: null }, term),
-      /^ {2}reeval login {5}Sign in/m,
+      homeScreen('1', { ...status, signedIn: { email: null } }, term),
+      /^ {2}Signed in$/m,
+    )
+    assert.doesNotMatch(wide, /reeval login/)
+    const signedOut = { signedIn: null, project: null, config: false }
+    const listed = homeScreen('1', signedOut, term, all)
+    assert.match(listed, /^ {2}reeval login +Sign in/m)
+    assert.match(listed, /^ {2}Not signed in +reeval login\n {2}No project linked +reeval link$/m)
+    const hidden = homeScreen('1', signedOut, term)
+    assert.doesNotMatch(hidden, /login|whoami|link|signed in/i)
+    assert.match(
+      hidden,
+      /^Evaluation runner for SDKs, CLIs, MCP servers, and docs\.\n\nTry next\n/m,
     )
   })
 
@@ -236,14 +247,11 @@ describe('cli', () => {
       `reeval v${version}
 Evaluation runner for SDKs, CLIs, MCP servers, and docs.
 
-  Not signed in        reeval login
-  No project linked    reeval link
-
 Try next
-  reeval run           Run the evals
-  reeval show          The latest run's results
-  reeval studio        Browse your runs in the studio
-  reeval doctor        Check your environment setup
+  reeval run       Run the evals
+  reeval show      The latest run's results
+  reeval studio    Browse your runs in the studio
+  reeval doctor    Check your environment setup
 
 Run reeval --help to see every command
 `,

@@ -1,7 +1,7 @@
 // What bare `reeval` prints: the mark, the version, who's signed in and the linked project, and a
 // few commands to try. `reeval --help` lists every command.
 import { existsSync } from 'node:fs'
-import { TAGLINE } from './cli-spec.ts'
+import { COMMANDS, TAGLINE } from './cli-spec.ts'
 import { linkedProject, projectDirFor } from './cloud-project.ts'
 import { cloudUrl } from './cloud-run.ts'
 import { configPathFor } from './config.ts'
@@ -56,7 +56,15 @@ export async function homeStatus(
   return { signedIn, project, config }
 }
 
-export function homeScreen(version: string, status: HomeStatus, term: HomeTerminal): string {
+/** Whether a command is in `reeval --help`: the home screen suggests no hidden one. */
+const listed = (command: string) => !COMMANDS[command]?.hidden
+
+export function homeScreen(
+  version: string,
+  status: HomeStatus,
+  term: HomeTerminal,
+  shown: (command: string) => boolean = listed,
+): string {
   const c = colors(term.color, term.depth)
   const doctor: [string, string] = ['reeval doctor', 'Check your environment setup']
   const tryNext: [string, string][] = status.config
@@ -69,20 +77,27 @@ export function homeScreen(version: string, status: HomeStatus, term: HomeTermin
     : [
         ['reeval init', 'Set up a project here'],
         doctor,
-        ...(status.signedIn
+        ...(status.signedIn || !shown('login')
           ? []
           : [['reeval login', 'Sign in to the cloud platform'] as [string, string]]),
       ]
   const signedIn = status.signedIn
+  const hint = (command: string) => (shown(command) ? `reeval ${command}` : undefined)
   const rows: [string, string?][] = [
-    !signedIn
-      ? ['Not signed in', 'reeval login']
+    ...(!signedIn
+      ? shown('login')
+        ? [['Not signed in', hint('login')] as [string, string?]]
+        : []
       : 'token' in signedIn
-        ? [`Signed in with ${CLOUD_TOKEN_VAR}`]
+        ? [[`Signed in with ${CLOUD_TOKEN_VAR}`] as [string]]
         : signedIn.email
-          ? [`Signed in as ${signedIn.email}`]
-          : ['Signed in', 'reeval whoami'],
-    status.project ? [`Linked to project ${status.project}`] : ['No project linked', 'reeval link'],
+          ? [[`Signed in as ${signedIn.email}`] as [string]]
+          : [['Signed in', hint('whoami')] as [string, string?]]),
+    ...(status.project
+      ? [[`Linked to project ${status.project}`] as [string]]
+      : shown('link')
+        ? [['No project linked', hint('link')] as [string, string?]]
+        : []),
   ]
   const width =
     Math.max(...[...tryNext, ...rows.filter(([, hint]) => hint)].map(([left]) => left.length)) + 4
@@ -102,8 +117,7 @@ export function homeScreen(version: string, status: HomeStatus, term: HomeTermin
   return [
     ...head,
     '',
-    ...rows.map((row) => line(row, c.muted)),
-    '',
+    ...(rows.length ? [...rows.map((row) => line(row, c.muted)), ''] : []),
     c.bold('Try next'),
     ...tryNext.map((row) => line(row)),
     '',
