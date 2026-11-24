@@ -143,7 +143,7 @@ function reevalVariables() {
       const path = join(dir, entry.name)
       if (entry.isDirectory()) walk(path)
       else if (/\.tsx?$/.test(entry.name)) {
-        for (const m of read(path).matchAll(/\bREEVAL_[A-Z][A-Z0-9_]*\b/g)) found.add(m[0])
+        for (const m of read(path).matchAll(/\bREEVAL_[A-Z][A-Z0-9_]*\b\*?/g)) found.add(m[0])
       }
     }
   }
@@ -153,7 +153,7 @@ function reevalVariables() {
       const path = join(dir, entry.name)
       if (entry.isDirectory()) walkPython(path)
       else if (entry.name.endsWith('.py')) {
-        for (const m of read(path).matchAll(/\bREEVAL_[A-Z][A-Z0-9_]*\b/g)) found.add(m[0])
+        for (const m of read(path).matchAll(/\bREEVAL_[A-Z][A-Z0-9_]*\b\*?/g)) found.add(m[0])
       }
     }
   }

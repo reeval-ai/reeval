@@ -2970,12 +2970,15 @@ async function executeRun(
   let cutShort = false
   const { MACHINES, MachineService } = await import('./sandbox/machine-service.ts')
   const machines = new MachineService()
-  const { TRACE } = await import('./trace/spans.ts')
+  const { TRACE, AGENT_TRACE, setLocalAgentSink } = await import('./trace/spans.ts')
   const { RunTrace } = await import('./trace/run.ts')
-  const { otlpConfigured } = await import('./trace/otlp.ts')
+  const { otelEnv, otlpConfigured } = await import('./trace/otlp.ts')
   let exported: Promise<string | null> = Promise.resolve(null)
   let runStarted = false
+  // reeval's own export (REEVAL_OTEL_*) takes the run's spans, logs and metrics; the agent export
+  // (OTEL_*) takes each attempt's agent spans.
   let telemetry: import('./trace/telemetry.ts').Telemetry | null = null
+  let agentTelemetry: import('./trace/telemetry.ts').Telemetry | null = null
   const trace = setup.dryRun
     ? undefined
     : new RunTrace({
@@ -2987,15 +2990,26 @@ async function executeRun(
           ...(profile && { 'reeval.profile': profile.name }),
         },
       }).install()
-  if (trace && otlpConfigured(process.env)) {
-    telemetry = (await import('./trace/telemetry.ts')).startTelemetry({
+  const opsEnv = otelEnv(process.env, 'REEVAL_')
+  const agentEnv = otelEnv(process.env, '')
+  if (trace && (otlpConfigured(opsEnv) || otlpConfigured(agentEnv))) {
+    const { startTelemetry } = await import('./trace/telemetry.ts')
+    const run = {
       version,
       traceId: trace.traceId,
       spanId: trace.spanId,
       runId,
       filesystems: { project: config.root, staging: stagingDir },
-    })
+    }
+    if (otlpConfigured(opsEnv))
+      telemetry = startTelemetry({ ...run, env: opsEnv, prefix: 'REEVAL_' })
+    if (otlpConfigured(agentEnv))
+      agentTelemetry = startTelemetry({ ...run, env: agentEnv, signals: ['traces'] })
   }
+  const agentSpans = (body: unknown) => {
+    for (const span of Array.isArray(body) ? body : []) agentTelemetry?.span(span)
+  }
+  setLocalAgentSink(agentTelemetry ? agentSpans : undefined)
   if (telemetry) {
     const onEvent = renderer.onEvent.bind(renderer)
     const exporting = telemetry
@@ -3018,9 +3032,11 @@ async function executeRun(
             ? machines.call(owner, body)
             : service === TRACE
               ? (trace?.call(body) ?? Promise.resolve(null))
-              : service === SECRETS_SERVICE
-                ? Promise.resolve(heldSecrets())
-                : Promise.reject(new Error(`This run has no ${service} service`)),
+              : service === AGENT_TRACE
+                ? Promise.resolve(agentSpans(body)).then(() => null)
+                : service === SECRETS_SERVICE
+                  ? Promise.resolve(heldSecrets())
+                  : Promise.reject(new Error(`This run has no ${service} service`)),
         released: (owner) => machines.released(owner),
       },
       onRunStart: (files) => {
@@ -3147,7 +3163,15 @@ async function executeRun(
       started: runStarted,
     })
     // Awaited only once the run's record is written: a slow collector never holds it up.
-    if (telemetry) exported = telemetry.close()
+    setLocalAgentSink(undefined)
+    if (telemetry || agentTelemetry) {
+      const ops = telemetry?.close()
+      const agent = agentTelemetry?.close()
+      exported = Promise.all([ops, agent]).then(([o, a]) => {
+        const why = [o && `reeval (REEVAL_OTEL_*): ${o}`, a && `agents (OTEL_*): ${a}`]
+        return why.filter(Boolean).join('; ') || null
+      })
+    }
     const { removePrepared } = await import('./sandbox/preflight.ts')
     removePrepared(config.root, runId)
     const { removePreparedWorkspaces } = await import('./workspace.ts')

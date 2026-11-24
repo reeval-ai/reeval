@@ -35,6 +35,26 @@ export function emitSpan(span: SpanInput): void {
   } catch {}
 }
 
+export const AGENT_TRACE = 'agent-trace'
+
+let localAgent: ((spans: unknown) => void) | undefined
+
+/** Where this process's agent spans go when it has no service channel: the agent export, or nowhere. */
+export function setLocalAgentSink(sink: ((spans: unknown) => void) | undefined): void {
+  localAgent = sink
+}
+
+/** Sends an attempt's agent spans (`agent-spans.ts`) to the agent export; never throws. */
+export function emitAgentSpans(spans: readonly unknown[]): void {
+  if (hasServiceChannel()) {
+    callService(AGENT_TRACE, spans, async () => null).catch(() => {})
+    return
+  }
+  try {
+    localAgent?.(spans)
+  } catch {}
+}
+
 /** A span under way: emitted once, on its first `end`. */
 export type OpenSpan = {
   readonly spanId: string

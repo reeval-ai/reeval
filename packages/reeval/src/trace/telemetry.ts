@@ -1,9 +1,9 @@
-// A run's OpenTelemetry export, when the `OTEL_EXPORTER_OTLP_*` variables name a collector, on the
-// OpenTelemetry SDK: its spans as each ends (a batch span processor), its notices and finished
-// attempts as log records (a batch log record processor), and the machine's metrics on an interval
-// (a periodic metric reader), each to its OTLP exporter, which reads its own variables from
-// `process.env`. Nothing here can fail the run: an export that fails is a reason `close` resolves
-// to, and `close` waits at most CLOSE_MS.
+// One of a run's OpenTelemetry exports, when its variables name a collector, on the OpenTelemetry
+// SDK: spans as each ends (a batch span processor), the run's notices and finished attempts as log
+// records (a batch log record processor), and the machine's metrics on an interval (a periodic
+// metric reader), each to its OTLP exporter. The agent export and reeval's own each start one, on
+// their own variables (`otlp.ts`). Nothing here can fail the run: an export that fails is a reason
+// `close` resolves to, and `close` waits at most CLOSE_MS.
 import type { Agent } from 'node:http'
 import type { Socket } from 'node:net'
 import {
@@ -40,9 +40,9 @@ import { MeterProvider, PeriodicExportingMetricReader } from '@opentelemetry/sdk
 import { BatchSpanProcessor, type ReadableSpan } from '@opentelemetry/sdk-trace'
 import { redactSecrets } from '../redact.ts'
 import type { ReevalEvent } from '../ui/events.ts'
-import type { RunSpan } from '../view/spans.ts'
+import type { AgentSpan } from './agent-spans.ts'
 import { HOST_METRICS, type HostMetric, HostMetrics } from './host-metrics.ts'
-import { type OtlpProtocol, otlpProtocol, type Signal } from './otlp.ts'
+import { type OtlpPrefix, type OtlpProtocol, otlpProtocol, type Signal } from './otlp.ts'
 
 /**
  * How long `close` waits for what's left to be sent, and each export's default timeout: the
@@ -51,7 +51,7 @@ import { type OtlpProtocol, otlpProtocol, type Signal } from './otlp.ts'
 export const CLOSE_MS = 5_000
 
 export type Telemetry = {
-  span(span: RunSpan): void
+  span(span: AgentSpan): void
   event(e: ReevalEvent): void
   /** Sends what's left and stops; resolves to null, or to why something wasn't sent. */
   close(): Promise<string | null>
@@ -96,10 +96,28 @@ const NOUN = {
   metrics: ['metric export', 'metric exports'],
 } as const
 
-const positive = (name: string, fallback: number) => {
-  const n = getNumberFromEnv(name)
-  return n !== undefined && Number.isFinite(n) && n > 0 ? n : fallback
+type Env = Record<string, string | undefined>
+
+/**
+ * Runs `make` with `process.env`'s `OTEL_*` variables replaced by `env`'s: the SDK's exporters
+ * and resource detector read theirs from `process.env` as they're built, and each export must read
+ * only its own, so one backend's headers never go to the other.
+ */
+function underEnv<T>(env: Env, make: () => T): T {
+  const saved = Object.entries(process.env).filter(([name]) => name.startsWith('OTEL_'))
+  for (const [name] of saved) delete process.env[name]
+  for (const [name, value] of Object.entries(env))
+    if (value !== undefined) process.env[name] = value
+  try {
+    return make()
+  } finally {
+    for (const name of Object.keys(env)) delete process.env[name]
+    for (const [name, value] of saved) process.env[name] = value
+  }
 }
+
+/** Every started export's sink for the SDK's warnings, which go through one global logger. */
+const warned = new Set<(message: string) => void>()
 
 export function startTelemetry(o: {
   version: string
@@ -109,29 +127,42 @@ export function startTelemetry(o: {
   runId: string
   /** The filesystems the run writes to, by role, for the metrics. */
   filesystems: Record<string, string>
+  /** The export's variables under their standard names (`otelEnv`). */
+  env: Env
+  prefix?: OtlpPrefix
+  /** The signals it may send; all three when unset. */
+  signals?: readonly Signal[]
 }): Telemetry | null {
-  const { version, traceId, spanId, runId } = o
-  const env = process.env
+  const { version, traceId, spanId, runId, env } = o
+  const positive = (name: string, fallback: number) => {
+    const n = underEnv(env, () => getNumberFromEnv(name))
+    return n !== undefined && Number.isFinite(n) && n > 0 ? n : fallback
+  }
   const reasons = new Set<string>()
   const protocols: Partial<Record<Signal, OtlpProtocol>> = {}
-  for (const signal of ['traces', 'logs', 'metrics'] as const) {
-    const p = otlpProtocol(env, signal)
+  for (const signal of o.signals ?? (['traces', 'logs', 'metrics'] as const)) {
+    const p = otlpProtocol(env, signal, o.prefix)
     if (p && typeof p === 'object') reasons.add(p.refused)
     else if (p) protocols[signal] = p
   }
   if (!protocols.traces && !protocols.logs && !protocols.metrics && !reasons.size) return null
 
-  diag.setLogger(
-    {
-      // The SDK reports a failed export here too, with its stack: `watched` names those.
-      error: () => {},
-      warn: (message) => reasons.add(shown(message)),
-      info: () => {},
-      debug: () => {},
-      verbose: () => {},
-    },
-    { logLevel: DiagLogLevel.WARN, suppressOverrideMessage: true },
-  )
+  const warn = (message: string) => reasons.add(shown(message))
+  if (!warned.size)
+    diag.setLogger(
+      {
+        // The SDK reports a failed export here too, with its stack: `watched` names those.
+        error: () => {},
+        warn: (message) => {
+          for (const sink of warned) sink(message)
+        },
+        info: () => {},
+        debug: () => {},
+        verbose: () => {},
+      },
+      { logLevel: DiagLogLevel.WARN, suppressOverrideMessage: true },
+    )
+  warned.add(warn)
 
   const failed = new Map<Signal, { why: string; items: number }>()
   const watched = <E extends { export(items: never, done: (r: ExportResult) => void): void }>(
@@ -157,20 +188,28 @@ export function startTelemetry(o: {
       })
     return e
   }
-  const options = (signal: Signal) => ({ httpAgentOptions: detachedAgents(signal) })
+  const exporter = <J, P>(
+    signal: Signal,
+    Json: new (o: object) => J,
+    Proto: new (o: object) => P,
+  ): J | P =>
+    underEnv(
+      env,
+      () =>
+        new (protocols[signal] === 'http/json' ? Json : Proto)({
+          httpAgentOptions: detachedAgents(signal),
+        }),
+    )
 
   const resource = resourceFromAttributes({ 'service.name': 'reeval' }).merge(
-    detectResources({ detectors: [envDetector] }),
+    underEnv(env, () => detectResources({ detectors: [envDetector] })),
   )
   const scope = { name: 'reeval', version }
 
   const spans =
     protocols.traces &&
     new BatchSpanProcessor({
-      exporter: watched(
-        'traces',
-        new (protocols.traces === 'http/json' ? JsonTraces : ProtoTraces)(options('traces')),
-      ),
+      exporter: watched('traces', exporter('traces', JsonTraces, ProtoTraces)),
       scheduledDelayMillis: positive('OTEL_BSP_SCHEDULE_DELAY', 5000),
       maxQueueSize: positive('OTEL_BSP_MAX_QUEUE_SIZE', 2048),
       maxExportBatchSize: Math.min(
@@ -184,12 +223,12 @@ export function startTelemetry(o: {
     spanId: id,
     traceFlags: TraceFlags.SAMPLED,
   })
-  const readable = (s: RunSpan): ReadableSpan => {
+  const readable = (s: AgentSpan): ReadableSpan => {
     const startTime = millisToHrTime(s.startMs)
     const endTime = millisToHrTime(s.endMs)
     return {
       name: s.name,
-      kind: SpanKind.INTERNAL,
+      kind: s.kind === 'client' ? SpanKind.CLIENT : SpanKind.INTERNAL,
       spanContext: () => context(s.spanId, s.traceId),
       ...(s.parentSpanId && { parentSpanContext: context(s.parentSpanId, s.traceId) }),
       startTime,
@@ -200,7 +239,11 @@ export function startTelemetry(o: {
         : { code: SpanStatusCode.UNSET },
       attributes: s.attributes,
       links: (s.links ?? []).map((l) => ({ context: context(l.spanId, l.traceId) })),
-      events: [],
+      events: (s.events ?? []).map((e) => ({
+        name: e.name,
+        time: millisToHrTime(e.timeMs),
+        attributes: e.attributes,
+      })),
       ended: true,
       resource,
       instrumentationScope: scope,
@@ -216,10 +259,7 @@ export function startTelemetry(o: {
       resource,
       processors: [
         new BatchLogRecordProcessor({
-          exporter: watched(
-            'logs',
-            new (protocols.logs === 'http/json' ? JsonLogs : ProtoLogs)(options('logs')),
-          ),
+          exporter: watched('logs', exporter('logs', JsonLogs, ProtoLogs)),
           scheduledDelayMillis: positive('OTEL_BLRP_SCHEDULE_DELAY', 1000),
           maxQueueSize: positive('OTEL_BLRP_MAX_QUEUE_SIZE', 2048),
           maxExportBatchSize: Math.min(
@@ -260,12 +300,7 @@ export function startTelemetry(o: {
       resource,
       readers: [
         new PeriodicExportingMetricReader({
-          exporter: watched(
-            'metrics',
-            new (protocols.metrics === 'http/json' ? JsonMetrics : ProtoMetrics)(
-              options('metrics'),
-            ),
-          ),
+          exporter: watched('metrics', exporter('metrics', JsonMetrics, ProtoMetrics)),
           exportIntervalMillis: every,
           exportTimeoutMillis: Math.min(positive('OTEL_METRIC_EXPORT_TIMEOUT', CLOSE_MS), every),
         }),
@@ -337,7 +372,8 @@ export function startTelemetry(o: {
         }),
       ])
       clearTimeout(timer)
-      diag.disable()
+      warned.delete(warn)
+      if (!warned.size) diag.disable()
       for (const [signal, f] of failed) {
         reasons.add(
           `${signal}: ${f.why} (${f.items} ${NOUN[signal][f.items === 1 ? 0 : 1]} not sent)`,

@@ -234,7 +234,7 @@ const pairHash = (text: string, i: number) =>
 
 let cached: { key: string; secrets: Secrets } | undefined
 
-const OTLP_HEADERS = /^OTEL_EXPORTER_OTLP_(?:(?:TRACES|LOGS|METRICS)_)?HEADERS$/i
+const OTLP_HEADERS = /^(?:REEVAL_)?OTEL_EXPORTER_OTLP_(?:(?:TRACES|LOGS|METRICS)_)?HEADERS$/i
 const AUTH_SCHEME = /^(?:Bearer|Basic|Token|Api-?Key)(?: |%20)+(\S.*)$/i
 
 /**

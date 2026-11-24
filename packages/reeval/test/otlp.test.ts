@@ -8,7 +8,7 @@ import type { AddressInfo } from 'node:net'
 import type { TestContext } from 'node:test'
 import { describe, test } from 'node:test'
 import { HOST_METRICS, HostMetrics } from '../src/trace/host-metrics.ts'
-import { otlpConfigured, otlpProtocol } from '../src/trace/otlp.ts'
+import { otelEnv, otlpConfigured, otlpProtocol } from '../src/trace/otlp.ts'
 import { CLOSE_MS, startTelemetry } from '../src/trace/telemetry.ts'
 import type { RunSpan } from '../src/view/spans.ts'
 
@@ -42,6 +42,26 @@ describe('OTLP signals', () => {
     assert.equal(otlpProtocol(env, 'logs'), null)
     const shared = { ...env, OTEL_EXPORTER_OTLP_ENDPOINT: 'http://c:4318' }
     assert.equal(otlpProtocol(shared, 'logs'), 'http/json')
+  })
+
+  test("reeval's own export reads REEVAL_OTEL_* under the standard names, the agents' OTEL_* only", () => {
+    const env = {
+      OTEL_EXPORTER_OTLP_ENDPOINT: 'http://agents',
+      REEVAL_OTEL_EXPORTER_OTLP_ENDPOINT: 'http://ops',
+      REEVAL_OTEL_EXPORTER_OTLP_PROTOCOL: 'grpc',
+      REEVAL_OTHER: 'x',
+    }
+    assert.deepEqual(otelEnv(env, ''), { OTEL_EXPORTER_OTLP_ENDPOINT: 'http://agents' })
+    const ops = otelEnv(env, 'REEVAL_')
+    assert.deepEqual(ops, {
+      OTEL_EXPORTER_OTLP_ENDPOINT: 'http://ops',
+      OTEL_EXPORTER_OTLP_PROTOCOL: 'grpc',
+    })
+    assert.equal(otlpConfigured(otelEnv({ REEVAL_OTEL_X: '1' }, 'REEVAL_')), false)
+    assert.match(
+      JSON.stringify(otlpProtocol(ops, 'traces', 'REEVAL_')),
+      /set REEVAL_OTEL_EXPORTER_OTLP_PROTOCOL to/,
+    )
   })
 
   test("a signal's exporter of none turns it off, and grpc is refused", () => {
@@ -124,7 +144,14 @@ function withEnv(t: TestContext, vars: Record<string, string | undefined>) {
 }
 
 const start = () =>
-  startTelemetry({ version: '1.0.0', traceId: T, spanId: R, runId: 'r1', filesystems: {} })
+  startTelemetry({
+    version: '1.0.0',
+    traceId: T,
+    spanId: R,
+    runId: 'r1',
+    filesystems: {},
+    env: otelEnv(process.env, ''),
+  })
 
 // biome-ignore lint/suspicious/noExplicitAny: OTLP's JSON mapping, read loosely
 type Json = any
@@ -285,6 +312,58 @@ describe('startTelemetry', () => {
     withEnv(t, { OTEL_EXPORTER_OTLP_ENDPOINT: 'http://c', OTEL_EXPORTER_OTLP_PROTOCOL: 'grpc' })
     const telemetry = start()
     assert.match((await telemetry?.close()) ?? '', /grpc/)
+  })
+
+  test('the two exports each send to their own collector with their own headers, and leave process.env as it was', async (t) => {
+    const agents = await collector(t)
+    const ops = await collector(t)
+    withEnv(t, {
+      OTEL_EXPORTER_OTLP_ENDPOINT: agents.url,
+      OTEL_EXPORTER_OTLP_PROTOCOL: 'http/json',
+      OTEL_EXPORTER_OTLP_HEADERS: 'x-agents=a1',
+      OTEL_SERVICE_NAME: 'agents',
+      REEVAL_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `${ops.url}/v1/traces`,
+      REEVAL_OTEL_EXPORTER_OTLP_PROTOCOL: 'http/json',
+      REEVAL_OTEL_EXPORTER_OTLP_HEADERS: 'x-ops=o1',
+    })
+    const before = { ...process.env }
+    const run = { version: '1.0.0', traceId: T, spanId: R, runId: 'r1', filesystems: {} }
+    const agent = startTelemetry({
+      ...run,
+      env: otelEnv(process.env, ''),
+      signals: ['traces'],
+    })
+    const own = startTelemetry({ ...run, env: otelEnv(process.env, 'REEVAL_'), prefix: 'REEVAL_' })
+    assert.deepEqual({ ...process.env }, before)
+    agent?.span({
+      traceId: T,
+      spanId: S,
+      name: 'chat m',
+      kind: 'client',
+      startMs: 1,
+      endMs: 2,
+      attributes: {},
+      events: [{ name: 'gen_ai.evaluation.result', timeMs: 2, attributes: { a: 1 } }],
+    })
+    own?.span({ traceId: T, spanId: P, name: 'attempt', startMs: 1, endMs: 2, attributes: {} })
+    assert.equal(await agent?.close(), null)
+    assert.equal(await own?.close(), null)
+    assert.deepEqual(
+      agents.sent.map((s) => [s.path, s.headers['x-agents'], s.headers['x-ops']]),
+      [['/v1/traces', 'a1', undefined]],
+    )
+    assert.deepEqual(
+      ops.sent.map((s) => [s.path, s.headers['x-agents'], s.headers['x-ops']]),
+      [['/v1/traces', undefined, 'o1']],
+    )
+    const sent: Json = agents.sent[0]?.body.resourceSpans[0]
+    assert.equal(attributesOf(sent.resource.attributes)['service.name'], 'agents')
+    const [chat] = sent.scopeSpans[0].spans as Json[]
+    assert.equal(chat.kind, 3)
+    assert.equal(chat.events[0].name, 'gen_ai.evaluation.result')
+    const opsSent: Json = ops.sent[0]?.body.resourceSpans[0]
+    assert.equal(attributesOf(opsSent.resource.attributes)['service.name'], 'reeval')
+    assert.equal(opsSent.scopeSpans[0].spans[0].name, 'attempt')
   })
 
   test('close waits at most CLOSE_MS for a collector that never answers', async (t) => {
