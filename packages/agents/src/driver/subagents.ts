@@ -49,8 +49,10 @@ export async function turnSubagents(
  * A turn's usage with its subagents': on a `separate` harness the agent's own `reported` usage
  * plus each subagent's, on an `included` one `reported` as it is, with the agent's own share
  * when every subagent's is known. A subagent that may not have finished when the turn ended, or
- * on a `separate` harness one whose usage is unknown, makes the total `missing`. `fromStore` marks usage read back from the CLI's
- * store for a turn whose stream reported none, which may count subagents already.
+ * on a `separate` harness one whose usage is unknown, makes the total `missing`. `fromStore`
+ * marks usage read back from the CLI's store for a turn whose stream reported none, which may
+ * count subagents already. With no usage for the agent's own calls, a `separate` harness's total
+ * is its subagents' alone, a lower bound.
  */
 export function turnTotals(
   mode: SubagentSupport['usage'],
@@ -60,8 +62,13 @@ export function turnTotals(
 ): { usage: TokenUsage | null; agentUsage: TokenUsage | null; subagentUsage: SubagentUsage } {
   const known = runs.every((r) => r.usage !== null && r.status !== null)
   const children = sumUsage(runs.map((r) => r.usage))
-  if (mode === 'unknown' || fromStore || reported === null) {
+  if (mode === 'unknown' || (fromStore && reported !== null)) {
     return { usage: reported, agentUsage: null, subagentUsage: 'unknown' }
+  }
+  if (reported === null) {
+    return mode === 'separate' && children
+      ? { usage: children, agentUsage: null, subagentUsage: 'missing' }
+      : { usage: null, agentUsage: null, subagentUsage: 'unknown' }
   }
   if (mode === 'separate') {
     return {

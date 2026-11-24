@@ -372,6 +372,19 @@ describe('a turn and its subagents', () => {
     }
   })
 
+  test("no usage for the agent's own calls: its subagents' alone, a lower bound", () => {
+    assert.deepEqual(turnTotals('separate', null, [run()], true), {
+      usage: usage(40, 4),
+      agentUsage: null,
+      subagentUsage: 'missing',
+    })
+    assert.deepEqual(turnTotals('included', null, [run()], false), {
+      usage: null,
+      agentUsage: null,
+      subagentUsage: 'unknown',
+    })
+  })
+
   test("a subagent's stored usage and model by its native id; its parent from its spawn's tag", async () => {
     const events = [
       tool('toolu_1', 'Agent', { prompt: 'outer' }, { agentId: 'a1' }),
