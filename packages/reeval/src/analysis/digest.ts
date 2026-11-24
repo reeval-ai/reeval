@@ -93,6 +93,11 @@ export type DigestAttempt = {
   failed?: string[]
   /** Each judgment's score, by its `expect` label (or question). */
   judges?: Record<string, number>
+  /**
+   * Subagents the agent spawned; their own tool calls and edits count in `tools` and `fileEdits`
+   * only where their harness streams them.
+   */
+  subagents?: number
   /** `c.exec` calls; `<attempt id>:exec<n>` cites the n-th. */
   execs: number
   artifacts: string | null
@@ -417,6 +422,7 @@ export async function buildDigestKeepingDropped(
               }
             : {}),
           ...(failed.length ? { failed } : {}),
+          ...(a.subagents?.length ? { subagents: a.subagents.length } : {}),
           ...(judges.length
             ? {
                 judges: Object.fromEntries(

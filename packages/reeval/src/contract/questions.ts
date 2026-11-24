@@ -3,7 +3,14 @@
 import { z } from 'zod'
 import { isObjectLike } from '../object.ts'
 import type { PairFactor, QuestionFields, QuestionInputs, QuestionOptions } from '../types.ts'
-import { inputsOn, orList, sharedInputFields, turnsSchema } from './judge.ts'
+import {
+  inputsOn,
+  NO_TRANSCRIPT,
+  orList,
+  sharedInputFields,
+  showsNoTranscript,
+  turnsSchema,
+} from './judge.ts'
 import { type Assert, closest, nonEmpty, type Same } from './shared.ts'
 
 export const pairFactorSchema = z.enum(['environment', 'harness'])
@@ -92,7 +99,7 @@ const VALUES: Record<Exclude<keyof QuestionInputs, 'artifacts'> | 'turns', strin
   output: 'true or false',
   files: 'true or false',
   diff: 'true, false or a non-empty list of patterns',
-  transcript: "true, false, 'tools' or 'full'",
+  transcript: "true, false, 'tools', 'full' or { detail, agent, subagents }",
   turns: "'last' or 'all'",
   checks: 'true, false or a list of commands',
   observations: 'true, false or a list of names',
@@ -124,6 +131,9 @@ function questionInputsProblem(
     const schema =
       key === 'turns' ? turnsSchema : sharedInputFields[key as keyof typeof sharedInputFields]
     if (!schema.safeParse(v).success) {
+      if (key === 'transcript' && showsNoTranscript(v)) {
+        return `${at} ${key} in ${where} ${NO_TRANSCRIPT}`
+      }
       return `${at} ${key} in ${where} must be ${VALUES[key as keyof typeof VALUES]} (got ${describe(v)})`
     }
   }

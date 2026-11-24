@@ -18,7 +18,8 @@ import {
 } from '../src/history/tool-class.ts'
 import { toolTarget } from '../src/history/tool-target.ts'
 import { statementCount, usesRunParameter } from '../src/query.ts'
-import { harnessLabel } from '../src/view/model.ts'
+import { toolCalls } from '../src/view/classify.ts'
+import { harnessLabel, type TranscriptLine } from '../src/view/model.ts'
 import { baseEnv, fakeConfig, pkgRoot, project, readRun, runCli } from './helpers.ts'
 import { fixture } from './support/fixture.ts'
 
@@ -700,6 +701,67 @@ evaluate('turnless', { runs: 3 }, async (c) => {
     )
   })
 
+  test('subagents lists each subagent with its own tokens and activity, from the record', async () => {
+    const p = await project('query-subagents', {
+      'reeval.config.ts': fakeConfig({
+        harness: `{ subagents: [
+          { prompt: 'write add.js', agent: 'general-purpose', files: { 'add.js': 'a' }, usage: { input: 40, output: 4 } },
+          { prompt: 'write mul.js', files: { 'mul.js': 'm' }, events: 'none' },
+        ] }`,
+      }),
+      'evals/e.eval.ts': `import { evaluate } from 'reeval'
+evaluate('delegates', async (c) => {
+  await c.send('go')
+})
+`,
+    })
+    assert.equal((await runCli(p.dir)).code, 0)
+    const rows = await query(
+      p.dir,
+      'SELECT n, turn, agent, status, events, tool_calls, file_edits, input_tokens, output_tokens FROM subagents ORDER BY n',
+    )
+    assert.deepEqual(rows, [
+      {
+        n: 1,
+        turn: 0,
+        agent: 'general-purpose',
+        status: 'completed',
+        events: 'streamed',
+        tool_calls: 1,
+        file_edits: 1,
+        input_tokens: 40,
+        output_tokens: 4,
+      },
+      {
+        n: 2,
+        turn: 0,
+        agent: null,
+        status: 'completed',
+        events: 'none',
+        tool_calls: null,
+        file_edits: null,
+        input_tokens: null,
+        output_tokens: null,
+      },
+    ])
+    const calls = await query(p.dir, 'SELECT tool, subagent FROM tool_calls ORDER BY line')
+    const ids = (await query(p.dir, 'SELECT id FROM subagents ORDER BY n')).map((r) => r.id)
+    assert.deepEqual(
+      calls.map((c) => c.subagent),
+      calls.map(() => null),
+      'the spawn calls are the agent’s own; a fake subagent makes only file edits',
+    )
+    assert.equal(calls.length, ids.length)
+    const context = await runCli(p.dir, ['analyze', '--context'])
+    assert.equal(context.code, 0, context.stderr)
+    const digest = JSON.parse(/```json\n([\s\S]*?)\n```/.exec(context.stdout)?.[1] ?? '{}')
+    assert.deepEqual(
+      Object.values(digest.attempts as Record<string, Row>).map((a) => a.subagents),
+      [2],
+      'the analyze digest counts them',
+    )
+  })
+
   test('effort’s per-class call medians leave out an attempt with calls but no transcript file', async () => {
     const p = await project('query-effort-missing-transcript', {
       'reeval.config.ts': fakeConfig({ harness: "{ script: [[{ exec: 'true' }]] }" }),
@@ -960,6 +1022,26 @@ describe('reeval query plumbing', () => {
       ['', 0],
     ]
     for (const [sql, n] of cases) assert.equal(statementCount(sql), n, sql)
+  })
+
+  test("a tool call's subagent is the id its transcript line names, null for the agent's own", () => {
+    const line = (subagent?: string) =>
+      ({
+        turn: 0,
+        type: 'tool',
+        toolCallId: 't',
+        tool: 'Bash',
+        kind: 'shell',
+        input: { command: 'ls' },
+        ok: true,
+        startedAt: 0,
+        durationMs: 1,
+        ...(subagent ? { subagent } : {}),
+      }) as TranscriptLine
+    assert.deepEqual(
+      toolCalls([line(), line('s1')]).map((c) => c.subagent),
+      [null, 's1'],
+    )
   })
 
   test(':run is found outside quotes and comments only', () => {

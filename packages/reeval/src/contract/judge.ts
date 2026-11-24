@@ -21,13 +21,28 @@ import type {
 import { GATEWAY_NAMES, gatewayDescriptorSchema, gatewayNameSchema } from './gateway.ts'
 import { type Assert, type Issue, jsonValueSchema, nonEmpty, type Same } from './shared.ts'
 
+/** The refusal for a transcript view that shows neither the agent's events nor its subagents'. */
+export const NO_TRANSCRIPT = 'shows the judge no transcript; use transcript: false'
+
 /** The inputs every judge call and question shares; `c.judge()` adds `contents` and its own `artifacts`. */
 export const sharedInputFields = {
   task: z.boolean().optional(),
   output: z.boolean().optional(),
   files: z.boolean().optional(),
   diff: z.union([z.boolean(), z.array(nonEmpty()).min(1)]).optional(),
-  transcript: z.union([z.boolean(), z.enum(['tools', 'full'])]).optional(),
+  transcript: z
+    .union([
+      z.boolean(),
+      z.enum(['tools', 'full']),
+      z
+        .strictObject({
+          detail: z.enum(['tools', 'full']).optional(),
+          agent: z.boolean().optional(),
+          subagents: z.boolean().optional(),
+        })
+        .refine((v) => v.agent !== false || v.subagents !== false, NO_TRANSCRIPT),
+    ])
+    .optional(),
   checks: z.union([z.boolean(), z.array(nonEmpty())]).optional(),
   observations: z.union([z.boolean(), z.array(nonEmpty())]).optional(),
 }
@@ -135,7 +150,7 @@ const VALUES: Record<Exclude<keyof JudgeInputs, 'artifacts'> | 'turns', string> 
   files: 'true or false',
   diff: 'true, false or a non-empty list of patterns',
   contents: 'a list of paths or patterns',
-  transcript: "true, false, 'tools' or 'full'",
+  transcript: "true, false, 'tools', 'full' or { detail, agent, subagents }",
   turns: "'last' or 'all'",
   checks: 'true, false or a list of commands',
   observations: 'true, false or a list of names',
@@ -157,6 +172,13 @@ function distance(a: string, b: string): number {
 
 const nearest = (key: string, keys: readonly string[]) =>
   keys.find((k) => distance(key.toLowerCase(), k.toLowerCase()) <= 2)
+
+/** A transcript view with both the agent's events and its subagents' turned off. */
+export const showsNoTranscript = (value: unknown) =>
+  typeof value === 'object' &&
+  value !== null &&
+  (value as { agent?: unknown }).agent === false &&
+  (value as { subagents?: unknown }).subagents === false
 
 const shown = (value: unknown) => JSON.stringify(value) ?? String(value)
 
@@ -241,6 +263,9 @@ export function judgeProblem(judge: unknown, site: JudgeSite): string | undefine
     const issue = issues.find((i) => typeof i.path[0] === 'string' && i.path[0] in VALUES)
     if (!issue) return undefined
     const key = issue.path[0] as keyof typeof VALUES
+    if (key === 'transcript' && showsNoTranscript(value.transcript)) {
+      return `${field(key)} ${NO_TRANSCRIPT}`
+    }
     return `${field(key)} must be ${VALUES[key]} (got ${shown(value[key])})`
   }
   const providerOptionsProblem = () =>

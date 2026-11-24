@@ -1407,6 +1407,12 @@ class JudgeCallDataOnValue(TypedDict):
     value: JSONValue
 
 
+class JudgeCallDataTranscript3(TypedDict):
+    agent: NotRequired[bool]
+    detail: NotRequired[Literal["tools", "full"]]
+    subagents: NotRequired[bool]
+
+
 # `c.judge()`'s options as data: the judge options, with the model by name or a fake judge's
 # numeric score, the inputs it shows the judge (at least one turned on) and `on`.
 class JudgeCallData(TypedDict):
@@ -1438,7 +1444,7 @@ class JudgeCallData(TypedDict):
     task: NotRequired[bool]
     # Minimum score (0–1) for a `pass` verdict.
     threshold: NotRequired[float]
-    transcript: NotRequired[bool | Literal["tools", "full"]]
+    transcript: NotRequired[bool | Literal["tools", "full"] | JudgeCallDataTranscript3]
     turns: NotRequired[Literal["last", "all"]]
 
 
@@ -1717,6 +1723,12 @@ class PluginSourcePlugin4(TypedDict):
 PluginSource: TypeAlias = "PluginSourcePlugin | PluginSourcePlugin2 | PluginSourcePlugin3 | PluginSourcePlugin4"
 
 
+class QuestionTranscript3(TypedDict):
+    agent: NotRequired[bool]
+    detail: NotRequired[Literal["tools", "full"]]
+    subagents: NotRequired[bool]
+
+
 # A question a language model answers after the attempts: its text, or the text and its options.
 # With `across`, it picks between two attempts that differ only in that factor, in both orders;
 # without it, it's asked of each attempt on its own. Without a model, the cascaded
@@ -1747,9 +1759,11 @@ class Question(TypedDict):
     # The prompts the attempt was sent, once for both sides when they match.
     task: NotRequired[bool]
     # The transcript as text lines: `true` is messages and tool calls with tool output clipped,
-    # `'tools'` tool calls only, `'full'` adds reasoning and whole tool output. It names each
-    # harness's tools, so a pair of two harnesses isn't blind.
-    transcript: NotRequired[bool | Literal["tools", "full"]]
+    # `'tools'` tool calls only, `'full'` adds reasoning and whole tool output, each subagent's
+    # events under its spawn call; `{ detail, agent, subagents }` picks the detail and whose
+    # events (`TranscriptView`). It names each harness's tools, so a pair of two harnesses isn't
+    # blind.
+    transcript: NotRequired[bool | Literal["tools", "full"] | QuestionTranscript3]
     # `'all'`: every turn under `turns`, each with its task, output and (with `transcript`)
     # transcript; `'last'`: the last turn only. Default `'all'`.
     turns: NotRequired[Literal["last", "all"]]
@@ -2205,6 +2219,15 @@ class TranscriptEventModelCall(TypedDict):
 # harness never reported a result for (the turn ended or was cut short first) has `ok: null`: it
 # isn't known to have failed, and no failure count includes it.
 TranscriptEvent: TypeAlias = "TranscriptEvent1 | TranscriptEventFileEdit | TranscriptEventWebSearch | TranscriptEventWebFetch | TranscriptEventTool | TranscriptEventError | TranscriptEventRetry | TranscriptEventModelCall"
+
+
+# Which of the transcript the judge sees, as an object: `detail` is `'tools'` or `'full'`
+# (unset, what `true` shows), and `agent` and `subagents` whether the agent's own events and its
+# subagents' show, each unless false. Both false is refused: that's `transcript: false`.
+class TranscriptView(TypedDict):
+    agent: NotRequired[bool]
+    detail: NotRequired[Literal["full", "tools"]]
+    subagents: NotRequired[bool]
 
 
 # A turn as data, as a record or another language's runner carries it: `Turn` without its

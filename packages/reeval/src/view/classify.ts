@@ -53,6 +53,8 @@ export type ToolCall = {
   /** Null when the harness never reported the call's result. */
   ok: boolean | null
   durationMs: number | null
+  /** The `id` of the subagent that made the call; null for the agent's own. */
+  subagent: string | null
 }
 
 type Event = Record<string, unknown>
@@ -72,6 +74,7 @@ export function toolCalls(lines: readonly (TranscriptLine | null)[]): ToolCall[]
       ok: event.ok === null ? null : event.ok !== false,
       durationMs:
         typeof event.durationMs === 'number' && !event.durationInferred ? event.durationMs : null,
+      subagent: typeof event.subagent === 'string' ? event.subagent : null,
     })
   })
   return calls

@@ -965,6 +965,22 @@
             {
               "type": "string",
               "enum": ["tools", "full"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "agent": {
+                  "type": "boolean"
+                },
+                "detail": {
+                  "type": "string",
+                  "enum": ["tools", "full"]
+                },
+                "subagents": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
             }
           ]
         },

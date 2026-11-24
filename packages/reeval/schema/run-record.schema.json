@@ -2768,6 +2768,20 @@
       },
       "required": ["delayMs", "error"]
     },
+    "JudgeTranscript": {
+      "description": "A judge's or question's `transcript`: on, a detail, or a `TranscriptView`.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TranscriptView"
+        },
+        {
+          "enum": ["full", "tools"]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
     "JudgmentRecord": {
       "type": "object",
       "properties": {
@@ -3288,14 +3302,7 @@
           "type": "boolean"
         },
         "transcript": {
-          "anyOf": [
-            {
-              "enum": ["full", "tools"]
-            },
-            {
-              "type": "boolean"
-            }
-          ]
+          "$ref": "#/$defs/JudgeTranscript"
         },
         "turns": {
           "enum": ["all", "last"]
@@ -3357,14 +3364,7 @@
           "type": "boolean"
         },
         "transcript": {
-          "anyOf": [
-            {
-              "enum": ["full", "tools"]
-            },
-            {
-              "type": "boolean"
-            }
-          ]
+          "$ref": "#/$defs/JudgeTranscript"
         },
         "turns": {
           "enum": ["all", "last"]
@@ -4680,6 +4680,22 @@
         }
       },
       "required": ["cacheRead", "cacheWrite", "input", "output", "reasoning"]
+    },
+    "TranscriptView": {
+      "description": "Which of the transcript the judge sees, as an object: `detail` is `'tools'` or `'full'` (unset, what `true` shows), and `agent` and `subagents` whether the agent's own events and its subagents' show, each unless false. Both false is refused: that's `transcript: false`.",
+      "type": "object",
+      "properties": {
+        "agent": {
+          "type": "boolean"
+        },
+        "detail": {
+          "enum": ["full", "tools"]
+        },
+        "subagents": {
+          "type": "boolean"
+        }
+      },
+      "required": []
     },
     "TurnStatus": {
       "enum": ["aborted", "completed", "error"]
