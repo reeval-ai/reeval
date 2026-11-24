@@ -6,11 +6,12 @@
 //                             and per judgment, and a link to the attempt's span in the run's trace
 //     turn <n>                each turn (CHAIN), with its errors and retries as events
 //       chat <model>          each model call the egress gateway saw (LLM)
-//       execute_tool <tool>   each tool call (TOOL); a subagent's calls under the call that spawned it
+//       execute_tool <tool>   each tool call (TOOL); a subagent's calls under the call that spawned it,
+//                             which carries the subagent's own tokens
 //
 // No content: prompts, agent text, reasoning and tool input and output stay out. Ids come from the
 // run, the attempt and its start, so sending one record twice sends the same spans.
-import type { TokenUsage, TranscriptEvent } from '@reeval/agents'
+import type { SubagentRun, SubagentUsage, TokenUsage, TranscriptEvent } from '@reeval/agents'
 import { redactSecrets } from '../redact.ts'
 import { sha256Hex } from '../sha256.ts'
 import { clip } from '../text.ts'
@@ -67,6 +68,28 @@ function sum(usages: Array<TokenUsage | null>): TokenUsage | null {
     cacheWrite: a.cacheWrite + u.cacheWrite,
     reasoning: a.reasoning === null || u.reasoning === null ? null : a.reasoning + u.reasoning,
   }))
+}
+
+/** A spawn call's attributes: the subagents it started (one per id, or `<id>#<i>` for each of several) and their own tokens. */
+function spawnAttributes(runs: SubagentRun[]): SpanAttributes {
+  const [only] = runs
+  if (!only) return {}
+  const usage = runs.every((r) => r.usage) ? sum(runs.map((r) => r.usage)) : null
+  return {
+    'reeval.subagents': runs.length,
+    ...(runs.length === 1 && {
+      ...(only.agent && { 'reeval.subagent.agent': only.agent }),
+      ...(only.model && { 'reeval.subagent.model': only.model }),
+      ...(only.status && { 'reeval.subagent.status': only.status }),
+    }),
+    ...(usage ? usageAttributes(usage) : { 'reeval.usage.unreported': true }),
+  }
+}
+
+/** The attempt's `subagentUsage`: `unknown` where any turn's is, else `missing` where any is. */
+function attemptSubagentUsage(turns: Array<{ subagentUsage?: SubagentUsage }>) {
+  const all = turns.flatMap((t) => (t.subagentUsage ? [t.subagentUsage] : []))
+  return all.find((u) => u === 'unknown') ?? all.find((u) => u === 'missing') ?? all[0]
 }
 
 const TOOL_NAME: Partial<Record<TranscriptEvent['type'], string>> = {
@@ -140,8 +163,14 @@ export function agentSpans(o: AgentAttempt): AgentSpan[] {
       } else if ('toolCallId' in e) {
         const tool = e.type === 'tool' ? e.tool : (TOOL_NAME[e.type] ?? e.type)
         const ok = 'ok' in e ? e.ok : undefined
-        const own = claimed.has(e.toolCallId) ? spanId() : (toolSpans.get(e.toolCallId) as string)
+        const first = !claimed.has(e.toolCallId)
+        const own = first ? (toolSpans.get(e.toolCallId) as string) : spanId()
         claimed.add(e.toolCallId)
+        const spawned = first
+          ? (turn.subagents ?? []).filter(
+              (r) => r.id === e.toolCallId || r.id.startsWith(`${e.toolCallId}#`),
+            )
+          : []
         spans.push({
           traceId,
           spanId: own,
@@ -158,6 +187,7 @@ export function agentSpans(o: AgentAttempt): AgentSpan[] {
             'gen_ai.tool.call.id': e.toolCallId,
             ...(e.type === 'file-edit' && { 'reeval.file_edit.kind': e.kind }),
             ...(e.subagent && { 'reeval.subagent': e.subagent }),
+            ...spawnAttributes(spawned),
             ...(e.durationMs === null && { 'reeval.duration.unknown': true }),
             ...(e.durationInferred && { 'reeval.duration.inferred': true }),
           },
@@ -185,6 +215,7 @@ export function agentSpans(o: AgentAttempt): AgentSpan[] {
           'reeval.cost.basis': turn.cost.basis,
         }),
         ...(turn.usage === null && { 'reeval.usage.unreported': true }),
+        ...(turn.subagentUsage && { 'reeval.subagent_usage': turn.subagentUsage }),
         ...usageAttributes(turn.usage),
       },
       ...(turn.status !== 'completed' && {
@@ -238,6 +269,7 @@ export function agentSpans(o: AgentAttempt): AgentSpan[] {
   const served = record.servedModels?.[0] ?? record.turns.findLast((t) => t.model)?.model
   const costs = record.turns.flatMap((t) => (t.cost ? [t.cost.usd] : []))
   const failed = record.outcome === 'fail' || record.outcome === 'infra_error'
+  const subagentUsage = attemptSubagentUsage(record.turns)
   spans.push({
     traceId,
     spanId: rootId,
@@ -265,6 +297,7 @@ export function agentSpans(o: AgentAttempt): AgentSpan[] {
           'llm.cost.total': costs.reduce((a, b) => a + b, 0),
           'reeval.cost.usd': costs.reduce((a, b) => a + b, 0),
         }),
+      ...(subagentUsage && { 'reeval.subagent_usage': subagentUsage }),
       ...usageAttributes(sum(record.turns.map((t) => t.usage))),
     },
     ...(failed && {
