@@ -1726,6 +1726,63 @@ evaluate('slow', async (c) => {
     process.platform === 'linux' && spawnSync('script', ['--version']).status === 0
       ? false
       : "needs util-linux's script to give reeval attach a terminal"
+  test('on a terminal, reeval run follows its run in the background, and Ctrl-D leaves it going', {
+    skip: pty || noSignals,
+  }, async () => {
+    const p = await project('events-background', {
+      'reeval.config.ts': config,
+      'evals/waits.eval.ts': gated,
+    })
+    const { REEVAL_UI: _, ...env } = baseEnv
+    const viewer = spawn(
+      'script',
+      ['-qec', `'${process.execPath}' '${join(pkgRoot, 'dist/cli.js')}' run`, '/dev/null'],
+      { cwd: p.dir, env: { ...env, TERM: 'xterm-256color' } },
+    )
+    let shown = ''
+    viewer.stdout.on('data', (d) => (shown += d))
+    const viewed = new Promise<number | null>((resolve) => viewer.on('close', resolve))
+    try {
+      for (let i = 0; i < 400 && !stripAnsi(shown).includes('ctrl-d detach'); i++) await sleep(25)
+      assert.match(stripAnsi(shown), /q cancel · ctrl-d detach/)
+      viewer.stdin.write('\u0004')
+      assert.equal(await viewed, 0, stripAnsi(shown))
+      const id = /Detached from run (\S+); it goes on\./.exec(stripAnsi(shown))?.[1] ?? ''
+      assert.ok(id, stripAnsi(shown))
+      const attaching = runCli(p.dir, ['attach', id])
+      await sleep(500)
+      writeFileSync(join(p.dir, 'go'), '')
+      const attached = await attaching
+      assert.equal(attached.code, 0, attached.stderr)
+      assert.match(attached.stdout, /✓ waits/)
+      assert.ok(existsSync(join(p.dir, '.reeval', 'events', `${id}.log`)), "a detached run's log")
+    } finally {
+      viewer.kill()
+    }
+  })
+
+  test('reeval run -d starts the run in the background, and attach exits with its code', async () => {
+    const p = await project('events-detach', {
+      'reeval.config.ts': config,
+      'evals/waits.eval.ts': gated,
+    })
+    const started = await runCli(p.dir, ['run', '-d'])
+    assert.equal(started.code, 0, started.stderr)
+    const id = /^Run (\S+) goes on in the background: reeval attach \1 follows it$/m.exec(
+      started.stdout,
+    )?.[1]
+    assert.ok(id, started.stdout)
+    const attaching = runCli(p.dir, ['attach', id])
+    await sleep(500)
+    writeFileSync(join(p.dir, 'go'), '')
+    const attached = await attaching
+    assert.equal(attached.code, 0, attached.stderr)
+    assert.match(attached.stdout, /✓ waits/)
+    const refused = await runCli(p.dir, ['run', '-d', '--json'])
+    assert.equal(refused.code, 2)
+    assert.match(refused.stderr, /--detach runs a run on this machine in the background: --json/)
+  })
+
   test('on a terminal, reeval attach draws the list, and x twice cancels the run, which writes its record', {
     skip: pty || noSignals,
   }, async () => {
@@ -1755,7 +1812,7 @@ evaluate('slow', async (c) => {
       assert.ok(stripAnsi(shown).includes(text), `${text} in:\n${stripAnsi(shown)}`)
     }
     try {
-      await shows('q detach · x cancel the run')
+      await shows('q/ctrl-d detach · x cancel the run')
       viewer.stdin.write('x')
       await shows('Press x again to cancel the run.')
       viewer.stdin.write('x')
@@ -1804,7 +1861,6 @@ evaluate('slow', async (c) => {
     const newer = await runCli(p.dir, ['attach', 'out/newer.ndjson'])
     assert.equal(newer.code, 2)
     assert.match(newer.stderr, /Upgrade reeval to read it/)
-    // A run without --events has no stream to attach to.
     writeFileSync(join(p.dir, 'go'), '')
     // --events takes no value: the eval file after it is a filter, never the stream's file.
     const filtered = await runCli(p.dir, ['run', '--events', 'evals/waits.eval.ts'])
@@ -1820,14 +1876,12 @@ evaluate('slow', async (c) => {
       /Removed the event streams of 1 finished run from \.reeval\/events/,
     )
     assert.ok(!existsSync(join(p.dir, '.reeval', 'events', `${filteredId}.ndjson`)))
+    // Every run writes its stream, without --events too.
     const plain = await runCli(p.dir, ['run'])
     assert.equal(plain.code, 0, plain.stderr)
     const id = /Run: +(\S+)/.exec(plain.stdout)?.[1] ?? ''
-    const missing = await runCli(p.dir, ['attach', id])
-    assert.equal(missing.code, 2)
-    assert.match(
-      missing.stderr,
-      new RegExp(`run ${id} has no event stream: reeval run --events writes one`),
-    )
+    const replayed = await runCli(p.dir, ['attach', id])
+    assert.equal(replayed.code, 0, replayed.stderr)
+    assert.match(replayed.stdout, new RegExp(`Run: +${id}`))
   })
 })

@@ -203,8 +203,8 @@ test('once the run has ended, q quits at once and takes the whole frame down', a
   }
 })
 
-test("following another process's run, q and Ctrl-C detach at once and never cancel it", async () => {
-  for (const key of ['q', '\u0003']) {
+test("following another process's run, q, Ctrl-C and Ctrl-D detach at once and never cancel it", async () => {
+  for (const key of ['q', '\u0003', '\u0004']) {
     const store = new ListStore()
     store.set({ files: files(), counts: { done: 2, total: 3 }, cancelable: true })
     let detached = 0
@@ -219,15 +219,59 @@ test("following another process's run, q and Ctrl-C detach at once and never can
     )
     try {
       await settle()
-      assert.match(app.lastFrame() ?? '', /↑↓ move · → open · q detach · x cancel the run$/m)
+      assert.match(
+        app.lastFrame() ?? '',
+        /↑↓ move · → open · q\/ctrl-d detach · x cancel the run$/m,
+      )
       app.stdin.write(key)
       await settle()
       assert.equal(detached, 1, `${JSON.stringify(key)} detaches without asking`)
       assert.equal(canceled, 0, 'the run is left alone')
-      assert.doesNotMatch(app.lastFrame() ?? '', /evals\/|q detach/, 'nothing of the list is left')
+      assert.doesNotMatch(
+        app.lastFrame() ?? '',
+        /evals\/|q\/ctrl-d detach/,
+        'nothing of the list is left',
+      )
     } finally {
       app.unmount()
     }
+  }
+})
+
+test("following the run this terminal's reeval run started, Ctrl-C and q twice cancel it and Ctrl-D detaches", async () => {
+  const store = new ListStore()
+  store.set({ files: files(), counts: { done: 2, total: 3 } })
+  let detached = 0
+  let canceled = 0
+  const app = render(
+    h(ListApp, {
+      store,
+      colors: c,
+      cancel: () => !!++canceled,
+      detach: () => detached++,
+      owned: true,
+    }),
+  )
+  const frame = () => app.lastFrame() ?? ''
+  try {
+    await settle()
+    assert.match(frame(), /↑↓ move · → open · q cancel · ctrl-d detach$/m)
+    app.stdin.write('\u0003')
+    await settle()
+    assert.equal(canceled, 1, 'Ctrl-C cancels')
+    app.stdin.write('q')
+    await settle()
+    assert.match(frame(), /^Press q again to cancel the run\.$/m)
+    app.stdin.write('q')
+    await settle()
+    assert.equal(canceled, 2, 'the second q cancels')
+    assert.equal(detached, 0, 'and the viewer stays')
+    app.stdin.write('\u0004')
+    await settle()
+    assert.equal(detached, 1, 'Ctrl-D detaches')
+    assert.doesNotMatch(frame(), /evals\/|ctrl-d detach/, 'nothing of the list is left')
+  } finally {
+    app.unmount()
   }
 })
 
@@ -249,7 +293,7 @@ test("following another process's run, x asks and a second x cancels it, once", 
     app.stdin.write('x')
     await settle()
     assert.equal(canceled, 1, 'the second x cancels')
-    assert.match(frame(), /q detach$/m, 'the cancel key is gone once used')
+    assert.match(frame(), /q\/ctrl-d detach$/m, 'the cancel key is gone once used')
     app.stdin.write('x')
     app.stdin.write('x')
     await settle()
@@ -270,7 +314,7 @@ test('following a run that cannot be reached, there is no cancel key', async () 
     )
     try {
       await settle()
-      assert.match(app.lastFrame() ?? '', /↑↓ move · → open · q detach$/m)
+      assert.match(app.lastFrame() ?? '', /↑↓ move · → open · q\/ctrl-d detach$/m)
       app.stdin.write('x')
       await settle()
       app.stdin.write('x')
@@ -292,7 +336,7 @@ test('following a run no key reaches, the list says how to cancel it instead', a
     await settle()
     assert.match(
       app.lastFrame() ?? '',
-      /↑↓ move · → open · q detach · reeval cloud run cancel run_1 cancels it$/m,
+      /↑↓ move · → open · q\/ctrl-d detach · reeval cloud run cancel run_1 cancels it$/m,
     )
   } finally {
     app.unmount()
@@ -314,7 +358,7 @@ test('the cancel key goes as the run stops being reachable, and a refused cancel
     store.set({ cancelable: false })
     app.stdin.write(KEY.down)
     await settle()
-    assert.match(frame(), /q detach$/m, 'the refusal goes with the next key, and so does x')
+    assert.match(frame(), /q\/ctrl-d detach$/m, 'the refusal goes with the next key, and so does x')
   } finally {
     app.unmount()
   }

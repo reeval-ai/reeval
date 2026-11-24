@@ -183,10 +183,15 @@ export type ListAppProps = {
    */
   cancel?: () => boolean | undefined
   /**
-   * Set when the run is another process's: q and Ctrl-C call it while the run goes and take the
-   * list down, leaving the run alone.
+   * Set when the run is another process's: q, Ctrl-C and Ctrl-D call it while the run goes and
+   * take the list down, leaving the run alone.
    */
   detach?: () => void
+  /**
+   * Under `detach`, the run is the one this terminal's `reeval run` started: Ctrl-C and q pressed
+   * twice cancel it, as they do a run in this process, and only Ctrl-D detaches.
+   */
+  owned?: boolean
   /** Under `detach`, how to cancel a run no key here can reach, shown in place of x. */
   cancelHint?: string
 }
@@ -196,6 +201,7 @@ export function ListApp({
   colors: c,
   cancel,
   detach,
+  owned,
   cancelHint,
 }: ListAppProps): ReactElement {
   const state = useSyncExternalStore(store.subscribe, store.get)
@@ -254,7 +260,8 @@ export function ListApp({
     setFull(false)
   }, [finished, store])
 
-  const cancelable = !!detach && !!cancel && state.cancelable === true && !canceled
+  const attached = !!detach && !owned
+  const cancelable = attached && !!cancel && state.cancelable === true && !canceled
 
   useInput((input, key) => {
     setRefused(false)
@@ -262,7 +269,12 @@ export function ListApp({
       setQuitting(true)
       return
     }
-    if (detach && !finished) {
+    if (detach && !finished && key.ctrl && input === 'd') {
+      detach()
+      setQuitting(true)
+      return
+    }
+    if (attached && !finished) {
       if (input === 'q' || (key.ctrl && input === 'c')) {
         detach()
         setQuitting(true)
@@ -321,10 +333,10 @@ export function ListApp({
   const step = more ? '→ more' : '→ open'
   const keys = finished
     ? `↑↓ move · ${step} · ← close · q quit`
-    : detach
-      ? `↑↓ move · ${step} · q detach${cancelable ? ' · x cancel the run' : cancelHint ? ` · ${cancelHint}` : ''}`
-      : `↑↓ move · ${step} · q cancel`
-  const confirm = detach ? 'Press x again to cancel the run.' : 'Press q again to cancel the run.'
+    : attached
+      ? `↑↓ move · ${step} · q/ctrl-d detach${cancelable ? ' · x cancel the run' : cancelHint ? ` · ${cancelHint}` : ''}`
+      : `↑↓ move · ${step} · q cancel${detach ? ' · ctrl-d detach' : ''}`
+  const confirm = attached ? 'Press x again to cancel the run.' : 'Press q again to cancel the run.'
   // The phase spins while reeval waits on the run, and settles once it ends.
   const glyph = finished ? c.teal('◆') : c.teal(SPINNER[frame % SPINNER.length] ?? '◆')
   const head = state.phase ? [`  ${glyph}  ${state.phase}`, ' '] : []
@@ -341,7 +353,7 @@ export function ListApp({
       : [doneLine(c, state.counts)]),
     refused && !finished
       ? c.yellow("The run can't be canceled from here now.")
-      : confirming && !finished && (cancelable || !detach)
+      : confirming && !finished && (cancelable || !attached)
         ? c.yellow(confirm)
         : c.dim(keys),
   ]
@@ -415,6 +427,7 @@ export function mountList(o: MountOptions): {
     colors: o.colors,
     ...(o.cancel ? { cancel: o.cancel } : {}),
     ...(o.detach ? { detach: o.detach } : {}),
+    ...(o.owned ? { owned: o.owned } : {}),
     ...(o.cancelHint ? { cancelHint: o.cancelHint } : {}),
   }
   // Only an interactive terminal mounts the list, so Ink draws it live even where it detects CI.

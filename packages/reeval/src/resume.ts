@@ -38,13 +38,13 @@ export const currentPath = (root: string) => join(root, '.reeval', 'current')
 
 const stagingOf = (root: string, runId: string) => join(root, '.reeval', 'staging', runId)
 
-/** Where `reeval run --events` with no file writes a run's event stream. */
+/** Where `reeval run` writes a run's event stream, unless `--events-file` or `--events-url` says. */
 export const eventsFile = (root: string, runId: string) =>
   join(root, '.reeval', 'events', `${runId}.ndjson`)
 
 /**
  * `reeval clean`: deletes `.reeval/events`' streams of runs with no staging left, but the newest
- * `keep`. Returns the run ids whose streams it deleted.
+ * `keep`, with the logs of their background engines. Returns the run ids whose streams it deleted.
  */
 export async function pruneEvents(root: string, keep: number): Promise<string[]> {
   const dir = join(root, '.reeval', 'events')
@@ -56,7 +56,12 @@ export async function pruneEvents(root: string, keep: number): Promise<string[]>
     .sort()
     .reverse()
     .slice(keep)
-  await Promise.all(finished.map((id) => rm(eventsFile(root, id), { force: true })))
+  await Promise.all(
+    finished.flatMap((id) => [
+      rm(eventsFile(root, id), { force: true }),
+      rm(join(dir, `${id}.log`), { force: true }),
+    ]),
+  )
   return finished
 }
 
@@ -756,7 +761,7 @@ export async function resolveAttach(root: string, ref?: string): Promise<AttachT
     const pick = running.find((c) => c.runId === pointer) ?? running.at(-1)
     if (!pick) {
       throw new UsageError(
-        'No run in progress to attach to. reeval attach <run> follows a run by id, or <file|url> a stream; reeval run --events writes one.',
+        'No run in progress to attach to. reeval attach <run> follows a run by id, or <file|url> a stream.',
       )
     }
     runId = pick.runId
@@ -784,8 +789,8 @@ export async function resolveAttach(root: string, ref?: string): Promise<AttachT
   if (!existsSync(file)) {
     throw new UsageError(
       live
-        ? `run ${runId} is running without --events, so it has no event stream to attach to.`
-        : `run ${runId} has no event stream: reeval run --events writes one.`,
+        ? `run ${runId} is running without an event stream to attach to.`
+        : `run ${runId} has no event stream.`,
     )
   }
   return { runId, file, live }
