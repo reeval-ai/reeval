@@ -317,7 +317,7 @@ describe('reeval cloud push', () => {
       const r = await runCli(dir, ['cloud', 'push'], { env: envFor(p.base) })
       assert.equal(r.code, 3, r.stdout + r.stderr)
       assert.match(r.stderr, /answered how run .* stands with something else/)
-      assert.doesNotMatch(r.stderr, /TypeError|at /)
+      assert.doesNotMatch(r.stderr, /TypeError|\n\s+at /)
     } finally {
       await p.close()
     }
