@@ -48,7 +48,13 @@ export type TranscriptEvent = EventTime & {
    */
   step?: number
 } & (
-    | { type: 'text' | 'reasoning'; text: string; durationMs: number | null }
+    | {
+        type: 'text' | 'reasoning'
+        text: string
+        durationMs: number | null
+        /** The `toolCallId` of the subagent call whose agent said it; absent for the agent's own. */
+        subagent?: string
+      }
     | (FileEditEvent &
         ToolPayload & {
           durationMs: number | null
@@ -196,6 +202,44 @@ export type TokenUsage = {
   cacheRead: number
   cacheWrite: number
   reasoning: number | null
+}
+
+/**
+ * Whether a turn's `usage` counts the subagents it spawned: `counted`, every one's model calls;
+ * `missing`, some child's usage couldn't be read (it was still running, or its CLI stored none),
+ * so the total is a lower bound; `unknown`, the harness doesn't say whether its total covers them.
+ */
+export type SubagentUsage = 'counted' | 'missing' | 'unknown'
+
+/** One subagent a turn spawned, from its spawn call and what its CLI stored. */
+export type SubagentRun = {
+  /** The spawn call's `toolCallId`, which its events' `subagent` names. */
+  id: string
+  /** The spawning subagent's `id`, for a subagent another spawned. */
+  parent?: string
+  /** The harness's own id for it: Claude Code's agent id, Codex's thread id, Cursor's agent id. */
+  nativeId?: string
+  /** The kind of agent it ran (Claude Code's `subagent_type`). */
+  agent?: string
+  /** The model it ran on, as its harness names it. */
+  model?: string
+  /** The task it was given. */
+  prompt: string
+  /** How it ended; null when the turn ended first or the harness doesn't say. */
+  status: 'completed' | 'failed' | 'canceled' | null
+  /** Its wall time; null when unknown. */
+  durationMs: number | null
+  /** Set when it ran in the background while its spawner went on. */
+  background?: true
+  /**
+   * How its own events reached the transcript: `streamed` with its spawner's, or `none`, so only
+   * the spawn call and its result are there (the workspace diff has what it changed).
+   */
+  events: 'streamed' | 'none'
+  /** Its own model calls' tokens, its own subagents' left out; null when they can't be read. */
+  usage: TokenUsage | null
+  /** Its last message, from the spawn call's result. */
+  finalMessage?: string
 }
 
 /** A dollar figure and where it came from. */

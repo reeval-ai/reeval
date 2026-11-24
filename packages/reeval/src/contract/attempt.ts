@@ -82,6 +82,7 @@ export const transcriptEventSchema = z.discriminatedUnion('type', [
     type: z.enum(['text', 'reasoning']),
     text: z.string(),
     durationMs: nullableNumber,
+    subagent: z.string().optional(),
   }),
   z.strictObject({
     ...at,

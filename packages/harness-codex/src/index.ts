@@ -36,5 +36,10 @@ export {
 } from './codex-harness.ts'
 export { type CodexEvent, CodexStreamTranslator, type CodexUsage, toUsage } from './codex-stream.ts'
 export { CODEX_BUILTIN_TOOLS, type CodexBuiltinTools } from './codex-tools.ts'
-export { codexStoredUsageCommand, parseCodexStoredUsage } from './codex-usage.ts'
+export {
+  codexStoredSubagentsCommand,
+  codexStoredUsageCommand,
+  parseCodexStoredSubagents,
+  parseCodexStoredUsage,
+} from './codex-usage.ts'
 export { VERSION } from './version.ts'

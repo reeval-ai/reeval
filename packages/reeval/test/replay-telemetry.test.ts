@@ -204,6 +204,18 @@ describe("telemetry: Claude Code's edits through a subagent", () => {
     assert.deepEqual(found.map((e) => e.path).sort(), ['src/NOTES.md', 'src/schedule.js'])
     for (const e of found) assert.equal(e.subagent, agent.toolCallId)
   })
+  test("the Agent call is the subagent's spawn, naming its agent id", () => {
+    assert.ok(agent?.type === 'tool')
+    const spawned = AGENTS['claude-code'].subagents.spawns(
+      events,
+      lines.map((l) => l.part),
+    )
+    assert.deepEqual(
+      spawned.map((s) => s.id),
+      [agent.toolCallId],
+    )
+    assert.ok(spawned[0]?.nativeId, JSON.stringify(spawned[0]))
+  })
   test('twin: without the subagent messages there are no edits', () => {
     const own = lines.filter(
       (l) =>
@@ -225,6 +237,19 @@ describe("telemetry: Codex's subagent calls", () => {
     const names = calls(read('codex-subagent'))
     assert.ok(names.includes('spawn_agent'), names.join())
     assert.ok(names.includes('wait'), names.join())
+  })
+  test('each spawn_agent call names the thread it started', () => {
+    const events = normalizeStream(
+      // The translator's `result` is the stream's `output` once the AI SDK has passed it on.
+      retranslate(read('codex-subagent')).map((p) => ({
+        ms: 0,
+        part: (p.type === 'tool-result' ? { ...p, output: p.result } : p) as never,
+      })),
+      0,
+    )
+    const spawned = AGENTS.codex.subagents.spawns(events, [])
+    assert.ok(spawned.length > 0)
+    for (const s of spawned) assert.match(s.nativeId ?? '', /^[0-9a-f]{8}-[0-9a-f]{4}-/)
   })
   test('twin: an unknown collab item is not one', () => {
     const raw = read('codex-subagent').replaceAll('"collab_tool_call"', '"collab_unknown"')

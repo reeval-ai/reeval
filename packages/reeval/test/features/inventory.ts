@@ -1895,6 +1895,14 @@ export const inventory: InventoryFeature[] = [
   },
 
   {
+    id: 'harness.subagents',
+    area: 'Harnesses',
+    name: "The subagents an agent spawned: their events in the transcript tagged `subagent`, the record's `subagents[]`, and each turn's `usage` counting their tokens beside `agentUsage` and `subagentUsage`",
+    fixtures: ['harness/subagent-transcript'],
+    unit: ['agents/test/subagents.test.ts', 'reeval/test/replay-telemetry.test.ts'],
+  },
+
+  {
     id: 'harness.transcript-step',
     area: 'Harnesses',
     name: "Each transcript event's `step`: the harness's step in its turn, from its adapter's `finish-step` parts",

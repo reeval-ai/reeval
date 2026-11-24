@@ -92,6 +92,7 @@ import {
   type RunRecord,
   SCHEMA_VERSION,
   type Stack,
+  type SubagentRecord,
 } from './types.ts'
 
 /** Final messages are cut at this size in the record; `transcript.jsonl` keeps them whole. */
@@ -397,6 +398,36 @@ export function rawLines(record: EvalRecord): string | null {
   return `${redactSplitSecrets(lines).join('\n')}\n`
 }
 
+/** A clipped prompt or message for `subagents[]`, cut as a turn's final message is. */
+function clipped(text: string): string {
+  const s = maskedOver(text, TURN_TEXT_LIMIT)
+  return s.length > TURN_TEXT_LIMIT ? `${s.slice(0, TURN_TEXT_LIMIT)}…` : s
+}
+
+const TOOL_LIKE = new Set(['tool', 'file-edit', 'web-search', 'web-fetch'])
+
+/** The subagents each turn spawned, numbered across the attempt, with their events counted. */
+function subagentRecords(turns: EvalRecord['turns']): SubagentRecord[] {
+  let n = 0
+  return turns.flatMap((t, turn) =>
+    (t.subagents ?? []).map((s) => {
+      const own = t.transcript.filter((e) => 'subagent' in e && e.subagent === s.id)
+      const streamed = s.events === 'streamed'
+      const { id, ...rest } = s
+      return {
+        id,
+        n: ++n,
+        ...rest,
+        turn,
+        prompt: clipped(s.prompt),
+        ...(s.finalMessage !== undefined ? { finalMessage: clipped(s.finalMessage) } : {}),
+        toolCalls: streamed ? own.filter((e) => TOOL_LIKE.has(e.type)).length : null,
+        fileEdits: streamed ? own.filter((e) => e.type === 'file-edit').length : null,
+      }
+    }),
+  )
+}
+
 function activity(record: EvalRecord): AttemptRecord['activity'] {
   const events = record.turns.flatMap((t) => t.transcript)
   const count = (type: string) => events.filter((e) => e.type === type).length
@@ -407,7 +438,10 @@ function activity(record: EvalRecord): AttemptRecord['activity'] {
   const turns = record.turns.map((t) =>
     t.reasoningMs !== undefined
       ? t.reasoningMs
-      : t.transcript.reduce((n, e) => n + (e.type === 'reasoning' ? (e.durationMs ?? 0) : 0), 0),
+      : t.transcript.reduce(
+          (n, e) => n + (e.type === 'reasoning' && !e.subagent ? (e.durationMs ?? 0) : 0),
+          0,
+        ),
   )
   const reasoningMs =
     turns.length === 0 || turns.some((ms) => ms === null)
@@ -1128,6 +1162,8 @@ async function attemptEvidence(
         startedAt: t.startedAt,
         durationMs: t.durationMs,
         usage: t.usage ?? null,
+        ...(t.agentUsage !== undefined ? { agentUsage: t.agentUsage } : {}),
+        ...(t.subagentUsage ? { subagentUsage: t.subagentUsage } : {}),
         model: t.model ?? null,
         servedModel,
         servedEffort: effort,
@@ -1143,6 +1179,9 @@ async function attemptEvidence(
       }
     }),
     usage: sumUsage((record?.turns ?? []).map((t) => t.usage)),
+    ...(record?.turns.some((t) => t.subagents?.length)
+      ? { subagents: subagentRecords(record.turns) }
+      : {}),
     ...(record?.timeSplit ? { timeSplit: record.timeSplit } : {}),
     ...(record?.captureUse ? { captureUse: record.captureUse } : {}),
     timings: record?.timings ?? { setupMs: 0, agentMs: 0, diffMs: 0, checksMs: 0, judgeMs: 0 },

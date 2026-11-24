@@ -50,6 +50,7 @@ export {
   turnCosts,
 } from './driver/agent.ts'
 export { type ProviderStop, providerStop, statusCause } from './driver/provider-stop.ts'
+export { turnTotals } from './driver/subagents.ts'
 export {
   errorText,
   normalizeStream,
@@ -159,6 +160,8 @@ export type {
   FileEditEvent,
   ModelCallEvent,
   ProviderStopRecord,
+  SubagentRun,
+  SubagentUsage,
   TokenUsage,
   TranscriptEvent,
   TurnStatus,

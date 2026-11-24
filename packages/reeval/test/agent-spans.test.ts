@@ -25,6 +25,19 @@ const record = {
       model: 'claude-x',
       unreported: [],
       cost: { usd: 0.25, basis: 'reported', source: 'claude-code' },
+      subagentUsage: 'counted',
+      subagents: [
+        {
+          id: 'agent-1',
+          agent: 'general-purpose',
+          model: 'claude-haiku',
+          prompt: 'SECRET INPUT',
+          status: 'completed',
+          durationMs: 4000,
+          events: 'streamed',
+          usage: { input: 10, output: 2, cacheRead: 30, cacheWrite: 0, reasoning: 0 },
+        },
+      ],
       transcript: [
         { type: 'reasoning', text: 'SECRET THOUGHT', durationMs: 10, ts: at(1100), atMs: 100 },
         {
@@ -176,6 +189,20 @@ test('tokens follow the GenAI conventions, with cache reads and writes inside in
   assert.equal(root.attributes['session.id'], 'run-1')
   assert.equal(root.attributes['reeval.outcome'], 'fail')
   assert.deepEqual(root.status, { code: 'error', message: 'expected hello' })
+})
+
+test("a spawn call carries its subagent's own tokens; the turn and agent say whether usage counts them", () => {
+  const spans = build()
+  const [agentTool, edit] = byName(spans, 'execute_tool')
+  assert.equal(agentTool?.attributes['reeval.subagents'], 1)
+  assert.equal(agentTool?.attributes['reeval.subagent.agent'], 'general-purpose')
+  assert.equal(agentTool?.attributes['reeval.subagent.model'], 'claude-haiku')
+  assert.equal(agentTool?.attributes['reeval.subagent.status'], 'completed')
+  assert.equal(agentTool?.attributes['gen_ai.usage.input_tokens'], 40)
+  assert.equal(agentTool?.attributes['gen_ai.usage.output_tokens'], 2)
+  assert.equal(edit?.attributes['reeval.subagents'], undefined, 'only the spawn call has them')
+  assert.equal(byName(spans, 'turn')[0]?.attributes['reeval.subagent_usage'], 'counted')
+  assert.equal(byName(spans, 'invoke_agent')[0]?.attributes['reeval.subagent_usage'], 'counted')
 })
 
 test('each check and judgment is a gen_ai.evaluation.result event on the agent span', () => {

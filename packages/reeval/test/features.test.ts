@@ -3535,6 +3535,52 @@ export const features: Feature[] = [
     },
   },
   {
+    dir: 'harness/subagent-transcript',
+    tiers: ['fake'],
+    env: 'plain',
+    canary: /to match object \{ input: 100, output: 10 \}/,
+    record: ({ run, runDir }) => {
+      const attempt = landed(run)
+      const [turn] = attempt?.turns ?? []
+      const own = { input: 100, output: 10, cacheRead: 0, cacheWrite: 0, reasoning: 0 }
+      assert.deepEqual(turn?.agentUsage, own)
+      assert.equal(turn?.subagentUsage, 'counted')
+      assert.deepEqual(turn?.usage, { ...own, input: 160, output: 16 })
+      const [streamed, unstreamed] = attempt?.subagents ?? []
+      assert.equal(attempt?.subagents?.length, 2)
+      const pick = (o: object | undefined, keys: string[]) =>
+        Object.fromEntries(keys.map((k) => [k, (o as Record<string, unknown> | undefined)?.[k]]))
+      const streamedWant = {
+        n: 1,
+        turn: 0,
+        agent: 'general-purpose',
+        prompt: 'write add.js',
+        status: 'completed',
+        events: 'streamed',
+        toolCalls: 1,
+        fileEdits: 1,
+        usage: { ...own, input: 40, output: 4 },
+        finalMessage: 'Wrote add.js.',
+      }
+      assert.deepEqual(pick(streamed, Object.keys(streamedWant)), streamedWant)
+      const unstreamedWant = {
+        n: 2,
+        events: 'none',
+        toolCalls: null,
+        fileEdits: null,
+        usage: { ...own, input: 20, output: 2 },
+      }
+      assert.deepEqual(pick(unstreamed, Object.keys(unstreamedWant)), unstreamedWant)
+      const lines = readFileSync(join(runDir, attempt?.files.transcript?.path ?? ''), 'utf8')
+        .trim()
+        .split('\n')
+        .map((l) => JSON.parse(l))
+      const tagged = lines.filter((e) => e.subagent === streamed?.id).map((e) => e.type)
+      assert.deepEqual(tagged, ['file-edit', 'text'])
+      assert.equal(attempt?.activity.fileEdits, 1)
+    },
+  },
+  {
     dir: 'harness/turn-aborted-on-timeout',
     tiers: ['fake', 'docker', 'real'],
     env: 'plain',

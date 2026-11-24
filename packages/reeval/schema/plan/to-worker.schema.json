@@ -1347,6 +1347,63 @@
           "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         },
+        "subagents": {
+          "description": "Subagents the fake agent spawns on every turn, each with an `Agent` call, after its `tools`. A `streamed` one (the default) reports its writes as `file-edit` events tagged with that call; a `none` one writes its files unreported. Each subagent's `usage` is added to the turn's, as a harness that reports its agent's own usage only has it added; one without `usage` has none it can read. `status` defaults to `completed`; null is a subagent still running when the turn ended.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "agent": {
+                "type": "string"
+              },
+              "events": {
+                "type": "string",
+                "enum": ["streamed", "none"]
+              },
+              "files": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "prompt": {
+                "type": "string"
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["completed", "failed", "canceled"]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "text": {
+                "type": "string"
+              },
+              "usage": {
+                "type": "object",
+                "properties": {
+                  "input": {
+                    "type": "number"
+                  },
+                  "output": {
+                    "type": "number"
+                  }
+                },
+                "required": ["input", "output"],
+                "additionalProperties": false
+              }
+            },
+            "required": ["prompt"],
+            "additionalProperties": false
+          }
+        },
         "text": {
           "description": "The fake agent's final message on every turn; default `Done.`.",
           "type": "string"

@@ -4,6 +4,7 @@ import { PLUGIN_PARTS } from '../spec.ts'
 import type { HarnessCatalogEntry } from './entry.ts'
 import { LAYOUTS } from './layouts.ts'
 import { antigravityMcpServers } from './mcp.ts'
+import { antigravitySpawns } from './subagents.ts'
 
 export const antigravity = {
   ...LAYOUTS.antigravity,
@@ -27,4 +28,6 @@ export const antigravity = {
   // A Gemini API key, never the CLI's Google sign-in: automating that session risks the account.
   credential: 'GEMINI_API_KEY',
   mcpServers: antigravityMcpServers,
+  // A subagent runs apart from the stream, and the turn's usage leaves out its model calls.
+  subagents: { events: 'none', usage: 'separate', spawns: antigravitySpawns },
 } satisfies HarnessCatalogEntry

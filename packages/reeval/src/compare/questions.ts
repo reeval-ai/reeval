@@ -862,7 +862,7 @@ async function keptAttempt(
       const said = events.get(i) ?? []
       // The record cuts a long final message; the transcript's last text event has it whole.
       const last = t.text.includes('… [reeval: truncated ')
-        ? said.findLast((x) => x.type === 'text')
+        ? said.findLast((x) => x.type === 'text' && !x.subagent)
         : undefined
       return {
         prompt: t.prompt,

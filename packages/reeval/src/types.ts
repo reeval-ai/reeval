@@ -4,6 +4,8 @@ import type {
   ModelCallEvent,
   PluginPart,
   ProviderStopRecord,
+  SubagentRun,
+  SubagentUsage,
   TokenUsage,
   TranscriptEvent,
   TurnStatus,
@@ -24,6 +26,8 @@ export type {
   ModelCallEvent,
   PluginPart,
   ProviderStopRecord,
+  SubagentRun,
+  SubagentUsage,
   TokenUsage,
   TranscriptEvent,
   TurnStatus,
@@ -277,7 +281,7 @@ export type TurnData = {
   startedAt: string
   durationMs: number
   transcript: TranscriptEvent[]
-  /** Tokens the turn used; null when the harness reports none. */
+  /** Tokens the turn used, its subagents' included; null when the harness reports none. */
   usage: TokenUsage | null
   /**
    * The model the harness says served the turn, e.g. `composer-2.5[fast=false]`; null when it
@@ -665,6 +669,23 @@ export type FakeHarnessDescriptor = {
     output: unknown
     ok?: boolean | null
     durationMs?: number | null
+  }>
+  /**
+   * Subagents the fake agent spawns on every turn, each with an `Agent` call, after its `tools`.
+   * A `streamed` one (the default) reports its writes as `file-edit` events tagged with that call;
+   * a `none` one writes its files unreported. Each subagent's `usage` is added to the turn's, as
+   * a harness that reports its agent's own usage only has it added; one without `usage` has
+   * none it can read. `status` defaults to `completed`; null is a subagent still running when
+   * the turn ended.
+   */
+  subagents?: Array<{
+    prompt: string
+    agent?: string
+    files?: Record<string, string>
+    text?: string
+    events?: 'streamed' | 'none'
+    usage?: { input: number; output: number }
+    status?: 'completed' | 'failed' | 'canceled' | null
   }>
   /** Files and message used instead when the environment gives the agent a skill. */
   withSkill?: { files?: Record<string, string>; text?: string }
@@ -2996,6 +3017,12 @@ export type TurnRecord = Pick<
   timeSplit?: TimeSplit
   /** What the harness said the turn cost; reeval's estimate is added when the run is recorded. */
   cost?: CostUsd
+  /** See the run record's `turns[].agentUsage`. */
+  agentUsage?: TokenUsage | null
+  /** See the run record's `turns[].subagentUsage`. */
+  subagentUsage?: SubagentUsage
+  /** The subagents the turn spawned, which the record lists in `subagents`. */
+  subagents?: SubagentRun[]
 }
 
 /**

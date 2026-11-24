@@ -187,19 +187,27 @@ const REASONING_TIME = {
   none: '✗ (it never shows its reasoning)',
 }
 
+/** Whether a turn's tokens count its subagents', from the catalog's `subagents.usage`. */
+function subagentTokens(subagents) {
+  if (!subagents) return '— (no subagents)'
+  if (subagents.usage === 'unknown') return "unknown (the harness doesn't say)"
+  if (subagents.usage === 'included') return "✓ (in the turn's, not apart)"
+  return subagents.stored ? '✓' : "✗ (the turn's leave them out)"
+}
+
 /**
  * Which effort measures each harness reports, from the catalog: tokens (the contract row's real
- * runs), reasoning tokens apart, reasoning time, and a subagent's file edits. The others, tool
- * calls, agent time and the files the workspace diff changed, are the same for every harness.
+ * runs), reasoning tokens apart, reasoning time, a subagent's events and its tokens. The others,
+ * tool calls, agent time and the files the workspace diff changed, are the same for every harness.
  */
 export function renderTelemetry(facts) {
   const tokens = (v) => (v === 'provider' ? "by the model's provider" : yes(v))
   return [
-    "| Harness | Tokens | Reasoning tokens | Reasoning time | A subagent's file edits |",
-    '|---|---|---|---|---|',
+    "| Harness | Tokens | Reasoning tokens | Reasoning time | A subagent's events | A subagent's tokens |",
+    '|---|---|---|---|---|---|',
     ...facts.map(
       (h) =>
-        `| ${h.agent.name} | ${yes(h.row.tokens)} | ${h.row.tokens ? tokens(h.agent.reasoningTokens) : '✗'} | ${REASONING_TIME[h.agent.reasoning]} | ${yes(!!h.agent.subagentCalls)} |`,
+        `| ${h.agent.name} | ${yes(h.row.tokens)} | ${h.row.tokens ? tokens(h.agent.reasoningTokens) : '✗'} | ${REASONING_TIME[h.agent.reasoning]} | ${yes(h.agent.subagents?.events === 'streamed')} | ${h.row.tokens ? subagentTokens(h.agent.subagents) : '✗'} |`,
     ),
   ].join('\n')
 }

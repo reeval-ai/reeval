@@ -1,6 +1,6 @@
 import type { HarnessV1StreamPart } from '@ai-sdk/harness'
 import type { PluginPart, ResolvedMcpServer } from '../spec.ts'
-import type { WebEventType } from '../types.ts'
+import type { SubagentRun, TranscriptEvent, WebEventType } from '../types.ts'
 import type { Layout } from './layouts.ts'
 
 /** The kind of a real agent's harness, e.g. `cursor` or `claude-code`. */
@@ -103,11 +103,14 @@ export type HarnessEntry = Layout & {
    */
   fullToolOutput?: 'all' | readonly string[]
   /**
-   * Set when the transcript has a subagent's tool calls, so its edits count as file edits (Claude
-   * Code's bridge passes a subagent's messages on raw, and reeval reads them). Unset, only the
-   * workspace diff's `changedFiles` shows what a subagent changed.
+   * How the harness reports the subagents its agent spawns; unset for an agent that has none.
+   * `events: 'streamed'` when a subagent's own events reach the transcript (Claude Code's bridge
+   * passes its messages on raw), `none` when only the spawn call does, so only the workspace
+   * diff's `changedFiles` shows what it changed. `usage` says whether the turn's reported usage
+   * counts its subagents: `separate` when it's the agent's own alone, so each subagent's stored
+   * usage is added to it; `included` when it already counts them; `unknown` when unverified.
    */
-  subagentCalls?: true
+  subagents?: SubagentSupport
   /**
    * Set for an agent on `@ai-sdk/harness-acp`, whose `stream-start` names the ACP session's model:
    * the one the agent was configured with, not the one that served the turn. Its turns record
@@ -144,6 +147,35 @@ export type StoredUsage = {
   parse: (stdout: string) => { usage: HarnessUsage; calls: number; mark?: string } | undefined
   /** Where the next read starts, from the `raw` of the usage a turn's stream reported. */
   mark?: (raw: unknown) => string | undefined
+}
+
+/** See `HarnessEntry.subagents`. */
+export type SubagentSupport = {
+  events: SubagentRun['events']
+  usage: 'separate' | 'included' | 'unknown'
+  /** The subagents a turn's spawn calls started, from its transcript and raw stream parts. */
+  spawns: (events: readonly TranscriptEvent[], raw: readonly unknown[]) => SpawnedSubagent[]
+  /** Reads each subagent's own usage from where its CLI stored it, after the turn. */
+  stored?: () => Promise<StoredSubagents>
+}
+
+/** A subagent as its spawn call says, before its usage is read. */
+export type SpawnedSubagent = Omit<SubagentRun, 'events' | 'usage' | 'parent'>
+
+/** Reads subagents' stored usage in the sandbox; see `SubagentSupport.stored`. */
+export type StoredSubagents = {
+  /** The command that prints the stored usage of the subagents with these native ids. */
+  command: (ids: readonly string[]) => string
+  /** What it printed, by native id; a subagent it found nothing for is absent. */
+  parse: (stdout: string) => Record<string, StoredSubagent>
+}
+
+/** One subagent's stored usage, and the model and times it ran at (ms since the epoch). */
+export type StoredSubagent = {
+  usage: HarnessUsage
+  model?: string
+  startedAt?: number
+  endedAt?: number
 }
 
 /** How an agent's reasoning reaches reeval; see `Agent.reasoning`. */

@@ -1,0 +1,546 @@
+{
+  "kind": "reeval-run",
+  "schemaVersion": 1,
+  "runId": "20261124T104511Z_nogit_cursor-agent_a1qs",
+  "status": "complete",
+  "startedAt": "2026-11-24T10:45:11.940Z",
+  "endedAt": "2026-11-24T10:45:26.034Z",
+  "durationMs": 14094,
+  "author": "cursor-agent",
+  "git": null,
+  "spans": {
+    "path": "spans.jsonl",
+    "sha256": "75bb4de5fa00bd190edb8ad098f4e22bb7a7f2b6b5fe646dc00943eb0826102e",
+    "bytes": 2497
+  },
+  "runner": {
+    "kind": "local",
+    "hostHash": "ba806126880f"
+  },
+  "dependencies": {
+    "lockfiles": []
+  },
+  "stack": {
+    "reeval": "0.31.0",
+    "node": "26.13.0",
+    "runtime": {
+      "name": "node",
+      "version": "26.13.0"
+    },
+    "language": {
+      "name": "typescript"
+    },
+    "os": "linux",
+    "arch": "x64",
+    "images": [
+      {
+        "ref": "reeval-sandbox:claude-code-1.0.176-patch.423f52e6",
+        "id": "sha256:839e3cd34b2daa409ef0fea0077deb701c00fc5b36d0d08a2b9a39fcfbf75f02",
+        "agentCli": "2.1.290 (Claude Code)",
+        "base": "reeval-sandbox:claude-code-1.0.176-patch.423f52e6",
+        "install": [],
+        "dockerfile": null,
+        "repoDigests": []
+      }
+    ],
+    "packages": {
+      "@vitest/expect": "5.1.0",
+      "jiti": "2.7.0",
+      "@reeval/harness-antigravity": "0.1.17",
+      "@reeval/harness-opencode": "0.2.16",
+      "@reeval/harness-goose": "0.1.17",
+      "@reeval/harness-pi": "0.2.10",
+      "@reeval/harness-cursor-sdk": "0.1.9",
+      "@ai-sdk/harness-claude-code": "1.0.176-patch.423f52e6",
+      "@reeval/harness-codex": "0.1.14",
+      "@reeval/harness-fx": "0.1.14",
+      "@reeval/harness-grok-build": "0.1.13",
+      "ai": "7.0.161",
+      "@ai-sdk/harness": "1.0.172",
+      "@ai-sdk/anthropic": "4.0.95",
+      "@ai-sdk/google": "4.0.110",
+      "@ai-sdk/openai": "4.0.107",
+      "@ai-sdk/typesafe-ai": "3.0.32"
+    },
+    "harnesses": [
+      {
+        "id": "claude-code:claude-sonnet-5",
+        "kind": "claude-code",
+        "model": "claude-sonnet-5",
+        "effort": "medium",
+        "resolvedModels": [
+          "claude-sonnet-5"
+        ],
+        "resolvedEffort": []
+      }
+    ],
+    "judge": {
+      "model": null,
+      "resolvedModels": [],
+      "threshold": 0.8,
+      "version": "1f259248a52c"
+    },
+    "context": [
+      {
+        "path": "~/.claude/skills/.ai-sdk-harness-skills.json",
+        "sha256": "5ddf48ce4d7015c17873d3c8b1c02e421c433763e17d96c4ef377bbddabb44fe"
+      }
+    ],
+    "fingerprintScope": [
+      "eval-source",
+      "harness",
+      "environment",
+      "agent-cli",
+      "image-id",
+      "judge",
+      "context"
+    ]
+  },
+  "environments": [
+    {
+      "name": "puzzle",
+      "parent": null,
+      "overrides": [],
+      "digest": "sha256:f7226e524714ea50471191fccce9ff86f4f554390e4234230bcaeebf33ff9bdd",
+      "setup": [],
+      "skills": [],
+      "mcp": [],
+      "files": [
+        {
+          "path": "package.json",
+          "sha256": "dc18263ac0002a49499fc336bfe6971eecd4ad052a2f3bfa6b99a406fda8a950"
+        }
+      ],
+      "vars": [],
+      "secrets": [],
+      "brokered": [],
+      "unset": [],
+      "egress": "proxy"
+    }
+  ],
+  "profile": {
+    "name": "claude-code",
+    "reason": "--profile",
+    "defaults": {
+      "harness": [
+        "claude-code:claude-sonnet-5"
+      ]
+    },
+    "limit": {}
+  },
+  "invocation": {
+    "profile": "claude-code",
+    "filters": [],
+    "tags": []
+  },
+  "plan": {
+    "evals": 1,
+    "cells": 1,
+    "attempts": 1,
+    "estimateMs": 180000,
+    "sandboxWarnings": []
+  },
+  "budget": null,
+  "config": {
+    "sandbox": "docker",
+    "environment": null,
+    "runs": 1,
+    "judgeModel": null,
+    "threshold": 0.8,
+    "timeoutMs": 900000,
+    "concurrency": 4,
+    "configHash": "026b28d48eda7f16ae0da61263d38a054f04e25edfc6496319ad5ecf7ddd45e1"
+  },
+  "cost": {
+    "inputTokens": 56694,
+    "outputTokens": 548,
+    "usage": {
+      "input": 4,
+      "output": 548,
+      "cacheRead": 27672,
+      "cacheWrite": 29018,
+      "reasoning": 13
+    },
+    "source": "reported",
+    "agentUsd": {
+      "usd": 0.120686,
+      "basis": "reported",
+      "source": "claude-code"
+    }
+  },
+  "artifacts": "all",
+  "redaction": {
+    "version": 1
+  },
+  "summary": {
+    "evals": 1,
+    "attempts": 1,
+    "pass": 1,
+    "fail": 0,
+    "notGated": 0,
+    "infraError": 0,
+    "skipped": 0,
+    "counted": 1,
+    "gated": {
+      "pass": 1,
+      "fail": 0
+    },
+    "ungated": {
+      "pass": 0,
+      "fail": 0
+    },
+    "reclassified": 0
+  },
+  "evals": [
+    {
+      "id": "spike.eval.ts › subagents",
+      "key": "spike.eval.ts › subagents",
+      "slug": "spike-eval-ts-subagents-c4f85d",
+      "file": "spike.eval.ts",
+      "group": [],
+      "name": "subagents",
+      "tags": [],
+      "fingerprint": "401d4636ce831791e46f137592ad216090d09dd9f3c70354daf3e9e14d6cf9ea",
+      "sources": [
+        {
+          "path": "spike.eval.ts",
+          "sha256": "023a36edc31ffe750417ce31b588644ad22d5d8cbb186a8be5db20c78213e065"
+        }
+      ],
+      "source": {
+        "body": "8a600ed8dbb9104c33c0963bfa2fb31d8d43b6912a52c3fc9e2cb7589536a3df",
+        "options": "b1216fab604a9e0ebc572b7b745e27f5700639c532e92d0695e4b2f018120a07"
+      },
+      "outcome": "pass",
+      "todo": false,
+      "passRate": 1,
+      "cells": [
+        {
+          "key": "claude-code:claude-sonnet-5/puzzle/docker",
+          "harness": "claude-code:claude-sonnet-5",
+          "environment": "puzzle",
+          "sandbox": "docker",
+          "role": "control",
+          "fingerprint": "74228dd8322abd503ede0b3522f2c8e23b5554769d4399af21476d6f70756921",
+          "fingerprintParts": {
+            "sources": "fb8a80ba06092de14214123905c30c2da48efcb7579d4a4103d803e8ab54a326",
+            "harness": "6d10a421f35e2bea6ff9a3f11b20390a46ca5419f044a27961b27a539198f0ad",
+            "environment": "sha256:f7226e524714ea50471191fccce9ff86f4f554390e4234230bcaeebf33ff9bdd",
+            "image": "sha256:839e3cd34b2daa409ef0fea0077deb701c00fc5b36d0d08a2b9a39fcfbf75f02",
+            "agentCli": "2.1.290 (Claude Code)",
+            "judge": "c6920e9650c71d3766d60fd958bf2ca9ca4921c020f6b26afb06370e4241333e",
+            "context": "d680a9af604b702351f33a2ce31b15296969758add41c64fb0a6166601be0556"
+          },
+          "environmentDigest": "sha256:f7226e524714ea50471191fccce9ff86f4f554390e4234230bcaeebf33ff9bdd",
+          "harnessKind": "claude-code",
+          "model": "claude-sonnet-5",
+          "effort": "medium",
+          "gate": "all",
+          "overrides": [],
+          "runs": 1,
+          "pass": 1,
+          "fail": 0,
+          "infraError": 0,
+          "skipped": 0,
+          "passRate": 1,
+          "outcome": "pass",
+          "checks": [
+            {
+              "label": "add",
+              "pass": 1,
+              "fail": 0,
+              "error": 0,
+              "notRun": 0,
+              "notApplicable": 0
+            },
+            {
+              "label": "mul",
+              "pass": 1,
+              "fail": 0,
+              "error": 0,
+              "notRun": 0,
+              "notApplicable": 0
+            }
+          ],
+          "prompts": [
+            {
+              "sha256": "6d180caccec4a1fdcde74323e786343a3db8f100aec7d387d19abae8369ffb85"
+            }
+          ],
+          "cost": {
+            "agent": {
+              "usd": 0.120686,
+              "basis": "reported",
+              "source": "claude-code"
+            }
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "key": "spike.eval.ts › subagents # claude-code:claude-sonnet-5/puzzle/docker#1",
+          "id": "claude-code:claude-sonnet-5/puzzle/docker#1",
+          "cell": "claude-code:claude-sonnet-5/puzzle/docker",
+          "n": 1,
+          "seq": 1,
+          "startedAt": "2026-11-24T10:45:12.822Z",
+          "imageId": "sha256:839e3cd34b2daa409ef0fea0077deb701c00fc5b36d0d08a2b9a39fcfbf75f02",
+          "resources": {
+            "scope": "container",
+            "machine": {
+              "sandbox": "docker",
+              "vcpus": 2,
+              "memoryBytes": 4294967296
+            },
+            "usage": {
+              "durationMs": 11260,
+              "sampleMs": 1000,
+              "cpuSeconds": 1.981,
+              "avgCores": 0.176,
+              "peakCores": 0.436,
+              "p95Cores": 0.436,
+              "peakMemoryBytes": 233357312,
+              "cgroupPeakMemoryBytes": 455241728,
+              "throttling": {
+                "periods": 91,
+                "throttledPeriods": 0,
+                "throttledSeconds": 0
+              }
+            }
+          },
+          "env": {
+            "vars": [],
+            "secrets": [],
+            "brokered": []
+          },
+          "context": [
+            {
+              "path": "~/.claude/skills/.ai-sdk-harness-skills.json",
+              "sha256": "5ddf48ce4d7015c17873d3c8b1c02e421c433763e17d96c4ef377bbddabb44fe"
+            }
+          ],
+          "egress": {
+            "policy": "proxy",
+            "allowed": null,
+            "recorded": true,
+            "contacted": [
+              {
+                "host": "api.anthropic.com",
+                "port": 443,
+                "connections": 5,
+                "sent": 493985,
+                "received": 81790
+              }
+            ],
+            "blocked": [],
+            "expectedBlocked": [],
+            "unresolved": []
+          },
+          "servedModels": null,
+          "effort": "medium",
+          "servedEffort": null,
+          "outcome": "pass",
+          "error": null,
+          "durationMs": 13181,
+          "turns": [
+            {
+              "prompt": "Delegate this work to two subagents with your subagent (agent spawning) tool, run in parallel, and wait for both. Subagent 1: create src/add.js exporting `export const add = (a, b) => a + b` and run `node -e \"import('./src/add.js').then(m=>console.log(m.add(2,3)))\"`. Subagent 2: create src/mul.js exporting `export const mul = (a, b) => a * b` and run the same kind of check. Do not write the files yourself. When both are done, reply with one line saying what each subagent reported.",
+              "status": "completed",
+              "startedAt": "2026-11-24T10:45:15.528Z",
+              "durationMs": 9557,
+              "usage": {
+                "input": 4,
+                "output": 548,
+                "cacheRead": 27672,
+                "cacheWrite": 29018,
+                "reasoning": 13
+              },
+              "model": "claude-sonnet-5",
+              "servedModel": "claude-sonnet-5",
+              "servedEffort": null,
+              "unreported": [],
+              "error": null,
+              "reasoningMs": 632,
+              "timeSplit": {
+                "modelMs": 8295,
+                "toolMs": 143,
+                "waitingMs": 0,
+                "otherMs": 1119
+              },
+              "cost": {
+                "usd": 0.1206864,
+                "basis": "reported",
+                "source": "claude-code"
+              },
+              "callUsage": [
+                {
+                  "input": 2,
+                  "output": 525,
+                  "cacheRead": 0,
+                  "cacheWrite": 27672,
+                  "reasoning": 13
+                },
+                {
+                  "input": 2,
+                  "output": 145,
+                  "cacheRead": 0,
+                  "cacheWrite": 14266,
+                  "reasoning": 0
+                },
+                {
+                  "input": 2,
+                  "output": 150,
+                  "cacheRead": 11244,
+                  "cacheWrite": 3026,
+                  "reasoning": 0
+                },
+                {
+                  "input": 2,
+                  "output": 23,
+                  "cacheRead": 27672,
+                  "cacheWrite": 1346,
+                  "reasoning": 0
+                },
+                {
+                  "input": 2,
+                  "output": 114,
+                  "cacheRead": 14266,
+                  "cacheWrite": 860,
+                  "reasoning": 0
+                },
+                {
+                  "input": 2,
+                  "output": 56,
+                  "cacheRead": 15126,
+                  "cacheWrite": 149,
+                  "reasoning": 0
+                },
+                {
+                  "input": 2,
+                  "output": 122,
+                  "cacheRead": 14270,
+                  "cacheWrite": 866,
+                  "reasoning": 0
+                }
+              ],
+              "text": "Both subagents are running in the background — I'll report back once both complete."
+            }
+          ],
+          "usage": {
+            "input": 4,
+            "output": 548,
+            "cacheRead": 27672,
+            "cacheWrite": 29018,
+            "reasoning": 13
+          },
+          "timeSplit": {
+            "modelMs": 8295,
+            "toolMs": 143,
+            "waitingMs": 0,
+            "otherMs": 1119
+          },
+          "timings": {
+            "setupMs": 2637,
+            "agentMs": 9557,
+            "diffMs": 203,
+            "checksMs": 81,
+            "judgeMs": 0
+          },
+          "activity": {
+            "tools": 3,
+            "fileEdits": 0,
+            "webSearches": 0,
+            "webFetches": 0,
+            "reasoningMs": 632,
+            "stalledTools": 0,
+            "maxToolMs": 632
+          },
+          "judgements": [],
+          "snapshots": [
+            {
+              "name": "final",
+              "form": "dir",
+              "path": "spike-eval-ts-subagents-c4f85d/claude-code-claude-sonnet-5-puzzle-docker-05890c/1/snapshots/final",
+              "bytes": 128,
+              "files": 3,
+              "excluded": [],
+              "masked": [],
+              "dropped": [],
+              "skipped": null
+            }
+          ],
+          "assertions": [
+            {
+              "label": "add",
+              "labelled": true,
+              "matcher": "toHaveFile",
+              "status": "pass",
+              "soft": true,
+              "at": "spike.eval.ts:13",
+              "target": "src/add.js add",
+              "durationMs": 61
+            },
+            {
+              "label": "mul",
+              "labelled": true,
+              "matcher": "toHaveFile",
+              "status": "pass",
+              "soft": true,
+              "at": "spike.eval.ts:14",
+              "target": "src/mul.js mul",
+              "durationMs": 59
+            }
+          ],
+          "checks": [
+            {
+              "command": "cd / && tar czf - $(ls -d $HOME/.claude $HOME/.codex $HOME/.cursor ${CODEX_HOME:-/nonexistent} /tmp/claude-* 2>/dev/null) 2>/dev/null | base64 -w0",
+              "exitCode": 0,
+              "durationMs": 81,
+              "log": {
+                "path": "spike-eval-ts-subagents-c4f85d/claude-code-claude-sonnet-5-puzzle-docker-05890c/1/checks/1.log",
+                "sha256": "176e709295dd44f3e8ea2cfcdfa6f40d91a895ad126f0e9905acb9f883d07d80",
+                "bytes": 116003
+              }
+            }
+          ],
+          "changedFiles": [
+            {
+              "path": "src/add.js",
+              "status": "added",
+              "added": 1,
+              "removed": 0
+            },
+            {
+              "path": "src/mul.js",
+              "status": "added",
+              "added": 1,
+              "removed": 0
+            }
+          ],
+          "files": {
+            "transcript": {
+              "path": "spike-eval-ts-subagents-c4f85d/claude-code-claude-sonnet-5-puzzle-docker-05890c/1/transcript.jsonl",
+              "sha256": "f74959e5c6964273c750746153f80a3e82c7d36b1f13e555e905471d20e21cd6",
+              "bytes": 6372
+            },
+            "rawTranscript": {
+              "path": "spike-eval-ts-subagents-c4f85d/claude-code-claude-sonnet-5-puzzle-docker-05890c/1/transcript.raw.jsonl",
+              "sha256": "99d60cedc7d46544ade4f191703ef4db8989bd41180f09fa1db0f2d93c2ea3f8",
+              "bytes": 28252
+            },
+            "diff": {
+              "path": "spike-eval-ts-subagents-c4f85d/claude-code-claude-sonnet-5-puzzle-docker-05890c/1/diff.patch",
+              "sha256": "ca3169c4e8d2a93040ecca1b8de90b60a9136f5a50d6582f91a428c12e30aac6",
+              "bytes": 326
+            }
+          },
+          "cost": {
+            "usd": 0.120686,
+            "basis": "reported",
+            "source": "claude-code"
+          }
+        }
+      ]
+    }
+  ]
+}

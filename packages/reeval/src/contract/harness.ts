@@ -184,6 +184,19 @@ export const fakeHarnessSchema = z.strictObject({
       }),
     )
     .optional(),
+  subagents: z
+    .array(
+      z.strictObject({
+        prompt: z.string(),
+        agent: z.string().optional(),
+        files: z.record(z.string(), z.string()).optional(),
+        text: z.string().optional(),
+        events: z.enum(['streamed', 'none']).optional(),
+        usage: z.strictObject({ input: z.number(), output: z.number() }).optional(),
+        status: z.enum(['completed', 'failed', 'canceled']).nullable().optional(),
+      }),
+    )
+    .optional(),
   withSkill: z
     .strictObject({
       files: z.record(z.string(), z.string()).optional(),

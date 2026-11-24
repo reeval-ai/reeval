@@ -30,6 +30,7 @@ import type {
   SetupProcess,
   Snapshot,
   StartRetry,
+  SubagentUsage,
   TimeSplit,
   TokenUsage,
   TurnStatus,
@@ -323,8 +324,24 @@ export type AttemptRecord = {
     startedAt: string
     durationMs: number
     text: string
-    /** Tokens the turn used; null when the harness reports none. */
+    /**
+     * Tokens the turn used, its subagents' included (each subagent's are in `subagents`); null
+     * when the harness reports none. A record from before reeval counted them has no
+     * `subagentUsage`: its Claude Code turns that spawned subagents count the agent's own only.
+     */
     usage: TokenUsage | null
+    /**
+     * The agent's own tokens, its subagents' left out; null when the harness reports only a
+     * total it can't split. Absent when the turn spawned no subagent.
+     */
+    agentUsage?: TokenUsage | null
+    /**
+     * Whether `usage` counts the turn's subagents: `counted` (every one), `missing` (some
+     * subagent's tokens couldn't be read, or it was still running when the turn ended, so
+     * `usage` is a lower bound) or `unknown` (the harness doesn't say whether its total counts
+     * them). Absent when the turn spawned no subagent.
+     */
+    subagentUsage?: SubagentUsage
     /** The model the harness says served the turn; null when it reports none. */
     model: string | null
     /**
@@ -377,6 +394,11 @@ export type AttemptRecord = {
   timeSplit?: TimeSplit
   /** Tokens across the attempt's turns; null when the harness reported none. */
   usage: TokenUsage | null
+  /**
+   * The subagents the agent spawned, in spawn order. Their events are in `transcript.jsonl`,
+   * each tagged `subagent` with the entry's `id`. Absent when it spawned none.
+   */
+  subagents?: SubagentRecord[]
   /**
    * The gateway's billed `reportedCostUsd`, else the turns' costs added up; unset when a turn with
    * tokens has none.
@@ -1249,4 +1271,41 @@ export type HistoryEntry = {
   }>
   /** The run's errors outside any attempt; unset when there were none. */
   errors?: string[]
+}
+
+/**
+ * A subagent an attempt's agent spawned (`subagents[]`). `toolCalls` and `fileEdits` count its
+ * events in the transcript; null when its harness doesn't report them (`events: 'none'`).
+ * `prompt` and `finalMessage` are cut at 8 KB.
+ */
+export type SubagentRecord = {
+  /** The spawn call's `toolCallId`, which the subagent's transcript events carry as `subagent`. */
+  id: string
+  /** 1, 2, … in spawn order across the attempt. */
+  n: number
+  /** The index of the turn that spawned it. */
+  turn: number
+  /** The `id` of the subagent that spawned it; absent for the agent's own. */
+  parent?: string
+  /** The harness's own id for it: Claude Code's agent id, Codex's thread id, Cursor's agent id. */
+  nativeId?: string
+  /** The kind of agent it ran as, such as Claude Code's `subagent_type`. */
+  agent?: string
+  /** The model that served it. */
+  model?: string
+  prompt: string
+  /** How it ended; null when unknown, or it was still running when its turn ended. */
+  status: 'completed' | 'failed' | 'canceled' | null
+  /** How long it ran; null when unknown. */
+  durationMs: number | null
+  /** True when it ran in the background, its spawn call returning as it started. */
+  background?: true
+  /** Whether the harness streams its events (`streamed`) or not (`none`). */
+  events: 'streamed' | 'none'
+  toolCalls: number | null
+  fileEdits: number | null
+  /** Its own model calls' tokens, its own subagents' left out; null when they can't be read. */
+  usage: TokenUsage | null
+  /** Its last message, as its spawn call's result or its harness's notice gave it. */
+  finalMessage?: string
 }

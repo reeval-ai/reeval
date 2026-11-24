@@ -1,0 +1,412 @@
+{
+  "reportVersion": 1,
+  "runId": "20261124T104511Z_nogit_cursor-agent_a1qs",
+  "single": true,
+  "header": {
+    "title": "subagents",
+    "status": "complete",
+    "startedAt": "2026-11-24T10:45:11.940Z",
+    "author": "cursor-agent",
+    "reeval": "0.31.0",
+    "profile": "claude-code",
+    "scope": {
+      "profile": "claude-code",
+      "subset": false,
+      "configKey": "46cec426f015f946745bc35ec625f41c5409a67bdd6e76fde8b07438e5cf1733"
+    },
+    "runsPerCell": 1,
+    "wall": {
+      "value": 14094,
+      "text": "14s"
+    },
+    "tally": {
+      "counted": 1,
+      "passed": 1,
+      "failed": 0,
+      "ungated": {
+        "passed": 0,
+        "failed": 0
+      },
+      "infraError": 0,
+      "reclassified": 0,
+      "skipped": 0
+    },
+    "tokens": {
+      "total": {
+        "value": 57242,
+        "text": "57k"
+      },
+      "cacheRead": {
+        "value": 27672,
+        "text": "28k"
+      }
+    },
+    "cost": {
+      "agent": {
+        "value": 0.120686,
+        "text": "$0.12"
+      },
+      "judge": null,
+      "total": null,
+      "basis": "reported"
+    },
+    "git": null
+  },
+  "integrity": [],
+  "rollup": null,
+  "roster": [],
+  "evals": [
+    {
+      "id": "spike.eval.ts › subagents",
+      "anchor": "subagents",
+      "name": "subagents",
+      "file": "spike.eval.ts",
+      "shapes": [
+        "task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "headline": {
+        "task": "subagents",
+        "kicker": null,
+        "fairness": "too-few-runs",
+        "primary": {
+          "kind": "pass-rate",
+          "rate": {
+            "k": 1,
+            "n": 1,
+            "rate": 1,
+            "text": "100%",
+            "interval": {
+              "lo": 0.2065493117918027,
+              "hi": 1,
+              "text": "+21 pts to +100 pts"
+            }
+          },
+          "assertions": 2,
+          "harnesses": 1,
+          "outcome": "passed"
+        },
+        "foot": "1 of 1 counted attempts passed on all 2 assertions. 1 coding harness."
+      },
+      "insights": [],
+      "primary": {
+        "kind": "task",
+        "columns": [
+          "claude-code:claude-sonnet-5"
+        ],
+        "assertions": [
+          {
+            "label": "add",
+            "matcher": "toHaveFile",
+            "at": "spike.eval.ts:13",
+            "cells": {
+              "claude-code:claude-sonnet-5": {
+                "status": "pass",
+                "passed": 1,
+                "answered": 1,
+                "notApplicable": 0,
+                "preSatisfied": 0,
+                "text": "1 of 1",
+                "reason": null
+              }
+            },
+            "total": {
+              "status": "pass",
+              "passed": 1,
+              "answered": 1,
+              "notApplicable": 0,
+              "preSatisfied": 0,
+              "text": "1 of 1",
+              "reason": null
+            }
+          },
+          {
+            "label": "mul",
+            "matcher": "toHaveFile",
+            "at": "spike.eval.ts:14",
+            "cells": {
+              "claude-code:claude-sonnet-5": {
+                "status": "pass",
+                "passed": 1,
+                "answered": 1,
+                "notApplicable": 0,
+                "preSatisfied": 0,
+                "text": "1 of 1",
+                "reason": null
+              }
+            },
+            "total": {
+              "status": "pass",
+              "passed": 1,
+              "answered": 1,
+              "notApplicable": 0,
+              "preSatisfied": 0,
+              "text": "1 of 1",
+              "reason": null
+            }
+          }
+        ],
+        "axes": [
+          "Coding harness"
+        ],
+        "breakdown": [
+          {
+            "keys": [
+              "claude-code:claude-sonnet-5"
+            ],
+            "rate": {
+              "k": 1,
+              "n": 1,
+              "rate": 1,
+              "text": "100%",
+              "interval": {
+                "lo": 0.2065493117918027,
+                "hi": 1,
+                "text": "+21 pts to +100 pts"
+              }
+            },
+            "measures": {
+              "tokens": {
+                "n": 1,
+                "median": {
+                  "value": 57242,
+                  "text": "57k"
+                },
+                "q1": {
+                  "value": 57242,
+                  "text": "57k"
+                },
+                "q3": {
+                  "value": 57242,
+                  "text": "57k"
+                }
+              },
+              "toolCalls": {
+                "n": 1,
+                "median": {
+                  "value": 3,
+                  "text": "3"
+                },
+                "q1": {
+                  "value": 3,
+                  "text": "3"
+                },
+                "q3": {
+                  "value": 3,
+                  "text": "3"
+                }
+              },
+              "turns": {
+                "n": 1,
+                "median": {
+                  "value": 1,
+                  "text": "1"
+                },
+                "q1": {
+                  "value": 1,
+                  "text": "1"
+                },
+                "q3": {
+                  "value": 1,
+                  "text": "1"
+                }
+              },
+              "costUsd": {
+                "n": 1,
+                "median": {
+                  "value": 0.120686,
+                  "text": "$0.12"
+                },
+                "q1": {
+                  "value": 0.120686,
+                  "text": "$0.12"
+                },
+                "q3": {
+                  "value": 0.120686,
+                  "text": "$0.12"
+                }
+              },
+              "agentMs": {
+                "n": 1,
+                "median": {
+                  "value": 9557,
+                  "text": "9.6s"
+                },
+                "q1": {
+                  "value": 9557,
+                  "text": "9.6s"
+                },
+                "q3": {
+                  "value": 9557,
+                  "text": "9.6s"
+                }
+              },
+              "filesChanged": {
+                "n": 1,
+                "median": {
+                  "value": 2,
+                  "text": "2"
+                },
+                "q1": {
+                  "value": 2,
+                  "text": "2"
+                },
+                "q3": {
+                  "value": 2,
+                  "text": "2"
+                }
+              },
+              "linesAdded": {
+                "n": 1,
+                "median": {
+                  "value": 2,
+                  "text": "2"
+                },
+                "q1": {
+                  "value": 2,
+                  "text": "2"
+                },
+                "q3": {
+                  "value": 2,
+                  "text": "2"
+                }
+              },
+              "linesRemoved": {
+                "n": 1,
+                "median": {
+                  "value": 0,
+                  "text": "0"
+                },
+                "q1": {
+                  "value": 0,
+                  "text": "0"
+                },
+                "q3": {
+                  "value": 0,
+                  "text": "0"
+                }
+              }
+            }
+          }
+        ],
+        "median": null
+      },
+      "choices": [],
+      "discovery": [],
+      "judgments": null,
+      "qualitative": [],
+      "captures": null,
+      "failures": null
+    }
+  ],
+  "actions": [],
+  "provenance": {
+    "rows": [
+      {
+        "field": "Executed at",
+        "value": "not a git repository"
+      },
+      {
+        "field": "Lockfiles",
+        "value": "none found"
+      },
+      {
+        "field": "Images",
+        "value": "reeval-sandbox:claude-code-1.0.176-patch.423f52e6 · id 839e3cd34b2d · no registry digest (built locally) · CLI 2.1.290 (Claude Code)"
+      },
+      {
+        "field": "Harnesses",
+        "value": "claude-code:claude-sonnet-5 (model claude-sonnet-5, reasoning effort medium, served claude-sonnet-5)"
+      },
+      {
+        "field": "Resources",
+        "value": "docker 2 vCPU 4.0 GiB: 1 attempt · CPU 2.0 s (avg 0.18, peak 0.44 cores) · memory peak 223 MiB"
+      },
+      {
+        "field": "Environments",
+        "value": "puzzle f7226e524714"
+      },
+      {
+        "field": "Judge",
+        "value": "none by default · threshold 0.8 · version 1f259248a52c"
+      },
+      {
+        "field": "Packages",
+        "value": "@vitest/expect 5.1.0 · jiti 2.7.0 · @reeval/harness-antigravity 0.1.17 · @reeval/harness-opencode 0.2.16 · @reeval/harness-goose 0.1.17 · @reeval/harness-pi 0.2.10 · @reeval/harness-cursor-sdk 0.1.9 · @ai-sdk/harness-claude-code 1.0.176-patch.423f52e6 · @reeval/harness-codex 0.1.14 · @reeval/harness-fx 0.1.14 · @reeval/harness-grok-build 0.1.13 · ai 7.0.161 · @ai-sdk/harness 1.0.172 · @ai-sdk/anthropic 4.0.95 · @ai-sdk/google 4.0.110 · @ai-sdk/openai 4.0.107 · @ai-sdk/typesafe-ai 3.0.32"
+      },
+      {
+        "field": "reeval",
+        "value": "0.31.0 · node 26.13.0 · typescript evals · linux/x64"
+      },
+      {
+        "field": "Runner",
+        "value": "local · cursor-agent"
+      }
+    ],
+    "context": {
+      "count": 1,
+      "files": [
+        {
+          "path": "~/.claude/skills/.ai-sdk-harness-skills.json",
+          "sha256": "5ddf48ce4d7015c17873d3c8b1c02e421c433763e17d96c4ef377bbddabb44fe"
+        }
+      ]
+    },
+    "artifacts": "all",
+    "record": "../20261124T104511Z_nogit_cursor-agent_a1qs.json",
+    "warnings": [
+      "Image reeval-sandbox:claude-code-1.0.176-patch.423f52e6 isn't pushed, so an exact rerun needs this machine's image (id 839e3cd34b2d).",
+      "Not a git repository, so the code under test isn't pinned."
+    ]
+  },
+  "attempts": [
+    {
+      "id": "A1",
+      "key": "spike.eval.ts › subagents # claude-code:claude-sonnet-5/puzzle/docker#1",
+      "evalId": "spike.eval.ts › subagents",
+      "harness": "claude-code:claude-sonnet-5",
+      "arm": "puzzle",
+      "case": null,
+      "outcome": "pass",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": 57242,
+        "text": "57k"
+      },
+      "agentMs": {
+        "value": 9557,
+        "text": "10s"
+      },
+      "toolCalls": {
+        "value": 3,
+        "text": "3"
+      },
+      "facts": {
+        "toolCalls": 3,
+        "byClass": {
+          "context": 0,
+          "dependency": 0,
+          "web": 0,
+          "verify": 0,
+          "workspace": 3
+        },
+        "skills": [],
+        "contextFiles": []
+      },
+      "diff": {
+        "files": 2,
+        "added": 2,
+        "removed": 0,
+        "text": "2 files, +2 / -0"
+      },
+      "links": {
+        "transcript": "./spike-eval-ts-subagents-c4f85d/claude-code-claude-sonnet-5-puzzle-docker-05890c/1/transcript.jsonl",
+        "diff": "./spike-eval-ts-subagents-c4f85d/claude-code-claude-sonnet-5-puzzle-docker-05890c/1/diff.patch",
+        "captures": [],
+        "questions": []
+      },
+      "href": "./spike-eval-ts-subagents-c4f85d/claude-code-claude-sonnet-5-puzzle-docker-05890c/1/transcript.jsonl"
+    }
+  ]
+}

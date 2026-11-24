@@ -248,8 +248,9 @@ async function storeInApp(app: string, pkg: string, cli: Cli) {
 
 /**
  * OpenTelemetry export in a packed install: the SDK and its OTLP exporters are reeval's own
- * dependencies, `@opentelemetry/api` their peer among them, so a run with an endpoint set loads
- * them with whatever the installer laid out and sends every signal.
+ * dependencies, `@opentelemetry/api` their peer among them, so a run with both exports' endpoints
+ * set (the agent traces' and reeval's own) loads them with whatever the installer laid out and
+ * sends every signal.
  */
 async function otlpInApp(cli: Cli) {
   const paths: string[] = []
@@ -265,6 +266,7 @@ async function otlpInApp(cli: Cli) {
     const { port } = server.address() as AddressInfo
     const run = await cli(['run', '--ui', 'plain'], {
       OTEL_EXPORTER_OTLP_ENDPOINT: `http://127.0.0.1:${port}`,
+      REEVAL_OTEL_EXPORTER_OTLP_ENDPOINT: `http://127.0.0.1:${port}`,
     })
     assert.equal(run.status, 0, run.out)
     assert.doesNotMatch(run.out, /OpenTelemetry export/)

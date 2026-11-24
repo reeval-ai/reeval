@@ -62,7 +62,7 @@ test('every turn in the record corpus fits a send reply, in Zod and in the JSON 
   const turns = corpusTurns()
   assert.ok(turns.length >= 100, `${turns.length} turns`)
   const kinds = new Set(turns.flatMap((t) => t.transcript.map((e) => e.type)))
-  assert.deepEqual([...kinds].sort(), ['file-edit', 'reasoning', 'text', 'tool'])
+  assert.deepEqual([...kinds].sort(), ['file-edit', 'model-call', 'reasoning', 'text', 'tool'])
   const reply = snapshot('attempt-reply')
   for (const [i, turn] of turns.entries()) {
     const value = { id: String(i), ok: true, op: 'send', turn }

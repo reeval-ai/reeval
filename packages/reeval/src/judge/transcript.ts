@@ -46,6 +46,7 @@ export function transcriptForJudge(events: readonly TranscriptEvent[], mode: Mod
     ok === null ? 'unfinished' : ok === false ? 'failed' : 'ok'
   const out: string[] = []
   for (const e of events) {
+    const from = out.length
     switch (e.type) {
       case 'text':
         if (mode !== 'tools') out.push(`message: ${e.text}`)
@@ -78,6 +79,7 @@ export function transcriptForJudge(events: readonly TranscriptEvent[], mode: Mod
         out.push(`retry: ${e.message}`)
         break
     }
+    if ('subagent' in e && e.subagent && out.length > from) out[from] = `[subagent] ${out[from]}`
   }
   return out
 }

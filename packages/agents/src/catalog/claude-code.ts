@@ -4,6 +4,7 @@ import { LAYOUTS } from './layouts.ts'
 import { claudeMcpServers } from './mcp.ts'
 import { CLAUDE_FORMAT_PARTS } from './plugins.ts'
 import { claudeCodeCost } from './reported.ts'
+import { claudeSpawns, claudeStoredSubagents } from './subagents.ts'
 
 export const claudeCode = {
   ...LAYOUTS['claude-code'],
@@ -14,7 +15,14 @@ export const claudeCode = {
   platforms: ['linux', 'darwin'],
   reasoning: 'streamed',
   reasoningTokens: true,
-  subagentCalls: true,
+  // The bridge streams a subagent's messages; the turn's usage leaves out its model calls, which
+  // its own transcript stores. Its reported cost counts them.
+  subagents: {
+    events: 'streamed',
+    usage: 'separate',
+    spawns: claudeSpawns,
+    stored: async () => claudeStoredSubagents,
+  },
   reportedCost: claudeCodeCost,
   credential: 'ANTHROPIC_API_KEY',
   // A Claude subscription's token from `claude setup-token`, which the CLI sends as a Bearer
