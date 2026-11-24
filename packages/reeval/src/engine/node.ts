@@ -472,7 +472,7 @@ async function runFiles(input: RunInput): Promise<EngineRun> {
       live.delete(worker)
       for (const [key, runner] of active) if (runner === id) active.delete(key)
       scheduler.releaseOwner(id)
-      input.services?.released(id)
+      input.services?.released(id, done ? undefined : describeExit(exit))
       markReady()
       if (done && loadError === undefined) return
       // The file failed to load this time, or its worker died mid-file (killed, out of memory):

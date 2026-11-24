@@ -870,6 +870,7 @@ describe('runEngine: running', () => {
 
   test('a worker that dies mid-file fails its unfinished attempts and reports why', async () => {
     const { run } = project(['evals/a.eval.ts'])
+    const released: Array<[string, string | undefined]> = []
     const tests = [
       test0(0, 'done first'),
       test0(1, 'unfinished'),
@@ -888,10 +889,23 @@ describe('runEngine: running', () => {
       ctl.exit({ code: null, signal: 'SIGKILL' })
     })
     const r = await engine(
-      { run, filters: ['done first', 'unfinished', 'skipped'], onEvent: (e) => events.push(e) },
+      {
+        run,
+        filters: ['done first', 'unfinished', 'skipped'],
+        onEvent: (e) => events.push(e),
+        services: {
+          call: async () => null,
+          released: (owner, exit) => void released.push([owner, exit]),
+        },
+      },
       spawn,
     )
     const why = 'The worker running evals/a.eval.ts exited unexpectedly (signal SIGKILL)'
+    assert.deepEqual(
+      released.map(([, exit]) => exit),
+      ['signal SIGKILL'],
+      'released with how it exited',
+    )
     assert.deepEqual(r.unhandledErrors, [why])
     assert.deepEqual(
       r.evals.map((e) => [e.name, e.state, e.errors]),

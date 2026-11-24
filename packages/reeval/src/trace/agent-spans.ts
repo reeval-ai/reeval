@@ -10,7 +10,8 @@
 //                             which carries the subagent's own tokens
 //
 // No content: prompts, agent text, reasoning and tool input and output stay out. Ids come from the
-// run, the attempt and its start, so sending one record twice sends the same spans.
+// run, the attempt, its start and what each span is, so a turn's spans sent as it ends and the rest
+// sent when the attempt ends make one trace, and sending one record twice sends the same spans.
 import type { SubagentRun, SubagentUsage, TokenUsage, TranscriptEvent } from '@reeval/agents'
 import { redactSecrets } from '../redact.ts'
 import { sha256Hex } from '../sha256.ts'
@@ -98,138 +99,197 @@ const TOOL_NAME: Partial<Record<TranscriptEvent['type'], string>> = {
   'web-fetch': 'web-fetch',
 }
 
-export function agentSpans(o: AgentAttempt): AgentSpan[] {
-  const { record, harness } = o
+/** The attempt's trace id, and each span's id from what it is, so a span sent early and the rest sent later agree. */
+function idsOf(o: AgentAttempt) {
+  const { record } = o
   const started = record.startedAt ?? record.turns[0]?.startedAt ?? ''
   const traceId = sha256Hex(`reeval-agent:${o.runId}:${o.key}:${started}`).slice(0, 32)
-  let ids = 0
-  const spanId = () => sha256Hex(`${traceId}:${ids++}`).slice(0, 16)
-  const rootId = spanId()
-  const spans: AgentSpan[] = []
-  const common = { 'session.id': o.runId, 'reeval.run.id': o.runId }
-  const requested = 'model' in harness && typeof harness.model === 'string' ? harness.model : null
-  const effort = 'effort' in harness && typeof harness.effort === 'string' ? harness.effort : null
+  const spanId = (what: string) => sha256Hex(`${traceId}:${what}`).slice(0, 16)
+  return { started, traceId, spanId, rootId: spanId('root') }
+}
 
-  for (const [i, turn] of record.turns.entries()) {
-    const turnStart = Date.parse(turn.startedAt)
-    const turnId = spanId()
-    const turnEnd = turnStart + turn.durationMs
-    // A subagent's calls nest under the first span of the call that spawned it; one call can
-    // record several events (one per file it edits), and each still needs its own span id.
-    const toolSpans = new Map<string, string>()
-    const claimed = new Set<string>()
-    const turnEvents: NonNullable<AgentSpan['events']> = []
-    const tools = turn.transcript.filter((e) => 'toolCallId' in e)
-    for (const e of tools) toolSpans.set((e as { toolCallId: string }).toolCallId, spanId())
-    for (const e of turn.transcript) {
-      const startMs = turnStart + e.atMs
-      if (e.type === 'error' || e.type === 'retry') {
-        turnEvents.push({
-          name: e.type === 'error' ? 'exception' : 'reeval.retry',
-          timeMs: startMs,
-          attributes: { 'exception.message': message(e.message) },
-        })
-      } else if (e.type === 'model-call') {
-        const model = e.model ?? turn.model
-        const failed = e.status === null || e.status >= 400
-        spans.push({
-          traceId,
-          spanId: spanId(),
-          parentSpanId: turnId,
-          name: `chat${model ? ` ${model}` : ''}`,
-          kind: 'client',
-          startMs,
-          endMs: startMs + e.durationMs,
-          attributes: {
-            ...common,
-            'gen_ai.operation.name': 'chat',
-            'openinference.span.kind': 'LLM',
-            ...(model && { 'gen_ai.response.model': model, 'llm.model_name': model }),
-            ...(e.firstByteMs !== null && {
-              'gen_ai.response.time_to_first_chunk': e.firstByteMs / 1000,
-            }),
-            ...(e.status !== null && { 'http.response.status_code': e.status }),
-            'reeval.model_call.role': e.role ?? 'main',
-            ...(e.stream && { 'reeval.model_call.stream': true }),
-            ...usageAttributes(e.usage),
-          },
-          ...(failed && {
-            status: {
-              code: 'error' as const,
-              message: e.status ? `HTTP ${e.status}` : 'no response',
-            },
+const commonOf = (o: AgentAttempt) => ({ 'session.id': o.runId, 'reeval.run.id': o.runId })
+
+type Parts = { turn: boolean; tools: boolean; chat: boolean }
+
+function turnSpans(o: AgentAttempt, i: number, parts: Parts): AgentSpan[] {
+  const turn = o.record.turns[i]
+  if (!turn) return []
+  const { traceId, spanId, rootId } = idsOf(o)
+  const common = commonOf(o)
+  const spans: AgentSpan[] = []
+  const turnStart = Date.parse(turn.startedAt)
+  const turnId = spanId(`turn:${i}`)
+  const turnEnd = turnStart + turn.durationMs
+  // A subagent's calls nest under the first span of the call that spawned it; one call can
+  // record several events (one per file it edits), and each still needs its own span id.
+  const toolId = (callId: string, k: number) => spanId(`turn:${i}:tool:${callId}:${k}`)
+  const seen = new Map<string, number>()
+  const turnEvents: NonNullable<AgentSpan['events']> = []
+  let calls = 0
+  for (const e of turn.transcript) {
+    const startMs = turnStart + e.atMs
+    if (e.type === 'error' || e.type === 'retry') {
+      turnEvents.push({
+        name: e.type === 'error' ? 'exception' : 'reeval.retry',
+        timeMs: startMs,
+        attributes: { 'exception.message': message(e.message) },
+      })
+    } else if (e.type === 'model-call') {
+      const id = spanId(`turn:${i}:chat:${calls++}`)
+      if (!parts.chat) continue
+      const model = e.model ?? turn.model
+      const failed = e.status === null || e.status >= 400
+      spans.push({
+        traceId,
+        spanId: id,
+        parentSpanId: turnId,
+        name: `chat${model ? ` ${model}` : ''}`,
+        kind: 'client',
+        startMs,
+        endMs: startMs + e.durationMs,
+        attributes: {
+          ...common,
+          'gen_ai.operation.name': 'chat',
+          'openinference.span.kind': 'LLM',
+          ...(model && { 'gen_ai.response.model': model, 'llm.model_name': model }),
+          ...(e.firstByteMs !== null && {
+            'gen_ai.response.time_to_first_chunk': e.firstByteMs / 1000,
           }),
-        })
-      } else if ('toolCallId' in e) {
-        const tool = e.type === 'tool' ? e.tool : (TOOL_NAME[e.type] ?? e.type)
-        const ok = 'ok' in e ? e.ok : undefined
-        const first = !claimed.has(e.toolCallId)
-        const own = first ? (toolSpans.get(e.toolCallId) as string) : spanId()
-        claimed.add(e.toolCallId)
-        const spawned = first
+          ...(e.status !== null && { 'http.response.status_code': e.status }),
+          'reeval.model_call.role': e.role ?? 'main',
+          ...(e.stream && { 'reeval.model_call.stream': true }),
+          ...usageAttributes(e.usage),
+        },
+        ...(failed && {
+          status: {
+            code: 'error' as const,
+            message: e.status ? `HTTP ${e.status}` : 'no response',
+          },
+        }),
+      })
+    } else if ('toolCallId' in e && parts.tools) {
+      const tool = e.type === 'tool' ? e.tool : (TOOL_NAME[e.type] ?? e.type)
+      const ok = 'ok' in e ? e.ok : undefined
+      const k = seen.get(e.toolCallId) ?? 0
+      seen.set(e.toolCallId, k + 1)
+      const spawned =
+        k === 0
           ? (turn.subagents ?? []).filter(
               (r) => r.id === e.toolCallId || r.id.startsWith(`${e.toolCallId}#`),
             )
           : []
-        spans.push({
-          traceId,
-          spanId: own,
-          parentSpanId: (e.subagent && toolSpans.get(e.subagent)) || turnId,
-          name: `execute_tool ${tool}`,
-          startMs,
-          endMs: startMs + (e.durationMs ?? 0),
-          attributes: {
-            ...common,
-            'gen_ai.operation.name': 'execute_tool',
-            'openinference.span.kind': 'TOOL',
-            'gen_ai.tool.name': tool,
-            'tool.name': tool,
-            'gen_ai.tool.call.id': e.toolCallId,
-            ...(e.type === 'file-edit' && { 'reeval.file_edit.kind': e.kind }),
-            ...(e.subagent && { 'reeval.subagent': e.subagent }),
-            ...spawnAttributes(spawned),
-            ...(e.durationMs === null && { 'reeval.duration.unknown': true }),
-            ...(e.durationInferred && { 'reeval.duration.inferred': true }),
-          },
-          ...(ok === false && { status: { code: 'error' as const } }),
-        })
-      }
-    }
-    const failure = turn.transcript.find((e) => e.type === 'error')
-    spans.push({
-      traceId,
-      spanId: turnId,
-      parentSpanId: rootId,
-      name: `turn ${i + 1}`,
-      startMs: turnStart,
-      endMs: turnEnd,
-      attributes: {
-        ...common,
-        'openinference.span.kind': 'CHAIN',
-        'reeval.turn.n': i + 1,
-        'reeval.turn.status': turn.status,
-        ...(turn.model && { 'gen_ai.response.model': turn.model, 'llm.model_name': turn.model }),
-        ...(turn.cost && {
-          'llm.cost.total': turn.cost.usd,
-          'reeval.cost.usd': turn.cost.usd,
-          'reeval.cost.basis': turn.cost.basis,
-        }),
-        ...(turn.usage === null && { 'reeval.usage.unreported': true }),
-        ...(turn.subagentUsage && { 'reeval.subagent_usage': turn.subagentUsage }),
-        ...usageAttributes(turn.usage),
-      },
-      ...(turn.status !== 'completed' && {
-        status: {
-          code: 'error' as const,
-          message: failure?.type === 'error' ? message(failure.message) : turn.status,
+      const spawner =
+        e.subagent && turn.transcript.some((x) => 'toolCallId' in x && x.toolCallId === e.subagent)
+      spans.push({
+        traceId,
+        spanId: toolId(e.toolCallId, k),
+        parentSpanId: spawner ? toolId(e.subagent as string, 0) : turnId,
+        name: `execute_tool ${tool}`,
+        startMs,
+        endMs: startMs + (e.durationMs ?? 0),
+        attributes: {
+          ...common,
+          'gen_ai.operation.name': 'execute_tool',
+          'openinference.span.kind': 'TOOL',
+          'gen_ai.tool.name': tool,
+          'tool.name': tool,
+          'gen_ai.tool.call.id': e.toolCallId,
+          ...(e.type === 'file-edit' && { 'reeval.file_edit.kind': e.kind }),
+          ...(e.subagent && { 'reeval.subagent': e.subagent }),
+          ...spawnAttributes(spawned),
+          ...(e.durationMs === null && { 'reeval.duration.unknown': true }),
+          ...(e.durationInferred && { 'reeval.duration.inferred': true }),
         },
-      }),
-      ...(turnEvents.length && { events: turnEvents }),
-    })
+        ...(ok === false && { status: { code: 'error' as const } }),
+      })
+    }
   }
+  if (!parts.turn) return spans
+  const failure = turn.transcript.find((e) => e.type === 'error')
+  spans.push({
+    traceId,
+    spanId: turnId,
+    parentSpanId: rootId,
+    name: `turn ${i + 1}`,
+    startMs: turnStart,
+    endMs: turnEnd,
+    attributes: {
+      ...common,
+      'openinference.span.kind': 'CHAIN',
+      'reeval.turn.n': i + 1,
+      'reeval.turn.status': turn.status,
+      ...(turn.model && { 'gen_ai.response.model': turn.model, 'llm.model_name': turn.model }),
+      ...(turn.cost && {
+        'llm.cost.total': turn.cost.usd,
+        'reeval.cost.usd': turn.cost.usd,
+        'reeval.cost.basis': turn.cost.basis,
+      }),
+      ...(turn.usage === null && { 'reeval.usage.unreported': true }),
+      ...(turn.subagentUsage && { 'reeval.subagent_usage': turn.subagentUsage }),
+      ...usageAttributes(turn.usage),
+    },
+    ...(turn.status !== 'completed' && {
+      status: {
+        code: 'error' as const,
+        message: failure?.type === 'error' ? message(failure.message) : turn.status,
+      },
+    }),
+    ...(turnEvents.length && { events: turnEvents }),
+  })
+  return spans
+}
 
-  const firstStart = record.turns[0] ? Date.parse(record.turns[0].startedAt) : Date.now()
-  const startMs = started ? Date.parse(started) : firstStart
+/**
+ * Turn `i`'s span and its tool calls' as soon as the turn ends, or none when a tool call's
+ * duration is only inferred at the attempt's end, from model calls the gateway may still be timing.
+ */
+export function finishedTurnSpans(o: AgentAttempt, i: number): AgentSpan[] {
+  const turn = o.record.turns[i]
+  if (!turn || turn.transcript.some((e) => 'toolCallId' in e && e.durationMs === null)) return []
+  return turnSpans(o, i, { turn: true, tools: true, chat: false })
+}
+
+/** The agent span as the attempt starts, which the run ends as an error if the attempt's worker dies first. */
+export function openAgentSpan(o: AgentAttempt): AgentSpan {
+  const { harness } = o
+  const { started, traceId, rootId } = idsOf(o)
+  const startMs = started ? Date.parse(started) : Date.now()
+  const requested = 'model' in harness && typeof harness.model === 'string' ? harness.model : null
+  const effort = 'effort' in harness && typeof harness.effort === 'string' ? harness.effort : null
+  return {
+    traceId,
+    spanId: rootId,
+    name: `invoke_agent ${harness.kind}`,
+    startMs,
+    endMs: startMs,
+    attributes: {
+      ...commonOf(o),
+      'gen_ai.operation.name': 'invoke_agent',
+      'openinference.span.kind': 'AGENT',
+      'gen_ai.agent.name': harness.kind,
+      'gen_ai.conversation.id': o.key,
+      ...(requested && { 'gen_ai.request.model': requested }),
+      ...(effort && { 'gen_ai.request.reasoning.level': effort }),
+      'reeval.eval.id': o.evalId,
+      'reeval.attempt.key': o.key,
+      'reeval.cell': o.cell,
+      'reeval.attempt.n': o.n,
+    },
+    ...(o.attemptSpanId && {
+      links: [{ traceId: traceIdOf(o.runId), spanId: o.attemptSpanId }],
+    }),
+  }
+}
+
+/** The attempt's spans from its finished record, but those of the turns in `sent`, whose model calls alone are left. */
+export function agentSpans(o: AgentAttempt, sent: ReadonlySet<number> = new Set()): AgentSpan[] {
+  const { record } = o
+  const spans = record.turns.flatMap((_, i) =>
+    turnSpans(o, i, { turn: !sent.has(i), tools: !sent.has(i), chat: true }),
+  )
+  const open = openAgentSpan(o)
+  const startMs = open.startMs
   const ends = record.turns.map((t) => Date.parse(t.startedAt) + t.durationMs)
   const endMs = Math.max(startMs, ...ends, ...spans.map((s) => s.endMs))
   const events: NonNullable<AgentSpan['events']> = []
@@ -271,24 +331,11 @@ export function agentSpans(o: AgentAttempt): AgentSpan[] {
   const failed = record.outcome === 'fail' || record.outcome === 'infra_error'
   const subagentUsage = attemptSubagentUsage(record.turns)
   spans.push({
-    traceId,
-    spanId: rootId,
-    name: `invoke_agent ${harness.kind}`,
-    startMs,
+    ...open,
     endMs,
     attributes: {
-      ...common,
-      'gen_ai.operation.name': 'invoke_agent',
-      'openinference.span.kind': 'AGENT',
-      'gen_ai.agent.name': harness.kind,
-      'gen_ai.conversation.id': o.key,
-      ...(requested && { 'gen_ai.request.model': requested }),
+      ...open.attributes,
       ...(served && { 'gen_ai.response.model': served, 'llm.model_name': served }),
-      ...(effort && { 'gen_ai.request.reasoning.level': effort }),
-      'reeval.eval.id': o.evalId,
-      'reeval.attempt.key': o.key,
-      'reeval.cell': o.cell,
-      'reeval.attempt.n': o.n,
       'reeval.outcome': record.outcome,
       'reeval.turns': record.turns.length,
       ...(record.error && { 'reeval.error.kind': record.error.kind }),
@@ -305,9 +352,6 @@ export function agentSpans(o: AgentAttempt): AgentSpan[] {
         code: 'error' as const,
         message: record.error ? message(record.error.message) : record.outcome,
       },
-    }),
-    ...(o.attemptSpanId && {
-      links: [{ traceId: traceIdOf(o.runId), spanId: o.attemptSpanId }],
     }),
     ...(events.length && { events }),
   })

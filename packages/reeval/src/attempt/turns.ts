@@ -122,6 +122,7 @@ export function turnSender(
   a: Attempt,
   takeContext: (box: Sandbox, signal: AbortSignal) => Promise<void>,
   checks: Checks,
+  onTurnEnd?: (index: number) => void,
 ) {
   return async (prompt: string): Promise<Turn> => {
     const [box, agent] = await a.start('c.send()')
@@ -215,6 +216,7 @@ export function turnSender(
         ...(startup ? { mcpStartup: mcpStartupOf(startup.entries) } : {}),
       },
     )
+    onTurnEnd?.(turnNumber - 1)
     for (const event of result.transcript) {
       debugTrace(
         'harness',
