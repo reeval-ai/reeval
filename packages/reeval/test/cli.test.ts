@@ -24,7 +24,7 @@ const { version } = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8
 
 /** Every command path with its spec: `run`, `studio`, `image build`, … */
 const PATHS = Object.entries(COMMANDS).flatMap(([name, spec]) => [
-  ...(spec.help ? [{ path: [name], spec }] : []),
+  ...(spec.groupOnly ? [] : [{ path: [name], spec }]),
   ...Object.entries(spec.sub ?? {}).map(([sub, s]) => ({ path: [name, sub], spec: s })),
 ])
 
@@ -70,25 +70,67 @@ describe('cli', () => {
     )
   })
 
-  test('a command help names only that command, and image lists its subcommands', () => {
+  test('a command help names only that command, and a group lists its subcommands', () => {
     const build = commandHelpText('V', ['image', 'build'])
-    assert.match(build, /^ {2}reeval image build \[filter\.\.\.\]$/m)
+    assert.match(build, /^Usage: reeval image build \[filter\.\.\.\] \[options\]$/m)
     assert.match(build, /--force/)
-    assert.doesNotMatch(build, /^ {2}reeval (run|init)\b/m)
+    assert.doesNotMatch(build, /reeval (run|init)\b/)
     assert.doesNotMatch(build, /Exit codes|--config|latest~N/)
-    assert.doesNotMatch(build, /^ {2}reeval image (list|clean)/m)
+    assert.doesNotMatch(build, /image (list|clean)/)
     const image = commandHelpText('V', ['image'])
+    assert.match(image, /^Usage: reeval image <command>$/m)
     for (const sub of ['build', 'list']) {
-      assert.match(image, new RegExp(`^ {2}reeval image ${sub} \\[filter\\.\\.\\.\\]$`, 'm'))
+      assert.match(image, new RegExp(`^ {2}${sub} \\[filter\\.\\.\\.\\] +\\S`, 'm'))
     }
-    assert.match(image, /^ {2}reeval image clean$/m)
+    assert.match(image, /^ {2}clean +Delete /m)
+    assert.doesNotMatch(image, /--older-than/)
     assert.match(commandHelpText('V', ['image', 'clean']), /--older-than <duration>/)
+    const cloud = commandHelpText('V', ['cloud'])
+    assert.match(cloud, /^ {2}secrets set <name> +Set /m)
+    assert.match(cloud, /^ {2}run cancel <run> +Cancel /m)
     const studio = commandHelpText('V', ['studio'])
-    assert.match(studio, /^ {2}reeval studio \[run\] /m)
+    assert.match(studio, /^Usage: reeval studio \[run\] \[options\]$/m)
     assert.match(studio, /--no-open/)
-    assert.doesNotMatch(studio, /--no-token|reeval studio build/)
+    assert.match(studio, /^ {2}share \[run\] +Share /m)
+    assert.doesNotMatch(studio, /--no-token|--revoke/)
     assert.equal(commandHelpText('V', ['run', 'greet']), commandHelpText('V', ['run']))
     assert.equal(commandHelpText('V', ['bogus']), helpText('V'))
+  })
+
+  test('reeval --help lists commands only, one row each, under their groups', () => {
+    const help = helpText('V')
+    assert.match(help, /^Get started:\n {2}init \[dir\] +Create a reeval project$/m)
+    assert.match(help, /^Images:\n {2}image +Build, list and clean sandbox images$/m)
+    assert.doesNotMatch(help, /^ {4}-/m, 'no flags but the global ones')
+    assert.doesNotMatch(help, /image build|studio share/)
+  })
+
+  test('hidden commands and flags stay out of help but still parse and print their own', () => {
+    const help = helpText('V')
+    for (const name of ['login', 'logout', 'whoami', 'link', 'cloud', 'bundle']) {
+      assert.ok(COMMANDS[name]?.hidden, name)
+      assert.doesNotMatch(help, new RegExp(`^ {2}${name}\\b`, 'm'), name)
+      assert.match(commandHelpText('V', [name]), new RegExp(`^Usage: reeval ${name}\\b`, 'm'), name)
+    }
+    const run = commandHelpText('V', ['run'])
+    for (const flag of ['--cloud', '--download', '--bundle', '--local']) {
+      assert.doesNotMatch(run, new RegExp(`${flag}\\b`), flag)
+    }
+    assert.doesNotMatch(commandHelpText('V', ['attach']), /--download|--profile/)
+    assert.doesNotMatch(commandHelpText('V', ['clean']), /--bundles/)
+    assert.match(commandHelpText('V', ['clean']), /--staging/)
+    assert.deepEqual(parseCli(['run', '--cloud', '--download', '--local']).values, {
+      cloud: true,
+      download: true,
+      local: true,
+    })
+    assert.deepEqual(parseCli(['clean', '--bundles']).values, { bundles: true })
+    assert.deepEqual(parseCli(['cloud', 'secrets', 'list', '--json']).positionals, [
+      'cloud',
+      'secrets',
+      'list',
+    ])
+    assert.deepEqual(parseCli(['bundle', '--out', 'x.tar.gz']).values, { out: 'x.tar.gz' })
   })
 
   test('only the commands that take a run say how to name one', () => {
@@ -148,12 +190,23 @@ describe('cli', () => {
     const term = { tty: false, color: false, columns: 80 }
     const token = homeScreen('1', { ...status, signedIn: { token: true } }, term)
     assert.match(token, /^ {2}Signed in with REEVAL_TOKEN$/m)
-    const noEmail = homeScreen('1', { ...status, signedIn: { email: null } }, term)
+    const all = () => true
+    const noEmail = homeScreen('1', { ...status, signedIn: { email: null } }, term, all)
     assert.match(noEmail, /^ {2}Signed in {8}reeval whoami$/m)
-    assert.doesNotMatch(wide, /reeval login/)
     assert.match(
-      homeScreen('1', { ...status, signedIn: null }, term),
-      /^ {2}reeval login {5}Sign in/m,
+      homeScreen('1', { ...status, signedIn: { email: null } }, term),
+      /^ {2}Signed in$/m,
+    )
+    assert.doesNotMatch(wide, /reeval login/)
+    const signedOut = { signedIn: null, project: null, config: false }
+    const listed = homeScreen('1', signedOut, term, all)
+    assert.match(listed, /^ {2}reeval login +Sign in/m)
+    assert.match(listed, /^ {2}Not signed in +reeval login\n {2}No project linked +reeval link$/m)
+    const hidden = homeScreen('1', signedOut, term)
+    assert.doesNotMatch(hidden, /login|whoami|link|signed in/i)
+    assert.match(
+      hidden,
+      /^Evaluation runner for SDKs, CLIs, MCP servers, and docs\.\n\nTry next\n/m,
     )
   })
 
@@ -194,14 +247,11 @@ describe('cli', () => {
       `reeval v${version}
 Evaluation runner for SDKs, CLIs, MCP servers, and docs.
 
-  Not signed in        reeval login
-  No project linked    reeval link
-
 Try next
-  reeval run           Run the evals
-  reeval show          The latest run's results
-  reeval studio        Browse your runs in the studio
-  reeval doctor        Check your environment setup
+  reeval run       Run the evals
+  reeval show      The latest run's results
+  reeval studio    Browse your runs in the studio
+  reeval doctor    Check your environment setup
 
 Run reeval --help to see every command
 `,
