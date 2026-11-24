@@ -104,17 +104,40 @@ type FlagValue<S extends FlagSpec> = S extends { type: 'string' }
 /** The parsed flags, keyed by their spec name (`dry-run`, `no-cache`); unset flags are absent. */
 export type Flags = { -readonly [K in FlagName]?: FlagValue<(typeof FLAGS)[K]> }
 
+/** One row of a command's options in its help. */
+export type OptionHelp = {
+  /** The flags as help shows them: `--profile <name>`, `-v, --verbose`. */
+  flags: string
+  /** What the flag does; a second line follows a `\n`. */
+  help: string
+  /** Left out of every help and the docs; the flag still parses and works. */
+  hidden?: true
+}
+
 export type CommandSpec = {
   flags: FlagName[]
   /** How many positional arguments it takes; `Infinity` for filters or SQL. */
   positionals: number
-  /** Its lines in `reeval --help`, the first naming the command; empty when it has none. */
-  help: string
+  /** What follows `reeval` on its usage line: the command path and its arguments. */
+  usage: string
+  /** What it does in one line: its row in `reeval --help` or its group's help. */
+  summary: string
+  /** Its own help's description, when that says more than the summary. */
+  description?: string
+  /** A command that takes an action word (`set <name>`, `list`): each action's usage and summary. */
+  actions?: [usage: string, summary: string][]
+  options?: OptionHelp[]
+  /** Its heading in `reeval --help`. */
+  group?: string
+  /** Left out of `reeval --help` and the docs; it still parses, runs and prints its own `--help`. */
+  hidden?: true
+  /** It only names subcommands: `reeval image` alone runs nothing. */
+  groupOnly?: true
   /** Its arguments may hold a secret, so a refusal counts them instead of repeating them. */
   secretArgs?: true
   /** It takes a recorded run by ref, so its help says how to name one. */
   runRef?: true
-  sub?: Record<string, Omit<CommandSpec, 'sub'>>
+  sub?: Record<string, Omit<CommandSpec, 'sub' | 'group'>>
 }
 
 export const RUN_FLAGS: FlagName[] = [
@@ -144,254 +167,210 @@ export const RUN_FLAGS: FlagName[] = [
   'download',
 ]
 
+const HISTORY_STORE: OptionHelp[] = [
+  { flags: '--offline', help: "Read the history store's local copy without pulling" },
+  { flags: '--all-branches', help: "Include every branch's runs, not only HEAD's" },
+  { flags: '--profile <name>', help: 'Profile whose history store to use' },
+]
+
+const CLOUD_TARGET: OptionHelp[] = [
+  { flags: '--org <slug>', help: 'Org slug or id (default: linked)' },
+  { flags: '--project <slug>', help: 'Project slug or id (default: linked)' },
+]
+
+const KEY_TARGET: OptionHelp[] = [
+  { flags: '--org <slug>', help: 'Org slug or id (default: linked)' },
+  { flags: '--project <slug>', help: "The project's own key, overriding the org's" },
+  { flags: '--json', help: 'Output list as JSON' },
+]
+
 export const COMMANDS: Record<string, CommandSpec> = {
   init: {
     flags: ['harness', 'yes', 'bare', 'force', 'dry-run'],
     positionals: 1,
-    help: `
-  reeval init [dir]             Scaffold a project in dir (default: here): reeval.config.ts, an
-                                environment, an eval that runs in it, .gitignore entries and a
-                                package.json script; asks which agent, then checks Docker
-    --harness <name>            cursor, claude-code, antigravity, opencode, goose, pi, codex, fx or
-                                grok-build: the config's harness
-    -y, --yes                   Don't ask: take the defaults (--harness cursor)
-    --bare                      Only reeval.config.ts, .gitignore and package.json: no environment
-                                or eval
-    --force                     Replace a reeval.config.ts init didn't write; no other file is ever
-                                overwritten
-    --dry-run                   Print what it would create or change, and write nothing`,
+    group: 'Get started',
+    usage: 'init [dir]',
+    summary: 'Create a reeval project',
+    description: 'Create a reeval project in dir (default: .)',
+    options: [
+      {
+        flags: '--harness <name>',
+        help: 'Agent harness: cursor, claude-code, antigravity, opencode, goose, pi,\ncodex, fx or grok-build (default: cursor)',
+      },
+      { flags: '-y, --yes', help: 'Accept all defaults without prompting' },
+      { flags: '--bare', help: 'Write only reeval.config.ts, .gitignore and package.json' },
+      { flags: '--force', help: 'Overwrite an existing reeval.config.ts' },
+      { flags: '--dry-run', help: 'Show what would be written' },
+    ],
   },
   doctor: {
     flags: ['online', 'json'],
     positionals: 0,
-    help: `
-  reeval doctor                 Check Node and npm, the config, Docker and its memory, the sandbox
-                                images, the keys of each harness, the judge and analysis.model,
-                                egress, .gitignore and keys in .env files git sees; exit 1 on a
-                                problem, each with its fix. Never prints a key
-    --online                    Also try each key with one tiny authenticated request
-    --json                      The checks as JSON`,
+    group: 'Get started',
+    usage: 'doctor',
+    summary: 'Check your setup and print fixes',
+    options: [
+      { flags: '--online', help: 'Also test each API key with a live request' },
+      { flags: '--json', help: 'Output as JSON' },
+    ],
   },
   run: {
     flags: RUN_FLAGS,
     positionals: Number.POSITIVE_INFINITY,
-    help: `
-  reeval run [filter...]        Run evals matching config.include; filters are path, name or cell substrings
-                                (parts of one kind OR; a name and a cell key are one kind); a whole
-                                variant cell runs with its control, for its lift
-    --profile <name>            Size the run with a profile from reeval.config.ts (also REEVAL_PROFILE;
-                                default: defaultProfile.cloud for a cloud run, else defaultProfile.ci
-                                in CI, else defaultProfile.local)
-    --dry-run                   Print the plan (evals, cells, attempts, time and cost) and exit 0;
-                                with --json, as one JSON document (every cell, what's excluded, the
-                                host files the run reads, in inputs, and the variables its secrets
-                                come from, in secrets)
-    --json                      Print the run's results (suiteResult from reeval/view) as one JSON
-                                document on stdout when it ends; progress goes to stderr
-    --force                     Run even when the plan is over budget.attempts; on --cloud, it only
-                                skips asking about names that only .env files set
-    --runs <n>                  Attempts per cell, overriding the config, groups and evals
-    --concurrency <n>           Attempts running at once across evals and cells (default 8, at
-                                most one per CPU and GB of Docker memory; also REEVAL_CONCURRENCY)
-    --registry <prefix>         Pull each sandbox image that isn't built here from this registry
-                                (host[:port]/path, as reeval image build --push left it) before
-                                building it; one it doesn't have, or whose key label or platform
-                                doesn't match, is built as usual. Anyone who can push there chooses
-                                what a matching image holds. Without it, reeval's own image for
-                                each harness is pulled from ghcr.io/reeval-ai/sandbox by the digest
-                                this reeval pins (REEVAL_DEFAULT_REGISTRY=none builds it instead).
-                                A pull over 10 minutes is given up on and the image built
-    --tag <tag>                 Only evals with this tag; !tag excludes it; repeat to combine (AND)
-    --trait <key=value>         Only cells whose environment's trait is value, or lists it (with
-                                compare, the control's); repeat to combine (AND)
-    --record                    Also record the run into the history folder (see config.record)
-    --ui <mode>                 plain or agent (default: agent under a coding agent, else plain,
-                                an eval list you browse with the arrow keys on a terminal outside CI)
-    --log-order <order>         stream (every line as it happens) or grouped (each attempt as one
-                                block when it ends); default grouped in CI, else stream
-    --log-prefix <prefix>       task or none: the [eval#n harness] prefix on detail lines
-                                (default task, none inside GitHub Actions groups)
-    --output-logs <level>       full, errors-only or none: whose detail lines print as attempts
-                                end (default none, the eval list says how each went; full with -v)
-    -v, --verbose               Print each attempt's phase trace as it happens: plan, image,
-                                container, environment, brokering, turns and tool calls, checks,
-                                judge calls, gateway requests and teardown
-    -vv                         Also raw payloads, docker commands, headers and DNS decisions, and
-                                keep every attempt's trace.ndjson (else only failing attempts')
-                                Either way each attempt's debug.log is in .reeval/debug/<run>/ (local only)
-    --resume [ref]              Continue a stopped, interrupted or budget-stopped run: same run id,
-                                keep passed and failed attempts, restart in-flight and infra-errored
-                                ones. Without a ref, the newest resumable (Stopped staging, or an
-                                interrupted/budget scratch), not assembled latest. Ref is a run id or
-                                unique prefix. With --cloud, or with the config's cloud: true when
-                                the run isn't here or was downloaded from the cloud, the platform
-                                resumes the cloud run (ref is its id or event stream URL) with the
-                                project as it was uploaded, waiting up to 5 minutes for one still
-                                stopping, and it's followed as --cloud follows a run (no config,
-                                filters, --runs, --tag or --trait; --profile only picks the target;
-                                a complete run exits 2)
-    --retry-errors [ref]        Re-run a finished run's infra-errored attempts with its plan, into
-                                the same run; passes and fails stay. Without a ref, the newest
-                                finished run. Exit 2 when the plan or eval source changed since, or
-                                with a cloud run
-    --events                    Also write the run's output events as NDJSON for reeval attach, to
-                                .reeval/events/<run>.ndjson; a resume appends to it. A recorded
-                                run's run-end event names its record, files and archive in recorded
-    --events-file <file>        The same, to file; refuses a file that isn't a run's event stream
-    --events-url <url>          Also POST them to url, in batches of NDJSON lines
-    --bundle <file>             Run a reeval bundle with its filters and profile: extract it to a new
-                                temporary directory, check its files, install from its lockfile and
-                                exit 2 before any attempt when its plan or files differ; .reeval/ is
-                                in the extracted project. With --resume <run>, moves that run's
-                                .reeval/ state from the current directory there and continues it
-    --cloud                     Run in the cloud at REEVAL_CLOUD_URL (https://cloud.reeval.ai when
-                                unset), as the config's cloud: true does: bundle the project,
-                                upload it to the project reeval link linked (an unlinked project
-                                exits 2), start the run and follow it as reeval attach does,
-                                exiting with its exit code (4 when the platform stopped it). Ctrl-C
-                                detaches and the run goes on: reeval cloud run cancel cancels it. A
-                                value that isn't an http or https URL, or one with a user name or
-                                password, exits 2. tart() and podman() exit 2; a plan the platform
-                                can't run otherwise (vertex(), files a bundle can't carry) runs
-                                here, with a note
-    --download                  With a cloud run, once it ends download its files as a run here
-                                leaves them, as reeval attach --download does
-    --local                     Run here, whatever the config's or profile's cloud sets`,
+    group: 'Run evals',
+    usage: 'run [filter...]',
+    summary: 'Run evals',
+    description: 'Run evals matching path, name or cell filters',
+    options: [
+      {
+        flags: '--profile <name>',
+        help: 'Profile from reeval.config.ts (default: defaultProfile)',
+      },
+      { flags: '--dry-run', help: 'Show the plan without running' },
+      { flags: '--json', help: 'Print results as JSON on stdout' },
+      { flags: '--force', help: 'Run even when over budget.attempts' },
+      { flags: '--runs <n>', help: 'Attempts per cell' },
+      { flags: '--concurrency <n>', help: 'Attempts at once (default: 8)' },
+      {
+        flags: '--registry <prefix>',
+        help: 'Registry to pull sandbox images from before building',
+      },
+      { flags: '--tag <tag>', help: 'Only evals with this tag; !tag excludes; repeatable' },
+      { flags: '--trait <key=value>', help: 'Only cells with this environment trait; repeatable' },
+      { flags: '--record', help: 'Also record the run to the history folder' },
+      { flags: '--resume [ref]', help: 'Resume a stopped or interrupted run (default: newest)' },
+      {
+        flags: '--retry-errors [ref]',
+        help: "Re-run a finished run's infra errors (default: newest)",
+      },
+      { flags: '--ui <mode>', help: 'Output UI: plain or agent (default: auto)' },
+      {
+        flags: '--log-order <order>',
+        help: 'Log order: stream or grouped (default: grouped in CI, else stream)',
+      },
+      { flags: '--log-prefix <prefix>', help: 'Detail line prefix: task or none (default: task)' },
+      {
+        flags: '--output-logs <level>',
+        help: 'Detail lines to print: full, errors-only or none (default: none)',
+      },
+      { flags: '-v, --verbose', help: "Print each attempt's trace" },
+      { flags: '-vv', help: 'Also print raw payloads and keep every trace' },
+      { flags: '--events', help: 'Write events to .reeval/events/<run>.ndjson' },
+      { flags: '--events-file <file>', help: 'Write events to file' },
+      { flags: '--events-url <url>', help: 'POST events to url' },
+      { flags: '--bundle <file>', help: 'Run a bundle made with reeval bundle', hidden: true },
+      { flags: '--cloud', help: 'Run in reeval cloud', hidden: true },
+      { flags: '--download', help: "Download a cloud run's files when it ends", hidden: true },
+      { flags: '--local', help: 'Run locally, ignoring cloud settings', hidden: true },
+    ],
   },
   attach: {
     flags: ['ui', 'log-order', 'log-prefix', 'output-logs', 'download', 'profile'],
     positionals: 1,
-    help: `
-  reeval attach [run|file|url]  Follow a reeval run's --events stream and print it as reeval run
-                                does, from its start; exit with the run's exit code (default: the
-                                run in progress). A ws(s) or http(s) URL is followed over a
-                                WebSocket, which reconnects after a drop from the last line it got
-                                and exits 3 when the run refuses another viewer; a cloud run's id,
-                                as reeval run --cloud prints it, is its URL at REEVAL_CLOUD_URL
-                                (which the project's .env may set), on reeval login's sign-in there.
-                                On a terminal, reeval run's interactive list: q detaches (exit 0)
-                                and the run goes on, as Ctrl-C does anywhere; x pressed twice
-                                cancels a run on this host. A cloud run the platform stopped exits
-                                4. A run that stops sending heartbeats shows as stalled after 20s
-                                and ends attach as lost after 2m (exit 3)
-    --download                  For a cloud run's id or URL: once the run ends, download its files into
-                                this project as a run here leaves them: .reeval/runs, .reeval/debug
-                                and, for a recorded run, this project's history folder, so reeval
-                                show, compare, query and studio read it. A download that fails sets
-                                the exit code: 2 when a file is already there with other content, 3
-                                when the platform fails or sends a file anywhere else. A run with
-                                no files says so
-    --profile <name>            With --download, the profile whose history folder takes a recorded
-                                run (also REEVAL_PROFILE, else defaultProfile): the one the cloud
-                                run picked
-    --ui --log-order --log-prefix --output-logs
-                                As for reeval run`,
+    group: 'Run evals',
+    usage: 'attach [run|file|url]',
+    summary: "Follow a run's output",
+    description: "Follow a run's output (default: the run in progress)",
+    options: [
+      { flags: '--ui --log-order --log-prefix --output-logs', help: 'Same as reeval run' },
+      { flags: '--download', help: "Download a cloud run's files when it ends", hidden: true },
+      { flags: '--profile <name>', help: 'Profile whose history takes the download', hidden: true },
+    ],
   },
   login: {
     flags: [],
     positionals: 0,
-    help: `
-  reeval login                  Sign in to the cloud platform at REEVAL_CLOUD_URL: open the page it
-                                prints, check the code and approve it. Keeps the token in the OS
-                                keychain (macOS, or secret-tool on Linux), else in credentials.json
-                                in reeval's config directory (~/.config/reeval, mode 0600), for
-                                cloud runs and reeval attach; REEVAL_TOKEN takes precedence over it`,
+    group: 'Cloud',
+    hidden: true,
+    usage: 'login',
+    summary: 'Sign in to reeval cloud',
   },
   logout: {
     flags: [],
     positionals: 0,
-    help: `
-  reeval logout                 Revoke the sign-in to the cloud platform at REEVAL_CLOUD_URL and
-                                remove its token from this machine`,
+    group: 'Cloud',
+    hidden: true,
+    usage: 'logout',
+    summary: 'Sign out of reeval cloud',
   },
   whoami: {
     flags: ['json'],
     positionals: 0,
-    help: `
-  reeval whoami                 Who the cloud platform at REEVAL_CLOUD_URL says you are, and whether
-                                the token is REEVAL_TOKEN or reeval login's; exit 2 when signed out
-                                or the platform refuses it
-    --json                      As JSON: url, user and tokenFrom`,
+    group: 'Cloud',
+    hidden: true,
+    usage: 'whoami',
+    summary: 'Show the signed-in user',
+    options: [{ flags: '--json', help: 'Output as JSON' }],
   },
   link: {
     flags: ['org', 'project', 'yes'],
     positionals: 0,
-    help: `
-  reeval link                   Link this project to a project on the cloud platform at
-                                REEVAL_CLOUD_URL, as reeval login signed in (or REEVAL_TOKEN): asks
-                                which org, when you're in more than one, and which project, then
-                                writes .reeval/project.json beside the config, where cloud runs and
-                                reeval cloud secrets and provider find it. Asks before replacing a
-                                link; without a terminal, the flags answer
-    --org <slug>                The org, by slug or id
-    --project <slug>            The project in it, by slug or id
-    -y, --yes                   Replace a link there is without asking`,
+    group: 'Cloud',
+    hidden: true,
+    usage: 'link',
+    summary: 'Link this project to a reeval cloud project',
+    options: [
+      { flags: '--org <slug>', help: 'Org slug or id' },
+      { flags: '--project <slug>', help: 'Project slug or id' },
+      { flags: '-y, --yes', help: 'Replace an existing link without prompting' },
+    ],
   },
   cloud: {
     flags: [],
     positionals: 0,
-    help: '',
+    group: 'Cloud',
+    hidden: true,
+    groupOnly: true,
+    usage: 'cloud',
+    summary: 'Manage cloud secrets, keys, runs and uploads',
     sub: {
       secrets: {
         flags: ['mode', 'host', 'from-env', 'org', 'project', 'json'],
         positionals: 3,
         secretArgs: true,
-        help: `
-  reeval cloud secrets set <name>
-                                Set an eval secret in the cloud project reeval link linked, as an
-                                admin of it; the value comes from stdin or a hidden prompt, never
-                                the command line. Without --mode or --host an existing secret keeps
-                                its mode and hosts
-    --mode <mode>               brokered (the default): the agent and the eval code get a placeholder,
-                                swapped for the value only on HTTPS requests to its hosts; sandbox:
-                                only the agent's sandbox gets the value; readable: both get it
-    --host <host>               A host a brokered secret may be sent to (api.example.com or
-                                *.example.com); required for brokered, repeat it for more
-    --from-env                  Take the value from this machine's environment variable of that name
-    --org <slug>                The org, by slug or id, instead of the linked one
-    --project <slug>            The project, by slug or id, instead of the linked one; required
-                                when nothing is linked
-  reeval cloud secrets delete <name>
-                                Delete an eval secret from the cloud project
-  reeval cloud secrets list     The cloud project's secrets: name, mode, hosts, version, who updated
-                                it and when; never a value. --json as JSON`,
+        usage: 'cloud secrets',
+        summary: 'Manage cloud eval secrets',
+        actions: [
+          ['set <name>', 'Set a cloud eval secret (value from stdin or prompt)'],
+          ['delete <name>', 'Delete a cloud eval secret'],
+          ['list', 'List cloud eval secrets'],
+        ],
+        options: [
+          {
+            flags: '--mode <mode>',
+            help: 'Exposure: brokered, sandbox or readable (default: brokered)',
+          },
+          { flags: '--host <host>', help: 'Host a brokered secret may reach; repeatable' },
+          { flags: '--from-env', help: 'Read the value from the local environment' },
+          ...CLOUD_TARGET,
+          { flags: '--json', help: 'Output list as JSON' },
+        ],
       },
       provider: {
         flags: ['org', 'project', 'json'],
         positionals: 3,
         secretArgs: true,
-        help: `
-  reeval cloud provider set <provider>
-                                Set the linked org's key for an AI SDK provider, by its slug, which
-                                the cloud platform's model calls use; the platform refuses a
-                                provider it doesn't serve. The key comes from stdin or a hidden
-                                prompt
-    --org <slug>                The org, by slug or id, instead of the linked one; required when
-                                nothing is linked
-    --project <slug>            Set or delete this project's own key, which overrides the org's
-  reeval cloud provider delete <provider>
-                                Delete the provider's key (--project: that project's override)
-  reeval cloud provider list    The org's provider keys and each project's override: last 4
-                                characters, version, who updated it and when. --json as JSON`,
+        usage: 'cloud provider',
+        summary: 'Manage AI provider keys',
+        actions: [
+          ['set <provider>', 'Set an AI provider key (value from stdin or prompt)'],
+          ['delete <provider>', 'Delete an AI provider key'],
+          ['list', 'List AI provider keys'],
+        ],
+        options: KEY_TARGET,
       },
       gateway: {
         flags: ['org', 'project', 'json'],
         positionals: 3,
         secretArgs: true,
-        help: `
-  reeval cloud gateway set <gateway>
-                                Set the linked org's key for a model gateway in the config's
-                                gateway list, by name (vercel, openrouter), which cloud runs use as
-                                a run here uses the key on this machine; the platform refuses a
-                                gateway it doesn't serve. The key comes from stdin or a hidden
-                                prompt
-    --org <slug>                The org, by slug or id, instead of the linked one; required when
-                                nothing is linked
-    --project <slug>            Set or delete this project's own key, which overrides the org's
-  reeval cloud gateway delete <gateway>
-                                Delete the gateway's key (--project: that project's override)
-  reeval cloud gateway list     The org's gateway keys and each project's override: last 4
-                                characters, version, who updated it and when. --json as JSON`,
+        usage: 'cloud gateway',
+        summary: 'Manage model gateway keys',
+        actions: [
+          ['set <gateway>', 'Set a model gateway key (value from stdin or prompt)'],
+          ['delete <gateway>', 'Delete a model gateway key'],
+          ['list', 'List model gateway keys'],
+        ],
+        options: KEY_TARGET,
       },
       push: {
         flags: [
@@ -409,155 +388,158 @@ export const COMMANDS: Record<string, CommandSpec> = {
         ],
         positionals: 1,
         runRef: true,
-        help: `
-  reeval cloud push [run]       Upload a recorded run (default: latest) to the studio of the cloud
-                                project reeval link linked, as its history archive with its saved
-                                analyses, then wait until the platform has read it and print the
-                                studio URL; exit 2 when a file in it, or a file's name, looks like
-                                it holds a secret, or is compressed in a format the scan can't
-                                read (it unpacks gzip, zlib, brotli, zip and, on a Node that has
-                                it, zstd; raw deflate, which has no magic number, it scans as
-                                binary), or a saved analysis is over 1 MiB or isn't one this
-                                reeval reads
-    --no-wait                   Return once it's uploaded
-    --out <file>                Write the scanned archive to this file instead, uploading nothing
-                                (no sign-in needed); a file already there must be a reeval archive
-    --artifacts <level>         all, evidence, failures or none: archive the attempts'
-                                artifacts and transcripts at this level, from the run's copy in
-                                .reeval/runs (an unrecorded run, or a recorded one it matches;
-                                nothing is recorded), else only narrowing a recorded run's
-    --allow-incomplete          With --artifacts, take an unrecorded run that didn't complete
-    --json                      The run's last state, or what --out wrote, as JSON
-    --skip-secret-scan          Upload even then, printing what the scan found as a warning
-    --org <slug>                The org, by slug or id, instead of the linked one
-    --project <slug>            The project, by slug or id, instead of the linked one; required
-                                when nothing is linked
-    --offline --all-branches    A remote history.store: read its copy without pulling first; list
-                                every branch's runs, not only HEAD's
-    --profile <name>            Use the history store the profile sets (also REEVAL_PROFILE)`,
+        usage: 'cloud push [run]',
+        summary: 'Upload a recorded run to the cloud studio',
+        description: 'Upload a recorded run to the cloud studio (default: latest)',
+        options: [
+          { flags: '--no-wait', help: 'Return once uploaded' },
+          { flags: '--out <file>', help: 'Write the archive to a file instead of uploading' },
+          {
+            flags: '--artifacts <level>',
+            help: 'Artifacts to include: all, evidence, failures or none',
+          },
+          { flags: '--allow-incomplete', help: 'Allow an incomplete run with --artifacts' },
+          { flags: '--skip-secret-scan', help: 'Upload despite secret scan findings' },
+          { flags: '--json', help: 'Output as JSON' },
+          ...CLOUD_TARGET,
+          ...HISTORY_STORE,
+        ],
       },
       run: {
         flags: [],
         positionals: 2,
-        help: `
-  reeval cloud run cancel <run> Cancel a cloud run, by the id reeval run --cloud printed or its
-                                event stream URL; its followers then see it end. Ctrl-C while
-                                following a cloud run only detaches`,
+        usage: 'cloud run',
+        summary: 'Manage cloud runs',
+        actions: [['cancel <run>', 'Cancel a cloud run']],
       },
     },
   },
   bundle: {
     flags: ['profile', 'runs', 'tag', 'trait', 'out'],
     positionals: Number.POSITIVE_INFINITY,
-    help: `
-  reeval bundle [filter...]     Write the run's plan and every host file it reads as one .tar.gz that
-                                reeval run --bundle runs elsewhere; never node_modules or a .env
-                                file (it names their variables and the secrets the run needs), and
-                                exit 2 when a file it would carry holds a secret
-    --profile <name>            Plan with a profile, as reeval run does; --runs, --tag and --trait
-                                also plan as they do there
-    --out <file>                Where to write it (default <project>.bundle.tar.gz here)`,
+    group: 'Run evals',
+    hidden: true,
+    usage: 'bundle [filter...]',
+    summary: "Package a run's plan and files as a .tar.gz",
+    options: [
+      { flags: '--profile <name>', help: 'Profile to plan with' },
+      { flags: '--runs --tag --trait', help: 'Same as reeval run' },
+      { flags: '--out <file>', help: 'Output file (default: <project>.bundle.tar.gz)' },
+    ],
   },
   clean: {
     flags: ['keep', 'images', 'staging', 'bundles'],
     positionals: 0,
-    help: `
-  reeval clean                  Remove local debug data (.reeval/debug), snapshots (in .reeval/runs)
-                                and finished runs' event streams (.reeval/events); --keep <n> keeps
-                                the newest n runs'. Also removes the containers a reeval on this
-                                machine left running when it was killed (reeval run does at its
-                                start and end too)
-    --images                    Also remove the Docker images reeval built that nothing tags any more,
-                                and the intermediate -base tags of from builds; with Tart, delete
-                                every Tart image reeval baked a harness into that isn't running
-    --staging                   Also delete every stopped run's staging (.reeval/staging), so
-                                reeval run --resume can no longer finish it
-    --bundles                   Also delete the copies reeval run --bundle extracted into the
-                                temporary directory, each with its run's .reeval/, but a running one's`,
+    group: 'Run evals',
+    usage: 'clean',
+    summary: 'Remove local debug data, snapshots and event streams',
+    options: [
+      { flags: '--keep <n>', help: "Keep the newest n runs' data (default: 0)" },
+      { flags: '--images', help: 'Also remove unused images reeval built' },
+      { flags: '--staging', help: "Also remove stopped runs' staging" },
+      { flags: '--bundles', help: 'Also remove extracted bundles', hidden: true },
+    ],
   },
   record: {
     flags: ['artifacts', 'allow-incomplete', 'skip-secret-scan', 'profile'],
     positionals: Number.POSITIVE_INFINITY,
     runRef: true,
-    help: `
-  reeval record [run...]        Copy runs (default: latest) from .reeval/runs into the history folder
-                                --artifacts all|evidence|failures|none --allow-incomplete --skip-secret-scan
-    --profile <name>            Use the history store the profile sets (also REEVAL_PROFILE)`,
+    group: 'Results',
+    usage: 'record [run...]',
+    summary: 'Copy runs to the history folder',
+    description: 'Copy runs to the history folder (default: latest)',
+    options: [
+      {
+        flags: '--artifacts <level>',
+        help: 'Artifacts to include: all, evidence, failures or none',
+      },
+      { flags: '--allow-incomplete', help: 'Allow an incomplete run with --artifacts' },
+      { flags: '--skip-secret-scan', help: 'Record despite secret scan findings' },
+      { flags: '--profile <name>', help: 'Profile whose history store to use' },
+    ],
   },
   history: {
     flags: ['limit', 'all', 'json', 'profile', 'offline', 'all-branches'],
     positionals: Number.POSITIVE_INFINITY,
-    help: `
-  reeval history [filter]       Pass/fail per recorded eval over recent runs
-                                --limit <n> --all (include unrecorded runs) --json
-    --offline --all-branches    A remote history.store: read its copy without pulling first; list
-                                every branch's runs, not only HEAD's
-    --profile <name>            Use the history store the profile sets (also REEVAL_PROFILE)`,
+    group: 'Results',
+    usage: 'history [filter]',
+    summary: 'Show pass/fail per eval over recent runs',
+    options: [
+      { flags: '--limit <n>', help: 'Runs to show' },
+      { flags: '--all', help: 'Include unrecorded runs' },
+      { flags: '--json', help: 'Output as JSON' },
+      ...HISTORY_STORE,
+    ],
   },
   show: {
     flags: ['json', 'md', 'trace', 'out', 'profile', 'offline', 'all-branches'],
     positionals: 1,
     runRef: true,
-    help: `
-  reeval show [run]             One run: result blocks, --md (summary.md) or --json (the record)
-    --trace                     Write its timeline as Chrome Trace Event JSON for ui.perfetto.dev:
-                                attempts in lanes, with setup, turns, tool calls, checks and judge
-    --out <file>                With --trace, where to write it (default .reeval/traces/<run>.json)
-    --offline --all-branches    A remote history.store: read its copy without pulling first; list
-                                every branch's runs, not only HEAD's
-    --profile <name>            Use the history store the profile sets (also REEVAL_PROFILE)`,
+    group: 'Results',
+    usage: 'show [run]',
+    summary: 'Show a run',
+    options: [
+      { flags: '--md', help: 'Output as Markdown' },
+      { flags: '--json', help: 'Output the record as JSON' },
+      { flags: '--trace', help: 'Write a Perfetto trace of the run' },
+      { flags: '--out <file>', help: 'Trace output file (default: .reeval/traces/<run>.json)' },
+      ...HISTORY_STORE,
+    ],
   },
   compare: {
     flags: ['md', 'json', 'fail-on-regression', 'verbose', 'profile', 'offline', 'all-branches'],
     positionals: 2,
     runRef: true,
-    help: `
-  reeval compare [base] [head]  Diff two runs; base defaults to head's nearest recorded ancestor
-                                --md --json --fail-on-regression
-    -v, --verbose               Also each cell's lift and effort and each variant's comparison with
-                                its baseline, base → head, and the stack changes
-    --offline --all-branches    A remote history.store: read its copy without pulling first; list
-                                every branch's runs, not only HEAD's
-    --profile <name>            Use the history store the profile sets (also REEVAL_PROFILE)`,
+    group: 'Results',
+    usage: 'compare [base] [head]',
+    summary: 'Compare two runs',
+    description: 'Compare two runs (default base: nearest recorded ancestor)',
+    options: [
+      { flags: '--md', help: 'Output as Markdown' },
+      { flags: '--json', help: 'Output as JSON' },
+      { flags: '--fail-on-regression', help: 'Exit 1 on a regression' },
+      { flags: '-v, --verbose', help: 'Also show lift, effort and variant comparisons' },
+      ...HISTORY_STORE,
+    ],
   },
   checkout: {
     flags: ['profile', 'offline', 'all-branches'],
     positionals: 2,
     runRef: true,
-    help: `
-  reeval checkout [run] [dir]   A git worktree at the run's commit, with its worktree.patch applied
-                                (default dir: .reeval/checkouts/<run>)
-    --offline --all-branches    A remote history.store: read its copy without pulling first; list
-                                every branch's runs, not only HEAD's
-    --profile <name>            Use the history store the profile sets (also REEVAL_PROFILE)`,
+    group: 'Results',
+    usage: 'checkout [run] [dir]',
+    summary: "Check out a run's code as a git worktree",
+    description: "Check out a run's code as a git worktree (default dir: .reeval/checkouts/<run>)",
+    options: HISTORY_STORE,
   },
   sync: {
     flags: ['profile', 'debug', 'push-only'],
     positionals: Number.POSITIVE_INFINITY,
     runRef: true,
-    help: `
-  reeval sync [--debug run...]  Upload the runs recorded to history.store that didn't upload
-                                (kept in .reeval/store/<id>/pending), then download the runs
-                                recorded elsewhere; exit 3 if the store fails
-    --debug                     Then download each run's debug data (default latest), which a
-                                pull leaves in the store, into .reeval/debug/<run>
-    --push-only                 Upload, then check the store answers instead of downloading
-    --profile <name>            Use the history store the profile sets (also REEVAL_PROFILE)`,
+    group: 'Results',
+    usage: 'sync [run...]',
+    summary: 'Sync runs with the history store',
+    options: [
+      { flags: '--debug', help: "Also download the runs' debug data (default: latest)" },
+      { flags: '--push-only', help: 'Upload only' },
+      { flags: '--profile <name>', help: 'Profile whose history store to use' },
+    ],
   },
   query: {
     flags: ['json', 'schema', 'rebuild', 'run', 'profile', 'offline'],
     positionals: Number.POSITIVE_INFINITY,
-    help: `
-  reeval query [sql | view]     Read-only SQL over every recorded and scratch run (.reeval/history.db,
-                                rebuilt from the records); views: lift, effort, factor_effects,
-                                measure_effects, skill_reads, flaky_cells, drift, failing_attempts,
-                                attempt_resources, eval_trend, verdict_flips, check_discrimination,
-                                check_rates, check_streaks. No argument lists them
-    --run <id|last>             Bind the run id (or the last run's) to :run in the SQL; with a view
-                                or table name, only that run's rows
-    --json                      Rows as JSON; --schema every table and column; --rebuild from scratch
-    --offline                   A remote history.store: read its copy without pulling first
-    --profile <name>            Use the history store the profile sets (also REEVAL_PROFILE)`,
+    group: 'Results',
+    usage: 'query [sql | view]',
+    summary: 'Query run history with SQL or a named view',
+    description: 'Query run history with SQL or a named view (no argument lists the views)',
+    options: [
+      { flags: '--run <id|last>', help: 'Bind a run id to :run' },
+      { flags: '--json', help: 'Output as JSON' },
+      { flags: '--schema', help: 'List every table and column' },
+      { flags: '--rebuild', help: 'Rebuild the history database' },
+      { flags: '--offline', help: "Read the history store's local copy without pulling" },
+      { flags: '--profile <name>', help: 'Profile whose history store to use' },
+    ],
   },
   analyze: {
     flags: [
@@ -576,49 +558,69 @@ export const COMMANDS: Record<string, CommandSpec> = {
     ],
     positionals: 1,
     runRef: true,
-    help: `
-  reeval analyze [run]          Explain a run with one LLM call over a digest of its facts (vs its
-                                nearest recorded ancestor), citations and commands checked; cached
-                                in .reeval/analysis (model: config.analysis.model)
-    --vs <run>                  The run to compare with; none for this run only;
-                                --eval <filter> only matching evals
-    --save                      Also write it into the run's history folder: <run>/analysis/
-    --push                      With --save, also upload it to the run in the cloud studio (signed
-                                in; reeval cloud push uploads the run first)
-    --context                   Print the digest and rules for your own coding agent (no key, no call)
-    --dry-run                   Print the digest's size and the cache key, without calling the model
-    --json --md --no-cache      The analysis as JSON or Markdown; --no-cache calls the model again
-    --offline --all-branches    A remote history.store: read its copy without pulling first; list
-                                every branch's runs, not only HEAD's
-    --profile <name>            Use the history store the profile sets (also REEVAL_PROFILE)`,
+    group: 'Results',
+    usage: 'analyze [run]',
+    summary: 'Explain a run with an LLM',
+    options: [
+      {
+        flags: '--vs <run>',
+        help: 'Run to compare with, or none (default: nearest recorded ancestor)',
+      },
+      { flags: '--eval <filter>', help: 'Only matching evals' },
+      { flags: '--save', help: "Save the analysis to the run's history folder" },
+      { flags: '--push', help: 'With --save, also upload it to the cloud studio' },
+      { flags: '--context', help: 'Print the digest for your own agent, without calling a model' },
+      { flags: '--dry-run', help: 'Show the digest size and cache key' },
+      { flags: '--json', help: 'Output as JSON' },
+      { flags: '--md', help: 'Output as Markdown' },
+      { flags: '--no-cache', help: 'Call the model even when cached' },
+      ...HISTORY_STORE,
+    ],
+  },
+  report: {
+    flags: ['out', 'json', 'last', 'issue', 'yes'],
+    positionals: 1,
+    runRef: true,
+    group: 'Results',
+    usage: 'report [run]',
+    summary: 'Collect a redacted bug report',
+    options: [
+      { flags: '--out <dir|file>', help: 'Output path (default: .reeval/reports)' },
+      { flags: '--json', help: 'Output as JSON' },
+      { flags: '--last', help: 'Report the last failed command' },
+      { flags: '--issue', help: 'Open a GitHub issue' },
+      { flags: '-y, --yes', help: 'File the issue without prompting' },
+    ],
   },
   mcp: {
     flags: ['http', 'port', 'host', 'token', 'profile', 'offline', 'all-branches'],
     positionals: 0,
-    help: `
-  reeval mcp                    Serve the run history to other agents over MCP (stdio): read-only
-                                tools for why a run failed, reeval query's views and SQL,
-                                history, show, compare, transcripts and saved analyses, and runs
-                                as resources
-    --http                      Stateless Streamable HTTP on 127.0.0.1 instead, at /mcp;
-                                --port <n> (default 4986), --host <addr>
-    --token <value>             With --http, require it as a bearer token (also REEVAL_MCP_TOKEN)
-    --offline --all-branches    A remote history.store: read its copy without pulling first; list
-                                every branch's runs, not only HEAD's
-    --profile <name>            Use the history store the profile sets (also REEVAL_PROFILE)`,
+    group: 'Studio and agents',
+    usage: 'mcp',
+    summary: 'Serve run history over MCP',
+    description: 'Serve run history over MCP (stdio)',
+    options: [
+      { flags: '--http', help: 'Serve over HTTP at /mcp instead' },
+      { flags: '--port <n>', help: 'HTTP port (default: 4986)' },
+      { flags: '--host <addr>', help: 'HTTP address to listen on (default: 127.0.0.1)' },
+      { flags: '--token <value>', help: 'Require this bearer token with --http' },
+      ...HISTORY_STORE,
+    ],
   },
   studio: {
     flags: ['port', 'no-open', 'no-scratch', 'profile'],
     positionals: 1,
     runRef: true,
-    help: `
-  reeval studio [run]           Open the hosted studio on your local runs: serves them on 127.0.0.1
-                                to the studio page at REEVAL_CLOUD_URL, which pairs with a one-time
-                                token (default run: the newest)
-    --port <n>                  First port to try (default 4984)
-    --no-open                   Print the studio URL without opening the browser
-    --no-scratch                Hide the unrecorded runs in .reeval/runs
-    --profile <name>            Use the history store the profile sets (also REEVAL_PROFILE)`,
+    group: 'Studio and agents',
+    usage: 'studio [run]',
+    summary: 'Open runs in the studio, or share them',
+    description: 'Open local runs in the studio (default: newest)',
+    options: [
+      { flags: '--port <n>', help: 'First port to try (default: 4984)' },
+      { flags: '--no-open', help: 'Print the URL without opening a browser' },
+      { flags: '--no-scratch', help: 'Hide unrecorded runs' },
+      { flags: '--profile <name>', help: 'Profile whose history store to use' },
+    ],
     sub: {
       share: {
         flags: [
@@ -636,120 +638,68 @@ export const COMMANDS: Record<string, CommandSpec> = {
         ],
         positionals: 1,
         runRef: true,
-        help: `
-  reeval studio share [run]     Share a recorded run's report (default: latest) from the cloud
-                                project reeval link linked, with the org's members, and print the
-                                link; pushes the run as reeval cloud push does first, secret scan
-                                included, unless the project has it already
-    --full                      Share the attempts' transcripts and artifacts too, not only the
-                                report
-    --public                    Anyone with the link can view it, without signing in; pushes the
-                                copy scanned here first, even when the project has the run, and
-                                the link serves the run's latest pushed copy
-    --list                      List the project's shares instead (with a run, that run's)
-    --revoke <id>               Revoke a share: its link stops working
-    --json                      The share, or the list, as JSON
-    --skip-secret-scan          Push even when the scan finds something, as reeval cloud push does
-    --org <slug>                The org, by slug or id, instead of the linked one
-    --project <slug>            The project, by slug or id, instead of the linked one; required
-                                when nothing is linked
-    --offline --all-branches    A remote history.store: read its copy without pulling first; list
-                                every branch's runs, not only HEAD's
-    --profile <name>            Use the history store the profile sets (also REEVAL_PROFILE)`,
+        usage: 'studio share [run]',
+        summary: "Share a run's report with your org",
+        description: "Share a run's report with your org (default: latest)",
+        options: [
+          { flags: '--full', help: 'Include transcripts and artifacts' },
+          { flags: '--public', help: 'Allow anyone with the link' },
+          { flags: '--list', help: 'List shares' },
+          { flags: '--revoke <id>', help: 'Revoke a share' },
+          { flags: '--json', help: 'Output as JSON' },
+          { flags: '--skip-secret-scan', help: 'Push despite secret scan findings' },
+          ...CLOUD_TARGET,
+          ...HISTORY_STORE,
+        ],
       },
     },
-  },
-  report: {
-    flags: ['out', 'json', 'last', 'issue', 'yes'],
-    positionals: 1,
-    runRef: true,
-    help: `
-  reeval report [run]           Collect a bug report: versions, reeval doctor, the config's shape, the
-                                last reeval command's error and stack, the run's failures and their
-                                .reeval/debug logs, redacted. Prints a summary, writes it to .reeval/reports
-                                and uploads nothing
-    --out <dir|file>            Write report.md, report.json and report-logs.tar.gz there instead
-                                (a .md or .json file writes the others beside it)
-    --json                      The bundle as JSON on stdout
-    --last                      Report the last reeval command that failed, and its run
-    --issue                     Open a pre-filled GitHub issue for reeval in the browser, or with gh
-                                installed, file it with gh issue create once you confirm
-    -y, --yes                   With --issue, file it with gh without asking`,
   },
   image: {
     flags: [],
     positionals: 0,
-    help: '',
+    group: 'Images',
+    groupOnly: true,
+    usage: 'image',
+    summary: 'Build, list and clean sandbox images',
     sub: {
       build: {
         flags: ['profile', 'dry-run', 'force', 'registry', 'push'],
         positionals: Number.POSITIVE_INFINITY,
-        help: `
-  reeval image build [filter...]
-                                Build every image the evals' Docker sandboxes need, per harness: reeval's
-                                image (bakes in its CLI), from and dockerfile images, install layers.
-                                Builds what's missing or stale (a from tag that moved upstream), three
-                                at a time, and reports every failure; exit 3 if any image failed.
-                                Pulls the tart() images Tart doesn't have, with tart pull, once the
-                                disk has room for them, counting what Tart prunes from its cache
-                                (exit 3 if not), then bakes each real harness's CLI into a local copy
-                                of its image that attempts clone; runs no Docker without a Docker
-                                sandbox. Builds each sandbox's image on boat() or daytona() into
-                                a snapshot in its account, unless one is saved already
-    --profile <name>            Plan with a profile from reeval.config.ts, as reeval run does, so its
-                                harness, sandbox and tags pick the images (also REEVAL_PROFILE)
-    --force                     Rebuild every image, pulling each base again (and each tart() tag),
-                                and bake each tart() harness image anew. A saved boat() or
-                                daytona() snapshot is used as is: delete it with reeval image clean
-    --registry <prefix>         Pull each image that isn't built here from this registry
-                                (host[:port]/path) before building it. Its tags hash the inputs
-                                and the platform, not this machine's image ids; a pulled image is
-                                used only when its ai.reeval.key label and platform match, so the
-                                registry is trusted with the rest. Without it, reeval's own image
-                                for each harness is pulled from ghcr.io/reeval-ai/sandbox by the
-                                digest this reeval pins (REEVAL_DEFAULT_REGISTRY=none builds it
-                                instead). A pull over 10 minutes is given up on and the image
-                                built. --force builds instead
-    --push                      With --registry, push every image reeval built or pulled for the
-                                evals there (docker or podman push; log in first). Each image
-                                holds its base in full, your own docker({ image }), from or
-                                Dockerfile base included, so push only where those may go
-    --dry-run                   List the images, how each is made and how each stands, building
-                                and pulling nothing (a from tag or tart() image is looked up in its
-                                registry, not pulled), whether the tart() pulls fit the disk, and
-                                which boat() and daytona() snapshots are saved`,
+        usage: 'image build [filter...]',
+        summary: 'Build the sandbox images the evals need',
+        options: [
+          { flags: '--profile <name>', help: 'Profile to plan with' },
+          { flags: '--force', help: 'Rebuild every image' },
+          { flags: '--registry <prefix>', help: 'Registry to pull images from before building' },
+          { flags: '--push', help: 'Push built images to --registry' },
+          { flags: '--dry-run', help: 'List images without building' },
+        ],
       },
       list: {
         flags: ['profile', 'json'],
         positionals: Number.POSITIVE_INFINITY,
-        help: `
-  reeval image list [filter...]
-                                List the image snapshots reeval saved in each boat() and daytona()
-                                account and prefix the evals use (names under <prefix>-img-): size,
-                                when it was saved and last used, and the environments that start
-                                from it
-    --profile <name>            Plan with a profile from reeval.config.ts, as reeval run does
-                                (also REEVAL_PROFILE)
-    --json                      The snapshots as JSON`,
+        usage: 'image list [filter...]',
+        summary: 'List saved boat() and daytona() image snapshots',
+        options: [
+          { flags: '--profile <name>', help: 'Profile to plan with' },
+          { flags: '--json', help: 'Output as JSON' },
+        ],
       },
       clean: {
         flags: ['profile', 'provider', 'older-than', 'all', 'dry-run'],
         positionals: 0,
-        help: `
-  reeval image clean
-                                Delete the image snapshots reeval saved in each boat() and daytona()
-                                account and prefix the evals use that none of their environments
-                                starts from and none used in the last 14 days. Only names reeval
-                                gives its images (<prefix>-img-<12 hex>) are touched, and never one
-                                used in the last hour or one still being saved
-    --profile <name>            Plan with a profile from reeval.config.ts, as reeval run does
-                                (also REEVAL_PROFILE)
-    --provider <name>           Only boat or daytona snapshots
-    --older-than <duration>     Only snapshots last used (or else saved) longer ago than this,
-                                e.g. 14d (the default) or 12h
-    --all                       Also delete the snapshots the evals' environments start from, and
-                                without --older-than any age (never one used in the last hour)
-    --dry-run                   List what would be deleted, and why each other snapshot is kept`,
+        usage: 'image clean',
+        summary: 'Delete unused boat() and daytona() image snapshots',
+        options: [
+          { flags: '--profile <name>', help: 'Profile to plan with' },
+          { flags: '--provider <name>', help: 'Only boat or daytona' },
+          {
+            flags: '--older-than <duration>',
+            help: 'Only snapshots unused this long (default: 14d)',
+          },
+          { flags: '--all', help: 'Also delete snapshots in use' },
+          { flags: '--dry-run', help: 'List what would be deleted' },
+        ],
       },
     },
   },
@@ -772,41 +722,117 @@ export const TAGLINE = 'Evaluation runner for SDKs, CLIs, MCP servers, and docs.
 
 const RUN_REF = 'A run is latest, latest~N, a run id or its prefix, or a git SHA prefix.'
 
-const helpLines = (spec: CommandSpec) => [
-  spec.help,
-  ...Object.values(spec.sub ?? {}).map((sub) => sub.help),
-]
+const COLUMN = 28
 
-/** `reeval --help`: every command's help lines, in the order of `COMMANDS`, then the global flags. */
+/** One help row: the left side padded to the column, or on its own line when too long. */
+const row = (left: string, right: string): string[] => {
+  const head = `  ${left}`
+  const [first = '', ...rest] = right.split('\n')
+  const more = rest.map((line) => `${' '.repeat(COLUMN)}${line}`)
+  return head.length < COLUMN - 1
+    ? [`${head.padEnd(COLUMN)}${first}`, ...more]
+    : [head, `${' '.repeat(COLUMN)}${first}`, ...more]
+}
+
+/** The global options, as `reeval --help` ends with them. */
+export const GLOBAL_HELP = [
+  'Global options:',
+  ...row('--config <path>', 'Config file (default: nearest reeval.config.ts)'),
+  ...row('-h, --help', 'Show help'),
+  ...row('--version', 'Print the version'),
+].join('\n')
+
+type HelpSpec = Omit<CommandSpec, 'sub' | 'group'>
+
+const visibleSubs = (spec: CommandSpec) =>
+  Object.entries(spec.sub ?? {}).filter(([, sub]) => !sub.hidden)
+
+/** A subcommand's rows in its group's help: one per action, else one. */
+const subRows = (name: string, sub: HelpSpec) => {
+  const usage = sub.usage.slice(name.length + 1)
+  return sub.actions
+    ? sub.actions.flatMap(([action, summary]) => row(`${usage} ${action}`, summary))
+    : row(usage, sub.summary)
+}
+
+/**
+ * A command's own help without the title: its usage, description, options and subcommands, as
+ * the CLI reference shows it. `path` is `['run']` or `['image', 'build']`.
+ */
+export function commandHelpBody(path: string[]): string {
+  const [name = '', subName = ''] = path
+  const command = COMMANDS[name]
+  if (!command) throw new Error(`no reeval command ${name}`)
+  const spec: HelpSpec = (subName && command.sub?.[subName]) || command
+  const options = (spec.options ?? []).filter((o) => !o.hidden)
+  const subs = spec === command ? visibleSubs(command) : []
+  const lines: string[] = []
+  if (spec.actions) {
+    lines.push('Usage:')
+    for (const [action, summary] of spec.actions)
+      lines.push(...row(`reeval ${spec.usage} ${action}`, summary))
+  } else {
+    const rest = command.groupOnly && spec === command ? ' <command>' : ''
+    lines.push(`Usage: reeval ${spec.usage}${rest}${options.length ? ' [options]' : ''}`, '')
+    lines.push(spec.description ?? spec.summary)
+  }
+  if (options.length) {
+    lines.push('', 'Options:')
+    for (const option of options) lines.push(...row(option.flags, option.help))
+  }
+  if (subs.length) {
+    lines.push('', 'Commands:')
+    for (const [, sub] of subs) lines.push(...subRows(name, sub))
+  }
+  if (command.groupOnly && spec === command) {
+    lines.push('', `Run reeval ${name} <command> --help for a command's options.`)
+  }
+  return lines.join('\n')
+}
+
+/** `reeval --help`: every command that isn't hidden, one row each under its group, then the global flags. */
 export function helpText(version: string): string {
+  const groups = new Map<string, string[]>()
+  for (const [, spec] of Object.entries(COMMANDS)) {
+    if (spec.hidden) continue
+    const group = spec.group ?? 'Commands'
+    groups.set(group, [...(groups.get(group) ?? []), ...row(spec.usage, spec.summary)])
+  }
+  const sections = [...groups].map(([group, rows]) => [`${group}:`, ...rows].join('\n'))
   return `reeval ${version} — ${TAGLINE}
 
-Usage:${Object.values(COMMANDS).flatMap(helpLines).join('')}
+Usage: reeval <command> [options]
 
-Global options:
-  --config <path>               Use this config instead of the nearest reeval.config.ts
-  -h, --help                    Show help; reeval <command> --help for one command
-  --version                     Print the version
+${sections.join('\n\n')}
+
+${GLOBAL_HELP}
+
+Run reeval <command> --help for a command's options.
 `
 }
 
 /**
- * `reeval <command> [sub] --help`: that command's help lines (and its subcommands' when no
- * subcommand is named), or the whole of `reeval --help` for a command it doesn't know.
+ * `reeval <command> [sub] --help`: that command's own help, hidden or not, or the whole of
+ * `reeval --help` for a command it doesn't know.
  */
 export function commandHelpText(version: string, path: string[]): string {
   const [name = '', subName = ''] = path
   const spec = COMMANDS[name]
   if (!spec) return helpText(version)
   const sub = spec.sub?.[subName]
-  const lines = sub ? [sub.help] : helpLines(spec)
-  const runRef = sub
-    ? sub.runRef
-    : spec.runRef || Object.values(spec.sub ?? {}).some((s) => s.runRef)
+  const runRef = sub ? sub.runRef : spec.runRef
   return `reeval ${version} — ${TAGLINE}
 
-Usage:${lines.join('')}
+${commandHelpBody(sub ? [name, subName] : [name])}
 ${runRef ? `\n${RUN_REF}\n` : ''}`
+}
+
+/** The flags a command takes that its help leaves out. */
+export function hiddenFlags(spec: HelpSpec): FlagName[] {
+  const hidden = (spec.options ?? []).filter((o) => o.hidden).map((o) => o.flags)
+  return spec.flags.filter((flag) =>
+    hidden.some((flags) => new RegExp(`--${flag}(?![\\w-])`).test(flags)),
+  )
 }
 
 /** Splits a command line on whitespace, honoring single and double quotes. */

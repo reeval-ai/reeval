@@ -48,26 +48,21 @@ if (!existsSync(cli)) {
 
 // ---- Sources -------------------------------------------------------------------------------
 
-const help = execFileSync(process.execPath, [cli, '--help'], { encoding: 'utf8' })
+const cliSpec = existsSync(join(src, 'cli-spec.ts')) ? await import(join(src, 'cli-spec.ts')) : null
 
-/** The help text split into one section per command, keyed `run`, `studio build`, … */
-function helpSections(text) {
-  const sections = new Map()
-  let current = null
-  const lines = text.replace(/\n+$/, '').split('\n')
-  const blank = lines.lastIndexOf('')
-  for (const [i, line] of lines.entries()) {
-    if (i > blank) {
-      sections.set('footer', [...(sections.get('footer') ?? []), line])
-      continue
-    }
-    const head =
-      /^ {2}reeval ((?:[a-z]+)(?: (?:build|list|clean|secrets|provider|gateway|push|share|run))?)\b/.exec(
-        line,
-      )
-    if (head) current = head[1]
-    else if (!line.startsWith('    ')) current = null
-    if (current) sections.set(current, [...(sections.get(current) ?? []), line.slice(2)])
+/** The help of each command that isn't hidden, keyed `run`, `image build`, …, and the global options as `footer`. */
+function helpSections() {
+  const sections = new Map([['footer', cliSpec.GLOBAL_HELP.split('\n')]])
+  for (const [name, spec] of Object.entries(cliSpec.COMMANDS)) {
+    if (spec.hidden) continue
+    const paths = [
+      ...(spec.groupOnly ? [] : [[name]]),
+      ...Object.entries(spec.sub ?? {})
+        .filter(([, sub]) => !sub.hidden)
+        .map(([sub]) => [name, sub]),
+    ]
+    for (const path of paths)
+      sections.set(path.join(' '), cliSpec.commandHelpBody(path).split('\n'))
   }
   return sections
 }
@@ -99,15 +94,19 @@ function exitCodes() {
 }
 
 /** Every command's flags, from the spec `reeval` parses its own arguments from. */
+/** Each command path with the flags its help shows, every flag it parses, and whether it's hidden. */
 async function cliCommands() {
-  const spec = join(src, 'cli-spec.ts')
-  if (!existsSync(spec)) return null
-  const { COMMANDS } = await import(spec)
+  if (!cliSpec) return null
+  const { COMMANDS, hiddenFlags } = cliSpec
   const out = new Map()
+  const shown = (spec) => spec.flags.filter((flag) => !hiddenFlags(spec).includes(flag))
   for (const [name, command] of Object.entries(COMMANDS)) {
-    if (!command.sub || command.flags?.length) out.set(name, command.flags ?? [])
-    for (const [sub, spec] of Object.entries(command.sub ?? {}))
-      out.set(`${name} ${sub}`, spec.flags)
+    if (!command.groupOnly)
+      out.set(name, { flags: shown(command), parsed: command.flags, hidden: !!command.hidden })
+    for (const [sub, spec] of Object.entries(command.sub ?? {})) {
+      const hidden = !!(command.hidden || spec.hidden)
+      out.set(`${name} ${sub}`, { flags: shown(spec), parsed: spec.flags, hidden })
+    }
   }
   return out
 }
@@ -342,7 +341,7 @@ function aliases(files) {
 
 async function blocks() {
   const out = new Map()
-  const sections = helpSections(help)
+  const sections = helpSections()
   for (const [name, lines] of sections)
     out.set(`cli-help:${name.replace(' ', '-')}`, codeBlock(lines))
 
@@ -490,19 +489,20 @@ const page = (href) => {
 const mentions = (text, token) => text.includes(token)
 
 const commands = await cliCommands()
-const sections = helpSections(help)
+const sections = helpSections()
 const GLOBAL_FLAGS = ['config', 'help', 'version']
 if (!commands) problems.push('packages/reeval/src/cli-spec.ts is missing')
-for (const [name, flags] of commands ?? []) {
+for (const [name, { flags, hidden }] of commands ?? []) {
+  if (hidden) continue
   const section = sections.get(name)
   if (!section) {
-    problems.push(`reeval --help has no section for reeval ${name}`)
+    problems.push(`reeval ${name} --help isn't in the CLI reference`)
     continue
   }
   const text = section.join('\n')
   for (const flag of flags) {
     if (!GLOBAL_FLAGS.includes(flag) && !text.includes(`--${flag}`)) {
-      problems.push(`reeval --help doesn't list --${flag} under reeval ${name}`)
+      problems.push(`reeval ${name} --help doesn't list --${flag}`)
     }
   }
 }
@@ -521,13 +521,15 @@ const OTHER_PROGRAMS_BARE_FLAGS = [
   'pids-limit', // docker run
   'thinking', // pi
 ]
-const { FLAGS: SPEC_FLAGS = {} } = commands ? await import(join(src, 'cli-spec.ts')) : {}
-const allFlags = [...new Set([...GLOBAL_FLAGS, ...[...(commands ?? new Map()).values()].flat()])]
+const { FLAGS: SPEC_FLAGS = {} } = cliSpec ?? {}
+const allFlags = [
+  ...new Set([...GLOBAL_FLAGS, ...[...(commands ?? new Map()).values()].flatMap((c) => c.parsed)]),
+]
 const shortOf = (flag) => SPEC_FLAGS[flag]?.short
 const commandFlags = (rest) => {
   const [first, second] = rest.trim().split(/\s+/)
   const name = commands?.has(`${first} ${second}`) ? `${first} ${second}` : first
-  const flags = commands?.get(name)
+  const flags = commands?.get(name)?.parsed
   return flags ? { name: `reeval ${name}`, flags: [...GLOBAL_FLAGS, ...flags] } : null
 }
 const shownFlags = (text, allowed, where) => {

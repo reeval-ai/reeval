@@ -44,7 +44,7 @@ export function parseCli(argv: string[]): ParsedCli {
     if (name === 'query') takeStatements(command)
     command.argument('[args...]').action(() => {
       // `reeval image` has no action of its own: the dispatcher names its subcommand.
-      const max = spec.sub && !spec.help ? Number.POSITIVE_INFINITY : spec.positionals
+      const max = spec.groupOnly ? Number.POSITIVE_INFINITY : spec.positionals
       parsed = done(program, command, [name], spec.flags, max, spec.secretArgs)
     })
     for (const [subName, sub] of Object.entries(spec.sub ?? {})) {

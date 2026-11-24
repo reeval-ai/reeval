@@ -19,7 +19,7 @@ import { type Digest as AnalysisDigest, RULES } from '../src/analysis/digest.ts'
 import { callAnalysisModel } from '../src/analysis/model.ts'
 import { analysisSchema, SYSTEM_PROMPT } from '../src/analysis/schema.ts'
 import { capConfidence, validateAnalysis } from '../src/analysis/validate.ts'
-import { COMMANDS, checkCommand, FLAGS } from '../src/cli-spec.ts'
+import { COMMANDS, checkCommand, commandHelpText, FLAGS, hiddenFlags } from '../src/cli-spec.ts'
 import { fingerprintOf } from '../src/history/assemble.ts'
 import type { FingerprintParts } from '../src/history/types.ts'
 import { mannWhitney, minimumP } from '../src/stats.ts'
@@ -845,16 +845,38 @@ describe('reeval CLI spec', () => {
     )
   })
 
-  test('the spec and reeval --help name the same commands and flags', async () => {
+  test('the spec and the help name the same commands and flags', async () => {
     const p = await project('cli-spec', { 'reeval.config.ts': fakeConfig() })
     const help = (await runCli(p.dir, ['--help'])).stdout
-    for (const command of Object.keys(COMMANDS))
-      assert.match(help, new RegExp(`\\n  reeval ${command}\\b`), command)
+    for (const [command, spec] of Object.entries(COMMANDS)) {
+      const listed = new RegExp(`\\n  ${command}\\b`).test(help)
+      assert.equal(listed, !spec.hidden, command)
+    }
+    const paths = Object.entries(COMMANDS).flatMap(([name, spec]) => [
+      [name],
+      ...Object.keys(spec.sub ?? {}).map((sub) => [name, sub]),
+    ])
     const named = new Set([...help.matchAll(/--([a-z][a-z-]+)/g)].map((m) => m[1] as string))
-    for (const flag of named)
-      assert.ok(flag in FLAGS, `--${flag} in reeval --help isn't in the spec`)
+    const hidden = new Set<string>()
+    for (const path of paths) {
+      const text = commandHelpText('V', path)
+      for (const m of text.matchAll(/--([a-z][a-z-]+)/g)) named.add(m[1] as string)
+      const [name = '', sub] = path
+      const spec = sub ? COMMANDS[name]?.sub?.[sub] : COMMANDS[name]
+      if (!spec) continue
+      for (const flag of hiddenFlags(spec)) hidden.add(flag)
+      for (const flag of spec.flags) {
+        const shown = new RegExp(`--${flag}(?![\\w-])`).test(text)
+        assert.equal(
+          shown,
+          !hiddenFlags(spec).includes(flag),
+          `--${flag} in reeval ${path.join(' ')} --help`,
+        )
+      }
+    }
+    for (const flag of named) assert.ok(flag in FLAGS, `--${flag} in a help isn't in the spec`)
     for (const flag of Object.keys(FLAGS))
-      assert.ok(named.has(flag), `--${flag} isn't in reeval --help`)
+      assert.ok(named.has(flag) || hidden.has(flag), `--${flag} is in no help and not hidden`)
   })
 })
 
