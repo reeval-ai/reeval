@@ -1,8 +1,9 @@
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { appendFile, readFile, rm } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { inspect } from 'node:util'
 import { detectAgent } from 'std-env'
+import { ENGINE_ENV, type EngineReady } from './background.ts'
 import { parseCli } from './cli-parse.ts'
 import { commandHelpText, type Flags, helpText } from './cli-spec.ts'
 import type { DownloadWatch } from './cloud-files.ts'
@@ -201,6 +202,10 @@ const invocation: {
 
 /** `reeval run --events`: the run's event stream, which ends with the command's exit code. */
 let eventStream: EventStream | undefined
+
+/** This process is the engine of a `reeval run` a terminal started in the background. */
+const ENGINE = process.env[ENGINE_ENV] === '1'
+delete process.env[ENGINE_ENV]
 
 /** Set by the first Ctrl-C or SIGTERM of `reeval run`. */
 let interrupted = false
@@ -1162,6 +1167,59 @@ async function cloudDownload(
   }
 }
 
+/**
+ * `reeval run` on a terminal: its engine in the background, followed here until the run ends, with
+ * the run's exit code, or until Ctrl-D detaches. `--detach` only starts it.
+ */
+async function inBackground(flags: Flags, root: string): Promise<number> {
+  const { startEngine } = await import('./background.ts')
+  const engine = await startEngine(root, argv, (text) => process.stdout.write(text))
+  if (typeof engine === 'number') return engine
+  invocation.runId = engine.runId
+  const again = `reeval attach ${engine.runId} follows it`
+  if (flags.detach) {
+    engine.leave()
+    console.log(`Run ${engine.runId} goes on in the background: ${again}`)
+    return EXIT.ok
+  }
+  let detached = false
+  let code: number
+  try {
+    code = await attachHere(flags, {
+      source: engine.events,
+      root,
+      owned: true,
+      follow: { from: engine.from },
+      onDetach: () => {
+        detached = true
+      },
+    })
+  } catch (error) {
+    const { EventStreamError } = await import('./events.ts')
+    if (!(error instanceof EventStreamError) || error.lost) {
+      engine.leave()
+      throw error
+    }
+    code = await engine.exited
+    engine.relay()
+    console.error(
+      red(
+        `reeval: run ${engine.runId} stopped (exit ${code}) before it finished: reeval run --resume ${engine.runId} keeps the attempts that finished and runs the rest`,
+      ),
+    )
+    return code
+  }
+  if (detached) {
+    engine.leave()
+    console.log(dim(again))
+    return EXIT.ok
+  }
+  await engine.exited
+  engine.relay()
+  engine.forget()
+  return code
+}
+
 /** `reeval attach`'s viewer on this terminal, drawn with the attach flags. */
 async function attachHere(
   flags: Flags,
@@ -1176,6 +1234,7 @@ async function attachHere(
     | 'cancelHint'
     | 'resumedAfter'
     | 'onFirstLine'
+    | 'owned'
   >,
 ): Promise<number> {
   const { attach } = await import('./attach.ts')
@@ -1422,6 +1481,34 @@ async function runCommand(
   if (resumed && !bundled && !flags.local && wantsCloud(flags, setup.config, setup.profile)) {
     console.log(dim(`run ${resumed.runId} ran on this machine, so it continues here`))
   }
+  if (flags.detach && !ENGINE) {
+    const why = setup.dryRun
+      ? '--dry-run runs nothing'
+      : setup.json
+        ? '--json prints the run on stdout'
+        : bundled
+          ? '--bundle runs a bundle where it was given'
+          : process.platform === 'win32'
+            ? "a run on Windows can't be reached from another process"
+            : wantsCloud(runFlags, setup.config, setup.profile)
+              ? 'a cloud run already goes on without a terminal: reeval attach follows it'
+              : undefined
+    if (why) throw new UsageError(`--detach runs a run on this machine in the background: ${why}`)
+  }
+  // A run that draws the interactive list runs in the background, and this terminal follows it.
+  if (
+    !ENGINE &&
+    !bundled &&
+    (flags.detach ||
+      (setup.output.interactive &&
+        !setup.dryRun &&
+        url === undefined &&
+        eventsFileFlag === undefined &&
+        process.platform !== 'win32' &&
+        !wantsCloud(runFlags, setup.config, setup.profile)))
+  ) {
+    return inBackground(flags, setup.config.root)
+  }
   const cloud = bundled ? undefined : await cloudTarget(runFlags, setup, filters, configPath)
   if (cloud && 'exit' in cloud) return cloud.exit
   if (cloud && cloud.target.kind !== 'local') process.env[PLAN_TARGET] = 'cloud'
@@ -1448,7 +1535,7 @@ async function runCommand(
   const terminal = setup.json && !setup.dryRun ? process.stderr : process.stdout
   const harness = setup.config.harness[0]?.kind ?? 'agent'
   const drawn = createRenderer({
-    out: setup.json && setup.dryRun ? { write: () => true } : terminal,
+    out: (setup.json && setup.dryRun) || ENGINE ? { write: () => true } : terminal,
     columns: terminal.columns,
     colorDepth: terminal.isTTY ? terminal.getColorDepth() : undefined,
     output: setup.output,
@@ -1464,9 +1551,13 @@ async function runCommand(
         ? eventsFile(root, ctx.runId)
         : resumed?.saved?.events
           ? resolve(root, resumed.saved.events)
-          : undefined
+          : !setup.dryRun && (ENGINE || url === undefined)
+            ? eventsFile(root, ctx.runId)
+            : undefined
   const savedEvents = eventsTo ? relativeFile(root, eventsTo) : undefined
-  if (startedWith && savedEvents) startedWith.events = savedEvents
+  if (startedWith && savedEvents && (flags.events || eventsTo !== eventsFile(root, ctx.runId))) {
+    startedWith.events = savedEvents
+  }
   const eventsUrl = flags['events-url']
   let heartbeat: AttemptsBeat | undefined
   if (eventsTo || eventsUrl) {
@@ -1477,6 +1568,7 @@ async function runCommand(
       ATTEMPTS_HEARTBEAT_RANGE,
     )
     const cwd = cwdIn(root)
+    const from = continued && eventsTo && existsSync(eventsTo) ? statSync(eventsTo).size : 0
     eventStream = openEventStream({
       ...(eventsTo ? { file: eventsTo, append: continued } : {}),
       ...(eventsUrl ? { url: eventsUrl } : {}),
@@ -1493,6 +1585,10 @@ async function runCommand(
     })
     const stream = eventStream
     if (ms > 0) heartbeat = { ms, send: (beat) => stream.heartbeat(beat) }
+    if (ENGINE && eventsTo && process.send) {
+      process.send({ runId: ctx.runId, events: eventsTo, from } satisfies EngineReady)
+      process.disconnect()
+    }
   }
   const renderer = eventStream ? teeRenderer(drawn, eventStream) : drawn
   let executed: Awaited<ReturnType<typeof executeRun>>

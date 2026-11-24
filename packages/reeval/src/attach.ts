@@ -4,7 +4,8 @@
 // terminal that's the interactive list, whose q and Ctrl-C detach this viewer and leave the run
 // alone; x pressed twice cancels the run, which only a run on this host whose live.json vouches for
 // its pid can be reached for. Anywhere else a SIGINT or SIGTERM detaches the same way, and another
-// one a second later quits. A run that writes heartbeats (its header says so) and then goes quiet
+// one a second later quits. `reeval run`'s own viewer (`owned`) keeps a run's keys instead: Ctrl-C,
+// q pressed twice, a SIGINT or a SIGTERM each reach the run as a Ctrl-C would, and Ctrl-D detaches. A run that writes heartbeats (its header says so) and then goes quiet
 // is shown as stalled, and after longer as lost, which ends attach.
 import { hostname } from 'node:os'
 import { isAbsolute, join, posix, win32 } from 'node:path'
@@ -37,7 +38,9 @@ export type AttachOptions = {
   root?: string
   follow?: FollowOptions
   /** Asks the run's process to cancel, as a first Ctrl-C in its own terminal does. */
-  signalRun?: (pid: number) => void
+  signalRun?: (pid: number, group?: boolean) => void
+  /** The run is the one `reeval run` started in the background for this terminal. */
+  owned?: boolean
   /** `STALL_MS` and `LOST_MS` unless given. */
   silence?: { stallMs?: number; lostMs?: number }
   /** Told when the viewer detaches, before `attach` returns 0. */
@@ -155,13 +158,20 @@ export async function attach(options: AttachOptions): Promise<number> {
   const given = options.follow?.signal
   const signal = AbortSignal.any([detached.signal, lost.signal, ...(given ? [given] : [])])
   const alive = options.follow?.alive ?? processAlive
-  const signalRun = options.signalRun ?? ((pid) => process.kill(pid, CANCEL_SIGNAL))
+  // An owned run leads its own process group. Each cancel is the SIGINT a run in this process would
+  // get: a key in the list signals the run alone, a terminal's Ctrl-C reaches its whole group.
+  const signalRun =
+    options.signalRun ??
+    ((pid, group) =>
+      options.owned ? process.kill(group ? -pid : pid, 'SIGINT') : process.kill(pid, CANCEL_SIGNAL))
   const stallMs = options.silence?.stallMs ?? STALL_MS
   const lostMs = options.silence?.lostMs ?? LOST_MS
   const { root } = options
   let { onFirstLine } = options
   const reachable = (line: RunEventsHeader) =>
-    root !== undefined && cancelable(root, line, { alive })
+    options.owned
+      ? line.host === hostname() && alive(line.pid, line.host)
+      : root !== undefined && cancelable(root, line, { alive })
   let renderer: Renderer | undefined
   /** The last segment's renderer once its exit line came, while its list may still be up. */
   let ended: Renderer | undefined
@@ -189,16 +199,18 @@ export async function attach(options: AttachOptions): Promise<number> {
       ...(options.tty ? { tty: options.tty } : {}),
       attached: {
         detach: () => detached.abort(),
+        ...(options.owned ? { owned: true } : {}),
         ...(line.host === hostname() ? {} : { host: line.host }),
         ...(root === undefined ? {} : { cancelable: () => reachable(line) }),
         ...(options.cancelHint === undefined ? {} : { cancelHint: options.cancelHint }),
       },
-      cancel: () => {
-        if (!reachable(line)) return false
-        signalRun(line.pid)
-        return true
-      },
+      cancel: () => cancelRun(line),
     })
+  const cancelRun = (line: RunEventsHeader, group = false) => {
+    if (!reachable(line)) return false
+    signalRun(line.pid, group)
+    return true
+  }
   const notice = (level: 'info' | 'warn', text: string) =>
     renderer?.onEvent({ type: 'notice', at: Date.now(), level, text })
   const lines = followEvents(options.source, {
@@ -233,6 +245,12 @@ export async function attach(options: AttachOptions): Promise<number> {
   // SAME_PRESS_MS of the first is the same press; a later one quits.
   let signaled: number | undefined
   const interrupted = (signal: NodeJS.Signals) => {
+    if (options.owned) {
+      if (signaled !== undefined && Date.now() - signaled < SAME_PRESS_MS) return
+      signaled = Date.now()
+      if (header) cancelRun(header, true)
+      return
+    }
     if (signaled === undefined) {
       signaled = Date.now()
       detached.abort()

@@ -210,10 +210,12 @@ export type InteractiveOptions = RendererOptions & {
    * The run is another process's, which `reeval attach` follows: q and Ctrl-C call `detach`, and
    * only `cancel` reaches the run, while `cancelable` (asked every `CANCELABLE_MS`) says it can.
    * `host` is the run's when it isn't this one's, and marks the paths the run prints as being there.
-   * `cancelHint` says how to cancel a run no key here reaches.
+   * `cancelHint` says how to cancel a run no key here reaches. `owned` is a run this terminal's
+   * `reeval run` started, whose keys are a run's own but for Ctrl-D, which detaches.
    */
   attached?: {
     detach: () => void
+    owned?: boolean
     host?: string
     cancelable?: () => boolean
     cancelHint?: string
@@ -304,6 +306,7 @@ export class InteractiveRenderer implements Renderer {
                   this.#detached = true
                   attached.detach()
                 },
+                ...(attached.owned ? { owned: true } : {}),
                 ...(attached.cancelHint ? { cancelHint: attached.cancelHint } : {}),
               }
             : {}),

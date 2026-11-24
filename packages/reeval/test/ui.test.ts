@@ -1734,7 +1734,7 @@ describe('reeval attach', () => {
       silence: { stallMs: 50, lostMs: 60_000 },
     })
     await until(() => shows('No word from run run-1 for 50ms'))
-    assert.ok(shows('q detach'), 'the list stays up')
+    assert.ok(shows('q/ctrl-d detach'), 'the list stays up')
     await press('q')
     assert.equal(await run, 0)
     assert.match(text, /Detached from run run-1/)
@@ -1757,14 +1757,50 @@ describe('reeval attach', () => {
         follow: { pollMs: 10 },
         signalRun: (pid) => signaled.push(pid),
       })
-      await until(() => shows('q detach · x cancel the run'))
+      await until(() => shows('q/ctrl-d detach · x cancel the run'))
       await press('x', 'Press x again to cancel the run.')
       assert.deepEqual(signaled, [], 'one x only asks')
-      await press('x', 'q detach')
+      await press('x', 'q/ctrl-d detach')
       assert.deepEqual(signaled, [process.pid], "the run's own process, from the header")
       await press('q')
       assert.equal(await run, 0, 'detaching exits 0')
       assert.deepEqual(signaled, [process.pid], 'q never signals the run')
+      assert.ok(text.endsWith('Detached from run run-1; it goes on.\n'), text)
+    } finally {
+      await stream.end(0)
+    }
+  })
+
+  test("on a terminal, reeval run's own viewer cancels on Ctrl-C and a signal, and detaches on Ctrl-D", async () => {
+    const file = join(tempDir('ui-events'), 'events.ndjson')
+    const earlier = streamOf(file)
+    for (const e of interleaved) earlier.write(e)
+    await earlier.end(1)
+    const from = readFileSync(file).length
+    const stream = streamOf(file, true)
+    for (const e of interleaved.slice(0, 5)) stream.write(e)
+    const { tty, shows, press } = terminal()
+    let text = ''
+    const signaled: [number, boolean | undefined][] = []
+    try {
+      const run = attach({
+        source: file,
+        out: { write: (chunk: string) => (text += chunk) },
+        output: () => listed,
+        tty,
+        owned: true,
+        follow: { pollMs: 10, from },
+        signalRun: (pid, group) => signaled.push([pid, group]),
+      })
+      await until(() => shows('q cancel · ctrl-d detach'))
+      assert.ok(!shows('Done in'), "the run's earlier segment isn't drawn")
+      await press('\u0003')
+      assert.deepEqual(signaled, [[process.pid, false]], 'Ctrl-C signals the run alone')
+      process.emit('SIGINT', 'SIGINT')
+      assert.deepEqual(signaled.at(-1), [process.pid, true], "a signal reaches the run's group")
+      await press('\u0004')
+      assert.equal(await run, 0, 'detaching exits 0')
+      assert.equal(signaled.length, 2, 'Ctrl-D never signals the run')
       assert.ok(text.endsWith('Detached from run run-1; it goes on.\n'), text)
     } finally {
       await stream.end(0)
@@ -1815,7 +1851,7 @@ describe('reeval attach', () => {
           follow: { pollMs: 10 },
           signalRun: (pid) => signaled.push(pid),
         })
-        await until(() => shows('q detach'))
+        await until(() => shows('q/ctrl-d detach'))
         assert.ok(!shows('x cancel'), name)
         await press('x')
         await press('x')
@@ -1888,7 +1924,7 @@ describe('reeval attach', () => {
         tty,
         follow: { pollMs: 10, alive: () => alive },
       })
-      await until(() => shows('q detach'))
+      await until(() => shows('q/ctrl-d detach'))
       alive = false
       await assert.rejects(run, EventStreamError)
       assert.equal(raw.at(-1), false, 'the terminal is back out of raw mode')
@@ -1923,7 +1959,7 @@ describe('reeval attach', () => {
         follow: { pollMs: 10 },
         signalRun: (pid) => signaled.push(pid),
       })
-      await until(() => shows('q detach'))
+      await until(() => shows('q/ctrl-d detach'))
       assert.ok(!shows('x cancel'))
       await press('x')
       await press('x')

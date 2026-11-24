@@ -391,6 +391,8 @@ export type FollowOptions = {
   signal?: AbortSignal
   /** How often a file at its end is read again. */
   pollMs?: number
+  /** Where reading a file starts: a resume's own viewer skips the run's earlier segments. */
+  from?: number
   /** Whether a run's process is alive, from its header. */
   alive?: (pid: number, host: string) => boolean
   /** Opens a run's event socket; Node's `WebSocket` unless given. */
@@ -428,7 +430,7 @@ async function* followFile(file: string, options: FollowOptions): AsyncGenerator
   const fd = openSync(file, 'r')
   const buffer = Buffer.alloc(64 * 1024)
   const state = { rest: '' }
-  let position = 0
+  let position = options.from ?? 0
   let last: RunEventLine | undefined
   let header: RunEventsHeader | undefined
   const decoder = new TextDecoder()
@@ -463,7 +465,7 @@ async function* followFile(file: string, options: FollowOptions): AsyncGenerator
         const tail = read()
         if (!tail.length) {
           throw new EventStreamError(
-            `run ${header.runId}'s reeval run (pid ${header.pid}) ended without finishing its event stream`,
+            `run ${header.runId}'s reeval run (pid ${header.pid}) ended without finishing its event stream: reeval run --resume ${header.runId} finishes the run`,
           )
         }
         for (const l of tail) {
