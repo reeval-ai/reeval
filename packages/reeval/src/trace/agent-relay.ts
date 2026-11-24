@@ -3,7 +3,7 @@
 // so the turns it already sent have a parent.
 import type { AgentSpan } from './agent-spans.ts'
 
-export function agentRelay(send: (span: AgentSpan) => void) {
+export function agentRelay(send: (span: AgentSpan) => void, canceled: () => boolean = () => false) {
   const open = new Map<string, Map<string, AgentSpan>>()
   return {
     call(owner: string, body: unknown): void {
@@ -22,18 +22,22 @@ export function agentRelay(send: (span: AgentSpan) => void) {
       const held = open.get(owner)
       open.delete(owner)
       if (!exit) return
+      // A cancel's attempt is a failure the run caused, as its record says, not an infra error.
+      const stopped = canceled()
       for (const span of held?.values() ?? []) {
         send({
           ...span,
           endMs: Math.max(span.startMs, Date.now()),
           attributes: {
             ...span.attributes,
-            'reeval.outcome': 'infra_error',
-            'reeval.error.kind': 'infra',
+            'reeval.outcome': stopped ? 'fail' : 'infra_error',
+            'reeval.error.kind': stopped ? 'aborted' : 'infra',
           },
           status: {
             code: 'error',
-            message: `The engine worker exited before the attempt ended (${exit})`,
+            message: stopped
+              ? `The run was canceled (the engine worker exited: ${exit})`
+              : `The engine worker exited before the attempt ended (${exit})`,
           },
         })
       }

@@ -3007,7 +3007,10 @@ async function executeRun(
       agentTelemetry = startTelemetry({ ...run, env: agentEnv, signals: ['traces'] })
   }
   const { agentRelay } = await import('./trace/agent-relay.ts')
-  const agentSpans = agentRelay((span) => agentTelemetry?.span(span))
+  const agentSpans = agentRelay(
+    (span) => agentTelemetry?.span(span),
+    () => interrupted,
+  )
   setLocalAgentSink(agentTelemetry ? (body) => agentSpans.call('', body) : undefined)
   if (telemetry) {
     const onEvent = renderer.onEvent.bind(renderer)

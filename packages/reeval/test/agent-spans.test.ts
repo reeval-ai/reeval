@@ -299,3 +299,57 @@ test("the run ends an attempt's agent span as an error when its worker exits fir
   relay.released('3')
   assert.equal(sent.length, 2, 'a worker that finished its file ends nothing')
 })
+
+test('the agent span ends with the last tool call, even one that outlived a turn sent as it ended', () => {
+  const r = {
+    startedAt: at(0),
+    outcome: 'pass',
+    error: null,
+    judgements: [],
+    turns: [
+      {
+        prompt: 'p',
+        text: 't',
+        status: 'completed',
+        startedAt: at(1000),
+        durationMs: 1000,
+        usage: null,
+        model: null,
+        unreported: [],
+        transcript: [
+          {
+            type: 'tool',
+            toolCallId: 'bash-1',
+            tool: 'bash',
+            input: {},
+            output: '',
+            ok: true,
+            durationMs: 5000,
+            ts: at(1500),
+            atMs: 500,
+          },
+        ],
+      },
+    ],
+  } as unknown as EvalRecord
+  const root = (spans: AgentSpan[]) => spans.find((s) => s.name.startsWith('invoke_agent'))
+  assert.equal(finishedTurnSpans(attempt(r), 0).length, 2)
+  assert.equal(root(agentSpans(attempt(r)))?.endMs, T0 + 6500)
+  assert.equal(root(agentSpans(attempt(r), new Set([0])))?.endMs, T0 + 6500)
+})
+
+test("a canceled run's dead worker leaves its attempt's agent span canceled, not an infra error", () => {
+  const sent: AgentSpan[] = []
+  const relay = agentRelay(
+    (span) => sent.push(span),
+    () => true,
+  )
+  relay.call('1', { open: openAgentSpan(attempt()) })
+  relay.released('1', 'signal SIGKILL')
+  assert.equal(sent[0]?.attributes['reeval.outcome'], 'fail')
+  assert.equal(sent[0]?.attributes['reeval.error.kind'], 'aborted')
+  assert.deepEqual(sent[0]?.status, {
+    code: 'error',
+    message: 'The run was canceled (the engine worker exited: signal SIGKILL)',
+  })
+})

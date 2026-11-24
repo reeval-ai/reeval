@@ -125,6 +125,9 @@ function turnSpans(o: AgentAttempt, i: number, parts: Parts): AgentSpan[] {
   // record several events (one per file it edits), and each still needs its own span id.
   const toolId = (callId: string, k: number) => spanId(`turn:${i}:tool:${callId}:${k}`)
   const seen = new Map<string, number>()
+  const toolCalls = new Set(
+    turn.transcript.flatMap((e) => ('toolCallId' in e ? [e.toolCallId] : [])),
+  )
   const turnEvents: NonNullable<AgentSpan['events']> = []
   let calls = 0
   for (const e of turn.transcript) {
@@ -179,8 +182,7 @@ function turnSpans(o: AgentAttempt, i: number, parts: Parts): AgentSpan[] {
               (r) => r.id === e.toolCallId || r.id.startsWith(`${e.toolCallId}#`),
             )
           : []
-      const spawner =
-        e.subagent && turn.transcript.some((x) => 'toolCallId' in x && x.toolCallId === e.subagent)
+      const spawner = e.subagent && toolCalls.has(e.subagent)
       spans.push({
         traceId,
         spanId: toolId(e.toolCallId, k),
@@ -285,13 +287,19 @@ export function openAgentSpan(o: AgentAttempt): AgentSpan {
 /** The attempt's spans from its finished record, but those of the turns in `sent`, whose model calls alone are left. */
 export function agentSpans(o: AgentAttempt, sent: ReadonlySet<number> = new Set()): AgentSpan[] {
   const { record } = o
-  const spans = record.turns.flatMap((_, i) =>
-    turnSpans(o, i, { turn: !sent.has(i), tools: !sent.has(i), chat: true }),
+  const all = record.turns.flatMap((_, i) =>
+    turnSpans(o, i, { turn: true, tools: true, chat: true }),
   )
+  const spans = sent.size
+    ? record.turns.flatMap((_, i) =>
+        turnSpans(o, i, { turn: !sent.has(i), tools: !sent.has(i), chat: true }),
+      )
+    : all
   const open = openAgentSpan(o)
   const startMs = open.startMs
   const ends = record.turns.map((t) => Date.parse(t.startedAt) + t.durationMs)
-  const endMs = Math.max(startMs, ...ends, ...spans.map((s) => s.endMs))
+  // Over every turn's spans, sent or not: a tool call can outlive its turn.
+  const endMs = Math.max(startMs, ...ends, ...all.map((s) => s.endMs))
   const events: NonNullable<AgentSpan['events']> = []
   for (const x of record.assertions ?? []) {
     events.push({
