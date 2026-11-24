@@ -32,6 +32,14 @@ class JudgeDefaults(TypedDict, total=False):
     threshold: float
 
 
+class TranscriptView(TypedDict, total=False):
+    """What of the transcript the judge sees: the detail, and whose events (on unless false)."""
+
+    detail: Literal["tools", "full"]
+    agent: bool
+    subagents: bool
+
+
 class JudgeOptions(JudgeDefaults, total=False):
     """`c.judge()`'s options: the judge defaults, and what the call shows the judge.
 
@@ -45,7 +53,7 @@ class JudgeOptions(JudgeDefaults, total=False):
     files: bool
     diff: bool | Sequence[str]
     contents: Sequence[str]
-    transcript: bool | Literal["tools", "full"]
+    transcript: bool | Literal["tools", "full"] | TranscriptView
     checks: bool | Sequence[str]
     observations: bool | Sequence[str]
     artifacts: Literal[True] | Sequence[str]

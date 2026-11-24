@@ -408,8 +408,10 @@ export type JudgeInputs = {
   /**
    * The graded turn's transcript as text lines: `true` is messages and tool calls with tool
    * output clipped, `'tools'` tool calls only, `'full'` adds reasoning and whole tool output.
+   * Each subagent's events show under its spawn call; `{ detail, agent, subagents }` picks the
+   * detail and whose events (`TranscriptView`).
    */
-  transcript?: boolean | 'tools' | 'full'
+  transcript?: JudgeTranscript
   /** `c.exec` results so far; a list shows only those commands, as passed to `c.exec`. */
   checks?: boolean | string[]
   /** `c.observe()` values so far, by name; a list shows only those names. */
@@ -420,6 +422,16 @@ export type JudgeInputs = {
    */
   artifacts?: true | Array<Capture | string>
 }
+
+/**
+ * Which of the transcript the judge sees, as an object: `detail` is `'tools'` or `'full'` (unset,
+ * what `true` shows), and `agent` and `subagents` whether the agent's own events and its
+ * subagents' show, each unless false. Both false is refused: that's `transcript: false`.
+ */
+export type TranscriptView = { detail?: 'tools' | 'full'; agent?: boolean; subagents?: boolean }
+
+/** A judge's or question's `transcript`: on, a detail, or a `TranscriptView`. */
+export type JudgeTranscript = boolean | 'tools' | 'full' | TranscriptView
 
 /** What a judge call's inputs read: which turn, and whether the turns before it too. */
 export type JudgeSubject = {
@@ -436,13 +448,14 @@ export type JudgeSubject = {
 type OneInput<I, K extends keyof I> = { [P in K]-?: Exclude<I[P], false | undefined> }
 
 /** At least one of `I`'s keys turned on. */
-export type AtLeastOneInput<I> = { [K in keyof I]-?: OneInput<I, K> }[keyof I]
+export type AtLeastOneInput<I> = { [K in keyof I]-?: OneInput<I, K> & Omit<I, K> }[keyof I]
 
 /** `c.judge()`'s options, before the at-least-one-input rule that `JudgeCallOptions` adds. */
 export type JudgeCallFields = JudgeOptions & JudgeInputs & JudgeSubject
 
 /** `c.judge()`'s options: the judge options, the inputs (at least one) and what they read. */
-export type JudgeCallOptions = JudgeCallFields & AtLeastOneInput<JudgeInputs>
+export type JudgeCallOptions = Omit<JudgeCallFields, keyof JudgeInputs> &
+  AtLeastOneInput<JudgeInputs>
 
 /** The inputs one judge call saw, every key set (`false` when off); `artifacts` is recorded apart. */
 export type ResolvedJudgeStateOptions = {
@@ -451,7 +464,7 @@ export type ResolvedJudgeStateOptions = {
   files: boolean
   diff: boolean | string[]
   contents: string[]
-  transcript: boolean | 'tools' | 'full'
+  transcript: JudgeTranscript
   turns: 'last' | 'all'
   checks: boolean | string[]
   /** Set only when the call turned it on, so never `false` as written. */
@@ -1982,7 +1995,8 @@ export type CompareOptions<E = Environment> = {
  * `question.model` answers, else `analysis.model`, else the judge's when it's a language model.
  * It's shown only the inputs it turns on, at least one.
  */
-export type Question = QuestionFields & AtLeastOneInput<QuestionInputs>
+export type Question = Omit<QuestionFields, keyof QuestionInputs> &
+  AtLeastOneInput<QuestionInputs>
 
 /** A question's options, before the at-least-one-input rule that `Question` adds. */
 export type QuestionFields = QuestionInputs & {
@@ -2022,10 +2036,11 @@ export type QuestionInputs = {
   diff?: boolean | string[]
   /**
    * The transcript as text lines: `true` is messages and tool calls with tool output clipped,
-   * `'tools'` tool calls only, `'full'` adds reasoning and whole tool output. It names each
-   * harness's tools, so a pair of two harnesses isn't blind.
+   * `'tools'` tool calls only, `'full'` adds reasoning and whole tool output, each subagent's
+   * events under its spawn call; `{ detail, agent, subagents }` picks the detail and whose events
+   * (`TranscriptView`). It names each harness's tools, so a pair of two harnesses isn't blind.
    */
-  transcript?: boolean | 'tools' | 'full'
+  transcript?: JudgeTranscript
   /** `c.exec` results; a list shows only those commands, as passed to `c.exec`. */
   checks?: boolean | string[]
   /** `c.observe()` values, by name; a list shows only those names. */
@@ -2043,7 +2058,7 @@ export type ResolvedQuestionStateOptions = {
   output: boolean
   files: boolean
   diff: boolean | string[]
-  transcript: boolean | 'tools' | 'full'
+  transcript: JudgeTranscript
   turns: 'last' | 'all'
   checks: boolean | string[]
   /** Set only when the question turned it on, so never `false` as written. */

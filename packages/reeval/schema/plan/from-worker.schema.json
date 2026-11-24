@@ -3036,8 +3036,11 @@
           "type": "boolean"
         },
         "transcript": {
-          "description": "The transcript as text lines: `true` is messages and tool calls with tool output clipped, `'tools'` tool calls only, `'full'` adds reasoning and whole tool output. It names each harness's tools, so a pair of two harnesses isn't blind.",
+          "description": "The transcript as text lines: `true` is messages and tool calls with tool output clipped, `'tools'` tool calls only, `'full'` adds reasoning and whole tool output, each subagent's events under its spawn call; `{ detail, agent, subagents }` picks the detail and whose events (`TranscriptView`). It names each harness's tools, so a pair of two harnesses isn't blind.",
           "anyOf": [
+            {
+              "$ref": "#/$defs/TranscriptView"
+            },
             {
               "enum": ["full", "tools"]
             },
@@ -3352,6 +3355,22 @@
       },
       "required": ["image", "kind"],
       "additionalProperties": false
+    },
+    "TranscriptView": {
+      "description": "Which of the transcript the judge sees, as an object: `detail` is `'tools'` or `'full'` (unset, what `true` shows), and `agent` and `subagents` whether the agent's own events and its subagents' show, each unless false. Both false is refused: that's `transcript: false`.",
+      "type": "object",
+      "properties": {
+        "agent": {
+          "type": "boolean"
+        },
+        "detail": {
+          "enum": ["full", "tools"]
+        },
+        "subagents": {
+          "type": "boolean"
+        }
+      },
+      "required": []
     },
     "TurnStatus": {
       "enum": ["aborted", "completed", "error"]

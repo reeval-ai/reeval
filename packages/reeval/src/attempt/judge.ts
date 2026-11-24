@@ -59,6 +59,8 @@ const isExactPath = (entry: string) => !entry.startsWith('!') && !/[*?[\]{}]/.te
 
 type StateSources = {
   turns: readonly Turn[]
+  /** The record's turns, one per turn in `turns`, for each turn's subagents. */
+  records: Attempt['record']['turns']
   subject: Turn
   output: JSONValue
   wanted: ResolvedJudgeStateOptions
@@ -77,11 +79,14 @@ async function draftState(src: StateSources): Promise<{ draft: Draft; dropped: s
   const { subject, wanted } = src
   const at = src.turns.indexOf(subject)
   const graded = wanted.turns === 'all' && at >= 0 ? src.turns.slice(0, at + 1) : [subject]
+  const runs = (turn: Turn) => src.records[src.turns.indexOf(turn)]?.subagents
   const turns: DraftTurn[] = graded.map((turn) => ({
     ...(wanted.task ? { task: turn.prompt } : {}),
     ...(wanted.output ? { output: turn === subject ? src.output : turn.text } : {}),
     ...(wanted.transcript
-      ? { transcript: transcriptForJudge(turn.transcript, wanted.transcript).join('\n') }
+      ? {
+          transcript: transcriptForJudge(turn.transcript, wanted.transcript, runs(turn)).join('\n'),
+        }
       : {}),
   }))
   const contents = await filesWhole(wanted.contents, src)
@@ -225,6 +230,7 @@ export function judgeCaller(
     }
     const { draft, dropped } = await draftState({
       turns: a.turns,
+      records: a.record.turns,
       subject,
       output,
       wanted,

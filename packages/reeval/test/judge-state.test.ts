@@ -166,6 +166,78 @@ test('judge options keep the inputs to the call, and a call names at least one',
     judgeProblem({ contents: ['**', '!dist/'], checks: true }, { at: 'call' }),
     undefined,
   )
+  assert.equal(judgeProblem({ transcript: { subagents: false } }, { at: 'call' }), undefined)
+  assert.equal(
+    judgeProblem({ transcript: { agent: false, subagents: false } }, { at: 'call' }),
+    'c.judge() transcript shows the judge no transcript; use transcript: false',
+  )
+  assert.equal(
+    judgeProblem({ transcript: { detail: 'all' } }, { at: 'call' }),
+    `c.judge() transcript must be true, false, 'tools', 'full' or { detail, agent, subagents } (got {"detail":"all"})`,
+  )
+})
+
+test("each subagent's events show under its spawn call, and a view picks whose", () => {
+  const sub: TranscriptEvent[] = [
+    { type: 'text', text: 'Reviewing it.', at: 1 },
+    {
+      type: 'tool',
+      toolCallId: 's1',
+      tool: 'Agent',
+      kind: 'tool',
+      input: { prompt: 'review x.ts' },
+      output: 'x.ts is fine',
+      ok: true,
+      startedAt: 1,
+      durationMs: 3000,
+    },
+    { type: 'text', text: 'looking at x.ts', subagent: 's1', at: 2 },
+    {
+      type: 'file-edit',
+      toolCallId: 'e1',
+      tool: 'Edit',
+      path: 'x.ts',
+      kind: 'update',
+      added: 1,
+      removed: 0,
+      startedAt: 2,
+      durationMs: 5,
+      subagent: 's1',
+    },
+    { type: 'text', text: 'Done.', at: 3 },
+  ] as TranscriptEvent[]
+  const runs = [
+    {
+      id: 's1',
+      n: 1,
+      agent: 'reviewer',
+      model: 'claude-haiku-4-5',
+      prompt: 'review x.ts',
+      status: 'completed' as const,
+      durationMs: 3000,
+      events: 'streamed' as const,
+      finalMessage: 'x.ts is fine',
+    },
+  ]
+  assert.deepEqual(transcriptForJudge(sub, true, runs), [
+    'message: Reviewing it.',
+    'tool Agent: {"prompt":"review x.ts"} → ok · 3s\n  x.ts is fine',
+    'subagent 1 (reviewer, claude-haiku-4-5, completed, 3s):\n  message: looking at x.ts\n  edit x.ts (update, +1 −0) · 5ms',
+    'message: Done.',
+  ])
+  assert.deepEqual(transcriptForJudge(sub, { subagents: false }, runs), [
+    'message: Reviewing it.',
+    'tool Agent: {"prompt":"review x.ts"} → ok · 3s\n  x.ts is fine',
+    'message: Done.',
+  ])
+  assert.deepEqual(transcriptForJudge(sub, { agent: false, detail: 'tools' }, runs), [
+    'subagent 1 (reviewer, claude-haiku-4-5, completed, 3s):\n  task: review x.ts\n  edit x.ts (update, +1 −0) · 5ms\n  final message: x.ts is fine',
+  ])
+  const none = [{ ...runs[0], events: 'none' as const }]
+  assert.deepEqual(transcriptForJudge(sub.slice(0, 2), 'tools', none), [
+    'tool Agent: {"prompt":"review x.ts"} → ok · 3s\n  x.ts is fine',
+    "subagent 1 (reviewer, claude-haiku-4-5, completed, 3s):\n  (its own actions aren't in the transcript; the diff has what it changed)",
+  ])
 })
 
 const patch = (path: string, body: string) =>

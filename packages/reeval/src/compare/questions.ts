@@ -136,7 +136,7 @@ function buildSide(
     ...(state.transcript
       ? {
           transcript: redactSecrets(
-            transcriptForJudge(t.transcript ?? [], state.transcript).join('\n'),
+            transcriptForJudge(t.transcript ?? [], state.transcript, t.subagents).join('\n'),
           ),
         }
       : {}),
@@ -868,6 +868,7 @@ async function keptAttempt(
         prompt: t.prompt,
         text: last?.type === 'text' ? last.text : t.text,
         transcript: said,
+        subagents: kept.subagents?.filter((r) => r.turn === i),
       }
     }),
     checks,

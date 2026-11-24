@@ -15,6 +15,7 @@ export async function judgeCalls() {
   await c.judge('Is it valid JSON?', { on: { ok: true }, output: true })
   await c.judge('Did it change only src?', { diff: ['src/**'], files: false, threshold: 0.9 })
   await c.judge('Do the tests pass?', { checks: ['npm test'], model: 'google/gemini-3.8-flash' })
+  await c.judge('Did the subagents review it?', { transcript: { agent: false } })
 
   // @ts-expect-error no options: the judge would be shown nothing
   await c.judge('Is there a sign up flow?')

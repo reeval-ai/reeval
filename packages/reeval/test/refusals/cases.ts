@@ -1063,6 +1063,10 @@ export const CASES: Record<string, Case[]> = {
     ['call: diff with an empty pattern', judgeCall({ diff: ['src/', ' '] })],
     ['call: contents not a list', judgeCall({ contents: 'a.ts' })],
     ['call: transcript unknown', judgeCall({ transcript: 'all' })],
+    [
+      'call: transcript showing no one',
+      judgeCall({ transcript: { agent: false, subagents: false } }),
+    ],
     ['call: turns unknown', judgeCall({ diff: true, turns: 'first' })],
     ['call: checks a string', judgeCall({ checks: 'npm test' })],
     ['call: observations a string', judgeCall({ observations: 'orm' })],
@@ -1256,6 +1260,10 @@ export const CASES: Record<string, Case[]> = {
     [
       'a question with every input off',
       options({ questions: [{ question: 'Q', task: false, diff: false, transcript: false }] }),
+    ],
+    [
+      'a question whose transcript shows no one',
+      options({ questions: [{ question: 'Q', transcript: { agent: false, subagents: false } }] }),
     ],
     ['a question with only turns', options({ questions: [{ question: 'Q', turns: 'last' }] })],
     [
