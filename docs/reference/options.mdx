@@ -971,8 +971,8 @@ For more information, see [Evaluate many cases](/evaluations/task/cases).
   The diff from the start of the evaluation. A list is gitignore-style patterns over workspace paths. The last matching pattern wins, and `!` excludes.
 </Property>
 
-<Property name="questions[].transcript" type="boolean | 'tools' | 'full'" optional>
-  The transcript as text lines. `true` is messages and tool calls with tool output clipped, `'tools'` is tool calls only, and `'full'` adds reasoning and whole tool output. It names each harness's tools, so a pair of two harnesses is not blind.
+<Property name="questions[].transcript" type="boolean | 'tools' | 'full' | { detail?, agent?, subagents? }" optional>
+  The transcript as text lines. `true` is messages and tool calls with tool output clipped, `'tools'` is tool calls only, and `'full'` adds reasoning and whole tool output, each subagent's events under its spawn call. The object form takes one of those modes as `detail` and leaves out the agent's own events (`agent: false`) or its subagents' (`subagents: false`). It names each harness's tools, so a pair of two harnesses is not blind.
 </Property>
 
 <Property name="questions[].checks" type="boolean | string[]" optional>

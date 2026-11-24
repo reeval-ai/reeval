@@ -1995,8 +1995,7 @@ export type CompareOptions<E = Environment> = {
  * `question.model` answers, else `analysis.model`, else the judge's when it's a language model.
  * It's shown only the inputs it turns on, at least one.
  */
-export type Question = Omit<QuestionFields, keyof QuestionInputs> &
-  AtLeastOneInput<QuestionInputs>
+export type Question = Omit<QuestionFields, keyof QuestionInputs> & AtLeastOneInput<QuestionInputs>
 
 /** A question's options, before the at-least-one-input rule that `Question` adds. */
 export type QuestionFields = QuestionInputs & {

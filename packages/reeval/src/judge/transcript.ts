@@ -30,7 +30,15 @@ const indent = (block: string) =>
 /** What the judge is told of one subagent: a turn's `SubagentRun` or the record's `SubagentRecord`. */
 export type JudgeSubagent = Pick<
   SubagentRun,
-  'id' | 'parent' | 'agent' | 'model' | 'prompt' | 'status' | 'durationMs' | 'events' | 'finalMessage'
+  | 'id'
+  | 'parent'
+  | 'agent'
+  | 'model'
+  | 'prompt'
+  | 'status'
+  | 'durationMs'
+  | 'events'
+  | 'finalMessage'
 > & { n?: number }
 
 /** The judge's view of a transcript: the detail, and whose events show. */

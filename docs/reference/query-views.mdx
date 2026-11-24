@@ -274,7 +274,8 @@ In `evals`, `declared` is `todo` for an `evaluate.todo`, `skip` for an eval decl
 | `question_pairs_m` | `run_id`, `eval_key`, `question`, `cut`, `held`, `a`, `b`, `pairs`, `a_wins`, `b_wins`, `ties`, `splits`, `splits_first`, `case_key` |
 | `runs` | `run_id`, `recorded`, `status`, `started_at`, `ended_at`, `duration_ms`, `author`, `git_sha`, `branch`, `dirty`, `runner`, `ci_provider`, `ci_url`, `pr_number`, `pr_base`, `reeval`, `judge_model`, `judge_version`, `profile`, `evals`, `attempts`, `pass`, `fail`, `not_gated`, `infra_error`, `skipped` |
 | `skill_uses` | `run_id`, `attempt_key`, `line`, `skill`, `source` |
-| `tool_calls` | `run_id`, `attempt_key`, `line`, `turn`, `tool`, `target`, `ok`, `duration_ms`, `class` |
+| `subagents` | `run_id`, `attempt_key`, `n`, `id`, `turn`, `parent`, `agent`, `model`, `status`, `duration_ms`, `background`, `events`, `tool_calls`, `file_edits`, `input_tokens`, `output_tokens`, `cache_read_tokens`, `cache_write_tokens`, `reasoning_tokens` |
+| `tool_calls` | `run_id`, `attempt_key`, `line`, `turn`, `tool`, `target`, `ok`, `duration_ms`, `class`, `subagent` |
 | `votes` | `run_id`, `eval_key`, `question`, `cut`, `held`, `pair_run`, `a`, `b`, `winner`, `swapped`, `reason`, `case_key` |
 
 [//]: # (/generated:query-tables)

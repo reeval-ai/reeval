@@ -21,7 +21,7 @@ import type { ToolClass } from './tool-class.ts'
 import type { AttemptRecord, CellRecord, RunRecord } from './types.ts'
 
 /** Bump when the tables or views change: a database from another version is rebuilt. */
-const DB_VERSION = 25
+const DB_VERSION = 26
 /** This build of reeval, like the header cache: another reeval re-derives every row. */
 const BUILD = BUILD_ID
 const PART_KEYS = Object.keys(PART_COLUMNS) as Array<keyof typeof PART_COLUMNS>
@@ -192,11 +192,24 @@ CREATE TABLE attempt_context (
   declared INTEGER
 );
 -- Every tool call in each attempt's transcript: its line in transcript.jsonl (from 1), target,
--- ok (null when the harness never reported its result) and class (context, dependency, web,
--- verify or workspace: a heuristic, see tool-class.ts).
+-- ok (null when the harness never reported its result), class (context, dependency, web,
+-- verify or workspace: a heuristic, see tool-class.ts) and subagent (the id of the subagent that
+-- made it, as in subagents; null for the agent's own).
 CREATE TABLE tool_calls (
   run_id TEXT NOT NULL, attempt_key TEXT NOT NULL, line INTEGER NOT NULL, turn INTEGER,
-  tool TEXT, target TEXT, ok INTEGER, duration_ms INTEGER, class TEXT
+  tool TEXT, target TEXT, ok INTEGER, duration_ms INTEGER, class TEXT, subagent TEXT
+);
+-- Each subagent an attempt spawned (n from 1 in spawn order, turn from 0 as in tool_calls): id is
+-- its spawn call's toolCallId, parent the id of the subagent that spawned it. status is null when
+-- unknown or the turn ended first. events is streamed (its own calls are in tool_calls) or none (only its spawn
+-- call and result are); tool_calls and file_edits are null then. Its tokens are its own model
+-- calls', its own subagents' left out; null when its harness doesn't report them apart.
+CREATE TABLE subagents (
+  run_id TEXT NOT NULL, attempt_key TEXT NOT NULL, n INTEGER NOT NULL, id TEXT NOT NULL,
+  turn INTEGER, parent TEXT, agent TEXT, model TEXT, status TEXT, duration_ms INTEGER,
+  background INTEGER, events TEXT, tool_calls INTEGER, file_edits INTEGER, input_tokens INTEGER,
+  output_tokens INTEGER, cache_read_tokens INTEGER, cache_write_tokens INTEGER,
+  reasoning_tokens INTEGER
 );
 -- Each placed file a tool call named (directly or through a glob), by the call's line.
 CREATE TABLE context_reads (
@@ -842,6 +855,30 @@ function insertRun(
           x.durationMs ?? null,
         )
       }
+      for (const x of a.subagents ?? []) {
+        run(
+          `INSERT INTO subagents VALUES (${Array(19).fill('?').join(', ')})`,
+          record.runId,
+          a.key,
+          x.n,
+          x.id,
+          x.turn,
+          x.parent ?? null,
+          x.agent ?? null,
+          x.model ?? null,
+          x.status,
+          x.durationMs,
+          x.background ? 1 : 0,
+          x.events,
+          x.toolCalls,
+          x.fileEdits,
+          x.usage?.input ?? null,
+          x.usage?.output ?? null,
+          x.usage?.cacheRead ?? null,
+          x.usage?.cacheWrite ?? null,
+          x.usage?.reasoning ?? null,
+        )
+      }
       const transcript = transcripts.get(a.key)
       const classified = classifyAttempt(
         a,
@@ -850,7 +887,7 @@ function insertRun(
       )
       for (const t of classified.calls) {
         run(
-          'INSERT INTO tool_calls VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO tool_calls VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           record.runId,
           a.key,
           t.line,
@@ -860,6 +897,7 @@ function insertRun(
           t.ok === null ? null : t.ok ? 1 : 0,
           t.durationMs,
           t.class,
+          t.subagent,
         )
         for (const path of t.files) {
           run('INSERT INTO context_reads VALUES (?, ?, ?, ?)', record.runId, a.key, t.line, path)
@@ -1070,6 +1108,7 @@ const DATA_TABLES = [
   'artifacts',
   'attempt_context',
   'tool_calls',
+  'subagents',
   'context_reads',
   'skill_uses',
   'found_skills',

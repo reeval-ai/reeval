@@ -201,8 +201,8 @@ const verdict = await c.judge('Does the test read like a specification?', {
   Whole workspace files, as paths or patterns, left out of the diff.
 </Property>
 
-<Property name="options.transcript" type="boolean | 'tools' | 'full'" optional>
-  The transcript has three enabled modes: `true` clips tool output, `'tools'` is tool calls only, and `'full'` is everything.
+<Property name="options.transcript" type="boolean | 'tools' | 'full' | { detail?, agent?, subagents? }" optional>
+  The transcript has three enabled modes: `true` clips tool output, `'tools'` is tool calls only, and `'full'` is everything. Each subagent's events show under its spawn call; the object form takes one of those modes as `detail` and leaves out the agent's own events (`agent: false`) or its subagents' (`subagents: false`).
 </Property>
 
 <Property name="options.checks" type="boolean | string[]" optional>

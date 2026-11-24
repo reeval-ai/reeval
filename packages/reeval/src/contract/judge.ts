@@ -22,7 +22,7 @@ import { GATEWAY_NAMES, gatewayDescriptorSchema, gatewayNameSchema } from './gat
 import { type Assert, type Issue, jsonValueSchema, nonEmpty, type Same } from './shared.ts'
 
 /** The refusal for a transcript view that shows neither the agent's events nor its subagents'. */
-export const NO_TRANSCRIPT = "shows the judge no transcript; use transcript: false"
+export const NO_TRANSCRIPT = 'shows the judge no transcript; use transcript: false'
 
 /** The inputs every judge call and question shares; `c.judge()` adds `contents` and its own `artifacts`. */
 export const sharedInputFields = {
