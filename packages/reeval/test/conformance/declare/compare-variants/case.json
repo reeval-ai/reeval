@@ -1,5 +1,6 @@
 {
-  "eval": "plan/compare/evals/variants.eval.ts",
+  "eval": "plan/compare/evals/variants",
+  "treeRoot": "plan/compare",
   "plan": "plan/compare/expected/control-and-variants.txt",
-  "args": ["evals/variants.eval.ts"]
+  "args": []
 }

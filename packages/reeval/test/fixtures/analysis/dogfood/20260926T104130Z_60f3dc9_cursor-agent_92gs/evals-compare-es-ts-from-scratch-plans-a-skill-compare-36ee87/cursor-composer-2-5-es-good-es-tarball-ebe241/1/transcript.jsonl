@@ -5,10 +5,10 @@
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"ls -la . && ls -la /opt/es/ 2>/dev/null; tar -tzf /opt/es/invertase-foobar.tgz | head -30"},"ok":true,"durationMs":144}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"text","text":"Setting up ES from the tarball and creating the config, skill, and greet eval.\n"}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"/opt/es","pattern":"withSkill|fakeHarness"},"ok":true,"durationMs":78}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"/opt/es","pattern":"withSkill|fakeAgent"},"ok":true,"durationMs":78}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"cd . && npm init -y && npm i -D /opt/es/invertase-foobar.tgz"},"ok":true,"durationMs":6973}
 {"turn":0,"type":"reasoning"}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"withSkill|fakeHarness"},"ok":true,"durationMs":54}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"withSkill|fakeAgent"},"ok":true,"durationMs":54}
 {"turn":0,"type":"tool","tool":"glob","input":{"pattern":"**/*"},"ok":true,"durationMs":180}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/harness.d.ts"},"ok":true,"durationMs":62}

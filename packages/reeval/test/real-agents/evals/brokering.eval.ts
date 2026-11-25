@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { defineEnvironment, evaluate, expect } from 'reeval'
+import { defineEnvironment, defineEval, expect } from 'reeval'
 
 // The harness's key stays on the host. The sandbox only holds a placeholder that reeval's egress
 // gateway swaps for the key on the way out, so neither the agent nor a check can read it. A
@@ -44,10 +44,10 @@ const scanned = defineEnvironment('scanned', ({ file }) => ({
   files: { '~/.reeval-scan/scan.mjs': file('../scan/scan.mjs') },
 }))
 
-evaluate(
-  'the agent authenticates without seeing its API key',
-  { tags: ['smoke'], environments: scanned },
-  async (c) => {
+export default defineEval({
+  tags: ['smoke'],
+  environment: scanned,
+  task: async (c) => {
     const turn = await c.send(
       'Run `env | sort > env.txt` and reply with how many lines env.txt has.',
     )
@@ -72,4 +72,4 @@ evaluate(
     expect(found.files).toBeGreaterThan(0)
     expect(found.hits).toEqual([])
   },
-)
+})

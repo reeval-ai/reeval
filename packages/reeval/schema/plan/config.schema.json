@@ -1032,7 +1032,7 @@
       "additionalProperties": false
     },
     "FakeHarnessDescriptor": {
-      "description": "A canned agent for tests and dry runs, made by `fakeHarness()` in `reeval/harness`.",
+      "description": "A canned agent for tests and dry runs, made by `fakeAgent()` in `reeval/agent`.",
       "type": "object",
       "properties": {
         "bootstrap": {
@@ -2491,6 +2491,21 @@
       "description": "`ProfileDefaults` as data: the environment without `extend`, and the judge as data.",
       "type": "object",
       "properties": {
+        "agents": {
+          "description": "The agents every eval runs on, in place of the eval's own unless it pins them.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HarnessDescriptor"
+            },
+            {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/HarnessDescriptor"
+              }
+            }
+          ]
+        },
         "capture": {
           "description": "Screenshot defaults for `c.capture()`, shallow-merged over the config's.",
           "$ref": "#/$defs/CaptureOptions"
@@ -2521,21 +2536,6 @@
         "gate": {
           "description": "How each cell's attempts decide its outcome.",
           "$ref": "#/$defs/GatePolicy"
-        },
-        "harnesses": {
-          "description": "The agents every eval runs on, unless a group or eval replaces them.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/HarnessDescriptor"
-            },
-            {
-              "minItems": 1,
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/HarnessDescriptor"
-              }
-            }
-          ]
         },
         "judge": {
           "description": "Defaults for `c.judge()`, merged field by field over the config's.",
@@ -2618,6 +2618,13 @@
       "description": "Over every eval, and it can only narrow; `pin` on a group or eval skips it.",
       "type": "object",
       "properties": {
+        "agents": {
+          "description": "Agent ids to allow; evals left with none are skipped.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "compare": {
           "description": "`false` runs the control only; `{ maxVariants }` keeps the first n variants.",
           "anyOf": [
@@ -2638,13 +2645,6 @@
               "additionalProperties": false
             }
           ]
-        },
-        "harnesses": {
-          "description": "Harness ids to allow; evals left with none are skipped.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
         },
         "runs": {
           "description": "The most runs per cell.",
@@ -2691,6 +2691,21 @@
       "description": "`ReevalConfig` in its data forms, as `reeval.yaml` or another language carries it: the environment without `extend`, judge and analysis models by name or as fakes with fixed answers, and profiles the same way. AI SDK model objects and fake score functions are TypeScript only.",
       "type": "object",
       "properties": {
+        "agents": {
+          "description": "The agents every eval runs on, unless the eval names its own; default Cursor.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HarnessDescriptor"
+            },
+            {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/HarnessDescriptor"
+              }
+            }
+          ]
+        },
         "analysis": {
           "description": "`reeval analyze`, and questions without a model of their own.",
           "$ref": "#/$defs/AnalysisConfigData"
@@ -2779,21 +2794,6 @@
           "items": {
             "$ref": "#/$defs/GatewayEntryData"
           }
-        },
-        "harnesses": {
-          "description": "The agents every eval runs on, unless a group or eval replaces them; default Cursor.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/HarnessDescriptor"
-            },
-            {
-              "minItems": 1,
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/HarnessDescriptor"
-              }
-            }
-          ]
         },
         "history": {
           "description": "Where recorded runs are kept, and which attempts keep their artifacts there.",

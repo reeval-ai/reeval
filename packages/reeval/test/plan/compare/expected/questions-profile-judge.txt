@@ -1,23 +1,23 @@
 profile judged (--profile) · 3 evals · 14 cells · 56 attempts
 hint: 3 evals run more than once with the default gate, so every attempt must pass (pass^k); set gate: { passRate: 0.8 } to gate on pass@1 instead
-evals/questions.eval.ts › one question                           a/base/docker     control          ungated  ×4  runs 4 (compare default)
-                                                                 a/skilled/docker  variant skilled  gated    ×4
-                                                                 b/base/docker     control          ungated  ×4
-                                                                 b/skilled/docker  variant skilled  gated    ×4
-                                                                 question: Which handles state more cleanly? · shows diff · environment · 8 pairs · google/gemini-3.8-flash
-evals/questions.eval.ts › two questions, one with its own model  a/base/docker     control          ungated  ×4  runs 4 (compare default)
-                                                                 a/skilled/docker  variant skilled  gated    ×4
-                                                                 a/terse/docker    variant terse    gated    ×4
-                                                                 b/base/docker     control          ungated  ×4
-                                                                 b/skilled/docker  variant skilled  gated    ×4
-                                                                 b/terse/docker    variant terse    gated    ×4
-                                                                 question: Which handles state more cleanly? · shows diff · environment, harness · 36 pairs · google/gemini-3.8-flash
-                                                                 question: Which follows the house style more closely? · shows diff · environment · 24 pairs · google/gemini-3.8-flash
-evals/questions.eval.ts › pinned                                 a/base/docker     control          ungated  ×4  runs 4 (compare default)
-                                                                 a/skilled/docker  variant skilled  gated    ×4
-                                                                 b/base/docker     control          ungated  ×4
-                                                                 b/skilled/docker  variant skilled  gated    ×4
-                                                                 question: Which is shorter? · shows diff · environment · 8 pairs · google/gemini-3.8-flash
+questions/one     a/base/docker     control          ungated  ×4  runs 4 (compare default)
+                  a/skilled/docker  variant skilled  gated    ×4
+                  b/base/docker     control          ungated  ×4
+                  b/skilled/docker  variant skilled  gated    ×4
+                  question: Which handles state more cleanly? · shows diff · environment · 8 pairs · google/gemini-3.8-flash
+questions/pinned  a/base/docker     control          ungated  ×4  runs 4 (compare default)
+                  a/skilled/docker  variant skilled  gated    ×4
+                  b/base/docker     control          ungated  ×4
+                  b/skilled/docker  variant skilled  gated    ×4
+                  question: Which is shorter? · shows diff · environment · 8 pairs · google/gemini-3.8-flash
+questions/two     a/base/docker     control          ungated  ×4  runs 4 (compare default)
+                  a/skilled/docker  variant skilled  gated    ×4
+                  a/terse/docker    variant terse    gated    ×4
+                  b/base/docker     control          ungated  ×4
+                  b/skilled/docker  variant skilled  gated    ×4
+                  b/terse/docker    variant terse    gated    ×4
+                  question: Which handles state more cleanly? · shows diff · environment, agent · 36 pairs · google/gemini-3.8-flash
+                  question: Which follows the house style more closely? · shows diff · environment · 24 pairs · google/gemini-3.8-flash
 excluded: —
 image docker · cursor · 3 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

@@ -55,10 +55,12 @@ async function makeApp(dir: string, pkg: string) {
   await writeFile(join(app, 'reeval.config.ts'), fakeConfig().replaceAll("'reeval", `'${pkg}`))
   await writeFile(
     join(app, 'evals/hello.eval.ts'),
-    `import { evaluate, expect } from '${pkg}'
-evaluate('hello', async (c) => {
-  await c.send('say hi')
-  expect(await c.judge('Did it say hi?', { diff: true })).toPass()
+    `import { defineEval, expect } from '${pkg}'
+export default defineEval({
+  async task(c) {
+    await c.send('say hi')
+    expect(await c.judge('Did it say hi?', { diff: true })).toPass()
+  },
 })
 `,
   )
@@ -171,9 +173,9 @@ const binCli =
     spawnAsync(join(app, 'node_modules/.bin/reeval'), args, cwd, env)
 
 const BOAT_CONFIG = (pkg: string) => `import { defineConfig } from '${pkg}'
-import { fakeHarness } from '${pkg}/harness'
+import { fakeAgent } from '${pkg}/agent'
 import { boat } from '${pkg}/provider/boat'
-export default defineConfig({ harnesses: fakeHarness(), provider: boat(), egress: 'allow-all' })
+export default defineConfig({ agents: fakeAgent(), provider: boat(), egress: 'allow-all' })
 `
 
 /**
@@ -205,13 +207,13 @@ const STORE_CONFIG = (
   url: string,
   bucket: string,
 ) => `import { defineConfig } from '${pkg}'
-import { fakeHarness } from '${pkg}/harness'
+import { fakeAgent } from '${pkg}/agent'
 import { fakeJudge } from '${pkg}/judge'
 import { fakeSandbox } from '${pkg}/sandbox'
 import { local } from '${pkg}/store/local'
 import { s3 } from '${pkg}/store/s3'
 export default defineConfig({
-  harnesses: fakeHarness(),
+  agents: fakeAgent(),
   sandbox: fakeSandbox(),
   judge: { model: fakeJudge({ score: 0.9 }) },
   history: { store: local({ dir: 'runs' }) },
@@ -394,7 +396,7 @@ test('the packed package installs into a clean project and runs reeval', {
   assert.match(listing, /^package\/dist\/cli\.js$/m)
   for (const entry of [
     'index',
-    'harness',
+    'agent',
     'sandbox',
     'provider/boat',
     'provider/daytona',
@@ -599,7 +601,7 @@ test('the packed package installs into a clean project and runs reeval', {
     ),
     workerChunk,
   ]
-  assert.ok(entries.includes('harness.js') && entries.includes('view/index.js'), entries.join())
+  assert.ok(entries.includes('agent.js') && entries.includes('view/index.js'), entries.join())
   for (const entry of entries) {
     const via = reached(entry)
     const path: string[] = []
@@ -615,9 +617,9 @@ test('the packed package installs into a clean project and runs reeval', {
     await writeFile(
       join(app, 'reeval.cursor.config.ts'),
       `import { defineConfig } from '${pkg}'
-import { cursor } from '${pkg}/harness'
+import { cursor } from '${pkg}/agent'
 import { docker } from '${pkg}/sandbox'
-export default defineConfig({ harnesses: cursor({ model: 'composer-2.5' }) })
+export default defineConfig({ agents: cursor({ model: 'composer-2.5' }) })
 `,
     )
     const built = sh(

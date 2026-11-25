@@ -13,7 +13,7 @@
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/environment.d.ts"},"ok":true,"durationMs":31}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/setup.d.ts"},"ok":true,"durationMs":35}
 {"turn":0,"type":"reasoning"}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"defineEval|fakeHarness|fakeJudge|fake\\("},"ok":true,"durationMs":27}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"defineEval|fakeAgent|fakeJudge|fake\\("},"ok":true,"durationMs":27}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/package.json"},"ok":true,"durationMs":1}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/index.d.ts"},"ok":true,"durationMs":22}
@@ -40,7 +40,7 @@
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/config.js"},"ok":true,"durationMs":1}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/options.js"},"ok":true,"durationMs":36}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"compare|withSkill|fakeHarness|fakeSandbox|fakeJudge"},"ok":true,"durationMs":75}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"compare|withSkill|fakeAgent|fakeSandbox|fakeJudge"},"ok":true,"durationMs":75}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/query.js"},"ok":true,"durationMs":0}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/matchers.d.ts"},"ok":true,"durationMs":37}

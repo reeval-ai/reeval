@@ -1,11 +1,12 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { boat } from 'reeval/provider/boat'
 import { daytona } from 'reeval/provider/daytona'
 import { docker } from 'reeval/sandbox'
 
 export default defineConfig({
-  harnesses: fakeHarness(),
+  include: ['evals/**/*.eval.ts', '!evals/deny.eval.ts'],
+  agents: fakeAgent(),
   sandbox: docker({ from: 'node:24-bookworm', maxConcurrent: 2 }),
   provider: boat(),
   profiles: {

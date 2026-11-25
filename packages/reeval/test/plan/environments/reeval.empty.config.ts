@@ -1,7 +1,7 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
 /** No default environments, so nothing but the eval names one. */
 export default defineConfig({
-  harnesses: fakeHarness(),
+  agents: fakeAgent(),
 })

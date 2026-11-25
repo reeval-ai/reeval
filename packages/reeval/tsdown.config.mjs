@@ -125,7 +125,7 @@ let bundled = []
 export default defineConfig({
   entry: {
     index: 'src/index.ts',
-    harness: 'src/harness.ts',
+    agent: 'src/agent.ts',
     sandbox: 'src/sandbox.ts',
     'provider/boat': 'src/provider-boat.ts',
     'provider/daytona': 'src/provider-daytona.ts',

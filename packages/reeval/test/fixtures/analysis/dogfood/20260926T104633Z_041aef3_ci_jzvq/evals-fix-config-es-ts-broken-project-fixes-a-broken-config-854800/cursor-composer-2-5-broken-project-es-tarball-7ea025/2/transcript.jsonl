@@ -30,7 +30,7 @@
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist/index.d.ts","pattern":"baseline|evaluate|defineEnvironment"},"ok":true,"durationMs":63}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/config.js"},"ok":true,"durationMs":69}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"fakeHarness"},"ok":true,"durationMs":71}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"fakeAgent"},"ok":true,"durationMs":71}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/harness.js"},"ok":true,"durationMs":26}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/harness.d.ts"},"ok":true,"durationMs":26}

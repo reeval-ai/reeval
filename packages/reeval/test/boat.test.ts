@@ -7,7 +7,7 @@ import { type AddressInfo, createServer, type Socket } from 'node:net'
 import { join } from 'node:path'
 import { after, before, describe, test } from 'node:test'
 import { type DockerSession, PNPM_VERSION } from '@reeval/sandbox-docker'
-import { fakeHarness } from '../src/harness.ts'
+import { fakeAgent } from '../src/agent.ts'
 import {
   boatCapacity,
   checkBoat,
@@ -268,17 +268,19 @@ describe('--resume of a stopped run', () => {
   after(() => down.close())
 
   const evalFile = `
-import { evaluate } from 'reeval'
-evaluate('reaches', async (c) => {
-  await c.exec('true')
+import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.exec('true')
+  },
 })
 `
   const config = (provider: string) => `
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { createBoat } from 'reeval/provider/boat'
 export default defineConfig({
-  harnesses: fakeHarness({ script: [[{ exec: 'true' }]] }),
+  agents: fakeAgent({ script: [[{ exec: 'true' }]] }),
   provider: ${provider},
   egress: 'allow-all',
 })
@@ -361,18 +363,20 @@ describe('an attempt on a sandbox it cannot reach', () => {
   const files = {
     'reeval.config.ts': `
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { boat } from 'reeval/provider/boat'
 export default defineConfig({
-  harnesses: fakeHarness({ script: [[{ exec: 'true' }]] }),
+  agents: fakeAgent({ script: [[{ exec: 'true' }]] }),
   provider: boat(),
   egress: 'allow-all',
 })
 `,
     'evals/a.eval.ts': `
-import { evaluate } from 'reeval'
-evaluate('reaches', async (c) => {
-  await c.exec('true')
+import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.exec('true')
+  },
 })
 `,
   }
@@ -380,7 +384,7 @@ evaluate('reaches', async (c) => {
   test('fails as infra, and its sandbox is deleted', async () => {
     const p = await project('boat-unreachable', files)
     // reeval's image is saved already, so the attempt's own machine is the first to start.
-    const harness = fakeHarness({ script: [[{ exec: 'true' }]] })
+    const harness = fakeAgent({ script: [[{ exec: 'true' }]] })
     const { key } = await vmImageKey({}, harness, { root: p.dir })
     const saved = snapshotName('reeval', key)
     api.snapshots.set(saved, { name: saved, status: 'ready', sourceSandboxId: 'bx_seed', polls: 0 })

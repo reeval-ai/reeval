@@ -2,11 +2,14 @@
 // the second with REEVAL_COMPARE_SIDE=head, so `reeval compare` has an eval that regressed, one
 // that's fixed, one that can't be compared, a new and a removed one, and some that stayed the same.
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 
+const side = process.env.REEVAL_COMPARE_SIDE === 'head' ? 'head' : 'base'
+
 export default defineConfig({
-  harnesses: fakeHarness({
+  include: ['evals/**/*.eval.ts', `!evals/side-${side === 'head' ? 'base' : 'head'}.eval.ts`],
+  agents: fakeAgent({
     files: { 'greet.js': "const greet = (name) => 'Hello, ' + name + '!'\n" },
     text: 'I wrote greet.js.',
   }),

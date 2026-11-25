@@ -443,7 +443,7 @@ describe('resolving brokered secrets', () => {
   test("the attempt's env lists a plain var a header's host variable shares a name with", async () => {
     const p = await project('secrets-attempt-env', {
       'reeval.config.ts': fakeConfig(),
-      'evals/a.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/a.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 const env = defineEnvironment('shared-name', ({ secret, mcp }) => ({
   env: { REEVAL_UNIT_MODE: 'plain' },
   mcp: {
@@ -452,8 +452,11 @@ const env = defineEnvironment('shared-name', ({ secret, mcp }) => ({
     }),
   },
 }))
-evaluate('shares a name', { environments: env }, async (c) => {
-  await c.send('hi')
+export default defineEval({
+  environment: env,
+  async task(c) {
+    await c.send('hi')
+  },
 })
 `,
     })
@@ -824,7 +827,7 @@ describe('env written as plain strings', () => {
       )
       assert.doesNotMatch(plainEnvWarning(found[1] as (typeof found)[number]), /secret\.fromEnv/)
       assert.match(
-        plainEnvError(found[1] as (typeof found)[number], 'evaluate("e")', 'reeval.config.ts'),
+        plainEnvError(found[1] as (typeof found)[number], 'evals/e.eval.ts', 'reeval.config.ts'),
         /To broker it, declare the server with mcp\.stdio\(\) instead of the plugin's \.mcp\.json/,
       )
     } finally {

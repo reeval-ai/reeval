@@ -79,10 +79,12 @@ describe('findEvalFiles and filterFiles', () => {
 
   test('a name filter matches part of the eval id or cell#n', () => {
     const attempt = { cell: { key: 'fake/-/fake' }, n: 2 }
-    assert.equal(matchesFilter({ id: 'evals/a.eval.ts › g › x' }, 'g › x'), true)
-    assert.equal(matchesFilter({ id: 'evals/a.eval.ts › g › x', attempt }, 'fake#2'), true)
-    assert.equal(matchesFilter({ id: 'evals/a.eval.ts › g › x', attempt }, 'fake#3'), false)
-    assert.equal(matchesFilter({ id: 'evals/a.eval.ts › x' }, 'fake#1'), false)
+    assert.equal(matchesFilter({ id: 'foo/bar' }, 'foo'), true)
+    assert.equal(matchesFilter({ id: 'rated [b]', attempt }, 'fake#2'), true)
+    assert.equal(matchesFilter({ id: 'rated [b]', attempt }, 'fake#3'), false)
+    assert.equal(matchesFilter({ id: 'rated [b]', attempt }, 'rated#b'), true)
+    assert.equal(matchesFilter({ id: 'rated [b]', attempt }, 'rated#2'), false)
+    assert.equal(matchesFilter({ id: 'x' }, 'fake#1'), false)
   })
 })
 

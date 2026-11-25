@@ -1,7 +1,12 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { hostname } from 'node:os'
 import { join } from 'node:path'
-import { attemptKey, evalId, recordFileName } from '../../src/ids.ts'
+import { fileEvalId } from '../../src/eval-id.ts'
+import { attemptKey, recordFileName } from '../../src/ids.ts'
+
+const DEFAULT_INCLUDE = ['evals/**/*.eval.ts', 'evals/**/*.eval.py'] as const
+const evalKey = (file: string) => fileEvalId(DEFAULT_INCLUDE, file)
+
 import type { EvalRecord } from '../../src/types.ts'
 
 /** A valid run id the tests seed leftover staging with. */
@@ -22,7 +27,7 @@ const PASS: EvalRecord = {
 export function writeStoppedStaging(
   root: string,
   runId: string,
-  completed: ReadonlyArray<{ file: string; name: string; cell: string; n?: number }> = [],
+  completed: ReadonlyArray<{ file: string; cell: string; n?: number }> = [],
 ): string {
   const staging = join(root, '.reeval', 'staging', runId)
   mkdirSync(join(staging, 'evals'), { recursive: true })
@@ -42,7 +47,7 @@ export function writeStoppedStaging(
     })}\n`,
   )
   for (const c of completed) {
-    const key = attemptKey(evalId(c.file, [c.name]), c.cell, c.n ?? 1)
+    const key = attemptKey(evalKey(c.file), c.cell, c.n ?? 1)
     writeFileSync(join(staging, 'evals', recordFileName(key)), `${JSON.stringify(PASS, null, 2)}\n`)
   }
   return staging

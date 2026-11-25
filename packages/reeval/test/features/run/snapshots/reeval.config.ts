@@ -1,8 +1,8 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { snapshots } from './evals/env.ts'
 
 export default defineConfig({
-  harnesses: fakeHarness({ files: { 'app/built.js': 'export const built = true\n' } }),
+  agents: fakeAgent({ files: { 'app/built.js': 'export const built = true\n' } }),
   environments: snapshots,
 })

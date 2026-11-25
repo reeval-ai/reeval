@@ -1,7 +1,10 @@
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { plain } from './env.ts'
 
-evaluate('lands', { environments: plain }, async (c) => {
-  const turn = await c.send('write notes.txt')
-  expect(turn).toHaveEdited('notes.txt')
+export default defineEval({
+  environment: plain,
+  task: async (c) => {
+    const turn = await c.send('write notes.txt')
+    expect(turn).toHaveEdited('notes.txt')
+  },
 })

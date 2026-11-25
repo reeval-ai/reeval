@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { defineEnvironment, evaluate, expect } from 'reeval'
+import { defineEnvironment, defineEval, expect } from 'reeval'
 
 // The same convention two ways: as a skill, and as a docs file in the workspace.
 const math = defineEnvironment('math', ({ directory }) => ({ files: directory('./project') }))
@@ -11,13 +11,12 @@ const withDoc = math.extendEnvironment('errors-doc', ({ file }) => ({
 }))
 const divideTest = readFileSync(new URL('./hidden/divide.test.js', import.meta.url), 'utf8')
 
-evaluate(
-  'rejects division by zero',
-  { compare: { control: math, variants: [withSkill, withDoc] } },
-  async (c) => {
+export default defineEval({
+  compare: { control: math, variants: [withSkill, withDoc] },
+  task: async (c) => {
     await c.send('Add a divide(a, b) function to src/math.js.')
 
     await c.writeFile('test/divide.test.js', divideTest)
     await expect(c.exec('node --test'), 'throws RangeError').toSucceed()
   },
-)
+})

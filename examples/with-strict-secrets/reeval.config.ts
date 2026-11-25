@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 import { profiles } from '../profiles.ts'
 
-const fakeAgent = (path: string) =>
+const fakeFile = (path: string) =>
   readFileSync(new URL(`./fake-agent/${path}`, import.meta.url), 'utf8')
 
 export default defineConfig({
@@ -12,8 +12,8 @@ export default defineConfig({
   // Any secret the sandbox would get as its real value stops the run before it starts.
   secrets: { unbrokered: 'error' },
   // A scripted agent that copies ./fake-agent's files into the workspace.
-  harnesses: fakeHarness({
-    files: { 'repo.js': fakeAgent('repo.js') },
+  agents: fakeAgent({
+    files: { 'repo.js': fakeFile('repo.js') },
     text: "I wrote repo.js, which prints the repo's description.",
   }),
   // fakeSandbox() brokers nothing, so it doesn't apply the secrets rule either.

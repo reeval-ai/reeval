@@ -39,7 +39,7 @@ does not layer, inherit or extend. Share setup first (the example is in SKILL.md
 ## Gates and lift
 
 - Only variant cells gate by default (`gate?: 'variants' | 'all' | 'observe'`). A control's misses
-  show in its arm's count (`plain  0 of 2`) and never fail the run. `compare.harnesses: [cursor({ model: 'composer-2.5' })]` compares on some harnesses only.
+  show in its arm's count (`plain  0 of 2`) and never fail the run. `compare.agents: [cursor({ model: 'composer-2.5' })]` compares on some harnesses only.
 - With `runs > 1`, a cell passes only if every counted attempt passes (pass^k), unless
   `gate: { passRate: 0.8 }` (a pass@1 threshold; pass@1 is passes over passes and fails). Infra errors don't count; a cell is `infra_error`
   only when nothing counted.
@@ -101,7 +101,7 @@ does not layer, inherit or extend. Share setup first (the example is in SKILL.md
 ## `questions`
 
 ```ts
-evaluate('greets in the house style', {
+export default defineEval({
   compare: { control: plain, variants: [houseStyle] },
   questions: [
     // asked of each attempt as it ends: free text, or a pick from choices
@@ -123,15 +123,16 @@ evaluate('greets in the house style', {
       artifacts: ['sign-in'],
     },
   ],
-}, async (c) => { … })
+  task: async (c) => { /* … */ },
+})
 ```
 
-- `questions` sits beside `compare`, on an eval or a group (never the config or a
+- `questions` sits beside `compare`, on an eval (never the config or a
   profile), and works without a `compare` too. It's always a list of objects:
   `{ question, across?, choices?, model?, turns?, …inputs }`, with at least one input
   turned on (`task`, `output`, `files`, `diff`, `transcript`, `checks`, `artifacts`;
   no `contents`, the workspaces are gone). There are no default inputs: an entry with
-  none exits 2 at plan time. An eval's list replaces its group's.
+  none exits 2 at plan time.
 - **No `across`: asked of each attempt** as it ends with a pass or a fail (infra
   errors and skipped attempts aren't asked), while the run goes on. `choices`
   (two or more) makes the model pick one, with a reason; the result block prints
@@ -141,7 +142,7 @@ evaluate('greets in the house style', {
   answers by harness, arm or pass/fail).
   Ask these where a control is expected to fail: every attempt is asked.
 - **`across`: pairwise.** `'environment'` pairs two environments on one harness;
-  `'harness'` two harnesses on one environment; a list asks both pair kinds.
+  `'agent'` two agents on one environment; a list asks both pair kinds.
   The factor must vary in the eval (else exit 2); a profile that narrows it away
   drops the question (`1 pairwise question off (profile …)`). `choices` with
   `across` exits 2. `--dry-run` shows the pair count. The result block prints
@@ -162,8 +163,8 @@ evaluate('greets in the house style', {
   `output` off for pairwise questions, since the more confident summary wins on
   wording. For UI evals, `artifacts: ['sign-in']` (or `true`) sends each attempt's
   own capture of that name as an image. The `question` option takes only `model`
-  (config → profile → group → eval → entry). A pairwise question showing
-  `transcript` across harnesses warns (tool names unblind them): ask it with
+  (config → profile → eval → entry). A pairwise question showing
+  `transcript` across agents warns (tool names unblind them): ask it with
   `across: 'environment'`.
 - Pairwise questions are answered on the host once all of an eval's attempts
   end. Attempts that failed their checks (a judge failure doesn't count) are

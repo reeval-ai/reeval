@@ -1,5 +1,5 @@
 // The harness descriptors' plain-data contract: what `cursor()`, `claudeCode()` and the other
-// factories in `reeval/harness` return, and what a declaration tree from any language carries.
+// factories in `reeval/agent` return, and what a declaration tree from any language carries.
 // One schema per kind, joined on `kind`; the types in types.ts are held to them by
 // `_SameAsSchema`.
 
@@ -265,9 +265,9 @@ export type _SameAsSchema = [
   Assert<Same<z.infer<typeof harnessDescriptorSchema>, HarnessDescriptor>>,
 ]
 
-/** The factory in `reeval/harness` that makes each kind, as messages name it. */
+/** The factory in `reeval/agent` that makes each kind, as messages name it. */
 export const FACTORY: Record<HarnessDescriptor['kind'], string> = {
-  fake: 'fakeHarness',
+  fake: 'fakeAgent',
   cursor: 'cursor',
   'claude-code': 'claudeCode',
   antigravity: 'antigravity',
@@ -333,13 +333,13 @@ function explain(kind: HarnessDescriptor['kind']) {
     }
     if (key === 'script') {
       if (step === undefined) {
-        return `fakeHarness({ script }) takes one list of steps per turn, e.g. ${SCRIPT_EXAMPLE} (got ${got(v)})`
+        return `fakeAgent({ script }) takes one list of steps per turn, e.g. ${SCRIPT_EXAMPLE} (got ${got(v)})`
       }
       const at = (v as unknown[][])[turn as number]?.[step]
-      return `fakeHarness({ script }) steps are { exec: string }, { write: { path: content } }, { reply: string }, { mcp: '<server>/<tool>' } or { error: string } (got ${got(at)})`
+      return `fakeAgent({ script }) steps are { exec: string }, { write: { path: content } }, { reply: string }, { mcp: '<server>/<tool>' } or { error: string } (got ${got(at)})`
     }
     if (key === 'layout') {
-      return `fakeHarness({ layout }) is one of ${FAKE_LAYOUTS.map((l) => `'${l}'`).join(', ')} (got ${got(v)})`
+      return `fakeAgent({ layout }) is one of ${FAKE_LAYOUTS.map((l) => `'${l}'`).join(', ')} (got ${got(v)})`
     }
     if (key === 'id') return `${factory}({ id }) must be a non-empty string (got ${got(v)})`
     if (key === 'gateway') {

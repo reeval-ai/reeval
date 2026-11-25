@@ -143,6 +143,53 @@ const test0 = (index: number, name: string, extra: Partial<WireTest> = {}): Wire
 })
 
 describe('runEngine: collecting and the plan', () => {
+  test('two eval files whose ids differ only in case are refused before collection', async () => {
+    const root = tempDir('shared-ids')
+    mkdirSync(join(root, 'evals'), { recursive: true })
+    writeFileSync(join(root, 'evals/Foo.eval.ts'), '')
+    writeFileSync(join(root, 'evals/foo.eval.ts'), '')
+    const run = {
+      config: {
+        root,
+        include: ['evals/**/*.eval.ts'],
+        history: { dir: join(root, 'evals/.history') },
+      },
+      stagingDir: join(root, '.reeval/staging/x'),
+      concurrency: 4,
+    } as unknown as RunContext
+    await assert.rejects(
+      engine({ run }, fakeSpawn(() => assert.fail('no worker')).spawn),
+      (e: Error) => {
+        assert.equal(e.name, 'UsageError')
+        assert.match(
+          e.message,
+          /evals\/Foo\.eval\.ts and evals\/foo\.eval\.ts have one eval id, foo: an eval's id is its file's path from the evals root without the \.eval\.ts suffix, ignoring case\. Rename one of them\./,
+        )
+        return true
+      },
+    )
+  })
+
+  test('declaration-tree eval files are not part of the case-insensitive id check', async () => {
+    const root = tempDir('shared-ids-py')
+    mkdirSync(join(root, 'evals'), { recursive: true })
+    writeFileSync(join(root, 'evals/a.eval.ts'), '')
+    writeFileSync(join(root, 'evals/tree.eval.py'), '')
+    const run = {
+      config: {
+        root,
+        include: ['evals/**/*.eval.ts', 'evals/**/*.eval.py'],
+        history: { dir: join(root, 'evals/.history') },
+      },
+      stagingDir: join(root, '.reeval/staging/x'),
+      concurrency: 4,
+    } as unknown as RunContext
+    const { spawn, spawned } = fakeSpawn(passing({ 'a.eval.ts': [test0(0, 'a')] }))
+    const r = await engine({ run, onPlan: async () => false }, spawn)
+    assert.equal(r.stopped, true)
+    assert.deepEqual(spawned.sort(), ['a.eval.ts:collect', 'tree.eval.py:collect'])
+  })
+
   test('no eval files, or a path filter that picks none, is noFiles', async () => {
     const { run } = project([])
     const r = await engine({ run }, fakeSpawn(() => assert.fail('no worker')).spawn)
@@ -180,15 +227,11 @@ describe('runEngine: collecting and the plan', () => {
     assert.deepEqual(spawned.sort(), ['a.eval.ts:collect', 'b.eval.ts:collect'])
     assert.deepEqual(
       plan?.planned.map((p) => p.key),
-      [
-        'evals/a.eval.ts › x # fake/-/fake#1',
-        'evals/a.eval.ts › x # fake/-/fake#2',
-        'evals/a.eval.ts › parked # fake/-/fake#1',
-      ],
+      ['x # fake/-/fake#1', 'x # fake/-/fake#2', 'parked # fake/-/fake#1'],
     )
     assert.deepEqual(plan?.excluded, [
-      { id: 'evals/a.eval.ts › y', mode: 'skip' },
-      { id: 'evals/b.eval.ts › g › later', mode: 'todo' },
+      { id: 'y', mode: 'skip' },
+      { id: 'g › later', mode: 'todo' },
     ])
     assert.deepEqual([plan?.matched, plan?.unmatched], [6, []])
   })
@@ -259,13 +302,13 @@ describe('runEngine: files that fail to load', () => {
   })
 
   for (const [name, message, expected] of [
-    [
-      'OnlyInCiError',
-      'no',
-      "evaluate.only/group.only in evals/a.eval.ts isn't allowed in CI (CI is set). Remove it, or run with CI=false.",
-    ],
     ['UsageError', 'twice', 'evals/a.eval.ts: twice'],
     ['DefinitionError', 'nested', 'evals/a.eval.ts: nested'],
+    [
+      'OnlyInCiError',
+      'ignored',
+      "evaluate.only/group.only in evals/a.eval.ts isn't allowed in CI (CI is set). Remove it, or run with CI=false.",
+    ],
   ] as const) {
     test(`a ${name} at load is a usage error`, async () => {
       const { run } = project(['evals/a.eval.ts'])
@@ -347,10 +390,10 @@ describe('runEngine: running', () => {
     assert.deepEqual(
       r.evals.map((e) => [e.id, e.state, e.durationMs, e.todo ?? false, e.skip ?? false]),
       [
-        ['evals/a.eval.ts › one', 'passed', 1, false, false],
-        ['evals/a.eval.ts › skipped', 'skipped', 0, false, true],
-        ['evals/a.eval.ts › placeholder', 'skipped', 0, true, false],
-        ['evals/b.eval.ts › g › two', 'passed', 1, false, false],
+        ['one', 'passed', 1, false, false],
+        ['skipped', 'skipped', 0, false, true],
+        ['placeholder', 'skipped', 0, true, false],
+        ['g › two', 'passed', 1, false, false],
       ],
     )
     assert.deepEqual(r.unhandledErrors.sort(), ['[object Object]', 'stray'])
@@ -363,7 +406,7 @@ describe('runEngine: running', () => {
         .filter((l) => l.text === 'hi\n' || l.text === 'unknown\n' || l.text === 'raw write\n')
         .map((l) => [l.text, l.key]),
       [
-        ['hi\n', 'evals/a.eval.ts › one # fake/-/fake#1'],
+        ['hi\n', 'one # fake/-/fake#1'],
         ['unknown\n', undefined],
       ],
     )
@@ -405,7 +448,7 @@ describe('runEngine: running', () => {
       if (ctl.init.select && ctl.init.file.endsWith('b.eval.ts')) return ctl.exit({ code: 1 })
       return passing(tests)(ctl)
     })
-    run.completed = ['evals/b.eval.ts › kept # fake/-/fake#1']
+    run.completed = ['kept # fake/-/fake#1']
     const r = await engine({ run }, spawn)
     assert.deepEqual(
       r.evals.map((e) => [e.name, e.state, e.skip ?? false]),
@@ -437,7 +480,7 @@ describe('runEngine: running', () => {
     assert.deepEqual(spawned.sort(), ['a.eval.ts:0', 'a.eval.ts:collect', 'b.eval.ts:collect'])
     assert.deepEqual(
       r.evals.map((e) => e.id),
-      ['evals/a.eval.ts › one'],
+      ['one'],
     )
     const none = await engine(
       {
@@ -519,7 +562,7 @@ describe('runEngine: running', () => {
     ])
     assert.deepEqual(
       r.evals.map((e) => e.key),
-      ['evals/b.eval.ts › beta # fake#1', 'evals/fake/a.eval.ts › alpha # left#1'],
+      ['beta # fake#1', 'alpha # left#1'],
     )
 
     const narrowed = await engine(
@@ -528,7 +571,7 @@ describe('runEngine: running', () => {
     )
     assert.deepEqual(
       narrowed.evals.map((e) => e.key),
-      ['evals/b.eval.ts › beta # fake#1'],
+      ['beta # fake#1'],
       'a name part still narrows what a path part picks',
     )
   })
@@ -566,7 +609,7 @@ describe('runEngine: running', () => {
     )
     assert.deepEqual(
       r.evals.map((e) => [e.id, e.state]),
-      [['evals/a.eval.ts › one', 'passed']],
+      [['one', 'passed']],
       'an exact path never loads the file it does not name',
     )
   })
@@ -820,7 +863,7 @@ describe('runEngine: running', () => {
     // As under Vitest, the attempt the cancel cut short is skipped; its record says aborted.
     assert.deepEqual(
       r.evals.map((e) => [e.id, e.state, e.meta]),
-      [['evals/a.eval.ts › a', 'skipped', { late: true }]],
+      [['a', 'skipped', { late: true }]],
     )
     assert.match(r.evals[0]?.formattedErrors[0] ?? '', /Error.*: aborted/)
   })
@@ -988,10 +1031,10 @@ describe('runEngine: running', () => {
     assert.deepEqual(
       r.evals.map((e) => [e.id, e.state, e.errors]),
       [
-        ['evals/a.eval.ts › one', 'failed', ['changed on disk']],
-        ['evals/a.eval.ts › skipped', 'skipped', []],
-        ['evals/b.eval.ts › one', 'passed', []],
-        ['evals/b.eval.ts › skipped', 'skipped', []],
+        ['one', 'failed', ['changed on disk']],
+        ['skipped', 'skipped', []],
+        ['one', 'passed', []],
+        ['skipped', 'skipped', []],
       ],
     )
     const seen = events.filter((e) => e.type === 'collected').map((e) => e.file)
@@ -1011,13 +1054,13 @@ describe('runEngine: running', () => {
     assert.deepEqual(r.unhandledErrors, [why])
     assert.deepEqual(
       r.evals.map((e) => [e.id, e.state, e.errors]),
-      [['evals/a.eval.ts › a', 'failed', [why]]],
+      [['a', 'failed', [why]]],
     )
   })
 
   test("a resume's completed attempts stay skipped when the file fails to load on its second pass", async () => {
     const { run } = project(['evals/a.eval.ts'])
-    run.completed = ['evals/a.eval.ts › done']
+    run.completed = ['done']
     const events: ReevalEvent[] = []
     const { spawn } = fakeSpawn((ctl) => {
       if (ctl.init.select) ctl.emit({ t: 'load-error', error: { message: 'changed on disk' } })
@@ -1029,8 +1072,8 @@ describe('runEngine: running', () => {
     assert.deepEqual(
       r.evals.map((e) => [e.id, e.state, e.errors]),
       [
-        ['evals/a.eval.ts › done', 'skipped', []],
-        ['evals/a.eval.ts › leftover', 'failed', ['changed on disk']],
+        ['done', 'skipped', []],
+        ['leftover', 'failed', ['changed on disk']],
       ],
     )
     const collected = events.find((e) => e.type === 'collected')

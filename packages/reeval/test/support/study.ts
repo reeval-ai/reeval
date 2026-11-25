@@ -33,11 +33,11 @@ export function studyFiles(options: StudyOptions = {}): Record<string, string> {
   const gate = options.gate === undefined ? '' : `gate: '${options.gate}',`
   return {
     'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeAnalysis, fakeJudge } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
 export default defineConfig({
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     script: [[
       { exec: 'cat ${SKILLS}/*/SKILL.md 2>/dev/null || true' },
       { exec: 'cat ${SKILLS}/fui-new/references/react.md 2>/dev/null || true' },
@@ -78,7 +78,7 @@ export const newSkill = noSkill.extendEnvironment('new-skill', ({ skill }) => ({
   skills: [skill.local('../skills/fui-new')],
 }))
 `,
-    'evals/auth.eval.ts': `import { evaluate, expect, group } from 'reeval'
+    'evals/auth.eval.ts': `import { defineEval, expect } from 'reeval'
 import { fakeJudge } from 'reeval/judge'
 import { currentSkill, newSkill, noSkill } from './environments.ts'
 const RUBRIC: Array<[string, string, RegExp | null]> = [
@@ -89,34 +89,29 @@ const RUBRIC: Array<[string, string, RegExp | null]> = [
 ]
 const judgeOf = (has: RegExp | null) =>
   fakeJudge({ score: (s) => (has?.test(JSON.stringify(s)) ? 0.94 : 0.12) })
-group(
-  'auth skill',
-  {
-    compare: {
-      control: noSkill,
-      variants: [currentSkill${options.oneVariant ? '' : ', newSkill'}],
-      ${gate}
+export default defineEval({
+  compare: {
+    control: noSkill,
+    variants: [currentSkill${options.oneVariant ? '' : ', newSkill'}],
+    ${gate}
+  },
+  questions: [
+    { question: 'Which sign-in has the better UX?', across: 'environment', diff: true },
+    {
+      question: 'Which follows the library docs more closely?',
+      across: 'environment',
+      diff: true,
     },
-    questions: [
-      { question: 'Which sign-in has the better UX?', across: 'environment', diff: true },
-      {
-        question: 'Which follows the library docs more closely?',
-        across: 'environment',
-        diff: true,
-      },
-    ],
-    runs: ${options.runs ?? 3},
+  ],
+  runs: ${options.runs ?? 3},
+  async task(c) {
+    await c.send('Ship a complete authentication experience for this app.')
+    await expect(c.exec('test -s src/App.tsx'), 'build').toSucceed()
+    for (const [name, q, has] of RUBRIC) {
+      expect(await c.judge(q, { model: judgeOf(has), diff: true }), name).toPass()
+    }
   },
-  () => {
-    evaluate('ships a complete auth experience', async (c) => {
-      await c.send('Ship a complete authentication experience for this app.')
-      await expect(c.exec('test -s src/App.tsx'), 'build').toSucceed()
-      for (const [name, q, has] of RUBRIC) {
-        expect(await c.judge(q, { model: judgeOf(has), diff: true }), name).toPass()
-      }
-    })
-  },
-)
+})
 `,
     'skills/fui-current/SKILL.md': `---
 name: fui-current

@@ -16,7 +16,7 @@ export const compareSchema = <E extends z.ZodType>(environment: E) =>
     variants: z.array(environment).min(1),
     gate: compareGateSchema.optional(),
     minLift: z.number().min(-1).max(1).optional(),
-    harnesses: z.array(z.union([z.string(), harnessDescriptorSchema])).optional(),
+    agents: z.array(z.union([z.string(), harnessDescriptorSchema])).optional(),
   })
 
 const authoredCompare = compareSchema(z.custom<Environment>())
@@ -56,14 +56,14 @@ function explain(where: string) {
         return `compare.gate in ${where} is ${oneOf(compareGateSchema.options)} (got ${describe(v)})`
       case 'minLift':
         return `compare.minLift in ${where} is points from -1 to 1, e.g. minLift: 0.1 (got ${describe(v)})`
-      case 'harnesses': {
+      case 'agents': {
         const item = index === undefined ? undefined : (v as unknown[])[index]
         const kind = (item as { kind?: string } | null)?.kind
         const problem =
           kind && kind in FACTORY ? harnessProblem(item as HarnessDescriptor) : undefined
         return problem
-          ? `compare.harnesses in ${where}: ${problem}`
-          : `compare.harnesses in ${where} must be a list of harness ids, e.g. harnesses: ['cursor:composer-2.5'] (got ${describe(index === undefined ? v : item)})`
+          ? `compare.agents in ${where}: ${problem}`
+          : `compare.agents in ${where} must be a list of agent ids, e.g. agents: ['cursor:composer-2.5'] (got ${describe(index === undefined ? v : item)})`
       }
       default:
         return index === undefined
@@ -74,7 +74,7 @@ function explain(where: string) {
 }
 
 /** The order the hand-written checks ran in, so the first refusal stays the same. */
-const ORDER = ['control', 'gate', 'minLift', 'harnesses', 'variants']
+const ORDER = ['control', 'gate', 'minLift', 'agents', 'variants']
 
 const noControl = (where: string) =>
   `compare in ${where} has no control. Name it: compare: { control: app, variants: [...] }.`
@@ -91,7 +91,7 @@ export function compareProblem(value: unknown, where: string, environment: z.Zod
     return `Unknown compare option "baseline" in ${where}. Did you mean "control"?`
   }
   if (!isObjectLike(value) || !Array.isArray(value.variants)) {
-    return `compare in ${where} takes { control, variants } (got ${describe(value)}). Use compare: { control: a, variants: [b, c], gate?, minLift?, harnesses? }.`
+    return `compare in ${where} takes { control, variants } (got ${describe(value)}). Use compare: { control: a, variants: [b, c], gate?, minLift?, agents? }.`
   }
   return refusal(compareSchema(environment), value, explain(where), { order: ORDER })
 }

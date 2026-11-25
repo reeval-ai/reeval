@@ -128,7 +128,7 @@
         "questions": [
           {
             "question": "Which handles state more cleanly?",
-            "across": ["environment", "harness"],
+            "across": ["environment", "agent"],
             "diff": true
           },
           {

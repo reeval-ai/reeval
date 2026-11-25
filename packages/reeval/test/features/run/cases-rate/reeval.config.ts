@@ -1,8 +1,8 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { rate } from './evals/env.ts'
 
 export default defineConfig({
-  harnesses: fakeHarness({}),
+  agents: fakeAgent({}),
   environments: rate,
 })

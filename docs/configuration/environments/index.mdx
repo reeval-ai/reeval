@@ -45,13 +45,15 @@ For more information about the merge rules, see [`extend`](/reference/environmen
 In the `evals/page.eval.ts` file, pass `page` as the control and `production` as a variant. reeval names each cell by its harness, environment, and sandbox.
 
 ```ts title="evals/page.eval.ts"
+import { defineEval } from '{{ pkg }}'
 import { page, production } from './environments.ts'
-// ...
-evaluate(
-  'adds a footer',
-  { compare: { control: page, variants: [production] } },
-  // ...
-)
+
+export default defineEval({
+  compare: { control: page, variants: [production] },
+  task: async (c) => {
+    // ...
+  },
+})
 ```
 
 For more information about where you can set the option, see [the `compare` option](/reference/options#compare).

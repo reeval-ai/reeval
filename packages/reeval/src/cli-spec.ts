@@ -60,7 +60,7 @@ export const FLAGS = {
   context: { type: 'boolean' },
   'no-cache': { type: 'boolean' },
   yes: { type: 'boolean', short: 'y' },
-  harness: { type: 'string' },
+  agent: { type: 'string' },
   bare: { type: 'boolean' },
   online: { type: 'boolean' },
   offline: { type: 'boolean' },
@@ -188,7 +188,7 @@ const KEY_TARGET: OptionHelp[] = [
 
 export const COMMANDS: Record<string, CommandSpec> = {
   init: {
-    flags: ['harness', 'yes', 'bare', 'force', 'dry-run'],
+    flags: ['agent', 'yes', 'bare', 'force', 'dry-run'],
     positionals: 1,
     group: 'Get started',
     usage: 'init [dir]',
@@ -196,8 +196,8 @@ export const COMMANDS: Record<string, CommandSpec> = {
     description: 'Create a reeval project in dir (default: .)',
     options: [
       {
-        flags: '--harness <name>',
-        help: 'Agent harness: cursor, claude-code, antigravity, opencode, goose, pi,\ncodex, fx or grok-build (default: cursor)',
+        flags: '--agent <name>',
+        help: 'Agent: cursor, claude-code, antigravity, opencode, goose, pi,\ncodex, fx or grok-build (default: cursor)',
       },
       { flags: '-y, --yes', help: 'Accept all defaults without prompting' },
       { flags: '--bare', help: 'Write only reeval.config.ts, .gitignore and package.json' },

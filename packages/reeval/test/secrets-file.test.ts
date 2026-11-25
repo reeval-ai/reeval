@@ -30,10 +30,13 @@ import type { AgentHarnessDescriptor, EnvironmentInput } from '../src/types.ts'
 import { fakeConfig, project, readRun, runCli, tempDir } from './helpers.ts'
 
 const evalFile = (env: string, body = '') => `
-import { evaluate, expect, defineEnvironment } from 'reeval'
+import { defineEval, expect, defineEnvironment } from 'reeval'
 const keys = defineEnvironment('keys', ({ secret }) => ({ env: ${env} }))
-evaluate('reads', { environments: keys }, async () => {
-  ${body}
+export default defineEval({
+  environment: keys,
+  async task() {
+    ${body}
+  },
 })
 `
 
@@ -105,10 +108,11 @@ describe('REEVAL_SECRETS_FILE', () => {
     )
     const p = await project('secrets-file-cursor', {
       'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { cursor } from 'reeval/harness'
-export default defineConfig({ harnesses: cursor({ model: 'composer-2.5' }) })
+import { cursor } from 'reeval/agent'
+export default defineConfig({ agents: cursor({ model: 'composer-2.5' }) })
 `,
-      'evals/a.eval.ts': "import { evaluate } from 'reeval'\nevaluate('a', async () => {})\n",
+      'evals/a.eval.ts':
+        "import { defineEval } from 'reeval'\nexport default defineEval({ async task() {} })\n",
     })
     const file = join(p.dir, 'secrets.json')
     writeFileSync(

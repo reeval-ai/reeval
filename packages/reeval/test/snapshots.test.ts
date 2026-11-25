@@ -350,11 +350,14 @@ const WRITES = `{ files: {
   '.env': 'GITHUB_TOKEN=${SECRET}\\n',
 } }`
 
-const evalFile = (options = '{}', expected = '42') => `import { evaluate, expect } from 'reeval'
-evaluate('builds the app', ${options}, async (c) => {
-  await c.send('build it')
-  await c.send('and check it')
-  expect(await c.readFile('app/index.js'), 'wrote the app').toContain('${expected}')
+const evalFile = (options = '', expected = '42') => `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  ${options}
+  async task(c) {
+    await c.send('build it')
+    await c.send('and check it')
+    expect(await c.readFile('app/index.js'), 'wrote the app').toContain('${expected}')
+  },
 })
 `
 
@@ -365,7 +368,7 @@ describe('snapshots through the CLI', () => {
   test('every attempt has its final workspace in its run directory, never in the history', async () => {
     const p = await project('snapshots-default', {
       'reeval.config.ts': fakeConfig({ harness: WRITES }),
-      'evals/app.eval.ts': evalFile('{ runs: 2 }'),
+      'evals/app.eval.ts': evalFile('runs: 2,'),
     })
     const run = await runCli(p.dir, ['run', '--record'])
     assert.equal(run.code, 0, run.stdout + run.stderr)
@@ -398,7 +401,7 @@ describe('snapshots through the CLI', () => {
   test("'turns' adds one after each send, and compress writes tar.gz files", async () => {
     const p = await project('snapshots-turns', {
       'reeval.config.ts': fakeConfig({ harness: WRITES, extra: 'snapshot: { compress: true },' }),
-      'evals/app.eval.ts': evalFile("{ snapshot: 'turns' }"),
+      'evals/app.eval.ts': evalFile("snapshot: 'turns',"),
     })
     const run = await runCli(p.dir, ['run'])
     assert.equal(run.code, 0, run.stdout + run.stderr)
@@ -419,7 +422,7 @@ describe('snapshots through the CLI', () => {
   test("a failed attempt's result block prints its snapshot with -v", async () => {
     const p = await project('snapshots-failed', {
       'reeval.config.ts': fakeConfig({ harness: WRITES }),
-      'evals/app.eval.ts': evalFile('{}', 'something else'),
+      'evals/app.eval.ts': evalFile('', 'something else'),
     })
     const run = await runCli(p.dir, ['run', '-v'])
     assert.equal(run.code, 1, run.stdout + run.stderr)
@@ -461,7 +464,7 @@ describe('snapshots through the CLI', () => {
   })
 
   for (const [level, files] of [
-    ['eval', { 'evals/app.eval.ts': evalFile('{ snapshot: false }') }],
+    ['eval', { 'evals/app.eval.ts': evalFile('snapshot: false,') }],
     ['config', { 'reeval.config.ts': fakeConfig({ harness: WRITES, extra: 'snapshot: false,' }) }],
     [
       'profile',

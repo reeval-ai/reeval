@@ -453,23 +453,27 @@ describe('reeval run --json', () => {
   test('prints the suite result as the only stdout, and the progress on stderr', async () => {
     const p = await project('suite-json', {
       'reeval.config.ts': fakeConfig({ harness: `{ files: { 'hello.txt': 'hi\\n' } }` }),
-      'evals/hello.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/hello.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 const plain = defineEnvironment('plain', {})
 const bye = defineEnvironment('bye', { files: { 'bye.txt': 'bye' } })
-evaluate('writes hello.txt', { compare: { control: plain, variants: [bye] } }, async (c) => {
-  console.log('a log line from the eval')
-  process.stdout.write('a direct write\\n')
-  await c.send('write hello.txt')
-  await expect(c.exec('test -f hello.txt'), 'hello.txt exists').toSucceed()
-  await expect.require(c.exec('test -f bye.txt'), 'has bye.txt').toSucceed()
-  await expect(c.exec('false'), 'fails after').toSucceed()
+export default defineEval({
+  compare: { control: plain, variants: [bye] },
+  async task(c) {
+    console.log('a log line from the eval')
+    process.stdout.write('a direct write\\n')
+    await c.send('write hello.txt')
+    await expect(c.exec('test -f hello.txt'), 'hello.txt exists').toSucceed()
+    await expect.require(c.exec('test -f bye.txt'), 'has bye.txt').toSucceed()
+    await expect(c.exec('false'), 'fails after').toSucceed()
+  },
 })
 `,
     })
     const r = await runCli(p.dir, ['run', '--json', '--ui', 'plain'])
     assert.equal(r.code, 1, r.stderr)
     const s = JSON.parse(r.stdout) as SuiteResult
-    assert.match(r.stderr, /writes hello\.txt/)
+    assert.match(r.stdout, /^\{/)
+    assert.match(r.stderr, /◆ {2}Running/)
     assert.equal(s.outcome, 'fail')
     assert.deepEqual(s.tally, {
       errors: 0,
@@ -503,8 +507,8 @@ evaluate('writes hello.txt', { compare: { control: plain, variants: [bye] } }, a
   test('with --dry-run still prints the plan', async () => {
     const p = await project('suite-json-plan', {
       'reeval.config.ts': fakeConfig(),
-      'evals/hello.eval.ts': `import { evaluate } from 'reeval'
-evaluate('plans', async (c) => { await c.send('hi') })
+      'evals/hello.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ async task(c) { await c.send('hi') } })
 `,
     })
     const r = await runCli(p.dir, ['run', '--dry-run', '--json'])

@@ -34,7 +34,7 @@ export async function judgeCalls() {
 export const questions: Question[] = [
   { question: 'How did the agent find the failing test?', transcript: true },
   { question: 'Which is cleaner?', across: 'environment', diff: true, task: true },
-  { question: 'Which screen is clearer?', across: 'harness', artifacts: ['home'] },
+  { question: 'Which screen is clearer?', across: 'agent', artifacts: ['home'] },
   // @ts-expect-error a question shows at least one input
   { question: 'How did the agent find the failing test?' },
   // @ts-expect-error a bare string shows nothing

@@ -1,5 +1,5 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
 // Docker only: the fake sandbox can't enforce a policy, so reeval run would exit 2.
-export default defineConfig({ harnesses: fakeHarness() })
+export default defineConfig({ agents: fakeAgent() })

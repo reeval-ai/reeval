@@ -1,5 +1,5 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
 // REEVAL_FIXTURE_SANDBOX picks the tier: the fake sandbox (F) by default, or docker (D). The fake
 // agent takes antigravity's layout (and image), so no key is needed. As the agent: read the
@@ -10,7 +10,7 @@ const agy = '~/.ai-sdk-harness/.harness-bootstrap/antigravity/bin/agy'
 const docker = process.env.REEVAL_FIXTURE_SANDBOX === 'docker'
 
 export default defineConfig({
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     layout: 'antigravity',
     script: [
       [

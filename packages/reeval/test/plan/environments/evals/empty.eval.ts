@@ -1,4 +1,4 @@
-import { defineEnvironment, evaluate } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
 
 const bare = defineEnvironment('bare', {})
@@ -7,8 +7,7 @@ const skilled = defineEnvironment('skilled', {
 })
 
 // An empty control runs on the cascaded sandbox, not on its variant's.
-evaluate(
-  'an empty control takes the cascaded sandbox',
-  { compare: { control: bare, variants: [skilled] } },
-  async () => {},
-)
+export default defineEval({
+  compare: { control: bare, variants: [skilled] },
+  task: async () => {},
+})

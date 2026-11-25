@@ -99,7 +99,7 @@ export const cases: PlanCase[] = [
   {
     dir: 'runs-default',
     name: 'profile-limit-capped',
-    args: ['--profile', 'pr', 'runs from the group'],
+    args: ['--profile', 'pr', 'compare-runs-2'],
   },
   { dir: 'runs-default', name: 'compare-off', args: ['--profile', 'off'] },
   { dir: 'best-of', name: 'default', args: [] },
@@ -112,7 +112,7 @@ export const cases: PlanCase[] = [
     name: 'yaml-limited',
     args: ['--config', 'reeval.best-of.yml', '--profile', 'pr'],
   },
-  { dir: 'compare', name: 'control-and-variants', args: ['evals/variants.eval.ts'] },
+  { dir: 'compare', name: 'control-and-variants', args: ['evals/variants/'] },
   { dir: 'compare', name: 'independent', args: ['evals/independent.eval.ts'] },
   { dir: 'compare', name: 'control', args: ['evals/control.eval.ts'] },
   {
@@ -131,9 +131,9 @@ export const cases: PlanCase[] = [
     name: 'harness-scoped-dropped-pinned',
     args: ['--profile', 'one-lean', 'evals/scoped-pinned.eval.ts'],
   },
-  { dir: 'compare', name: 'cases', args: ['evals/cases.eval.ts'] },
-  { dir: 'compare', name: 'cases-filtered', args: ['evals/cases.eval.ts', 'grace'] },
-  { dir: 'compare', name: 'mixed-filter', args: ['evals/variants.eval.ts', 'b/skilled'] },
+  { dir: 'compare', name: 'cases', args: ['evals/cases/'] },
+  { dir: 'compare', name: 'cases-filtered', args: ['evals/cases/', 'grace'] },
+  { dir: 'compare', name: 'mixed-filter', args: ['evals/variants/', 'b/skilled'] },
   { dir: 'compare', name: 'study', args: ['evals/study.eval.ts'] },
   { dir: 'observe', name: 'observe', args: [] },
   { dir: 'where', name: 'where', args: [] },
@@ -141,36 +141,36 @@ export const cases: PlanCase[] = [
   { dir: 'where', name: 'trait-list', args: ['--trait', 'auth=clerk', '--trait', 'stack=next'] },
   { dir: 'where', name: 'trait-none', args: ['--trait', 'auth=clerk', '--trait', 'stack=vite'] },
   { dir: 'where', name: 'limit-traits', args: ['--profile', 'vite'] },
-  { dir: 'compare', name: 'verdicts', args: ['evals/verdicts.eval.ts'] },
-  { dir: 'compare', name: 'verdicts-filtered', args: ['evals/verdicts.eval.ts', 'b/skilled'] },
+  { dir: 'compare', name: 'verdicts', args: ['evals/verdicts/'] },
+  { dir: 'compare', name: 'verdicts-filtered', args: ['evals/verdicts/', 'b/skilled'] },
   {
     dir: 'compare',
     name: 'verdicts-some-cases',
-    args: ['evals/verdicts.eval.ts', 'six cases can [a]'],
+    args: ['evals/verdicts/', 'verdicts/six-cases [a]'],
   },
-  { dir: 'compare', name: 'max-variants', args: ['--profile', 'lean', 'evals/limited.eval.ts'] },
+  { dir: 'compare', name: 'max-variants', args: ['--profile', 'lean', 'evals/limited/'] },
   { dir: 'compare', name: 'off-study', args: ['--profile', 'off', 'evals/study.eval.ts'] },
-  { dir: 'compare', name: 'zero-variants', args: ['--profile', 'none', 'evals/limited.eval.ts'] },
-  { dir: 'compare', name: 'questions', args: ['evals/questions.eval.ts'] },
+  { dir: 'compare', name: 'zero-variants', args: ['--profile', 'none', 'evals/limited/'] },
+  { dir: 'compare', name: 'questions', args: ['evals/questions/'] },
   {
     dir: 'compare',
     name: 'questions-dropped',
-    args: ['--profile', 'off', 'evals/questions.eval.ts'],
+    args: ['--profile', 'off', 'evals/questions/'],
   },
-  { dir: 'compare', name: 'questions-group', args: ['evals/questions-group.eval.ts'] },
-  { dir: 'compare', name: 'questions-across', args: ['evals/questions-across.eval.ts'] },
-  { dir: 'compare', name: 'questions-state', args: ['evals/questions-state.eval.ts'] },
-  { dir: 'compare', name: 'questions-model', args: ['evals/questions-model.eval.ts'] },
+  { dir: 'compare', name: 'questions-group', args: ['evals/questions-group/'] },
+  { dir: 'compare', name: 'questions-across', args: ['evals/questions-across/'] },
+  { dir: 'compare', name: 'questions-state', args: ['evals/questions-state/'] },
+  { dir: 'compare', name: 'questions-model', args: ['evals/questions-model/'] },
   {
     dir: 'compare',
     name: 'questions-profile-judge',
-    args: ['--profile', 'judged', 'evals/questions.eval.ts'],
+    args: ['--profile', 'judged', 'evals/questions/'],
   },
-  { dir: 'compare', name: 'questions-attempts', args: ['evals/questions-attempts.eval.ts'] },
+  { dir: 'compare', name: 'questions-attempts', args: ['evals/questions-attempts/'] },
   {
     dir: 'compare',
     name: 'questions-one-harness',
-    args: ['--profile', 'one', 'evals/questions-attempts.eval.ts'],
+    args: ['--profile', 'one', 'evals/questions-attempts/'],
   },
   { dir: 'profiles', name: 'local-none', args: [] },
   { dir: 'profiles', name: 'pr-in-ci', args: [], env: { CI: 'true' } },
@@ -196,12 +196,12 @@ export const cases: PlanCase[] = [
   {
     dir: 'tree-paths',
     name: 'tree-from-above',
-    args: ['--config', 'project/reeval.config.ts', 'tree.eval'],
+    args: ['--config', 'project/reeval.config.ts'],
   },
   {
     dir: 'tree-paths',
     name: 'helpers-from-above',
-    args: ['--config', 'project/reeval.config.ts', 'helpers.eval'],
+    args: ['--config', 'project/reeval.config.ts', 'a-compare'],
   },
   {
     dir: 'python',
@@ -249,18 +249,17 @@ export const cases: PlanCase[] = [
   { dir: 'gateway', name: 'vertex-yaml', args: ['--config', 'reeval.vertex.yaml'] },
   { dir: 'selection', name: 'only-local', args: [] },
   { dir: 'selection', name: 'tags', args: ['--tag', 'slow', '--tag', '!flaky'] },
-  { dir: 'selection', name: 'group-and-eval-filter', args: ['slow things › big'] },
+  { dir: 'selection', name: 'group-and-eval-filter', args: ['slow/big'] },
   { dir: 'revision', name: 'cascade', args: [] },
-  { dir: 'only-in-skip', name: 'only-in-skipped-group', args: [] },
   { dir: 'filters', name: 'dir-named-like-cell', args: ['right'] },
   { dir: 'filters', name: 'dir-path-only', args: ['evals/right'] },
-  { dir: 'images', name: 'install-from-dockerfile', args: ['evals/i.eval.ts'], env: NO_DOCKER },
-  { dir: 'images', name: 'plugin-builds', args: ['evals/plugins.eval.ts'], env: NO_DOCKER },
+  { dir: 'images', name: 'install-from-dockerfile', args: ['own-dockerfile'], env: NO_DOCKER },
+  { dir: 'images', name: 'plugin-builds', args: ['built-plugins'], env: NO_DOCKER },
   { dir: 'harnesses', name: 'claude-code', args: [] },
   { dir: 'harness-edits', name: 'data-and-functions', args: [] },
   { dir: 'antigravity', name: 'antigravity', args: [] },
   { dir: 'opencode', name: 'opencode', args: [] },
-  { dir: 'opencode', name: 'bedrock-region', args: ['Bedrock'], env: { AWS_REGION: 'eu-west-1' } },
+  { dir: 'opencode', name: 'bedrock-region', args: ['bedrock'], env: { AWS_REGION: 'eu-west-1' } },
   { dir: 'goose', name: 'goose', args: [] },
   { dir: 'pi', name: 'pi', args: [] },
   { dir: 'codex', name: 'codex', args: [] },
@@ -276,25 +275,91 @@ export const cases: PlanCase[] = [
     env: CURSOR_CATALOG,
     prepare: cursorCatalog,
   },
-  { dir: 'secrets', name: 'brokered', args: ['evals/s.eval.ts'] },
+  {
+    dir: 'secrets',
+    name: 'brokered',
+    args: [
+      'a-preset-host',
+      'a-variant-brokers',
+      'a-token-in-the-eval',
+      'mcp-headers-go-to-their-server',
+    ],
+  },
   {
     dir: 'secrets',
     name: 'plain-headers',
-    args: ['--profile', 'headers', 'evals/headers.eval.ts', 'evals/tree.eval.ts'],
+    args: [
+      '--profile',
+      'headers',
+      'plain-mcp-headers',
+      'a-header-from-the-profile',
+      'a-plain-header-from-a-declaration-tree',
+    ],
   },
-  { dir: 'secrets', name: 'plain-env', args: ['evals/env.eval.ts'] },
-  { dir: 'secrets', name: 'ordinary-env', args: ['evals/ordinary-env.eval.ts'] },
-  { dir: 'egress', name: 'cascade', args: ['evals/auto.eval.ts', 'evals/cascade.eval.ts'] },
-  { dir: 'egress', name: 'phases', args: ['evals/phases.eval.ts'] },
+  { dir: 'secrets', name: 'plain-env', args: ['plain-env-strings'] },
+  { dir: 'secrets', name: 'ordinary-env', args: ['ordinary-env'] },
+  {
+    dir: 'egress',
+    name: 'cascade',
+    args: [
+      'secret-and-mcp-hosts',
+      'hosts-the-policy',
+      'the-config-policy',
+      'an-environment-replaces',
+      'an-extend-child-replaces',
+      'the-default-list',
+      'equal-phases-are-one',
+      'the-eval-replaces',
+      'a-group-replaces',
+      'an-unset-phase-keeps',
+    ],
+  },
+  {
+    dir: 'egress',
+    name: 'phases',
+    args: [
+      'an-environment-sets-each-phase',
+      'an-unset-phase-keeps',
+      'a-plain-policy-on-the-eval',
+      'a-phase-on-the-eval',
+      'a-group-sets-setup',
+      'an-extend-child-sets-setup',
+      'equal-phases-are-one',
+      'a-variant-changes-only-setup',
+      'each-restricted-phase-gets',
+    ],
+  },
   {
     dir: 'egress',
     name: 'profile-defaults',
-    args: ['--profile', 'locked', 'evals/cascade.eval.ts'],
+    args: [
+      '--profile',
+      'locked',
+      'the-config-policy',
+      'an-environment-replaces',
+      'an-extend-child-replaces',
+      'the-default-list',
+      'equal-phases-are-one',
+      'the-eval-replaces',
+      'a-group-replaces',
+      'an-unset-phase-keeps',
+    ],
   },
   {
     dir: 'egress',
     name: 'profile-setup',
-    args: ['--profile', 'setup-open', 'evals/cascade.eval.ts'],
+    args: [
+      '--profile',
+      'setup-open',
+      'the-config-policy',
+      'an-environment-replaces',
+      'an-extend-child-replaces',
+      'the-default-list',
+      'equal-phases-are-one',
+      'the-eval-replaces',
+      'a-group-replaces',
+      'an-unset-phase-keeps',
+    ],
   },
   {
     dir: 'egress',
@@ -304,22 +369,29 @@ export const cases: PlanCase[] = [
       'reeval.phased.config.ts',
       '--profile',
       'agent-locked',
-      'evals/cascade.eval.ts',
+      'the-config-policy',
+      'an-environment-replaces',
+      'an-extend-child-replaces',
+      'the-default-list',
+      'equal-phases-are-one',
+      'the-eval-replaces',
+      'a-group-replaces',
+      'an-unset-phase-keeps',
     ],
   },
   {
     dir: 'egress',
     name: 'default-proxy',
-    args: ['--config', 'reeval.default.config.ts', 'evals/direct.eval.ts'],
+    args: ['--config', 'reeval.default.config.ts', 'the-default-sends-everything'],
   },
   {
     dir: 'egress',
     name: 'allow-all-on-ci',
-    args: ['--config', 'reeval.default.config.ts', 'evals/direct.eval.ts'],
+    args: ['--config', 'reeval.default.config.ts', 'the-default-sends-everything'],
     env: { GITHUB_ACTIONS: 'true' },
   },
   { dir: 'privileges', name: 'levels', args: [] },
-  { dir: 'tart', name: 'two-vms', args: ['--concurrency', '8', 'evals/t.eval.ts'] },
+  { dir: 'tart', name: 'two-vms', args: ['--concurrency', '8', 'builds-the-app'] },
   { dir: 'tart', name: 'hosts', args: ['--concurrency', '8', 'evals/hosts.eval.ts'] },
   { dir: 'cloud', name: 'config', args: ['evals/a.eval.ts'], prepare: linkCloud },
   { dir: 'cloud', name: 'local-flag', args: ['--local', 'evals/a.eval.ts'], prepare: linkCloud },
@@ -366,47 +438,59 @@ export const cases: PlanCase[] = [
   { dir: 'workspace', name: 'git', args: [] },
   { dir: 'files', name: 'directory', args: [] },
   { dir: 'inputs', name: 'inputs', args: [], env: NO_DOCKER, inputs: true, prepare: linkInputs },
-  { dir: 'plugins', name: 'parts', args: ['evals/parts.eval.ts'] },
-  { dir: 'plugins', name: 'remote', args: ['evals/remote.eval.ts'] },
-  { dir: 'plugins', name: 'fetches-at-start', args: ['evals/fetches.eval.ts'] },
-  { dir: 'plugins', name: 'marketplace', args: ['evals/marketplace.eval.ts'] },
+  {
+    dir: 'plugins',
+    name: 'parts',
+    args: ['every-part-2', 'only-skills-and-mcp', 'child-replaces-the-review-plugin'],
+  },
+  { dir: 'plugins', name: 'remote', args: ['remote-plugins'] },
+  { dir: 'plugins', name: 'fetches-at-start', args: ['npx-under', 'npx-with'] },
+  { dir: 'plugins', name: 'marketplace', args: ['marketplace'] },
   {
     dir: 'plugins',
     name: 'claude-code-and-grok-build',
-    args: ['--config', 'reeval.claude-grok.config.ts', 'evals/namespaced.eval.ts'],
+    args: ['--config', 'reeval.claude-grok.config.ts', 'namespaced'],
   },
   {
     dir: 'plugins',
     name: 'antigravity-and-cursor',
-    args: ['--config', 'reeval.antigravity-cursor.config.ts', 'evals/every-part.eval.ts'],
+    args: ['--config', 'reeval.antigravity-cursor.config.ts', 'every-part'],
   },
   {
     dir: 'plugins',
     name: 'opencode-pi-and-fx',
-    args: ['--config', 'reeval.opencode-pi-fx.config.ts', 'evals/unpacked.eval.ts'],
+    args: ['--config', 'reeval.opencode-pi-fx.config.ts', 'loads-the-plugin'],
   },
   {
     dir: 'plugins',
     name: 'codex-and-goose',
-    args: ['--config', 'reeval.codex-goose.config.ts', 'evals/skills-and-mcp.eval.ts'],
+    args: ['--config', 'reeval.codex-goose.config.ts', 'skills-and-mcp'],
   },
   { dir: 'capture', name: 'options', args: [] },
-  { dir: 'environments', name: 'images', args: ['evals/images.eval.ts'] },
-  { dir: 'environments', name: 'podman', args: ['evals/podman.eval.ts'] },
-  { dir: 'providers', name: 'none', args: ['evals/provider.eval.ts'] },
-  { dir: 'providers', name: 'boat', args: ['--profile', 'boat', 'evals/provider.eval.ts'] },
+  {
+    dir: 'environments',
+    name: 'images',
+    args: ['node-22', 'node-24', 'same-image-other-env', 'install-on-22'],
+  },
+  { dir: 'environments', name: 'podman', args: ['podman'] },
+  {
+    dir: 'providers',
+    name: 'none',
+    args: ['the-default-sandbox', 'a-toolchain-image', 'a-prebuilt-image', 'real-harnesses'],
+  },
+  { dir: 'providers', name: 'boat', args: ['--profile', 'boat', 'the-default-sandbox'] },
   {
     dir: 'providers',
     name: 'boat-large',
-    args: ['--profile', 'boat-large', 'evals/provider.eval.ts'],
+    args: ['--profile', 'boat-large', 'the-default-sandbox'],
   },
   {
     dir: 'providers',
     name: 'boat-pooled',
-    args: ['--profile', 'boat-pooled', 'evals/provider.eval.ts'],
+    args: ['--profile', 'boat-pooled', 'the-default-sandbox'],
   },
-  { dir: 'providers', name: 'boat-deny-all', args: ['--profile', 'boat', 'evals/deny.eval.ts'] },
-  { dir: 'providers', name: 'daytona', args: ['--profile', 'daytona', 'evals/provider.eval.ts'] },
+  { dir: 'providers', name: 'boat-deny-all', args: ['--config', 'reeval.deny.config.ts', 'deny'] },
+  { dir: 'providers', name: 'daytona', args: ['--profile', 'daytona', 'the-default-sandbox'] },
   {
     dir: 'providers',
     name: 'daytona-shared',
@@ -415,28 +499,44 @@ export const cases: PlanCase[] = [
   {
     dir: 'providers',
     name: 'config-provider',
-    args: ['--config', 'reeval.boat.config.ts', 'evals/deny.eval.ts'],
+    args: ['--config', 'reeval.deny.config.ts', 'deny'],
   },
   {
     dir: 'providers',
     name: 'profile-provider',
-    args: ['--config', 'reeval.boat.config.ts', '--profile', 'daytona', 'evals/provider.eval.ts'],
+    args: ['--config', 'reeval.boat.config.ts', '--profile', 'daytona', 'the-default-sandbox'],
   },
   {
     dir: 'providers',
     name: 'fake-on-provider',
-    args: ['--config', 'reeval.boat.config.ts', 'evals/fake.eval.ts'],
+    args: ['--config', 'reeval.boat.config.ts', 'fake'],
   },
-  { dir: 'environments', name: 'cloud', args: ['evals/cloud.eval.ts'] },
-  { dir: 'environments', name: 'extend-replace', args: ['evals/extend.eval.ts'] },
-  { dir: 'environments', name: 'control-over-config', args: ['evals/compare.eval.ts'] },
-  { dir: 'environments', name: 'inherit-config', args: ['evals/inherit.eval.ts'] },
-  { dir: 'environments', name: 'list', args: ['evals/list.eval.ts'] },
-  { dir: 'environments', name: 'traits', args: ['evals/traits.eval.ts'] },
+  { dir: 'environments', name: 'cloud', args: ['cloud'] },
+  {
+    dir: 'environments',
+    name: 'extend-replace',
+    args: ['parent-image', 'child-replaces-sandbox', 'child-keeps-parent-sandbox'],
+  },
+  { dir: 'environments', name: 'control-over-config', args: ['compare'] },
+  { dir: 'environments', name: 'inherit-config', args: ['inherit'] },
+  {
+    dir: 'environments',
+    name: 'list',
+    args: [
+      'a-grid',
+      'add-as-data',
+      'add-as-a-function',
+      'both-stacks-inherits-the-list',
+      'both-stacks-only-as-data',
+      'both-stacks-only-as-a-function',
+      'both-stacks-a-compare-replaces-it',
+    ],
+  },
+  { dir: 'environments', name: 'traits', args: ['traits'] },
   {
     dir: 'environments',
     name: 'empty-control',
-    args: ['--config', 'reeval.empty.config.ts', 'evals/empty.eval.ts'],
+    args: ['--config', 'reeval.empty.config.ts', 'empty'],
   },
   { dir: 'cost', name: 'no-history', args: [], cost: true, env: PRICES, prepare: modelsDev },
   {
@@ -478,7 +578,7 @@ export const cases: PlanCase[] = [
     async prepare(dir) {
       const { writeStoppedStaging } = await import('./support/resume.ts')
       writeStoppedStaging(dir, '20260101T000000Z_nogit_test_abcd', [
-        { file: 'evals/r.eval.ts', name: 'done', cell: 'fake/-/docker' },
+        { file: 'evals/done.eval.ts', cell: 'fake/-/docker' },
       ])
     },
   },
@@ -489,8 +589,8 @@ export const cases: PlanCase[] = [
     async prepare(dir) {
       const { writeScratch } = await import('./support/resume.ts')
       writeScratch(dir, '20260101T000000Z_nogit_test_abcd', 'complete', [
-        { key: 'evals/r.eval.ts › done # fake/-/docker#1', outcome: 'pass' },
-        { key: 'evals/r.eval.ts › leftover # fake/-/docker#1', outcome: 'infra_error' },
+        { key: 'done # fake/-/docker#1', outcome: 'pass' },
+        { key: 'leftover # fake/-/docker#1', outcome: 'infra_error' },
       ])
     },
   },
@@ -548,15 +648,19 @@ describe('the JSON plan', { concurrency: CLIS }, () => {
   })
 
   test("where runs whatever --trait leaves: its refusals and excluded pairs don't depend on the flags", async () => {
-    const env = `import { defineEnvironment, evaluate } from 'reeval'
+    const env = `import { defineEval, defineEnvironment } from 'reeval'
 const next = defineEnvironment('next-app', { traits: { stack: 'next' } })
 const vite = defineEnvironment('vite-app', { traits: { stack: 'vite' } })
 `
     const config = { 'reeval.config.ts': fakeConfig() }
     const typo = await project('where-trait-typo', {
       ...config,
-      'evals/w.eval.ts': `${env}evaluate('w', { environments: [next, vite], cases: ['a', 'b'],
-  where: ({ environment }) => environment.traits.stak === 'next' }, async () => {})
+      'evals/w.eval.ts': `${env}export default defineEval({
+  cases: ['a', 'b'],
+  environment: [next, vite],
+  where: ({ environment }) => environment.traits.stak === 'next',
+  task: async () => {},
+})
 `,
     })
     for (const args of [[], ['--trait', 'stack=next'], ['--trait', 'stack=astro']]) {
@@ -566,8 +670,12 @@ const vite = defineEnvironment('vite-app', { traits: { stack: 'vite' } })
     }
     const fits = await project('where-trait-excluded', {
       ...config,
-      'evals/w.eval.ts': `${env}evaluate('w', { environments: [next, vite], cases: ['next', 'vite'],
-  where: ({ case: c, environment }) => environment.traits.stack === c }, async () => {})
+      'evals/w.eval.ts': `${env}export default defineEval({
+  cases: ['next', 'vite'],
+  environment: [next, vite],
+  where: ({ case: c, environment }) => environment.traits.stack === c,
+  task: async () => {},
+})
 `,
     })
     const excluded = async (args: string[]) => {
@@ -643,17 +751,17 @@ const vite = defineEnvironment('vite-app', { traits: { stack: 'vite' } })
           ? {
               'reeval.config.ts': `import { defineConfig } from 'reeval'
 import { direct, vercel } from 'reeval/gateway'
-import { cursor } from 'reeval/harness'
-export default defineConfig({ harnesses: cursor({ model: 'composer-2.5' }), gateway: ${gateway} })
+import { cursor } from 'reeval/agent'
+export default defineConfig({ agents: cursor({ model: 'composer-2.5' }), gateway: ${gateway} })
 `,
             }
           : {
-              'reeval.yaml': `harnesses: { kind: cursor, model: composer-2.5 }
+              'reeval.yaml': `agents: { kind: cursor, model: composer-2.5 }
 gateway: ${gateway}
 `,
             }),
-        'evals/g.eval.ts': `import { evaluate } from 'reeval'
-evaluate('routed', async () => {})
+        'evals/g.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ task: async () => {} })
 `,
       })
       const fallback = await project(`gateway-fallback-${format}`, files(loose))
@@ -687,7 +795,7 @@ evaluate('routed', async () => {})
       assert.equal(r.code, 2, r.stdout + r.stderr)
       assert.match(
         r.stderr,
-        /evaluate\("default effort"\) on cursor:composer-2\.5\[effort=medium\]: Cursor's model catalog lists no effort for composer-2\.5 \(it takes fast \('false', 'true'\)\), so drop cursor\(\{ effort: 'medium' \}\); Fast is params\.fast, not effort/,
+        /eval e on cursor:composer-2\.5\[effort=medium\]: Cursor's model catalog lists no effort for composer-2\.5 \(it takes fast \('false', 'true'\)\), so drop cursor\(\{ effort: 'medium' \}\); Fast is params\.fast, not effort/,
       )
     }
     assert.deepEqual(readdirSync(p.dir).includes('.reeval'), false, 'nothing ran')
@@ -701,11 +809,11 @@ evaluate('routed', async () => {})
   test('a Cursor model its cached catalog lacks is checked against a fresh read', async () => {
     const p = await project('cursor-stale-catalog', {
       'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { cursor } from 'reeval/harness'
-export default defineConfig({ harnesses: cursor({ model: 'gpt-5.6-luna' }) })
+import { cursor } from 'reeval/agent'
+export default defineConfig({ agents: cursor({ model: 'gpt-5.6-luna' }) })
 `,
-      'evals/e.eval.ts': `import { evaluate } from 'reeval'
-evaluate('stale', async () => {})
+      'evals/e.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ task: async () => {} })
 `,
     })
     cursorCatalog(p.dir, CURSOR_MODELS.slice(0, 1))
@@ -721,11 +829,11 @@ evaluate('stale', async () => {})
   test('a gateway reeval does not know exits 2 at plan time, naming the ones it does', async () => {
     const p = await project('gateway-unknown', {
       'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
-export default defineConfig({ harnesses: fakeHarness(), gateway: [{ kind: 'vercell' }] })
+import { fakeAgent } from 'reeval/agent'
+export default defineConfig({ agents: fakeAgent(), gateway: [{ kind: 'vercell' }] })
 `,
-      'evals/g.eval.ts': `import { evaluate } from 'reeval'
-evaluate('unknown', async () => {})
+      'evals/g.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ task: async () => {} })
 `,
     })
     for (const args of [['run', '--dry-run'], ['run']]) {
@@ -743,14 +851,14 @@ evaluate('unknown', async () => {})
     const configs = {
       harness: `import { defineConfig } from 'reeval'
 import { vercel } from 'reeval/gateway'
-import { codex } from 'reeval/harness'
-export default defineConfig({ harnesses: codex({ model: 'gpt-5.4-mini' }), gateway: [vercel()] })
+import { codex } from 'reeval/agent'
+export default defineConfig({ agents: codex({ model: 'gpt-5.4-mini' }), gateway: [vercel()] })
 `,
       judge: `import { defineConfig } from 'reeval'
 import { vercel } from 'reeval/gateway'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 export default defineConfig({
-  harnesses: fakeHarness(),
+  agents: fakeAgent(),
   gateway: [vercel()],
   judge: { model: 'anthropic/claude-haiku-4.5' },
 })
@@ -759,8 +867,8 @@ export default defineConfig({
     for (const [name, config] of Object.entries(configs)) {
       const p = await project(`gateway-base-url-${name}`, {
         'reeval.config.ts': config,
-        'evals/g.eval.ts': `import { evaluate } from 'reeval'
-evaluate('routed', async () => {})
+        'evals/g.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ task: async () => {} })
 `,
       })
       const r = await runCli(p.dir, ['run', '--dry-run'], {
@@ -780,33 +888,22 @@ evaluate('routed', async () => {})
     const p = await project('gateway-judge', {
       'reeval.config.ts': `import { defineConfig } from 'reeval'
 import { direct } from 'reeval/gateway'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 export default defineConfig({
-  harnesses: fakeHarness(),
+  agents: fakeAgent(),
   gateway: [direct()],
   judge: { model: 'mistral/large' },
 })
 `,
-      'evals/g.eval.ts': `import { evaluate } from 'reeval'
-evaluate('judged', async () => {})
+      'evals/g.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ task: async () => {} })
 `,
     })
     const r = await runCli(p.dir, ['run', '--dry-run'])
     assert.equal(r.code, 2, r.stdout + r.stderr)
     assert.match(
       r.stderr,
-      /evals\/g\.eval\.ts: evaluate\("judged"\): the judge model "mistral\/large": no gateway in the list can serve it \(direct: .*\)\. Add vercel\(\) to gateway\./,
-    )
-  })
-
-  test('.only in CI exits 2 before any plan prints', async () => {
-    const p = await fixture('plan/selection')
-    const r = await runCli(p.dir, ['run', '--dry-run', '--json'], { env: { CI: 'true' } })
-    assert.equal(r.code, 2, r.stdout + r.stderr)
-    assert.equal(r.stdout, '')
-    assert.match(
-      r.stderr,
-      /evaluate\.only\/group\.only in evals\/only\.eval\.ts isn't allowed in CI/,
+      /evals\/g\.eval\.ts: evals\/g\.eval\.ts: the judge model "mistral\/large": no gateway in the list can serve it \(direct: .*\)\. Add vercel\(\) to gateway\./,
     )
   })
 
@@ -855,16 +952,26 @@ evaluate('judged', async () => {})
   test('phased egress side by side on rootless Podman warns at plan time', async () => {
     const p = await project('plan-podman-phases', {
       'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { podman } from 'reeval/sandbox'
 export default defineConfig({
-  harnesses: fakeHarness(),
+  agents: fakeAgent(),
   environments: defineEnvironment('p', { sandbox: podman() }),
 })
 `,
-      'evals/p.eval.ts': `import { evaluate } from 'reeval'
-evaluate('phased', { egress: { setup: 'allow-all', agent: 'deny-all' } }, async () => {})
-evaluate('one policy', { egress: 'deny-all' }, async () => {})
+      'evals/phased.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
+import { podman } from 'reeval/sandbox'
+const p = defineEnvironment('p', { sandbox: podman() })
+export default defineEval({
+  environment: p,
+  egress: { setup: 'allow-all', agent: 'deny-all' },
+  task: async () => {},
+})
+`,
+      'evals/one-policy.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
+import { podman } from 'reeval/sandbox'
+const p = defineEnvironment('p', { sandbox: podman() })
+export default defineEval({ environment: p, egress: 'deny-all', task: async () => {} })
 `,
       // A podman CLI that answers only whether it runs rootless.
       'bin/podman': `#!/bin/sh\n[ "$1 $3" = "info {{json .Host.Security.Rootless}}" ] && echo true && exit 0\nexit 1\n`,
@@ -875,7 +982,7 @@ evaluate('one policy', { egress: 'deny-all' }, async () => {})
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.match(
       r.stdout,
-      /Warning: phased egress on rootless Podman: at the switch to the agent's policy an attempt's container leaves Podman's bridge network, .* Under it: evals\/p\.eval\.ts › phased\. Run with --concurrency 1/,
+      /Warning: phased egress on rootless Podman: at the switch to the agent's policy an attempt's container leaves Podman's bridge network, .* Under it: phased\. Run with --concurrency 1/,
     )
     // Twin: one at a time, nothing runs beside the switch.
     const alone = await runCli(p.dir, ['run', '--dry-run', '--concurrency', '1'], { env })
@@ -910,14 +1017,14 @@ evaluate('one policy', { egress: 'deny-all' }, async () => {})
       const harness = `opencode({ model: '${model}' })`
       const p = await project(`refused-${where}-${model.split('/')[0]}${env ? '-env' : ''}`, {
         'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { cursor, opencode } from 'reeval/harness'
+import { cursor, opencode } from 'reeval/agent'
 export default defineConfig({
-  harnesses: ${where === 'config' ? harness : "cursor({ model: 'composer-2.5' })"},
+  agents: ${where === 'config' ? harness : "cursor({ model: 'composer-2.5' })"},
 })
 `,
-        'evals/r.eval.ts': `import { evaluate } from 'reeval'
-import { opencode } from 'reeval/harness'
-evaluate('refused', ${where === 'eval' ? `{ harnesses: ${harness} }, ` : ''}async () => {})
+        'evals/r.eval.ts': `import { defineEval } from 'reeval'
+import { opencode } from 'reeval/agent'
+export default defineEval({${where === 'eval' ? ` agents: ${harness},` : ''} task: async () => {} })
 `,
       })
       const r = await runCli(p.dir, ['run', '--dry-run'], { env: env ?? {} })
@@ -963,14 +1070,14 @@ evaluate('refused', ${where === 'eval' ? `{ harnesses: ${harness} }, ` : ''}asyn
       const p = await project(`refused-${factory}-${model.split('/')[0]}`, {
         'reeval.config.ts': `import { defineConfig } from 'reeval'
 import { vercel, vertex, direct } from 'reeval/gateway'
-import { ${factory} } from 'reeval/harness'
+import { ${factory} } from 'reeval/agent'
 export default defineConfig({
   gateway: ${gateway === 'direct' ? '[direct()]' : "[direct(), vercel(), vertex({ project: 'p', location: 'global' })]"},
-  harnesses: ${factory}({ model: '${model}'${gateway === 'direct' ? '' : `, gateway: '${gateway}'`} }),
+  agents: ${factory}({ model: '${model}'${gateway === 'direct' ? '' : `, gateway: '${gateway}'`} }),
 })
 `,
-        'evals/r.eval.ts': `import { evaluate } from 'reeval'
-evaluate('refused', async () => {})
+        'evals/r.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ task: async () => {} })
 `,
       })
       const r = await runCli(p.dir, ['run', '--dry-run'], {
@@ -986,39 +1093,39 @@ evaluate('refused', async () => {})
       [
         'opencode',
         'google/gemini-3.8-flash',
-        /evaluate\("streams"\) on opencode:gemini-3\.8-flash: OpenCode has no SSE MCP transport, so it can't use the events server \(mcp\.sse\): use mcp\.http or mcp\.stdio/,
+        /evals\/streams\.eval\.ts on opencode:gemini-3\.8-flash: OpenCode has no SSE MCP transport, so it can't use the events server \(mcp\.sse\): use mcp\.http or mcp\.stdio/,
       ],
       [
         'goose',
         'google/gemini-3.8-flash',
-        /evaluate\("streams"\) on goose:gemini-3\.8-flash: Goose has no SSE MCP transport, so it can't use the events server \(mcp\.sse\): use mcp\.http or mcp\.stdio/,
+        /evals\/streams\.eval\.ts on goose:gemini-3\.8-flash: Goose has no SSE MCP transport, so it can't use the events server \(mcp\.sse\): use mcp\.http or mcp\.stdio/,
       ],
       [
         'pi',
         'google/gemini-3.8-flash',
-        /evaluate\("streams"\) on pi:gemini-3\.8-flash: pi has no SSE MCP transport, so it can't use the events server \(mcp\.sse\): use mcp\.http or mcp\.stdio/,
+        /evals\/streams\.eval\.ts on pi:gemini-3\.8-flash: pi has no SSE MCP transport, so it can't use the events server \(mcp\.sse\): use mcp\.http or mcp\.stdio/,
       ],
       [
         'codex',
         'gpt-5.4-mini',
-        /evaluate\("streams"\) on codex:gpt-5\.4-mini: Codex has no SSE MCP transport, so it can't use the events server \(mcp\.sse\): use mcp\.http or mcp\.stdio/,
+        /evals\/streams\.eval\.ts on codex:gpt-5\.4-mini: Codex has no SSE MCP transport, so it can't use the events server \(mcp\.sse\): use mcp\.http or mcp\.stdio/,
       ],
       [
         'fx',
         'gpt-4.1-mini',
-        /evaluate\("streams"\) on fx:gpt-4\.1-mini: fx has no SSE MCP transport, so it can't use the events server \(mcp\.sse\): use mcp\.http or mcp\.stdio/,
+        /evals\/streams\.eval\.ts on fx:gpt-4\.1-mini: fx has no SSE MCP transport, so it can't use the events server \(mcp\.sse\): use mcp\.http or mcp\.stdio/,
       ],
     ] as const) {
       const p = await project(`sse-${factory}`, {
         'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { cursor, ${factory} } from 'reeval/harness'
+import { cursor, ${factory} } from 'reeval/agent'
 export default defineConfig({
-  harnesses: [cursor({ model: 'composer-2.5' }), ${factory}({ model: '${model}' })],
+  agents: [cursor({ model: 'composer-2.5' }), ${factory}({ model: '${model}' })],
 })
 `,
-        'evals/s.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+        'evals/streams.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 const events = defineEnvironment('events', ({ mcp }) => ({ mcp: { events: mcp.sse('https://events.example.com/sse') } }))
-evaluate('streams', { environments: events }, async () => {})
+export default defineEval({ environment: events, task: async () => {} })
 `,
       })
       for (const args of [
@@ -1034,33 +1141,33 @@ evaluate('streams', { environments: events }, async () => {})
   })
 
   test('an MCP value OpenCode would substitute exits 2 at plan time on OpenCode only, naming the server and field', async () => {
-    const evals = `import { defineEnvironment, evaluate } from 'reeval'
+    const evals = `import { defineEval, defineEnvironment } from 'reeval'
 const docs = defineEnvironment('docs', ({ mcp }) => ({
   mcp: { docs: mcp.stdio('node', ['srv.js', '{file:/tmp/tok.txt}'], { env: { GREETING: 'Hello {env:USER}' } }) },
 }))
-evaluate('reads docs', { environments: docs }, async () => {})
+export default defineEval({ environment: docs, task: async () => {} })
 `
     const refused = await project('opencode-substitution', {
       'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { cursor, opencode } from 'reeval/harness'
+import { cursor, opencode } from 'reeval/agent'
 export default defineConfig({
-  harnesses: [cursor({ model: 'composer-2.5' }), opencode({ model: 'google/gemini-3.8-flash' })],
+  agents: [cursor({ model: 'composer-2.5' }), opencode({ model: 'google/gemini-3.8-flash' })],
 })
 `,
-      'evals/d.eval.ts': evals,
+      'evals/reads-docs.eval.ts': evals,
     })
     const r = await runCli(refused.dir, ['run', '--dry-run'])
     assert.equal(r.code, 2, r.stdout + r.stderr)
     assert.match(
       r.stderr,
-      /evaluate\("reads docs"\) on opencode:gemini-3\.8-flash: OpenCode substitutes \{env:…\} and \{file:…\} anywhere in its config, with no escape, so the docs server wouldn't get mcp\.docs\.args\[1\] as written/,
+      /evals\/reads-docs\.eval\.ts on opencode:gemini-3\.8-flash: OpenCode substitutes \{env:…\} and \{file:…\} anywhere in its config, with no escape, so the docs server wouldn't get mcp\.docs\.args\[1\] as written/,
     )
     const elsewhere = await project('opencode-substitution-elsewhere', {
       'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { cursor } from 'reeval/harness'
-export default defineConfig({ harnesses: cursor({ model: 'composer-2.5' }) })
+import { cursor } from 'reeval/agent'
+export default defineConfig({ agents: cursor({ model: 'composer-2.5' }) })
 `,
-      'evals/d.eval.ts': evals,
+      'evals/reads-docs.eval.ts': evals,
     })
     const ok = await runCli(elsewhere.dir, ['run', '--dry-run'])
     assert.equal(ok.code, 0, ok.stdout + ok.stderr)
@@ -1068,19 +1175,19 @@ export default defineConfig({ harnesses: cursor({ model: 'composer-2.5' }) })
 
   test('pi and Goose take stdio and http MCP servers; pi exits 2 on a server name it would skip', async () => {
     const config = (factory: string) => `import { defineConfig } from 'reeval'
-import { ${factory} } from 'reeval/harness'
-export default defineConfig({ harnesses: ${factory}({ model: 'google/gemini-3.8-flash' }) })
+import { ${factory} } from 'reeval/agent'
+export default defineConfig({ agents: ${factory}({ model: 'google/gemini-3.8-flash' }) })
 `
-    const evals = (local: string) => `import { defineEnvironment, evaluate } from 'reeval'
+    const evals = (local: string) => `import { defineEval, defineEnvironment } from 'reeval'
 const tools = defineEnvironment('tools', ({ mcp }) => ({
   mcp: { '${local}': mcp.stdio('node', ['server.mjs']), remote: mcp.http('https://mcp.example.com/mcp') },
 }))
-evaluate('uses tools', { environments: tools }, async () => {})
+export default defineEval({ environment: tools, task: async () => {} })
 `
     for (const factory of ['pi', 'goose']) {
       const p = await project(`mcp-${factory}`, {
         'reeval.config.ts': config(factory),
-        'evals/m.eval.ts': evals('local'),
+        'evals/uses-tools.eval.ts': evals('local'),
       })
       const planned = await runCli(p.dir, ['run', '--dry-run'])
       assert.equal(planned.code, 0, `${factory}: ${planned.stdout}${planned.stderr}`)
@@ -1088,13 +1195,13 @@ evaluate('uses tools', { environments: tools }, async () => {})
     // The twin: the same servers, one named with a dot, which pi would skip.
     const dotted = await project('mcp-pi-dotted', {
       'reeval.config.ts': config('pi'),
-      'evals/m.eval.ts': evals('my.local'),
+      'evals/uses-tools.eval.ts': evals('my.local'),
     })
     const refused = await runCli(dotted.dir, ['run', '--dry-run'])
     assert.equal(refused.code, 2, refused.stdout + refused.stderr)
     assert.match(
       refused.stderr,
-      /evaluate\("uses tools"\) on pi:gemini-3\.8-flash: pi takes MCP server names of letters, digits, "_" and "-" only, so it can't use the my\.local server: rename it/,
+      /evals\/uses-tools\.eval\.ts on pi:gemini-3\.8-flash: pi takes MCP server names of letters, digits, "_" and "-" only, so it can't use the my\.local server: rename it/,
     )
   })
 
@@ -1125,12 +1232,12 @@ evaluate('uses tools', { environments: tools }, async () => {})
       ] as const) {
         const p = await project(`plugin-namespaced-${factory}-${label}`, {
           'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { ${factory} } from 'reeval/harness'
-export default defineConfig({ harnesses: ${factory}({ model: '${model}' }) })
+import { ${factory} } from 'reeval/agent'
+export default defineConfig({ agents: ${factory}({ model: '${model}' }) })
 `,
-          'evals/p.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+          'evals/reviews.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 const review = defineEnvironment('review', ({ plugin }) => ({ plugins: [plugin.local('../plugins/review'${only ? `, ${only}` : ''})] }))
-evaluate('reviews', { environments: review }, async () => {})
+export default defineEval({ environment: review, task: async () => {} })
 `,
           ...plugin,
         })
@@ -1138,7 +1245,7 @@ evaluate('reviews', { environments: review }, async () => {})
         assert.equal(r.code, 2, `${factory} ${label}: ${r.stdout}${r.stderr}`)
         assert.match(
           r.stderr,
-          new RegExp(`evaluate\\("reviews"\\) on ${id}:[^:]+: ${refusal}`),
+          new RegExp(`evals\\/reviews\\.eval\\.ts on ${id}:[^:]+: ${refusal}`),
           `${factory} ${label}`,
         )
       }
@@ -1181,18 +1288,21 @@ evaluate('reviews', { environments: review }, async () => {})
     ] as const) {
       const p = await project(`plugin-${factory}-${dir}`, {
         'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { ${factory} } from 'reeval/harness'
-export default defineConfig({ harnesses: ${factory}({ model: '${model}' }) })
+import { ${factory} } from 'reeval/agent'
+export default defineConfig({ agents: ${factory}({ model: '${model}' }) })
 `,
-        'evals/p.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+        'evals/reviews.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 const review = defineEnvironment('review', ({ plugin }) => ({ plugins: [plugin.local('../plugins/${dir}')] }))
-evaluate('reviews', { environments: review }, async () => {})
+export default defineEval({ environment: review, task: async () => {} })
 `,
         ...plugin,
       })
       const r = await runCli(p.dir, ['run', '--dry-run'])
       assert.equal(r.code, 2, `${name} ${dir}: ${r.stdout}${r.stderr}`)
-      assert.match(r.stderr, new RegExp(`evaluate\\("reviews"\\) on ${factory}:[^:]+: ${refusal}`))
+      assert.match(
+        r.stderr,
+        new RegExp(`evals\\/reviews\\.eval\\.ts on ${factory}:[^:]+: ${refusal}`),
+      )
     }
   })
 
@@ -1204,15 +1314,15 @@ evaluate('reviews', { environments: review }, async () => {})
     ] as const) {
       const p = await project(`plugin-server-name-${factory}`, {
         'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { ${factory} } from 'reeval/harness'
-export default defineConfig({ harnesses: ${factory}({ model: '${model}' }) })
+import { ${factory} } from 'reeval/agent'
+export default defineConfig({ agents: ${factory}({ model: '${model}' }) })
 `,
-        'evals/p.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+        'evals/reviews.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 const review = defineEnvironment('review', ({ plugin, mcp }) => ({
   mcp: { docs: mcp.stdio('docs-server') },
   plugins: [plugin.local('../plugins/review')],
 }))
-evaluate('reviews', { environments: review }, async () => {})
+export default defineEval({ environment: review, task: async () => {} })
 `,
         'plugins/review/.claude-plugin/plugin.json': '{ "name": "review" }',
         'plugins/review/.mcp.json': JSON.stringify({
@@ -1228,7 +1338,7 @@ evaluate('reviews', { environments: review }, async () => {})
       assert.match(
         r.stderr,
         new RegExp(
-          `evaluate\\("reviews"\\) on ${refused} names the review plugin's MCP server "docs" by its own name, as it does mcp\\.docs, and keeps only one: rename one, or leave mcp out of the plugin with only`,
+          `evals\\/reviews\\.eval\\.ts on ${refused} names the review plugin's MCP server "docs" by its own name, as it does mcp\\.docs, and keeps only one: rename one, or leave mcp out of the plugin with only`,
         ),
       )
     }
@@ -1241,15 +1351,15 @@ evaluate('reviews', { environments: review }, async () => {})
     ] as const) {
       const p = await project(`plugin-server-key-${factory}`, {
         'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { ${factory} } from 'reeval/harness'
-export default defineConfig({ harnesses: ${factory}({ model: '${model}' }) })
+import { ${factory} } from 'reeval/agent'
+export default defineConfig({ agents: ${factory}({ model: '${model}' }) })
 `,
-        'evals/p.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+        'evals/reviews.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 const review = defineEnvironment('review', ({ plugin, mcp }) => ({
   mcp: { review_docs: mcp.stdio('docs-server') },
   plugins: [plugin.local('../plugins/review')],
 }))
-evaluate('reviews', { environments: review }, async () => {})
+export default defineEval({ environment: review, task: async () => {} })
 `,
         'plugins/review/.claude-plugin/plugin.json': '{ "name": "review" }',
         'plugins/review/.mcp.json': JSON.stringify({
@@ -1264,7 +1374,7 @@ evaluate('reviews', { environments: review }, async () => {})
       assert.equal(r.code, 2, `${factory}: ${r.stdout}${r.stderr}`)
       assert.match(
         r.stderr,
-        /evaluate\("reviews"\) on goose:[^:]+: Goose keys the review_docs and review:docs MCP servers both as review_docs, and keeps only one: rename one/,
+        /evals\/reviews\.eval\.ts on goose:[^:]+: Goose keys the review_docs and review:docs MCP servers both as review_docs, and keeps only one: rename one/,
       )
     }
   })
@@ -1308,12 +1418,12 @@ evaluate('reviews', { environments: review }, async () => {})
     ).entries()) {
       const p = await project(`plugin-unpacked-${i}-${factory}`, {
         'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { ${factory} } from 'reeval/harness'
-export default defineConfig({ harnesses: ${factory}({ model: '${model}' }) })
+import { ${factory} } from 'reeval/agent'
+export default defineConfig({ agents: ${factory}({ model: '${model}' }) })
 `,
-        'evals/p.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+        'evals/reviews.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 const review = defineEnvironment('review', ({ mcp, plugin }) => (${environment}))
-evaluate('reviews', { environments: review }, async () => {})
+export default defineEval({ environment: review, task: async () => {} })
 `,
         ...files,
       })
@@ -1322,7 +1432,7 @@ evaluate('reviews', { environments: review }, async () => {})
       assert.equal(r.stdout, '', factory)
       assert.match(
         r.stderr,
-        new RegExp(`evaluate\\("reviews"\\) on ${factory}:[^:]+: ${refusal}`),
+        new RegExp(`evals\\/reviews\\.eval\\.ts on ${factory}:[^:]+: ${refusal}`),
         factory,
       )
     }
@@ -1365,12 +1475,12 @@ evaluate('reviews', { environments: review }, async () => {})
     ] as const) {
       const p = await project(`plugin-cursor-clash-${label}`, {
         'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { cursor } from 'reeval/harness'
-export default defineConfig({ harnesses: cursor({ model: 'composer-2.5' }) })
+import { cursor } from 'reeval/agent'
+export default defineConfig({ agents: cursor({ model: 'composer-2.5' }) })
 `,
-        'evals/p.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+        'evals/reviews.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 const review = defineEnvironment('review', ({ plugin, skill }) => (${environment}))
-evaluate('reviews', { environments: review }, async () => {})
+export default defineEval({ environment: review, task: async () => {} })
 `,
         ...files,
       })
@@ -1379,7 +1489,7 @@ evaluate('reviews', { environments: review }, async () => {})
       assert.equal(r.stdout, '', label)
       assert.match(
         r.stderr,
-        new RegExp(`evaluate\\("reviews"\\) on cursor:[^:]+: ${refusal}`),
+        new RegExp(`evals\\/reviews\\.eval\\.ts on cursor:[^:]+: ${refusal}`),
         label,
       )
       assert.deepEqual(readdirSync(p.dir).includes('.reeval'), false, `${label}: nothing ran`)
@@ -1388,9 +1498,9 @@ evaluate('reviews', { environments: review }, async () => {})
 
   test('a plugin the plan reads and refuses exits 2: no manifest, a build outside Docker, npx under deny-all', async () => {
     const config = `import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({ harnesses: fakeHarness(), sandbox: docker({ from: 'node:22-bookworm' }) })
+export default defineConfig({ agents: fakeAgent(), sandbox: docker({ from: 'node:22-bookworm' }) })
 `
     for (const [label, call, files, options, refusal] of [
       [
@@ -1398,14 +1508,14 @@ export default defineConfig({ harnesses: fakeHarness(), sandbox: docker({ from: 
         "plugin.local('../plugins/bare')",
         { 'plugins/bare/skills/a/SKILL.md': '---\nname: a\ndescription: A.\n---\n' },
         undefined,
-        /evaluate\("uses it"\) on fake: plugin\.local\('plugins\/bare'\) has no \.claude-plugin\/plugin\.json/,
+        /evals\/uses-it\.eval\.ts on fake: plugin\.local\('plugins\/bare'\) has no \.claude-plugin\/plugin\.json/,
       ],
       [
         'build',
         "plugin.local('../plugins/fetcher', { build: 'npm ci' })",
         {},
         ', sandbox: fakeSandbox()',
-        /evaluate\("uses it"\) on fake: plugin "fetcher" has a build, which runs in a Docker image layer: use docker\(\)/,
+        /evals\/uses-it\.eval\.ts on fake: plugin "fetcher" has a build, which runs in a Docker image layer: use docker\(\)/,
       ],
       [
         'same-name',
@@ -1415,7 +1525,7 @@ export default defineConfig({ harnesses: fakeHarness(), sandbox: docker({ from: 
           'plugins/fetcher-copy/agents/a.md': 'A.\n',
         },
         undefined,
-        /evaluate\("uses it"\) on fake: environment env lists two plugins named "fetcher", plugin\.local\('plugins\/fetcher'\) and plugin\.local\('plugins\/fetcher-copy'\): rename one, or leave one out/,
+        /evals\/uses-it\.eval\.ts on fake: environment env lists two plugins named "fetcher", plugin\.local\('plugins\/fetcher'\) and plugin\.local\('plugins\/fetcher-copy'\): rename one, or leave one out/,
       ],
       [
         'npx',
@@ -1427,10 +1537,10 @@ export default defineConfig({ harnesses: fakeHarness(), sandbox: docker({ from: 
     ] as const) {
       const p = await project(`plugin-plan-${label}`, {
         'reeval.config.ts': config,
-        'evals/p.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+        'evals/uses-it.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const env = defineEnvironment('env', ({ plugin }) => ({ plugins: [${call}] }))
-evaluate('uses it', { environments: env${options ?? ''} }, async () => {})
+export default defineEval({ environment: env${options ?? ''}, task: async () => {} })
 `,
         'plugins/fetcher/.claude-plugin/plugin.json': JSON.stringify({
           name: 'fetcher',
@@ -1446,7 +1556,12 @@ evaluate('uses it', { environments: env${options ?? ''} }, async () => {})
 
   test('the text plan names each restricted policy and its automatic hosts', async () => {
     const p = await fixture('plan/egress')
-    const r = await runCli(p.dir, ['run', '--dry-run', 'evals/auto.eval.ts'])
+    const r = await runCli(p.dir, [
+      'run',
+      '--dry-run',
+      'secret-and-mcp-hosts-are-allowed',
+      'hosts-the-policy-lists-are-not-repeated',
+    ])
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.match(
       r.stdout,
@@ -1462,25 +1577,50 @@ evaluate('uses it', { environments: env${options ?? ''} }, async () => {})
   test("the text plan prints an environment's policy once, not on every row and harness", async () => {
     const p = await project('egress-once', {
       'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { claudeCode, cursor } from 'reeval/harness'
+import { claudeCode, cursor } from 'reeval/agent'
 export default defineConfig({
-  harnesses: [cursor({ model: 'composer-2.5' }), claudeCode({ model: 'claude-sonnet-5-5' })],
+  agents: [cursor({ model: 'composer-2.5' }), claudeCode({ model: 'claude-sonnet-5-5' })],
 })
 `,
-      'evals/a.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/one.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const lib = defineEnvironment('lib', {
   sandbox: docker(),
   egress: { allow: ['registry.npmjs.org', 'pypi.org'] },
 })
+export default defineEval({ environment: lib, runs: 1, task: async () => {} })
+`,
+      'evals/two.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
+import { docker } from 'reeval/sandbox'
+const lib = defineEnvironment('lib', {
+  sandbox: docker(),
+  egress: { allow: ['registry.npmjs.org', 'pypi.org'] },
+})
+export default defineEval({ environment: lib, runs: 1, task: async () => {} })
+`,
+      'evals/three.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
+import { docker } from 'reeval/sandbox'
+const lib = defineEnvironment('lib', {
+  sandbox: docker(),
+  egress: { allow: ['registry.npmjs.org', 'pypi.org'] },
+})
+export default defineEval({ environment: lib, runs: 1, task: async () => {} })
+`,
+      'evals/kept.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
+import { docker } from 'reeval/sandbox'
 const mixed = defineEnvironment('mixed', {
   sandbox: docker(),
   egress: { allow: ['example.com'] },
 })
-for (const name of ['one', 'two', 'three'])
-  evaluate(name, { environments: lib, runs: 1 }, async () => {})
-evaluate('kept', { environments: mixed, runs: 1 }, async () => {})
-evaluate('own', { environments: mixed, runs: 1, egress: 'deny-all' }, async () => {})
+export default defineEval({ environment: mixed, runs: 1, task: async () => {} })
+`,
+      'evals/own.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
+import { docker } from 'reeval/sandbox'
+const mixed = defineEnvironment('mixed', {
+  sandbox: docker(),
+  egress: { allow: ['example.com'] },
+})
+export default defineEval({ environment: mixed, runs: 1, egress: 'deny-all', task: async () => {} })
 `,
     })
     const r = await runCli(p.dir, ['run', '--dry-run'], { env: NO_DOCKER })
@@ -1491,31 +1631,31 @@ evaluate('own', { environments: mixed, runs: 1, egress: 'deny-all' }, async () =
       r.stdout,
       /^ {15}\+ auto on cursor:composer-2\.5: api2\.cursor\.sh, \*\.cursor\.sh$/m,
     )
-    assert.doesNotMatch(r.stdout, /› one .*egress/)
+    assert.doesNotMatch(r.stdout, /\bone\b .*egress/)
     assert.match(r.stdout, /^egress {2}mixed {2}set per eval \(see its notes\)$/m)
-    assert.match(r.stdout, /› kept .*egress: allow example\.com$/m)
-    assert.match(r.stdout, /› own .*egress: deny-all$/m)
+    assert.match(r.stdout, /\bkept\b.*egress: allow example\.com$/m)
+    assert.match(r.stdout, /\bown\b.*egress: deny-all$/m)
   })
 
   test("a cell filter narrows each row's counts in the text plan, a variant keeping its control", async () => {
     const p = await fixture('plan/compare')
-    const r = await runCli(p.dir, ['run', '--dry-run', 'evals/variants.eval.ts', 'b/skilled'])
+    const r = await runCli(p.dir, ['run', '--dry-run', 'variants/', 'b/skilled'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.match(r.stdout, /2 evals · 4 cells · 12 attempts/)
     const rows = r.stdout
       .split('\n')
-      .filter((l) => l.startsWith('evals/variants.eval.ts'))
+      .filter((l) => /^variants\//.test(l))
       .map((l) => l.split(/\s{2,}/).slice(1, 5))
     assert.deepEqual(rows, [
-      ['1', '1 of 2', '4', '8'],
       ['1', '1', '2', '4'],
+      ['1', '1 of 2', '4', '8'],
     ])
   })
 
   test('a filter part that matches no file, eval name or cell exits 2 and names it', async () => {
     const p = await fixture('plan/compare')
     for (const args of [
-      ['evals/variants.eval.ts', 'nosuchcell'],
+      ['variants/', 'nosuchcell'],
       ['b/skilled', 'nosuchcell'],
     ]) {
       const r = await runCli(p.dir, ['run', '--dry-run', ...args])
@@ -1531,8 +1671,8 @@ evaluate('own', { environments: mixed, runs: 1, egress: 'deny-all' }, async () =
   test('--json without --dry-run runs, and prints the suite result instead of the plan', async () => {
     const p = await project('plan-run-json', {
       'reeval.config.ts': fakeConfig(),
-      'evals/hello.eval.ts': `import { evaluate } from 'reeval'
-evaluate('runs', async (c) => { await c.send('hi') })
+      'evals/hello.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ task: async (c) => { await c.send('hi') } })
 `,
     })
     const r = await runCli(p.dir, ['run', '--json'])
@@ -1546,7 +1686,7 @@ evaluate('runs', async (c) => { await c.send('hi') })
 
 /** The root warning `reeval run` prints for the privileges fixture's eval-level sandbox. */
 const ROOT_LINE =
-  '  ⚠  Warning: running as root in the sandbox: evaluate("installs deps") (docker({ root: true }))'
+  '  ⚠  Warning: running as root in the sandbox: evals/installs-deps.eval.ts (docker({ root: true }))'
 
 function assertRootWarning(output: string): void {
   assert.ok(output.split('\n').includes(ROOT_LINE), `no root warning in:\n${output}`)
@@ -1558,19 +1698,37 @@ describe('sandbox privilege warnings', { concurrency: CLIS }, () => {
     assert.deepEqual(plan.sandboxWarnings, [
       {
         kind: 'root',
-        level: 'group',
-        where: 'group("system packages")',
-        file: 'evals/p.eval.ts',
+        level: 'eval',
+        where: 'evals/installs-deps.eval.ts',
+        file: 'evals/installs-deps.eval.ts',
         message:
-          'running as root in the sandbox: group("system packages") (docker({ root: true }))',
+          'running as root in the sandbox: evals/installs-deps.eval.ts (docker({ root: true }))',
       },
       {
         kind: 'root',
         level: 'eval',
-        where: 'evaluate("installs deps")',
-        file: 'evals/p.eval.ts',
+        where: 'evals/installs-packages.eval.ts',
+        file: 'evals/installs-packages.eval.ts',
         message:
-          'running as root in the sandbox: evaluate("installs deps") (docker({ root: true }))',
+          'running as root in the sandbox: evals/installs-packages.eval.ts (docker({ root: true }))',
+      },
+      {
+        kind: 'devices',
+        level: 'eval',
+        where: 'evals/boots-emulator.eval.ts',
+        file: 'evals/boots-emulator.eval.ts',
+        devices: ['kvm'],
+        message:
+          "host devices in the sandbox: evals/boots-emulator.eval.ts (docker({ devices: ['kvm'] }))",
+      },
+      {
+        kind: 'capabilities',
+        level: 'eval',
+        where: 'evals/installs-deps.eval.ts',
+        file: 'evals/installs-deps.eval.ts',
+        capabilities: ['NET_ADMIN'],
+        message:
+          "extra capabilities in the sandbox: evals/installs-deps.eval.ts (docker({ capabilities: ['NET_ADMIN'] }))",
       },
       {
         kind: 'capabilities',
@@ -1580,24 +1738,6 @@ describe('sandbox privilege warnings', { concurrency: CLIS }, () => {
         capabilities: ['NET_RAW'],
         message:
           "extra capabilities in the sandbox: reeval.config.ts (docker({ capabilities: ['NET_RAW'] }))",
-      },
-      {
-        kind: 'capabilities',
-        level: 'eval',
-        where: 'evaluate("installs deps")',
-        file: 'evals/p.eval.ts',
-        capabilities: ['NET_ADMIN'],
-        message:
-          'extra capabilities in the sandbox: evaluate("installs deps") (docker({ capabilities: [\'NET_ADMIN\'] }))',
-      },
-      {
-        kind: 'devices',
-        level: 'eval',
-        where: 'evaluate("boots an emulator")',
-        file: 'evals/p.eval.ts',
-        devices: ['kvm'],
-        message:
-          'host devices in the sandbox: evaluate("boots an emulator") (docker({ devices: [\'kvm\'] }))',
       },
     ])
   })
@@ -1620,7 +1760,7 @@ describe('sandbox privilege warnings', { concurrency: CLIS }, () => {
     assertRootWarning(gh.stdout)
     assert.match(
       gh.stdout,
-      /^::warning file=evals\/p\.eval\.ts,title=Sandbox runs as root::running as root in the sandbox: evaluate\("installs deps"\) \(docker\(\{ root: true \}\)\)$/m,
+      /^::warning file=evals\/installs-deps\.eval\.ts,title=Sandbox runs as root::running as root in the sandbox: evals\/installs-deps\.eval\.ts \(docker\(\{ root: true \}\)\)$/m,
     )
     assert.match(
       gh.stdout,
@@ -1628,17 +1768,17 @@ describe('sandbox privilege warnings', { concurrency: CLIS }, () => {
     )
     assert.match(
       gh.stdout,
-      /^::warning file=evals\/p\.eval\.ts,title=Sandbox has host devices::host devices in the sandbox: evaluate\("boots an emulator"\) \(docker\(\{ devices: \['kvm'\] \}\)\)$/m,
+      /^::warning file=evals\/boots-emulator\.eval\.ts,title=Sandbox has host devices::host devices in the sandbox: evals\/boots-emulator\.eval\.ts \(docker\(\{ devices: \['kvm'\] \}\)\)$/m,
     )
   })
 
   test('canary: an eval without root gets no warning, so the check fails', async () => {
     const p = await fixture('plan/privileges')
-    const r = await runCli(p.dir, ['run', '--dry-run', '--ui', 'plain', 'stays unprivileged'])
+    const r = await runCli(p.dir, ['run', '--dry-run', '--ui', 'plain', 'stays-unprivileged'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.throws(() => assertRootWarning(r.stdout), /no root warning/)
     assert.doesNotMatch(r.stdout, /Warning:/)
-    const plan = await planJson({ dir: 'privileges', args: ['stays unprivileged'] })
+    const plan = await planJson({ dir: 'privileges', args: ['stays-unprivileged'] })
     assert.deepEqual(plan.sandboxWarnings, [])
   })
 })

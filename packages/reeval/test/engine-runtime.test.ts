@@ -19,7 +19,7 @@ test('outside reeval run, declaring an eval says how to run it; inside, calls re
     (e: Error) =>
       e.name === 'UsageError' &&
       e.message ===
-        'evaluate() and group() only work in an eval file that reeval run loads. Run it with reeval run.',
+        'Evals only load in an eval file that reeval run loads. Run it with reeval run.',
   )
   const calls: string[] = []
   const run = { runId: 'r' } as unknown as RunContext

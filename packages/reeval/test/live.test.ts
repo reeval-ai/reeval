@@ -40,12 +40,13 @@ const temp = async () => {
 function planned(names: string[], runs = 1): PlannedItem[] {
   return names.flatMap((name) =>
     Array.from({ length: runs }, (_, i) => {
-      const id = `evals/a.eval.ts › ${name}`
+      const id = name
+      const file = `evals/${name}.eval.ts`
       const cell = 'fake/default/fake'
       return {
         id,
         key: attemptKey(id, cell, i + 1),
-        file: 'evals/a.eval.ts',
+        file,
         attempt: { name, n: i + 1, cell: { key: cell }, plan: {} },
       } as unknown as PlannedItem
     }),
@@ -366,10 +367,10 @@ const progress = (runId: string, patch: Partial<LiveProgress> = {}): LiveProgres
   counts: { done: 1, passed: 1, failed: 0, errored: 0, skipped: 0, running: 1 },
   attempts: [
     {
-      key: attemptKey('evals/a.eval.ts › one', 'fake/default/fake', 1),
-      evalId: 'evals/a.eval.ts › one',
+      key: attemptKey('one', 'fake/default/fake', 1),
+      evalId: 'one',
       name: 'one',
-      file: 'evals/a.eval.ts',
+      file: 'evals/one.eval.ts',
       cell: 'fake/default/fake',
       n: 1,
       status: 'pass',
@@ -377,10 +378,10 @@ const progress = (runId: string, patch: Partial<LiveProgress> = {}): LiveProgres
       durationMs: 2000,
     },
     {
-      key: attemptKey('evals/a.eval.ts › one', 'fake/default/fake', 2),
-      evalId: 'evals/a.eval.ts › one',
+      key: attemptKey('one', 'fake/default/fake', 2),
+      evalId: 'one',
       name: 'one',
-      file: 'evals/a.eval.ts',
+      file: 'evals/one.eval.ts',
       cell: 'fake/default/fake',
       n: 2,
       status: 'running',
@@ -449,10 +450,13 @@ describe('the studio reads live runs', () => {
 const _HOST = '127.0.0.1:4984'
 
 describe('reeval run keeps its progress file', () => {
-  const evalFile = `import { evaluate, expect } from 'reeval'
-evaluate('writes hello', { runs: 3 }, async (c) => {
-  await c.send('write hello.txt')
-  await expect(c.exec('test -f hello.txt')).toSucceed()
+  const evalFile = `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  runs: 3,
+  async task(c) {
+    await c.send('write hello.txt')
+    await expect(c.exec('test -f hello.txt')).toSucceed()
+  },
 })
 `
   const agent = (delayMs: number) => `{ files: { 'hello.txt': 'hi\\n' }, delayMs: ${delayMs} }`
@@ -462,11 +466,14 @@ evaluate('writes hello', { runs: 3 }, async (c) => {
       'reeval.config.ts': fakeConfig({ harness: agent(0) }),
       'evals/hello.eval.ts': `import { existsSync } from 'node:fs'
 import { setTimeout as sleep } from 'node:timers/promises'
-import { evaluate, expect } from 'reeval'
-evaluate('writes hello', { runs: 3 }, async (c) => {
-  while (!existsSync(new URL(\`../gate-\${c.attempt.n}\`, import.meta.url))) await sleep(20)
-  await c.send('write hello.txt')
-  await expect(c.exec('test -f hello.txt')).toSucceed()
+import { defineEval, expect } from 'reeval'
+export default defineEval({
+  runs: 3,
+  async task(c) {
+    while (!existsSync(new URL(\`../gate-\${c.attempt.n}\`, import.meta.url))) await sleep(20)
+    await c.send('write hello.txt')
+    await expect(c.exec('test -f hello.txt')).toSucceed()
+  },
 })
 `,
     })
@@ -501,13 +508,16 @@ evaluate('writes hello', { runs: 3 }, async (c) => {
       'reeval.config.ts': fakeConfig({ harness: agent(0) }),
       'evals/hello.eval.ts': `import { writeFileSync } from 'node:fs'
 import { setTimeout as sleep } from 'node:timers/promises'
-import { evaluate } from 'reeval'
-evaluate('writes hello', { runs: 20 }, async (c) => {
-  writeFileSync(new URL('../worker.pid', import.meta.url), String(process.pid))
-  await c.send('write hello.txt')
-  if (c.attempt.n === 1) return
-  writeFileSync(new URL('../parked', import.meta.url), '')
-  await sleep(600_000, undefined, { signal: c.signal }).catch(() => {})
+import { defineEval } from 'reeval'
+export default defineEval({
+  runs: 20,
+  async task(c) {
+    writeFileSync(new URL('../worker.pid', import.meta.url), String(process.pid))
+    await c.send('write hello.txt')
+    if (c.attempt.n === 1) return
+    writeFileSync(new URL('../parked', import.meta.url), '')
+    await sleep(600_000, undefined, { signal: c.signal }).catch(() => {})
+  },
 })
 `,
     })
@@ -551,20 +561,31 @@ evaluate('writes hello', { runs: 20 }, async (c) => {
   test('a resume shows the attempts it kept with their outcome and transcript', async () => {
     const p = await project('live-resume', {
       'reeval.config.ts': fakeConfig({ harness: agent(0) }),
-      'evals/hello.eval.ts': `import { existsSync } from 'node:fs'
+      'evals/kept-pass.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('write hello.txt')
+    await expect(c.exec('test -f hello.txt')).toSucceed()
+  },
+})
+`,
+      'evals/kept-fail.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('write hello.txt')
+    await expect(c.exec('test -f missing.txt')).toSucceed()
+  },
+})
+`,
+      'evals/waits.eval.ts': `import { existsSync } from 'node:fs'
 import { setTimeout as sleep } from 'node:timers/promises'
-import { evaluate, expect } from 'reeval'
-evaluate('kept pass', async (c) => {
-  await c.send('write hello.txt')
-  await expect(c.exec('test -f hello.txt')).toSucceed()
-})
-evaluate('kept fail', async (c) => {
-  await c.send('write hello.txt')
-  await expect(c.exec('test -f missing.txt')).toSucceed()
-})
-evaluate('waits', { runs: 2 }, async (c) => {
-  while (!existsSync(new URL('../gate', import.meta.url))) await sleep(20)
-  await c.send('write hello.txt')
+import { defineEval } from 'reeval'
+export default defineEval({
+  runs: 2,
+  async task(c) {
+    while (!existsSync(new URL('../gate', import.meta.url))) await sleep(20)
+    await c.send('write hello.txt')
+  },
 })
 `,
     })
@@ -579,16 +600,16 @@ evaluate('waits', { runs: 2 }, async (c) => {
     // Rewritten as a budget stop that never started the second `waits` attempt.
     const { run } = readRun(p.dir)
     run.status = 'budget'
-    const waits = run.evals.find((e) => e.name === 'waits')
+    const waits = run.evals.find((e) => e.id === 'waits')
     assert.ok(waits)
     waits.attempts = waits.attempts.map((a) =>
       a.n === 2 ? { ...a, outcome: 'skipped', error: null, files: {}, checks: [] } : a,
     )
     writeFileSync(join(p.dir, '.reeval/runs', `${run.runId}.json`), JSON.stringify(run))
-    const was = (name: string, n = 1) =>
-      run.evals.find((e) => e.name === name)?.attempts.find((a) => a.n === n)
-    const _keptKey = was('kept pass')?.key as string
-    const keptFile = was('kept pass')?.files.transcript?.path as string
+    const was = (id: string, n = 1) =>
+      run.evals.find((e) => e.id === id)?.attempts.find((a) => a.n === n)
+    const _keptKey = was('kept-pass')?.key as string
+    const keptFile = was('kept-pass')?.files.transcript?.path as string
     const keptTranscript = readFileSync(join(p.dir, '.reeval/runs', run.runId, keptFile), 'utf8')
     assert.match(keptTranscript, /write hello\.txt/)
     await rm(gate)
@@ -616,17 +637,17 @@ evaluate('waits', { runs: 2 }, async (c) => {
     }
     assert.equal(await exited, 1, output)
 
-    const seen = (name: string, n = 1) => live?.attempts.find((a) => a.name === name && a.n === n)
-    for (const [name, n, status] of [
-      ['kept pass', 1, 'pass'],
-      ['kept fail', 1, 'fail'],
+    const seen = (id: string, n = 1) => live?.attempts.find((a) => a.name === id && a.n === n)
+    for (const [id, n, status] of [
+      ['kept-pass', 1, 'pass'],
+      ['kept-fail', 1, 'fail'],
       ['waits', 1, 'pass'],
     ] as const) {
-      const before = was(name, n)
+      const before = was(id, n)
       assert.deepEqual(
-        [seen(name, n)?.status, seen(name, n)?.startedAt, seen(name, n)?.durationMs],
+        [seen(id, n)?.status, seen(id, n)?.startedAt, seen(id, n)?.durationMs],
         [status, before?.startedAt, before?.durationMs],
-        name,
+        id,
       )
     }
     assert.equal(seen('waits', 2)?.status, 'running')
@@ -642,10 +663,10 @@ evaluate('waits', { runs: 2 }, async (c) => {
     const record = readRun(p.dir)
     assert.equal(record.run.runId, run.runId)
     assert.deepEqual(
-      record.run.evals.map((e) => [e.name, e.attempts.map((a) => a.outcome)]),
+      record.run.evals.map((e) => [e.id, e.attempts.map((a) => a.outcome)]),
       [
-        ['kept pass', ['pass']],
-        ['kept fail', ['fail']],
+        ['kept-fail', ['fail']],
+        ['kept-pass', ['pass']],
         ['waits', ['pass', 'pass']],
       ],
     )

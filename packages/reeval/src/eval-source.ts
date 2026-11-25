@@ -102,35 +102,35 @@ export async function evalFile(
 /**
  * One level's options with each harness, sandbox, environment and judge model by its id rather
  * than its object: the cell's other fingerprint parts already cover what they hold, and their
- * objects carry host paths and functions. The plural keys hash under their singular names
- * (`harness`, `environment`, `compare.baseline` for `compare.control`), the names records
- * written before the plurals hashed, so those records stay comparable.
+ * objects carry host paths and functions. Some keys hash under older names (`harness` for
+ * `agents`, `environment`, `compare.baseline` for `compare.control`), so records that hashed
+ * them stay comparable.
  */
 function canonicalOptions(options: EvalOptions): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(options)) {
     if (value === undefined || UNHASHED.has(key)) continue
-    if (key === 'harnesses') out.harness = harnessForm(value)
+    if (key === 'agents') out.harness = harnessForm(value)
     else if (key === 'environments') out.environment = oneOrList(value)
     else if (key === 'sandbox') out[key] = sandboxId(value as SandboxDescriptor)
     else if (key === 'judge' && isObjectLike(value)) {
       out[key] = { ...value, ...('model' in value ? { model: modelId(value.model) } : {}) }
     } else if (key === 'compare' && isObjectLike(value)) out[key] = compareForm(value)
     else if (key === 'pin' && Array.isArray(value)) {
-      out[key] = value.map((k) => (k === 'harnesses' ? 'harness' : k))
+      out[key] = value.map((k) => (k === 'agents' ? 'harness' : k))
     } else out[key] = value
   }
   return out
 }
 
-/** `compare` with `control` hashed as `baseline` and `harnesses` as `harness`. */
+/** `compare` with `control` hashed as `baseline` and `agents` as `harness`. */
 function compareForm(compare: Record<string, unknown>): Record<string, unknown> {
-  const { control, harnesses, ...rest } = compare
+  const { control, agents, ...rest } = compare
   return {
     ...rest,
     ...(control !== undefined ? { baseline: control } : {}),
-    ...(harnesses !== undefined
-      ? { harness: Array.isArray(harnesses) ? harnesses.map(harnessForm) : harnesses }
+    ...(agents !== undefined
+      ? { harness: Array.isArray(agents) ? agents.map(harnessForm) : agents }
       : {}),
   }
 }

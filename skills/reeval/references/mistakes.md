@@ -5,17 +5,17 @@ Each row is a mistake, what reeval says and the fix.
 | Mistake | reeval says | Fix |
 |---|---|---|
 | No `reeval.config.*` | `No reeval.config.ts … here or above. Run reeval init.` | `reeval init`, or pass `--config` |
-| `compare` in `reeval.config.ts` | `compare can't be set in reeval.config.ts` | Put it on the group or eval |
+| `compare` in `reeval.config.ts` | `compare can't be set in reeval.config.ts` | Put it on the eval's `defineEval` |
 | `compare: [b]` | `compare … must be an object, not a list` | `compare: { control: a, variants: [b] }` |
 | `compare: { variants: [b] }` | `compare … has no control` | `compare: { control: a, variants: [b] }` |
 | `compare: { baseline: a, … }` | `Unknown compare option "baseline" … Did you mean "control"?` | `compare: { control: a, … }` |
 | `compare: { strategy: 'peer' }` | `Unknown compare option "strategy"` | Drop it. Variants already run on their own |
 | `environments` beside `compare` | `… sets both environments and compare` | Move the environment into `compare.control` |
-| `evaluate.each(cases)(name, fn)` | `evaluate.each is not a function` | `evaluate(name, { cases }, async (c, item) => …)` |
-| `cases` for items that should each pass or fail alone | One failing case fails the whole eval | A loop: `for (const item of items) evaluate(nameOf(item), fn)` |
-| `where` without `cases`, or on a group | `… sets where without cases` / `Unknown option "where" in group(…)` | Put `where` beside `cases` on the eval |
-| `survey(…)`, or `gate: 'none'` | `survey is not a function` / `gate in … is 'all' …, { passRate } … or 'observe'` | `evaluate(name, { gate: 'observe' }, fn)` |
-| `compare: false` on an eval or group | `compare: false can't be set` | Use a profile's `limit.compare: false` |
+| `evaluate.each(cases)(name, fn)` | `evaluate.each is not a function` | `defineEval({ cases, task: async (c, item) => … })` |
+| `cases` for items that should each pass or fail alone | One failing case fails the whole eval | One `*.eval.ts` file per item |
+| `where` without `cases` | `… sets where without cases` | Put `where` beside `cases` on `defineEval` |
+| `survey(…)`, or `gate: 'none'` | `survey is not a function` / `gate in … is 'all' …, { passRate } … or 'observe'` | `defineEval({ gate: 'observe', task })` |
+| `compare: false` on an eval | `compare: false can't be set` | Use a profile's `limit.compare: false` |
 | A question and no language model | `questions "…" (…) needs a language model` (exit 2) | Set `analysis.model`, give the question its own `model`, or set `question: { model }` |
 | `import { baseline }` | `reeval has no baseline` | Name the control in `compare: { control }`; it isn't an export |
 | `repeat: 3` / `times` | `Unknown option "repeat" … Did you mean "runs"?` | `runs: 3` |
@@ -27,9 +27,9 @@ Each row is a mistake, what reeval says and the fix.
 | The judge's provider refuses a big input | The provider's message, then `The judge's input was ~…k tokens (estimated): diff …, of which …` | Add a `.gitignore` to the environment, or narrow the call: `{ diff: ['src/'] }` |
 | `c.judge(q)` with no inputs, expecting the judge to see the task, answer and diff by default | `c.judge() shows the judge nothing: turn on at least one input, …` (TypeScript refuses it too) | There are no default inputs: turn on what the question needs, `{ diff: true }`, `{ contents: ['README.md'] }`, `{ output: true }`, `{ transcript: 'tools' }` |
 | `c.judge(q, { on: value })` alone | `c.judge() shows the judge nothing: …`, or with another input `… on gives a value to grade as the output, but output is off. Pass output: true.` | `{ on: value, output: true }`; `on` and `turns` only select |
-| An input (`diff`, `contents`, …) on a config, profile, group or eval `judge` | `Unknown judge option "diff" in …. diff is per call: c.judge(question, { diff }).` | Put it on each `c.judge()` call |
+| An input (`diff`, `contents`, …) on a config, profile or eval `judge` | `Unknown judge option "diff" in …. diff is per call: c.judge(question, { diff }).` | Put it on each `c.judge()` call |
 | A question as a string, or with no input | `questions … takes { question, model?, across?, choices?, turns? } with at least one of task, output, …` / `… shows the model nothing: …` (exit 2) | `{ question: 'Which is cleaner?', across: 'environment', diff: true }` |
-| `cursor()` with `fakeSandbox()` | real harnesses need `docker()` | Use `fakeHarness()` or `docker()` |
+| `cursor()` with `fakeSandbox()` | real harnesses need `docker()` | Use `fakeAgent()` or `docker()` |
 | Forgetting `await` on `toHaveFile`, or on `toSucceed` given `c.exec()`'s promise | ``expect(…).toHaveFile() at <file>:<line> wasn't awaited. Its check is async: write `await …` `` (the eval fails) | `await expect(...)`; `expect(await c.exec(cmd)).toSucceed()` needs no `await` |
 | `toPass()` on an exec result, `toSucceed()` on a verdict | a type error, ``Type 'WrongSubject<"toPass() takes the verdict from await c.judge()">' has no call signatures`` | `toSucceed()` for `c.exec()`, `toPass()` for `await c.judge()` |
 | Secret as a string literal | refused | `secret.fromEnv('NAME')` in a callback |

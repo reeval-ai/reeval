@@ -17,7 +17,7 @@
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/judge.d.ts"},"ok":true,"durationMs":36}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":84}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"\\.es\\.ts|defineConfig|defineEnvironment|fakeHarness|fakeJudge"},"ok":true,"durationMs":81}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"\\.es\\.ts|defineConfig|defineEnvironment|fakeAgent|fakeJudge"},"ok":true,"durationMs":81}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":34}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts","pattern":"cells|matrix|runs|environment"},"ok":true,"durationMs":35}
@@ -27,7 +27,7 @@
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/package.json"},"ok":true,"durationMs":39}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"compare|withSkill|greet|house-style"},"ok":true,"durationMs":87}
 {"turn":0,"type":"reasoning"}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"greet|house-style|withSkill|fakeHarness|fakeJudge|defineEnvironment"},"ok":true,"durationMs":10}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"greet|house-style|withSkill|fakeAgent|fakeJudge|defineEnvironment"},"ok":true,"durationMs":10}
 {"turn":0,"type":"tool","tool":"glob","input":{"pattern":"**/*"},"ok":true,"durationMs":818}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/matchers.d.ts"},"ok":true,"durationMs":20}
@@ -42,7 +42,7 @@
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/config.js"},"ok":true,"durationMs":53}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/attempt/checks.d.ts"},"ok":true,"durationMs":53}
 {"turn":0,"type":"reasoning"}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"/root/.ai-sdk-harness/.harness-bootstrap/cursor/implementation/home/.cursor/projects/es-workspace/agent-transcripts","pattern":"greet\\.es\\.ts|house-style|fakeHarness|fakeSandbox|fakeJudge"},"ok":true,"durationMs":96}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"/root/.ai-sdk-harness/.harness-bootstrap/cursor/implementation/home/.cursor/projects/es-workspace/agent-transcripts","pattern":"greet\\.es\\.ts|house-style|fakeAgent|fakeSandbox|fakeJudge"},"ok":true,"durationMs":96}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/sandbox.d.ts"},"ok":true,"durationMs":27}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/harness.d.ts"},"ok":true,"durationMs":27}
 {"turn":0,"type":"reasoning"}

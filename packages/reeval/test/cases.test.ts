@@ -100,7 +100,7 @@ describe('an eval with cases in a record from before it was one entry', () => {
     const back = unfoldCases(r)
     const keys = (x: RunRecord) => x.evals.flatMap((e) => e.attempts.map((a) => a.key)).sort()
     assert.deepEqual(keys(back), keys(raw))
-    assert.deepEqual(back.evals.map((e) => e.id).sort(), raw.evals.map((e) => e.id).sort())
+    assert.deepEqual(back.evals.map((e) => e.id).sort(), raw.evals.map((e) => e.name).sort())
     const rated = back.families?.find((f) => f.name === 'rated')
     const old = raw.families?.find((f) => f.name === 'rated')
     assert.deepEqual(rated?.rates, old?.rates)
@@ -110,7 +110,7 @@ describe('an eval with cases in a record from before it was one entry', () => {
     )
     const [only] = caseEntries(evalNamed(r, 'alone') as never)
     assert.deepEqual(only?.family, {
-      id: 'evals/cases.eval.ts › alone',
+      id: 'alone',
       name: 'alone',
       case: 0,
       cases: 1,
@@ -170,11 +170,15 @@ describe('reeval compare of an eval with cases', () => {
   test('names a case that flipped under the rate that still gates the eval', async () => {
     const p = await project('compare-rated-case', {
       'reeval.config.ts': fakeConfig(),
-      'evals/e.eval.ts': `import { evaluate, expect } from 'reeval'
+      'evals/e.eval.ts': `import { defineEval, expect } from 'reeval'
 const bad = process.env.BAD ?? ''
-evaluate('rated', { cases: ['a', 'b', 'c', 'd', 'e'], gate: { passRate: 0.7 } }, async (c, k) => {
-  await c.send(k)
-  expect(k, 'ok').not.toBe(bad)
+export default defineEval({
+  cases: ['a', 'b', 'c', 'd', 'e'],
+  gate: { passRate: 0.7 },
+  async task(c, k) {
+    await c.send(k)
+    expect(k, 'ok').not.toBe(bad)
+  },
 })
 `,
     })
@@ -194,10 +198,14 @@ describe('reeval run prints an eval with cases', () => {
     const keys = Array.from({ length: 12 }, (_, i) => `q${i + 1}`)
     const p = await project('cases-compact-count', {
       'reeval.config.ts': fakeConfig(),
-      'evals/e.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('bank', { cases: ${JSON.stringify(keys)}, runs: 2 }, async (c, k) => {
-  await c.send(k)
-  expect(Number(k.slice(1)) > 10, 'ok').toBe(true)
+      'evals/e.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  cases: ${JSON.stringify(keys)},
+  runs: 2,
+  async task(c, k) {
+    await c.send(k)
+    expect(Number(k.slice(1)) > 10, 'ok').toBe(true)
+  },
 })
 `,
     })
@@ -226,17 +234,17 @@ evaluate('bank', { cases: ${JSON.stringify(keys)}, runs: 2 }, async (c, k) => {
   test('-v on a compare over cases prints the paired lift once, not a difference per case', async () => {
     const p = await project('cases-paired-stats', {
       'reeval.config.ts': fakeConfig(),
-      'evals/e.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/e.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 const app = defineEnvironment('app', { env: { SKILL: '' } })
 const skilled = app.extend('skilled', { env: { SKILL: 'yes' } })
-evaluate(
-  'writes',
-  { cases: ['a', 'b', 'c', 'd', 'e', 'f'], compare: { control: app, variants: [skilled] } },
-  async (c) => {
+export default defineEval({
+  cases: ['a', 'b', 'c', 'd', 'e', 'f'],
+  compare: { control: app, variants: [skilled] },
+  async task(c) {
     await c.send('go')
     expect((await c.exec('printf %s "$SKILL"')).stdout, 'skill').toBe('yes')
   },
-)
+})
 `,
     })
     const r = await runCli(p.dir, ['run', '--ui', 'plain', '-v'])

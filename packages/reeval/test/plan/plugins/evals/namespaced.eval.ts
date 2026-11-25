@@ -1,4 +1,4 @@
-import { defineEnvironment, evaluate } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
 
 // Claude Code and Grok Build load a plugin whole, so every part but rules is kept.
 const review = defineEnvironment('review', ({ plugin }) => ({
@@ -9,4 +9,4 @@ const review = defineEnvironment('review', ({ plugin }) => ({
   ],
 }))
 
-evaluate('loads the plugin', { environments: review }, async () => {})
+export default defineEval({ environment: review, task: async () => {} })

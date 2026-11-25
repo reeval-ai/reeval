@@ -1,7 +1,10 @@
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { plain, signature } from './env.ts'
 
 // Must fail: before a turn no runner holds the key, so there's nothing to exchange.
-evaluate('canary', { environments: plain }, async (c) => {
-  expect(await signature(c.exec)).toMatch(/^reeval_secret_/)
+export default defineEval({
+  environment: plain,
+  task: async (c) => {
+    expect(await signature(c.exec)).toMatch(/^reeval_secret_/)
+  },
 })

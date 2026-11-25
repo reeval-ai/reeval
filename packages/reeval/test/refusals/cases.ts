@@ -1,9 +1,23 @@
 // Every refusal of the SDK-facing contract, by segment: an input and the call that checks it.
 // test/refusals.test.ts runs each and holds its exact message (or `null`, accepted) to
 // test/refusals/<segment>.json, so a change of wording, or of what's accepted, shows as a diff.
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { hostname, tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import {
+  antigravity,
+  claudeCode,
+  codex,
+  cursor,
+  fakeAgent,
+  fx,
+  goose,
+  grokBuild,
+  opencode,
+  pi,
+} from '../../src/agent.ts'
 import { checkResumeState } from '../../src/bundle/index.ts'
 import {
   checkGateways,
@@ -26,24 +40,12 @@ import { buildRefusal, readMarketplace } from '../../src/environment/plugins.ts'
 import { defineEnvironment } from '../../src/environment.ts'
 import { UsageError } from '../../src/errors.ts'
 import { bodyHash, caseJson } from '../../src/eval-source.ts'
-import { declareTree, group as defineGroup, evaluate } from '../../src/evaluate.ts'
+import { declareDefault, declareTree, defineEval } from '../../src/evaluate.ts'
 import { resolveModelGateway } from '../../src/gateway/models.ts'
 import { resolveGateway } from '../../src/gateway/resolve.ts'
 import { vercelCredentialProblem } from '../../src/gateway/vercel.ts'
 import { vertexSettings } from '../../src/gateway/vertex.ts'
 import { refusedMcp } from '../../src/harness/agents.ts'
-import {
-  antigravity,
-  claudeCode,
-  codex,
-  cursor,
-  fakeHarness,
-  fx,
-  goose,
-  grokBuild,
-  opencode,
-  pi,
-} from '../../src/harness.ts'
 import { cloud } from '../../src/internal-vm.ts'
 import { judgeRoute } from '../../src/judge/index.ts'
 import { checkHarnesses, checkLimitHarness, checkOptions } from '../../src/options.ts'
@@ -66,9 +68,10 @@ import type {
   SandboxDescriptor,
 } from '../../src/types.ts'
 
-export type Case = [name: string, run: () => unknown]
+/** A case's run takes its name; `skip`, when set, is why this machine can't run it. */
+export type Case = [name: string, run: (name: string) => unknown, skip?: string]
 
-const WHERE = 'evals/a.eval.ts › e'
+const WHERE = 'evals/a.eval.ts'
 const options = (o: unknown) => () => checkOptions(o as object, WHERE)
 const harnesses =
   (...list: unknown[]) =>
@@ -80,12 +83,12 @@ const yaml = (text: string) => () =>
 const configIn = (c: unknown) => () => resolveConfig(c as never, DIR, 'reeval.config.ts')
 const yamlIn = (text: string) => () =>
   resolveConfigData(parseYamlConfig(text, 'reeval.yaml'), DIR, 'reeval.yaml')
-/** A `pr` profile's `limit.harnesses` against the harness ids the collected evals run on. */
+/** A `pr` profile's `limit.agents` against the harness ids the collected evals run on. */
 const limitHarness =
   (ids: string[], harnesses: string[], partial = false) =>
   () =>
     checkLimitHarness(
-      { name: 'pr', limit: { harnesses: ids } } as ResolvedProfile,
+      { name: 'pr', limit: { agents: ids } } as ResolvedProfile,
       'reeval.config.ts',
       {
         harnesses,
@@ -209,6 +212,30 @@ export const DIR = mkdtempSync(join(tmpdir(), 'reeval-refusals-'))
 writeFileSync(join(DIR, 'a.txt'), 'a')
 writeFileSync(join(DIR, 'Dockerfile'), 'FROM debian:bookworm-slim\n')
 mkdirSync(join(DIR, 'empty'))
+/** Whether `DIR`'s file system holds two names that differ only in case. */
+const CASE_INSENSITIVE = existsSync(join(DIR, 'A.TXT'))
+
+/**
+ * What `reeval run --dry-run` refuses in a project of `files` on the fake agent, named for its
+ * case: for a refusal made from the files it finds, before it loads any.
+ */
+const cliRefuses = (files: Record<string, string>) => (name: string) => {
+  const dir = join(DIR, slug(name))
+  for (const [path, text] of Object.entries({
+    ...files,
+    'reeval.yaml': 'agents: { kind: fake }\nsandbox: { kind: fake }\n',
+  })) {
+    mkdirSync(dirname(join(dir, path)), { recursive: true })
+    writeFileSync(join(dir, path), text)
+  }
+  const cli = fileURLToPath(new URL('../../dist/cli.js', import.meta.url))
+  const { status, stderr } = spawnSync(process.execPath, [cli, 'run', '--dry-run'], {
+    cwd: dir,
+    env: { ...process.env, NO_COLOR: '1', REEVAL_UI: 'plain', REEVAL_PRICES: 'none' },
+    encoding: 'utf8',
+  })
+  if (status !== 0) throw new UsageError(`exit ${status}: ${stderr.trim()}`)
+}
 
 /** Run ids for `reeval run --bundle --resume`: staged here, recorded here, absent, still running. */
 const RESUME = {
@@ -247,7 +274,7 @@ const hostEntry = () => {
 /** What planning an eval with `options` refuses under `secrets: { unbrokered: 'error' }`. */
 const strict = (o: unknown) => () => {
   const config = resolveConfig(
-    { harnesses: fakeHarness(), sandbox: fakeSandbox(), secrets: { unbrokered: 'error' } },
+    { agents: fakeAgent(), sandbox: fakeSandbox(), secrets: { unbrokered: 'error' } },
     DIR,
     'reeval.config.ts',
   )
@@ -261,7 +288,7 @@ const planned =
   (o: unknown, own: object = {}, runs?: number) =>
   () => {
     const config = resolveConfig(
-      { harnesses: fakeHarness(), sandbox: fakeSandbox(), ...own },
+      { agents: fakeAgent(), sandbox: fakeSandbox(), ...own },
       DIR,
       'reeval.config.ts',
     )
@@ -276,7 +303,7 @@ const onProvider = (provider: object, own: object = {}) =>
 
 /** What planning an eval with `options` refuses on a cloud run. */
 const plannedOnCloud = (o: unknown) => () => {
-  const config = resolveConfig({ harnesses: fakeHarness() }, DIR, 'reeval.config.ts')
+  const config = resolveConfig({ agents: fakeAgent() }, DIR, 'reeval.config.ts')
   planEval(
     { name: 'e', mode: 'run', groups: [], options: o as never, source: { body: '0'.repeat(64) } },
     { config, profile: null, tags: [], concurrency: 1, file: undefined, order: 0, target: 'cloud' },
@@ -285,7 +312,7 @@ const plannedOnCloud = (o: unknown) => () => {
 /** What planning an eval with `options` refuses inside a group with `group`. */
 const plannedUnder = (group: unknown, o: unknown) => () => {
   const config = resolveConfig(
-    { harnesses: fakeHarness(), sandbox: fakeSandbox() },
+    { agents: fakeAgent(), sandbox: fakeSandbox() },
     DIR,
     'reeval.config.ts',
   )
@@ -319,16 +346,41 @@ const tree = (children: unknown) => () => {
   const problem = declarationProblem(children)
   if (problem) throw new UsageError(problem)
 }
-/** What declaring a tree refuses as it declares it, each in an eval file of its own. */
+/** What declaring a tree refuses as it declares it, each in a Python eval file of its own. */
 let declaredFiles = 0
-const declares = (children: unknown[]) =>
-  declaresWith(() => declareTree(children as DeclaredNode[], () => async () => {}))
-const declaresWith = (declare: () => void) => () => {
-  const file = join(DIR, `evals/d${++declaredFiles}.eval.ts`)
+const declares = (children: unknown[]) => () =>
+  declaresIn(`evals/d${++declaredFiles}.eval.py`, () =>
+    declareTree(children as DeclaredNode[], () => async () => {}),
+  )
+/** A case's name as an eval file's name: `cases: not a list` → `cases-not-a-list`. */
+const slug = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+/**
+ * What loading an eval file whose module is `module()` refuses, the file named for its case
+ * unless `rel` names it. A worker loads one file; here every case shares one process, so the
+ * `defineEval` results made so far are forgotten first.
+ */
+const loads =
+  (module: () => unknown, rel?: string) =>
+  (name: string): void => {
+    const file = rel ?? `evals/${slug(name)}.eval.ts`
+    declaresIn(file, (abs) => {
+      ;(globalThis as Record<symbol, unknown>)[Symbol.for('reeval.defined')] = []
+      declareDefault(abs, module())
+    })
+  }
+/** What loading an eval file whose default export is `defineEval(spec)` refuses. */
+const defines = (spec: object, rel?: string) =>
+  loads(() => ({ default: defineEval(spec as never) }), rel)
+const declaresIn = (rel: string, declare: (file: string) => void) => {
+  const file = join(DIR, rel)
   const run: RunContext = {
     runId: 'r',
     stagingDir: DIR,
-    config: resolveConfig({ harnesses: fakeHarness() }, DIR),
+    config: resolveConfig({ agents: fakeAgent() }, DIR),
     tags: [],
     concurrency: 1,
     profile: null,
@@ -340,14 +392,13 @@ const declaresWith = (declare: () => void) => () => {
     collectingFile: () => file,
     declarePlanned: () => {},
   })
-  declare()
+  declare(file)
 }
-/** What evaluate() refuses of its cases, in an eval file of its own. */
-const withCases = (options: object, body: (...args: never[]) => unknown = async () => {}) =>
-  declaresWith(() => evaluate('e', options as never, body as never))
-/** What an ungated evaluate() refuses, in an eval file of its own. */
-const ungated = (options: object) =>
-  declaresWith(() => evaluate('e', { gate: 'observe', ...options } as never, async () => {}))
+/** What defineEval() refuses of its cases, in an eval file of its own. */
+const withCases = (options: object, task: (...args: never[]) => unknown = async () => {}) =>
+  defines({ ...options, task })
+/** What an ungated defineEval() refuses, in an eval file of its own. */
+const ungated = (options: object) => defines({ gate: 'observe', ...options, task: async () => {} })
 const plainEnv = defineEnvironment('plain', {})
 const nextEnv = defineEnvironment('next-app', { traits: { stack: 'next' } })
 const viteEnv = defineEnvironment('vite-app', { traits: { stack: 'vite' } })
@@ -436,12 +487,12 @@ export const CASES: Record<string, Case[]> = {
     ['duration: config timeout 1000h', config({ timeout: '1000h' })],
     ['duration: budget duration 1000h', config({ budget: { duration: '1000h' } })],
     ['duration: yaml budget duration 1000h', yaml('budget: { duration: 1000h }\n')],
-    ['duration: harness startTimeout 1000h', harnesses(fakeHarness({ startTimeout: '1000h' }))],
+    ['duration: harness startTimeout 1000h', harnesses(fakeAgent({ startTimeout: '1000h' }))],
     [
       'duration: harness startTimeout soon',
-      harnesses(fakeHarness({ startTimeout: 'soon' as never })),
+      harnesses(fakeAgent({ startTimeout: 'soon' as never })),
     ],
-    ['duration: harness startTimeout 2m', harnesses(fakeHarness({ startTimeout: '2m' }))],
+    ['duration: harness startTimeout 2m', harnesses(fakeAgent({ startTimeout: '2m' }))],
   ],
   docker: [
     ['not an object', any(docker, 'x')],
@@ -582,7 +633,7 @@ export const CASES: Record<string, Case[]> = {
       planned(
         {},
         {
-          harnesses: cursor({ model: 'composer-2.5' }),
+          agents: cursor({ model: 'composer-2.5' }),
           sandbox: tart({ image: SEQUOIA }),
           egress: 'allow-all',
         },
@@ -593,7 +644,7 @@ export const CASES: Record<string, Case[]> = {
       planned(
         {},
         {
-          harnesses: pi({ model: 'google/gemini-3.8-flash' }),
+          agents: pi({ model: 'google/gemini-3.8-flash' }),
           sandbox: tart({ image: SEQUOIA }),
           egress: 'allow-all',
         },
@@ -604,7 +655,7 @@ export const CASES: Record<string, Case[]> = {
       planned(
         {},
         {
-          harnesses: codex({ model: 'gpt-5.4-mini' }),
+          agents: codex({ model: 'gpt-5.4-mini' }),
           sandbox: tart({ image: SEQUOIA }),
           egress: 'allow-all',
         },
@@ -615,7 +666,7 @@ export const CASES: Record<string, Case[]> = {
       planned(
         {},
         {
-          harnesses: claudeCode({ model: 'claude-haiku-5-5' }),
+          agents: claudeCode({ model: 'claude-haiku-5-5' }),
           sandbox: tart({ image: SEQUOIA }),
           egress: 'allow-all',
         },
@@ -626,7 +677,7 @@ export const CASES: Record<string, Case[]> = {
       planned(
         {},
         {
-          harnesses: OPENCODE,
+          agents: OPENCODE,
           sandbox: tart({ image: SEQUOIA }),
           egress: 'allow-all',
         },
@@ -637,7 +688,7 @@ export const CASES: Record<string, Case[]> = {
       planned(
         {},
         {
-          harnesses: goose({ model: 'google/gemini-3.8-flash' }),
+          agents: goose({ model: 'google/gemini-3.8-flash' }),
           sandbox: tart({ image: SEQUOIA }),
           egress: 'allow-all',
         },
@@ -648,7 +699,7 @@ export const CASES: Record<string, Case[]> = {
       planned(
         {},
         {
-          harnesses: antigravity({ model: 'gemini-3.8-flash' }),
+          agents: antigravity({ model: 'gemini-3.8-flash' }),
           sandbox: tart({ image: SEQUOIA }),
           egress: 'allow-all',
         },
@@ -659,7 +710,7 @@ export const CASES: Record<string, Case[]> = {
       planned(
         {},
         {
-          harnesses: fx({ model: 'gpt-5.4-mini' }),
+          agents: fx({ model: 'gpt-5.4-mini' }),
           sandbox: tart({ image: SEQUOIA }),
           egress: 'allow-all',
         },
@@ -670,7 +721,7 @@ export const CASES: Record<string, Case[]> = {
       planned(
         {},
         {
-          harnesses: grokBuild({ model: 'grok-4.6' }),
+          agents: grokBuild({ model: 'grok-4.6' }),
           sandbox: tart({ image: SEQUOIA }),
           egress: 'allow-all',
         },
@@ -770,47 +821,44 @@ export const CASES: Record<string, Case[]> = {
     ['fx with an empty model', any(fx, { model: '' })],
     ['fx with a typo', any(fx, { model: 'gpt-4.1', efort: 'high' })],
     ['fx good', any(fx, { model: 'anthropic/claude-sonnet-5' })],
-    ['fakeHarness script not a list', any(fakeHarness, { script: 'x' })],
-    ['fakeHarness script a flat list', any(fakeHarness, { script: [{ exec: 'ls' }] })],
-    ['fakeHarness script step unknown', any(fakeHarness, { script: [[{ run: 'ls' }]] })],
+    ['fakeAgent script not a list', any(fakeAgent, { script: 'x' })],
+    ['fakeAgent script a flat list', any(fakeAgent, { script: [{ exec: 'ls' }] })],
+    ['fakeAgent script step unknown', any(fakeAgent, { script: [[{ run: 'ls' }]] })],
+    ['fakeAgent script step two keys', any(fakeAgent, { script: [[{ exec: 'ls', reply: 'x' }]] })],
+    ['fakeAgent script write not strings', any(fakeAgent, { script: [[{ write: { a: 1 } }]] })],
+    ['fakeAgent script mcp without a tool', any(fakeAgent, { script: [[{ mcp: 'server' }]] })],
+    ['fakeAgent script exec not a string', any(fakeAgent, { script: [[{ exec: 1 }]] })],
+    ['fakeAgent layout unknown', any(fakeAgent, { layout: 'vim' })],
+    ['fakeAgent effort empty', any(fakeAgent, { effort: '' })],
+    ['fakeAgent with a typo', any(fakeAgent, { txt: 'x' })],
+    ['fakeAgent text a number', any(fakeAgent, { text: 3 })],
+    ['fakeAgent delayMs over 596h', any(fakeAgent, { delayMs: 2 ** 31 })],
+    ['fakeAgent files not strings', any(fakeAgent, { files: { 'a.txt': 1 } })],
     [
-      'fakeHarness script step two keys',
-      any(fakeHarness, { script: [[{ exec: 'ls', reply: 'x' }]] }),
-    ],
-    ['fakeHarness script write not strings', any(fakeHarness, { script: [[{ write: { a: 1 } }]] })],
-    ['fakeHarness script mcp without a tool', any(fakeHarness, { script: [[{ mcp: 'server' }]] })],
-    ['fakeHarness script exec not a string', any(fakeHarness, { script: [[{ exec: 1 }]] })],
-    ['fakeHarness layout unknown', any(fakeHarness, { layout: 'vim' })],
-    ['fakeHarness effort empty', any(fakeHarness, { effort: '' })],
-    ['fakeHarness with a typo', any(fakeHarness, { txt: 'x' })],
-    ['fakeHarness text a number', any(fakeHarness, { text: 3 })],
-    ['fakeHarness delayMs over 596h', any(fakeHarness, { delayMs: 2 ** 31 })],
-    ['fakeHarness files not strings', any(fakeHarness, { files: { 'a.txt': 1 } })],
-    [
-      'fakeHarness a tool with an extra key',
-      any(fakeHarness, { tools: [{ tool: 't', input: 1, output: 2, okay: true }] }),
+      'fakeAgent a tool with an extra key',
+      any(fakeAgent, { tools: [{ tool: 't', input: 1, output: 2, okay: true }] }),
     ],
     ['cursor with an empty id', any(cursor, { model: 'm', id: '' })],
     ['codex with a typo far from any option', any(codex, { model: 'gpt', color: 'red' })],
     [
-      'fakeHarness good',
-      any(fakeHarness, { script: [[{ exec: 'ls' }, { mcp: 's/t' }]], layout: 'pi' }),
+      'fakeAgent good',
+      any(fakeAgent, { script: [[{ exec: 'ls' }, { mcp: 's/t' }]], layout: 'pi' }),
     ],
     [
       'claudeCode on boat()',
-      onProvider(boat(), { harnesses: claudeCode({ model: 'claude-haiku-5-5' }) }),
+      onProvider(boat(), { agents: claudeCode({ model: 'claude-haiku-5-5' }) }),
     ],
-    ['cursor on boat()', onProvider(boat(), { harnesses: cursor({ model: 'composer-2.5' }) })],
+    ['cursor on boat()', onProvider(boat(), { agents: cursor({ model: 'composer-2.5' }) })],
     [
       'boat() with egress phases',
       onProvider(boat(), {
-        harnesses: cursor({ model: 'composer-2.5' }),
+        agents: cursor({ model: 'composer-2.5' }),
         egress: { setup: 'allow-all', agent: 'deny-all' },
       }),
     ],
     [
       "boat() under egress 'deny-all'",
-      onProvider(boat(), { harnesses: cursor({ model: 'composer-2.5' }), egress: 'deny-all' }),
+      onProvider(boat(), { agents: cursor({ model: 'composer-2.5' }), egress: 'deny-all' }),
     ],
     ['boat() reuse not a boolean', any(boat, { reuse: 'yes' })],
     ['boat() attemptsPerMachine over 8', any(boat, { attemptsPerMachine: 9 })],
@@ -818,13 +866,13 @@ export const CASES: Record<string, Case[]> = {
     [
       'claudeCode sharing a boat() machine',
       onProvider(boat({ attemptsPerMachine: 2 }), {
-        harnesses: claudeCode({ model: 'claude-haiku-5-5' }),
+        agents: claudeCode({ model: 'claude-haiku-5-5' }),
       }),
     ],
     [
       'cursor sharing a boat() machine',
       onProvider(boat({ attemptsPerMachine: 3, reuse: true }), {
-        harnesses: cursor({ model: 'composer-2.5' }),
+        agents: cursor({ model: 'composer-2.5' }),
       }),
     ],
     ['boat() from, a sandbox option', any(boat, { from: 'python:3.12' })],
@@ -848,20 +896,20 @@ export const CASES: Record<string, Case[]> = {
     ['daytona() maxConcurrent 1.5', config({ provider: { ...daytona(), maxConcurrent: 1.5 } })],
     [
       'docker({ root }) on boat()',
-      onProvider(boat(), { sandbox: docker({ root: true }), harnesses: cursor({ model: 'm' }) }),
+      onProvider(boat(), { sandbox: docker({ root: true }), agents: cursor({ model: 'm' }) }),
     ],
     [
       'docker({ devices }) on boat()',
       onProvider(boat(), {
         sandbox: docker({ devices: ['kvm'] }),
-        harnesses: cursor({ model: 'm' }),
+        agents: cursor({ model: 'm' }),
       }),
     ],
     [
       'docker({ devices }) on daytona()',
       onProvider(daytona(), {
         sandbox: docker({ devices: ['kvm'] }),
-        harnesses: cursor({ model: 'm' }),
+        agents: cursor({ model: 'm' }),
         egress: 'allow-all',
       }),
     ],
@@ -870,7 +918,7 @@ export const CASES: Record<string, Case[]> = {
       'docker({ memory, cpus }) on daytona()',
       onProvider(daytona(), {
         sandbox: docker({ memory: '8g', cpus: 4 }),
-        harnesses: cursor({ model: 'm' }),
+        agents: cursor({ model: 'm' }),
         egress: 'allow-all',
       }),
     ],
@@ -880,7 +928,7 @@ export const CASES: Record<string, Case[]> = {
       'boat() in an image with egress phases',
       onProvider(boat(), {
         sandbox: docker({ from: 'python:3.12-slim' }),
-        harnesses: cursor({ model: 'composer-2.5' }),
+        agents: cursor({ model: 'composer-2.5' }),
         egress: { setup: 'allow-all', agent: 'deny-all' },
       }),
     ],
@@ -888,21 +936,21 @@ export const CASES: Record<string, Case[]> = {
       'claudeCode sharing a boat() machine in an image',
       onProvider(boat({ attemptsPerMachine: 2 }), {
         sandbox: docker({ image: 'acme/agent:1' }),
-        harnesses: claudeCode({ model: 'claude-haiku-5-5' }),
+        agents: claudeCode({ model: 'claude-haiku-5-5' }),
         egress: 'deny-all',
       }),
     ],
     [
       'cursor on daytona()',
-      onProvider(daytona(), { harnesses: cursor({ model: 'composer-2.5' }), egress: 'allow-all' }),
+      onProvider(daytona(), { agents: cursor({ model: 'composer-2.5' }), egress: 'allow-all' }),
     ],
     [
       "daytona() under egress 'proxy'",
-      onProvider(daytona(), { harnesses: cursor({ model: 'composer-2.5' }), egress: 'proxy' }),
+      onProvider(daytona(), { agents: cursor({ model: 'composer-2.5' }), egress: 'proxy' }),
     ],
     [
       "daytona() under egress 'deny-all'",
-      onProvider(daytona(), { harnesses: cursor({ model: 'composer-2.5' }), egress: 'deny-all' }),
+      onProvider(daytona(), { agents: cursor({ model: 'composer-2.5' }), egress: 'deny-all' }),
     ],
     ['daytona() size unknown', any(daytona, { size: 'huge' })],
     ['daytona() type, a boat() option', any(daytona, { type: 'large' })],
@@ -915,7 +963,7 @@ export const CASES: Record<string, Case[]> = {
     [
       'claudeCode sharing a daytona() machine',
       onProvider(daytona({ attemptsPerMachine: 2 }), {
-        harnesses: claudeCode({ model: 'claude-haiku-5-5' }),
+        agents: claudeCode({ model: 'claude-haiku-5-5' }),
         egress: 'allow-all',
       }),
     ],
@@ -923,7 +971,7 @@ export const CASES: Record<string, Case[]> = {
       'cursor on cloud()',
       planned(
         {},
-        { harnesses: cursor({ model: 'composer-2.5' }), sandbox: cloud(), egress: 'allow-all' },
+        { agents: cursor({ model: 'composer-2.5' }), sandbox: cloud(), egress: 'allow-all' },
       ),
     ],
     ['cloud() size unknown', any(cloud, { size: 'huge' })],
@@ -1181,21 +1229,15 @@ export const CASES: Record<string, Case[]> = {
     ["gate 'none'", options({ compare: { control: e1, variants: [e2], gate: 'none' } })],
     ['minLift above 1', options({ compare: { control: e1, variants: [e2], minLift: 2 } })],
     ['minLift a string', options({ compare: { control: e1, variants: [e2], minLift: '0.1' } })],
-    [
-      'harness not a list',
-      options({ compare: { control: e1, variants: [e2], harnesses: 'cursor' } }),
-    ],
+    ['harness not a list', options({ compare: { control: e1, variants: [e2], agents: 'cursor' } })],
     ['compare false', options({ compare: false })],
     [
       'harness with a bad descriptor',
       options({
-        compare: { control: e1, variants: [e2], harnesses: [{ kind: 'cursor', modle: 'm' }] },
+        compare: { control: e1, variants: [e2], agents: [{ kind: 'cursor', modle: 'm' }] },
       }),
     ],
-    [
-      'harness with a number',
-      options({ compare: { control: e1, variants: [e2], harnesses: [3] } }),
-    ],
+    ['harness with a number', options({ compare: { control: e1, variants: [e2], agents: [3] } })],
     [
       'environments beside compare',
       options({ environments: e1, compare: { control: e1, variants: [e2] } }),
@@ -1223,7 +1265,7 @@ export const CASES: Record<string, Case[]> = {
           variants: [e2],
           gate: 'all',
           minLift: 0.1,
-          harnesses: ['fake'],
+          agents: ['fake'],
         },
       }),
     ],
@@ -1330,7 +1372,7 @@ export const CASES: Record<string, Case[]> = {
       options({ question: { model: 'typesafe-ai/jev-1.14.0' } }),
     ],
     ['the question option with a model object', options({ question: { model: { kind: 'x' } } })],
-    ['the question option with across', options({ question: { across: 'harness' } })],
+    ['the question option with across', options({ question: { across: 'agent' } })],
     ['the question option with choices', options({ question: { choices: ['a', 'b'] } })],
     ['the question option with an unknown key', options({ question: { modle: 'google/g' } })],
     ['the question option with state', options({ question: { state: { diff: true } } })],
@@ -2178,7 +2220,7 @@ export const CASES: Record<string, Case[]> = {
       }),
     ],
     ['yaml: empty', yaml('')],
-    ['yaml: not YAML', yaml('harnesses: [a\n')],
+    ['yaml: not YAML', yaml('agents: [a\n')],
     ['yaml: a repeated key', yaml('runs: 1\nruns: 2\n')],
     ['yaml: a list', yaml('- runs: 1\n')],
     ['yaml: a scalar', yaml('runs\n')],
@@ -2337,12 +2379,15 @@ export const CASES: Record<string, Case[]> = {
       'yaml: a secret with a typo',
       yaml('env:\n  API_KEY:\n    kind: secret\n    host: [api.example.com]\n'),
     ],
-    ['yaml: a harness without a kind', yaml('harnesses:\n  model: composer-2.5\n')],
+    ['yaml: a harness without a kind', yaml('agents:\n  model: composer-2.5\n')],
     [
       'yaml: a harness with a typo',
-      yaml('harnesses:\n  kind: cursor\n  model: composer-2.5\n  modle: x\n'),
+      yaml('agents:\n  kind: cursor\n  model: composer-2.5\n  modle: x\n'),
     ],
-    ['yaml: an empty harness list', yaml('harnesses: []\n')],
+    ['yaml: an empty harness list', yaml('agents: []\n')],
+    ['yaml: harnesses', yaml('harnesses: { kind: fake }\n')],
+    ['an empty agents list', config({ agents: [] })],
+    ['harnesses', config({ harnesses: fakeAgent() })],
     [
       'yaml: a fake judge with a string score',
       yaml('judge:\n  model:\n    kind: fake-judge\n    score: high\n'),
@@ -2423,7 +2468,7 @@ export const CASES: Record<string, Case[]> = {
     [
       'yaml: good',
       yaml(`include: ['evals/**/*.eval.ts']
-harnesses:
+agents:
   - { kind: fake, id: a }
   - { kind: cursor, model: composer-2.5 }
 sandbox: { kind: fake }
@@ -2449,7 +2494,7 @@ analysis:
   maxInputTokens: 4000
 profiles:
   pr:
-    limit: { runs: 1, compare: false, harnesses: [a] }
+    limit: { runs: 1, compare: false, agents: [a] }
     budget: { attempts: 5 }
     tags: ['!slow']
   nightly:
@@ -2605,9 +2650,9 @@ environments:
     ['yaml: direct with options', yaml('gateway: [{ direct: { apiKey: x } }]\n')],
     ['yaml: a number', yaml('gateway: [3]\n')],
     ['yaml: good', yaml('gateway: [direct]\n')],
-    ['harness: a pin not a name', any(fakeHarness, { gateway: 'vercell' })],
+    ['harness: a pin not a name', any(fakeAgent, { gateway: 'vercell' })],
     ['harness: a pin a number', any(cursor, { model: 'm', gateway: 3 })],
-    ['harness: a helper pin', any(fakeHarness, { gateway: { kind: 'direct' } })],
+    ['harness: a helper pin', any(fakeAgent, { gateway: { kind: 'direct' } })],
     [
       'harness: a pin to direct off',
       any(cursor, { model: 'm', gateway: { kind: 'direct', enabled: false } }),
@@ -2949,26 +2994,22 @@ environments:
     ['where: without cases', withCases({ where: () => true })],
     ['where: not a function', withCases({ cases: ['a'], where: true })],
     [
-      'where: in a group',
-      declaresWith(() => defineGroup('g', { where: () => true } as never, () => {})),
-    ],
-    [
       'where: reads a trait no environment defines',
       withCases({
         cases: ['a'],
-        environments: [nextEnv],
+        environment: [nextEnv],
         where: ({ environment }: Pair) => environment.traits.stak === 'next',
       }),
     ],
     [
       'where: returns a string',
-      withCases({ cases: ['q001'], environments: [nextEnv], where: () => 'yes' }),
+      withCases({ cases: ['q001'], environment: [nextEnv], where: () => 'yes' }),
     ],
     [
       'where: throws',
       withCases({
         cases: ['q001'],
-        environments: [nextEnv],
+        environment: [nextEnv],
         where: () => {
           throw new Error('no such stack')
         },
@@ -2978,25 +3019,57 @@ environments:
       'where: leaves a cell with no cases',
       withCases({
         cases: ['a', 'b'],
-        environments: [nextEnv, viteEnv],
+        environment: [nextEnv, viteEnv],
         where: ({ environment }: Pair) => environment.traits.stack === 'next',
       }),
     ],
     [
       'where: excludes every pair',
-      withCases({ cases: ['a', 'b'], environments: [nextEnv, viteEnv], where: () => false }),
+      withCases({ cases: ['a', 'b'], environment: [nextEnv, viteEnv], where: () => false }),
     ],
     [
       'where: accepted, a harness read',
       withCases({
         cases: ['a', 'b'],
-        environments: [nextEnv],
+        environment: [nextEnv],
         where: ({ case: c, harness }: Pair) => c === 'a' || harness === 'fake',
       }),
     ],
     [
       'cases: keys from ids, names, strings and numbers',
       withCases({ cases: ['s', 2, { id: 'i' }, { name: 'n' }] }),
+    ],
+    ['load: no default export', loads(() => ({ named: defineEval({ task: async () => {} }) }))],
+    [
+      'load: a default export that is not a defineEval result',
+      loads(() => ({ default: { task: async () => {} } })),
+    ],
+    [
+      'load: defineEval called twice',
+      loads(() => {
+        defineEval({ task: async () => {} })
+        return { default: defineEval({ task: async () => {} }) }
+      }),
+    ],
+    ['load: defineEval given a list', loads(() => ({ default: defineEval([] as never) }))],
+    ['load: an id with a hash', defines({ task: async () => {} }, 'evals/a#b.eval.ts')],
+    ['load: an id with a space', defines({ task: async () => {} }, 'evals/a b.eval.ts')],
+    ['load: an id with a tab', defines({ task: async () => {} }, 'evals/sub/a\tb.eval.ts')],
+    ['load: a nested id is accepted', defines({ task: async () => {} }, 'evals/sub/dir/a.eval.ts')],
+    ['load: no task', defines({ runs: 2 })],
+    ['load: a task that is not a function', defines({ task: 'greet' })],
+    ['load: environments', defines({ environments: plainEnv, task: async () => {} })],
+    ['load: environment is accepted', defines({ environment: plainEnv, task: async () => {} })],
+    ['skip: a number', defines({ skip: 1, task: async () => {} })],
+    ['skip: an empty reason', defines({ skip: '', task: async () => {} })],
+    ['skip: true is accepted', defines({ skip: true, task: async () => {} })],
+    ['skip: a reason is accepted', defines({ skip: 'flaky on CI', task: async () => {} })],
+    ['agents: an empty list', defines({ agents: [], task: async () => {} })],
+    ['agents: harnesses', defines({ harnesses: fakeAgent(), task: async () => {} })],
+    [
+      'load: two ids equal ignoring case',
+      cliRefuses({ 'evals/Foo.eval.ts': '', 'evals/foo.eval.ts': '' }),
+      CASE_INSENSITIVE ? 'this file system ignores case' : undefined,
     ],
     ['not a list', tree({ type: 'eval' })],
     ['a node that is not one', tree(['e'])],
@@ -3041,108 +3114,6 @@ environments:
         { type: 'group', name: 'g', mode: 'skip', options: { runs: 2 }, children: [evalNode()] },
         evalNode({ family: { name: 'case %#', case: 1, cases: 2 } }),
         { type: 'todo', name: 'later' },
-      ]),
-    ],
-    ['declared: two evals with the same name', declares([evalNode(), evalNode({ body: 'b2' })])],
-    [
-      'declared: two eval names that mask to the same name',
-      declares([
-        evalNode({ name: `e sk-ant-${'a'.repeat(24)}` }),
-        evalNode({ name: `e sk-ant-${'b'.repeat(24)}`, body: 'b2' }),
-      ]),
-    ],
-    [
-      'declared: an eval and a todo whose names mask to the same name',
-      declares([
-        evalNode({ name: `e sk-ant-${'a'.repeat(24)}` }),
-        { type: 'todo', name: `e sk-ant-${'b'.repeat(24)}` },
-      ]),
-    ],
-    [
-      'declared: two group names that mask to the same name',
-      declares([
-        group(`g sk-ant-${'a'.repeat(24)}`, [evalNode()]),
-        group(`g sk-ant-${'b'.repeat(24)}`, [evalNode({ name: 'f', body: 'b2' })]),
-      ]),
-    ],
-    [
-      'declared: an eval named like a grouped eval',
-      declares([group('g', [evalNode()]), evalNode({ name: 'g › e', body: 'b2' })]),
-    ],
-    [
-      'declared: two families with the same template',
-      declares([
-        ...[0, 1].map((i) =>
-          evalNode({ name: `c${i}`, body: `b${i}`, family: { name: 'c %#', case: i, cases: 2 } }),
-        ),
-        ...[0, 1, 2].map((i) =>
-          evalNode({ name: `d${i}`, body: `d${i}`, family: { name: 'c %#', case: i, cases: 3 } }),
-        ),
-      ]),
-    ],
-    [
-      'declared: a family case declared twice',
-      declares(
-        [0, 1, 1].map((i, n) =>
-          evalNode({ name: `c${n}`, body: `b${n}`, family: { name: 'c %#', case: i, cases: 3 } }),
-        ),
-      ),
-    ],
-    [
-      'declared: a family named like a grouped family',
-      declares([
-        group(
-          'g',
-          [0, 1].map((i) =>
-            evalNode({ name: `c${i}`, body: `b${i}`, family: { name: 'c %#', case: i, cases: 2 } }),
-          ),
-        ),
-        evalNode({ name: 'd0', body: 'd0', family: { name: 'g › c %#', case: 0, cases: 2 } }),
-      ]),
-    ],
-    [
-      'declared: an eval named like a later family',
-      declares([
-        evalNode({ name: 'c %#' }),
-        ...[0, 1].map((i) =>
-          evalNode({ name: `c${i}`, body: `b${i}`, family: { name: 'c %#', case: i, cases: 2 } }),
-        ),
-      ]),
-    ],
-    [
-      'declared: an eval named like an earlier family',
-      declares([
-        ...[0, 1].map((i) =>
-          evalNode({ name: `c${i}`, body: `b${i}`, family: { name: 'c %#', case: i, cases: 2 } }),
-        ),
-        evalNode({ name: 'c %#', body: 'u0' }),
-      ]),
-    ],
-    [
-      "declared: a family's case named like its template",
-      declares(
-        ['c 1', 'c $n'].map((name, i) =>
-          evalNode({ name, body: `b${i}`, family: { name: 'c $n', case: i, cases: 2 } }),
-        ),
-      ),
-    ],
-    [
-      'declared: one template in two groups, and unpooled',
-      declares([
-        ...['g', 'h'].map((g) =>
-          group(
-            g,
-            [0, 1].map((i) =>
-              evalNode({
-                name: `c${i}`,
-                body: `b${i}`,
-                family: { name: 'c %#', case: i, cases: 2 },
-              }),
-            ),
-          ),
-        ),
-        evalNode({ name: 'c 0', body: 'u0' }),
-        evalNode({ name: 'c 1', body: 'u1' }),
       ]),
     ],
   ],

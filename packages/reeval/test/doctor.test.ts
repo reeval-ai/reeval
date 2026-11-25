@@ -66,7 +66,7 @@ async function configOf(name: string, body: string) {
   const p = await project(`doctor-${name}`, {
     'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
 import { direct, vercel, vertex } from 'reeval/gateway'
-import { antigravity, claudeCode, codex, cursor, fakeHarness, goose, opencode, pi } from 'reeval/harness'
+import { antigravity, claudeCode, codex, cursor, fakeAgent, goose, opencode, pi } from 'reeval/agent'
 import { fakeJudge } from 'reeval/judge'
 import { docker, fakeSandbox, podman } from 'reeval/sandbox'
 export default defineConfig(${body})
@@ -83,10 +83,10 @@ describe('reeval doctor checks', () => {
   test('boat(): the OpenSSH client, then each account by its key, offline or online', async () => {
     const p = await project('doctor-boat', {
       'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { cursor } from 'reeval/harness'
+import { cursor } from 'reeval/agent'
 import { boat, createBoat } from 'reeval/provider/boat'
 export default defineConfig({
-  harnesses: cursor({ model: 'composer-2.5' }),
+  agents: cursor({ model: 'composer-2.5' }),
   provider: boat(),
   egress: 'allow-all',
   profiles: { team: { provider: createBoat({ apiKey: { kind: 'secret', from: 'TEAM_BOAT_KEY' } })() } },
@@ -139,7 +139,7 @@ export default defineConfig({
     )
     noSecret(failing)
     const docker = await checkSandboxes(
-      await configOf('no-boat', `{ harnesses: fakeHarness(), sandbox: docker() }`),
+      await configOf('no-boat', `{ agents: fakeAgent(), sandbox: docker() }`),
       deps(),
       false,
       { error: 'x' },
@@ -154,10 +154,10 @@ export default defineConfig({
         (
           await project('doctor-daytona', {
             'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { cursor } from 'reeval/harness'
+import { cursor } from 'reeval/agent'
 import { daytona } from 'reeval/provider/daytona'
 export default defineConfig({
-  harnesses: cursor({ model: 'composer-2.5' }),
+  agents: cursor({ model: 'composer-2.5' }),
   provider: daytona(),
   egress: 'allow-all',
 })
@@ -285,13 +285,13 @@ export default defineConfig({
   test('docker: skipped without a Docker sandbox, fails when down, warns on little memory', async () => {
     const fake = await configOf(
       'fake',
-      `{ harnesses: fakeHarness(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }) }`,
+      `{ agents: fakeAgent(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }) }`,
     )
     const down = async () => 'down' as const
     assert.deepEqual(statuses((await checkDocker(fake, deps({ dockerState: down }))).checks), [
       'skip',
     ])
-    const real = await configOf('docker', "{ harnesses: cursor({ model: 'composer-2.5' }) }")
+    const real = await configOf('docker', "{ agents: cursor({ model: 'composer-2.5' }) }")
     const ok = await checkDocker(real, deps())
     assert.equal(ok.running, true)
     assert.match(ok.checks[0]?.summary ?? '', /running · 8 CPUs, 16\.0 GB memory/)
@@ -329,7 +329,7 @@ export default defineConfig({
     // A profile's Docker sandbox counts too.
     const profiled = await configOf(
       'profile-docker',
-      `{ harnesses: fakeHarness(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }), profiles: { real: { defaults: { environments: defineEnvironment('real', { sandbox: docker() }) } } } }`,
+      `{ agents: fakeAgent(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }), profiles: { real: { defaults: { environments: defineEnvironment('real', { sandbox: docker() }) } } } }`,
     )
     assert.equal(
       (await checkDocker(profiled, deps({ dockerState: down }))).checks[0]?.status,
@@ -337,7 +337,7 @@ export default defineConfig({
     )
     const defaulted = await configOf(
       'profile-default-sandbox',
-      `{ harnesses: fakeHarness(), sandbox: fakeSandbox(), profiles: { real: { defaults: { sandbox: docker() } } } }`,
+      `{ agents: fakeAgent(), sandbox: fakeSandbox(), profiles: { real: { defaults: { sandbox: docker() } } } }`,
     )
     assert.equal(
       (await checkDocker(defaulted, deps({ dockerState: down }))).checks[0]?.status,
@@ -369,7 +369,7 @@ export default defineConfig({
 
     const config = await configOf(
       'podman',
-      `{ harnesses: cursor({ model: 'composer-2.5' }), environments: defineEnvironment('p', { sandbox: podman() }) }`,
+      `{ agents: cursor({ model: 'composer-2.5' }), environments: defineEnvironment('p', { sandbox: podman() }) }`,
     )
     const ok = await checkDocker(config, deps())
     assert.deepEqual(
@@ -396,7 +396,7 @@ export default defineConfig({
 
     const both = await configOf(
       'podman-and-docker',
-      `{ harnesses: cursor({ model: 'composer-2.5' }), environments: defineEnvironment('p', { sandbox: podman() }), profiles: { d: { defaults: { environments: defineEnvironment('d', { sandbox: docker() }) } } } }`,
+      `{ agents: cursor({ model: 'composer-2.5' }), environments: defineEnvironment('p', { sandbox: podman() }), profiles: { d: { defaults: { environments: defineEnvironment('d', { sandbox: docker() }) } } } }`,
     )
     assert.deepEqual(
       (await checkDocker(both, deps())).checks.map((c) => c.id),
@@ -409,7 +409,7 @@ export default defineConfig({
   test('images: present, missing (with the build fix), and left from another version', async () => {
     const config = await configOf(
       'images',
-      "{ harnesses: [cursor({ model: 'composer-2.5' }), claudeCode({ model: 'claude-sonnet-5' })] }",
+      "{ agents: [cursor({ model: 'composer-2.5' }), claudeCode({ model: 'claude-sonnet-5' })] }",
     )
     const present = await checkImages(config, deps())
     assert.deepEqual(statuses(present.checks), ['ok', 'ok'])
@@ -438,7 +438,7 @@ export default defineConfig({
 
     const own = await configOf(
       'own-image',
-      "{ harnesses: cursor({ model: 'composer-2.5' }), environments: defineEnvironment('own', { sandbox: docker({ image: 'mine:1' }) }) }",
+      "{ agents: cursor({ model: 'composer-2.5' }), environments: defineEnvironment('own', { sandbox: docker({ image: 'mine:1' }) }) }",
     )
     const ownMissing = await checkImages(own, deps({ imageExists: async () => false }))
     assert.deepEqual(statuses(ownMissing.checks), ['fail'])
@@ -448,7 +448,7 @@ export default defineConfig({
   test("images: Docker that can't answer is a failed check naming its error, not a missing image", async () => {
     const config = await configOf(
       'images-unanswered',
-      "{ harnesses: cursor({ model: 'composer-2.5' }) }",
+      "{ agents: cursor({ model: 'composer-2.5' }) }",
     )
     const result = await checkImages(
       config,
@@ -472,14 +472,14 @@ export default defineConfig({
     // which no eval runs.
     const p = await project('doctor-planned-images', {
       'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { claudeCode } from 'reeval/harness'
+import { claudeCode } from 'reeval/agent'
 export default defineConfig({
-  profiles: { dev: { defaults: { harnesses: claudeCode({ model: 'claude-sonnet-5' }) } } },
+  profiles: { dev: { defaults: { agents: claudeCode({ model: 'claude-sonnet-5' }) } } },
   defaultProfile: { local: 'dev', ci: 'dev' },
 })
 `,
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'
-evaluate('a', async () => {})
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ async task() {} })
 `,
     })
     const config = await loadConfig(join(p.dir, 'reeval.config.ts'))
@@ -499,19 +499,19 @@ evaluate('a', async () => {})
 
   test('keys: the harnesses the evals plan, so a profile-only harness asks for no CURSOR_API_KEY', async () => {
     const config = `import { defineConfig } from 'reeval'
-import { claudeCode, codex } from 'reeval/harness'
+import { claudeCode, codex } from 'reeval/agent'
 export default defineConfig({
   profiles: {
-    dev: { defaults: { harnesses: claudeCode({ model: 'claude-sonnet-5' }) } },
-    openai: { defaults: { harnesses: codex({ model: 'gpt-5.4-mini' }) } },
+    dev: { defaults: { agents: claudeCode({ model: 'claude-sonnet-5' }) } },
+    openai: { defaults: { agents: codex({ model: 'gpt-5.4-mini' }) } },
   },
   defaultProfile: { local: 'dev', ci: 'dev' },
 })
 `
     const p = await project('doctor-planned-keys', {
       'reeval.config.ts': config,
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'
-evaluate('a', async () => {})
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ async task() {} })
 `,
     })
     const loaded = await loadConfig(join(p.dir, 'reeval.config.ts'))
@@ -556,8 +556,8 @@ evaluate('a', async () => {})
   test("keys: each harness's, required unless only a profile uses it, never printed", async () => {
     const config = await configOf(
       'keys',
-      `{ harnesses: cursor({ model: 'composer-2.5' }),
-         profiles: { alt: { defaults: { harnesses: pi({ model: 'google/gemini-3.8-flash' }) } } } }`,
+      `{ agents: cursor({ model: 'composer-2.5' }),
+         profiles: { alt: { defaults: { agents: pi({ model: 'google/gemini-3.8-flash' }) } } } }`,
     )
     const none = await checkKeys(config, deps(), false, '.env.local')
     assert.deepEqual(statuses(none), ['fail', 'warn'])
@@ -583,7 +583,7 @@ evaluate('a', async () => {})
     assert.match(wrapped[0]?.summary ?? '', /line break in it at character 28/)
     noSecret(wrapped)
 
-    const openai = await configOf('keys-codex', `{ harnesses: codex({ model: 'gpt-5.4-mini' }) }`)
+    const openai = await configOf('keys-codex', `{ agents: codex({ model: 'gpt-5.4-mini' }) }`)
     const unset = await checkKeys(openai, deps(), false, '.env.local')
     assert.deepEqual(statuses(unset), ['fail'])
     assert.match(unset[0]?.summary ?? '', /^OPENAI_API_KEY for codex:gpt-5\.4-mini: not set$/)
@@ -599,13 +599,13 @@ evaluate('a', async () => {})
 
     const fake = await configOf(
       'keys-fake',
-      `{ harnesses: fakeHarness(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }) }`,
+      `{ agents: fakeAgent(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }) }`,
     )
     assert.deepEqual(statuses(await checkKeys(fake, deps(), false, '.env.local')), ['skip'])
   })
 
   test("keys: claudeCode() takes ANTHROPIC_API_KEY or a subscription's CLAUDE_CODE_OAUTH_TOKEN", async () => {
-    const config = await configOf('keys-claude', `{ harnesses: claudeCode({ model: 'opus' }) }`)
+    const config = await configOf('keys-claude', `{ agents: claudeCode({ model: 'opus' }) }`)
     const none = await checkKeys(config, deps(), false, '.env.local')
     assert.deepEqual(
       none.map((c) => [c.status, c.summary, c.fix]),
@@ -683,7 +683,7 @@ evaluate('a', async () => {})
       `Basic ${Buffer.from(`${SECRET}:`).toString('base64')}`,
     )
 
-    const config = await configOf('online', "{ harnesses: cursor({ model: 'composer-2.5' }) }")
+    const config = await configOf('online', "{ agents: cursor({ model: 'composer-2.5' }) }")
     const rejected = await checkKeys(
       config,
       deps({ env: { CURSOR_API_KEY: SECRET }, fetch: answer(403) }),
@@ -698,15 +698,18 @@ evaluate('a', async () => {})
   test("judge: none, a fake one, and a model's key", async () => {
     const none = await configOf(
       'judge-none',
-      `{ harnesses: fakeHarness(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }) }`,
+      `{ agents: fakeAgent(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }) }`,
     )
     // No eval calls c.judge, so there's no line at all.
     assert.deepEqual(await checkJudge(none, deps(), false, '.env.local'), [])
     await mkdir(join(none.root, 'evals/support'), { recursive: true })
-    await writeFile(join(none.root, 'evals/plain.eval.ts'), "evaluate('a', async () => {})\n")
+    await writeFile(
+      join(none.root, 'evals/plain.eval.ts'),
+      "import { defineEval } from 'reeval'\nexport default defineEval({ async task() {} })\n",
+    )
     await writeFile(
       join(none.root, 'evals/graded.eval.ts'),
-      "import { grade } from './support/grade.ts'\nevaluate('b', grade)\n",
+      "import { defineEval } from 'reeval'\nimport { grade } from './support/grade.ts'\nexport default defineEval({ task: grade })\n",
     )
     await writeFile(
       join(none.root, 'evals/support/grade.ts'),
@@ -718,12 +721,12 @@ evaluate('a', async () => {})
     assert.equal(unset[0]?.summary, 'no judge model, and evals/graded.eval.ts calls c.judge')
     const fake = await configOf(
       'judge-fake',
-      `{ harnesses: fakeHarness(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }), judge: { model: fakeJudge({ score: 1 }) } }`,
+      `{ agents: fakeAgent(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }), judge: { model: fakeJudge({ score: 1 }) } }`,
     )
     assert.deepEqual(statuses(await checkJudge(fake, deps(), false, '.env.local')), ['ok'])
     const google = await configOf(
       'judge-google',
-      "{ harnesses: fakeHarness(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }), judge: { model: 'google/gemini-3.8-flash' } }",
+      "{ agents: fakeAgent(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }), judge: { model: 'google/gemini-3.8-flash' } }",
     )
     const missing = await checkJudge(google, deps(), false, '.env.local')
     assert.equal(missing[0]?.status, 'fail')
@@ -745,7 +748,7 @@ evaluate('a', async () => {})
     noSecret(gateway)
     const mistral = await configOf(
       'judge-mistral',
-      "{ harnesses: fakeHarness(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }), judge: { model: 'mistral/large' } }",
+      "{ agents: fakeAgent(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }), judge: { model: 'mistral/large' } }",
     )
     const unserved = await checkJudge(mistral, deps(), false, '.env.local')
     assert.equal(unserved[0]?.status, 'fail')
@@ -756,11 +759,11 @@ evaluate('a', async () => {})
   })
 
   test("analysis: analysis.model's key, a warning only; nothing without a model", async () => {
-    const none = await configOf('analysis-none', '{ harnesses: fakeHarness() }')
+    const none = await configOf('analysis-none', '{ agents: fakeAgent() }')
     assert.deepEqual(await checkAnalysis(none, deps(), false, '.env.local'), [])
     const model = await configOf(
       'analysis-model',
-      "{ harnesses: fakeHarness(), analysis: { model: 'google/gemini-3.8-flash' } }",
+      "{ agents: fakeAgent(), analysis: { model: 'google/gemini-3.8-flash' } }",
     )
     const unset = await checkAnalysis(model, deps(), false, '.env.local')
     assert.deepEqual(statuses(unset), ['warn'])
@@ -786,7 +789,7 @@ evaluate('a', async () => {})
     ] as const) {
       const config = await configOf(
         `analysis-${key.toLowerCase()}`,
-        `{ harnesses: fakeHarness(), analysis: { model: '${model}' } }`,
+        `{ agents: fakeAgent(), analysis: { model: '${model}' } }`,
       )
       const direct = await checkAnalysis(
         config,
@@ -827,7 +830,7 @@ evaluate('a', async () => {})
   test('gateway: where each harness resolves, its keys, and an expired Vercel token', async () => {
     const config = await configOf(
       'gateway-vercel',
-      `{ harnesses: [claudeCode({ model: 'claude-sonnet-5-5' }), cursor({ model: 'composer-2.5' })],
+      `{ agents: [claudeCode({ model: 'claude-sonnet-5-5' }), cursor({ model: 'composer-2.5' })],
          gateway: [vercel()],
          judge: { model: 'anthropic/claude-haiku-4-5' },
          analysis: { model: 'google/gemini-3.8-flash' },
@@ -905,14 +908,11 @@ evaluate('a', async () => {})
     } finally {
       delete process.env.AI_GATEWAY_BASE_URL
     }
-    const unset = await configOf(
-      'gateway-unset',
-      "{ harnesses: cursor({ model: 'composer-2.5' }) }",
-    )
+    const unset = await configOf('gateway-unset', "{ agents: cursor({ model: 'composer-2.5' }) }")
     assert.deepEqual(checkGateways(unset, deps(), '.env.local'), [])
     const stuck = await configOf(
       'gateway-stuck',
-      "{ harnesses: cursor({ model: 'composer-2.5' }), gateway: [vercel(), direct({ enabled: false })] }",
+      "{ agents: cursor({ model: 'composer-2.5' }), gateway: [vercel(), direct({ enabled: false })] }",
     )
     assert.equal(checkGateways(stuck, deps(), '.env.local')[0]?.status, 'fail')
   })
@@ -920,7 +920,7 @@ evaluate('a', async () => {})
   test('gateway: a judge or analysis model that falls back to direct is marked', async () => {
     const config = await configOf(
       'gateway-model-fallback',
-      `{ harnesses: claudeCode({ model: 'claude-sonnet-5-5' }),
+      `{ agents: claudeCode({ model: 'claude-sonnet-5-5' }),
          gateway: [vertex({ project: 'p' })],
          judge: { model: 'openai/gpt-5.4-mini' },
          analysis: { model: 'openai/gpt-5.4-mini' },
@@ -942,7 +942,7 @@ evaluate('a', async () => {})
   test('vertex: each entry’s project, where its tokens come from, and online whose they are', async () => {
     const config = await configOf(
       'gateway-vertex',
-      `{ harnesses: claudeCode({ model: 'claude-haiku-4-5@20251001' }),
+      `{ agents: claudeCode({ model: 'claude-haiku-4-5@20251001' }),
          gateway: [vertex({ project: 'reeval-test' })],
          judge: { model: 'anthropic/claude-haiku-4-5' },
          profiles: { env: { gateway: [vertex()] } } }`,
@@ -1067,14 +1067,14 @@ evaluate('a', async () => {})
     )
     assert.equal(refused.at(-1)?.status, 'fail')
     assert.match(refused.at(-1)?.summary ?? '', /gave no access token: invalid_grant/)
-    const unset = await configOf('vertex-unset', "{ harnesses: cursor({ model: 'composer-2.5' }) }")
+    const unset = await configOf('vertex-unset', "{ agents: cursor({ model: 'composer-2.5' }) }")
     assert.deepEqual(await checkVertex(unset, deps(), true), [])
   })
 
   test('vertex online: a Gemini model is probed in the google region, once for every caller', async () => {
     const config = await configOf(
       'gateway-vertex-gemini',
-      `{ harnesses: cursor({ model: 'composer-2.5' }),
+      `{ agents: cursor({ model: 'composer-2.5' }),
          judge: { model: 'google/gemini-3.8-flash' },
          analysis: { model: 'google/gemini-3.8-flash' },
          gateway: [vertex({ project: 'reeval-test', regions: { google: 'us-central1' } })] }`,
@@ -1109,13 +1109,13 @@ evaluate('a', async () => {})
   test('vertex online: the Gemini harnesses are probed on the id they call', async () => {
     const config = await configOf(
       'gateway-vertex-harnesses',
-      `{ harnesses: cursor({ model: 'composer-2.5' }),
+      `{ agents: cursor({ model: 'composer-2.5' }),
          gateway: [vertex({ project: 'reeval-test' })],
          profiles: {
-           agy: { defaults: { harnesses: antigravity({ model: 'gemini-3.8-flash-low' }) } },
-           oc: { defaults: { harnesses: opencode({ model: 'google-vertex/gemini-3.8-flash' }) } },
-           goose: { defaults: { harnesses: goose({ model: 'google/gemini-3.8-flash' }) } },
-           pi: { defaults: { harnesses: pi({ model: 'google/gemini-3.8-pro' }) } },
+           agy: { defaults: { agents: antigravity({ model: 'gemini-3.8-flash-low' }) } },
+           oc: { defaults: { agents: opencode({ model: 'google-vertex/gemini-3.8-flash' }) } },
+           goose: { defaults: { agents: goose({ model: 'google/gemini-3.8-flash' }) } },
+           pi: { defaults: { agents: pi({ model: 'google/gemini-3.8-pro' }) } },
          } }`,
     )
     const asked: string[] = []
@@ -1145,17 +1145,17 @@ evaluate('a', async () => {})
   })
 
   test('egress: the policy, and one the sandbox can’t enforce', async () => {
-    const open = await configOf('egress-open', "{ harnesses: cursor({ model: 'composer-2.5' }) }")
+    const open = await configOf('egress-open', "{ agents: cursor({ model: 'composer-2.5' }) }")
     assert.match(checkEgress(open)[0]?.summary ?? '', /^proxy: .* \(the default\)/)
     const denied = await configOf(
       'egress-deny',
-      "{ harnesses: cursor({ model: 'composer-2.5' }), egress: 'deny-all' }",
+      "{ agents: cursor({ model: 'composer-2.5' }), egress: 'deny-all' }",
     )
     assert.deepEqual(statuses(checkEgress(denied)), ['ok'])
     const fake = await configOf(
       'egress-fake',
-      `{ harnesses: cursor({ model: 'composer-2.5' }),
-         profiles: { fake: { defaults: { harnesses: fakeHarness(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }), egress: { allow: ['example.com'] } } } } }`,
+      `{ agents: cursor({ model: 'composer-2.5' }),
+         profiles: { fake: { defaults: { agents: fakeAgent(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }), egress: { allow: ['example.com'] } } } } }`,
     )
     const checks = checkEgress(fake)
     assert.deepEqual(statuses(checks), ['ok', 'ok', 'fail'])
@@ -1166,7 +1166,7 @@ evaluate('a', async () => {})
   test('egress: allow-all on a cloud VM or CI runner warns; proxy there, or allow-all elsewhere, does not', async () => {
     const direct = await configOf(
       'egress-direct',
-      "{ harnesses: cursor({ model: 'composer-2.5' }), egress: 'allow-all' }",
+      "{ agents: cursor({ model: 'composer-2.5' }), egress: 'allow-all' }",
     )
     const runner = 'a GitHub Actions runner (GITHUB_ACTIONS)'
     const checks = checkEgress(direct, runner)
@@ -1179,7 +1179,7 @@ evaluate('a', async () => {})
     assert.match(checks[1]?.fix ?? '', /egress: 'proxy' \(the default\)/)
     // Twins: the same config on a machine that isn't a cloud host, and the default on one.
     assert.deepEqual(statuses(checkEgress(direct, null)), ['ok'])
-    const open = await configOf('egress-proxy', "{ harnesses: cursor({ model: 'composer-2.5' }) }")
+    const open = await configOf('egress-proxy', "{ agents: cursor({ model: 'composer-2.5' }) }")
     assert.deepEqual(statuses(checkEgress(open, runner)), ['ok'])
   })
 
@@ -1310,14 +1310,18 @@ describe('reeval doctor', () => {
   test("egress names the policies the evals' environments set, not only the config's default", async () => {
     const p = await project('doctor-egress-planned', {
       'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
-export default defineConfig({ harnesses: fakeHarness() })
+import { fakeAgent } from 'reeval/agent'
+export default defineConfig({ agents: fakeAgent() })
 `,
-      'evals/a.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/a.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const lib = defineEnvironment('lib', { sandbox: docker(), egress: { allow: ['registry.npmjs.org'] } })
-evaluate('one', { environments: lib, runs: 1 }, async () => {})
-evaluate('two', { environments: lib, runs: 1 }, async () => {})
+export default defineEval({ environment: lib, runs: 1, async task() {} })
+`,
+      'evals/a2.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
+import { docker } from 'reeval/sandbox'
+const lib = defineEnvironment('lib', { sandbox: docker(), egress: { allow: ['registry.npmjs.org'] } })
+export default defineEval({ environment: lib, runs: 1, async task() {} })
 `,
     })
     const env = { DOCKER_HOST: 'unix:///nonexistent/reeval-doctor.sock' }
@@ -1333,9 +1337,9 @@ evaluate('two', { environments: lib, runs: 1 }, async () => {})
     )
     await writeFile(
       join(p.dir, 'evals/b.eval.ts'),
-      `import { defineEnvironment, evaluate } from 'reeval'
+      `import { defineEnvironment, defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
-evaluate('three', { environments: defineEnvironment('open', { sandbox: docker() }), runs: 1 }, async () => {})
+export default defineEval({ environment: defineEnvironment('open', { sandbox: docker() }), runs: 1, async task() {} })
 `,
     )
     const summaries = (await egress()).map((c: Check) => c.summary)
@@ -1351,8 +1355,8 @@ evaluate('three', { environments: defineEnvironment('open', { sandbox: docker() 
   test('problems exit 1 with their fixes, and never print a key', async () => {
     const p = await project('doctor-problems', {
       'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { cursor } from 'reeval/harness'
-export default defineConfig({ harnesses: cursor({ model: 'composer-2.5' }), judge: { model: 'google/gemini-3.8-flash' } })
+import { cursor } from 'reeval/agent'
+export default defineConfig({ agents: cursor({ model: 'composer-2.5' }), judge: { model: 'google/gemini-3.8-flash' } })
 `,
       '.env.local': `GOOGLE_GENERATIVE_AI_API_KEY=${SECRET}\n`,
     })
@@ -1395,10 +1399,11 @@ if (args[0] === 'info') {
     await writeFile(join(bin, 'docker.cmd'), '@node "%~dp0docker.js" %*\r\n')
     const p = await project('doctor-flaky-docker', {
       'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { cursor } from 'reeval/harness'
-export default defineConfig({ harnesses: cursor({ model: 'composer-2.5' }) })
+import { cursor } from 'reeval/agent'
+export default defineConfig({ agents: cursor({ model: 'composer-2.5' }) })
 `,
-      'evals/a.eval.ts': "import { evaluate } from 'reeval'\nevaluate('a', async () => {})\n",
+      'evals/a.eval.ts':
+        "import { defineEval } from 'reeval'\nexport default defineEval({ async task() {} })\n",
       '.gitignore': '.reeval/\n.env*\n',
     })
     const env = { PATH: `${bin}${delimiter}${process.env.PATH}`, CURSOR_API_KEY: 'set' }

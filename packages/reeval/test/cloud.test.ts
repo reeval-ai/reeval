@@ -481,12 +481,12 @@ describe("the service's capacity", () => {
     const { dir } = await project('cloud-sized', {
       'reeval.config.ts': `
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
-export default defineConfig({ harnesses: fakeHarness(), concurrency: 2 })
+import { fakeAgent } from 'reeval/agent'
+export default defineConfig({ agents: fakeAgent(), concurrency: 2 })
 `,
       'evals/a.eval.ts': `
-import { evaluate } from 'reeval'
-evaluate('a', { runs: 8 }, async () => {})
+import { defineEval } from 'reeval'
+export default defineEval({ runs: 8, async task() {} })
 `,
     })
     const planned = async (env: Record<string, string>) => {
@@ -505,14 +505,14 @@ evaluate('a', { runs: 8 }, async () => {})
     const unused = await project('cloud-sized-podman', {
       'reeval.config.ts': `
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { podman } from 'reeval/sandbox'
-export default defineConfig({ harnesses: fakeHarness(), sandbox: podman(), concurrency: 2 })
+export default defineConfig({ agents: fakeAgent(), sandbox: podman(), concurrency: 2 })
 `,
       'evals/a.eval.ts': `
-import { evaluate } from 'reeval'
+import { defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
-evaluate('a', { runs: 8, sandbox: docker() }, async () => {})
+export default defineEval({ runs: 8, sandbox: docker(), async task() {} })
 `,
     })
     const r = await runCli(unused.dir, ['run', '--dry-run', '--json'], { env: onVms })
@@ -525,18 +525,20 @@ describe('an attempt on a VM it cannot reach', () => {
   const files = (size: string) => ({
     'reeval.config.ts': `
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { cloud } from 'reeval/internal/vm'
 export default defineConfig({
-  harnesses: fakeHarness({ script: [[{ exec: 'true' }]] }),
+  agents: fakeAgent({ script: [[{ exec: 'true' }]] }),
   sandbox: cloud(${size}),
   egress: 'allow-all',
 })
 `,
-    'evals/a.eval.ts': `
-import { evaluate } from 'reeval'
-evaluate('reaches', async (c) => {
+    'evals/reaches.eval.ts': `
+import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
   await c.exec('true')
+  },
 })
 `,
   })

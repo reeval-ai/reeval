@@ -28,8 +28,9 @@ import {
   sandboxPaths,
 } from './environment.ts'
 import { UsageError } from './errors.ts'
+import { badEvalId, fileEvalId } from './eval-id.ts'
 import { bodyHash, caseJson } from './eval-source.ts'
-import { evalId } from './ids.ts'
+import { evalId, relativeFile } from './ids.ts'
 import { environmentInputs } from './inputs.ts'
 import { isObjectLike } from './object.ts'
 import { checkOptions, matchesTags, refuseIllegalCompare, sandboxProvider } from './options.ts'
@@ -37,6 +38,7 @@ import { type PlannedEval, planEval } from './plan-eval.ts'
 import { maskedVariables, redactSecrets } from './redact.ts'
 import { sandboxKind } from './sandbox/kinds.ts'
 import type {
+  CaseEvalSpec,
   CaseFn,
   CaseOptions,
   Environment,
@@ -46,6 +48,7 @@ import type {
   EvalOptions,
   EvalOptionsData,
   EvalPlan,
+  EvalSpec,
   GroupOptions,
 } from './types.ts'
 import type { CaseWhere } from './where.ts'
@@ -60,6 +63,16 @@ let groupStack: Declaring[] = []
 /** Each eval file's declarations as `evaluate` and `group` were called, and each eval's body by id. */
 const trees = new Map<string, DeclarationTree>()
 const bodies = new Map<string, EvalFn>()
+
+/** Clears declaration state between worker files or conformance collects. */
+export function resetDeclarationCollector(): void {
+  groupStack = []
+  trees.clear()
+  bodies.clear()
+  declared.clear()
+  givenPaths.clear()
+  families.clear()
+}
 
 /** What the file being collected has declared so far. */
 export function declaredTree(file: string): DeclarationTree | undefined {
@@ -145,7 +158,12 @@ const givenPaths = new Map<string, string>()
  * same name are refused rather than numbered: the id is the key history, compare and query
  * group attempts by across runs, and a number would depend on the order of the declarations.
  */
-function shownName(kind: 'eval' | 'group' | 'todo', name: string, hint = ''): string {
+function shownName(
+  kind: 'eval' | 'group' | 'todo',
+  name: string,
+  hint = '',
+  label?: string,
+): string {
   const shown = redactSecrets(name)
   const path = [...groupStack.map((g) => g.name), shown]
   const given = [...groupStack.map((g) => g.given), name].join('\0')
@@ -153,6 +171,11 @@ function shownName(kind: 'eval' | 'group' | 'todo', name: string, hint = ''): st
   const key = [collectingFile() ?? '', kind === 'group' ? 'group' : 'eval', ...path].join('\0')
   const earlier = givenPaths.get(key)
   if (earlier !== undefined && earlier !== given) {
+    if (label) {
+      throw new UsageError(
+        `${label} names a secret, and its masked name is another case's in this eval:${hint}`,
+      )
+    }
     const what = kind === 'group' ? 'group' : kind === 'todo' ? 'evaluate.todo' : 'evaluate'
     throw new UsageError(
       `${what}("${path.join(' › ')}") names a secret, and its masked name is another ${kind === 'group' ? 'group' : 'eval'}'s in this file: name it without the secret.${hint}`,
@@ -193,13 +216,6 @@ const defineGroup =
       }
     })
   }
-
-export const group: GroupFn & { skip: GroupFn; only: GroupFn; todo: (name: string) => void } =
-  Object.assign(defineGroup('run'), {
-    skip: defineGroup('skip'),
-    only: defineGroup('only'),
-    todo: (name: string) => registerTodo(name),
-  })
 
 /**
  * A placeholder, `evaluate.todo` or `group.todo`: one eval entry that never runs, counted as
@@ -306,9 +322,13 @@ function register(
   source: DeclaredSource,
   hint = '',
   givenFamily?: DeclaredFamily,
+  named: Named = {},
 ): void {
-  prepare(mode, given, own, fn, source, hint, givenFamily).commit()
+  prepare(mode, given, own, fn, source, hint, givenFamily, undefined, named).commit()
 }
+
+/** How a one-eval file's eval is named in messages, and why it's skipped. */
+type Named = { label?: string; skipReason?: string }
 
 /** An eval planned but not yet registered: `commit` registers its tests. */
 type Prepared = { planned: PlannedEval; commit: () => void }
@@ -322,16 +342,24 @@ function prepare(
   hint = '',
   givenFamily?: DeclaredFamily,
   where?: CaseWhere,
+  named: Named = {},
 ): Prepared {
   const name = shownName(
     'eval',
     given,
     givenFamily ? ' Give each case a key that holds no secret.' : '',
+    named.label,
   )
   const family = givenFamily && { ...givenFamily, name: redactSecrets(givenFamily.name) }
   const groups = groupStack.map((g) => g.name)
   if (family) checkFamily(groups, family)
-  checkUnique(`evaluate("${[...groups, name].join(' › ')}")`, groups, name, hint, !!family)
+  checkUnique(
+    named.label ?? `evaluate("${[...groups, name].join(' › ')}")`,
+    groups,
+    name,
+    hint,
+    !!family,
+  )
   const body = `b${bodies.size + 1}`
   bodies.set(body, fn)
   declare({
@@ -353,6 +381,8 @@ function prepare(
       source,
       ...(family ? { family } : {}),
       ...(where ? { where } : {}),
+      ...(named.label ? { label: named.label } : {}),
+      ...(named.skipReason ? { skipReason: named.skipReason } : {}),
     },
     {
       ...run,
@@ -411,7 +441,7 @@ function prepare(
 /** Evals registered so far in this worker, for the scheduler's tie-break. */
 let registered = 0
 
-const defineEval =
+const defineEvaluate =
   (mode: DeclaredMode, declared?: DeclaredSource): EvaluateFn =>
   (name: string, a?: unknown, b?: unknown) => {
     checkOnly(mode, 'evaluate')
@@ -446,6 +476,9 @@ function registerCases(
   written: EvalOptions & CaseOptions<unknown>,
   fn: EvalFn | CaseFn<unknown>,
   where: string,
+  label?: (key: string) => string,
+  skipReason?: string,
+  base?: string,
 ): void {
   const { cases, caseKey, where: pick, ...rest } = written
   if (!Array.isArray(cases)) {
@@ -476,7 +509,7 @@ function registerCases(
   const keys = caseKeys(cases, caseKey, where)
   // Keys as they're shown and recorded: in the plan's notes and the pairs `where` leaves out.
   const shownKeys = keys.map((k) => redactSecrets(k))
-  const own = withPaths(rest as EvalOptions, where)
+  const own = withPaths(rest as EvalOptions, where, base)
   const file = collectingFile()
   const body = bodyHash(fn, where, file)
   const prepared = cases.map((item, i) => {
@@ -486,7 +519,8 @@ function registerCases(
     const run: EvalFn = (c) => (fn as CaseFn<unknown>)(c, item)
     const picks = pick ? { label: where, key, item, where: pick } : undefined
     const member = caseEvalName(name, keys[i] as string)
-    return prepare(mode, member, own, run, source, '', family, picks)
+    const named = { ...(label ? { label: label(key) } : {}), ...(skipReason ? { skipReason } : {}) }
+    return prepare(mode, member, own, run, source, '', family, picks, named)
   })
   if (pick) applyWhere(where, shownKeys, prepared)
   for (const p of prepared) p.commit()
@@ -541,15 +575,105 @@ function applyWhere(where: string, keys: string[], prepared: Prepared[]): void {
   for (const list of new Set([...plans].map((p) => p.notes))) list.push(...notes)
 }
 
-export const evaluate: EvaluateFn & {
-  skip: EvaluateFn
-  only: EvaluateFn
-  todo: (name: string) => void
-} = Object.assign(defineEval('run'), {
-  skip: defineEval('skip'),
-  only: defineEval('only'),
-  todo: registerTodo,
-})
+const EVAL = Symbol.for('reeval.eval')
+const DEFINED = Symbol.for('reeval.defined')
+
+/** Every `defineEval` result in this process, whichever copy of reeval made it. */
+const definedEvals = (): object[] => {
+  const g = globalThis as { [DEFINED]?: object[] }
+  g[DEFINED] ??= []
+  return g[DEFINED]
+}
+
+/** Spec keys that aren't eval options. */
+type SpecOnly = { task?: unknown; skip?: unknown; environment?: unknown; environments?: unknown }
+
+/**
+ * One eval: an eval file's default export. Its id is the file's path from the evals root without
+ * `.eval.ts`. With `cases`, the task takes the attempt and its case, typed from the list.
+ */
+export function defineEval<const T, N extends number = number>(
+  spec: CaseEvalSpec<T, N>,
+): CaseEvalSpec<T, N>
+export function defineEval<N extends number = number>(spec: EvalSpec<N>): EvalSpec<N>
+export function defineEval(spec: object): object {
+  if (!isObjectLike(spec) || Array.isArray(spec)) {
+    throw new UsageError(
+      `defineEval takes one object, e.g. defineEval({ agents, environment, task: async (c) => { … } }) (got ${spec === null ? 'null' : typeof spec}).`,
+    )
+  }
+  Object.defineProperty(spec, EVAL, { value: true })
+  definedEvals().push(spec)
+  return spec
+}
+
+/**
+ * Registers a loaded TypeScript eval file's eval, its default export. A file with none, one that
+ * isn't a `defineEval` result, or more than one `defineEval` call is refused: an eval file is one
+ * eval, and one that declares none would drop out of every run unseen.
+ */
+export function declareDefault(file: string, module: unknown): void {
+  // jiti's interop answers `default` with the module itself when it has none.
+  const value =
+    isObjectLike(module) && Object.keys(module).includes('default')
+      ? (module as { default?: unknown }).default
+      : undefined
+  const expected = "An eval file's default export is its eval: export default defineEval({ … })."
+  if (value === undefined) throw new UsageError(`it has no default export. ${expected}`)
+  if (!isObjectLike(value) || !(EVAL in value)) {
+    throw new UsageError(`its default export isn't a defineEval result. ${expected}`)
+  }
+  const count = definedEvals().length
+  if (count > 1) {
+    throw new UsageError(
+      `it calls defineEval ${count} times. An eval file is one eval, its default export: give each other eval a file of its own.`,
+    )
+  }
+  const { config } = getRunContext()
+  const rel = relativeFile(config.root, file)
+  const id = fileEvalId(config.include, rel)
+  const bad = badEvalId(id)
+  if (bad) throw new UsageError(bad)
+  const { task, skip, environment, environments, ...rest } = value as SpecOnly & EvalOptions
+  if (typeof task !== 'function') {
+    throw new UsageError(
+      `its eval has no task. Give defineEval the eval's body, e.g. task: async (c) => { … }.`,
+    )
+  }
+  if (skip !== undefined && typeof skip !== 'boolean' && !(typeof skip === 'string' && skip)) {
+    throw new UsageError(
+      `skip in ${rel} must be true, false or why it's skipped, e.g. skip: 'flaky on CI' (got ${JSON.stringify(skip)}).`,
+    )
+  }
+  if (environments !== undefined) {
+    throw new UsageError(
+      `${rel} sets environments. defineEval takes environment: one environment, or a list.`,
+    )
+  }
+  const options = {
+    ...rest,
+    ...(environment !== undefined ? { environments: environment } : {}),
+  } as EvalOptions
+  const mode: DeclaredMode = skip ? 'skip' : 'run'
+  const skipReason = typeof skip === 'string' ? skip : undefined
+  const base = dirname(file)
+  if ('cases' in options || 'caseKey' in options) {
+    const label = (key: string) => `${rel} case "${key}"`
+    const fn = task as CaseFn<unknown>
+    const written = options as EvalOptions & CaseOptions<unknown>
+    registerCases(mode, id, written, fn, rel, label, skipReason, base)
+    return
+  }
+  if ('where' in options) {
+    throw new UsageError(
+      `${rel} sets where without cases. where picks case-and-environment pairs; to drop an environment, leave it out of environment.`,
+    )
+  }
+  const fn = task as EvalFn
+  const source = { body: bodyHash(fn, rel, file) }
+  const named = { label: rel, ...(skipReason ? { skipReason } : {}) }
+  register(mode, id, withPaths(options, rel, base), fn, source, '', undefined, named)
+}
 
 /**
  * Declares a tree's groups and evals as the calls that made it would, in the file being
@@ -582,7 +706,7 @@ function declareNodes(
       checkOnly(node.mode, 'evaluate')
       register(node.mode, node.name, options, bodyFor(node.body), node.source, '', node.family)
     } else
-      defineEval(node.mode, node.source)(
+      defineEvaluate(node.mode, node.source)(
         node.name,
         optionsFrom(node.options, `evaluate("${redactSecrets(node.name)}")`, base),
         bodyFor(node.body),
@@ -618,3 +742,21 @@ function optionsFrom(written: EvalOptionsData, where: string, base: string): Eva
     compare: { ...compare, control: asEnv(compare.control, 'compare.control'), variants },
   }
 }
+
+/** Multi-eval files in conformance goldens and the Python mirrors; not the one-eval-per-file authoring API. */
+export const group: GroupFn & { skip: GroupFn; only: GroupFn; todo: (name: string) => void } =
+  Object.assign(defineGroup('run'), {
+    skip: defineGroup('skip'),
+    only: defineGroup('only'),
+    todo: (name: string) => registerTodo(name),
+  })
+
+export const evaluate: EvaluateFn & {
+  skip: EvaluateFn
+  only: EvaluateFn
+  todo: (name: string) => void
+} = Object.assign(defineEvaluate('run'), {
+  skip: defineEvaluate('skip'),
+  only: defineEvaluate('only'),
+  todo: registerTodo,
+})

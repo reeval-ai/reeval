@@ -1,24 +1,24 @@
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 import { profiles } from '../profiles.ts'
 
-const fakeAgent = (path: string) =>
+const fakeFile = (path: string) =>
   readFileSync(new URL(`./fake-agent/${path}`, import.meta.url), 'utf8')
 
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that tries the npm registry first, as an agent looking for a package
   // might, then writes ./fake-agent's files into the workspace.
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     script: [
       [
         { exec: 'curl -sS https://registry.npmjs.org/left-pad' },
         {
           write: {
-            'src/math.js': fakeAgent('src/math.js'),
-            'test/math.test.js': fakeAgent('test/math.test.js'),
+            'src/math.js': fakeFile('src/math.js'),
+            'test/math.test.js': fakeFile('test/math.test.js'),
           },
         },
         { reply: 'I added multiply(a, b) to src/math.js and a test for it.' },

@@ -1,7 +1,7 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
 export default defineConfig({
-  harnesses: fakeHarness({}),
+  agents: fakeAgent({}),
   capture: { model: 'anthropic/scripted-vision' },
 })

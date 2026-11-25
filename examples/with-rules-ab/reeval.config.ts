@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 import { profiles } from '../profiles.ts'
 
-const fakeAgent = (path: string) =>
+const fakeFile = (path: string) =>
   readFileSync(new URL(`./fake-agent/${path}`, import.meta.url), 'utf8')
 
 // The fake's rules land in AGENTS.md. It writes the changelog as those rules say: the typed
@@ -19,9 +19,9 @@ export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that copies ./fake-agent's files into the workspace and follows its rules
   // file, so the arms differ without keys or Docker.
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     script: [[{ exec: changelog }]],
-    files: { 'src/math.js': fakeAgent('src/math.js') },
+    files: { 'src/math.js': fakeFile('src/math.js') },
     text: 'I added multiply(a, b) to src/math.js and recorded it in CHANGELOG.md.',
   }),
   sandbox: fakeSandbox(),

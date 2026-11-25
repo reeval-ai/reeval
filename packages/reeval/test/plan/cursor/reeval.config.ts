@@ -1,8 +1,8 @@
 import { defineConfig } from 'reeval'
-import { cursor } from 'reeval/harness'
+import { cursor } from 'reeval/agent'
 
 export default defineConfig({
-  harnesses: [
+  agents: [
     cursor({ model: 'composer-2.5', params: { fast: 'false' } }),
     cursor({ model: 'composer-2.5', params: { fast: 'true' }, id: 'composer-fast' }),
   ],

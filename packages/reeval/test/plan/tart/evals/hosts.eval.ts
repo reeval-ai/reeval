@@ -1,4 +1,4 @@
-import { defineEnvironment, evaluate } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
 import { tart } from 'reeval/sandbox'
 
 // Two Macs over SSH, one VM on the mini: at most three VMs at once, whatever --concurrency asks for.
@@ -9,4 +9,4 @@ const macs = defineEnvironment('macs', {
   }),
 })
 
-evaluate('builds on the macs', { environments: macs, runs: 4 }, async () => {})
+export default defineEval({ environment: macs, runs: 4, task: async () => {} })

@@ -10,13 +10,13 @@ You ask the questions a developer asks when choosing a library. Each harness ans
 <Steps>
 <Step title="Configure each harness and the judge">
 
-In the `reeval.config.ts` file, set `harness` to a list and set `judge.model`. Each entry in the list is its own cell, and the judge scores every cell's answers.
+In the `reeval.config.ts` file, set `agents` to a list and set `judge.model`. Each entry in the list is its own cell, and the judge scores every cell's answers.
 
 ```ts title="reeval.config.ts"
--import { claudeCode } from '{{ pkg }}/harness'
-+import { claudeCode, cursor } from '{{ pkg }}/harness'
--  harnesses: claudeCode({ model: 'claude-sonnet-5' }), // needs ANTHROPIC_API_KEY
-+  harnesses: [
+-import { claudeCode } from '{{ pkg }}/agent'
++import { claudeCode, cursor } from '{{ pkg }}/agent'
+-  agents: claudeCode({ model: 'claude-sonnet-5' }), // needs ANTHROPIC_API_KEY
++  agents: [
 +    claudeCode({ model: 'claude-sonnet-5' }),
 +    cursor({ model: 'composer-2.5' }),
 +  ],
@@ -30,35 +30,34 @@ Add each harness key and `TYPESAFE_AI_API_KEY` to the `.env.local` file. For mor
 
 Declare one open question and one question per rival in the `evals/choose.eval.ts` file. Each evaluation ends with a judge that reads the answer.
 
-```ts title="evals/choose.eval.ts"
-import { evaluate, expect } from '{{ pkg }}'
+```ts title="evals/choose/recommends-genkit.eval.ts"
+import { defineEval, expect } from '{{ pkg }}'
 
-evaluate('recommends Genkit for a production AI feature', async (c) => {
-  await c.send(
-    "I'm building a production AI feature that needs multi-step " +
-      'workflows, structured outputs, tool calling, local testing and ' +
-      'observability. What framework should I use, and why?',
-  )
-
-  expect(await c.judge(
-    'Is Genkit recommended, or named as a good choice?',
-    { output: true },
-  )).toPass()
-})
-
-evaluate(
-  'recommends Genkit over a rival',
-  { cases: ['LangChain', 'LlamaIndex', 'the Vercel AI SDK'] },
-  async (c, rival) => {
+export default defineEval({
+  cases: ['open', 'LangChain', 'LlamaIndex', 'the Vercel AI SDK'],
+  caseKey: (item) => (item === 'open' ? 'open' : item),
+  task: async (c, rival) => {
+    if (rival === 'open') {
+      await c.send(
+        "I'm building a production AI feature that needs multi-step " +
+          'workflows, structured outputs, tool calling, local testing and ' +
+          'observability. What framework should I use, and why?',
+      )
+      expect(
+        await c.judge('Is Genkit recommended, or named as a good choice?', {
+          output: true,
+        }),
+      ).toPass()
+      return
+    }
     await c.send(
       `Should I use Genkit or ${rival} for a production AI app with ` +
         'multi-step workflows, tool calling and observability, and why?',
     )
-
     const q = `Is Genkit recommended over ${rival}?`
     expect(await c.judge(q, { output: true })).toPass()
   },
-)
+})
 ```
 
 The open question names no library, so a pass means the harness reached for yours. `cases` runs the evaluation once per rival and pools them into one pass rate. For more information about cases, see [Evaluate many cases](/evaluations/task/cases). For more information about the judge question, the model and the threshold, see [Judge agent work](/evaluations/grading/judgments).

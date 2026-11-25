@@ -1,17 +1,23 @@
-// An eval file's declarations as data (src/declaration.ts): what evaluate and group record, and
-// that the tree, through JSON and declared again, plans the same tests as the calls did.
+// An eval file's declarations as data (src/declaration.ts): what defineEval records, and that
+// the tree, through JSON and declared again, plans the same tests as the file did.
 import assert from 'node:assert/strict'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { validate } from '../scripts/schema/validate.ts'
+import { cursor, fakeAgent } from '../src/agent.ts'
 import { resolveConfig } from '../src/config.ts'
 import type { DeclarationTree } from '../src/declaration.ts'
 import { collect, collectingFile, registerGroup, registerTest } from '../src/engine/collector.ts'
 import { useEngine } from '../src/engine/runtime.ts'
 import { defineEnvironment } from '../src/environment.ts'
-import { declaredBody, declaredTree, declareTree, evaluate, group } from '../src/evaluate.ts'
-import { cursor, fakeHarness } from '../src/harness.ts'
+import {
+  declareDefault,
+  declaredBody,
+  declaredTree,
+  declareTree,
+  defineEval,
+} from '../src/evaluate.ts'
 import { harnessId } from '../src/options.ts'
 import { planEval } from '../src/plan-eval.ts'
 import type { RunContext } from '../src/types.ts'
@@ -20,7 +26,7 @@ import { tempDir } from './helpers.ts'
 function runIn(root: string): RunContext {
   const config = resolveConfig(
     {
-      harnesses: [fakeHarness(), cursor({ model: 'composer-2.5' })],
+      agents: [fakeAgent(), cursor({ model: 'composer-2.5' })],
       runs: 1,
     },
     root,
@@ -28,8 +34,8 @@ function runIn(root: string): RunContext {
   return { runId: 'r', stagingDir: root, config, tags: [], concurrency: 4, profile: null }
 }
 
-/** Collects `file` under `root` with `declare`, as a worker would. */
-async function collected(root: string, declare: () => void) {
+/** Collects `rel` under `root` with `declare`, as a worker would. */
+async function collected(root: string, declare: (file: string) => void, rel = 'evals/x.eval.py') {
   const run = runIn(root)
   useEngine({
     registerTest,
@@ -38,8 +44,8 @@ async function collected(root: string, declare: () => void) {
     collectingFile,
     declarePlanned: () => {},
   })
-  const file = join(root, 'evals/x.eval.ts')
-  const tests = await collect(file, async () => declare())
+  const file = join(root, rel)
+  const tests = await collect(file, async () => declare(file))
   return {
     file,
     tests: tests.map(({ index, name, groups, mode, options }) => ({
@@ -52,81 +58,158 @@ async function collected(root: string, declare: () => void) {
   }
 }
 
+/**
+ * Loads `evals/<id>.eval.ts`, whose default export is `defineEval(spec)`. A worker loads one
+ * file; here every file shares one process, so the `defineEval` results made so far are
+ * forgotten first.
+ */
+const loaded = (root: string, id: string, spec: () => object) =>
+  collected(
+    root,
+    (file) => {
+      ;(globalThis as Record<symbol, unknown>)[Symbol.for('reeval.defined')] = []
+      declareDefault(file, { default: defineEval(spec() as never) })
+    },
+    `evals/${id}.eval.ts`,
+  )
+
 const plain = defineEnvironment('plain', {})
 const skill = defineEnvironment('skill', { rules: 'Use the house style.' })
 
-function declarations() {
-  group('outer', { tags: ['smoke'], harnesses: { only: 'fake' } }, () => {
-    evaluate('a', { runs: 2 }, async () => {})
-    group.skip('skipped', () => {
-      evaluate('b', async () => {})
-    })
-    group('both', { harnesses: { add: cursor({ model: 'composer-2', id: 'fast' }) } }, () => {
-      evaluate('c', { compare: { control: plain, variants: [skill] } }, async () => {})
-    })
-  })
-  evaluate('d', { timeout: '2m', egress: 'deny-all', environments: skill }, async () => {})
-  evaluate('case', { cases: [1, 2] }, async () => {})
-  evaluate.todo('later')
-  group.todo('also later')
+/** Eval files by id, each its default export's spec. */
+const EVALS: Record<string, () => object> = {
+  a: () => ({ runs: 2, tags: ['smoke'], agents: { only: 'fake' }, task: async () => {} }),
+  skipped: () => ({ skip: 'not yet', task: async () => {} }),
+  c: () => ({
+    agents: { add: cursor({ model: 'composer-2', id: 'fast' }) },
+    compare: { control: plain, variants: [skill] },
+    task: async () => {},
+  }),
+  d: () => ({ timeout: '2m', egress: 'deny-all', environment: skill, task: async () => {} }),
+  case: () => ({ cases: [1, 2], task: async () => {} }),
 }
 
-test('evaluate and group record the tree they declare, and each body by id', async () => {
-  const { file } = await collected(tempDir('declared'), declarations)
-  const tree = declaredTree(file)
-  assert.ok(tree)
-  const shape = (nodes: DeclarationTree['children']): unknown[] =>
-    nodes.map((n) =>
-      n.type === 'todo'
-        ? `todo ${n.name}`
-        : n.type === 'eval'
-          ? `${n.mode} ${n.name} ${n.body}`
-          : { [`${n.mode} ${n.name}`]: shape(n.children) },
-    )
-  const data = JSON.parse(JSON.stringify(tree)) as DeclarationTree
-  assert.deepEqual(shape(data.children), [
+/**
+ * Every eval file in `EVALS`, collected once: an id is declared once per process, as a worker
+ * collects one file.
+ */
+let collectedAll: Promise<Record<string, Awaited<ReturnType<typeof loaded>>>> | undefined
+const all = () => {
+  collectedAll ??= (async () => {
+    const root = tempDir('declared')
+    const out: Record<string, Awaited<ReturnType<typeof loaded>>> = {}
+    for (const [id, spec] of Object.entries(EVALS)) out[id] = await loaded(root, id, spec)
+    return out
+  })()
+  return collectedAll
+}
+
+/** A tree as a runner in another language declares it, in a group. */
+const groupedTree = (): DeclarationTree['children'] =>
+  [
     {
-      'run outer': ['run a b4', { 'skip skipped': ['run b b5'] }, { 'run both': ['run c b6'] }],
+      type: 'group',
+      name: 'outer',
+      mode: 'run',
+      options: { tags: ['smoke'], agents: { only: 'fake' } },
+      children: [
+        {
+          type: 'eval',
+          name: 'a',
+          mode: 'run',
+          options: { runs: 2 },
+          body: 'g1',
+          source: { body: '0'.repeat(64) },
+        },
+        {
+          type: 'group',
+          name: 'skipped',
+          mode: 'skip',
+          options: {},
+          children: [
+            {
+              type: 'eval',
+              name: 'b',
+              mode: 'run',
+              options: {},
+              body: 'g2',
+              source: { body: '1'.repeat(64) },
+            },
+          ],
+        },
+      ],
     },
-    'run d b1',
-    'run case [1] b2',
-    'run case [2] b3',
-    'todo later',
-    'todo also later',
-  ])
-  for (const node of data.children)
-    if (node.type === 'eval') assert.equal(typeof declaredBody(node.body), 'function')
+    { type: 'todo', name: 'later' },
+  ] as DeclarationTree['children']
+
+const shape = (nodes: DeclarationTree['children']): unknown[] =>
+  nodes.map((n) =>
+    n.type === 'todo'
+      ? `todo ${n.name}`
+      : n.type === 'eval'
+        ? `${n.mode} ${n.name}`
+        : { [`${n.mode} ${n.name}`]: shape(n.children) },
+  )
+
+test('defineEval records its eval in the tree, and its body by id', async () => {
+  const files = await all()
+  const shapes = Object.fromEntries(
+    Object.entries(files).map(([id, { file }]) => {
+      const data = JSON.parse(JSON.stringify(declaredTree(file))) as DeclarationTree
+      for (const node of data.children)
+        if (node.type === 'eval') assert.equal(typeof declaredBody(node.body), 'function', id)
+      return [id, shape(data.children)]
+    }),
+  )
+  assert.deepEqual(shapes, {
+    a: ['run a'],
+    skipped: ['skip skipped'],
+    c: ['run c'],
+    d: ['run d'],
+    case: ['run case [1]', 'run case [2]'],
+  })
+  assert.deepEqual(
+    [files.a, files.skipped].flatMap((f) => f?.tests.map((t) => `${t.mode} ${t.name}`)),
+    ['run a [fake/-/docker#1]', 'run a [fake/-/docker#2]', 'skip skipped [fake/-/docker#1]'],
+  )
 })
 
-test('a tree through JSON, declared again, plans the same tests as the calls', async () => {
-  const calls = await collected(tempDir('calls'), declarations)
-  const tree = JSON.parse(JSON.stringify(declaredTree(calls.file))) as DeclarationTree
-  const replayed = await collected(tempDir('tree'), () =>
-    declareTree(tree.children, (id) => declaredBody(id) as never),
+/** Tests with the scheduler's tie-break, which counts the evals this process planned, from 0. */
+const fromZero = (tests: { options: { gate?: { rank: { order: number } } } }[]) => {
+  const first = Math.min(...tests.map((t) => t.options.gate?.rank.order ?? Infinity))
+  return JSON.parse(
+    JSON.stringify(tests, (key, value) =>
+      key === 'order' && typeof value === 'number' ? value - first : value,
+    ),
   )
-  // The scheduler's tie-break counts the evals this process planned, across files.
-  const plain = (tests: typeof calls.tests) => {
-    const first = Math.min(...tests.map((t) => t.options.gate?.rank.order ?? Infinity))
-    return JSON.parse(
-      JSON.stringify(tests, (key, value) =>
-        key === 'order' && typeof value === 'number' ? value - first : value,
-      ),
-    )
-  }
-  assert.ok(calls.tests.length > 8, `${calls.tests.length} tests`)
-  assert.deepEqual(plain(replayed.tests), plain(calls.tests))
+}
+
+test('a grouped tree through JSON, declared again, plans the same tests', async () => {
+  const bodies = { g1: async () => {}, g2: async () => {} }
+  const first = await collected(tempDir('grouped'), () =>
+    declareTree(groupedTree(), (body) => bodies[body as keyof typeof bodies]),
+  )
+  const tree = JSON.parse(JSON.stringify(declaredTree(first.file))) as DeclarationTree
+  assert.deepEqual(shape(tree.children), [
+    { 'run outer': ['run a', { 'skip skipped': ['run b'] }] },
+    'todo later',
+  ])
+  const replayed = await collected(tempDir('grouped-again'), () =>
+    declareTree(tree.children, (body) => declaredBody(body) as never),
+  )
+  assert.deepEqual(fromZero(replayed.tests), fromZero(first.tests))
   assert.deepEqual(
-    calls.tests.map((t) => `${t.mode} ${[...t.groups, t.name].join(' › ')}`).slice(0, 4),
+    first.tests.map((t) => `${t.mode} ${[...t.groups, t.name].join(' › ')}`),
     [
       'run outer › a [fake/-/docker#1]',
       'run outer › a [fake/-/docker#2]',
       'skip outer › skipped › b [fake/-/docker#1]',
-      'run outer › both › c [fake/plain/docker#1]',
+      'todo later',
     ],
   )
 })
 
-/** A tree as another language writes it: host paths relative to the eval file, evals/x.eval.ts. */
+/** A tree as another language writes it: host paths relative to the eval file, evals/x.eval.py. */
 function relativeTree(): DeclarationTree['children'] {
   const env = (name: string, spec: object) => ({
     kind: 'environment',
@@ -157,7 +240,7 @@ function relativeTree(): DeclarationTree['children'] {
       type: 'group',
       name: 'fake',
       mode: 'run',
-      options: { harnesses: { only: 'fake' }, sandbox: { kind: 'fake', dir: './sandboxes' } },
+      options: { agents: { only: 'fake' }, sandbox: { kind: 'fake', dir: './sandboxes' } },
       children: [eval_('context', { environments: context })],
     },
     eval_('compare', {
@@ -282,7 +365,7 @@ test("a tree's missing Dockerfile is refused at its absolute path, naming the fi
   }
 })
 
-test('replaying a tree with compare: false is refused like evaluate', async () => {
+test('replaying a tree with compare: false is refused as a TypeScript eval is', async () => {
   await assert.rejects(
     () =>
       collected(tempDir('false-compare'), () =>
@@ -348,7 +431,7 @@ test('planEval is pure: the same declaration and context give the same tests, ga
   assert.deepEqual(harnesses, run.config.harness.map(harnessId))
   assert.deepEqual(once?.[0]?.gate, {
     limits: { attempts: 4 },
-    rank: { eval: 'evals/p.eval.ts › p', file: 'evals/p.eval.ts', order: 3, n: 1, cell: 0 },
+    rank: { eval: 'p', file: 'evals/p.eval.ts', order: 3, n: 1, cell: 0 },
   })
   assert.deepEqual(
     planEval({ ...declaration, options: { tags: ['x'] } }, { ...ctx, tags: ['y'] }),
@@ -380,16 +463,25 @@ test("planEval holds the engine's backstop to the longest timer Node can set", (
 test('the tree and the collected tests fit their JSON Schemas in schema/plan/', async () => {
   const schema = (name: string) =>
     JSON.parse(readFileSync(new URL(`../schema/plan/${name}.schema.json`, import.meta.url), 'utf8'))
-  const { file, tests } = await collected(tempDir('schemas'), declarations)
-  const tree = JSON.parse(JSON.stringify(declaredTree(file)))
-  assert.deepEqual(validate(schema('declaration'), tree), [])
-  const wire = tests.map(({ index, name, groups, mode, options }) => ({
-    index,
-    name,
-    groups,
-    mode,
-    ...(options.attempt ? { attempt: options.attempt } : {}),
-  }))
+  const files: { file: string; tests: unknown[] }[] = Object.values(await all())
+  files.push(
+    await collected(tempDir('schemas-grouped'), () =>
+      declareTree(groupedTree(), () => async () => {}),
+    ),
+  )
+  for (const { file } of files) {
+    const tree = JSON.parse(JSON.stringify(declaredTree(file)))
+    assert.deepEqual(validate(schema('declaration'), tree), [], file)
+  }
+  const wire = files
+    .flatMap(({ tests }) => tests)
+    .map(({ index, name, groups, mode, options }) => ({
+      index,
+      name,
+      groups,
+      mode,
+      ...(options.attempt ? { attempt: options.attempt } : {}),
+    }))
   for (const test of JSON.parse(JSON.stringify(wire)))
     assert.deepEqual(validate(schema('wire-test'), test), [], test.name)
   // The canary: a tree the schema rules out.

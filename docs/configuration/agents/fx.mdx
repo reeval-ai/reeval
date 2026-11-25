@@ -28,16 +28,16 @@ For more information about the variables, see [`AI_GATEWAY_API_KEY`](/reference/
 
 ## `fx()`
 
-`fx()` is exported from `{{ pkg }}/harness`. The `reeval.config.ts` file passes it as the `harness` option:
+`fx()` is exported from `{{ pkg }}/agent`. The `reeval.config.ts` file passes it as the `harness` option:
 
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
 import { direct, vercel } from '{{ pkg }}/gateway'
-import { fx } from '{{ pkg }}/harness'
+import { fx } from '{{ pkg }}/agent'
 
 export default defineConfig({
   gateway: [vercel(), direct()],
-  harnesses: fx({ model: 'anthropic/claude-sonnet-5' }),
+  agents: fx({ model: 'anthropic/claude-sonnet-5' }),
 })
 ```
 

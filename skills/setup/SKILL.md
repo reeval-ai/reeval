@@ -41,7 +41,7 @@ grep -o '^[A-Z_]*=' .env.local .env 2>/dev/null                      # key names
 | You find | State | Then |
 |---|---|---|
 | A `reeval.config.*` or `reeval.yaml` | Set up | No init. Read the config and the evals and run `npx reeval run --dry-run`; after step 2, add evals beside them |
-| `reeval` in `package.json`, no config | Installed | `npx reeval init --bare --harness <h>` |
+| `reeval` in `package.json`, no config | Installed | `npx reeval init --bare --agent <h>` |
 | Neither | New | Install, then `init --bare` (step 3) |
 
 The directory is a **project** if it has code, docs or skills (`package.json`, `src/`,
@@ -69,7 +69,7 @@ help: a renamed API, a new default, a required option, a convention. Those are y
 
 Use the project's package manager (its lockfile), and pick the harness the user has a key for:
 
-| Harness | `--harness` | Key |
+| Harness | `--agent` | Key |
 |---|---|---|
 | Cursor (default) | `cursor` | `CURSOR_API_KEY` |
 | Claude Code | `claude-code` | `ANTHROPIC_API_KEY` |
@@ -80,7 +80,7 @@ Use the project's package manager (its lockfile), and pick the harness the user 
 ```bash
 npm init -y                                  # only if there's no package.json
 npm i -D reeval                              # pnpm add -D reeval · yarn add -D reeval
-npx reeval init --bare --harness cursor      # pnpm reeval init … · yarn reeval init …
+npx reeval init --bare --agent cursor      # pnpm reeval init … · yarn reeval init …
 ```
 
 `--bare` writes only `reeval.config.ts`, the `.gitignore` entries (`.reeval/`, `.env*`) and the

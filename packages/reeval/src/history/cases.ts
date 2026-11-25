@@ -3,6 +3,7 @@
 // (`family` set, named `<eval> [<key>]`), so attempts, resume and artifacts keep their keys;
 // `foldCases` turns those entries, and the `families` beside them, into the eval, and
 // `unfoldCases` turns it back. Browser-safe: reading a record from before this shape folds it too.
+import { evalId } from '../eval-id.ts'
 import { sha256Hex } from '../sha256.ts'
 import { evalSlug } from '../slug.ts'
 import type { Outcome } from '../types.ts'
@@ -167,7 +168,7 @@ function foldOne(
     (m) => !(m.name.startsWith(`${template} [`) && m.name.endsWith(']')),
   )
   const renamed = templated ? templateName(template) : template
-  const renamedId = [first.file, ...first.group, renamed].join(' › ')
+  const renamedId = evalId(first.file, [...first.group, renamed])
   const id = renamed === template || taken.has(renamedId) ? (family?.id ?? meta.id) : renamedId
   const name = template
   const cases = sorted.map((m) => caseOf(m, template))
@@ -242,7 +243,7 @@ function loneCase(e: EvalEntry): EvalEntry {
   if (e.family || e.source?.case === undefined) return e
   const name = /^(.*) \[[^\]]*\]$/.exec(e.name)?.[1]
   if (!name) return e
-  const id = [e.file, ...e.group, name].join(' › ')
+  const id = evalId(e.file, [...e.group, name])
   return { ...e, family: { id, name, case: 0, cases: 1 } }
 }
 
@@ -292,7 +293,7 @@ export function caseEntries(e: EvalEntry): EvalEntry[] {
   const { cases, caseCount, lifts: _lifts, excluded: _excluded, ...rest } = e
   return cases.map((c): EvalEntry => {
     const name = caseName(e, c)
-    const id = [e.file, ...e.group, name].join(' › ')
+    const id = evalId(e.file, [...e.group, name])
     return {
       ...rest,
       id,

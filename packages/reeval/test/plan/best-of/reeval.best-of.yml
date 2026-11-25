@@ -1,5 +1,5 @@
 # runs: { bestOf } as data.
-harnesses: { kind: fake, id: a }
+agents: { kind: fake, id: a }
 runs: { bestOf: 5 }
 profiles:
   pr:

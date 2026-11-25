@@ -1,3 +1,3 @@
-import { evaluate } from 'reeval'
+import { defineEval } from 'reeval'
 
-evaluate('two runs share a machine', { egress: 'allow-all', runs: 2 }, async () => {})
+export default defineEval({ egress: 'allow-all', runs: 2, task: async () => {} })

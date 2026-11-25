@@ -35,13 +35,13 @@
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/package.json"},"ok":true,"durationMs":25}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/index.d.ts"},"ok":true,"durationMs":26}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"fakeHarness"},"ok":true,"durationMs":27}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"fakeAgent"},"ok":true,"durationMs":27}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/harness.d.ts"},"ok":true,"durationMs":75}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist/harness.js","pattern":"files"},"ok":true,"durationMs":33}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"cd . && npx es run --dry-run 2>&1; echo \"---\"; node -e \"import('@invertase/foobar').then(m => console.log('baseline' in m, Object.keys(m)))\""},"ok":true,"durationMs":766}
 {"turn":0,"type":"reasoning"}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"/opt/es","pattern":"compare.*withDocs|compare:|fakeHarness"},"ok":true,"durationMs":149}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"/opt/es","pattern":"compare.*withDocs|compare:|fakeAgent"},"ok":true,"durationMs":149}
 {"turn":0,"type":"tool","tool":"glob","input":{"pattern":"**/*"},"ok":true,"durationMs":935}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"dry-run|dryRun"},"ok":true,"durationMs":97}

@@ -66,7 +66,7 @@ image a Dockerfile builds on, a plugin kept whole) is **one** fixture, not a cop
 ```text
 harness/rules/
   layout.ts                       REEVAL_FIXTURE_LAYOUT, and a small map of what each harness expects
-  reeval.config.ts                fakeHarness({ layout })
+  reeval.config.ts                fakeAgent({ layout })
   evals/lands.eval.ts             reads the harness's own path from layout.ts
   evals/canary.eval.ts            reads a path that harness must not use
 ```
@@ -110,7 +110,7 @@ CI writes the same matrix to the job summary.
   actions, then assert on its transcript:
 
   ```ts
-  harnesses: fakeHarness({ script: [[{ exec: 'printenv CHECK_TOKEN || echo unset' }]] })
+  agents: fakeAgent({ script: [[{ exec: 'printenv CHECK_TOKEN || echo unset' }]] })
   // in the eval: the shell call's stdout
   turn.transcript.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : []))
   ```
@@ -133,7 +133,7 @@ CI writes the same matrix to the job summary.
   DNS server answers every A query with `REEVAL_EGRESS_DNS_ANSWER` at `REEVAL_EGRESS_DNS` (address and
   port), so whether a name resolves doesn't hang on the machine's own resolver. The row's `record`
   checks the attempt's `egress` from outside.
-- **Per-harness behavior without a key:** `fakeHarness({ layout: 'claude-code' })` (or
+- **Per-harness behavior without a key:** `fakeAgent({ layout: 'claude-code' })` (or
   `'cursor'`) places rules and skills exactly where that agent reads them and runs in that
   agent's image, so a fixture under `harness/` covers what a real harness receives. List the
   fixture's `image` in its row when it isn't Cursor's, so the Docker tier knows what to need

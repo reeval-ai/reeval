@@ -96,7 +96,7 @@ type Signal = { what: string } & (
 
 /** Each captured behavior's file and command signals, by eval name. */
 export const SIGNALS: Record<string, readonly Signal[]> = {
-  'edit and run': [
+  'edit-and-run': [
     { what: 'the edit of notes.txt', edit: 'notes.txt' },
     { what: 'the command printing contract-42', output: 'contract-42', kinds: ['bash'] },
   ],

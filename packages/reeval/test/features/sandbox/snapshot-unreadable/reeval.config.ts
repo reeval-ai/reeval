@@ -1,10 +1,10 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
 // Docker only: the fake sandbox runs on the host as whoever runs reeval, who can read its state.
 export default defineConfig({
   // As the agent: whether it can open the snapshot's HEAD.
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     script: [
       [
         {

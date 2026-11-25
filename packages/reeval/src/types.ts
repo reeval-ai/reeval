@@ -626,7 +626,7 @@ export type ExcludedPair = {
   harness?: string
 }
 
-/** A canned agent for tests and dry runs, made by `fakeHarness()` in `reeval/harness`. */
+/** A canned agent for tests and dry runs, made by `fakeAgent()` in `reeval/agent`. */
 export type FakeHarnessDescriptor = {
   kind: 'fake'
   /**
@@ -1984,8 +1984,8 @@ export type CompareOptions<E = Environment> = {
   gate?: CompareGate
   /** Lift in points from -1 to 1; a variant cell below it fails. */
   minLift?: number
-  /** Harnesses (ids or descriptors) to compare on; the others run the control only. */
-  harnesses?: Array<string | HarnessDescriptor>
+  /** Agents (ids or descriptors) to compare on; the others run the control only. */
+  agents?: Array<string | HarnessDescriptor>
 }
 
 /**
@@ -2088,7 +2088,7 @@ export type PlannedQuestion = {
 }
 
 /** A matrix factor a pairwise question varies; the others are held. */
-export type PairFactor = 'environment' | 'harness'
+export type PairFactor = 'environment' | 'agent'
 
 /** Which pairs a vote is over: two environments on one harness, or two harnesses on one environment. */
 export type CompareCut = 'within' | 'across'
@@ -2221,7 +2221,7 @@ export type AttemptQuestionInput = {
 }
 
 /** An option a profile's `limit` can narrow, and `pin` can protect. */
-export type PinnableKey = 'harnesses' | 'runs' | 'compare'
+export type PinnableKey = 'agents' | 'runs' | 'compare'
 
 /**
  * How a cell's attempts decide its outcome: `'all'` (the default) passes only when every attempt
@@ -2262,10 +2262,10 @@ export type Runs<N extends number = number> = number | { bestOf: OddAtLeast3<N> 
 
 /** Options other than `environments` and `compare`, which are exclusive of each other. */
 type EvalOptionFields<N extends number = number> = {
-  /** Which agents run the eval; each harness is its own cell. */
-  harnesses?: HarnessOption
+  /** Which agents run the eval; each is its own cell. */
+  agents?: HarnessOption
   /**
-   * The default machine when the resolved environment omits `sandbox`. Cascades like `harnesses`.
+   * The default machine when the resolved environment omits `sandbox`. Cascades like `agents`.
    * Not an environment: it does not invent skills, files or a name.
    */
   sandbox?: DeclaredSandbox
@@ -2362,14 +2362,48 @@ export type EvalOptions<N extends number = number> = EvalOptionFields<N> &
   EnvironmentOrCompare<Environment, EnvironmentsOption>
 export type GroupOptions<N extends number = number> = EvalOptions<N>
 
+/** What a `defineEval` eval runs in: `environment` or a `compare`, not both. */
+type SpecEnvironment =
+  | {
+      /** What the eval runs in: one environment, or a list, each its own cell beside each agent. */
+      environment?: EnvironmentsOption
+      compare?: never
+    }
+  | {
+      /** Forbidden beside `compare`, whose `control` names what the eval runs in. */
+      environment?: never
+      /** Environments to run side by side; `control` is what each variant is measured against. */
+      compare: CompareSpec
+    }
+
+/** `defineEval`'s fields besides the task and the cases. */
+type SpecFields<N extends number> = EvalOptionFields<N> &
+  SpecEnvironment & {
+    /** Skips the eval, listed and counted as skipped: `true`, or why. */
+    skip?: boolean | string
+  }
+
+/** What `defineEval` takes: the eval's options and its task, one attempt's body. */
+export type EvalSpec<N extends number = number> = SpecFields<N> & {
+  /** The eval's body, run once per attempt. */
+  task: EvalFn
+}
+
+/** What `defineEval` takes with `cases`: the task takes the attempt and its case. */
+export type CaseEvalSpec<T, N extends number = number> = SpecFields<N> &
+  CaseOptions<T> & {
+    /** The eval's body, run once per attempt of each case. */
+    task: CaseFn<T>
+  }
+
 /**
  * `EvalOptions` in their data forms, as JSON carries them: the harness as data, the judge's model
  * by name or a fake judge, and environments without `extend`. The same `environment` / compare
  * object split as `EvalOptions`.
  */
-export type EvalOptionsData = Omit<EvalOptionFields, 'harnesses' | 'judge'> & {
-  /** Which agents run the eval; each harness is its own cell. */
-  harnesses?: HarnessData
+export type EvalOptionsData = Omit<EvalOptionFields, 'agents' | 'judge'> & {
+  /** Which agents run the eval; each is its own cell. */
+  agents?: HarnessData
   /** Defaults for `c.judge()`, merged field by field down the cascade. */
   judge?: ConfigJudgeOptions
 } & EnvironmentOrCompare<EnvironmentData, EnvironmentsData>
@@ -2531,8 +2565,8 @@ export type Budget = {
 
 /** What evals get when they don't say otherwise: under groups and evals. */
 export type ProfileDefaults = {
-  /** The agents every eval runs on, unless a group or eval replaces them. */
-  harnesses?: HarnessDescriptor | HarnessDescriptor[]
+  /** The agents every eval runs on, in place of the eval's own unless it pins them. */
+  agents?: HarnessDescriptor | HarnessDescriptor[]
   /** The default machine when the resolved environment omits `sandbox`. */
   sandbox?: DeclaredSandbox
   /** What every eval runs in when it names no environment: one, or a list (a cell each). */
@@ -2563,8 +2597,8 @@ export type ProfileLimit = {
   runs?: number
   /** `false` runs the control only; `{ maxVariants }` keeps the first n variants. */
   compare?: false | { maxVariants: number }
-  /** Harness ids to allow; evals left with none are skipped. */
-  harnesses?: string[]
+  /** Agent ids to allow; evals left with none are skipped. */
+  agents?: string[]
   /**
    * Cells to run, by their environment's traits (with `compare`, the control's): each key's trait
    * must equal the value, or one of a list's, or for a list trait contain it. Evals left with no
@@ -2685,8 +2719,8 @@ export type AnalysisConfig = {
 export type ReevalConfig = {
   /** Globs of eval files, relative to the config's directory; default every `.eval.ts` under `evals`. */
   include?: string[]
-  /** The agents every eval runs on, unless a group or eval replaces them; default Cursor. */
-  harnesses?: HarnessDescriptor | HarnessDescriptor[]
+  /** The agents every eval runs on, unless the eval names its own; default Cursor. */
+  agents?: HarnessDescriptor | HarnessDescriptor[]
   /**
    * The default machine when the resolved environment omits `sandbox`. Not an environment:
    * it does not invent skills, files or a name. Implicit `docker()` when nobody sets one.
@@ -3776,7 +3810,7 @@ export type SandboxWarning = {
   level: 'config' | 'profile' | 'group' | 'eval'
   /**
    * The value is the level as reeval names it: the `reeval.config.ts` file, `profiles.pr.defaults`,
-   * `group("net")`, or `evaluate("installs deps")`.
+   * or the eval file, such as `evals/installs-deps.eval.ts`.
    */
   where: string
   /** The evaluation file that sets it, for a group or evaluation; null for the config or a profile. */

@@ -19,7 +19,7 @@ export type Sources = {
   testSource: (path: string) => string | null
   /** contract.test.ts's behaviors, and whether each has a canary. */
   contract: { name: string; canary: boolean }[]
-  /** Top-level eval/group keys from src/options.ts EVAL_OPTION_KEYS, and CASE_OPTION_KEYS. */
+  /** Top-level eval option keys from src/options.ts EVAL_OPTION_KEYS, and CASE_OPTION_KEYS. */
   evalOptionKeys: readonly string[]
   /** Maps each key to the inventory feature that covers it. */
   evalOptionSpecs: EvalOptionSpec[]

@@ -18,8 +18,8 @@
         "path": "evals/cases.eval.ts",
         "evals": [
           {
-            "path": "evals%2Fcases.eval.ts › greets",
-            "id": "evals/cases.eval.ts › greets",
+            "path": "greets",
+            "id": "greets",
             "group": [],
             "name": "greets %s",
             "template": "greets %s",
@@ -32,8 +32,8 @@
             "cells": null,
             "cases": [
               {
-                "path": "evals%2Fcases.eval.ts › greets/Ada",
-                "id": "evals/cases.eval.ts › greets Ada",
+                "path": "greets/Ada",
+                "id": "greets Ada",
                 "label": "Ada",
                 "name": "greets Ada",
                 "order": 0,
@@ -41,7 +41,7 @@
                 "notRun": false,
                 "cells": [
                   {
-                    "path": "evals%2Fcases.eval.ts › greets/Ada/fake+plain+docker",
+                    "path": "greets/Ada/fake+plain+docker",
                     "key": "fake/plain/docker",
                     "harness": "fake",
                     "environment": "plain",
@@ -76,7 +76,7 @@
                     "fetches": [0]
                   },
                   {
-                    "path": "evals%2Fcases.eval.ts › greets/Ada/fake+with-house-greeting+docker",
+                    "path": "greets/Ada/fake+with-house-greeting+docker",
                     "key": "fake/with-house-greeting/docker",
                     "harness": "fake",
                     "environment": "with-house-greeting",
@@ -163,7 +163,7 @@
                     "fetches": [0]
                   },
                   {
-                    "path": "evals%2Fcases.eval.ts › greets/Ada/broken+plain+docker",
+                    "path": "greets/Ada/broken+plain+docker",
                     "key": "broken/plain/docker",
                     "harness": "broken",
                     "environment": "plain",
@@ -198,7 +198,7 @@
                     "fetches": []
                   },
                   {
-                    "path": "evals%2Fcases.eval.ts › greets/Ada/broken+with-house-greeting+docker",
+                    "path": "greets/Ada/broken+with-house-greeting+docker",
                     "key": "broken/with-house-greeting/docker",
                     "harness": "broken",
                     "environment": "with-house-greeting",
@@ -235,8 +235,8 @@
                 ]
               },
               {
-                "path": "evals%2Fcases.eval.ts › greets/Grace",
-                "id": "evals/cases.eval.ts › greets Grace",
+                "path": "greets/Grace",
+                "id": "greets Grace",
                 "label": "Grace",
                 "name": "greets Grace",
                 "order": 1,
@@ -244,7 +244,7 @@
                 "notRun": false,
                 "cells": [
                   {
-                    "path": "evals%2Fcases.eval.ts › greets/Grace/fake+plain+docker",
+                    "path": "greets/Grace/fake+plain+docker",
                     "key": "fake/plain/docker",
                     "harness": "fake",
                     "environment": "plain",
@@ -279,7 +279,7 @@
                     "fetches": [0]
                   },
                   {
-                    "path": "evals%2Fcases.eval.ts › greets/Grace/fake+with-house-greeting+docker",
+                    "path": "greets/Grace/fake+with-house-greeting+docker",
                     "key": "fake/with-house-greeting/docker",
                     "harness": "fake",
                     "environment": "with-house-greeting",
@@ -366,7 +366,7 @@
                     "fetches": [0]
                   },
                   {
-                    "path": "evals%2Fcases.eval.ts › greets/Grace/broken+plain+docker",
+                    "path": "greets/Grace/broken+plain+docker",
                     "key": "broken/plain/docker",
                     "harness": "broken",
                     "environment": "plain",
@@ -401,7 +401,7 @@
                     "fetches": []
                   },
                   {
-                    "path": "evals%2Fcases.eval.ts › greets/Grace/broken+with-house-greeting+docker",
+                    "path": "greets/Grace/broken+with-house-greeting+docker",
                     "key": "broken/with-house-greeting/docker",
                     "harness": "broken",
                     "environment": "with-house-greeting",
@@ -440,7 +440,7 @@
             ],
             "pooled": [
               {
-                "path": "evals%2Fcases.eval.ts › greets/fake+with-house-greeting+docker",
+                "path": "greets/fake+with-house-greeting+docker",
                 "key": "fake/with-house-greeting/docker",
                 "vs": "fake/plain/docker",
                 "effect": "better",

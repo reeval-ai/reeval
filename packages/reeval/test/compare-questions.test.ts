@@ -9,24 +9,26 @@ import type { QuestionCall } from '../src/types.ts'
 import { fakeConfig, noSignals, project, readRun, runCli } from './helpers.ts'
 
 describe('questions', () => {
-  const ENVS = `import { defineEnvironment } from 'reeval'
+  const ENVS = `import { defineEnvironment, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox({ dir: new URL('../sandboxes', import.meta.url) })
 export const base = defineEnvironment('base', { sandbox })
 export const skilled = defineEnvironment('skilled', { sandbox })
+export const compare = { control: base, variants: [skilled] }
+export const body = async (c) => {
+  await c.send('go')
+  await expect(c).toHaveFile('ok.txt')
+}
 `
   const asks = (question: string) => ({
     'evals/envs.ts': ENVS,
-    'evals/q.eval.ts': `import { evaluate, expect } from 'reeval'
-import { base, skilled } from './envs.ts'
-evaluate('asks', { runs: 1, compare: { control: base, variants: [skilled] }, questions: ${question} }, async (c) => {
-  await c.send('go')
-  await expect(c).toHaveFile('ok.txt')
-})
+    'evals/asks.eval.ts': `import { defineEval } from 'reeval'
+import { body, compare } from './envs.ts'
+export default defineEval({ runs: 1, compare, questions: ${question}, task: body })
 `,
   })
   const PAIRWISE = `[{ question: 'Which is cleaner?', across: 'environment', task: true, diff: true }]`
-  const OK = `fakeHarness({ files: { 'ok.txt': 'yes' } })`
+  const OK = `fakeAgent({ files: { 'ok.txt': 'yes' } })`
   const noKeys = {
     ANTHROPIC_API_KEY: '',
     GOOGLE_GENERATIVE_AI_API_KEY: '',
@@ -72,7 +74,7 @@ evaluate('asks', { runs: 1, compare: { control: base, variants: [skilled] }, que
     assert.equal(r.code, 2, r.stdout + r.stderr)
     assert.match(
       r.stderr,
-      /questions "Which is cleaner\?" \(evals\/q\.eval\.ts › asks\) needs a language model to answer it\. Set analysis: \{ model: 'google\/gemini-3\.8-flash' \} in reeval\.config\.ts \(the judge, a fake judge, is an evaluation model: it scores yes\/no questions and can't pick between two attempts\), or give the question its own, \{ question: '…', model: 'google\/gemini-3\.8-flash' \}, or set question: \{ model \} on its group or eval\./,
+      /questions "Which is cleaner\?" \(asks\) needs a language model to answer it\. Set analysis: \{ model: 'google\/gemini-3\.8-flash' \} in reeval\.config\.ts \(the judge, a fake judge, is an evaluation model: it scores yes\/no questions and can't pick between two attempts\), or give the question its own, \{ question: '…', model: 'google\/gemini-3\.8-flash' \}, or set question: \{ model \} on its group or eval\./,
     )
     assert.doesNotMatch(r.stdout, /▶|^(pass|fail) /m, 'no attempt ran')
     assert.equal(existsSync(join(p.dir, '.reeval/runs')), false)
@@ -90,7 +92,7 @@ evaluate('asks', { runs: 1, compare: { control: base, variants: [skilled] }, que
         'analysis',
         `analysis: { model: 'typesafe-ai/jev-1.14.0' },`,
         undefined,
-        /questions "Which is cleaner\?" \(evals\/q\.eval\.ts › asks\) would be answered by analysis\.model in reeval\.config\.ts, "typesafe-ai\/jev-1\.14\.0", an evaluation model: it scores yes\/no questions and can't pick between two attempts\. Use a language model/,
+        /questions "Which is cleaner\?" \(asks\) would be answered by analysis\.model in reeval\.config\.ts, "typesafe-ai\/jev-1\.14\.0", an evaluation model: it scores yes\/no questions and can't pick between two attempts\. Use a language model/,
       ],
     ] as const) {
       const p = await project(`questions-eval-model-${name}`, {
@@ -115,11 +117,13 @@ evaluate('asks', { runs: 1, compare: { control: base, variants: [skilled] }, que
         "import { fakeAnalysis, fakeJudge } from 'reeval/judge'",
       ),
       'evals/envs.ts': ENVS,
-      'evals/q.eval.ts': `import { evaluate } from 'reeval'
-import { base, skilled } from './envs.ts'
-const compare = { control: base, variants: [skilled] }
-evaluate('own model', { runs: 1, compare, questions: [{ question: 'Which is cleaner?', across: 'environment', task: true, diff: true, model: 'anthropic/claude-sonnet-5' }] }, async () => {})
-evaluate('cascade', { runs: 1, compare, questions: [{ question: 'Which is cleaner?', across: 'environment', task: true, diff: true }, { question: 'Which is shorter?', across: 'environment', task: true, diff: true, model: 'openai/gpt-5.5' }] }, async () => {})
+      'evals/own-model.eval.ts': `import { defineEval } from 'reeval'
+import { compare } from './envs.ts'
+export default defineEval({ runs: 1, compare, questions: [{ question: 'Which is cleaner?', across: 'environment', task: true, diff: true, model: 'anthropic/claude-sonnet-5' }], task: async () => {} })
+`,
+      'evals/cascade.eval.ts': `import { defineEval } from 'reeval'
+import { compare } from './envs.ts'
+export default defineEval({ runs: 1, compare, questions: [{ question: 'Which is cleaner?', across: 'environment', task: true, diff: true }, { question: 'Which is shorter?', across: 'environment', task: true, diff: true, model: 'openai/gpt-5.5' }], task: async () => {} })
 `,
     })
     const dry = await runCli(p.dir, ['run', '--dry-run', '--json'], { env: noKeys })
@@ -128,7 +132,7 @@ evaluate('cascade', { runs: 1, compare, questions: [{ question: 'Which is cleane
       name: string
       questions: Array<{ model: string }>
     }>
-    assert.deepEqual(planned.find((e) => e.name === 'own model')?.questions, [
+    assert.deepEqual(planned.find((e) => e.name === 'own-model')?.questions, [
       {
         question: 'Which is cleaner?',
         model: 'anthropic/claude-sonnet-5',
@@ -172,11 +176,11 @@ evaluate('cascade', { runs: 1, compare, questions: [{ question: 'Which is cleane
   test('with a language model the questions are answered after the run, and the outcome is the checks', async () => {
     const p = await project('questions-answered', {
       'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeAnalysis, fakeJudge } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
 export default defineConfig({
-  harnesses: ${OK},
+  agents: ${OK},
   environments: defineEnvironment('fake', { sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }) }),
   judge: { model: fakeJudge({ score: 0.9 }) },
   analysis: {
@@ -195,16 +199,17 @@ export default defineConfig({
 export const current = defineEnvironment('current-skill', { sandbox })
 export const next = defineEnvironment('new-skill', { sandbox })
 `,
-      'evals/q.eval.ts': `import { evaluate, expect } from 'reeval'
-import { base, current, next, none, skilled } from './envs.ts'
-const compare = { control: base, variants: [skilled] }
-const body = async (c) => {
-  await c.send('go')
-  await expect(c).toHaveFile('ok.txt')
-}
-evaluate('two questions', { runs: 1, compare, questions: [{ question: 'Which is cleaner?', across: 'environment', task: true, diff: true }, { question: 'Which is shorter?', across: 'environment', task: true, diff: true }] }, body)
-evaluate('reasons', { runs: 1, compare, questions: [{ question: 'Which reads better?', across: 'environment', task: true, diff: true }] }, body)
-evaluate('three arms', { compare: { control: none, variants: [current, next], gate: 'observe' }, questions: [{ question: 'Which delivers a better user experience?', across: 'environment', task: true, diff: true }], runs: 3 }, body)
+      'evals/two-questions.eval.ts': `import { defineEval } from 'reeval'
+import { body, compare } from './envs.ts'
+export default defineEval({ runs: 1, compare, questions: [{ question: 'Which is cleaner?', across: 'environment', task: true, diff: true }, { question: 'Which is shorter?', across: 'environment', task: true, diff: true }], task: body })
+`,
+      'evals/reasons.eval.ts': `import { defineEval } from 'reeval'
+import { body, compare } from './envs.ts'
+export default defineEval({ runs: 1, compare, questions: [{ question: 'Which reads better?', across: 'environment', task: true, diff: true }], task: body })
+`,
+      'evals/three-arms.eval.ts': `import { defineEval } from 'reeval'
+import { body, current, next, none } from './envs.ts'
+export default defineEval({ compare: { control: none, variants: [current, next], gate: 'observe' }, questions: [{ question: 'Which delivers a better user experience?', across: 'environment', task: true, diff: true }], runs: 3, task: body })
 `,
     })
     const dry = await runCli(p.dir, ['run', '--dry-run'])
@@ -222,7 +227,7 @@ evaluate('three arms', { compare: { control: none, variants: [current, next], ga
     const run = readRun(p.dir)
     const named = (name: string) => run.evals.find((e) => e.name === name)
 
-    const two = named('two questions')
+    const two = named('two-questions')
     assert.equal(two?.outcome, 'pass')
     assert.deepEqual(
       two?.cells.map((c) => [c.role, c.outcome, c.pass, c.fail]),
@@ -255,7 +260,7 @@ evaluate('three arms', { compare: { control: none, variants: [current, next], ga
 
     // Three arms, three runs, and a vote for the side shown first: every pair splits with the
     // order, which the pooled rates (each arm 50%) and a "0 ties" count hide.
-    assert.equal(named('three arms')?.answers?.[0]?.votes.length, 18)
+    assert.equal(named('three-arms')?.answers?.[0]?.votes.length, 18)
     const armWins =
       /^[│ ] +Question: Which delivers a better user experience\?\n[│ ] +no-skill +won \d+ of \d+\n[│ ] +current-skill +won \d+ of \d+\n[│ ] +new-skill +won \d+ of \d+$/m
     assert.match(r.stdout, armWins)
@@ -302,14 +307,14 @@ evaluate('three arms', { compare: { control: none, variants: [current, next], ga
   test('one run on three harnesses: pairs, votes and answers per question', async () => {
     const p = await project('questions-three-harnesses', {
       'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeAnalysis, fakeJudge } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
 export default defineConfig({
-  harnesses: [
-    fakeHarness({ id: 'one', files: { 'ok.txt': 'yes' } }),
-    fakeHarness({ id: 'two', files: { 'ok.txt': 'yes', 'extra.txt': 'more' } }),
-    fakeHarness({ id: 'bad', files: { 'no.txt': 'no' } }),
+  agents: [
+    fakeAgent({ id: 'one', files: { 'ok.txt': 'yes' } }),
+    fakeAgent({ id: 'two', files: { 'ok.txt': 'yes', 'extra.txt': 'more' } }),
+    fakeAgent({ id: 'bad', files: { 'no.txt': 'no' } }),
   ],
   runs: 2,
   environments: defineEnvironment('fake', { sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }) }),
@@ -327,56 +332,77 @@ export default defineConfig({
 })
 `,
       'evals/envs.ts': ENVS,
-      'evals/votes.eval.ts': `import { evaluate, expect } from 'reeval'
-import { base, skilled } from './envs.ts'
-const compare = { control: base, variants: [skilled] }
-const body = async (c) => {
-  await c.send('go')
-  await expect(c).toHaveFile('ok.txt')
-}
-evaluate('asks', { compare, questions: [{ question: 'Which is cleaner?', across: ['environment', 'harness'], task: true, diff: true }] }, body)
-evaluate('plain', { compare }, body)
+      'evals/votes/asks.eval.ts': `import { defineEval } from 'reeval'
+import { body, compare } from '../envs.ts'
+export default defineEval({ compare, questions: [{ question: 'Which is cleaner?', across: ['environment', 'agent'], task: true, diff: true }], task: body })
 `,
-      'evals/pairs.eval.ts': `import { evaluate, expect } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+      'evals/votes/plain.eval.ts': `import { defineEval } from 'reeval'
+import { body, compare } from '../envs.ts'
+export default defineEval({ compare, task: body })
+`,
+      'evals/across-environment.eval.ts': `import { defineEval } from 'reeval'
+import { body, compare } from './envs.ts'
+export default defineEval({ compare, questions: [{ question: 'Which is tidier?', across: 'environment', task: true, diff: true }], task: body })
+`,
+      'evals/failed.ts': `import { expect } from 'reeval'
+import { fakeAgent } from 'reeval/agent'
 import { fakeJudge } from 'reeval/judge'
-import { base, skilled } from './envs.ts'
-const compare = { control: base, variants: [skilled] }
-evaluate('across environment', { compare, questions: [{ question: 'Which is tidier?', across: 'environment', task: true, diff: true }] }, async (c) => {
-  await c.send('go')
-  await expect(c).toHaveFile('ok.txt')
-})
-for (const judged of [false, true]) {
-  const options = { compare, harnesses: fakeHarness({ files: { 'ok.txt': 'yes' } }), runs: 1, judge: { model: fakeJudge({ score: 0.2 }) }, questions: [{ question: 'Which is neater?', across: 'environment', task: true, diff: true }] }
-  evaluate(judged ? 'failed checks, judged' : 'failed checks', options, async (c) => {
+import { compare } from './envs.ts'
+export const failed = (judged) => ({
+  compare,
+  agents: fakeAgent({ files: { 'ok.txt': 'yes' } }),
+  runs: 1,
+  judge: { model: fakeJudge({ score: 0.2 }) },
+  questions: [{ question: 'Which is neater?', across: 'environment', task: true, diff: true }],
+  async task(c) {
     await c.send('go')
     if (judged) await c.judge('Is it nice?', { diff: true })
     await expect(c.exec('exit 1'), 'tests pass').toSucceed()
-  })
-}
-`,
-      'evals/each.eval.ts': `import { evaluate, expect } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
-import { base, skilled } from './envs.ts'
-const compare = { control: base, variants: [skilled] }
-const body = async (c) => {
-  await c.send('go')
-  await expect(c).toHaveFile('ok.txt')
-}
-evaluate('choices', { compare, questions: [{ question: 'Did it write ok.txt?', choices: ['yes', 'no'], task: true, output: true, diff: true, transcript: true }] }, body)
-evaluate('free text', { compare, questions: [{ question: 'What did it write?', task: true, output: true, diff: true, transcript: true }] }, body)
-evaluate('unrun command', { compare, questions: [{ question: 'What did it run?', checks: ['npm tset'] }] }, body)
-const one = { harnesses: fakeHarness({ files: { 'ok.txt': 'yes' } }), runs: 1, questions: [{ question: 'What did it do?', task: true, output: true, diff: true, transcript: true }] }
-evaluate('passes', one, async (c) => {
-  await c.send('go')
+  },
 })
-evaluate('fails', one, async (c) => {
+`,
+      'evals/failed-checks.eval.ts': `import { defineEval } from 'reeval'
+import { failed } from './failed.ts'
+export default defineEval(failed(false))
+`,
+      'evals/failed-checks-judged.eval.ts': `import { defineEval } from 'reeval'
+import { failed } from './failed.ts'
+export default defineEval(failed(true))
+`,
+      'evals/choices.eval.ts': `import { defineEval } from 'reeval'
+import { body, compare } from './envs.ts'
+export default defineEval({ compare, questions: [{ question: 'Did it write ok.txt?', choices: ['yes', 'no'], task: true, output: true, diff: true, transcript: true }], task: body })
+`,
+      'evals/free-text.eval.ts': `import { defineEval } from 'reeval'
+import { body, compare } from './envs.ts'
+export default defineEval({ compare, questions: [{ question: 'What did it write?', task: true, output: true, diff: true, transcript: true }], task: body })
+`,
+      'evals/unrun-command.eval.ts': `import { defineEval } from 'reeval'
+import { body, compare } from './envs.ts'
+export default defineEval({ compare, questions: [{ question: 'What did it run?', checks: ['npm tset'] }], task: body })
+`,
+      'evals/one.ts': `import { fakeAgent } from 'reeval/agent'
+export const one = { agents: fakeAgent({ files: { 'ok.txt': 'yes' } }), runs: 1, questions: [{ question: 'What did it do?', task: true, output: true, diff: true, transcript: true }] }
+`,
+      'evals/passes.eval.ts': `import { defineEval } from 'reeval'
+import { one } from './one.ts'
+export default defineEval({ ...one, async task(c) {
+  await c.send('go')
+} })
+`,
+      'evals/fails.eval.ts': `import { defineEval, expect } from 'reeval'
+import { one } from './one.ts'
+export default defineEval({ ...one, async task(c) {
   await c.send('go')
   await expect(c).toHaveFile('missing.txt')
-})
-evaluate('broken agent', { ...one, harnesses: fakeHarness({ failWith: 'agent CLI failed to start' }) }, async (c) => {
+} })
+`,
+      'evals/broken-agent.eval.ts': `import { defineEval } from 'reeval'
+import { fakeAgent } from 'reeval/agent'
+import { one } from './one.ts'
+export default defineEval({ ...one, agents: fakeAgent({ failWith: 'agent CLI failed to start' }), async task(c) {
   await c.send('go')
-})
+} })
 `,
     })
     const dry = await runCli(p.dir, ['run', '--dry-run'])
@@ -399,8 +425,8 @@ evaluate('broken agent', { ...one, harnesses: fakeHarness({ failWith: 'agent CLI
     }
 
     // Votes are recorded after the attempts; the outcome and pass rate are the checks'.
-    const e = named('asks')
-    const w = named('plain')
+    const e = named('votes/asks')
+    const w = named('votes/plain')
     assert.equal(w.answers, undefined, 'no answers without questions')
     assert.deepEqual(
       [e.outcome, e.passRate, e.cells.map((c) => [c.key, c.outcome, c.pass, c.fail])],
@@ -451,7 +477,7 @@ evaluate('broken agent', { ...one, harnesses: fakeHarness({ failWith: 'agent CLI
     )
 
     // across: 'environment' records only environment pairs.
-    const [tidier] = named('across environment').answers ?? []
+    const [tidier] = named('across-environment').answers ?? []
     assert.ok(tidier)
     assert.equal(tidier.votes.length, 8)
     assert.ok(tidier.votes.every((v) => v.cut === 'within'))
@@ -462,7 +488,7 @@ evaluate('broken agent', { ...one, harnesses: fakeHarness({ failWith: 'agent CLI
     )
 
     // Attempts whose checks failed are left out of the pairs, a verdict the eval didn't assert or not.
-    for (const name of ['failed checks', 'failed checks, judged']) {
+    for (const name of ['failed-checks', 'failed-checks-judged']) {
       assert.deepEqual(
         named(name).answers?.map((a) => [a.question, a.votes.length]),
         [['Which is neater?', 0]],
@@ -535,49 +561,49 @@ evaluate('broken agent', { ...one, harnesses: fakeHarness({ failWith: 'agent CLI
         .filter((l) => l.includes('names a command no attempt ran'))
         .map((l) => l.replace(/^[│ ]+/, '')),
       [
-        `⚠  ${unrun} on evals/each.eval.ts › unrun command, so each attempt's answer is that error. Outcomes are unchanged.`,
+        `⚠  ${unrun} on unrun-command, so each attempt's answer is that error. Outcomes are unchanged.`,
         `12 of 12 not answered: ${unrun}`,
       ],
     )
-    for (const a of named('unrun command').attempts) assert.equal(a.answers?.[0]?.error, unrun)
+    for (const a of named('unrun-command').attempts) assert.equal(a.answers?.[0]?.error, unrun)
 
     // An attempt that passed or failed is asked; an infra error's isn't.
     assert.deepEqual(
-      ['passes', 'fails', 'broken agent'].map((name) => {
+      ['passes', 'fails', 'broken-agent'].map((name) => {
         const x = named(name)
         return [x.name, x.outcome, x.attempts[0]?.answers?.[0]?.text]
       }),
       [
         ['passes', 'pass', 'saw ok.txt'],
         ['fails', 'fail', 'saw ok.txt'],
-        ['broken agent', 'infra_error', undefined],
+        ['broken-agent', 'infra_error', undefined],
       ],
     )
 
-    const agent = await runCli(p.dir, ['run', '--ui', 'agent', 'votes.eval'])
+    const agent = await runCli(p.dir, ['run', '--ui', 'agent', 'votes/'])
     assert.equal(agent.code, 1, agent.stdout + agent.stderr)
     assert.match(agent.stdout, wins)
     // Recorded, the input goes with the eval's other files, and is unset where those aren't kept.
     const kept = await runCli(p.dir, ['record', 'latest', '--artifacts', 'all'])
     assert.equal(kept.code, 0, kept.stdout + kept.stderr)
     const all = readRun(p.dir, { history: 'evals/.history' })
-    const keptAnswer = all.evals.find((x) => x.name === 'asks')?.answers?.[0]
+    const keptAnswer = all.evals.find((x) => x.name === 'votes/asks')?.answers?.[0]
     assert.deepEqual(JSON.parse(all.read(keptAnswer?.input?.path ?? 'missing')), input)
     const bare = await runCli(p.dir, ['record', run.run.runId, '--artifacts', 'none'])
     assert.equal(bare.code, 0, bare.stdout + bare.stderr)
     const none = readRun(p.dir, { history: 'evals/.history', back: 1 })
     assert.equal(none.run.runId, run.run.runId)
-    assert.equal(none.evals.find((x) => x.name === 'asks')?.answers?.[0]?.input, undefined)
+    assert.equal(none.evals.find((x) => x.name === 'votes/asks')?.answers?.[0]?.input, undefined)
   })
 
   test('a model error is kept on its answer and warned about; the outcome and exit code stand', async () => {
     const p = await project('questions-model-error', {
       'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeAnalysis, fakeJudge } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
 export default defineConfig({
-  harnesses: ${OK},
+  agents: ${OK},
   environments: defineEnvironment('fake', { sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }) }),
   judge: { model: fakeJudge({ score: 0.9 }) },
   analysis: {
@@ -589,22 +615,20 @@ export default defineConfig({
 })
 `,
       'evals/envs.ts': ENVS,
-      'evals/q.eval.ts': `import { evaluate, expect } from 'reeval'
-import { base, skilled } from './envs.ts'
-const compare = { control: base, variants: [skilled] }
-const body = async (c) => {
-  await c.send('go')
-  await expect(c).toHaveFile('ok.txt')
-}
-evaluate('asks', { runs: 1, compare, questions: ${PAIRWISE} }, body)
-evaluate('describes', { runs: 1, compare, questions: [{ question: 'What did it write?', task: true, output: true, diff: true, transcript: true }] }, body)
+      'evals/asks.eval.ts': `import { defineEval } from 'reeval'
+import { body, compare } from './envs.ts'
+export default defineEval({ runs: 1, compare, questions: ${PAIRWISE}, task: body })
+`,
+      'evals/describes.eval.ts': `import { defineEval } from 'reeval'
+import { body, compare } from './envs.ts'
+export default defineEval({ runs: 1, compare, questions: [{ question: 'What did it write?', task: true, output: true, diff: true, transcript: true }], task: body })
 `,
     })
     const r = await runCli(p.dir)
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.match(
       r.stdout,
-      /question "Which is cleaner\?" on evals\/q\.eval\.ts › asks failed: the model is over quota\. Outcomes are unchanged\./,
+      /question "Which is cleaner\?" on asks failed: the model is over quota\. Outcomes are unchanged\./,
     )
     assert.match(
       r.stdout,

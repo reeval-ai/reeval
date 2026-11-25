@@ -1633,7 +1633,7 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
           reason: profile.reason,
           defaults: JSON.parse(
             JSON.stringify({
-              harness: ids(profile.defaults.harnesses),
+              harness: ids(profile.defaults.agents),
               environment:
                 profile.defaults.environments &&
                 [profile.defaults.environments]

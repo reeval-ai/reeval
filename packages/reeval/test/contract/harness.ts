@@ -3,13 +3,13 @@ import {
   claudeCode,
   codex,
   cursor,
-  fakeHarness,
+  fakeAgent,
   fx,
   goose,
   grokBuild,
   opencode,
   pi,
-} from 'reeval/harness'
+} from 'reeval/agent'
 import { fakeScript } from './evals/probes.ts'
 
 // The harness contract.test.ts picks for the run (REEVAL_CONTRACT_HARNESS, REEVAL_CONTRACT_MODEL);
@@ -45,6 +45,6 @@ export const contractHarness = (effort?: string, on?: string) => {
     case 'fx':
       return fx({ model, ...e })
     default:
-      return fakeHarness({ layout: 'cursor', script: [fakeScript] })
+      return fakeAgent({ layout: 'cursor', script: [fakeScript] })
   }
 }

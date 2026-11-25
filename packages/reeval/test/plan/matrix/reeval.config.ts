@@ -1,6 +1,6 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
 export default defineConfig({
-  harnesses: [fakeHarness({ id: 'a' }), fakeHarness({ id: 'b' })],
+  agents: [fakeAgent({ id: 'a' }), fakeAgent({ id: 'b' })],
 })

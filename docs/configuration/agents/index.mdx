@@ -3,20 +3,20 @@ title: "Choose an agent"
 description: "Choose the harness and model that each evaluation runs on."
 ---
 
-Set the `harness` option to a harness factory with a `model` to choose an agent. For the definition, see [Agent](/reference/glossary#agent) in the Glossary.
+Set the `agents` option to a harness factory with a `model` to choose an agent. For the definition, see [Agent](/reference/glossary#agent) in the Glossary.
 
 For more information about installing reeval, see [Quick start](/getting-started/quickstart).
 
 ## Choose an agent
 
-In the `reeval.config.ts` file, pass one factory from the `{{ pkg }}/harness` module. With no `harness` option, the default harness is Cursor. Each harness is its own cell.
+In the `reeval.config.ts` file, pass one factory from the `{{ pkg }}/agent` module. With no `agents` option, the default harness is Cursor. Each harness is its own cell.
 
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
-import { claudeCode } from '{{ pkg }}/harness'
+import { claudeCode } from '{{ pkg }}/agent'
 
 export default defineConfig({
-  harnesses: claudeCode({ model: '<model>' }),
+  agents: claudeCode({ model: '<model>' }),
 })
 ```
 
@@ -29,11 +29,11 @@ In the factory call, set `id`, `maxConcurrent`, `startTimeout`, and `gateway` be
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
 import { vercel } from '{{ pkg }}/gateway'
-import { claudeCode } from '{{ pkg }}/harness'
+import { claudeCode } from '{{ pkg }}/agent'
 
 export default defineConfig({
   gateway: [vercel()],
-  harnesses: claudeCode({
+  agents: claudeCode({
     model: '<model>',
     id: 'claude-code:control',
     maxConcurrent: 2,
@@ -43,11 +43,11 @@ export default defineConfig({
 })
 ```
 
-For each option's type and default, see [Common harness options](/reference/options#common-harness-options).
+For each option's type and default, see [Common agents options](/reference/options#common-harness-options).
 
 ## Pick a harness
 
-Each factory comes from the `{{ pkg }}/harness` module.
+Each factory comes from the `{{ pkg }}/agent` module.
 
 - [Cursor](/configuration/agents/cursor): `cursor()`
 - [Claude Code](/configuration/agents/claude-code): `claudeCode()`

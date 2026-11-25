@@ -1,7 +1,12 @@
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { built, placed } from './env.ts'
 
 // The build ran in the image layer on the VM, as root, and its output is placed with the plugin.
-evaluate('lands', { environments: built }, async (c) => {
-  expect((await c.exec(`cat ${placed}/dist/built.txt`)).stdout).toContain('built on linux as uid 0')
+export default defineEval({
+  environment: built,
+  task: async (c) => {
+    expect((await c.exec(`cat ${placed}/dist/built.txt`)).stdout).toContain(
+      'built on linux as uid 0',
+    )
+  },
 })

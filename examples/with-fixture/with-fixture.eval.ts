@@ -1,4 +1,4 @@
-import { defineEnvironment, evaluate, expect } from 'reeval'
+import { defineEnvironment, defineEval, expect } from 'reeval'
 
 // The package in ./project without its maintainer notes, a sample file from ./data, and a
 // .gitignore, since the project's own isn't copied in.
@@ -10,13 +10,16 @@ const csv = defineEnvironment('csv', ({ directory, file }) => ({
   },
 }))
 
-evaluate('adds the inverse of parseCsv', { environments: csv }, async (c) => {
-  const turn = await c.send(
-    'Add stringifyCsv(rows) to src/csv.js, the inverse of parseCsv, ' +
-      'with a test that round-trips data/people.csv.',
-  )
+export default defineEval({
+  environment: csv,
+  task: async (c) => {
+    const turn = await c.send(
+      'Add stringifyCsv(rows) to src/csv.js, the inverse of parseCsv, ' +
+        'with a test that round-trips data/people.csv.',
+    )
 
-  await expect(turn).toHaveFile('src/csv.js', /export function stringifyCsv/)
-  await expect(c.exec('node --test')).toSucceed()
-  expect(c, 'leaves the data alone').not.toHaveChanged(['data/**'])
+    await expect(turn).toHaveFile('src/csv.js', /export function stringifyCsv/)
+    await expect(c.exec('node --test')).toSucceed()
+    expect(c, 'leaves the data alone').not.toHaveChanged(['data/**'])
+  },
 })

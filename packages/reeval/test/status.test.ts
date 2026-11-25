@@ -7,40 +7,65 @@ import { suiteResult } from '../src/view/suite.ts'
 import { fakeConfig, project, readRun, runCli } from './helpers.ts'
 import { copyOut } from './support/examples.ts'
 
-const EVALS = `import { defineEnvironment, evaluate, expect } from 'reeval'
-const plain = defineEnvironment('plain', {})
-const marked = defineEnvironment('marked', { files: { 'marker.txt': 'ok\\n' } })
-
-evaluate('passes', async (c) => {
-  await c.send('go')
-  expect(1, 'one').toBe(1)
-})
-
-evaluate('two checks fail', { runs: 2, gate: { passRate: 0.5 } }, async (c) => {
-  await c.send('go')
-  if (c.attempt.n === 1) expect(1, 'first check').toBe(2)
-  else expect('a', 'second check').toBe('b')
-})
-
-evaluate('throws', async (c) => {
-  await c.send('go')
-  throw new Error('the fixture is missing')
-})
-
-evaluate('compares', { runs: 1, compare: { control: plain, variants: [marked] } }, async (c) => {
-  await c.send('go')
-  expect(c.attempt.cell.role === 'variant', 'uses the marker').toBe(true)
-})
-
-evaluate('colors', { cases: [{ id: 'red' }, { id: 'green' }, { id: 'blue' }] }, async (c, { id }) => {
-  await c.send('go')
-  expect(id, 'is green').toBe('green')
-})
+const ENVS = `import { defineEnvironment } from 'reeval'
+export const plain = defineEnvironment('plain', {})
+export const marked = defineEnvironment('marked', { files: { 'marker.txt': 'ok\\n' } })
 `
+
+const EVALS = {
+  'evals/envs.ts': ENVS,
+  'evals/passes.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('go')
+    expect(1, 'one').toBe(1)
+  },
+})
+`,
+  'evals/two-checks-fail.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  runs: 2,
+  gate: { passRate: 0.5 },
+  async task(c) {
+    await c.send('go')
+    if (c.attempt.n === 1) expect(1, 'first check').toBe(2)
+    else expect('a', 'second check').toBe('b')
+  },
+})
+`,
+  'evals/throws.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('go')
+    throw new Error('the fixture is missing')
+  },
+})
+`,
+  'evals/compares.eval.ts': `import { defineEval, expect } from 'reeval'
+import { marked, plain } from './envs.ts'
+export default defineEval({
+  runs: 1,
+  compare: { control: plain, variants: [marked] },
+  async task(c) {
+    await c.send('go')
+    expect(c.attempt.cell.role === 'variant', 'uses the marker').toBe(true)
+  },
+})
+`,
+  'evals/colors.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  cases: [{ id: 'red' }, { id: 'green' }, { id: 'blue' }],
+  async task(c, { id }) {
+    await c.send('go')
+    expect(id, 'is green').toBe('green')
+  },
+})
+`,
+}
 
 /** From the file heading to the tally, with the run's time masked. */
 const listOf = (stdout: string) => {
-  const start = stdout.indexOf('evals/s.eval.ts\n')
+  const start = stdout.search(/^evals\//m)
   const end = stdout.indexOf('\nBrowse it:')
   assert.ok(start >= 0 && end > start, stdout)
   return stdout
@@ -49,41 +74,49 @@ const listOf = (stdout: string) => {
     .replace(/Snapshot: \S+/g, 'Snapshot: <path>')
 }
 
-const PLAIN = `evals/s.eval.ts
-├─ ✓ passes           1 of 1 run passed
-├─ ✗ two checks fail  0 of 2 runs passed
-│    Failed on fake every time.
-│    ✗ first check   failed 1 of 1 run
-│      expected 1 to be 2 // Object.is equality · evals/s.eval.ts:12
-│    ✗ second check  failed 1 of 1 run
-│      expected 'a' to be 'b' // Object.is equality · evals/s.eval.ts:13
-├─ ✗ throws           0 of 1 run passed
-│    Failed on fake.
-│    ✗ 1 run failed
-│      the fixture is missing
-├─ ✓ compares         1 of 1 variant run passed
-│    The marked variant helped.
-│    arm              passed  verdict
-│    plain (control)  0 of 1
-│    marked           1 of 1  helped
-│    ✗ uses the marker  failed on the control · expected
-│      expected false to be true // Object.is equality · evals/s.eval.ts:23
-│    Worth knowing: 1 run per side; set runs: 4 at evals/s.eval.ts:21 to confirm this difference.
-└─ ✗ colors           1 of 3 runs passed · 3 cases
+const PLAIN = `evals/colors.eval.ts
+└─ ✗ colors  1 of 3 runs passed · 3 cases
      Failed on red, blue; 1 of 3 cases passed.
        case   fake
      ✗ red    0 of 1
      ✓ green  1 of 1
      ✗ blue   0 of 1
      ✗ is green  failed on red, blue
-       expected 'red' to be 'green' // Object.is equality · evals/s.eval.ts:28
+       expected 'red' to be 'green' // Object.is equality · evals/colors.eval.ts:6
+
+evals/compares.eval.ts
+└─ ✓ compares  1 of 1 variant run passed
+     The marked variant helped.
+     arm              passed  verdict
+     plain (control)  0 of 1
+     marked           1 of 1  helped
+     ✗ uses the marker  failed on the control · expected
+       expected false to be true // Object.is equality · evals/compares.eval.ts:8
+     Worth knowing: 1 run per side; set runs: 4 at evals/compares.eval.ts to confirm this difference.
+
+evals/passes.eval.ts
+└─ ✓ passes  1 of 1 run passed
+
+evals/throws.eval.ts
+└─ ✗ throws  0 of 1 run passed
+     Failed on fake.
+     ✗ 1 run failed
+       the fixture is missing
+
+evals/two-checks-fail.eval.ts
+└─ ✗ two-checks-fail  0 of 2 runs passed
+     Failed on fake every time.
+     ✗ first check   failed 1 of 1 run
+       expected 1 to be 2 // Object.is equality · evals/two-checks-fail.eval.ts:7
+     ✗ second check  failed 1 of 1 run
+       expected 'a' to be 'b' // Object.is equality · evals/two-checks-fail.eval.ts:8
 
 Done in <time> · 3 failed · 2 passed`
 
 test('the status list: one line a pass, and a sentence for each way an eval went', async () => {
   const p = await project('status-list', {
     'reeval.config.ts': fakeConfig({ harness: '{ turnMs: 1000 }' }),
-    'evals/s.eval.ts': EVALS,
+    ...EVALS,
   })
   const plain = await runCli(p.dir, ['run', '--ui', 'plain'])
   assert.equal(plain.code, 1, plain.stdout + plain.stderr)
@@ -95,9 +128,9 @@ test('the status list: one line a pass, and a sentence for each way an eval went
   const agentList = listOf(agent.stdout)
   assert.match(agentList, /^ {4}Snapshot: <path> \(\+1 more in summary\.md\)$/m)
   assert.match(agentList, /^ {4}Snapshot: <path>$/m)
-  const remark = 'Worth knowing: 1 run per side; set runs: 4 at evals/s.eval.ts:21'
+  const remark = 'Worth knowing: 1 run per side; set runs: 4 at evals/compares.eval.ts'
   const whole =
-    'Worth knowing: The marked variant passed 1 of 1 run and the control 0 of 1: better by 100 points, but on too few runs for the difference to hold. Fix at evals/s.eval.ts:21: set runs: 4, where a difference this size would hold.'
+    'Worth knowing: The marked variant passed 1 of 1 run and the control 0 of 1: better by 100 points, but on too few runs for the difference to hold. Fix at evals/compares.eval.ts: set runs: 4, where a difference this size would hold.'
   assert.ok(agentList.includes(`    ${whole}\n`), agentList)
   assert.equal(
     agentList
@@ -107,13 +140,16 @@ test('the status list: one line a pass, and a sentence for each way an eval went
   )
 })
 
-const FASTER = `import { defineEnvironment, evaluate, expect } from 'reeval'
+const FASTER = `import { defineEnvironment, defineEval, expect } from 'reeval'
 const plain = defineEnvironment('plain', {})
 const marked = defineEnvironment('marked', {})
 
-evaluate('compares', { runs: 4, compare: { control: plain, variants: [marked] } }, async (c) => {
-  for (let i = 0; i < (c.attempt.cell.role === 'variant' ? 1 : 5); i++) await c.send('go')
-  expect(1, 'one').toBe(1)
+export default defineEval({
+  runs: 4, compare: { control: plain, variants: [marked] },
+  async task(c) {
+    for (let i = 0; i < (c.attempt.cell.role === 'variant' ? 1 : 5); i++) await c.send('go')
+    expect(1, 'one').toBe(1)
+  },
 })
 `
 
@@ -153,13 +189,16 @@ test('a compare whose effort holds prints its comparison, which every reader sha
   )
 })
 
-const IDENTICAL = `import { defineEnvironment, evaluate, expect } from 'reeval'
+const IDENTICAL = `import { defineEnvironment, defineEval, expect } from 'reeval'
 const plain = defineEnvironment('plain', {})
 const marked = defineEnvironment('marked', { files: { 'marker.txt': 'ok\\n' } })
 
-evaluate('compares', { runs: 4, compare: { control: plain, variants: [marked] } }, async (c) => {
-  await c.send('go')
-  expect(1, 'one').toBe(1)
+export default defineEval({
+  runs: 4, compare: { control: plain, variants: [marked] },
+  async task(c) {
+    await c.send('go')
+    expect(1, 'one').toBe(1)
+  },
 })
 `
 
@@ -172,7 +211,7 @@ test('identical arms are a tie: make the task harder', async () => {
   assert.equal(run.code, 0, run.stdout + run.stderr)
   assert.match(
     listOf(run.stdout),
-    /passed every run \(4 of 4 and 4 of 4\): the task can't tell them apart, since both always pass\. Fix at evals\/s\.eval\.ts:\d+: make the task harder, so the control can fail\./,
+    /passed every run \(4 of 4 and 4 of 4\): the task can't tell them apart, since both always pass\. Fix at evals\/s\.eval\.ts: make the task harder, so the control can fail\./,
   )
   const attempts = readRun(p.dir).run.evals.flatMap((e) => e.attempts)
   assert.deepEqual(
@@ -188,7 +227,7 @@ test('with-compare-questions, whose question picked the variant 4 of 4, names th
   // Agent time stays the same, so the question is the only lean.
   writeFileSync(
     config,
-    readFileSync(config, 'utf8').replace('fakeHarness({', 'fakeHarness({ turnMs: 1000,'),
+    readFileSync(config, 'utf8').replace('fakeAgent({', 'fakeAgent({ turnMs: 1000,'),
   )
   const run = await runCli(dir, ['run', '--ui', 'plain', '-v'], { timeoutMs: 300_000 })
   assert.equal(run.code, 0, run.stdout + run.stderr)
@@ -201,7 +240,7 @@ test('with-compare-questions, whose question picked the variant 4 of 4, names th
   const brief = await runCli(dir, ['run', '--ui', 'plain'], { timeoutMs: 300_000 })
   assert.match(
     brief.stdout,
-    /^ {5}Worth knowing: Both passed every run, but the variant looks different; set runs: \d+ at with-compare-questions\.eval\.ts:\d+ to confirm it\.$/m,
+    /^ {5}Worth knowing: Both passed every run, but the variant looks different; set runs: \d+ at with-compare-questions\.eval\.ts to confirm it\.$/m,
     'without -v, the remark is one short line',
   )
 })
@@ -214,7 +253,7 @@ test('with-effort at runs: 3, too few for a rank test, still names its speedup',
   assert.equal(run.code, 0, run.stdout + run.stderr)
   assert.match(
     run.stdout,
-    /^ {5}Worth knowing: 3 runs per side; set runs: \d+ at with-effort\.eval\.ts:\d+ to rule out a difference\. So far, \S+ (.+ and )?runs [\d.]+× faster\.$/m,
+    /^ {5}Worth knowing: 3 runs per side; set runs: \d+ at with-effort\.eval\.ts(?::\d+)? to rule out a difference\. So far, \S+ (.+ and )?runs [\d.]+× faster\.$/m,
   )
   const verbose = await runCli(dir, ['run', '--ui', 'plain', '-v'], { timeoutMs: 300_000 })
   assert.match(verbose.stdout, /^ {5}\S+ +3 of 3 {2}same +(.+ · )?[\d.]+× faster \(leans\)/m)
@@ -224,20 +263,23 @@ test('with-effort at runs: 3, too few for a rank test, still names its speedup',
 test("a compare's control line names the harnesses when they disagree, with or without variants", async () => {
   const p = await project('status-control-disagrees', {
     'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 export default defineConfig({
   include: ['evals/*.eval.ts'],
-  harnesses: [fakeHarness({ id: 'left' }), fakeHarness({ id: 'right' })],
+  agents: [fakeAgent({ id: 'left' }), fakeAgent({ id: 'right' })],
   sandbox: fakeSandbox(),
 })
 `,
-    'evals/c.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+    'evals/c.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 const plain = defineEnvironment('plain', {})
 const marked = defineEnvironment('marked', { files: { 'marker.txt': 'ok\\n' } })
-evaluate('compares', { runs: 1, compare: { control: plain, variants: [marked] } }, async (c) => {
-  await c.send('go')
-  expect(c.attempt.cell.key.startsWith('left/'), 'on left').toBe(true)
+export default defineEval({
+  runs: 1, compare: { control: plain, variants: [marked] },
+  async task(c) {
+    await c.send('go')
+    expect(c.attempt.cell.key.startsWith('left/'), 'on left').toBe(true)
+  },
 })
 `,
   })
@@ -260,12 +302,15 @@ evaluate('compares', { runs: 1, compare: { control: plain, variants: [marked] } 
 test('under -v a judged check reads as its judge score, marked (leans), not again as its pass rate', async () => {
   const p = await project('status-judged-lean', {
     'reeval.config.ts': fakeConfig(),
-    'evals/c.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+    'evals/c.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 const plain = defineEnvironment('plain', {})
 const marked = defineEnvironment('marked', { files: { 'marker.txt': 'ok\\n' } })
-evaluate('compares', { runs: 1, compare: { control: plain, variants: [marked] } }, async (c) => {
-  await c.send('go')
-  expect(c.attempt.cell.role === 'variant', 'tidy').toBe(true)
+export default defineEval({
+  runs: 1, compare: { control: plain, variants: [marked] },
+  async task(c) {
+    await c.send('go')
+    expect(c.attempt.cell.role === 'variant', 'tidy').toBe(true)
+  },
 })
 `,
   })

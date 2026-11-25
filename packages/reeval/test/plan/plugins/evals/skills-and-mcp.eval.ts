@@ -1,8 +1,8 @@
-import { defineEnvironment, evaluate } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
 
 // Codex and Goose load a plugin's skills and MCP servers, so the rest is left out.
 const review = defineEnvironment('review', ({ plugin }) => ({
   plugins: [plugin.local('../plugins/review', { only: ['skills', 'mcp'] })],
 }))
 
-evaluate('loads the plugin', { environments: review }, async () => {})
+export default defineEval({ environment: review, task: async () => {} })

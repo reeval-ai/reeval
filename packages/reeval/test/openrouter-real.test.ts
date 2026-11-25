@@ -28,10 +28,10 @@ test('openrouter(): the Jev judge and the analysis model record what OpenRouter 
   const p = await project('openrouter-real', {
     'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
 import { openrouter } from 'reeval/gateway'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 export default defineConfig({
-  harnesses: fakeHarness({ files: { 'greet.js': 'export const greet = (name) => \`Hello, \${name}!\`\\n' } }),
+  agents: fakeAgent({ files: { 'greet.js': 'export const greet = (name) => \`Hello, \${name}!\`\\n' } }),
   environments: defineEnvironment('fake', { sandbox: fakeSandbox() }),
   gateway: [openrouter()],
   judge: { model: '${OPENROUTER_JUDGE_MODEL}' },
@@ -40,10 +40,12 @@ export default defineConfig({
   budget: { attempts: 1 },
 })
 `,
-    'evals/greet.eval.ts': `import { evaluate } from 'reeval'
-evaluate('writes a greet(name) function', async (c) => {
-  await c.send('Create greet.js exporting greet(name), which returns "Hello, <name>!".')
-  await c.judge('Does the workspace have a greet.js that greets by name?', { task: true, diff: true })
+    'evals/greet.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('Create greet.js exporting greet(name), which returns "Hello, <name>!".')
+    await c.judge('Does the workspace have a greet.js that greets by name?', { task: true, diff: true })
+  },
 })
 `,
   })

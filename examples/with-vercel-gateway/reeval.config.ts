@@ -1,22 +1,22 @@
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'reeval'
+import { claudeCode, fakeAgent } from 'reeval/agent'
 import { vercel } from 'reeval/gateway'
-import { claudeCode, fakeHarness } from 'reeval/harness'
 import { fakeJudge } from 'reeval/judge'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 import { profiles } from '../profiles.ts'
 
-const fakeAgent = (path: string) =>
+const fakeFile = (path: string) =>
   readFileSync(new URL(`./fake-agent/${path}`, import.meta.url), 'utf8')
 
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that copies ./fake-agent's files into the workspace, so the checks run
   // without keys or Docker.
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     files: {
-      'src/math.js': fakeAgent('src/math.js'),
-      'test/math.test.js': fakeAgent('test/math.test.js'),
+      'src/math.js': fakeFile('src/math.js'),
+      'test/math.test.js': fakeFile('test/math.test.js'),
     },
     text: 'I added multiply(a, b) to src/math.js and a test for it.',
   }),
@@ -32,7 +32,7 @@ export default defineConfig({
     // Vercel, Jev is the judge that answers: its other models are language models, not
     // decision models.
     vercel: {
-      defaults: { harnesses: claudeCode({ model: 'claude-sonnet-5' }), sandbox: docker() },
+      defaults: { agents: claudeCode({ model: 'claude-sonnet-5' }), sandbox: docker() },
       judge: { model: 'typesafe-ai/jev-1.14.0' },
       gateway: [vercel()],
     },

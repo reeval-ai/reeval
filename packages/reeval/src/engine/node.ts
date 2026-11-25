@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 import { UsageError } from '../errors.ts'
+import { fileEvalId, isOneEvalFile } from '../eval-id.ts'
 import { attemptKey, evalId, relativeFile } from '../ids.ts'
 import { redactSecrets } from '../redact.ts'
 import { ownVersion, PACKAGE_DIR, WORKER_PACKAGE_NAMES } from '../root.ts'
@@ -57,6 +58,26 @@ type Collected = {
   traits: string[]
 }
 
+/**
+ * Two eval files whose ids differ only in case are refused: they'd share one history on a
+ * case-insensitive file system, and across machines.
+ */
+function refuseSharedIds(root: string, include: readonly string[], files: string[]): void {
+  const seen = new Map<string, string>()
+  for (const file of files) {
+    const rel = relativeFile(root, file)
+    if (!isOneEvalFile(rel)) continue
+    const id = fileEvalId(include, rel)
+    const earlier = seen.get(id.toLowerCase())
+    if (earlier) {
+      throw new UsageError(
+        `${earlier} and ${rel} have one eval id, ${id}: an eval's id is its file's path from the evals root without the .eval.ts suffix, ignoring case. Rename one of them.`,
+      )
+    }
+    seen.set(id.toLowerCase(), rel)
+  }
+}
+
 export async function runEngine(
   options: EngineOptions,
   spawn: Spawn = forkWorker,
@@ -68,6 +89,7 @@ export async function runEngine(
     '**/.reeval/**',
     `${relativeFile(root, config.history.dir)}/**`,
   ])
+  refuseSharedIds(root, config.include, files)
   // A part that names an eval file picks every eval in the files it names. One that is a file or
   // directory on disk (from the current directory, or absolute) is only a path; any other, such
   // as `right` beside `evals/right/`, also matches as a name or cell part anywhere, so a

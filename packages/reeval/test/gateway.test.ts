@@ -23,6 +23,7 @@ import { vertexProvider } from '@reeval/harness-grok-build'
 import { openCodeConfig } from '@reeval/harness-opencode'
 import { onEndpoint } from '@reeval/sandbox-docker'
 import { generateText } from 'ai'
+import { grokBuild, opencode } from '../src/agent.ts'
 import { checkGateways } from '../src/config.ts'
 import { ROUTING_GATEWAY_NAMES } from '../src/contract/gateway.ts'
 import { brokerToken, cachedTokenSource, RETRY_MS } from '../src/environment/token.ts'
@@ -61,7 +62,6 @@ import {
   brokeringFor,
   expectedBlockedFor,
 } from '../src/harness/agents.ts'
-import { grokBuild, opencode } from '../src/harness.ts'
 import { gatewayPart } from '../src/history/assemble.ts'
 import { hostCall, judgeCredentials, judgeRoute } from '../src/judge/index.ts'
 import type { AgentHarnessDescriptor, GatewayName, HarnessDescriptor } from '../src/types.ts'
@@ -69,7 +69,7 @@ import type { AgentHarnessDescriptor, GatewayName, HarnessDescriptor } from '../
 // Vercel's own API, whatever the shell running the tests exports.
 delete process.env.AI_GATEWAY_BASE_URL
 
-const WHERE = 'evaluate("e")'
+const WHERE = 'evals/e.eval.ts'
 const cursor = { kind: 'cursor', model: 'composer-2.5' } as HarnessDescriptor
 const codex = { kind: 'codex', model: 'gpt-5.4-mini' } as HarnessDescriptor
 const claude = { kind: 'claude-code', model: 'claude-sonnet-5-5' } as HarnessDescriptor
@@ -127,7 +127,7 @@ describe('resolveGateway', () => {
   test('with direct() off, nothing in the list serving it exits 2, naming each gateway tried', () => {
     assert.throws(() => resolve(list('vercel'), cursor), {
       name: 'UsageError',
-      message: `evaluate("e") on cursor:composer-2.5: no gateway in the list can serve it (vercel: ${CURSOR_WHY}). Drop direct({ enabled: false }) from gateway to fall back to Cursor's own key.`,
+      message: `evals/e.eval.ts on cursor:composer-2.5: no gateway in the list can serve it (vercel: ${CURSOR_WHY}). Drop direct({ enabled: false }) from gateway to fall back to Cursor's own key.`,
     })
   })
 
@@ -142,10 +142,10 @@ describe('resolveGateway', () => {
     })
     assert.throws(() => resolve(list('direct'), pinned(codex, 'vercel')), {
       message:
-        "evaluate(\"e\") on codex:gpt-5.4-mini: it pins gateway 'vercel', which isn't in the gateway list (direct). Add vercel() to gateway, or pin one that's there.",
+        "evals/e.eval.ts on codex:gpt-5.4-mini: it pins gateway 'vercel', which isn't in the gateway list (direct). Add vercel() to gateway, or pin one that's there.",
     })
     assert.throws(() => resolve(list('vercel', 'direct'), pinned(cursor, 'vercel')), {
-      message: `evaluate("e") on cursor:composer-2.5: it pins gateway 'vercel', which can't serve it (${CURSOR_WHY}). A pin never falls back; pin another gateway, or remove the pin to take the first in the list that can.`,
+      message: `evals/e.eval.ts on cursor:composer-2.5: it pins gateway 'vercel', which can't serve it (${CURSOR_WHY}). A pin never falls back; pin another gateway, or remove the pin to take the first in the list that can.`,
     })
   })
 
@@ -438,7 +438,7 @@ describe('Vercel AI Gateway routes', () => {
       skipped: [{ gateway: 'direct', why }],
     })
     assert.throws(() => resolve(list('direct'), fx), {
-      message: `evaluate("e") on fx:gemini-3-flash: no gateway in the list can serve it (direct: ${why}). Add vercel() to gateway.`,
+      message: `evals/e.eval.ts on fx:gemini-3-flash: no gateway in the list can serve it (direct: ${why}). Add vercel() to gateway.`,
     })
     const bare = { kind: 'fx', model: 'gpt-4.1' } as HarnessDescriptor
     assert.deepEqual(resolve(list('direct'), bare), { name: 'direct', skipped: [] })

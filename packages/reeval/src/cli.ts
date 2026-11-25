@@ -2371,17 +2371,22 @@ function unmatchedFilter(config: StartedRun['config'], parts: string[]) {
 }
 
 /**
- * An eval whose id holds a value declared with `secret()`. `evaluate` masks names as the
+ * An eval whose id holds a value declared with `secret()`. Ids and case keys are masked as the
  * worker's environment shows secrets, but a declared one is only known once the plan has the
- * environments, after the names became ids, so it's refused rather than written.
+ * environments, after the ids were made, so it's refused rather than written.
  */
 function namesDeclaredSecret(evals: ReadonlyArray<{ id: string }>): UsageError | undefined {
   for (const { id } of evals) {
-    const [file, ...names] = id.split(' › ')
+    const parts = id.split(' › ')
+    const [file, ...names] = parts.length > 1 ? parts : ['', ...parts]
     const masked = names.map((n) => redactSecrets(n))
     if (masked.every((n, i) => n === names[i])) continue
+    const fix =
+      parts.length === 1 && !/ \[.*\]$/.test(id)
+        ? 'rename the file without the secret'
+        : 'name it without the secret'
     return new UsageError(
-      `${[file, ...masked].join(' › ')} names a secret declared with secret(): name it without the secret.`,
+      `${[file, ...masked].filter(Boolean).join(' › ')} names a secret declared with secret(): ${fix}.`,
     )
   }
   return undefined

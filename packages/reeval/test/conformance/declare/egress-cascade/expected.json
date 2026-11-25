@@ -211,7 +211,7 @@
             }
           ]
         },
-        "harnesses": {
+        "agents": {
           "kind": "fake",
           "layout": "claude-code"
         }

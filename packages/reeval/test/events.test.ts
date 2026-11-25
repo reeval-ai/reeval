@@ -148,8 +148,8 @@ async function relay(
   }
 }
 
-/** An attempt key's eval name: `quick` for `evals/both.eval.ts › quick # fake/-/fake#1`. */
-const nameOf = (key: string) => (key.split(' › ').at(-1) ?? '').split(' # ')[0] ?? ''
+/** An attempt key's eval id: `quick` for `quick # fake/-/fake#1`. */
+const nameOf = (key: string) => key.split(' # ')[0] ?? ''
 const readLines = (file: string) =>
   readFileSync(file, 'utf8')
     .trim()
@@ -1184,7 +1184,7 @@ describe('heartbeats', () => {
   test('a heartbeat with the attempts in progress is written as given, and none after the exit line', async () => {
     const file = join(tempDir('events'), 'attempts.ndjson')
     const stream = openEventStream({ file, header: header(), warn: assert.fail, heartbeatMs: 0 })
-    const key = 'evals/a.eval.ts › one # fake/-/fake#1'
+    const key = 'one # fake/-/fake#1'
     stream.heartbeat({ attempts: [{ key, machine: 'm-1' }], machines: ['m-1', 'm-2'] })
     stream.heartbeat({ attempts: [], machines: ['m-1'], done: true })
     await stream.end(0)
@@ -1363,18 +1363,20 @@ describe('heartbeats', () => {
 
 const config = `
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
-export default defineConfig({ harnesses: fakeHarness({}), sandbox: fakeSandbox() })
+export default defineConfig({ agents: fakeAgent({}), sandbox: fakeSandbox() })
 `
 
 /** One eval that waits for `go` beside the config, so a test can attach while it runs. */
 const gated = `
 import { existsSync } from 'node:fs'
-import { evaluate, expect } from 'reeval'
-evaluate('waits', async (c) => {
-  while (!existsSync(new URL('../go', import.meta.url))) await new Promise((r) => setTimeout(r, 50))
-  expect(c.attempt.n).toBe(1)
+import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    while (!existsSync(new URL('../go', import.meta.url))) await new Promise((r) => setTimeout(r, 50))
+    expect(c.attempt.n).toBe(1)
+  },
 })
 `
 
@@ -1416,9 +1418,11 @@ describe('reeval run --events and reeval attach', () => {
   test("a run's paths from a folder in its project print as they did, and attach reads them as the project's", async () => {
     const p = await project('events-paths', {
       'reeval.config.ts': config,
-      'evals/passes.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('passes', async (c) => {
-  expect(c.attempt.n).toBe(1)
+      'evals/passes.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    expect(c.attempt.n).toBe(1)
+  },
 })
 `,
     })
@@ -1452,10 +1456,13 @@ evaluate('passes', async (c) => {
   test('an attempt reports its sandbox up before its setup steps run, and ready after', async () => {
     const p = await project('events-sandbox-up', {
       'reeval.config.ts': config,
-      'evals/slow.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/slow.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 const slow = defineEnvironment('slow', { setup: [{ run: 'sleep 1 && touch set-up' }] })
-evaluate('slow', { environments: slow }, async (c) => {
-  expect(await c.readFile('set-up')).toBe('')
+export default defineEval({
+  environment: slow,
+  async task(c) {
+    expect(await c.readFile('set-up')).toBe('')
+  },
 })
 `,
     })
@@ -1474,15 +1481,20 @@ evaluate('slow', { environments: slow }, async (c) => {
   test('a heartbeat names the attempts in progress on REEVAL_EVENTS_HEARTBEAT, stops with the run, and draws nothing', async () => {
     const p = await project('events-attempts-heartbeat', {
       'reeval.config.ts': config,
-      'evals/both.eval.ts': `import { evaluate, expect } from 'reeval'
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
-evaluate('quick', async (c) => {
-  await wait(2000)
-  expect(c.attempt.n).toBe(1)
+      'evals/quick.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await new Promise((r) => setTimeout(r, 2000))
+    expect(c.attempt.n).toBe(1)
+  },
 })
-evaluate('slow', async (c) => {
-  await wait(4500)
-  expect(c.attempt.n).toBe(1)
+`,
+      'evals/slow.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await new Promise((r) => setTimeout(r, 4500))
+    expect(c.attempt.n).toBe(1)
+  },
 })
 `,
     })
@@ -1543,9 +1555,11 @@ evaluate('slow', async (c) => {
         'sandbox: fakeSandbox() }',
         'sandbox: fakeSandbox(), history: { archive: true } }',
       ),
-      'evals/passes.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('passes', async (c) => {
-  expect(c.attempt.n).toBe(1)
+      'evals/passes.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    expect(c.attempt.n).toBe(1)
+  },
 })
 `,
     })
@@ -1668,11 +1682,13 @@ evaluate('passes', async (c) => {
 
   /** One eval that ignores the cancel, so a signal can land while the run is still canceling. */
   const slow = `import { setTimeout as sleep } from 'node:timers/promises'
-import { evaluate } from 'reeval'
-evaluate('slow', async (c) => {
-  await c.send('write hello.txt')
-  console.log('parked')
-  await sleep(8_000)
+import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('write hello.txt')
+    console.log('parked')
+    await sleep(8_000)
+  },
 })
 `
 

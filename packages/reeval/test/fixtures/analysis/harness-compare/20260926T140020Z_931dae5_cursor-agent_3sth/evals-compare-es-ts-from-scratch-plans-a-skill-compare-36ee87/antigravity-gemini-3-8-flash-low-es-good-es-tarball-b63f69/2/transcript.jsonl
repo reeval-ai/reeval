@@ -5,8 +5,8 @@
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"npx es --help"},"ok":true,"durationMs":2251}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"ls -la node_modules/@invertase/foobar"},"ok":true,"durationMs":1543}
 {"turn":0,"type":"tool","tool":"read","input":{"file_path":"node_modules/@invertase/foobar/package.json"},"ok":true,"durationMs":3326}
-{"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -A 20 \"fakeHarness\" node_modules/@invertase/foobar/dist/harness.d.ts"},"ok":true,"durationMs":2250}
-{"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -A 30 \"fakeHarness\" node_modules/@invertase/foobar/dist/harness.js"},"ok":true,"durationMs":1135}
+{"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -A 20 \"fakeAgent\" node_modules/@invertase/foobar/dist/harness.d.ts"},"ok":true,"durationMs":2250}
+{"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -A 30 \"fakeAgent\" node_modules/@invertase/foobar/dist/harness.js"},"ok":true,"durationMs":1135}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -A 20 \"fakeSandbox\" node_modules/@invertase/foobar/dist/sandbox.js"},"ok":true,"durationMs":1110}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -A 20 \"fakeJudge\" node_modules/@invertase/foobar/dist/judge.js"},"ok":true,"durationMs":2738}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -rn \"skill.local\" node_modules/@invertase/foobar/dist/"},"ok":true,"durationMs":1943}

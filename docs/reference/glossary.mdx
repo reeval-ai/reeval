@@ -5,7 +5,7 @@ description: "The words name the parts of a run and what a result reports."
 
 ## Agent
 
-An agent is a harness plus its model, named in the `harnesses` option, such as `claude-code:claude-sonnet-5`.
+An agent is a harness plus its model, named in the `agents` option, such as `claude-code:claude-sonnet-5`.
 
 **Agent mode** is `--ui agent`, output for an agent that is itself running reeval. `to: 'agent'` on a secret puts the value in the container's environment. For more information about an agent, see [Harness](/reference/glossary#harness).
 
@@ -73,7 +73,7 @@ In code, an **environment** is the value `defineEnvironment()` returns. **Variab
 
 ## Evaluation
 
-An evaluation is one task for the agent and the assertions and judgments on its result, declared with `evaluate()` in a `*.eval.ts` file, optionally over a list of `cases`. The evaluation fails when a cell that counts toward it fails.
+An evaluation is one task for the agent and the assertions and judgments on its result, declared with `defineEval()` in a `*.eval.ts` file, optionally over a list of `cases`. The evaluation fails when a cell that counts toward it fails.
 
 The **evaluation model** is a `typesafe-ai/*` judge model, which only scores yes or no, as the error strings name it. A **language model** writes text. For more information about an evaluation, see [Evaluate](/evaluations/evaluate).
 

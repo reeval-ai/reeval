@@ -1,7 +1,10 @@
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { marked, plain } from './env.ts'
 
 // Must fail: the same misses with `gate: 'all'` gate the eval.
-evaluate('canary', { compare: { control: plain, variants: [marked], gate: 'all' } }, async (c) => {
-  await expect(c, 'has the marker').toHaveFile('marker.txt', /nope/)
+export default defineEval({
+  compare: { control: plain, variants: [marked], gate: 'all' },
+  task: async (c) => {
+    await expect(c, 'has the marker').toHaveFile('marker.txt', /nope/)
+  },
 })

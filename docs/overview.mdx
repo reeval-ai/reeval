@@ -72,17 +72,14 @@ export const withSkill = page.extendEnvironment(
 The evaluation goes in its own file:
 
 ```ts title="evals/brand.eval.ts"
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { page, withSkill } from './environments.ts'
 
-evaluate(
-  "styles the page in Anthropic's brand",
-  {
-    compare: { control: page, variants: [withSkill] },
+export default defineEval({
+  compare: { control: page, variants: [withSkill] },
     runs: 4,
     gate: { passRate: 0.75 },
-  },
-  async (c) => {
+  task: async (c) => {
     await c.send(
       "Give index.html Anthropic's look: write styles.css with Anthropic's " +
         'brand colors and fonts, and link it from index.html.',
@@ -98,7 +95,7 @@ evaluate(
       /Poppins[\s\S]*Lora|Lora[\s\S]*Poppins/,
     )
   },
-)
+})
 ```
 
 The prompt never names the color or the fonts, so those assertions pass only when the agent knows them. `reeval run` prints the outcome for each side:

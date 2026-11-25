@@ -46,10 +46,14 @@ function isUnder(file: string, dir: string): boolean {
   return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
 }
 
-/** A name or cell filter part matches part of the eval id (`file › group › name`) or `cell#n`. */
+/**
+ * A name or cell filter part matches part of the eval id or `cell#n`; `id#case` matches the case
+ * of an eval with `cases`.
+ */
 export const matchesFilter = (
   e: { id: string; attempt?: { cell: { key: string }; n: number } | undefined },
   filter: string,
 ): boolean =>
   e.id.includes(filter) ||
+  e.id.includes(filter.replace(/#([^#]+)$/, ' [$1')) ||
   (!!e.attempt && attemptId(e.attempt.cell.key, e.attempt.n).includes(filter))

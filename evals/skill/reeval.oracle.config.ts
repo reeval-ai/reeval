@@ -3,7 +3,7 @@
 // `pnpm reeval run --config evals/skill/reeval.oracle.config.ts`, after `node evals/skill/scripts/vendor.mjs`.
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeAnalysis, fakeJudge } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
 
@@ -11,7 +11,7 @@ const solve = fileURLToPath(new URL('./oracle/solve.mjs', import.meta.url))
 
 export default defineConfig({
   include: ['*.eval.ts'],
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     script: [[{ exec: `node ${solve}` }]],
     text:
       'Fixed: compare moved out of the config, the environment list became compare, repeat ' +

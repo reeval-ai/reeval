@@ -22,11 +22,11 @@ Import `direct()` from `{{ pkg }}/gateway`. In the `reeval.config.ts` file, set 
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
 import { direct } from '{{ pkg }}/gateway'
-import { opencode } from '{{ pkg }}/harness'
+import { opencode } from '{{ pkg }}/agent'
 
 export default defineConfig({
   gateway: [direct()],
-  harnesses: opencode({ model: 'google/gemini-3.8-flash' }),
+  agents: opencode({ model: 'google/gemini-3.8-flash' }),
 })
 ```
 

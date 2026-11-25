@@ -22,9 +22,9 @@ function placeholder(message: string, dir: string): string {
 }
 
 /** What a case does: `null` when it's accepted, else its error's class and message. */
-function outcome(run: () => unknown): string | null {
+function outcome(name: string, run: (name: string) => unknown): string | null {
   try {
-    run()
+    run(name)
     return null
   } catch (error) {
     const e = error as Error
@@ -52,12 +52,19 @@ test('refusals: a Windows path reads as <dir> with forward slashes', () => {
 })
 
 for (const [segment, cases] of Object.entries(CASES)) {
-  test(`refusals: ${segment}`, () => {
+  test(`refusals: ${segment}`, (t) => {
     const names = cases.map(([name]) => name)
     assert.equal(new Set(names).size, names.length, `a case name repeats in ${segment}`)
-    const actual = Object.fromEntries(cases.map(([name, run]) => [name, outcome(run)]))
     const file = new URL(`./refusals/${segment}.json`, import.meta.url)
+    const golden = JSON.parse(readFileSync(file, 'utf8'))
+    const actual = Object.fromEntries(
+      cases.map(([name, run, skip]) => {
+        if (!skip) return [name, outcome(name, run)]
+        t.diagnostic(`${name}: skipped, ${skip}`)
+        return [name, golden[name]]
+      }),
+    )
     if (UPDATE) writeFileSync(file, `${JSON.stringify(actual, null, 2)}\n`)
-    assert.deepEqual(actual, JSON.parse(readFileSync(file, 'utf8')))
+    else assert.deepEqual(actual, golden)
   })
 }

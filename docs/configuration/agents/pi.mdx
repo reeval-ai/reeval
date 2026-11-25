@@ -21,14 +21,14 @@ For more information about the automatic hosts, see [Block non-automatic hosts](
 
 ## `pi()`
 
-`pi()` is exported from `{{ pkg }}/harness`. The following configuration passes it as the `harness` option:
+`pi()` is exported from `{{ pkg }}/agent`. The following configuration passes it as the `harness` option:
 
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
-import { pi } from '{{ pkg }}/harness'
+import { pi } from '{{ pkg }}/agent'
 
 export default defineConfig({
-  harnesses: pi({
+  agents: pi({
     model: 'google/gemini-3.8-flash',
     effort: 'high',
   }),

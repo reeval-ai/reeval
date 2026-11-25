@@ -1,8 +1,8 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
 export default defineConfig({
-  harnesses: fakeHarness({}),
+  agents: fakeAgent({}),
   // No capture.model, and analysis.model is an evaluation model that can't drive a journey: the
   // profile's judge is the journey's model.
   analysis: { model: 'typesafe-ai/jev-1.14.0' },

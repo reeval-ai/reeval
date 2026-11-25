@@ -1,5 +1,4 @@
 import { defineConfig } from 'reeval'
-import { openrouter } from 'reeval/gateway'
 import {
   antigravity,
   claudeCode,
@@ -10,10 +9,11 @@ import {
   grokBuild,
   opencode,
   pi,
-} from 'reeval/harness'
+} from 'reeval/agent'
+import { openrouter } from 'reeval/gateway'
 
 export default defineConfig({
-  harnesses: [
+  agents: [
     claudeCode({ model: 'claude-haiku-5-5' }),
     codex({ model: 'gpt-5.4-mini' }),
     goose({ model: 'google/gemini-3.8-flash' }),

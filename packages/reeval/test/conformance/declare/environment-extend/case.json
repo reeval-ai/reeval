@@ -1,5 +1,11 @@
 {
-  "eval": "plan/environments/evals/extend.eval.ts",
+  "eval": "plan/environments/evals",
+  "treeRoot": "plan/environments",
   "plan": "plan/environments/expected/extend-replace.txt",
-  "args": ["evals/extend.eval.ts"]
+  "args": [],
+  "planSources": [
+    "plan/environments/evals/parent-image.eval.ts",
+    "plan/environments/evals/child-replaces-sandbox.eval.ts",
+    "plan/environments/evals/child-keeps-parent-sandbox.eval.ts"
+  ]
 }

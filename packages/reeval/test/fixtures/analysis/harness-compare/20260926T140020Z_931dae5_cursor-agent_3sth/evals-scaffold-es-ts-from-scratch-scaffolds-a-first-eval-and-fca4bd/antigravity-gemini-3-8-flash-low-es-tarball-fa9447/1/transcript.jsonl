@@ -23,12 +23,12 @@
 {"turn":0,"type":"tool","tool":"read","input":{"file_path":"node_modules/@invertase/foobar/dist/judge/index.js"},"ok":true,"durationMs":1193}
 {"turn":0,"type":"tool","tool":"read","input":{"file_path":"node_modules/@invertase/foobar/test/features.test.ts"},"ok":false,"durationMs":1237}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"tar -tf /opt/es/invertase-foobar.tgz | grep -E \"example|fixture|test|config\" | head -n 30"},"ok":true,"durationMs":1391}
-{"turn":0,"type":"tool","tool":"bash","input":{"command":"node -e '\nconst { fakeHarness } = require(\"@invertase/foobar/harness\");\nconst { fakeSandbox } = require(\"@invertase/foobar/sandbox\");\nconst { fakeJudge } = requ…"},"ok":true,"durationMs":1143}
+{"turn":0,"type":"tool","tool":"bash","input":{"command":"node -e '\nconst { fakeAgent } = require(\"@invertase/foobar/harness\");\nconst { fakeSandbox } = require(\"@invertase/foobar/sandbox\");\nconst { fakeJudge } = requ…"},"ok":true,"durationMs":1143}
 {"turn":0,"type":"tool","tool":"read","input":{"file_path":"node_modules/@invertase/foobar/dist/config.js"},"ok":true,"durationMs":1941}
 {"turn":0,"type":"tool","tool":"read","input":{"file_path":"node_modules/@invertase/foobar/dist/config.js"},"ok":true,"durationMs":1441}
 {"turn":0,"type":"tool","tool":"read","input":{"file_path":"node_modules/@invertase/foobar/dist/config.js"},"ok":true,"durationMs":908}
 {"turn":0,"type":"tool","tool":"read","input":{"file_path":"node_modules/@invertase/foobar/dist/config.js"},"ok":true,"durationMs":1438}
-{"turn":0,"type":"tool","tool":"bash","input":{"command":"node -e '\nconst { fakeHarness } = require(\"@invertase/foobar/harness\");\nconst { fakeSandbox } = require(\"@invertase/foobar/sandbox\");\nconst { fakeJudge } = requ…"},"ok":true,"durationMs":1467}
+{"turn":0,"type":"tool","tool":"bash","input":{"command":"node -e '\nconst { fakeAgent } = require(\"@invertase/foobar/harness\");\nconst { fakeSandbox } = require(\"@invertase/foobar/sandbox\");\nconst { fakeJudge } = requ…"},"ok":true,"durationMs":1467}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"node -e '\nimport(\"@invertase/foobar\").then(m => {\n  console.log(\"defineConfig:\", m.defineConfig);\n  console.log(\"evaluate:\", m.evaluate);\n  console.log(\"expect:…"},"ok":true,"durationMs":1617}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"node -e '\nPromise.all([\n  import(\"@invertase/foobar\"),\n  import(\"@invertase/foobar/harness\"),\n  import(\"@invertase/foobar/sandbox\"),\n  import(\"@invertase/foobar…"},"ok":true,"durationMs":1719}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"npx vitest --version"},"ok":true,"durationMs":1188}

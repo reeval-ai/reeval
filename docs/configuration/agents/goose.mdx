@@ -23,14 +23,14 @@ For more information about blocked requests, see [Read blocked requests](/config
 
 ## `goose()`
 
-`goose()` is exported from `{{ pkg }}/harness`. The following configuration passes it as the `harness` option:
+`goose()` is exported from `{{ pkg }}/agent`. The following configuration passes it as the `harness` option:
 
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
-import { goose } from '{{ pkg }}/harness'
+import { goose } from '{{ pkg }}/agent'
 
 export default defineConfig({
-  harnesses: goose({
+  agents: goose({
     model: 'google/gemini-3.8-flash',
     effort: 'high',
   }),

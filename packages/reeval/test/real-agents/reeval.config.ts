@@ -4,16 +4,16 @@
 // real-agent runs, every contract leg's included.
 import { defineConfig } from 'reeval'
 import { s3 } from 'reeval/store/s3'
-import { composer } from './evals/harnesses.ts'
+import { composer } from './evals/agents.ts'
 
 export default defineConfig({
   include: ['evals/**/*.eval.ts'],
-  harnesses: composer,
+  agents: composer,
   timeout: '15m',
   profiles: {
     // The judge-free evals tagged smoke, once, on the cheap model.
     smoke: {
-      limit: { runs: 1, compare: false, harnesses: ['cursor:composer-2.5'] },
+      limit: { runs: 1, compare: false, agents: ['cursor:composer-2.5'] },
       tags: ['smoke'],
       budget: { attempts: 5, duration: '15m' },
     },

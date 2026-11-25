@@ -2171,7 +2171,7 @@
           ]
         },
         "skip": {
-          "description": "Declared not to run: `evaluate.skip`, inside a `group.skip`, or left out by an `.only` in its file. Its outcome is `skipped`. Unset otherwise, so in a run that isn't `complete` a skipped eval with neither `todo` nor `skip` hasn't run yet. Unset on records from before it.",
+          "description": "Declared not to run: `skip` on its `defineEval`, or in Python `evaluate.skip`, inside a `group.skip`, or left out by an `.only` in its file. Its outcome is `skipped`. Unset otherwise, so in a run that isn't `complete` a skipped eval with neither `todo` nor `skip` hasn't run yet. Unset on records from before it.",
           "const": true
         },
         "slug": {
@@ -2205,7 +2205,7 @@
           }
         },
         "todo": {
-          "description": "A placeholder, `evaluate.todo` or `group.todo`: it never runs, and its outcome is `skipped`.",
+          "description": "A placeholder (Python's `evaluate.todo` or `group.todo`): it never runs, and its outcome is `skipped`.",
           "type": "boolean"
         },
         "verdict": {
@@ -4083,7 +4083,7 @@
           "type": "string"
         },
         "where": {
-          "description": "The value is the level as reeval names it: the `reeval.config.ts` file, `profiles.pr.defaults`, `group(\"net\")`, or `evaluate(\"installs deps\")`.",
+          "description": "The value is the level as reeval names it: the `reeval.config.ts` file, `profiles.pr.defaults`, or the eval file, such as `evals/installs-deps.eval.ts`.",
           "type": "string"
         }
       },

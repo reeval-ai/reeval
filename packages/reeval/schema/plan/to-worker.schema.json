@@ -1231,7 +1231,7 @@
       "required": ["kind"]
     },
     "FakeHarnessDescriptor": {
-      "description": "A canned agent for tests and dry runs, made by `fakeHarness()` in `reeval/harness`.",
+      "description": "A canned agent for tests and dry runs, made by `fakeAgent()` in `reeval/agent`.",
       "type": "object",
       "properties": {
         "bootstrap": {
@@ -2464,6 +2464,47 @@
       "description": "What evals get when they don't say otherwise: under groups and evals.",
       "type": "object",
       "properties": {
+        "agents": {
+          "description": "The agents every eval runs on, in place of the eval's own unless it pins them.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AntigravityHarnessDescriptor"
+            },
+            {
+              "$ref": "#/$defs/ClaudeCodeHarnessDescriptor"
+            },
+            {
+              "$ref": "#/$defs/CodexHarnessDescriptor"
+            },
+            {
+              "$ref": "#/$defs/CursorHarnessDescriptor"
+            },
+            {
+              "$ref": "#/$defs/FakeHarnessDescriptor"
+            },
+            {
+              "$ref": "#/$defs/FxHarnessDescriptor"
+            },
+            {
+              "$ref": "#/$defs/GooseHarnessDescriptor"
+            },
+            {
+              "$ref": "#/$defs/GrokBuildHarnessDescriptor"
+            },
+            {
+              "$ref": "#/$defs/OpenCodeHarnessDescriptor"
+            },
+            {
+              "$ref": "#/$defs/PiHarnessDescriptor"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/HarnessDescriptor"
+              }
+            }
+          ]
+        },
         "capture": {
           "description": "Screenshot defaults for `c.capture()`, shallow-merged over the config's.",
           "$ref": "#/$defs/CaptureOptions"
@@ -2523,47 +2564,6 @@
                 }
               },
               "required": ["passRate"]
-            }
-          ]
-        },
-        "harnesses": {
-          "description": "The agents every eval runs on, unless a group or eval replaces them.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/AntigravityHarnessDescriptor"
-            },
-            {
-              "$ref": "#/$defs/ClaudeCodeHarnessDescriptor"
-            },
-            {
-              "$ref": "#/$defs/CodexHarnessDescriptor"
-            },
-            {
-              "$ref": "#/$defs/CursorHarnessDescriptor"
-            },
-            {
-              "$ref": "#/$defs/FakeHarnessDescriptor"
-            },
-            {
-              "$ref": "#/$defs/FxHarnessDescriptor"
-            },
-            {
-              "$ref": "#/$defs/GooseHarnessDescriptor"
-            },
-            {
-              "$ref": "#/$defs/GrokBuildHarnessDescriptor"
-            },
-            {
-              "$ref": "#/$defs/OpenCodeHarnessDescriptor"
-            },
-            {
-              "$ref": "#/$defs/PiHarnessDescriptor"
-            },
-            {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/HarnessDescriptor"
-              }
             }
           ]
         },
@@ -2650,6 +2650,13 @@
       "description": "Over every eval, and it can only narrow; `pin` on a group or eval skips it.",
       "type": "object",
       "properties": {
+        "agents": {
+          "description": "Agent ids to allow; evals left with none are skipped.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "compare": {
           "description": "`false` runs the control only; `{ maxVariants }` keeps the first n variants.",
           "anyOf": [
@@ -2670,13 +2677,6 @@
               "additionalProperties": false
             }
           ]
-        },
-        "harnesses": {
-          "description": "Harness ids to allow; evals left with none are skipped.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
         },
         "runs": {
           "description": "The most runs per cell.",

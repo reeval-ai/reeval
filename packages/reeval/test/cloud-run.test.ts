@@ -98,6 +98,10 @@ const TOKEN = 'cloud-check-token-value'
 async function unlinkedFixture(answer = '42') {
   const p = await project('cloud', {})
   cpSync(join(pkgRoot, 'test/fixtures/bundle'), p.dir, { recursive: true })
+  for (const sub of ['runs', 'debug', 'staging', 'cloud'] as const) {
+    const at = join(p.dir, '.reeval', sub)
+    if (existsSync(at)) rmSync(at, { recursive: true, force: true })
+  }
   writeFileSync(join(p.dir, '.env'), `CHECK_TOKEN=${TOKEN}\n`)
   writeFileSync(join(p.dir, 'data/answer.txt'), `${answer}\n`)
   return p.dir
@@ -509,17 +513,20 @@ describe('reeval run on the cloud platform', () => {
       assert.match(r.stdout, /1 passed/)
       assert.doesNotMatch(r.stdout, /Waiting for the cloud run/, 'no spinner off a terminal')
       assert.ok(!r.stdout.includes('\x1b['), 'nor a cursor move')
-      assert.deepEqual(
-        p.seen.filter((s) => s.path !== '/ingest').map((s) => `${s.method} ${s.path}`),
-        [
-          'GET /api/config',
-          'GET /api/orgs/org_a/projects/proj_a/secret-names',
-          'POST /api/orgs/org_a/projects/proj_a/runs',
-          `PUT /api/runs/${id}/bundle`,
-          `POST /api/runs/${id}/start`,
-          `WS /api/runs/${id}/events`,
-          `GET /api/runs/${id}`,
-        ],
+      const seen = p.seen.filter((s) => s.path !== '/ingest').map((s) => `${s.method} ${s.path}`)
+      const want = [
+        'GET /api/config',
+        'GET /api/orgs/org_a/projects/proj_a/secret-names',
+        'POST /api/orgs/org_a/projects/proj_a/runs',
+        `PUT /api/runs/${id}/bundle`,
+        `POST /api/runs/${id}/start`,
+        `WS /api/runs/${id}/events`,
+        `GET /api/runs/${id}`,
+      ]
+      assert.deepEqual(seen.slice(0, want.length), want)
+      assert.ok(
+        seen.slice(want.length).every((line) => line === `GET /api/runs/${id}`),
+        `unexpected calls after status poll: ${seen.slice(want.length).join(', ')}`,
       )
       for (const s of p.seen.filter((s) => s.path !== '/ingest')) {
         assert.equal(s.auth, 'Bearer cloud-test-token', `${s.method} ${s.path}`)
@@ -849,13 +856,13 @@ describe('reeval run on the cloud platform', () => {
       const config = join(dir, 'reeval.config.ts')
       writeFileSync(
         config,
-        `import { claudeCode } from 'reeval/harness'\nimport { docker } from 'reeval/sandbox'\n${readFileSync(
+        `import { claudeCode } from 'reeval/agent'\nimport { docker } from 'reeval/sandbox'\n${readFileSync(
           config,
           'utf8',
         )
           .replace(
-            "harnesses: fakeHarness({ script: [[{ reply: 'hi' }]] }),",
-            "harnesses: claudeCode({ model: 'claude-sonnet-5' }),",
+            "agents: fakeAgent({ script: [[{ reply: 'hi' }]] }),",
+            "agents: claudeCode({ model: 'claude-sonnet-5' }),",
           )
           .replace(/sandbox: fakeSandbox\(.*\),/, 'sandbox: docker(),')}`,
       )
@@ -909,9 +916,12 @@ describe('reeval run on the cloud platform', () => {
     const base = readFileSync(config, 'utf8')
     writeFileSync(
       join(dir, 'evals/asks.eval.ts'),
-      `import { evaluate } from 'reeval'
-evaluate('asks', { questions: [{ question: 'Is it tidy?', output: true, model: 'google/gemini-3.8-flash' }] }, async (c) => {
+      `import { defineEval } from 'reeval'
+export default defineEval({
+  questions: [{ question: 'Is it tidy?', output: true, model: 'google/gemini-3.8-flash' }],
+  async task(c) {
   await c.send('hi')
+  },
 })
 `,
     )
@@ -937,7 +947,7 @@ evaluate('asks', { questions: [{ question: 'Is it tidy?', output: true, model: '
     assert.equal(onVercel.notCloud, undefined)
     const onVertex = await plan("vertex({ project: 'p' })")
     assert.deepEqual(onVertex.notCloud, [
-      "vertex() calls models on this machine's Google Cloud credentials (evals/asks.eval.ts › asks)",
+      "vertex() calls models on this machine's Google Cloud credentials (asks)",
     ])
   })
 
@@ -973,18 +983,18 @@ evaluate('asks', { questions: [{ question: 'Is it tidy?', output: true, model: '
       const { dir } = await project('cloud-refused', {
         'reeval.config.ts': `
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
-export default defineConfig({ harnesses: fakeHarness(), cloud: true })
+import { fakeAgent } from 'reeval/agent'
+export default defineConfig({ agents: fakeAgent(), cloud: true })
 `,
         'evals/mac.eval.ts': `
-import { evaluate } from 'reeval'
+import { defineEval } from 'reeval'
 import { tart } from 'reeval/sandbox'
-evaluate('mac', { sandbox: tart({ image: 'macos-base' }), egress: 'allow-all' }, async () => {})
+export default defineEval({ sandbox: tart({ image: 'macos-base' }), egress: 'allow-all', async task() {} })
 `,
         'evals/pod.eval.ts': `
-import { evaluate } from 'reeval'
+import { defineEval } from 'reeval'
 import { podman } from 'reeval/sandbox'
-evaluate('pod', { sandbox: podman() }, async () => {})
+export default defineEval({ sandbox: podman(), async task() {} })
 `,
         '.reeval/project.json': JSON.stringify({ orgId: 'org_a', projectId: 'proj_a' }),
       })
@@ -1019,18 +1029,18 @@ evaluate('pod', { sandbox: podman() }, async () => {})
       const { dir } = await project('cloud-docker-placed', {
         'reeval.config.ts': `
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 export default defineConfig({
-  harnesses: fakeHarness(),
+  agents: fakeAgent(),
   sandbox: docker({ root: true, dockerfile: './image/Dockerfile' }),
 })
 `,
         'image/Dockerfile': 'FROM debian:12\nCOPY seed.txt /seed.txt\n',
         'image/seed.txt': 'seed\n',
-        'evals/a.eval.ts': `
-import { evaluate } from 'reeval'
-evaluate('builds', async () => {})
+        'evals/builds.eval.ts': `
+import { defineEval } from 'reeval'
+export default defineEval({ async task() {} })
 `,
         '.reeval/project.json': JSON.stringify({ orgId: 'org_a', projectId: 'proj_a' }),
       })
@@ -1104,18 +1114,20 @@ evaluate('builds', async () => {})
       const { dir } = await project('cloud-vm-names', {
         'reeval.config.ts': `
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { cloud } from 'reeval/internal/vm'
 export default defineConfig({
-  harnesses: fakeHarness({ script: [[{ exec: 'true' }]] }),
+  agents: fakeAgent({ script: [[{ exec: 'true' }]] }),
   sandbox: cloud(),
   egress: 'allow-all',
 })
 `,
-        'evals/a.eval.ts': `
-import { evaluate } from 'reeval'
-evaluate('reaches', async (c) => {
+        'evals/reaches.eval.ts': `
+import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
   await c.exec('true')
+  },
 })
 `,
         '.reeval/project.json': JSON.stringify({ orgId: 'org_a', projectId: 'proj_a' }),
@@ -1839,14 +1851,14 @@ evaluate('reaches', async (c) => {
       const dir = await fixtureProject()
       writeFileSync(
         join(dir, 'evals/mac.eval.ts'),
-        `import { defineEnvironment, evaluate } from 'reeval'
+        `import { defineEnvironment, defineEval } from 'reeval'
 import { tart } from 'reeval/sandbox'
 
 const mac = defineEnvironment('mac', {
   sandbox: tart({ image: 'ghcr.io/cirruslabs/macos-sequoia-base:15.6' }),
   egress: 'allow-all',
 })
-evaluate('on a mac', { environments: mac }, async () => {})
+export default defineEval({ environment: mac, async task() {} })
 `,
       )
       const r = await runCli(dir, ['run', '--cloud', '--dry-run'], {
@@ -1890,9 +1902,13 @@ evaluate('on a mac', { environments: mac }, async () => {})
 describe("a cloud run's files, downloaded with --download", () => {
   const env = (p: { base: string }) => ({ REEVAL_CLOUD_URL: p.base, REEVAL_TOKEN: 'files-token' })
   const recordOf = (dir: string) => {
-    const name = readdirSync(join(dir, '.reeval/runs')).find((n) => n.endsWith('.json'))
-    assert.ok(name, 'a record in .reeval/runs')
-    return { runId: name.slice(0, -'.json'.length), file: join(dir, '.reeval/runs', name) }
+    const runs = join(dir, '.reeval/runs')
+    const names = readdirSync(runs).filter((n) => n.endsWith('.json'))
+    assert.ok(names.length, 'a record in .reeval/runs')
+    const name = names
+      .map((n) => ({ n, mtime: statSync(join(runs, n)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime)[0]!.n
+    return { runId: name.slice(0, -'.json'.length), file: join(runs, name) }
   }
 
   test('land in .reeval/runs and .reeval/debug, where show and query read them; again, nothing changes', async () => {
@@ -2869,8 +2885,11 @@ describe('reeval run --cloud --resume', () => {
     /** The run's scratch record, rewritten as a budget stop that never ran its attempt. */
     const budgetStop = (dir: string) => {
       const runs = join(dir, '.reeval', 'runs')
-      const name = readdirSync(runs).find((f) => f.endsWith('.json'))
-      assert.ok(name)
+      const names = readdirSync(runs).filter((f) => f.endsWith('.json'))
+      assert.ok(names.length)
+      const name = names
+        .map((n) => ({ n, mtime: statSync(join(runs, n)).mtimeMs }))
+        .sort((a, b) => b.mtime - a.mtime)[0]!.n
       const run = JSON.parse(readFileSync(join(runs, name), 'utf8'))
       run.status = 'budget'
       for (const e of run.evals) {

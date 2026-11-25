@@ -46,6 +46,10 @@ export type Example = {
   exit?: number
   /** Host variables its plans and run need, such as `vertex()`'s project. */
   env?: Record<string, string>
+  /** Its eval files, when it has more than one; default `<name>.eval.ts`. */
+  files?: string[]
+  /** Per-profile eval files, when tag or profile filters change the set; default `files`. */
+  filesByProfile?: Record<string, string[]>
   /**
    * The fake agent flakes at random, so only each cell's attempt count holds, every outcome is a
    * pass or a fail, and the run may exit 0 or 1.
@@ -78,8 +82,9 @@ export const EXAMPLES: Record<string, Example> = {
   },
   'with-multi-turn': { run: { 'fake/math/fake': pass(1) } },
   'with-cases': { run: { 'fake/math/fake': pass(3) } },
-  'with-groups': {
-    run: { 'fake/math/fake': [...pass(3), 'skipped', 'skipped'], unknown: ['skipped'] },
+  'with-skip': {
+    run: { 'fake/math/fake': [...pass(3), 'skipped'] },
+    files: ['adds-divide.eval.ts', 'adds-multiply.eval.ts', 'adds-subtract.eval.ts'],
   },
   'with-pass-rate': { run: { 'fake/math/fake': pass(5) }, flaky: true },
   'with-background-process': { run: { 'fake/server/fake': pass(1) } },
@@ -95,7 +100,7 @@ export const EXAMPLES: Record<string, Example> = {
   'with-fake-judge': { run: { 'fake/math/fake': pass(1) } },
 
   // Harnesses
-  'with-many-harnesses': {
+  'with-many-agents': {
     run: { 'fake-quick/math/fake': pass(1), 'fake-careful/math/fake': pass(1) },
     plain: { harness: ['fake-careful', 'fake-quick'], sandbox: ['fake'] },
     profiles: {
@@ -105,14 +110,14 @@ export const EXAMPLES: Record<string, Example> = {
       },
     },
   },
-  'with-harness-edits': {
+  'with-agent-edits': {
     run: {
       'fake-quick/math/fake': pass(2),
       'fake-careful/math/fake': pass(1),
       'oracle/math/fake': pass(1),
     },
     plain: { harness: ['fake-careful', 'fake-quick', 'oracle'], sandbox: ['fake'] },
-    shared: (h) => ({ harness: [h, 'oracle'].sort(), sandbox: ['docker'] }),
+    files: ['adds-multiply.eval.ts', 'adds-subtract.eval.ts'],
   },
   'with-reasoning-effort': {
     run: { 'fake[effort=low]/math/fake': pass(1), 'fake[effort=high]/math/fake': pass(1) },
@@ -136,7 +141,7 @@ export const EXAMPLES: Record<string, Example> = {
     profiles: { vertex: inDocker('claude-code:claude-sonnet-5-5') },
     env: { GOOGLE_CLOUD_PROJECT: 'reeval-example' },
   },
-  'with-fake-harness': { run: { 'fake/math/fake': pass(1) } },
+  'with-fake-agent': { run: { 'fake/math/fake': pass(1) } },
   'with-oracle-canary': {
     run: { needs: 'Docker' },
     plain: fakeInDocker,
@@ -196,7 +201,7 @@ export const EXAMPLES: Record<string, Example> = {
     run: { 'fake/short-rules/fake': fail(4), 'fake/detailed-rules/fake': pass(4) },
   },
   'with-compare-questions': { run: { 'fake/math/fake': pass(4), 'fake/errors/fake': pass(4) } },
-  'with-compare-harness': {
+  'with-compare-agents': {
     run: { needs: 'ANTHROPIC_API_KEY, OPENAI_API_KEY and Docker' },
     plain: { harness: ['claude-code:claude-sonnet-5', 'codex:gpt-5.6-luna'], sandbox: ['docker'] },
     shared: () => ({
@@ -225,7 +230,12 @@ export const EXAMPLES: Record<string, Example> = {
     profiles: { pr: fakePlan, nightly: fakePlan },
   },
   'with-budget': { run: { 'fake/math/fake': [...pass(1), 'skipped', 'skipped'] }, exit: 1 },
-  'with-tags': { run: { 'fake/math/fake': pass(2) }, profiles: { smoke: fakePlan } },
+  'with-tags': {
+    run: { 'fake/math/fake': pass(2) },
+    profiles: { smoke: fakePlan },
+    files: ['adds-a-tested-divide.eval.ts', 'adds-multiply.eval.ts'],
+    filesByProfile: { smoke: ['adds-multiply.eval.ts'] },
+  },
   'with-history': { run: { 'fake/math/fake': pass(1) } },
   'with-github-pr-gate': {
     run: { 'fake/math/fake': pass(1) },
@@ -250,7 +260,13 @@ export const EXAMPLES: Record<string, Example> = {
   'with-library-skill-lift': {
     run: { 'fake/page/fake': fail(4), 'fake/brand-guidelines/fake': pass(4) },
   },
-  'with-recommendation': { run: { 'fake/-/fake': pass(4) } },
+  'with-recommendation': {
+    run: { 'fake/-/fake': pass(4) },
+    files: [
+      'recommends-genkit-for-a-production-ai-feature.eval.ts',
+      'recommends-genkit-over-a-rival.eval.ts',
+    ],
+  },
   'with-existing-codebase': { run: { 'fake/camelcase/fake': pass(1) } },
   'with-feedback-loop': { run: { 'fake/notes/fake': pass(1) } },
   'with-code-review': { run: { 'fake/search/fake': pass(1) }, profiles: { canary: fakePlan } },
@@ -335,7 +351,8 @@ export async function checkExample(name: string, e: Example): Promise<void> {
   )
   Object.keys(want).forEach((p, i) => {
     const { files, plan } = got[i] as { files: string[]; plan: Plan }
-    assert.deepEqual(files, [`${name}.eval.ts`], `${name} --profile ${p || '(none)'}`)
+    const wantFiles = e.filesByProfile?.[p] ?? e.files ?? [`${name}.eval.ts`]
+    assert.deepEqual(files, wantFiles, `${name} --profile ${p || '(none)'}`)
     assert.deepEqual(plan, want[p], `${name} --profile ${p || '(none)'}`)
   })
   if ('needs' in e.run) return

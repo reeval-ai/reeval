@@ -19,7 +19,7 @@
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-inspect/package/dist/types.d.ts"},"ok":true,"durationMs":36}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-inspect/package/dist/harness/fake.d.ts"},"ok":true,"durationMs":36}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"/tmp/es-inspect/package/dist","pattern":"fakeJudge|fakeHarness|baseline|withSkill|skill\\.local"},"ok":true,"durationMs":33}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"/tmp/es-inspect/package/dist","pattern":"fakeJudge|fakeAgent|baseline|withSkill|skill\\.local"},"ok":true,"durationMs":33}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"/tmp/es-inspect/package/dist","pattern":"fakeJudge|baseline|defineConfig|defineEnvironment"},"ok":true,"durationMs":33}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-inspect/package/dist/types.d.ts"},"ok":true,"durationMs":34}
@@ -58,7 +58,7 @@
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-inspect/package/dist/config.js"},"ok":true,"durationMs":12}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-inspect/package/dist/harness/fake.js"},"ok":true,"durationMs":16}
-{"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -r \"withSkill\\|fakeHarness\\|fakeJudge\\|defineEnvironment\" /tmp/es-inspect/package/dist --include=\"*.d.ts\" | head -30"},"ok":true,"durationMs":61}
+{"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -r \"withSkill\\|fakeAgent\\|fakeJudge\\|defineEnvironment\" /tmp/es-inspect/package/dist --include=\"*.d.ts\" | head -30"},"ok":true,"durationMs":61}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-inspect/package/dist/attempt/index.js"},"ok":true,"durationMs":26}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"/tmp/es-inspect/package/dist","pattern":"toPass|toSucceed|judge"},"ok":true,"durationMs":67}
@@ -79,7 +79,7 @@
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-inspect/package/dist/ui/summary.js"},"ok":true,"durationMs":0}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-inspect/package/dist/matchers.js"},"ok":true,"durationMs":0}
-{"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -r \"evaluate\\|withSkill\\|compare\\|fakeHarness\" /tmp/es-inspect/package/dist/studio-app 2>/dev/null | head -5; find /tmp/es-inspect -name \"*.md\" 2>/dev/null…"},"ok":true,"durationMs":237}
+{"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -r \"evaluate\\|withSkill\\|compare\\|fakeAgent\" /tmp/es-inspect/package/dist/studio-app 2>/dev/null | head -5; find /tmp/es-inspect -name \"*.md\" 2>/dev/null…"},"ok":true,"durationMs":237}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-inspect/package/dist/preflight.js"},"ok":true,"durationMs":29}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -r \"es.config\\|package.json\\|tsconfig\" /tmp/es-inspect/package/dist/cli.js /tmp/es-inspect/package/dist/preflight.js 2>/dev/null | head -30"},"ok":true,"durationMs":73}

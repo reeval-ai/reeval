@@ -255,7 +255,7 @@ A `SandboxWarning` describes a sandbox with more privilege than the default `ree
 </Property>
 
 <Property name="where" type="string">
-  The value is the level as reeval names it: the `reeval.config.ts` file, `profiles.pr.defaults`, `group("net")`, or `evaluate("installs deps")`.
+  The value is the level as reeval names it: the `reeval.config.ts` file, `profiles.pr.defaults`, or the eval file, such as `evals/installs-deps.eval.ts`.
 </Property>
 
 <Property name="file" type="string | null">
@@ -349,11 +349,11 @@ The tokens the run used, as the harnesses count them, and what they cost.
 </Property>
 
 <Property name="todo" type="boolean">
-  A placeholder, `evaluate.todo` or `group.todo`: it never runs, and its outcome is `skipped`.
+  A placeholder (Python's `evaluate.todo` or `group.todo`): it never runs, and its outcome is `skipped`.
 </Property>
 
 <Property name="skip" type="true" optional>
-  Declared not to run: `evaluate.skip`, inside a `group.skip`, or left out by an `.only` in its file. Its outcome is `skipped`. Unset otherwise, so in a run that isn't `complete` a skipped eval with neither `todo` nor `skip` hasn't run yet. Unset on records from before it.
+  Declared not to run: `skip` on its `defineEval`, or in Python `evaluate.skip`, inside a `group.skip`, or left out by an `.only` in its file. Its outcome is `skipped`. Unset otherwise, so in a run that isn't `complete` a skipped eval with neither `todo` nor `skip` hasn't run yet. Unset on records from before it.
 </Property>
 
 <Property name="passRate" type="number | null">

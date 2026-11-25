@@ -1,3 +1,3 @@
-import { evaluate } from 'reeval'
+import { defineEval } from 'reeval'
 
-evaluate('answers', async () => {})
+export default defineEval({ task: async () => {} })

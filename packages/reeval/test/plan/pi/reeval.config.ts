@@ -1,6 +1,6 @@
 import { defineConfig } from 'reeval'
-import { cursor, pi } from 'reeval/harness'
+import { cursor, pi } from 'reeval/agent'
 
 export default defineConfig({
-  harnesses: [cursor({ model: 'composer-2.5' }), pi({ model: 'google/gemini-3.8-flash' })],
+  agents: [cursor({ model: 'composer-2.5' }), pi({ model: 'google/gemini-3.8-flash' })],
 })

@@ -4,13 +4,13 @@ import {
   claudeCode,
   codex,
   cursor,
-  fakeHarness,
+  fakeAgent,
   fx,
   goose,
   grokBuild,
   opencode,
   pi,
-} from 'reeval/harness'
+} from 'reeval/agent'
 
 // The CLI end to end on a real agent: e2e-real.test.ts records two runs of this one eval and
 // reads them back with compare, query, history and the studio's run view. Same rows as the contract
@@ -38,12 +38,12 @@ const harness = () => {
     case 'fx':
       return fx({ model })
     default:
-      return fakeHarness({ script: [[{ write: { 'hello.txt': 'hello from reeval\n' } }]] })
+      return fakeAgent({ script: [[{ write: { 'hello.txt': 'hello from reeval\n' } }]] })
   }
 }
 
 export default defineConfig({
-  harnesses: harness(),
+  agents: harness(),
   runs: 1,
   timeout: '4m',
   budget: { attempts: 1 },

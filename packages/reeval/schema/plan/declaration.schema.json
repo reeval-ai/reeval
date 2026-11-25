@@ -928,123 +928,8 @@
         {
           "type": "object",
           "properties": {
-            "capture": {
-              "description": "Screenshot defaults for `c.capture()`. Shallow-merged; `viewport` and `model` replace the value.",
-              "$ref": "#/$defs/CaptureOptions"
-            },
-            "compare": {
-              "description": "Environments to run side by side; `control` is what each variant is measured against.",
-              "type": "object",
-              "properties": {
-                "control": {
-                  "description": "The environment each variant is measured against. Not layered under the variants, and it replaces any `environments` the eval inherits.",
-                  "$ref": "#/$defs/EnvironmentData"
-                },
-                "gate": {
-                  "description": "Which cells decide pass/fail: `variants` (default), `all`, or `observe` (none of them).",
-                  "enum": ["all", "observe", "variants"]
-                },
-                "harnesses": {
-                  "description": "Harnesses (ids or descriptors) to compare on; the others run the control only.",
-                  "type": "array",
-                  "items": {
-                    "anyOf": [
-                      {
-                        "$ref": "#/$defs/AntigravityHarnessDescriptor"
-                      },
-                      {
-                        "$ref": "#/$defs/ClaudeCodeHarnessDescriptor"
-                      },
-                      {
-                        "$ref": "#/$defs/CodexHarnessDescriptor"
-                      },
-                      {
-                        "$ref": "#/$defs/CursorHarnessDescriptor"
-                      },
-                      {
-                        "$ref": "#/$defs/FakeHarnessDescriptor"
-                      },
-                      {
-                        "$ref": "#/$defs/FxHarnessDescriptor"
-                      },
-                      {
-                        "$ref": "#/$defs/GooseHarnessDescriptor"
-                      },
-                      {
-                        "$ref": "#/$defs/GrokBuildHarnessDescriptor"
-                      },
-                      {
-                        "$ref": "#/$defs/OpenCodeHarnessDescriptor"
-                      },
-                      {
-                        "$ref": "#/$defs/PiHarnessDescriptor"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ]
-                  }
-                },
-                "minLift": {
-                  "description": "Lift in points from -1 to 1; a variant cell below it fails.",
-                  "type": "number"
-                },
-                "variants": {
-                  "description": "Other environments, each planned and run as itself.",
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/EnvironmentData"
-                  }
-                }
-              },
-              "required": ["control", "variants"]
-            },
-            "egress": {
-              "description": "Where the sandbox may connect. Replaces the inherited policy, per phase: config, profile defaults, the environment, then groups and the eval.",
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/PhasedEgress"
-                },
-                {
-                  "enum": ["allow-all", "deny-all", "proxy"]
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "allow": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "required": ["allow"]
-                }
-              ]
-            },
-            "env": {
-              "description": "Variables and secrets for the sandbox, merged by name down the cascade.",
-              "$ref": "#/$defs/EnvVars"
-            },
-            "gate": {
-              "description": "How each cell's attempts decide its outcome; default `'all'`.",
-              "anyOf": [
-                {
-                  "enum": ["all", "observe"]
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "passRate": {
-                      "type": "number"
-                    }
-                  },
-                  "required": ["passRate"]
-                }
-              ]
-            },
-            "harnesses": {
-              "description": "Which agents run the eval; each harness is its own cell.",
+            "agents": {
+              "description": "Which agents run the eval; each is its own cell.",
               "anyOf": [
                 {
                   "$ref": "#/$defs/AntigravityHarnessDescriptor"
@@ -1149,6 +1034,121 @@
                 }
               ]
             },
+            "capture": {
+              "description": "Screenshot defaults for `c.capture()`. Shallow-merged; `viewport` and `model` replace the value.",
+              "$ref": "#/$defs/CaptureOptions"
+            },
+            "compare": {
+              "description": "Environments to run side by side; `control` is what each variant is measured against.",
+              "type": "object",
+              "properties": {
+                "agents": {
+                  "description": "Agents (ids or descriptors) to compare on; the others run the control only.",
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/AntigravityHarnessDescriptor"
+                      },
+                      {
+                        "$ref": "#/$defs/ClaudeCodeHarnessDescriptor"
+                      },
+                      {
+                        "$ref": "#/$defs/CodexHarnessDescriptor"
+                      },
+                      {
+                        "$ref": "#/$defs/CursorHarnessDescriptor"
+                      },
+                      {
+                        "$ref": "#/$defs/FakeHarnessDescriptor"
+                      },
+                      {
+                        "$ref": "#/$defs/FxHarnessDescriptor"
+                      },
+                      {
+                        "$ref": "#/$defs/GooseHarnessDescriptor"
+                      },
+                      {
+                        "$ref": "#/$defs/GrokBuildHarnessDescriptor"
+                      },
+                      {
+                        "$ref": "#/$defs/OpenCodeHarnessDescriptor"
+                      },
+                      {
+                        "$ref": "#/$defs/PiHarnessDescriptor"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "control": {
+                  "description": "The environment each variant is measured against. Not layered under the variants, and it replaces any `environments` the eval inherits.",
+                  "$ref": "#/$defs/EnvironmentData"
+                },
+                "gate": {
+                  "description": "Which cells decide pass/fail: `variants` (default), `all`, or `observe` (none of them).",
+                  "enum": ["all", "observe", "variants"]
+                },
+                "minLift": {
+                  "description": "Lift in points from -1 to 1; a variant cell below it fails.",
+                  "type": "number"
+                },
+                "variants": {
+                  "description": "Other environments, each planned and run as itself.",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/EnvironmentData"
+                  }
+                }
+              },
+              "required": ["control", "variants"]
+            },
+            "egress": {
+              "description": "Where the sandbox may connect. Replaces the inherited policy, per phase: config, profile defaults, the environment, then groups and the eval.",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/PhasedEgress"
+                },
+                {
+                  "enum": ["allow-all", "deny-all", "proxy"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "allow": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": ["allow"]
+                }
+              ]
+            },
+            "env": {
+              "description": "Variables and secrets for the sandbox, merged by name down the cascade.",
+              "$ref": "#/$defs/EnvVars"
+            },
+            "gate": {
+              "description": "How each cell's attempts decide its outcome; default `'all'`.",
+              "anyOf": [
+                {
+                  "enum": ["all", "observe"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "passRate": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["passRate"]
+                }
+              ]
+            },
             "judge": {
               "description": "Defaults for `c.judge()`, merged field by field down the cascade.",
               "$ref": "#/$defs/ConfigJudgeOptions"
@@ -1200,7 +1200,7 @@
               ]
             },
             "sandbox": {
-              "description": "The default machine when the resolved environment omits `sandbox`. Cascades like `harnesses`. Not an environment: it does not invent skills, files or a name.",
+              "description": "The default machine when the resolved environment omits `sandbox`. Cascades like `agents`. Not an environment: it does not invent skills, files or a name.",
               "anyOf": [
                 {
                   "$ref": "#/$defs/CloudSandboxDescriptor"
@@ -1263,6 +1263,112 @@
         {
           "type": "object",
           "properties": {
+            "agents": {
+              "description": "Which agents run the eval; each is its own cell.",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/AntigravityHarnessDescriptor"
+                },
+                {
+                  "$ref": "#/$defs/ClaudeCodeHarnessDescriptor"
+                },
+                {
+                  "$ref": "#/$defs/CodexHarnessDescriptor"
+                },
+                {
+                  "$ref": "#/$defs/CursorHarnessDescriptor"
+                },
+                {
+                  "$ref": "#/$defs/FakeHarnessDescriptor"
+                },
+                {
+                  "$ref": "#/$defs/FxHarnessDescriptor"
+                },
+                {
+                  "$ref": "#/$defs/GooseHarnessDescriptor"
+                },
+                {
+                  "$ref": "#/$defs/GrokBuildHarnessDescriptor"
+                },
+                {
+                  "$ref": "#/$defs/OpenCodeHarnessDescriptor"
+                },
+                {
+                  "$ref": "#/$defs/PiHarnessDescriptor"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/HarnessDescriptor"
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "add": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/AntigravityHarnessDescriptor"
+                        },
+                        {
+                          "$ref": "#/$defs/ClaudeCodeHarnessDescriptor"
+                        },
+                        {
+                          "$ref": "#/$defs/CodexHarnessDescriptor"
+                        },
+                        {
+                          "$ref": "#/$defs/CursorHarnessDescriptor"
+                        },
+                        {
+                          "$ref": "#/$defs/FakeHarnessDescriptor"
+                        },
+                        {
+                          "$ref": "#/$defs/FxHarnessDescriptor"
+                        },
+                        {
+                          "$ref": "#/$defs/GooseHarnessDescriptor"
+                        },
+                        {
+                          "$ref": "#/$defs/GrokBuildHarnessDescriptor"
+                        },
+                        {
+                          "$ref": "#/$defs/OpenCodeHarnessDescriptor"
+                        },
+                        {
+                          "$ref": "#/$defs/PiHarnessDescriptor"
+                        },
+                        {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/$defs/HarnessDescriptor"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "required": ["add"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "only": {
+                      "anyOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "required": ["only"]
+                }
+              ]
+            },
             "capture": {
               "description": "Screenshot defaults for `c.capture()`. Shallow-merged; `viewport` and `model` replace the value.",
               "$ref": "#/$defs/CaptureOptions"
@@ -1363,112 +1469,6 @@
                 }
               ]
             },
-            "harnesses": {
-              "description": "Which agents run the eval; each harness is its own cell.",
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/AntigravityHarnessDescriptor"
-                },
-                {
-                  "$ref": "#/$defs/ClaudeCodeHarnessDescriptor"
-                },
-                {
-                  "$ref": "#/$defs/CodexHarnessDescriptor"
-                },
-                {
-                  "$ref": "#/$defs/CursorHarnessDescriptor"
-                },
-                {
-                  "$ref": "#/$defs/FakeHarnessDescriptor"
-                },
-                {
-                  "$ref": "#/$defs/FxHarnessDescriptor"
-                },
-                {
-                  "$ref": "#/$defs/GooseHarnessDescriptor"
-                },
-                {
-                  "$ref": "#/$defs/GrokBuildHarnessDescriptor"
-                },
-                {
-                  "$ref": "#/$defs/OpenCodeHarnessDescriptor"
-                },
-                {
-                  "$ref": "#/$defs/PiHarnessDescriptor"
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/HarnessDescriptor"
-                  }
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "add": {
-                      "anyOf": [
-                        {
-                          "$ref": "#/$defs/AntigravityHarnessDescriptor"
-                        },
-                        {
-                          "$ref": "#/$defs/ClaudeCodeHarnessDescriptor"
-                        },
-                        {
-                          "$ref": "#/$defs/CodexHarnessDescriptor"
-                        },
-                        {
-                          "$ref": "#/$defs/CursorHarnessDescriptor"
-                        },
-                        {
-                          "$ref": "#/$defs/FakeHarnessDescriptor"
-                        },
-                        {
-                          "$ref": "#/$defs/FxHarnessDescriptor"
-                        },
-                        {
-                          "$ref": "#/$defs/GooseHarnessDescriptor"
-                        },
-                        {
-                          "$ref": "#/$defs/GrokBuildHarnessDescriptor"
-                        },
-                        {
-                          "$ref": "#/$defs/OpenCodeHarnessDescriptor"
-                        },
-                        {
-                          "$ref": "#/$defs/PiHarnessDescriptor"
-                        },
-                        {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/$defs/HarnessDescriptor"
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  "required": ["add"]
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "only": {
-                      "anyOf": [
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        {
-                          "type": "string"
-                        }
-                      ]
-                    }
-                  },
-                  "required": ["only"]
-                }
-              ]
-            },
             "judge": {
               "description": "Defaults for `c.judge()`, merged field by field down the cascade.",
               "$ref": "#/$defs/ConfigJudgeOptions"
@@ -1520,7 +1520,7 @@
               ]
             },
             "sandbox": {
-              "description": "The default machine when the resolved environment omits `sandbox`. Cascades like `harnesses`. Not an environment: it does not invent skills, files or a name.",
+              "description": "The default machine when the resolved environment omits `sandbox`. Cascades like `agents`. Not an environment: it does not invent skills, files or a name.",
               "anyOf": [
                 {
                   "$ref": "#/$defs/CloudSandboxDescriptor"
@@ -1583,7 +1583,7 @@
       ]
     },
     "FakeHarnessDescriptor": {
-      "description": "A canned agent for tests and dry runs, made by `fakeHarness()` in `reeval/harness`.",
+      "description": "A canned agent for tests and dry runs, made by `fakeAgent()` in `reeval/agent`.",
       "type": "object",
       "properties": {
         "bootstrap": {
@@ -2363,7 +2363,7 @@
     "PairFactor": {
       "description": "A matrix factor a pairwise question varies; the others are held.",
       "type": "string",
-      "enum": ["environment", "harness"]
+      "enum": ["environment", "agent"]
     },
     "PhasedEgress": {
       "description": "An egress policy per phase of the attempt: `setup` covers its files and setup steps, `agent` the harness's start, every turn and every check after them. A phase it leaves unset keeps the policy it inherits.",
@@ -2419,7 +2419,7 @@
     },
     "PinnableKey": {
       "description": "An option a profile's `limit` can narrow, and `pin` can protect.",
-      "enum": ["compare", "harnesses", "runs"]
+      "enum": ["agents", "compare", "runs"]
     },
     "PluginMarketplace": {
       "description": "A Claude Code marketplace: the source that holds its `.claude-plugin/marketplace.json`.",

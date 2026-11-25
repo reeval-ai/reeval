@@ -169,7 +169,7 @@ function checkAndCanary(
 ) {
   const lands = attempt(ran, row, name, env)
   assert.equal(lands.outcome, 'pass', `${name}: ${detail(lands)}`)
-  const c = attempt(ran, row, `${name} canary`, canaryEnv)
+  const c = attempt(ran, row, `${name}-canary`, canaryEnv)
   assert.equal(c.outcome, 'fail', `${name} canary: ${detail(c)}`)
   assert.equal(c.error?.kind, 'assertion', `${name} canary: ${detail(c)}`)
   assert.match(c.error?.message ?? '', canary)
@@ -220,7 +220,7 @@ function modelCalls(ran: Ran, row: HarnessRow, a: AttemptRecord): DebugRequest[]
 
 /** The environment of each eval whose file and command signals are checked. */
 const envOf: Record<string, string> = {
-  'edit and run': 'notes',
+  'edit-and-run': 'notes',
   skill: 'skilled',
   egress: 'closed',
 }
@@ -254,7 +254,7 @@ export const behaviors: Behavior[] = [
       const a = checkAndCanary(
         ran,
         row,
-        'installed skill',
+        'installed-skill',
         'installed',
         /expected null to be 'INSTALLED-2Q8W-WREN'/,
       )
@@ -291,7 +291,7 @@ export const behaviors: Behavior[] = [
         assert.match(
           refused.stderr,
           new RegExp(
-            `evaluate\\("mcp"\\) on ${cellOf(row).replaceAll('.', '\\.')}: \\S+ has no MCP client, so it can't use the stamp MCP server`,
+            `evals/mcp\\.eval\\.ts on ${cellOf(row).replaceAll('.', '\\.')}: \\S+ has no MCP client, so it can't use the stamp MCP server`,
           ),
         )
         // The twin: an eval without MCP servers plans on the same harness.
@@ -322,7 +322,7 @@ export const behaviors: Behavior[] = [
       const a = checkAndCanary(
         ran,
         row,
-        'edit and run',
+        'edit-and-run',
         'notes',
         /expected 'status: draft' to be 'status: final'/,
       )
@@ -375,7 +375,7 @@ export const behaviors: Behavior[] = [
       let compared = 0
       // A subagent's model calls pass the gateway but aren't in its parent turn's usage.
       const attempts = ran.run.evals
-        .filter((e) => e.name !== 'plugin subagent')
+        .filter((e) => e.name !== 'plugin-subagent')
         .flatMap((e) => e.attempts)
         .filter((a) => a.turns.length > 0)
       for (const a of attempts) {
@@ -509,7 +509,7 @@ export const behaviors: Behavior[] = [
         assert.match(c.requestEffort ?? '', effort.asked, `effort: ${c.url} → ${c.status}`)
       // The twin: the same task without effort leaves it off some call. Not every one: OpenCode's
       // session title on Gemini sets `low` of its own accord.
-      const plain = modelCalls(ran, row, attempt(ran, row, 'edit and run', 'notes'))
+      const plain = modelCalls(ran, row, attempt(ran, row, 'edit-and-run', 'notes'))
       assert.ok(plain.length > 0, 'edit and run: no model calls')
       assert.ok(
         plain.some((c) => !effort.asked.test(c.requestEffort ?? '')),
@@ -630,7 +630,7 @@ export const behaviors: Behavior[] = [
       const a = checkAndCanary(
         ran,
         row,
-        'plugin skill',
+        'plugin-skill',
         'plugged',
         new RegExp(`expected null to be '${PLUGIN_PROOF}'`),
       )
@@ -654,7 +654,7 @@ export const behaviors: Behavior[] = [
       const a = checkAndCanary(
         ran,
         row,
-        'plugin mcp',
+        'plugin-mcp',
         'plugged',
         /expected '' to contain 'tools\/call'/,
       )
@@ -678,7 +678,7 @@ export const behaviors: Behavior[] = [
       void checkAndCanary(
         ran,
         row,
-        'plugin hook',
+        'plugin-hook',
         'plugged',
         /expected null to be 'hook-ran'/,
         'closed',
@@ -692,7 +692,7 @@ export const behaviors: Behavior[] = [
       void checkAndCanary(
         ran,
         row,
-        'plugin subagent',
+        'plugin-subagent',
         'plugged',
         /expected \[\] to not deeply equal \[\]/,
         'closed',
@@ -706,7 +706,7 @@ export const behaviors: Behavior[] = [
       void checkAndCanary(
         ran,
         row,
-        'plugin rules',
+        'plugin-rules',
         'plugged',
         new RegExp(`expected null to be '${PLUGIN_RULES_WORD}'`),
         'closed',
@@ -740,7 +740,7 @@ export const behaviors: Behavior[] = [
     canary: false,
     skips: noPlugins,
     check(ran, row) {
-      const a = attempt(ran, row, 'plugin skill', 'plugged')
+      const a = attempt(ran, row, 'plugin-skill', 'plugged')
       // Only the probe plugin was declared: any other skill, or a plugin item outside its copies,
       // came from somewhere else (an account's plugins, a marketplace the agent fetched).
       const undeclared = a.context
@@ -753,7 +753,7 @@ export const behaviors: Behavior[] = [
         )
       assert.deepEqual(undeclared, [], 'undeclared plugin items in the context')
       // Nor did the agent reach another plugin's MCP servers or files while it worked.
-      for (const name of ['plugin skill', 'plugin mcp']) {
+      for (const name of ['plugin-skill', 'plugin-mcp']) {
         const ref = attempt(ran, row, name, 'plugged').files.transcript
         assert.ok(ref, `${name}: no transcript`)
         const lines = parseTranscript(readFileSync(join(ran.runDir, ref.path), 'utf8'))
@@ -795,7 +795,7 @@ export const behaviors: Behavior[] = [
 ]
 
 /** The evals whose streams test/replay keeps, per harness (REEVAL_UPDATE_CAPTURES=1). */
-const CAPTURED = ['skill', 'mcp', 'edit and run', 'egress']
+const CAPTURED = ['skill', 'mcp', 'edit-and-run', 'egress']
 
 /**
  * Copies the captured evals' raw transcripts to test/replay/<harness>/, for replay.test.ts. Cursor's
@@ -811,7 +811,7 @@ function capture(ran: Ran, row: HarnessRow) {
     const lines = readFileSync(join(ran.runDir, raw), 'utf8')
       .split('\n')
       .filter((l) => l && !l.includes('"sessionUpdate":"available_commands_update"'))
-    writeFileSync(join(dir, `${name.replaceAll(' ', '-')}.raw.jsonl`), `${lines.join('\n')}\n`)
+    writeFileSync(join(dir, `${name}.raw.jsonl`), `${lines.join('\n')}\n`)
   }
 }
 

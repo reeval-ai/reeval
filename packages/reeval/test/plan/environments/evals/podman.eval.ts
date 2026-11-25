@@ -1,4 +1,4 @@
-import { defineEnvironment, evaluate } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
 import { docker, podman } from 'reeval/sandbox'
 
 const onDocker = defineEnvironment('on-docker', { sandbox: docker() })
@@ -13,7 +13,4 @@ const tools = defineEnvironment('tools', {
   }),
 })
 
-evaluate('docker', { environments: onDocker }, async () => {})
-evaluate('podman', { environments: onPodman }, async () => {})
-evaluate('podman from', { environments: podman22 }, async () => {})
-evaluate('podman install', { environments: tools }, async () => {})
+export default defineEval({ environment: onPodman, task: async () => {} })

@@ -1,17 +1,17 @@
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 import { profiles } from '../profiles.ts'
 
-const fakeAgent = (path: string) =>
+const fakeFile = (path: string) =>
   readFileSync(new URL(`./fake-agent/${path}`, import.meta.url), 'utf8')
 
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that copies ./fake-agent's files into the workspace.
-  harnesses: fakeHarness({
-    files: { 'banner.sh': fakeAgent('banner.sh') },
+  agents: fakeAgent({
+    files: { 'banner.sh': fakeFile('banner.sh') },
     text: "I wrote banner.sh, which prints github.com's SSH banner.",
   }),
   // fakeSandbox() runs on the host's network, where raw TCP always works.

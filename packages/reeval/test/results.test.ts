@@ -584,18 +584,14 @@ describe("an eval's source", () => {
   })
 
   test('the options hash leaves out tags, runs, timeout, revision and gate, and reads harnesses and sandboxes by id', () => {
-    const base = optionsHash([{ pin: ['harnesses'] }])
+    const base = optionsHash([{ pin: ['agents'] }])
     const unhashed = { tags: ['slow'], runs: 5, timeout: '2m', revision: 3, gate: 'all' } as const
-    assert.equal(optionsHash([{ pin: ['harnesses'], ...unhashed }]), base)
-    assert.equal(
-      optionsHash([{}, { pin: ['harnesses'] }]),
-      base,
-      'an option-less group adds nothing',
-    )
-    assert.equal(optionsHash([{ runs: 2 }, { pin: ['harnesses'] }]), base, "a group's runs too")
+    assert.equal(optionsHash([{ pin: ['agents'], ...unhashed }]), base)
+    assert.equal(optionsHash([{}, { pin: ['agents'] }]), base, 'an option-less group adds nothing')
+    assert.equal(optionsHash([{ runs: 2 }, { pin: ['agents'] }]), base, "a group's runs too")
     assert.notEqual(optionsHash([{ pin: ['runs'] }]), base, 'twin: another option changes it')
     assert.notEqual(
-      optionsHash([{ pin: ['harnesses'] }, { pin: ['harnesses'] }]),
+      optionsHash([{ pin: ['agents'] }, { pin: ['agents'] }]),
       base,
       'a group level is its own',
     )
@@ -626,15 +622,15 @@ describe("an eval's source", () => {
     const b = async () => {
       await Promise.resolve()
     }
-    assert.notEqual(bodyHash(a, 'evaluate("a")'), bodyHash(b, 'evaluate("b")'))
+    assert.notEqual(bodyHash(a, 'evals/a.eval.ts'), bodyHash(b, 'evals/b.eval.ts'))
     assert.throws(
-      () => bodyHash(a.bind(null), 'evaluate("bound")'),
-      /evaluate\("bound"\)'s body is a bound or built-in function/,
+      () => bodyHash(a.bind(null), 'evals/bound.eval.ts'),
+      /evals\/bound\.eval\.ts's body is a bound or built-in function/,
     )
   })
 
   test("a case hashes as JSON data, and data JSON can't see is refused", () => {
-    const at = 'evaluate("e") case "a"'
+    const at = 'evals/e.eval.ts case "a"'
     const hash = (item: unknown) => caseHash(caseJson(item, at), {})
     assert.equal(hash({ n: 1, s: 'x' }), hash({ s: 'x', n: 1 }))
     assert.notEqual(hash({ n: 1 }), hash({ n: 2 }), 'twin: another value')
@@ -649,14 +645,14 @@ describe("an eval's source", () => {
     ] as const) {
       assert.throws(
         () => caseJson({ want: value }, at),
-        new RegExp(`^UsageError: evaluate\\("e"\\) case "a": .* \\(it holds ${what}\\)`),
+        new RegExp(`^UsageError: evals/e\\.eval\\.ts case "a": .* \\(it holds ${what}\\)`),
       )
     }
   })
 
   test('a case hashes with its secrets masked, and as its text when it holds none', () => {
     const env = { DB_PASSWORD: 'hunter2hunter2' }
-    const text = caseJson({ password: 'hunter2hunter2', n: 1 }, 'evaluate("e") case "a"')
+    const text = caseJson({ password: 'hunter2hunter2', n: 1 }, 'evals/e.eval.ts case "a"')
     assert.notEqual(caseHash(text, env), sha256(text), 'the raw case would confirm a guess')
     assert.equal(caseHash(text, env), sha256('{"n":1,"password":"[REDACTED]"}'))
     assert.equal(
@@ -741,10 +737,10 @@ describe('compare question pairs', () => {
     }
   })
 
-  test('acrossOf: environment keeps environment pairs; harness keeps harness pairs', () => {
+  test('acrossOf: environment keeps environment pairs; agent keeps harness pairs', () => {
     const attempts = matrix(['h1', 'h2', 'h3', 'h4'], ['sdk', 'ui'], 2)
     const environment = pairsOf(attempts, acrossOf('environment'))
-    const harness = pairsOf(attempts, acrossOf('harness'))
+    const harness = pairsOf(attempts, acrossOf('agent'))
     const both = pairsOf(attempts, acrossOf())
     assert.equal(environment.length, 8)
     assert.ok(environment.every((p) => p.cut === 'within'))

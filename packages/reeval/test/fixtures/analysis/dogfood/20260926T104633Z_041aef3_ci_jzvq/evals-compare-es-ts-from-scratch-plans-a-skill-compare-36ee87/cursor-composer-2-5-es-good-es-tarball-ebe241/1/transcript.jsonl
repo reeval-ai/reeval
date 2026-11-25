@@ -5,11 +5,11 @@
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"ls -la . && ls -la /opt/es/ 2>/dev/null; tar -tzf /opt/es/invertase-foobar.tgz | head -30"},"ok":true,"durationMs":166}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"text","text":"Setting up the project structure and creating the ES config, skill, and greet eval.\n"}
-{"turn":0,"type":"tool","tool":"glob","input":{"pattern":"**/fakeHarness*"},"ok":true,"durationMs":69}
+{"turn":0,"type":"tool","tool":"glob","input":{"pattern":"**/fakeAgent*"},"ok":true,"durationMs":69}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"cd . && npm init -y && npm i -D /opt/es/invertase-foobar.tgz"},"ok":true,"durationMs":6653}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"package.json"},"ok":true,"durationMs":26}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"fakeHarness|withSkill"},"ok":true,"durationMs":71}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"fakeAgent|withSkill"},"ok":true,"durationMs":71}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/harness.d.ts"},"ok":true,"durationMs":70}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":82}

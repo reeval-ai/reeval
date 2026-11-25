@@ -1,4 +1,4 @@
-import { defineEnvironment, evaluate } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
 import { tart } from 'reeval/sandbox'
 
 const mac = defineEnvironment('mac', {
@@ -6,4 +6,4 @@ const mac = defineEnvironment('mac', {
   egress: 'allow-all',
 })
 
-evaluate('builds the app', { environments: mac }, async () => {})
+export default defineEval({ environment: mac, task: async () => {} })

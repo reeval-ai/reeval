@@ -923,10 +923,10 @@ if (page('reference/options').includes('McpServerConfig')) {
   )
 }
 
-// Every factory `reeval/harness` exports is a row of the "Harness factory options" table or named in
+// Every factory `reeval/agent` exports is a row of the "Harness factory options" table or named in
 // its lead, so the lead's claims cover every factory.
 {
-  const harnessSource = readFileSync(join(src, 'harness.ts'), 'utf8')
+  const harnessSource = readFileSync(join(src, 'agent.ts'), 'utf8')
   const factories = [...harnessSource.matchAll(/^export const (\w+) = /gm)].map((m) => m[1])
   const options = page('reference/options')
   const section = options.match(/^### Harness factory options\n([\s\S]*?)(?=^#{1,3} )/m)?.[1] ?? ''

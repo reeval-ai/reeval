@@ -4,7 +4,7 @@
 // In real Docker (`reeval image build --config …`), after `node evals/skill/scripts/vendor.mjs`.
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeAnalysis, fakeJudge } from 'reeval/judge'
 
 const solve = readFileSync(new URL('./oracle/solve.sh', import.meta.url), 'utf8')
@@ -14,7 +14,7 @@ const handover =
 
 export default defineConfig({
   include: ['*.eval.ts'],
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     script: [
       [{ reply: 'This repo has skills. Shall I set up evals for this project?' }],
       [{ exec: solve }, { reply: handover }],
@@ -26,13 +26,13 @@ export default defineConfig({
   profiles: {
     canary: {
       defaults: {
-        harnesses: fakeHarness({
+        agents: fakeAgent({
           script: [
             [
               {
                 exec: 'npm init -y >/dev/null; npm i -D ~/reeval.tgz --no-audit --no-fund --loglevel=error',
               },
-              { exec: 'npx reeval init --harness cursor --force' },
+              { exec: 'npx reeval init --agent cursor --force' },
               { write: { 'skills/README.md': 'Replaced.\n' } },
               { reply: 'Done.' },
             ],

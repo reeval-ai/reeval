@@ -1,5 +1,6 @@
 {
   "eval": "plan/environments/evals/traits.eval.ts",
+  "treeRoot": "plan/environments",
   "plan": "plan/environments/expected/traits.txt",
-  "args": ["evals/traits.eval.ts"]
+  "args": []
 }

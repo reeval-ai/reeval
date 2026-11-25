@@ -41,10 +41,10 @@ const FIXTURES = join(pkgRoot, 'test/fixtures/analysis')
 const UPDATE = !!process.env.REEVAL_UPDATE_SNAPSHOTS
 
 const CONFIG = `import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 export default defineConfig({
-  harnesses: fakeHarness({}),
+  agents: fakeAgent({}),
   environments: defineEnvironment('fake', { sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }) }),
   ANALYSIS
 })
@@ -55,7 +55,7 @@ async function compareProject(name: string, runs: number) {
   return project(name, {
     'reeval.config.ts': fakeConfig({ harness: "{ withSkill: { files: { 'ok.txt': 'y' } } }" }),
     'skills/s/SKILL.md': '---\nname: s\ndescription: A skill. Use when testing.\n---\nBody.\n',
-    'evals/c.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+    'evals/c.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
@@ -63,9 +63,12 @@ const skilled = defineEnvironment('skilled', ({ skill }) => ({
   sandbox,
   skills: [skill.local('../skills/s')],
 }))
-evaluate('greets', { compare: { control: plain, variants: [skilled] }, runs: ${runs} }, async (c) => {
-  await c.send('go')
-  await expect(c).toHaveFile('ok.txt')
+export default defineEval({
+  compare: { control: plain, variants: [skilled] }, runs: ${runs},
+  async task(c) {
+    await c.send('go')
+    await expect(c).toHaveFile('ok.txt')
+  },
 })
 `,
   })
@@ -376,10 +379,12 @@ describe('canaries: the verdicts flip when the data does', () => {
     const config = (gate: string) => fakeConfig({ extra: `runs: 2, gate: ${gate},` })
     const p = await project('canary-gate', {
       'reeval.config.ts': config('{ passRate: 0.5 }'),
-      'evals/g.eval.ts': `import { evaluate } from 'reeval'
-evaluate('half', async (c) => {
-  await c.send('go')
-  if (c.attempt.n === 2) throw new Error('the second attempt fails')
+      'evals/g.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('go')
+    if (c.attempt.n === 2) throw new Error('the second attempt fails')
+  },
 })
 `,
     })
@@ -420,10 +425,13 @@ evaluate('half', async (c) => {
   test('mixed outcomes over enough comparable attempts are flaky, caused by the agent', async () => {
     const p = await project('canary-flaky', {
       'reeval.config.ts': fakeConfig(),
-      'evals/f.eval.ts': `import { evaluate } from 'reeval'
-evaluate('flips', { runs: 6, gate: { passRate: 0.5 } }, async (c) => {
-  await c.send('go')
-  if (c.attempt.n % 2 === 0) throw new Error('every other attempt fails')
+      'evals/f.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  runs: 6, gate: { passRate: 0.5 },
+  async task(c) {
+    await c.send('go')
+    if (c.attempt.n % 2 === 0) throw new Error('every other attempt fails')
+  },
 })
 `,
     })
@@ -435,10 +443,13 @@ evaluate('flips', { runs: 6, gate: { passRate: 0.5 } }, async (c) => {
   test('mixed outcomes one attempt short of the minimum are mixed, not flaky', async () => {
     const p = await project('canary-mixed', {
       'reeval.config.ts': fakeConfig(),
-      'evals/f.eval.ts': `import { evaluate } from 'reeval'
-evaluate('flips', { runs: 5, gate: { passRate: 0.4 } }, async (c) => {
-  await c.send('go')
-  if (c.attempt.n % 2 === 0) throw new Error('every other attempt fails')
+      'evals/f.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  runs: 5, gate: { passRate: 0.4 },
+  async task(c) {
+    await c.send('go')
+    if (c.attempt.n % 2 === 0) throw new Error('every other attempt fails')
+  },
 })
 `,
     })
@@ -450,10 +461,13 @@ evaluate('flips', { runs: 5, gate: { passRate: 0.4 } }, async (c) => {
   test('the same change passing and failing its check is caused by the check', async () => {
     const flips = (harness: string) => ({
       'reeval.config.ts': fakeConfig({ harness }),
-      'evals/f.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('flips', { runs: 6, gate: { passRate: 0.5 } }, async (c) => {
-  await c.send('go')
-  expect(c.attempt.n % 2, 'a racy check').toBe(1)
+      'evals/f.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  runs: 6, gate: { passRate: 0.5 },
+  async task(c) {
+    await c.send('go')
+    expect(c.attempt.n % 2, 'a racy check').toBe(1)
+  },
 })
 `,
     })
@@ -656,7 +670,7 @@ describe('effort next to lift', () => {
     const p = await project('effort-summary', {
       'reeval.config.ts': fakeConfig({ harness: "{ withSkill: { files: { 'ok.txt': 'y' } } }" }),
       'skills/s/SKILL.md': '---\nname: s\ndescription: A skill. Use when testing.\n---\nBody.\n',
-      'evals/c.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/c.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
@@ -664,9 +678,12 @@ const skilled = defineEnvironment('skilled', ({ skill }) => ({
   sandbox,
   skills: [skill.local('../skills/s')],
 }))
-evaluate('greets', { compare: { control: plain, variants: [skilled] }, runs: 2 }, async (c) => {
-  await c.send('go')
-  await expect(c).toHaveFile('ok.txt')
+export default defineEval({
+  compare: { control: plain, variants: [skilled] }, runs: 2,
+  async task(c) {
+    await c.send('go')
+    await expect(c).toHaveFile('ok.txt')
+  },
 })
 `,
     })
@@ -790,13 +807,13 @@ describe('reeval CLI spec', () => {
     const evals = [
       {
         file: 'evals/skill.eval.ts',
-        name: 'house greeting greets',
+        name: 'skill',
         tags: ['skill'],
         cells: ['fake/-', 'fake/with-skill'],
       },
       {
         file: 'evals/hello.eval.ts',
-        name: 'greet module creates',
+        name: 'hello',
         tags: ['smoke'],
         cells: ['fake/-'],
       },
@@ -805,7 +822,7 @@ describe('reeval CLI spec', () => {
       'reeval run --tag skill',
       'reeval run --tag !skill',
       'reeval run evals/skill.eval.ts --runs 6',
-      'reeval run greets',
+      'reeval run skill',
       'reeval run with-skill --tag skill',
       'reeval image build hello',
       'reeval query effort',
@@ -831,7 +848,7 @@ describe('reeval CLI spec', () => {
     for (const [c, why] of bad) assert.match(checkCommand(c, [], evals) ?? '', why, c)
     const withIds = evals.map((e) => ({
       ...e,
-      id: `${e.file} › ${e.name}`,
+      id: e.name,
     }))
     assert.equal(
       checkCommand(`reeval run '${withIds[0]?.id}'`, ['effort'], withIds),
@@ -1063,7 +1080,7 @@ describe('reeval analyze', () => {
       {
         file: 'evals/sign-in.eval.ts',
         name: 'sign-in',
-        id: 'evals/sign-in.eval.ts › sign-in',
+        id: 'sign-in',
         tags: [] as string[],
         cells: ['fake/-'],
       },
@@ -1161,14 +1178,19 @@ describe('reeval analyze', () => {
   test("the digest lists each eval's tags", async () => {
     const p = await project('analyze-eval-tags', {
       'reeval.config.ts': fakeConfig({ extra: "record: 'always'," }),
-      'evals/sign-in.eval.ts': `import { evaluate } from 'reeval'
-evaluate('sign-in', { tags: ['auth'] }, async (c) => {
-  await c.send('go')
+      'evals/sign-in.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  tags: ['auth'],
+  async task(c) {
+    await c.send('go')
+  },
 })
 `,
-      'evals/hello.eval.ts': `import { evaluate } from 'reeval'
-evaluate('hello', async (c) => {
-  await c.send('go')
+      'evals/hello.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('go')
+  },
 })
 `,
     })
@@ -1297,7 +1319,7 @@ evaluate('hello', async (c) => {
         extra: "record: 'always',",
       }),
       'skills/s/SKILL.md': '---\nname: s\ndescription: A skill. Use when testing.\n---\nBody.\n',
-      'evals/c.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/c.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
@@ -1305,16 +1327,19 @@ const skilled = defineEnvironment('skilled', ({ skill }) => ({
   sandbox,
   skills: [skill.local('../skills/s')],
 }))
-evaluate('greets', { compare: { control: plain, variants: [skilled] }, runs: 2 }, async (c) => {
-  await c.send('go')
-  await expect(c).toHaveFile('ok.txt')
+export default defineEval({
+  compare: { control: plain, variants: [skilled] }, runs: 2,
+  async task(c) {
+    await c.send('go')
+    await expect(c).toHaveFile('ok.txt')
+  },
 })
 `,
     })
     assert.equal((await runCli(p.dir)).code, 0)
     writeFileSync(
       join(p.dir, 'evals/c.eval.ts'),
-      `import { defineEnvironment, evaluate } from 'reeval'
+      `import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
@@ -1322,8 +1347,11 @@ const skilled = defineEnvironment('skilled', ({ skill }) => ({
   sandbox,
   skills: [skill.local('../skills/s')],
 }))
-evaluate('greets', { compare: { control: plain, variants: [skilled] }, runs: 2 }, async (c) => {
-  await c.send('go now')
+export default defineEval({
+  compare: { control: plain, variants: [skilled] }, runs: 2,
+  async task(c) {
+    await c.send('go now')
+  },
 })
 `,
     )
@@ -1380,10 +1408,13 @@ evaluate('greets', { compare: { control: plain, variants: [skilled] }, runs: 2 }
       prompt: string,
       runs: number,
       failFrom: number,
-    ) => `import { evaluate } from 'reeval'
-evaluate('greets', { runs: ${runs}, gate: { passRate: 0.5 } }, async (c) => {
-  await c.send(${JSON.stringify(prompt)})
-  if (c.attempt.n >= ${failFrom}) throw new Error('counted miss')
+    ) => `import { defineEval } from 'reeval'
+export default defineEval({
+  runs: ${runs}, gate: { passRate: 0.5 },
+  async task(c) {
+    await c.send(${JSON.stringify(prompt)})
+    if (c.attempt.n >= ${failFrom}) throw new Error('counted miss')
+  },
 })
 `
     const p = await project('analyze-eval-changed-mixed-rate', {
@@ -1436,18 +1467,24 @@ evaluate('greets', { runs: ${runs}, gate: { passRate: 0.5 } }, async (c) => {
   test('--vs none analyses this run only, with no ancestor', async () => {
     const p = await project('analyze-vs-none', {
       'reeval.config.ts': fakeConfig({ extra: "record: 'always'," }),
-      'evals/c.eval.ts': `import { evaluate } from 'reeval'
-evaluate('greets', { runs: 1 }, async (c) => {
-  await c.send('go')
+      'evals/c.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  runs: 1,
+  async task(c) {
+    await c.send('go')
+  },
 })
 `,
     })
     assert.equal((await runCli(p.dir)).code, 0)
     writeFileSync(
       join(p.dir, 'evals/c.eval.ts'),
-      `import { evaluate } from 'reeval'
-evaluate('greets', { runs: 1 }, async (c) => {
-  await c.send('go now')
+      `import { defineEval } from 'reeval'
+export default defineEval({
+  runs: 1,
+  async task(c) {
+    await c.send('go now')
+  },
 })
 `,
     )

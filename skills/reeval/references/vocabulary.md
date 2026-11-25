@@ -5,7 +5,7 @@ reeval's word in code and messages.
 
 | reeval | Elsewhere called |
 |---|---|
-| eval (`evaluate(name, fn)`) | task, test case |
+| eval (`defineEval`, one file) | task, test case |
 | case (an item of `cases`) | sample, example, instance |
 | attempt (one run of a cell; `runs: n`) | trial (Anthropic, Harbor), epoch (Inspect), repetition |
 | harness (`cursor()`, …) | agent harness, scaffold, solver (reeval itself is the *evaluation* harness) |

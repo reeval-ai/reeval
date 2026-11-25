@@ -15,11 +15,13 @@ mkdirSync(join(root, 'evals'), { recursive: true })
 writeFileSync(
   file,
   [
-    "import { evaluate, expect } from 'reeval'",
+    "import { defineEval, expect } from 'reeval'",
     '',
-    "evaluate('x', async () => {",
+    'export default defineEval({',
+    '  async task() {',
     '\tconst value = 1',
-    '  expect(value).toBe(2)',
+    '    expect(value).toBe(2)',
+    '  },',
     '})',
     '//# sourceMappingURL=data:application/json;base64,e30=',
     '',
@@ -41,7 +43,7 @@ describe('formatError', () => {
       name: 'Error',
       message: 'gone',
       code: 'ENOENT',
-      stack: stack(`${file}:5:17`),
+      stack: stack(`${file}:6:17`),
     })
     assert.match(out + enoent, /code: 'ENOENT'/)
   })
@@ -56,7 +58,7 @@ describe('formatError', () => {
         `Object.toBe (${root}/node_modules/chai/index.js:3:3)`,
         `load (${root}/node_modules/jiti/dist/jiti.cjs:1:1)`,
         `helper (${root}/node_modules/some-lib/index.js:9:9)`,
-        `${file}:5:17`,
+        `${file}:6:17`,
         `${join(root, 'evals/gone.ts')}:1:1`,
       ),
     })
@@ -68,12 +70,13 @@ describe('formatError', () => {
         '- Expected\n+ Received\n\n- 2\n+ 1',
         '',
         ' ❯ helper node_modules/some-lib/index.js:9:9',
-        ' ❯ evals/a.eval.ts:5:17',
-        "      3| evaluate('x', async () => {",
-        '      4|  const value = 1',
-        '      5|   expect(value).toBe(2)',
+        ' ❯ evals/a.eval.ts:6:17',
+        '      4|   async task() {',
+        '      5|  const value = 1',
+        '      6|     expect(value).toBe(2)',
         '       |                 ^',
-        '      6| })',
+        '      7|   },',
+        '      8| })',
         ' ❯ evals/gone.ts:1:1',
         '',
       ].join('\n'),
@@ -111,10 +114,10 @@ describe('formatError', () => {
     const out = plain({
       name: 'AssertionError',
       message,
-      stack: `AssertionError: ${message}\n    at ${file}:5:17`,
+      stack: `AssertionError: ${message}\n    at ${file}:6:17`,
     })
     assert.doesNotMatch(out, /❯ .*sign-up/)
-    assert.match(out, /❯ evals\/a\.eval\.ts:5:17/)
+    assert.match(out, /❯ evals\/a\.eval\.ts:6:17/)
     const elsewhere = plain({ name: 'Error', message: 'a\nb', stack: stack(`${file}:5:3`) })
     assert.match(elsewhere, /❯ evals\/a\.eval\.ts:5:3/)
   })
@@ -141,7 +144,7 @@ describe('formatError', () => {
         codeFrame: '1| x',
         stack: stack(`${file}:5:3`),
       }),
-      `SyntaxError: bad\n1| x\n\n ❯ evals/a.eval.ts:5:3\n      3| evaluate('x', async () => {\n      4|  const value = 1\n      5|   expect(value).toBe(2)\n       |   ^\n      6| })\n`,
+      `SyntaxError: bad\n1| x\n\n ❯ evals/a.eval.ts:5:3\n      3| export default defineEval({\n      4|   async task() {\n      5|  const value = 1\n       |   ^\n      6|     expect(value).toBe(2)\n      7|   },\n`,
     )
     assert.equal(plain({ name: 'E', message: 'm', frame: '> 1 | x' }), 'E: m\n> 1 | x')
     const caused = plain({

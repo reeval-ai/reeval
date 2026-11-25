@@ -43,7 +43,7 @@ function start(target: Target): Environment {
         // What a user who ran `reeval init` once has: its config, example eval and package.json.
         setup: [
           {
-            run: 'npm init -y >/dev/null && npm i -D ~/reeval.tgz --no-audit --no-fund --loglevel=error && npx reeval init --harness cursor',
+            run: 'npm init -y >/dev/null && npm i -D ~/reeval.tgz --no-audit --no-fund --loglevel=error && npx reeval init --agent cursor',
             timeout: '5m',
           },
         ],

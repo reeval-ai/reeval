@@ -334,9 +334,11 @@ describe('a run records where each turn went', () => {
     }`
     const p = await project('time-split', {
       'reeval.config.ts': fakeConfig({ harness }),
-      'evals/w.eval.ts': `import { evaluate } from 'reeval'
-evaluate('waits', async (c) => {
-  await c.send('go')
+      'evals/w.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('go')
+  },
 })
 `,
     })
@@ -362,7 +364,7 @@ evaluate('waits', async (c) => {
     assert.equal(typeof readCall.durationMs, 'number')
     assert.match(
       read('summary.md'),
-      /^\| <a id="attempt-[a-z0-9-]+"><\/a>A1 \| evals\/w\.eval\.ts › waits \| fake \| fake \| pass \| not reported \| 1s \| 3 \|/m,
+      /^\| <a id="attempt-[a-z0-9-]+"><\/a>A1 \| w \| fake \| fake \| pass \| not reported \| 1s \| 3 \|/m,
     )
     const effort = await runCli(p.dir, [
       'query',

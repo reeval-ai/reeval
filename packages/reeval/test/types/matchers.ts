@@ -1,6 +1,6 @@
 // Which subjects each of reeval's matchers takes, as the published types say: `types.test.ts`
 // typechecks this file against dist/, so each `@ts-expect-error` must stay an error.
-import { type AttemptContext, type ExecResult, evaluate, expect } from 'reeval'
+import { type AttemptContext, defineEval, type ExecResult, expect } from 'reeval'
 
 // A subject typed by a type parameter can't be told apart: name its type on `expect`.
 export function succeeds<R extends ExecResult>(result: R) {
@@ -9,7 +9,7 @@ export function succeeds<R extends ExecResult>(result: R) {
   expect<ExecResult>(result).toSucceed()
 }
 
-evaluate('matchers', async (c: AttemptContext) => {
+async function task(c: AttemptContext) {
   const turn = await c.send('write greet.js')
   const result = await c.exec('npm run build')
   const verdict = await c.judge('Is it polite?', { output: true })
@@ -97,4 +97,6 @@ evaluate('matchers', async (c: AttemptContext) => {
   expect(verdict.score).toBeGreaterThan(0.5)
   expect(JSON.parse(result.stdout) as unknown).toBeTruthy()
   expect(JSON.parse(result.stdout)).toPass()
-})
+}
+
+export default defineEval({ task })

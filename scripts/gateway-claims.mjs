@@ -70,9 +70,9 @@ export function gatewayPropertyProblems(docsDir) {
 
 const FENCE = /^```(\w+)[^\n]*\n([\s\S]*?)^```/gm
 
-/** The harness factories `reeval/harness` exports, read from its source. */
+/** The harness factories `reeval/agent` exports, read from its source. */
 function harnessFactories(root) {
-  const source = readFileSync(join(root, 'packages/reeval/src/harness.ts'), 'utf8')
+  const source = readFileSync(join(root, 'packages/reeval/src/agent.ts'), 'utf8')
   return [...source.matchAll(/^export const (\w+) = /gm)].map((m) => m[1])
 }
 

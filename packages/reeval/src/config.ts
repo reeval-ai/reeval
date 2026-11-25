@@ -20,6 +20,7 @@ import {
   sandboxPaths,
 } from './environment.ts'
 import { UsageError } from './errors.ts'
+import { evalRoot } from './eval-id.ts'
 import { gatewayScope, modelGatewayOrNone } from './gateway/models.ts'
 import { DEFAULT_GATEWAYS, gatewayHelper } from './gateway/resolve.ts'
 import { VERTEX_PROJECT_ENV } from './gateway/vertex.ts'
@@ -71,7 +72,7 @@ export { UsageError }
 const CONFIG_KEYS = [
   'include',
   'gateway',
-  'harnesses',
+  'agents',
   'sandbox',
   'environments',
   'runs',
@@ -108,7 +109,7 @@ const PROFILE_KEYS = [
   'provider',
 ]
 const DEFAULTS_KEYS = [
-  'harnesses',
+  'agents',
   'sandbox',
   'environments',
   'runs',
@@ -121,7 +122,7 @@ const DEFAULTS_KEYS = [
   'timeout',
   'snapshot',
 ]
-const LIMIT_KEYS = ['runs', 'compare', 'harnesses', 'traits']
+const LIMIT_KEYS = ['runs', 'compare', 'agents', 'traits']
 
 export type ConfigInput = ReevalConfig | ((helpers: ConfigHelpers) => ReevalConfig)
 
@@ -340,7 +341,7 @@ function configFromData(data: Record<string, unknown>): ReevalConfig {
 export function resolveConfigData(input: unknown, root: string, file: string): ResolvedConfig {
   if (!isRecord(input)) {
     throw new UsageError(
-      `${file} must be a mapping of config keys, like harnesses: and judge: (got ${JSON.stringify(input)})`,
+      `${file} must be a mapping of config keys, like agents: and judge: (got ${JSON.stringify(input)})`,
     )
   }
   const data = withHostPaths(input, root, file, { environments: true })
@@ -370,22 +371,6 @@ export function resolveConfigData(input: unknown, root: string, file: string): R
   return resolved
 }
 
-const GLOB = /[*?[\]{}!]/
-
-/** The directory every include pattern starts in: `evals/**\/*.eval.ts` → `evals`. */
-export function evalRoot(include: string[]): string {
-  const dirs = include.map((pattern) => {
-    const parts = pattern.split('/')
-    const stop = parts.findIndex((part) => GLOB.test(part))
-    return (stop < 0 ? parts.slice(0, -1) : parts.slice(0, stop)).filter((p) => p && p !== '.')
-  })
-  const common: string[] = []
-  for (let i = 0; dirs.every((d) => d[i] !== undefined && d[i] === dirs[0]?.[i]); i++) {
-    common.push(dirs[0]?.[i] as string)
-  }
-  return common.join('/')
-}
-
 const RECORD = ['manual', 'ci', 'always'] as const
 
 const unknownKey = (value: object, allowed: string[], where: string, file: string) => {
@@ -393,7 +378,8 @@ const unknownKey = (value: object, allowed: string[], where: string, file: strin
   if (key === undefined) return
   const hints: Record<string, string> = {
     reuse: 'Reusing control results from .history isn’t built yet; every run runs its controls.',
-    compare: 'compare only goes on a group or eval; a profile can narrow it with limit.compare.',
+    compare: 'compare only goes on an eval; a profile can narrow it with limit.compare.',
+    harnesses: 'Did you mean "agents"?',
   }
   const near = closest(key, allowed)
   const hint = hints[key] ?? (near ? `Did you mean "${near}"?` : `Use ${allowed.join(', ')}.`)
@@ -426,7 +412,7 @@ export function checkBudget(budget: unknown, where: string, file: string): Budge
 const describeValue = (v: unknown) => {
   if (!isObjectLike(v)) return JSON.stringify(v)
   const { kind } = v
-  if (kind === 'fake') return 'fakeHarness({ … })'
+  if (kind === 'fake') return 'fakeAgent({ … })'
   return isAgentKind(kind) ? `${AGENTS[kind].factory}({ … })` : 'an object'
 }
 
@@ -445,7 +431,7 @@ function checkProfile(name: string, profile: unknown, file: string): Profile {
   }
   if (p.limit !== undefined) {
     unknownKey(p.limit, LIMIT_KEYS, `${where}.limit`, file)
-    const { runs, compare, harnesses: harness, traits } = p.limit
+    const { runs, compare, agents: harness, traits } = p.limit
     if (runs !== undefined && !(Number.isInteger(runs) && runs >= 1)) {
       throw new UsageError(
         `${where}.limit.runs in ${file} must be a whole number of at least 1 (got ${JSON.stringify(runs)})`,
@@ -464,7 +450,7 @@ function checkProfile(name: string, profile: unknown, file: string): Profile {
       const bad = Array.isArray(harness) ? harness.find((h) => typeof h !== 'string') : harness
       if (bad !== undefined) {
         throw new UsageError(
-          `${where}.limit.harnesses in ${file} can only list harness ids to allow (got ${describeValue(bad)}). To add harnesses, use ${where}.defaults.harnesses.`,
+          `${where}.limit.agents in ${file} can only list agent ids to allow (got ${describeValue(bad)}). To add agents, use ${where}.defaults.agents.`,
         )
       }
     }
@@ -682,10 +668,10 @@ export function resolveConfig(
   if (user.provider !== undefined) checkProvider(user.provider, 'provider', file)
   const historyDefault = join(evalRoot(include), '.history')
   const history = resolveHistory(user.history, 'history', file, root, historyDefault)
-  const harness = user.harnesses === undefined ? [DEFAULT_HARNESS] : [user.harnesses].flat()
+  const harness = user.agents === undefined ? [DEFAULT_HARNESS] : [user.agents].flat()
   if (harness.length === 0) {
     throw new UsageError(
-      `harnesses is an empty list in ${file}. Give at least one, e.g. harnesses: ${HARNESS_EXAMPLE}`,
+      `agents is an empty list in ${file}. Give at least one, e.g. agents: ${HARNESS_EXAMPLE}`,
     )
   }
   checkHarnesses(harness, file)

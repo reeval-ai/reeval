@@ -1,17 +1,17 @@
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 import { profiles } from '../profiles.ts'
 
-const fakeAgent = (path: string) =>
+const fakeFile = (path: string) =>
   readFileSync(new URL(`./fake-agent/${path}`, import.meta.url), 'utf8')
 
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that copies ./fake-agent's files into the workspace.
-  harnesses: fakeHarness({
-    files: { 'models.js': fakeAgent('models.js') },
+  agents: fakeAgent({
+    files: { 'models.js': fakeFile('models.js') },
     text: 'I wrote models.js, which lists the Gemini models.',
   }),
   // Only Docker's egress gateway swaps the placeholder for the key; fakeSandbox() doesn't.

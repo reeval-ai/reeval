@@ -1,3 +1,3 @@
-import { evaluate } from 'reeval'
+import { defineEval } from 'reeval'
 
-evaluate('uses the config', {}, async () => {})
+export default defineEval({ task: async () => {} })

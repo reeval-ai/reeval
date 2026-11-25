@@ -1,4 +1,4 @@
-import { defineEnvironment, evaluate, expect } from 'reeval'
+import { defineEnvironment, defineEval, expect } from 'reeval'
 
 const math = defineEnvironment('math', ({ directory }) => ({ files: directory('./project') }))
 const withJsdoc = math.extendEnvironment('jsdoc', ({ skill }) => ({
@@ -9,13 +9,13 @@ const withJsdoc = math.extendEnvironment('jsdoc', ({ skill }) => ({
 // minLift gates that pooled lift, not each case's.
 const functions = ['subtract', 'multiply', 'divide', 'power', 'max', 'min']
 
-evaluate(
-  'documents a function',
-  { cases: functions, compare: { control: math, variants: [withJsdoc], minLift: 0.2 } },
-  async (c, name) => {
+export default defineEval({
+  cases: functions,
+  compare: { control: math, variants: [withJsdoc], minLift: 0.2 },
+  task: async (c, name) => {
     await c.send(`Add a ${name}(a, b) function to src/math.js.`)
 
     const documented = new RegExp(`\\*/\\s*export function ${name}\\b`)
     await expect(c, 'JSDoc block').toHaveFile('src/math.js', documented)
   },
-)
+})

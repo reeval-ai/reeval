@@ -5,9 +5,9 @@ import { appendFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
 import { withUnknownFields } from '../scripts/schema/validate.ts'
+import { fakeAgent } from '../src/agent.ts'
 import { defineEnvironment } from '../src/environment.ts'
 import { optionsHash } from '../src/eval-source.ts'
-import { fakeHarness } from '../src/harness.ts'
 import { fingerprintOf } from '../src/history/assemble.ts'
 import { renderSummary } from '../src/history/summary.ts'
 import type { RunRecord } from '../src/history/types.ts'
@@ -39,19 +39,52 @@ const sh = (cwd: string, ...args: string[]) =>
   execFileSync('git', args, { cwd, env: GIT_ENV, encoding: 'utf8' }).trim()
 
 const HISTORY = 'evals/.history'
-const agent = (name = 'agent') => `import { evaluate, expect } from 'reeval'
-evaluate('${name}', async (c) => {
-  await c.send('write hello.txt')
-  expect(await c.judge('Did it write hello.txt?', { diff: true })).toPass()
+const agent = `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('write hello.txt')
+    expect(await c.judge('Did it write hello.txt?', { diff: true })).toPass()
+  },
 })
 `
-const failing = `import { evaluate, expect } from 'reeval'
-evaluate('broken', async (c) => {
-  await c.send('write hello.txt')
-  await expect(c.exec('exit 4')).toSucceed()
+const failing = `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('write hello.txt')
+    await expect(c.exec('exit 4')).toSucceed()
+  },
 })
 `
 const harness = (text = 'Wrote it') => `{ files: { 'hello.txt': 'hi\\n' }, text: '${text}' }`
+
+const BEFORE_100 = 'fixtures/records/before-100'
+
+/** Ports the before-100 corpus evals to one-eval-per-file so CLI commands still run. */
+const portBefore100 = async (dir: string) => {
+  await writeFile(
+    join(dir, 'reeval.config.ts'),
+    fakeConfig({
+      harness: `{ files: { 'greet.js': "export const greet = (n) => 'Hello, ' + n\\n" } }`,
+    }),
+  )
+  await writeFile(
+    join(dir, 'evals/writes-greet.eval.ts'),
+    `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('Write greet.js')
+    await expect(c).toHaveFile('greet.js', /Hello/)
+  },
+})
+`,
+  )
+  await writeFile(
+    join(dir, 'evals/greets-in-french.eval.ts'),
+    `import { defineEval } from 'reeval'
+export default defineEval({ skip: 'not written yet', async task() {} })
+`,
+  )
+}
 
 /** A reeval project that is its own committed git repo, with a known author. */
 async function gitProject(name: string, files: Record<string, string>, extra = '') {
@@ -82,17 +115,28 @@ describe('what a record says about comparability', () => {
     tags = "'a'",
     sibling = 'write other.txt',
     extra = '',
-  } = {}) => `import { evaluate, expect } from 'reeval'
+  } = {}) => ({
+    'evals/agent.eval.ts': `import { defineEval, expect } from 'reeval'
 import { prompt } from './helpers.ts'
 const unused = 1
-evaluate('agent', { revision: ${revision}, runs: ${runs}, tags: [${tags}]${extra} }, async (c) => {
-  await c.send(${prompt})
-  expect(await c.judge('Did it write hello.txt?', { diff: true })).toPass()
+export default defineEval({
+  revision: ${revision},
+  runs: ${runs},
+  tags: [${tags}]${extra},
+  async task(c) {
+    await c.send(${prompt})
+    expect(await c.judge('Did it write hello.txt?', { diff: true })).toPass()
+  },
 })
-evaluate('sibling', async (c) => {
-  await c.send('${sibling}')
+`,
+    'evals/sibling.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('${sibling}')
+  },
 })
-`
+`,
+  })
   const compareJson = async (dir: string) => {
     const r = await runCli(dir, ['compare', '--json'])
     assert.equal(r.code, 0, r.stderr)
@@ -108,11 +152,14 @@ evaluate('sibling', async (c) => {
 
   test("an eval's fingerprint covers its body, options and revision, not its file or helpers, and reeval compare names what changed", async () => {
     const p = await gitProject('eval-source', {
-      'evals/agent.eval.ts': importing(),
+      ...importing(),
       'evals/helpers.ts': "export const prompt = 'write hello.txt'\n",
       'lib/helpers.ts': "export const other = 'write third.txt'\n",
     })
-    const write = (text: string) => writeFile(join(p.dir, 'evals/agent.eval.ts'), text)
+    const write = async (files: ReturnType<typeof importing>) => {
+      await writeFile(join(p.dir, 'evals/agent.eval.ts'), files['evals/agent.eval.ts'])
+      await writeFile(join(p.dir, 'evals/sibling.eval.ts'), files['evals/sibling.eval.ts'])
+    }
     assert.equal((await runCli(p.dir, ['run', '--record'])).code, 0)
     const base = readRun(p.dir, { history: HISTORY })
     const entry = base.run.evals.find((e) => e.name === 'agent')
@@ -128,16 +175,13 @@ evaluate('sibling', async (c) => {
 
     // A helper, the rest of the file, a sibling eval and tags change nothing.
     await writeFile(join(p.dir, 'evals/helpers.ts'), "export const prompt = 'write hello.txt!'\n")
-    await write(importing({ tags: "'a', 'b'", sibling: 'write another.txt' }).replace('= 1', '= 2'))
+    const tweaked = importing({ tags: "'a', 'b'", sibling: 'write another.txt' })
+    tweaked['evals/agent.eval.ts'] = tweaked['evals/agent.eval.ts'].replace('= 1', '= 2')
+    await write(tweaked)
     assert.deepEqual(await agentRow(p.dir), ['same', []])
-    const sibling = (await compareJson(p.dir)).rows.find((r) => r.id.endsWith('sibling'))
+    const sibling = (await compareJson(p.dir)).rows.find((r) => r.id === 'sibling')
     assert.deepEqual([sibling?.status, sibling?.changes], ['drift', ['body changed']])
-    // The loader renames this file's import of ./helpers.ts once another helpers module comes
-    // first; the body is still the same source.
-    const third = "evaluate('third', async (c) => {\n  await c.send(other)\n})\n"
-    await write(
-      `import { other } from '../lib/helpers.ts'\n${importing({ tags: "'a', 'b'", sibling: 'write another.txt' })}${third}`,
-    )
+    await write(importing({ tags: "'a', 'b'", sibling: 'write another.txt' }))
     assert.deepEqual(await agentRow(p.dir), ['same', []])
 
     await write(importing({ revision: 2 }))
@@ -149,7 +193,7 @@ evaluate('sibling', async (c) => {
     assert.deepEqual(await agentRow(p.dir), ['drift', ['body changed']])
     await write(importing({ runs: 2, extra: ", timeout: '10m'" }))
     assert.deepEqual(await agentRow(p.dir), ['same', []], 'runs and timeout change nothing')
-    await write(importing({ extra: ", pin: ['harnesses']" }))
+    await write(importing({ extra: ", pin: ['agents']" }))
     const [status, changes] = await agentRow(p.dir)
     assert.equal(status, 'drift')
     assert.ok((changes as string[]).includes('options changed'), String(changes))
@@ -163,12 +207,15 @@ evaluate('sibling', async (c) => {
   })
 
   test("a case's hash masks its secrets, so the record can't confirm a guess and a rotated secret stays the same eval", async () => {
-    const each = (user: string) => `import { evaluate } from 'reeval'
-evaluate('logs in', { cases: [{ id: '0', user: '${user}', password: process.env.DB_PASSWORD }] }, async (c) => {
-  await c.send('write hello.txt')
+    const each = (user: string) => `import { defineEval } from 'reeval'
+export default defineEval({
+  cases: [{ id: '0', user: '${user}', password: process.env.DB_PASSWORD }],
+  async task(c) {
+    await c.send('write hello.txt')
+  },
 })
 `
-    const p = await gitProject('case-secret', { 'evals/e.eval.ts': each('ada') })
+    const p = await gitProject('case-secret', { 'evals/logs-in.eval.ts': each('ada') })
     const secret = { env: { DB_PASSWORD: 'postgres-dev-pass' } }
     assert.equal((await runCli(p.dir, ['run', '--record'], secret)).code, 0)
     const entry = readRun(p.dir, { history: HISTORY }).run.evals[0]
@@ -184,16 +231,20 @@ evaluate('logs in', { cases: [{ id: '0', user: '${user}', password: process.env.
       return [r?.status, r?.changes ?? []]
     }
     assert.deepEqual(await row({ DB_PASSWORD: 'postgres-ci-pass' }), ['same', []])
-    await writeFile(join(p.dir, 'evals/e.eval.ts'), each('grace'))
+    await writeFile(join(p.dir, 'evals/logs-in.eval.ts'), each('grace'))
     assert.deepEqual(await row(secret.env), ['drift', ['case data changed']])
   })
 
   test("a case's hash masks the value of its environment's secret(), whatever the variable is called", async () => {
     const p = await gitProject('case-declared-secret', {
-      'evals/e.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/connects.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 const db = defineEnvironment('db', ({ secret }) => ({ env: { DB_CONN: secret.fromEnv('DB_CONN') } }))
-evaluate('connects', { cases: [{ id: '0', conn: process.env.DB_CONN }], environments: db }, async (c) => {
-  await c.send('write hello.txt')
+export default defineEval({
+  cases: [{ id: '0', conn: process.env.DB_CONN }],
+  environment: db,
+  async task(c) {
+    await c.send('write hello.txt')
+  },
 })
 `,
     })
@@ -209,13 +260,15 @@ evaluate('connects', { cases: [{ id: '0', conn: process.env.DB_CONN }], environm
   })
 
   test('reeval compare --fail-on-regression fails on a regression and on a failing new eval; no base is no error', async () => {
-    const flip = `import { evaluate, expect } from 'reeval'
-evaluate('flips', async (c) => {
-  await c.send('write hello.txt')
-  expect(process.env.REEVAL_TEST_BREAK ?? 'ok').toBe('ok')
+    const flip = `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('write hello.txt')
+    expect(process.env.REEVAL_TEST_BREAK ?? 'ok').toBe('ok')
+  },
 })
 `
-    const p = await gitProject('fail-on-regression', { 'evals/a.eval.ts': flip })
+    const p = await gitProject('fail-on-regression', { 'evals/flips.eval.ts': flip })
     const broken = { env: { REEVAL_TEST_BREAK: '1' } }
     const compareCode = async (...args: string[]) => {
       const r = await runCli(p.dir, ['compare', ...args])
@@ -251,32 +304,36 @@ evaluate('flips', async (c) => {
     assert.equal((await compareCode()).code, 0, 'without the flag, compare exits 0')
 
     // A new eval that fails fails the check too; one that passes doesn't.
-    await writeFile(join(p.dir, 'evals/b.eval.ts'), failing)
+    await writeFile(join(p.dir, 'evals/broken.eval.ts'), failing)
     assert.equal((await runCli(p.dir)).code, 1)
     const added = await compareCode('--fail-on-regression')
     assert.equal(added.code, 1, added.out)
     assert.match(added.out, /^new {14}broken\n {2}head {13}\S+ {2}fail$/m)
-    await writeFile(join(p.dir, 'evals/b.eval.ts'), agent('fresh'))
+    await writeFile(join(p.dir, 'evals/broken.eval.ts'), agent)
     assert.equal((await runCli(p.dir)).code, 0)
     const twin = await compareCode('--fail-on-regression')
     assert.equal(twin.code, 0, twin.out)
   })
 
   test('reeval compare --fail-on-regression fails on a failing eval that changed (not comparable); a passing one is fine', async () => {
-    const edited = (prompt: string) => `import { evaluate, expect } from 'reeval'
-evaluate('edited', async (c) => {
-  await c.send('${prompt}')
-  expect(process.env.REEVAL_TEST_BREAK ?? 'ok').toBe('ok')
+    const edited = (prompt: string) => `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('${prompt}')
+    expect(process.env.REEVAL_TEST_BREAK ?? 'ok').toBe('ok')
+  },
 })
 `
-    const p = await gitProject('fail-on-drift', { 'evals/a.eval.ts': edited('write hello.txt') })
+    const p = await gitProject('fail-on-drift', {
+      'evals/edited.eval.ts': edited('write hello.txt'),
+    })
     const compareCode = async (...args: string[]) => {
       const r = await runCli(p.dir, ['compare', ...args])
       return { code: r.code, out: r.stdout + r.stderr }
     }
     assert.equal((await runCli(p.dir, ['run', '--record'])).code, 0)
 
-    await writeFile(join(p.dir, 'evals/a.eval.ts'), edited('write hello.txt!'))
+    await writeFile(join(p.dir, 'evals/edited.eval.ts'), edited('write hello.txt!'))
     assert.equal((await runCli(p.dir, ['run'], { env: { REEVAL_TEST_BREAK: '1' } })).code, 1)
     const failing = await compareCode('--fail-on-regression')
     assert.match(
@@ -298,7 +355,7 @@ evaluate('edited', async (c) => {
     // own, but the pooled lift is 0 and falls below minLift.
     const pooled = (
       minLift: number,
-    ) => `import { defineEnvironment, evaluate, expect } from 'reeval'
+    ) => `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
@@ -306,23 +363,20 @@ const skilled = defineEnvironment('skilled', ({ skill }) => ({
   sandbox,
   skills: [skill.local('../skills/s')],
 }))
-evaluate(
-  'writes ok.txt',
-  {
-    cases: ['ada', 'grace', 'linus', 'margaret', 'dennis', 'barbara'],
-    compare: { control: plain, variants: [skilled], minLift: ${minLift} },
-  },
-  async (c) => {
+export default defineEval({
+  cases: ['ada', 'grace', 'linus', 'margaret', 'dennis', 'barbara'],
+  compare: { control: plain, variants: [skilled], minLift: ${minLift} },
+  async task(c) {
     await c.send('go')
     if (c.attempt.cell.role === 'control' && process.env.REEVAL_TEST_BASE_OK) return
     await expect(c).toHaveFile('ok.txt')
   },
-)
+})
 `
     const p = await gitProject('compare-family', {
       'reeval.config.ts': fakeConfig({ harness: "{ withSkill: { files: { 'ok.txt': 'y' } } }" }),
       'skills/s/SKILL.md': '---\nname: s\ndescription: A skill. Use when testing.\n---\nBody.\n',
-      'evals/e.eval.ts': pooled(0.2),
+      'evals/writes-ok-txt.eval.ts': pooled(0.2),
     })
     const baseOk = { env: { REEVAL_TEST_BASE_OK: '1' } }
     const compareCode = async (...args: string[]) => {
@@ -339,7 +393,7 @@ evaluate(
           changes?: string[]
           lifts?: Array<{ base: { lo: number; minLift?: number; outcome: string } | null }>
         }>
-      ).find((r) => r.id.endsWith('writes ok.txt'))
+      ).find((r) => r.id === 'writes-ok-txt')
 
     assert.equal((await runCli(p.dir)).code, 0)
     const fresh = await compareCode('--fail-on-regression')
@@ -352,7 +406,7 @@ evaluate(
     assert.equal(regressed.code, 1, regressed.out)
     assert.match(
       regressed.out,
-      /^regressed {8}writes ok\.txt\n {2}base +\S+\n {2}head +\S+\n {2}fake\/skilled\/fake {2}lift \+100 \(\+\d+…\+100\) → \+0 \(−\d+…\+\d+\), not by minLift 20$/m,
+      /^regressed {8}writes-ok-txt\n {2}base +\S+\n {2}head +\S+\n {2}fake\/skilled\/fake {2}lift \+100 \(\+\d+…\+100\) → \+0 \(−\d+…\+\d+\), not by minLift 20$/m,
     )
     assert.match(regressed.out, /^ {2}\+6 same$/m, 'the cases pass on their own')
     assert.match(regressed.out, /^1 regressed$/m)
@@ -369,11 +423,11 @@ evaluate(
     assert.equal((await familyRow())?.status, 'same')
 
     // A changed family can't be compared, and fails the check when its gate fails.
-    await writeFile(join(p.dir, 'evals/e.eval.ts'), pooled(0.3))
+    await writeFile(join(p.dir, 'evals/writes-ok-txt.eval.ts'), pooled(0.3))
     assert.equal((await runCli(p.dir, ['run'], baseOk)).code, 1)
     const drift = await compareCode('--fail-on-regression')
     assert.equal(drift.code, 1, drift.out)
-    assert.match(drift.out, /^can't compare {4}writes ok\.txt$/m)
+    assert.match(drift.out, /^can't compare {4}writes-ok-txt$/m)
     assert.deepEqual((await familyRow())?.changes, ['options changed'])
     assert.equal((await runCli(p.dir)).code, 0)
     assert.equal((await compareCode('--fail-on-regression')).code, 0, 'canary: passing, it is fine')
@@ -384,10 +438,12 @@ evaluate(
       fakeConfig({ harness: harness(), extra: `runs: 2, gate: ${gate},` })
     const p = await gitProject('compare-gate', {
       'reeval.config.ts': config('{ passRate: 0.5 }'),
-      'evals/e.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('flaky', async (c) => {
-  await c.send('go')
-  expect(process.env.REEVAL_TEST_BREAK || c.attempt.n === 2 ? 'miss' : 'ok').toBe('ok')
+      'evals/flaky.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('go')
+    expect(process.env.REEVAL_TEST_BREAK || c.attempt.n === 2 ? 'miss' : 'ok').toBe('ok')
+  },
 })
 `,
     })
@@ -419,7 +475,7 @@ evaluate('flaky', async (c) => {
     assert.match(tightened.out, /^1 gate changed$/m)
     const { perCell: _, ...tightenedRow } = (await row()) as Row & { perCell?: unknown }
     assert.deepEqual(tightenedRow, {
-      id: 'evals/e.eval.ts › flaky',
+      id: 'flaky',
       status: 'gate',
       base: 'pass',
       head: 'fail',
@@ -456,7 +512,7 @@ evaluate('flaky', async (c) => {
     const p = await gitProject('compare-family-gate-change', {
       'reeval.config.ts': config("'all'"),
       'skills/s/SKILL.md': '---\nname: s\ndescription: A skill. Use when testing.\n---\nBody.\n',
-      'evals/e.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/writes-ok-txt.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
@@ -464,18 +520,15 @@ const skilled = defineEnvironment('skilled', ({ skill }) => ({
   sandbox,
   skills: [skill.local('../skills/s')],
 }))
-evaluate(
-  'writes ok.txt',
-  {
-    cases: ['ada', 'grace', 'linus', 'margaret', 'dennis', 'barbara'],
-    compare: { control: plain, variants: [skilled], minLift: 0.2 },
-  },
-  async (c) => {
+export default defineEval({
+  cases: ['ada', 'grace', 'linus', 'margaret', 'dennis', 'barbara'],
+  compare: { control: plain, variants: [skilled], minLift: 0.2 },
+  async task(c) {
     await c.send('go')
     if (c.attempt.cell.role === 'control' && process.env.REEVAL_TEST_BASE_OK) return
     await expect(c).toHaveFile('ok.txt')
   },
-)
+})
 `,
     })
     type Row = { status: string; changes?: string[]; cases?: Row[] }
@@ -513,10 +566,13 @@ evaluate(
 
   test('reeval compare has one row for an eval with cases without a gate, its cases inside it', async () => {
     const p = await gitProject('compare-family-ungated', {
-      'evals/e.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('greets', { cases: ['ada', 'grace'] }, async (c) => {
-  await c.send('go')
-  expect(process.env.REEVAL_TEST_BREAK ?? 'ok').toBe('ok')
+      'evals/greets.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  cases: ['ada', 'grace'],
+  async task(c) {
+    await c.send('go')
+    expect(process.env.REEVAL_TEST_BREAK ?? 'ok').toBe('ok')
+  },
 })
 `,
     })
@@ -543,11 +599,14 @@ evaluate('greets', { cases: ['ada', 'grace'] }, async (c) => {
 
   test('runs of different cases compare over the cases both ran; a failing case only head ran fails --fail-on-regression', async () => {
     const p = await gitProject('compare-case-scope', {
-      'evals/e.eval.ts': `import { evaluate, expect } from 'reeval'
+      'evals/greets.eval.ts': `import { defineEval, expect } from 'reeval'
 const fail = (process.env.REEVAL_TEST_FAIL ?? '').split(',')
-evaluate('greets', { cases: (process.env.REEVAL_TEST_SET ?? 'a,b,c').split(',') }, async (c, k) => {
-  await c.send('go')
-  expect(fail.includes(k), 'passes ' + k).toBe(false)
+export default defineEval({
+  cases: (process.env.REEVAL_TEST_SET ?? 'a,b,c').split(','),
+  async task(c, k) {
+    await c.send('go')
+    expect(fail.includes(k), 'passes ' + k).toBe(false)
+  },
 })
 `,
     })
@@ -593,11 +652,14 @@ evaluate('greets', { cases: (process.env.REEVAL_TEST_SET ?? 'a,b,c').split(',') 
 
   test("a change to one case's data is drift on that case and its eval's cells, not flakiness", async () => {
     const p = await gitProject('compare-case-drift', {
-      'evals/e.eval.ts': `import { evaluate, expect } from 'reeval'
+      'evals/fp.eval.ts': `import { defineEval, expect } from 'reeval'
 const bv = Number(process.env.REEVAL_TEST_BV ?? 1)
-evaluate('fp', { cases: [{ id: 'a', v: 1 }, { id: 'b', v: bv }] }, async (c, k) => {
-  await c.send('go')
-  expect(k.v, 'small').toBeLessThan(3)
+export default defineEval({
+  cases: [{ id: 'a', v: 1 }, { id: 'b', v: bv }],
+  async task(c, k) {
+    await c.send('go')
+    expect(k.v, 'small').toBeLessThan(3)
+  },
 })
 `,
     })
@@ -622,7 +684,7 @@ evaluate('fp', { cases: [{ id: 'a', v: 1 }, { id: 'b', v: bv }] }, async (c, k) 
     )
     const drift = await query(
       p.dir,
-      "SELECT changed FROM drift WHERE eval_key = 'evals/e.eval.ts › fp' ORDER BY run_id",
+      "SELECT changed FROM drift WHERE eval_key = 'fp' ORDER BY run_id",
     )
     assert.equal(drift.length, 2, 'each change to b moves the eval cell')
     for (const d of drift) assert.match(String(d.changed), /sources/)
@@ -640,19 +702,28 @@ evaluate('fp', { cases: [{ id: 'a', v: 1 }, { id: 'b', v: bv }] }, async (c, k) 
     const started = join(p.dir, 'slow.started')
     mkdirSync(join(p.dir, 'evals'))
     await writeFile(
-      join(p.dir, 'evals/a.eval.ts'),
-      `import { writeFileSync } from 'node:fs'
-import { evaluate, expect } from 'reeval'
-evaluate('flips', async (c) => {
-  await c.send('write hello.txt')
-  expect(process.env.REEVAL_TEST_BREAK ?? 'ok', 'returns ok').toBe('ok')
+      join(p.dir, 'evals/flips.eval.ts'),
+      `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('write hello.txt')
+    expect(process.env.REEVAL_TEST_BREAK ?? 'ok', 'returns ok').toBe('ok')
+  },
 })
-evaluate('slow', async (c) => {
-  if (process.env.REEVAL_TEST_SLOW) {
-    writeFileSync(${JSON.stringify(started)}, '')
-    await new Promise((_, reject) => c.signal.addEventListener('abort', () => reject(c.signal.reason)))
-  }
-  expect(1, 'finished').toBe(1)
+`,
+    )
+    await writeFile(
+      join(p.dir, 'evals/slow.eval.ts'),
+      `import { writeFileSync } from 'node:fs'
+import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    if (process.env.REEVAL_TEST_SLOW) {
+      writeFileSync(${JSON.stringify(started)}, '')
+      await new Promise((_, reject) => c.signal.addEventListener('abort', () => reject(c.signal.reason)))
+    }
+    expect(1, 'finished').toBe(1)
+  },
 })
 `,
     )
@@ -689,8 +760,8 @@ evaluate('slow', async (c) => {
     assert.doesNotMatch(canceled.out, /regressed/)
     assert.match(canceled.out, /^1 can't compare · 1 same$/m)
     assert.equal(canceled.code, 0, canceled.out)
-    const row = JSON.parse((await compareCode('--json')).out).rows.find((r: { id: string }) =>
-      r.id.endsWith('slow'),
+    const row = JSON.parse((await compareCode('--json')).out).rows.find(
+      (r: { id: string }) => r.id === 'slow',
     )
     assert.deepEqual([row.status, row.head, row.canceled], ['drift', 'fail', ['head']])
 
@@ -699,7 +770,7 @@ evaluate('slow', async (c) => {
     const regressed = await compareCode('--fail-on-regression')
     assert.match(
       regressed.out,
-      /^regressed {8}flips\n(.*\n){2} {2}returns ok {7}pass → fail +evals\/a\.eval\.ts:5$/m,
+      /^regressed {8}flips\n(.*\n){2} {2}returns ok {7}pass → fail +evals\/flips\.eval\.ts:5$/m,
     )
     assert.match(regressed.out, /^can't compare {4}slow$/m)
     assert.match(regressed.out, /^1 regressed · 1 can't compare$/m)
@@ -710,7 +781,7 @@ evaluate('slow', async (c) => {
     const long = 'x'.repeat(20_000)
     const p = await project('turn-cap', {
       'reeval.config.ts': fakeConfig({ harness: `{ text: '${long}' }` }),
-      'evals/t.eval.ts': `import { evaluate } from 'reeval'\nevaluate('long', async (c) => { await c.send('x') })\n`,
+      'evals/long.eval.ts': `import { defineEval } from 'reeval'\nexport default defineEval({ async task(c) { await c.send('x') } })\n`,
     })
     assert.equal((await runCli(p.dir)).code, 0)
     const [e] = readRun(p.dir).evals
@@ -723,33 +794,50 @@ evaluate('slow', async (c) => {
   test('cells join environments by digest, not name; attempts and verdicts have keys', async () => {
     const p = await project('joins', {
       'reeval.config.ts': fakeConfig({ extra: 'concurrency: 1,' }),
-      'evals/e.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/uses-one.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
-const sandbox = fakeSandbox()
-const one = defineEnvironment('tools', { sandbox, env: { FLAVOR: 'one' } })
-const two = defineEnvironment('tools', { sandbox, env: { FLAVOR: 'two' } })
-evaluate('uses one', { environments: one, runs: 3 }, async (c) => {
-  await c.send('x')
-  expect(await c.judge('Is it fine?', { diff: true })).toPass()
+const one = defineEnvironment('tools', { sandbox: fakeSandbox(), env: { FLAVOR: 'one' } })
+export default defineEval({
+  environment: one,
+  runs: 3,
+  async task(c) {
+    await c.send('x')
+    expect(await c.judge('Is it fine?', { diff: true })).toPass()
+  },
 })
-evaluate('uses two', { environments: two }, async (c) => { await c.send('x') })
-evaluate('uses none', async (c) => { await c.send('x') })
+`,
+      'evals/uses-two.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
+import { fakeSandbox } from 'reeval/sandbox'
+const two = defineEnvironment('tools', { sandbox: fakeSandbox(), env: { FLAVOR: 'two' } })
+export default defineEval({
+  environment: two,
+  async task(c) {
+    await c.send('x')
+  },
+})
+`,
+      'evals/uses-none.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('x')
+  },
+})
 `,
     })
     assert.equal((await runCli(p.dir)).code, 0)
     const { run } = readRun(p.dir)
     const cell = (name: string) => run.evals.find((e) => e.name === name)?.cells[0]
-    for (const name of ['uses one', 'uses two']) {
+    for (const name of ['uses-one', 'uses-two']) {
       const c = cell(name)
       const byDigest = run.environments.filter((e) => e.digest === c?.environmentDigest)
       assert.equal(byDigest.length, 1, `${name} resolves to one environment`)
       assert.equal(run.environments.filter((e) => e.name === c?.environment).length, 2)
     }
-    assert.notEqual(cell('uses one')?.environmentDigest, cell('uses two')?.environmentDigest)
-    assert.equal(cell('uses none')?.environment, 'fake')
-    assert.ok(cell('uses none')?.environmentDigest)
-    assert.notEqual(cell('uses none')?.environmentDigest, cell('uses one')?.environmentDigest)
-    assert.deepEqual([cell('uses one')?.harnessKind, cell('uses one')?.model], ['fake', null])
+    assert.notEqual(cell('uses-one')?.environmentDigest, cell('uses-two')?.environmentDigest)
+    assert.equal(cell('uses-none')?.environment, 'fake')
+    assert.ok(cell('uses-none')?.environmentDigest)
+    assert.notEqual(cell('uses-none')?.environmentDigest, cell('uses-one')?.environmentDigest)
+    assert.deepEqual([cell('uses-one')?.harnessKind, cell('uses-one')?.model], ['fake', null])
 
     const attempts = run.evals.flatMap((e) => e.attempts)
     assert.deepEqual(
@@ -757,7 +845,7 @@ evaluate('uses none', async (c) => { await c.send('x') })
       [1, 2, 3, 4, 5],
       'concurrency 1: one start order across the run',
     )
-    const one = run.evals.find((e) => e.name === 'uses one')
+    const one = run.evals.find((e) => e.name === 'uses-one')
     assert.deepEqual(
       one?.attempts.map((a) => a.key),
       [1, 2, 3].map((n) => `${one?.key} # fake/tools/fake#${n}`),
@@ -770,11 +858,11 @@ evaluate('uses none', async (c) => { await c.send('x') })
 })
 
 describe('config discovery', () => {
-  const passing = (name: string) => `import { evaluate } from 'reeval'
-evaluate('${name}', async () => {})
+  const passing = () => `import { defineEval } from 'reeval'
+export default defineEval({ async task() {} })
 `
-  const wrongConfig = (name: string) => `import { evaluate, expect } from 'reeval'
-evaluate('${name}', async () => expect('this config').toBe('never run'))
+  const wrongConfig = () => `import { defineEval, expect } from 'reeval'
+export default defineEval({ async task() { expect('this config').toBe('never run') } })
 `
 
   test('every command run from a nested subdirectory finds the project config and acts from its directory', async () => {
@@ -782,9 +870,9 @@ evaluate('${name}', async () => expect('this config').toBe('never run'))
       'reeval.config.ts': fakeConfig({
         harness: `{ id: process.env.REEVAL_T_WHERE ?? 'unset', files: { 'hello.txt': 'hi\\n' }, text: 'Wrote it' }`,
       }),
-      'evals/agent.eval.ts': agent(),
+      'evals/agent.eval.ts': agent,
       // Decoys a run that resolved from the current directory would pick up.
-      'src/deep/nested/evals/decoy.eval.ts': wrongConfig('decoy'),
+      'src/deep/nested/evals/decoy.eval.ts': wrongConfig(),
       'src/deep/nested/marker.txt': 'here\n',
     })
     await writeFile(join(p.dir, '.env.local'), 'REEVAL_T_WHERE=root\n')
@@ -806,7 +894,7 @@ evaluate('${name}', async () => expect('this config').toBe('never run'))
     const first = readRun(p.dir).run
     assert.deepEqual(
       first.evals.flatMap((e) => e.attempts.map((a) => `${e.id} ${a.id}`)),
-      ['evals/agent.eval.ts › agent root/fake/fake#1'],
+      ['agent root/fake/fake#1'],
       "the config's .env.local, not the current directory's",
     )
 
@@ -817,7 +905,7 @@ evaluate('${name}', async () => expect('this config').toBe('never run'))
     const history = JSON.parse((await ok(['history', '--json'])).stdout)
     assert.deepEqual(
       history.rows.map((r: { id: string }) => r.id),
-      ['evals/agent.eval.ts › agent'],
+      ['agent'],
     )
     assert.equal(JSON.parse((await ok(['show', 'latest', '--json'])).stdout).kind, 'reeval-run')
     assert.match((await ok(['compare'])).stdout, /same/i)
@@ -841,9 +929,9 @@ evaluate('${name}', async () => expect('this config').toBe('never run'))
   test("a nested project's own config wins over the parent's, and --config wins over both", async () => {
     const p = await project('nearest-wins', {
       'reeval.config.ts': fakeConfig(),
-      'evals/parent.eval.ts': wrongConfig('parent'),
+      'evals/parent.eval.ts': wrongConfig(),
       'packages/app/reeval.config.mjs': fakeConfig(),
-      'packages/app/evals/app.eval.ts': passing('app'),
+      'packages/app/evals/app.eval.ts': passing(),
       'packages/app/src/lib/index.ts': '',
     })
     const app = join(p.dir, 'packages/app')
@@ -853,7 +941,7 @@ evaluate('${name}', async () => expect('this config').toBe('never run'))
     assert.equal(nested.code, 0, nested.stdout + nested.stderr)
     assert.deepEqual(
       readRun(app).run.evals.map((e) => e.id),
-      ['evals/app.eval.ts › app'],
+      ['app'],
     )
     assert.equal(existsSync(join(p.dir, '.reeval')), false, "nothing under the parent's config")
 
@@ -865,13 +953,13 @@ evaluate('${name}', async () => expect('this config').toBe('never run'))
     assert.equal(named.code, 1, named.stdout + named.stderr)
     assert.deepEqual(
       readRun(p.dir).run.evals.map((e) => e.id),
-      ['evals/parent.eval.ts › parent'],
+      ['parent'],
     )
   })
 })
 
 describe('records from before a field existed', () => {
-  const OLD = 'fixtures/records/before-100'
+  const OLD = BEFORE_100
   const oldRun = '20260927T151935Z_facb81b_cursor-agent_07sv'
   const raw = (): RunRecord =>
     JSON.parse(readFileSync(join(testDir, OLD, HISTORY, `${oldRun}.json`), 'utf8'))
@@ -967,6 +1055,7 @@ describe('records from before a field existed', () => {
 
   test('reeval show, show --md, history, query and compare read it next to a new run', async () => {
     const p = await fixture(OLD)
+    await portBefore100(p.dir)
     const ok = async (args: string[]) => {
       const r = await runCli(p.dir, args)
       assert.equal(r.code, 0, `reeval ${args.join(' ')}\n${r.stdout}${r.stderr}`)
@@ -989,7 +1078,7 @@ describe('records from before a field existed', () => {
 })
 
 describe('records from a newer reeval', () => {
-  const OLD = 'fixtures/records/before-100'
+  const OLD = BEFORE_100
   const oldRun = '20260927T151935Z_facb81b_cursor-agent_07sv'
   const newRun = '20270101T000000Z_facb81b_cursor-agent_zz01'
 
@@ -1005,6 +1094,7 @@ describe('records from a newer reeval', () => {
 
   test('a newer schemaVersion: reeval show says to upgrade reeval, and the other readers skip it with a warning', async () => {
     const p = await fixture(OLD)
+    await portBefore100(p.dir)
     await future(p.dir, (r) => {
       r.schemaVersion = 2
     })
@@ -1030,6 +1120,7 @@ describe('records from a newer reeval', () => {
 
   test('fields, values and transcript events a newer reeval added are ignored by every reader', async () => {
     const p = await fixture(OLD)
+    await portBefore100(p.dir)
     const schema = JSON.parse(
       readFileSync(join(testDir, '../schema/run-record.schema.json'), 'utf8'),
     )
@@ -1088,7 +1179,8 @@ describe('records from a newer reeval', () => {
 
 describe('caches another reeval wrote', () => {
   test('.reeval/history-cache.json from another reeval version is rebuilt, even at the same mtime', async () => {
-    const p = await fixture('fixtures/records/before-100')
+    const p = await fixture(BEFORE_100)
+    await portBefore100(p.dir)
     assert.equal((await runCli(p.dir, ['history'])).code, 0)
     const file = join(p.dir, '.reeval/history-cache.json')
     const cache = JSON.parse(readFileSync(file, 'utf8'))
@@ -1132,7 +1224,7 @@ describe('history recorded with evaluate.each by reeval 0.18', () => {
     assert.deepEqual(
       [family?.id, family?.name, family?.cases?.map((c) => c.key)],
       [
-        'evals/discovery.eval.ts › discovery',
+        'discovery',
         'discovery: %s',
         ['add user authentication', 'add social login and email/password auth'],
       ],
@@ -1164,7 +1256,7 @@ describe('history recorded with evaluate.each by reeval 0.18', () => {
     r.evals.push({ ...other, id: 'evals/discovery.eval.ts › discovery', name: 'discovery' })
     const names = readableRecord(r).evals.map((e) => e.id)
     assert.deepEqual(names, [
-      'evals/discovery.eval.ts › discovery: %s',
+      'discovery',
       'evals/options.eval.ts › renamed options › writes greet.js',
       'evals/discovery.eval.ts › discovery',
     ])
@@ -1177,7 +1269,7 @@ describe('history recorded with evaluate.each by reeval 0.18', () => {
       discovery?.source?.options,
     )
     assert.equal(
-      optionsHash([{ harnesses: fakeHarness(), pin: ['harnesses'] }, { environments: [app] }]),
+      optionsHash([{ agents: fakeAgent(), pin: ['agents'] }, { environments: [app] }]),
       options?.source?.options,
     )
     // Canary: an option that really changed still changes the hash.
@@ -1189,40 +1281,41 @@ describe('history recorded with evaluate.each by reeval 0.18', () => {
 
   test('reeval compare lines a 0.19 port up with the 0.18 run, case by case', async () => {
     const p = await fixture(OLD)
+    await writeFile(join(p.dir, 'reeval.config.ts'), fakeConfig())
     await writeFile(
       join(p.dir, 'evals/discovery.eval.ts'),
-      `import { defineEnvironment, evaluate, expect } from 'reeval'
+      `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 
 const plain = defineEnvironment('plain', { sandbox: fakeSandbox() })
 const withSkill = defineEnvironment('with-skill', { sandbox: fakeSandbox() })
 
-evaluate(
-  process.env.REEVAL_TEST_NAME ?? 'discovery',
-  {
-    cases: ['add user authentication', 'add social login and email/password auth'],
-    compare: { control: plain, variants: [withSkill] },
-  },
-  async (c, prompt) => {
+export default defineEval({
+  cases: ['add user authentication', 'add social login and email/password auth'],
+  compare: { control: plain, variants: [withSkill] },
+  async task(c, prompt) {
     await c.send(prompt)
     await expect(c).toHaveFile('greet.js')
   },
-)
+})
 `,
     )
     await writeFile(
       join(p.dir, 'evals/options.eval.ts'),
-      `import { defineEnvironment, evaluate, expect, group } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+      `import { defineEnvironment, defineEval, expect } from 'reeval'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 
 const app = defineEnvironment('app', { sandbox: fakeSandbox() })
 
-group('renamed options', { harnesses: fakeHarness(), pin: ['harnesses'] }, () => {
-  evaluate('writes greet.js', { environments: app }, async (c) => {
+export default defineEval({
+  agents: fakeAgent(),
+  pin: ['agents'],
+  environment: app,
+  async task(c) {
     await c.send('Write greet.js.')
     await expect(c).toHaveFile('greet.js')
-  })
+  },
 })
 `,
     )
@@ -1247,31 +1340,37 @@ group('renamed options', { harnesses: fakeHarness(), pin: ['harnesses'] }, () =>
         }>
       ).map((x) => [x.id, x.status, x.changes, x.cases?.map((k) => k.id)])
     }
-    // The judge's part of the fingerprint holds reeval's version, so every eval differs in it
-    // alone: nothing is removed or new, and neither the options nor a case key changed.
+    // The judge's part of the fingerprint holds reeval's version. defineEval's body hash differs
+    // from evaluate's; options' id is the file now, not the old group path.
     assert.deepEqual(await rows(), [
       [
-        'evals/discovery.eval.ts › discovery',
+        'discovery',
         'drift',
-        ['judge changed'],
+        ['body changed', 'judge changed'],
         ['add user authentication', 'add social login and email/password auth'],
       ],
+      ['options', 'added', undefined, undefined],
       [
         'evals/options.eval.ts › renamed options › writes greet.js',
-        'drift',
-        ['judge changed'],
+        'removed',
+        undefined,
         undefined,
       ],
     ])
-    // Canary: a port under another name is a new eval, and the old one removed.
-    const renamed = await rows({ REEVAL_TEST_NAME: 'discovery v2' })
+    // Canary: a port under another file is a new eval, and the old one removed.
+    await writeFile(
+      join(p.dir, 'evals/discovery-v2.eval.ts'),
+      readFileSync(join(p.dir, 'evals/discovery.eval.ts'), 'utf8'),
+    )
+    await rm(join(p.dir, 'evals/discovery.eval.ts'))
+    sh(p.dir, 'add', '-A')
+    sh(p.dir, 'commit', '-q', '-m', 'rename discovery file')
+    const renamed = await rows()
     assert.deepEqual(
-      renamed
-        .filter(([id]) => (id as string).startsWith('evals/discovery'))
-        .map((x) => x.slice(0, 2)),
+      renamed.filter(([id]) => (id as string).startsWith('discovery')).map((x) => x.slice(0, 2)),
       [
-        ['evals/discovery.eval.ts › discovery v2', 'added'],
-        ['evals/discovery.eval.ts › discovery', 'removed'],
+        ['discovery-v2', 'added'],
+        ['discovery', 'removed'],
       ],
     )
   })

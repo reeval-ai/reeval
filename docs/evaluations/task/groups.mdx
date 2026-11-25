@@ -3,60 +3,76 @@ title: "Group evaluations"
 description: "Apply the same options to several evaluations."
 ---
 
-Use `group()` when several evaluations share an environment, tags, or the `judge` option. The two evaluations below ask for Vitest tests in a `plain` environment, defined in the `evals/environments.ts` file.
+When several evaluations share an environment, tags, or the `judge` option, put the shared fields in a helper module and spread them into each `defineEval` call. The two evaluations below ask for Vitest tests in a `plain` environment, defined in the `evals/environments.ts` file.
 
 ## Group evaluations
 
-A `group()` call wraps the evaluations that share its options. In the `evals/shoehorn.eval.ts` file, give both evaluations the `plain` environment and the `smoke` tag:
+Export shared options from one module. In the `evals/shared.ts` file, give both evaluations the `plain` environment and the `smoke` tag:
 
-```ts title="evals/shoehorn.eval.ts"
-import { evaluate, expect, group } from '{{ pkg }}'
+```ts title="evals/shared.ts"
 import { plain } from './environments.ts'
 
-group('request builders', { environments: plain, tags: ['smoke'] }, () => {
-  evaluate('tests build only the request fields they read', async (c) => {
+export const shared = { environment: plain, tags: ['smoke'] as const }
+```
+
+Each eval gets its own file and spreads `shared`:
+
+```ts title="evals/shoehorn/build-only-fields.eval.ts"
+import { defineEval, expect } from '{{ pkg }}'
+import { shared } from '../shared.ts'
+
+export default defineEval({
+  ...shared,
+  task: async (c) => {
     await c.send('Add a Vitest test for getUserId in src/user.test.ts.')
     await expect(c, 'uses fromPartial').toHaveFile(
       'src/user.test.ts',
       /fromPartial(<\w+>)?\(/,
     )
-  })
+  },
+})
+```
 
-  evaluate('tests mock only the services they call', async (c) => {
+```ts title="evals/shoehorn/mock-services.eval.ts"
+import { defineEval, expect } from '{{ pkg }}'
+import { shared } from '../shared.ts'
+
+export default defineEval({
+  ...shared,
+  task: async (c) => {
     await c.send('Add a Vitest test for chargeCard in src/billing.test.ts.')
     await expect(c, 'uses fromPartial').toHaveFile(
       'src/billing.test.ts',
       /fromPartial(<\w+>)?\(/,
     )
-  })
+  },
 })
 ```
 
 ## Nest groups
 
-An inner `group()` inherits the outer group's options and can set its own. In the `evals/shoehorn.eval.ts` file, put the billing evaluation in an inner group:
+A helper can spread another helper and add its own fields. In the `evals/billing-shared.ts` file, add the `billing` tag on top of `shared`:
 
-```ts title="evals/shoehorn.eval.ts"
-  group('billing', { tags: ['billing'] }, () => {
-    evaluate(
-      'tests mock only the services they call',
-      // ...
-    )
-  })
+```ts title="evals/billing-shared.ts"
+import { shared } from './shared.ts'
+
+export const billing = { ...shared, tags: [...shared.tags, 'billing'] as const }
 ```
 
-The inner evaluation keeps the outer group's `plain` environment and `smoke` tag, and adds the `billing` tag.
+The billing evaluation spreads `billing` and keeps `shared`'s `plain` environment and `smoke` tag.
 
 ## Override an option in one evaluation
 
-An `environment`, `timeout`, `runs`, `gate`, or `sandbox` on one `evaluate()` call replaces the group's value for that evaluation. The other evaluations keep the group's value. In the `evals/shoehorn.eval.ts` file, give one evaluation a longer timeout:
+An `environment`, `timeout`, `runs`, `gate`, or `sandbox` on one `defineEval` call replaces the spread value for that evaluation. The other evaluations keep the shared value. In the `evals/shoehorn/build-only-fields.eval.ts` file, give one evaluation a longer timeout:
 
-```ts title="evals/shoehorn.eval.ts"
-    evaluate(
-      'tests build only the request fields they read',
-      { timeout: '30m' },
-      // ...
-    )
+```ts title="evals/shoehorn/build-only-fields.eval.ts"
+export default defineEval({
+  ...shared,
+  timeout: '30m',
+  task: async (c) => {
+    // ...
+  },
+})
 ```
 
 ## Verify with the `reeval run --dry-run` command
@@ -67,16 +83,16 @@ The `reeval run --dry-run` command plans the run without starting a sandbox or a
 npx reeval run --dry-run
 ```
 
-The header counts the evaluations, cells, and attempts, and estimates the time. Each row names an evaluation by its file, its groups, and its name, joined with `›`. If an evaluation is missing, check that its file ends in `.eval.ts` or `.eval.py` and sits under the `evals/` folder.
+The header counts the evaluations, cells, and attempts, and estimates the time. Each row names an evaluation by its file id. If an evaluation is missing, check that its file ends in `.eval.ts` or `.eval.py` and sits under the `evals/` folder.
 
-## Skip, focus, or plan groups
+## Skip or plan an eval
 
-`group.skip`, `group.only`, and `group.todo` skip, focus, or plan a group, as [`group()`](/reference/authoring-api#group) describes. For a runnable project with a group, `evaluate.skip`, and `evaluate.todo`, see [`with-groups`](https://github.com/reeval-ai/reeval/tree/main/examples/with-groups).
+`skip: true` or `skip: 'reason'` on `defineEval` skips the eval; a string reason is listed in the plan. TypeScript eval files have no `.only` or `.todo`. For a runnable project with `skip`, see [`with-skip`](https://github.com/reeval-ai/reeval/tree/main/examples/with-skip).
 
 ## See how options cascade
 
-Options cascade from the config through each group to the evaluation. For the full order, see [The cascade](/reference/options#the-cascade). Tags add up at each group, so `npx reeval run --tag smoke` runs both evaluations above. For more information about filtering by tag, see [Filter evaluations](/evaluations/runs/running#filter-evaluations).
+Options cascade from the config and profile `defaults` to each eval. For the full order, see [The cascade](/reference/options#the-cascade). Tags on the eval add up with profile tags, so `npx reeval run --tag smoke` runs both evaluations above. For more information about filtering by tag, see [Filter evaluations](/evaluations/runs/running#filter-evaluations).
 
 ## Reference
 
-For more information about every argument `group()` takes, see [Authoring API](/reference/authoring-api#group).
+For more information about every `defineEval` option, see [Authoring API](/reference/authoring-api#defineeval).

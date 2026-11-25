@@ -7,7 +7,7 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { describe, test } from 'node:test'
 import { DEFAULT_IMAGE } from '@reeval/sandbox-docker'
-import { fakeHarness } from '../src/harness.ts'
+import { fakeAgent } from '../src/agent.ts'
 import {
   type PrepareUse,
   prepareAll,
@@ -144,8 +144,8 @@ const dockerRow: Row = {
   },
 }
 
-const harness = fakeHarness()
-const use = (sandbox: SandboxDescriptor, where = 'evaluate("x")'): PrepareUse => ({
+const harness = fakeAgent()
+const use = (sandbox: SandboxDescriptor, where = 'evals/x.eval.ts'): PrepareUse => ({
   harness,
   sandbox,
   setBy: { sandbox: where, harness: 'reeval.config.ts' },

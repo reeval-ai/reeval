@@ -92,11 +92,11 @@ export const pairFactors = (across?: PairFactor | readonly PairFactor[]): PairFa
 
 /**
  * The pair kinds a pairwise question asks: `environment` varies the environment and holds the
- * harness (`within`); `harness` varies the harness and holds the environment (`across`).
+ * agent (`within`); `agent` varies the agent and holds the environment (`across`).
  */
 export const acrossOf = (across: PairFactor | readonly PairFactor[]): CompareCut[] => {
   const factors = pairFactors(across)
-  return ALL_CUTS.filter((cut) => factors.includes(cut === 'within' ? 'environment' : 'harness'))
+  return ALL_CUTS.filter((cut) => factors.includes(cut === 'within' ? 'environment' : 'agent'))
 }
 
 /**

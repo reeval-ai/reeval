@@ -1,10 +1,10 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeAnalysis, fakeJudge } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
 
 export default defineConfig({
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     files: { 'index.html': '<h1>Acme Notes</h1>\n' },
     text: 'I built index.html.',
   }),

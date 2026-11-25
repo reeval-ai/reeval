@@ -11,7 +11,7 @@ skilled = base.extend("skilled", {"env": {"MODE": "skilled"}})
         "questions": [
             {
                 "question": "Which agent verified its work?",
-                "across": "harness",
+                "across": "agent",
                 "transcript": "tools",
             }
         ],

@@ -3,12 +3,12 @@
 // agent's work fails).
 // `pnpm reeval run --config evals/contributing/reeval.oracle.config.ts`
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 
 export default defineConfig({
   include: ['*.eval.ts'],
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     script: [[{ exec: 'git apply ~/oracle.patch' }]],
     text: 'Applied the merged change.',
   }),

@@ -4,14 +4,14 @@
 // todo and skipped evals, tool calls and reasoning, labeled and default-labeled assertions), and
 // a saved analysis. Each is one eval with as few attempts as it needs, so an entry stays small.
 import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeAnalysis, fakeJudge } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
 
 const greet = "export const greet = (name) => 'Hello, ' + name + '!'\n"
 
 export default defineConfig({
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     files: { 'greet.js': greet, 'package.json': '{ "type": "module" }\n' },
     text: 'I wrote greet.js.',
     reasoning: 'The task wants one file.',

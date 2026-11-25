@@ -116,7 +116,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'matrix.cascade',
     area: 'Config and selection',
-    name: 'Option cascade through groups and evals; harness edits (`{ add }`, `{ only }`, functions)',
+    name: 'Option cascade through config, profiles and evals; agent edits (`{ add }`, `{ only }`, functions)',
     plan: ['harness-edits/data-and-functions'],
     unit: ['reeval/test/engine.test.ts', 'reeval/test/options.test.ts'],
   },
@@ -573,15 +573,15 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'selection.modes',
     area: 'Config and selection',
-    name: '`evaluate.only`, `.skip`, `.todo` and `.for`; `group.only`',
+    name: '`skip`, `skip: "reason"` and filters; profile `limit` and file-path filters',
     plan: ['selection/only-local'],
     unit: ['reeval/test/options.test.ts', 'reeval/test/engine.test.ts', 'reeval/test/plan.test.ts'],
   },
   {
     id: 'selection.group-skip',
     area: 'Config and selection',
-    name: '`group.skip` and `group.todo`, and todo shown in the plan, summary, record and studio',
-    plan: ['selection/only-local', 'only-in-skip/only-in-skipped-group'],
+    name: 'Skip and todo at the file level, shown in the plan, summary, record and studio',
+    plan: ['selection/only-local'],
     unit: ['reeval/test/engine.test.ts'],
   },
   {
@@ -1837,7 +1837,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'harness.fake-script',
     area: 'Harnesses',
-    name: '`fakeHarness({ script })` and `layout`',
+    name: '`fakeAgent({ script })` and `layout`',
     fixtures: ['secrets/checks-hidden-from-agent', 'harness/rules:cursor'],
     unit: ['reeval/test/harness.test.ts', 'reeval/test/engine.test.ts'],
   },

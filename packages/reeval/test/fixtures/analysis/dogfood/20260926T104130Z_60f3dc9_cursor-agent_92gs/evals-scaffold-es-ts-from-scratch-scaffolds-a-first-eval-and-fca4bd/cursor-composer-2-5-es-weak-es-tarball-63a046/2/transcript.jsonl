@@ -20,7 +20,7 @@
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/matchers.d.ts"},"ok":true,"durationMs":32}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":76}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"es\\.config|defineConfig|fakeHarness|fakeSandbox|fakeJudge"},"ok":true,"durationMs":178}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"es\\.config|defineConfig|fakeAgent|fakeSandbox|fakeJudge"},"ok":true,"durationMs":178}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":53}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/engine/runtime.d.ts"},"ok":true,"durationMs":56}
@@ -28,7 +28,7 @@
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"toHaveFile|evaluate\\("},"ok":true,"durationMs":13}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"tar -tzf /opt/es/invertase-foobar.tgz | grep -E 'test|fixture|example' | head -40"},"ok":true,"durationMs":54}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"/opt/es","pattern":"fakeHarness|fakeSandbox|fakeJudge"},"ok":true,"durationMs":149}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"/opt/es","pattern":"fakeAgent|fakeSandbox|fakeJudge"},"ok":true,"durationMs":149}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/config.js"},"ok":true,"durationMs":38}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/matchers.js"},"ok":true,"durationMs":38}

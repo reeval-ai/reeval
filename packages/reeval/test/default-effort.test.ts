@@ -5,6 +5,16 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
 import { cursorEffortParam } from '@reeval/harness-cursor-sdk'
+import {
+  antigravity,
+  claudeCode,
+  codex,
+  cursor,
+  fx,
+  grokBuild,
+  opencode,
+  pi,
+} from '../src/agent.ts'
 import { UsageError } from '../src/errors.ts'
 import {
   checkCursorCatalog,
@@ -17,16 +27,6 @@ import {
   noDefaultEffort,
   withDefaultEffort,
 } from '../src/harness/default-effort.ts'
-import {
-  antigravity,
-  claudeCode,
-  codex,
-  cursor,
-  fx,
-  grokBuild,
-  opencode,
-  pi,
-} from '../src/harness.ts'
 import { harnessId } from '../src/options.ts'
 import { effortSummary } from '../src/plan.ts'
 import type { CursorEfforts } from '../src/types.ts'
@@ -283,9 +283,7 @@ describe("Cursor's model catalog at plan time", () => {
         checkCursorCatalog([attempt(cursor({ model: 'composer-2.5', effort: 'medium' }))], CATALOG),
       (e) =>
         e instanceof UsageError &&
-        e.message.startsWith(
-          'evaluate("api › fixes the bug") on cursor:composer-2.5[effort=medium]: ',
-        ),
+        e.message.startsWith('eval api › fixes the bug on cursor:composer-2.5[effort=medium]: '),
     )
     assert.deepEqual(
       checkCursorCatalog(

@@ -1,4 +1,4 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
-export default defineConfig({ harnesses: fakeHarness({ script: [[{ exec: 'cat ready.txt' }]] }) })
+export default defineConfig({ agents: fakeAgent({ script: [[{ exec: 'cat ready.txt' }]] }) })

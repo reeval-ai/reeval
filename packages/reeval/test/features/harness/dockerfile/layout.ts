@@ -1,4 +1,4 @@
-import type { FakeHarnessDescriptor } from 'reeval/harness'
+import type { FakeHarnessDescriptor } from 'reeval/agent'
 
 type Layout = NonNullable<FakeHarnessDescriptor['layout']>
 

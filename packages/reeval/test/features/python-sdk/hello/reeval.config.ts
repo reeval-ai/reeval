@@ -1,5 +1,5 @@
 import { defineConfig } from 'reeval'
-import { cursor, fakeHarness } from 'reeval/harness'
+import { cursor, fakeAgent } from 'reeval/agent'
 import { fakeJudge } from 'reeval/judge'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
@@ -11,13 +11,13 @@ const sandbox =
 
 export default defineConfig({
   include: ['evals/**/*.eval.py'],
-  harnesses:
+  agents:
     process.env.REEVAL_FIXTURE_HARNESS === 'cursor'
       ? cursor({
           model: process.env.REEVAL_REAL_MODEL ?? 'composer-2.5',
           params: { fast: 'false' },
         })
-      : fakeHarness({
+      : fakeAgent({
           script: [[{ write: { 'greet.py': 'print("hi")\n' } }, { reply: 'Created greet.py.' }]],
         }),
   sandbox,

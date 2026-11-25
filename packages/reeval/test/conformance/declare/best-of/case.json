@@ -1,5 +1,6 @@
 {
-  "eval": "plan/best-of/evals/b.eval.ts",
+  "eval": "plan/best-of/evals",
+  "treeRoot": "plan/best-of",
   "plan": "plan/best-of/expected/default.txt",
   "args": []
 }

@@ -26,9 +26,9 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./harness": {
-      "types": "./dist/harness.d.ts",
-      "default": "./dist/harness.js"
+    "./agent": {
+      "types": "./dist/agent.d.ts",
+      "default": "./dist/agent.js"
     },
     "./sandbox": {
       "types": "./dist/sandbox.d.ts",

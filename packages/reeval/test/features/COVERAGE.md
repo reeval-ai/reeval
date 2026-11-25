@@ -21,7 +21,7 @@
 | Finding the nearest `reeval.config.*` upward from the current directory; `--config` wins | ✓ 2 | — | ● 1 | ● 1 | — | — |
 | `harnesses` lists × `runs`, and `--runs`; unset, a compare runs 4 a side and anything else once, a compare over cases included | ✓ 2 | ✓ 8 | — | — | — | — |
 | `runs: { bestOf }`: each cell stops once a majority of its attempts agree, gates on that majority and marks the attempts it added or skipped; refused on a compare and when not odd and 3 or more | ✓ 4 | ✓ 6 | ● 1 | — | — | — |
-| Option cascade through groups and evals; harness edits (`{ add }`, `{ only }`, functions) | ✓ 2 | ✓ 1 | — | — | — | — |
+| Option cascade through config, profiles and evals; agent edits (`{ add }`, `{ only }`, functions) | ✓ 2 | ✓ 1 | — | — | — | — |
 | `environments` as a list: a cell per environment beside each harness, and its edits | ✓ 1 | ✓ 1 | — | — | — | — |
 | `compare`: control, variants, lift and `minLift` | ✓ 2 | ✓ 2 | ● 1 | ● 1 | — | — |
 | `gate: 'observe'` and `compare.gate: 'observe'`: every cell ungated, a failed `expect` reads `ran` and fails nothing, and no pass^k hint | ✓ 1 | ✓ 1 | ● 2 | — | — | — |
@@ -62,8 +62,8 @@
 | `reeval run --cloud --resume <run>`, by the cloud run's id or its event stream URL, or `--resume <run>` where the config or profile (`--profile` picks it) runs in the cloud and this machine has no such run or downloaded it from a cloud run (by its whole id, or a prefix only this run matches): with no config, the platform resumes the run with the project as it was uploaded (said once it has) and it's followed as `--cloud` follows a run, its exit code only from the resumed run's own output, else its status, `--download` (into the run's own profile's history, replacing an earlier download's files of the same cloud run outside the history folder) and the output flags included; a run still stopping is asked again as `Retry-After` says for up to 5 minutes (then exit 3), a complete run, one the platform can't resume or refuses, filters, `--runs`, `--tag`, `--trait`, `--retry-errors` and no run are exit 2, an unreachable platform exit 3; a run this machine ran continues here, under its saved profile, and `--local` continues a downloaded one here, which makes it this machine's (a later download refuses to write over it) | ✓ 2 | — | — | — | — | — |
 | `reeval run --dry-run`'s cost estimate: token and USD ranges from each cell's past tokens, else a typical attempt's, with judge calls, priced from models.dev (cached a day, a failure for an hour) under a `REEVAL_PRICES` file, saying what the dollars cover when a model has no price, tokens only without prices; the JSON plan's `cost` has each cell's part | ✓ 1 | ✓ 5 | — | — | — | — |
 | `budget.attempts`, `budget.duration` and `--force` | ✓ 1 | ✓ 1 | — | — | — | — |
-| `evaluate.only`, `.skip`, `.todo` and `.for`; `group.only` | ✓ 3 | ✓ 1 | — | — | — | — |
-| `group.skip` and `group.todo`, and todo shown in the plan, summary, record and studio | ✓ 1 | ✓ 2 | — | — | — | — |
+| `skip`, `skip: "reason"` and filters; profile `limit` and file-path filters | ✓ 3 | ✓ 1 | — | — | — | — |
+| Skip and todo at the file level, shown in the plan, summary, record and studio | ✓ 1 | ✓ 1 | — | — | — | — |
 | A declared skip marked in the record (`evals[].skip`), told apart from an attempt that hasn't run yet by resume, show, query and the studio | ✓ 3 | — | ◐ 1 (1 without a canary) | — | — | — |
 | Traits: `--trait key=value` and a profile's `limit.traits` narrow the planned cells after `where` and the cascade by their environment's traits (with `compare`, the control's), listed in `--dry-run` apart from `where`'s pairs; a key no environment defines is refused | ✓ 3 | ✓ 4 | ● 1 | — | — | — |
 | Tags: `--tag`, `!tag` and profile tags | ✓ 1 | ✓ 1 | — | — | — | — |
@@ -196,7 +196,7 @@
 | An unset `effort` runs at `medium` on every harness and model that takes one, recorded and noted in the plan where it can't; Cursor's `effort` and `params` checked against its model catalog at plan time | ✓ 3 | ✓ 3 | — | — | — | — |
 | Token usage and the served model, per turn and totaled, from any harness | ✓ 1 | — | — | — | — | ◐ 4 (3 without a canary) |
 | Web search and fetch events (Cursor's recovered from its stored conversation), `turn.unreported`, `toHaveSearched` and `toHaveFetched` | ✓ 7 | — | — | — | — | ◐ 5 (1 without a canary) |
-| `fakeHarness({ script })` and `layout` | ✓ 2 | — | ● 2 | ● 2 | — | — |
+| `fakeAgent({ script })` and `layout` | ✓ 2 | — | ● 2 | ● 2 | — | — |
 | A turn the timeout cuts off is recorded as `aborted` | ✓ 1 | — | ● 1 | ● 1 | — | ● 1 |
 | A turn that doesn't stop when cut off keeps its events and its CLI's stored usage | ✓ 5 | — | ● 1 | ● 1 | — | — |
 | Transcripts, normalized per harness | ✓ 3 | — | — | — | — | ● 1 |

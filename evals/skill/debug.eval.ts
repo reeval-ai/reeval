@@ -1,4 +1,4 @@
-import { evaluate, expect, group } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { channels, PREAMBLE, project } from './channels.ts'
 import { runsOnFake } from './checks.ts'
 
@@ -11,8 +11,9 @@ const task =
 
 const failing = project('slug', 'debug', ['./node_modules/.bin/reeval run --ui plain || true'])
 
-group('debug a failing check', { compare: { ...channels(failing), gate: 'observe' } }, () => {
-  evaluate('finds and fixes the failing check', async (c) => {
+export default defineEval({
+  compare: { ...channels(failing), gate: 'observe' },
+  task: async (c) => {
     const turn = await c.send(task)
     await expect(c.exec(runsOnFake), 'passes on the fake config').toSucceed()
     expect(c, 'leaves the config alone').not.toHaveChanged(['reeval.config.ts'])
@@ -20,5 +21,5 @@ group('debug a failing check', { compare: { ...channels(failing), gate: 'observe
     expect(source, 'keeps the check').toMatch(/trims punctuation/)
     expect(source, 'expects a single hyphen').toMatch(/ahoy-ada/)
     expect(turn.text, 'names the failed check').toMatch(/trims punctuation/)
-  })
+  },
 })

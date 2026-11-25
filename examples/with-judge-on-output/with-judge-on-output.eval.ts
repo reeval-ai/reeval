@@ -1,16 +1,19 @@
-import { defineEnvironment, evaluate, expect } from 'reeval'
+import { defineEnvironment, defineEval, expect } from 'reeval'
 
 // The agent starts from ./project: orders.csv, three orders totaling 50.
 const orders = defineEnvironment('orders', ({ directory }) => ({ files: directory('./project') }))
 
-evaluate('summarizes the orders', { environments: orders }, async (c) => {
-  await c.send('Write summary.js. It prints how many orders orders.csv has, and their total.')
+export default defineEval({
+  environment: orders,
+  task: async (c) => {
+    await c.send('Write summary.js. It prints how many orders orders.csv has, and their total.')
 
-  const run = await c.exec('node summary.js')
-  expect(run.exitCode).toBe(0)
-  const verdict = await c.judge('Does it say there are 3 orders totaling 50?', {
-    on: run.stdout,
-    output: true,
-  })
-  expect(verdict).toPass()
+    const run = await c.exec('node summary.js')
+    expect(run.exitCode).toBe(0)
+    const verdict = await c.judge('Does it say there are 3 orders totaling 50?', {
+      on: run.stdout,
+      output: true,
+    })
+    expect(verdict).toPass()
+  },
 })

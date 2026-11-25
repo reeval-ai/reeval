@@ -20,7 +20,7 @@
     },
     "packages/reeval": {
       "entry": [
-        "src/{index,harness,sandbox,provider-boat,provider-daytona,internal-vm,internal-vm-api,internal-vm-api-boat,internal-vm-api-daytona,store-local,store-s3,judge,testing,bin}.ts",
+        "src/{index,agent,sandbox,provider-boat,provider-daytona,internal-vm,internal-vm-api,internal-vm-api-boat,internal-vm-api-daytona,store-local,store-s3,judge,testing,bin}.ts",
         "test/**/*.{ts,mjs}",
         "scripts/**/*.ts"
       ],

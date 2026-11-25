@@ -1,4 +1,4 @@
-# reeval.config.ts, harnesses and options
+# reeval.config.ts, agents and options
 
 ## Contents
 
@@ -13,7 +13,7 @@
 A project without TypeScript can write `reeval.yaml` (or `.yml`) instead, with no callbacks:
 
 ```yaml
-harnesses: { kind: cursor, model: composer-2.5 }
+agents: { kind: cursor, model: composer-2.5 }
 judge: { model: typesafe-ai/jev-1.14.0 }   # or { kind: fake-judge, score: 0.9 }
 env:
   NPM_TOKEN: { kind: secret, hosts: [registry.npmjs.org] }
@@ -44,12 +44,12 @@ environment. A fake profile or config puts `sandbox: fakeSandbox()` on `defaults
 `defineConfig` so `plain` and skill variants run without Docker; that's for trying configs, not
 for validating checks (an environment's own `docker()` still wins). Don't put `fakeSandbox()`
 on `plain` itself: real Cursor runs need Docker. An oracle or canary profile sets only
-`defaults.harnesses`, so each eval keeps its sandbox: see
+`defaults.agents`, so each eval keeps its sandbox: see
 [evals.md](evals.md#trustworthy-evals).
 
 ## Harnesses, keys and effort
 
-Harnesses (`reeval/harness`), each with a required `model`; a list runs each as its own cell:
+Harnesses (`reeval/agent`), each with a required `model`; a list runs each as its own cell:
 
 | Factory | Key | Notes |
 |---|---|---|
@@ -62,7 +62,7 @@ Harnesses (`reeval/harness`), each with a required `model`; a list runs each as 
 | `codex({ model, effort? })` | `OPENAI_API_KEY` | An OpenAI model id, e.g. `gpt-5.6-luna`; `effort` is `model_reasoning_effort` |
 | `fx({ model, effort? })` | `OPENAI_API_KEY` for a bare id, `AI_GATEWAY_API_KEY` on `vercel()`, `OPENROUTER_API_KEY` on `openrouter()`, or none on `vertex()` | Vercel's fx over ACP: a gateway id (`anthropic/claude-sonnet-5`) runs only on `vercel()` or `openrouter()` in `gateway`, a bare OpenAI id (`gpt-5.5`) on OpenAI, which must accept function tools without `reasoning_effort` (not `gpt-5.6` or later), a Gemini id (`google/gemini-3.8-flash`) on `vertex()`. `effort` (`reasoning_effort`) only on `vertex()`. Its own web tools bypass the egress gateway, so `deny-all` blocks them |
 | `grokBuild({ model, effort? })` | `XAI_API_KEY` | xAI's Grok Build CLI; an xAI model id, e.g. `grok-4.6`; `effort` is `default_reasoning_effort`. It finds MCP tools with its `search_tool` before calling them |
-| `fakeHarness(…)` | None | See the fake trio in SKILL.md |
+| `fakeAgent(…)` | None | See the fake trio in SKILL.md |
 
 OpenCode, Goose, pi, Codex and fx refuse `mcp.sse`. Cursor's `fast` defaults to `'false'` (standard
 price; `{ fast: 'true' }` costs several times more). Other unset Cursor params take Cursor's

@@ -1,5 +1,6 @@
 {
   "eval": "plan/plugins/evals/marketplace.eval.ts",
+  "treeRoot": "plan/plugins",
   "plan": "plan/plugins/expected/marketplace.txt",
-  "args": ["evals/marketplace.eval.ts"]
+  "args": []
 }

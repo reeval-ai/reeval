@@ -1,12 +1,15 @@
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { ui } from './env.ts'
 
-evaluate('lands', { environments: ui }, async (c) => {
-  const server = await c.serve('node server.mjs')
-  const shot = await c.capture(server, {
-    name: 'after-submit',
-    instructions: ['Fill in the sign-in form and submit'],
-  })
-  expect(shot.file.path).toBe('artifacts/after-submit.png')
-  expect(shot.name).toBe('after-submit')
+export default defineEval({
+  environment: ui,
+  task: async (c) => {
+    const server = await c.serve('node server.mjs')
+    const shot = await c.capture(server, {
+      name: 'after-submit',
+      instructions: ['Fill in the sign-in form and submit'],
+    })
+    expect(shot.file.path).toBe('artifacts/after-submit.png')
+    expect(shot.name).toBe('after-submit')
+  },
 })

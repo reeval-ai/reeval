@@ -24,7 +24,7 @@ async def one_question(c): ...
         "questions": [
             {
                 "question": "Which handles state more cleanly?",
-                "across": ["environment", "harness"],
+                "across": ["environment", "agent"],
                 "diff": True,
             },
             {

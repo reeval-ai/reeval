@@ -20,7 +20,7 @@ const compareProject = (name: string) =>
         "{ files: { 'ok.txt': 'y' }, withSkill: { files: { 'ok.txt': 'y', 'styled.txt': 'Ahoy' } } }",
     }),
     'skills/house/SKILL.md': '---\nname: house\ndescription: The house style.\n---\nAhoy.\n',
-    'evals/s.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+    'evals/s.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
@@ -28,11 +28,14 @@ const styled = defineEnvironment('styled', ({ skill }) => ({
   sandbox,
   skills: [skill.local('../skills/house')],
 }))
-evaluate('greets', { compare: { control: plain, variants: [styled] }, runs: 2 }, async (c) => {
-  await c.send('go')
-  await expect(c, 'writes ok.txt').toHaveFile('ok.txt')
-  await expect.require(c, 'house style').toHaveFile('styled.txt', /Ahoy/)
-  await expect(c.exec('test -f ok.txt')).toSucceed()
+export default defineEval({
+  compare: { control: plain, variants: [styled] }, runs: 2,
+  async task(c) {
+    await c.send('go')
+    await expect(c, 'writes ok.txt').toHaveFile('ok.txt')
+    await expect.require(c, 'house style').toHaveFile('styled.txt', /Ahoy/)
+    await expect(c.exec('test -f ok.txt')).toSucceed()
+  },
 })
 `,
   })
@@ -45,7 +48,7 @@ describe('named check results', () => {
     // The eval list names the failed check and the arm it failed on; a passing compare stays open.
     assert.match(
       r.stdout,
-      /^ {5}✗ house style {2}failed on the control 2 of 2 · expected\n {7}expected file styled\.txt to exist · evals\/s\.eval\.ts:12$/m,
+      /^ {5}✗ house style {2}failed on the control 2 of 2 · expected\n {7}expected file styled\.txt to exist · evals\/s\.eval\.ts:14$/m,
     )
     assert.doesNotMatch(r.stdout, /toSucceed/, 'a check that never ran did not fail')
     // Assertions by arm: house style fails on the control; toSucceed is n/a there (never reached).
@@ -130,14 +133,17 @@ describe('named check results', () => {
   test('a check both arms fail names the variant, then the ungated control as such', async () => {
     const p = await project('checks-both-fail', {
       'reeval.config.ts': fakeConfig(),
-      'evals/s.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/s.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
 const styled = defineEnvironment('styled', { sandbox })
-evaluate('greets', { compare: { control: plain, variants: [styled] }, runs: 2 }, async (c) => {
-  await c.send('go')
-  await expect(c, 'writes ok.txt').toHaveFile('ok.txt')
+export default defineEval({
+  compare: { control: plain, variants: [styled] }, runs: 2,
+  async task(c) {
+    await c.send('go')
+    await expect(c, 'writes ok.txt').toHaveFile('ok.txt')
+  },
 })
 `,
     })
@@ -152,11 +158,14 @@ evaluate('greets', { compare: { control: plain, variants: [styled] }, runs: 2 },
   test('without a compare the attempts record their assertions and the result has no check matrix', async () => {
     const p = await project('checks-single', {
       'reeval.config.ts': fakeConfig({ harness: "{ files: { 'ok.txt': 'y' } }" }),
-      'evals/a.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('writes', { runs: 2 }, async (c) => {
-  await c.send('go')
-  for (const name of ['ok.txt', 'ok.txt']) await expect(c).toHaveFile(name)
-  expect(await c.judge('Is it ok?', { diff: true })).toPass()
+      'evals/a.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  runs: 2,
+  async task(c) {
+    await c.send('go')
+    for (const name of ['ok.txt', 'ok.txt']) await expect(c).toHaveFile(name)
+    expect(await c.judge('Is it ok?', { diff: true })).toPass()
+  },
 })
 `,
     })

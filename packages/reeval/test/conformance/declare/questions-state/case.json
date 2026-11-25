@@ -1,5 +1,6 @@
 {
-  "eval": "plan/compare/evals/questions-state.eval.ts",
+  "eval": "plan/compare/evals/questions-state",
+  "treeRoot": "plan/compare",
   "plan": "plan/compare/expected/questions-state.txt",
-  "args": ["evals/questions-state.eval.ts"]
+  "args": []
 }

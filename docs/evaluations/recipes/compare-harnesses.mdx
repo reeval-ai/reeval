@@ -3,32 +3,30 @@ title: "Compare harnesses"
 description: "Run one task on each agent and compare pass rate, tokens, tool calls, and time."
 ---
 
-You compare agents by running one task on each agent in one run, then reading each agent's pass rate, tokens, tool calls, and time side by side. For a runnable project, see [`with-many-harnesses`](https://github.com/reeval-ai/reeval/tree/main/examples/with-many-harnesses).
+You compare agents by running one task on each agent in one run, then reading each agent's pass rate, tokens, tool calls, and time side by side. For a runnable project, see [`with-many-agents`](https://github.com/reeval-ai/reeval/tree/main/examples/with-many-agents).
 
-To measure a change on each agent instead, add `compare` ([the `compare.harnesses` key](/reference/options#compare)).
+To measure a change on each agent instead, add `compare` ([the `compare.agents` key](/reference/options#compare)).
 
 ## Run one task on each agent
 
 <Steps>
 <Step title="Write the evaluation">
 
-In the `evals/stream.eval.ts` file, list the agents in `harness` and give each agent four attempts with `runs`:
+In the `evals/stream.eval.ts` file, list the agents in `agents` and give each agent four attempts with `runs`:
 
 ```ts title="evals/stream.eval.ts"
-import { evaluate, expect } from '{{ pkg }}'
-import { claudeCode, codex, cursor } from '{{ pkg }}/harness'
+import { defineEval, expect } from '{{ pkg }}'
+import { claudeCode, codex, cursor } from '{{ pkg }}/agent'
 
-evaluate(
-  'streams with Vercel AI SDK',
-  {
-    harnesses: [
-      cursor({ model: 'composer-2.5' }),
-      claudeCode({ model: 'claude-sonnet-5' }),
-      codex({ model: 'gpt-5.6-luna' }),
-    ],
-    runs: 4,
-  },
-  async (c) => {
+export default defineEval({
+  pin: ['agents'],
+  agents: [
+    cursor({ model: 'composer-2.5' }),
+    claudeCode({ model: 'claude-sonnet-5' }),
+    codex({ model: 'gpt-5.6-luna' }),
+  ],
+  runs: 4,
+  task: async (c) => {
     await c.send(
       'Add src/stream.ts with a streamChat(prompt) function that ' +
         'streams a reply with Vercel AI SDK.',
@@ -39,7 +37,7 @@ evaluate(
       /streamText\(/,
     )
   },
-)
+})
 ```
 
 Each agent runs the same prompt and assertions as its own cell. For more information about the harness factories, see [Pick a harness](/configuration/agents#pick-a-harness). For more information about each harness's key, see [Harness behavior](/reference/options#harness-behavior). To plan the cells without starting one, see [Preview the plan](/evaluations/runs/running#preview-the-plan).

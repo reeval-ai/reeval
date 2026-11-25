@@ -603,8 +603,8 @@ test('under a passRate gate, a failed run marks the eval only once its cell can 
 const caseEvals = (cases: string[], harnesses: string[]) =>
   cases.flatMap((k, i) =>
     harnesses.map((harness) => ({
-      id: `evals/a.eval.ts › bank [${k}]`,
-      key: `evals/a.eval.ts › bank [${k}] # ${harness}/-/fake#1`,
+      id: `bank [${k}]`,
+      key: `bank [${k}] # ${harness}/-/fake#1`,
       group: [],
       name: `bank [${k}]`,
       skipped: false,
@@ -619,13 +619,13 @@ const caseEvals = (cases: string[], harnesses: string[]) =>
           sandbox: 'fake',
           role: 'control',
         },
-        family: { id: 'evals/a.eval.ts › bank', name: 'bank', case: i, cases: cases.length },
+        family: { id: 'bank', name: 'bank', case: i, cases: cases.length },
       } as never,
     })),
   )
 
 const caseRef = (k: string, harness: string) => {
-  const key = `evals/a.eval.ts › bank [${k}] # ${harness}/-/fake#1`
+  const key = `bank [${k}] # ${harness}/-/fake#1`
   return {
     key,
     attempt: { n: 1, gate: 'all', label: harness, cell: { key: `${harness}/-/fake` } },
@@ -704,8 +704,8 @@ test("a compare's live case table heads its columns as the finished table does, 
     'evals/a.eval.ts',
     ['a', 'b'].flatMap((k, i) =>
       [arm('skilled', 'variant', 'skilled'), arm('app', 'control')].map((cell) => ({
-        id: `evals/a.eval.ts › w [${k}]`,
-        key: `evals/a.eval.ts › w [${k}] # ${cell.key}#1`,
+        id: `w [${k}]`,
+        key: `w [${k}] # ${cell.key}#1`,
         group: [],
         name: `w [${k}]`,
         skipped: false,
@@ -714,7 +714,7 @@ test("a compare's live case table heads its columns as the finished table does, 
           gate: 'all',
           label: cell.role === 'control' ? 'control' : 'skilled',
           cell,
-          family: { id: 'evals/a.eval.ts › w', name: 'w', case: i, cases: 2 },
+          family: { id: 'w', name: 'w', case: i, cases: 2 },
         } as never,
       })),
     ),
@@ -733,8 +733,8 @@ test('a queued attempt names its harness and its run in the cell, from the plan'
   )
   live.collected('evals/b.eval.ts', [
     {
-      id: 'evals/b.eval.ts › greets',
-      key: 'evals/b.eval.ts › greets # codex/-/fake#3',
+      id: 'greets',
+      key: 'greets # codex/-/fake#3',
       group: [],
       name: 'greets',
       skipped: false,

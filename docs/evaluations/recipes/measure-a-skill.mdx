@@ -32,17 +32,14 @@ For more information about other skill sources, see [Give the agent skills](/con
 Assert on what the skill teaches, so the control fails without it. The prompt doesn't mention the changelog, so only a harness that follows the skill writes the entry. In the `evals/changelog.eval.ts` file, name the control and the variant in `compare`:
 
 ```ts title="evals/changelog.eval.ts"
-import { evaluate, expect } from '{{ pkg }}'
+import { defineEval, expect } from '{{ pkg }}'
 import { math, withSkill } from './environments.ts'
 
-evaluate(
-  'records the change in the changelog',
-  {
-    compare: { control: math, variants: [withSkill] },
+export default defineEval({
+  compare: { control: math, variants: [withSkill] },
     runs: 4,
     gate: { passRate: 0.75 },
-  },
-  async (c) => {
+  task: async (c) => {
     await c.send('Add a multiply(a, b) function to src/math.js.')
 
     await expect(c.exec('node --test'), 'tests pass').toSucceed()
@@ -51,7 +48,7 @@ evaluate(
       /## Unreleased\s+- feat: /,
     )
   },
-)
+})
 ```
 
 `runs: 4` gives each cell four attempts, the fewest that can read `helped`. The variant passes when at least 3 of its 4 attempts pass. To also check that the variant loaded the skill, guard `toHaveCalledSkill` with `c.attempt.cell.role === 'variant'`, since the control has no skill to load ([Give the agent skills](/configuration/environments/skills#check-the-agent-used-the-skill)).

@@ -34,7 +34,7 @@
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/config.js"},"ok":true,"durationMs":66}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/harness/fake.d.ts"},"ok":true,"durationMs":80}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"fakeHarness"},"ok":true,"durationMs":80}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"fakeAgent"},"ok":true,"durationMs":80}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"glob","input":{"pattern":"**/*.es.ts"},"ok":true,"durationMs":28}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"/opt/es","pattern":"compare.*withDocs|compare:"},"ok":true,"durationMs":138}

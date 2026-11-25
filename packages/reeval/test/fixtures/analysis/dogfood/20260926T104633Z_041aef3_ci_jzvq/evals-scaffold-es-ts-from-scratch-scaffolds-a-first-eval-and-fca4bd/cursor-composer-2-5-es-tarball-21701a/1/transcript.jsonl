@@ -17,7 +17,7 @@
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-pkg/package/dist/harness.d.ts"},"ok":true,"durationMs":65}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-pkg/package/dist/evaluate.d.ts"},"ok":true,"durationMs":71}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"/tmp/es-pkg/package","pattern":"expect|hello\\.txt|fakeHarness|fakeSandbox|fakeJudge"},"ok":true,"durationMs":62}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"/tmp/es-pkg/package","pattern":"expect|hello\\.txt|fakeAgent|fakeSandbox|fakeJudge"},"ok":true,"durationMs":62}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-pkg/package/dist/sandbox.d.ts"},"ok":true,"durationMs":66}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-pkg/package/dist/judge/index.d.ts"},"ok":true,"durationMs":66}
 {"turn":0,"type":"reasoning"}
@@ -33,7 +33,7 @@
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-pkg/package/dist/judge.js"},"ok":true,"durationMs":82}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-pkg/package/dist/harness/fake.js"},"ok":true,"durationMs":80}
-{"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -r \"fakeJudge\\|fakeHarness\\|fakeSandbox\" /tmp/es-pkg/package/dist/ 2>/dev/null | head -30"},"ok":true,"durationMs":113}
+{"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -r \"fakeJudge\\|fakeAgent\\|fakeSandbox\" /tmp/es-pkg/package/dist/ 2>/dev/null | head -30"},"ok":true,"durationMs":113}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"/root/.ai-sdk-harness/.harness-bootstrap/cursor/implementation/home/.cursor/projects/es-workspace/agent-transcripts","pattern":"hello|\\.es\\.ts|defineConfig"},"ok":true,"durationMs":0}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-pkg/package/dist/evaluate.js"},"ok":true,"durationMs":12}

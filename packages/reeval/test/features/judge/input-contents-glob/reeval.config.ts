@@ -1,10 +1,10 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeJudge } from 'reeval/judge'
 
 // REEVAL_FIXTURE_SANDBOX picks the tier: the fake sandbox (F) by default, or docker (D).
 export default defineConfig({
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     files: {
       'src/app.ts': 'export const app = () => "hello"\n',
       'src/util.ts': 'export const twice = (n: number) => n * 2\n',

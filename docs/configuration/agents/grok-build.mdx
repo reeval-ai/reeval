@@ -19,14 +19,14 @@ For more information about the variable, see [`XAI_API_KEY`](/reference/environm
 
 ## `grokBuild()`
 
-The factory comes from `{{ pkg }}/harness`, and its return value sets the `harness` option:
+The factory comes from `{{ pkg }}/agent`, and its return value sets the `harness` option:
 
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
-import { grokBuild } from '{{ pkg }}/harness'
+import { grokBuild } from '{{ pkg }}/agent'
 
 export default defineConfig({
-  harnesses: grokBuild({
+  agents: grokBuild({
     model: 'grok-4.6',
   }),
 })

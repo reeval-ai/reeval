@@ -20,7 +20,7 @@
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"withSkill|compare|house-style|greet"},"ok":true,"durationMs":35}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/package.json"},"ok":true,"durationMs":0}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"evaluate\\(|defineConfig|defineEnvironment|fakeHarness|fakeSandbox|fakeJudge"},"ok":true,"durationMs":16}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"evaluate\\(|defineConfig|defineEnvironment|fakeAgent|fakeSandbox|fakeJudge"},"ok":true,"durationMs":16}
 {"turn":0,"type":"tool","tool":"glob","input":{"pattern":"**/*"},"ok":true,"durationMs":718}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"tar -tzf /opt/es/invertase-foobar.tgz | rg -i 'test/|fixture|example|\\.es\\.ts|es\\.config'"},"ok":true,"durationMs":30}
@@ -32,7 +32,7 @@
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/harness.js"},"ok":true,"durationMs":25}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/engine/runtime.d.ts"},"ok":true,"durationMs":26}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"fakeHarness|withSkill|compare:"},"ok":true,"durationMs":26}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"fakeAgent|withSkill|compare:"},"ok":true,"durationMs":26}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"mkdir -p /tmp/es-src && tar -xzf /opt/es/invertase-foobar.tgz -C /tmp/es-src && find /tmp/es-src -name '*.es.ts' -o -name 'es.config.ts' 2>/dev/null | head -30"},"ok":true,"durationMs":89}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/matchers.js"},"ok":true,"durationMs":44}

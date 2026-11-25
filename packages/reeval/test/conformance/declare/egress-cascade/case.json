@@ -1,5 +1,20 @@
 {
-  "eval": "plan/egress/evals/cascade.eval.ts",
+  "eval": "plan/egress/evals",
+  "treeRoot": "plan/egress",
   "plan": "plan/egress/expected/cascade.txt",
-  "args": ["evals/auto.eval.ts", "evals/cascade.eval.ts"]
+  "args": [],
+  "planSources": [
+    "plan/egress/evals/a-group-replaces-the-environment-too.eval.ts",
+    "plan/egress/evals/a-phase-on-the-eval-replaces-only-that-phase.eval.ts",
+    "plan/egress/evals/a-plain-policy-on-the-eval-replaces-both-phases.eval.ts",
+    "plan/egress/evals/an-environment-replaces-it.eval.ts",
+    "plan/egress/evals/an-extend-child-replaces-its-parent.eval.ts",
+    "plan/egress/evals/an-unset-phase-keeps-the-config-policy.eval.ts",
+    "plan/egress/evals/equal-phases-are-one-policy.eval.ts",
+    "plan/egress/evals/hosts-the-policy-lists-are-not-repeated.eval.ts",
+    "plan/egress/evals/secret-and-mcp-hosts-are-allowed.eval.ts",
+    "plan/egress/evals/the-config-policy.eval.ts",
+    "plan/egress/evals/the-default-list-spreads.eval.ts",
+    "plan/egress/evals/the-eval-replaces-the-environment.eval.ts"
+  ]
 }

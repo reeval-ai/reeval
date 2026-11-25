@@ -1,5 +1,5 @@
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
-export const writer = fakeHarness({ id: 'writer', files: { 'out.txt': 'hi\n' } })
-export const copier = fakeHarness({ id: 'copier', files: { 'out.txt': 'hi\n' } })
-export const idler = fakeHarness({ id: 'idler' })
+export const writer = fakeAgent({ id: 'writer', files: { 'out.txt': 'hi\n' } })
+export const copier = fakeAgent({ id: 'copier', files: { 'out.txt': 'hi\n' } })
+export const idler = fakeAgent({ id: 'idler' })

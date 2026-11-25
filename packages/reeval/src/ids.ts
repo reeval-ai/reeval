@@ -29,8 +29,7 @@ const physical = (p: string): string => {
   }
 }
 
-/** Stable id: the file, the enclosing group names and the eval name. */
-export const evalId = (file: string, path: string[]) => [file, ...path].join(' › ')
+export { evalId } from './eval-id.ts'
 
 export const sha256 = (data: string | Uint8Array) => createHash('sha256').update(data).digest('hex')
 

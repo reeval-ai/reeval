@@ -1,5 +1,5 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
 const [host, port] = (process.env.REEVAL_EGRESS_TARGET ?? ':').split(':')
 
@@ -7,7 +7,7 @@ const [host, port] = (process.env.REEVAL_EGRESS_TARGET ?? ':').split(':')
 export default defineConfig({
   // As the agent: a raw TCP connection to the host's listener, as a database driver or SSH makes
   // one, which no proxy variable routes through the gateway.
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     script: [
       [
         {

@@ -18,7 +18,7 @@
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/evaluate.d.ts"},"ok":true,"durationMs":41}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":84}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"expect\\(|hello\\.txt|defineConfig|fakeHarness|fakeSandbox|fakeJudge"},"ok":true,"durationMs":80}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"expect\\(|hello\\.txt|defineConfig|fakeAgent|fakeSandbox|fakeJudge"},"ok":true,"durationMs":80}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":49}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist/engine","pattern":"expect"},"ok":true,"durationMs":50}

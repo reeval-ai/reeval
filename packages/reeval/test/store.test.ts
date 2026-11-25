@@ -181,7 +181,8 @@ describe('recording to s3()', () => {
     ci: { history: { store: { kind: 's3', bucket: '${s3.bucket}', endpoint: '${s3.url}', prefix: 'ci' } } },
   },`,
       }),
-      'evals/a.eval.ts': "import { evaluate } from 'reeval'\nevaluate('a', async () => {})\n",
+      'evals/a.eval.ts':
+        "import { defineEval } from 'reeval'\nexport default defineEval({ async task() {} })\n",
     })
     dir = p.dir
   })
@@ -491,7 +492,8 @@ describe('reading from s3()', () => {
     ci: { history: { store: { kind: 's3', bucket: '${s3.bucket}', endpoint: '${s3.url}' } } },
   },`,
       }),
-      'evals/a.eval.ts': "import { evaluate } from 'reeval'\nevaluate('a', async () => {})\n",
+      'evals/a.eval.ts':
+        "import { defineEval } from 'reeval'\nexport default defineEval({ async task() {} })\n",
     })
     a = p.dir
     git(a, 'init', '-q', '-b', 'main')
@@ -604,7 +606,8 @@ describe('debug data to s3()', () => {
         extra: `record: 'manual',
   profiles: { requests: ${store('requests')}, all: ${store('all')} },`,
       }),
-      'evals/a.eval.ts': "import { evaluate } from 'reeval'\nevaluate('a', async () => {})\n",
+      'evals/a.eval.ts':
+        "import { defineEval } from 'reeval'\nexport default defineEval({ async task() {} })\n",
     })
     dir = p.dir
   })
@@ -827,10 +830,12 @@ describe('a canceled run with --record', { skip: noSignals }, () => {
   },`,
       }),
       'evals/slow.eval.ts': `import { writeFileSync } from 'node:fs'
-import { evaluate } from 'reeval'
-evaluate('slow', async (c) => {
-  writeFileSync(${JSON.stringify(started)}, '')
-  await new Promise((_, reject) => c.signal.addEventListener('abort', () => reject(c.signal.reason)))
+import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+    writeFileSync(${JSON.stringify(started)}, '')
+    await new Promise((_, reject) => c.signal.addEventListener('abort', () => reject(c.signal.reason)))
+  },
 })
 `,
     })
