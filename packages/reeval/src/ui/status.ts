@@ -741,7 +741,11 @@ const ownFrame = (line: string) =>
 function failureLines(f: NonNullable<CellError['failure']>): DetailLine[] {
   const meta = Object.entries(f.meta ?? {}).map(([key, value]) => {
     const text = typeof value === 'string' ? value : JSON.stringify(value)
-    return { depth: 2, text: clip(`${key}: ${text.replace(/\s+/g, ' ').trim()}`, LINE_MAX), tone: 'dim' } as const
+    return {
+      depth: 2,
+      text: clip(`${key}: ${text.replace(/\s+/g, ' ').trim()}`, LINE_MAX),
+      tone: 'dim',
+    } as const
   })
   const frames = (f.stack ?? '')
     .split('\n')

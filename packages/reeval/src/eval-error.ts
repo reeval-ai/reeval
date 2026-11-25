@@ -16,6 +16,7 @@ export type EvalErrorOptions = {
  * enough. It fails the attempt as any error the task throws does, and reads back better: its
  * `reason` is the attempt's headline and its `meta` is recorded beside it.
  */
+// biome-ignore lint/suspicious/noShadowRestrictedNames: reeval's EvalError stands in for the global one
 export class EvalError extends Error {
   override name = 'EvalError'
   readonly reason: string
@@ -40,6 +41,12 @@ export class EvalError extends Error {
   }
 }
 
-/** An `EvalError`, from this copy of reeval or another (a language runner's, by its name). */
+/**
+ * An `EvalError` from this copy of reeval or another, by its name and `reason`: JavaScript's own
+ * global `EvalError`, which a file that doesn't import reeval's gets, has no `reason`.
+ */
 export const isEvalError = (error: unknown): error is EvalError =>
-  error instanceof EvalError || (error instanceof Error && error.name === 'EvalError')
+  error instanceof EvalError ||
+  (error instanceof Error &&
+    error.name === 'EvalError' &&
+    typeof (error as EvalError).reason === 'string')

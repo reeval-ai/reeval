@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process'
 import { createInterface } from 'node:readline'
 import { AgentError } from '@reeval/agents'
 import { UsageError } from '../errors.ts'
+// biome-ignore lint/suspicious/noShadowRestrictedNames: reeval's EvalError stands in for the global one
 import { EvalError } from '../eval-error.ts'
 import { InfraError } from '../sandbox/types.ts'
 import {

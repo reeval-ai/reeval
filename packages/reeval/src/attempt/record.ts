@@ -202,8 +202,8 @@ const withoutStack = ({ stack: _, ...failure }: AttemptFailure) => failure
 const REASON_MAX = 200
 const STACK_MAX = 8 * 1024
 
-/** A thrown value as the task threw it: one line, with its line breaks and runs of space folded. */
-const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim()
+/** A thrown message on one line: each line break, and the space around it, folded to a space. */
+const oneLine = (text: string) => text.replace(/\s*[\r\n]+\s*/g, ' ').trim()
 
 /**
  * What the task threw, into the record, when it failed the attempt as itself: not a failed

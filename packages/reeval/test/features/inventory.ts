@@ -2110,6 +2110,13 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/observe.test.ts'],
   },
   {
+    id: 'history.eval-error',
+    area: 'Records and studio',
+    name: "The task's failure: a task that throws (an `EvalError`'s reason and JSON meta, or any other error's message and class) records the attempt's `failure` with the turn it threw after and its masked stack, shown under the attempt's result, in `failing_attempts.reason` and the `failure_meta` view, and passed on by a language runner",
+    fixtures: ['history/eval-error'],
+    unit: ['reeval/test/eval-error.test.ts'],
+  },
+  {
     id: 'assert.named-checks',
     area: 'Judges and matchers',
     name: "Named check results: `expect(value, 'label')`, every `expect` and `expect.require` recorded per attempt, tallied per cell, and checks that don't discriminate in a compare",

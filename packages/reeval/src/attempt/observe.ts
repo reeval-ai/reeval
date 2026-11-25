@@ -14,7 +14,12 @@ const MAX_DEPTH = 64
 const at = (path: string) => (path ? ` at ${path}` : '')
 
 /** Why `value` isn't JSON, naming where, or undefined. */
-export function notJson(value: unknown, path: string, seen: Set<object>, depth = 0): string | undefined {
+export function notJson(
+  value: unknown,
+  path: string,
+  seen: Set<object>,
+  depth = 0,
+): string | undefined {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return undefined
   if (typeof value === 'number') {
     return Number.isFinite(value) ? undefined : `${value}${at(path)} isn't a finite number`

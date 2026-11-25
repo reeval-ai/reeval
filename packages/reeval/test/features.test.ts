@@ -3917,6 +3917,35 @@ export const features: Feature[] = [
     },
   },
   {
+    dir: 'history/eval-error',
+    tiers: ['fake', 'docker'],
+    env: 'plain',
+    canary: /the build fails/,
+    record: ({ run, stdout }) => {
+      const failure = (name: string) => run.evals.find((e) => e.name === name)?.attempts[0]?.failure
+      assert.equal(failure('lands'), undefined, 'a task that throws nothing has no failure')
+      const thrown = failure('canary')
+      assert.deepEqual(
+        { ...thrown, stack: undefined },
+        {
+          kind: 'task',
+          reason: 'the build fails',
+          meta: { exitCode: 3, stderr: 'no src/main.js' },
+          turn: 1,
+          stack: undefined,
+        },
+      )
+      assert.match(
+        thrown?.stack ?? '',
+        /^EvalError: the build fails\n +at built \(evals\/build\.ts:/,
+      )
+      assert.match(
+        stdout,
+        /the build fails\n[│ ]+exitCode: 3\n[│ ]+stderr: no src\/main\.js\n[│ ]+after turn 1$/m,
+      )
+    },
+  },
+  {
     dir: 'assert/soft-default',
     tiers: ['fake', 'docker'],
     env: 'plain',

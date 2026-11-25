@@ -206,6 +206,10 @@ For more information about egress policies, see [`egress`](/reference/options#eg
 
 `DEFAULT_SKILL_EXCLUDE` is a `readonly string[]` of the path patterns each skill leaves out unless `exclude` replaces them: `/evals/`, `.history/`, and `*.eval.ts`. For more information about skills, see [Environment fields](/reference/environment-helpers#skilllocal).
 
+## `EvalError`
+
+`new EvalError(reason)` or `new EvalError({ reason, meta, cause })`, thrown by a task, fails the attempt and records its [`failure`](/reference/run-record): the reason, `meta` (a JSON object) and the turn it threw after.
+
 ## `HarnessCapabilityError`
 
 `HarnessCapabilityError` is the error `toHaveSearched()` and `toHaveFetched()` throw when the turn's `unreported` list holds `web-search` or `web-fetch`. The following assertion catches it:
