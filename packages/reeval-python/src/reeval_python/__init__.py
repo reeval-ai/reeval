@@ -22,6 +22,7 @@ from reeval_python.errors import ReevalAssertionError, ReevalCallError
 from reeval_python.expect import Expectation, expect
 from reeval_python.options import (
     BestOf,
+    Case,
     CaseOptions,
     EvalOptions,
     JudgeDefaults,
@@ -37,6 +38,7 @@ __all__ = [
     "Diff",
     "DockerSandbox",
     "Environment",
+    "Case",
     "CaseOptions",
     "EvalOptions",
     "ExecResult",

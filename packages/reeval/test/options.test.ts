@@ -202,7 +202,7 @@ export default defineEval({ skip: true, async task() {} })
 `,
       'evals/adds.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
-  cases: [{ id: '1+2', a: 1, b: 2 }, { id: '3+4', a: 3, b: 4 }],
+  cases: [{ key: '1+2', a: 1, b: 2 }, { key: '3+4', a: 3, b: 4 }],
   async task(c, { a, b }) {
     if (a + b !== (a === 1 ? 3 : 7)) throw new Error('bad sum')
   },
@@ -272,7 +272,7 @@ export const skilled = base.extendEnvironment('skilled', ({ skill }) => ({
 
   const each = (
     runs = 1,
-    cases = "['ada', 'grace', 'linus', 'margaret', 'dennis', 'barbara']",
+    cases = "['ada', 'grace', 'linus', 'margaret', 'dennis', 'barbara'].map((key) => ({ key }))",
   ) => ({
     'reeval.config.ts': config('', SKILLED),
     'skills/house-greeting/SKILL.md': SKILL,
@@ -283,7 +283,7 @@ export default defineEval({
   cases: ${cases},
   compare: { control: base, variants: [skilled], minLift: MIN_LIFT },
   runs: ${runs},
-  async task(c, name) {
+  async task(c, { key: name }) {
     await c.send('write ok.txt for ' + name)
     await expect(c).toHaveFile('ok.txt')
   },
@@ -417,7 +417,7 @@ export default defineEval({
   })
 
   test('cases over several runs a case pair per-case pass rates', async () => {
-    const files = each(2, "['ada', 'grace', 'linus']")
+    const files = each(2, "['ada', 'grace', 'linus'].map((key) => ({ key }))")
     const p = await project('each-runs', {
       ...files,
       'evals/writes-ok.eval.ts': files['evals/writes-ok.eval.ts'].replace('MIN_LIFT', '0.2'),
@@ -1178,13 +1178,13 @@ describe('common mistakes', { concurrency: 4 }, () => {
       ],
       [
         'two cases with the same key',
-        () => ({ cases: [{ id: 'a' }, { id: 'a' }], task: async () => {} }),
+        () => ({ cases: [{ key: 'a' }, { key: 'a' }], task: async () => {} }),
         /cases\[0\] and cases\[1\] in evals\/m\d+\.eval\.ts have the same key "a"/,
       ],
       [
         'cases whose keys mask to the same key',
         () => ({
-          cases: [{ id: `sk-ant-${'a'.repeat(24)}` }, { id: `sk-ant-${'b'.repeat(24)}` }],
+          cases: [{ key: `sk-ant-${'a'.repeat(24)}` }, { key: `sk-ant-${'b'.repeat(24)}` }],
           task: async () => {},
         }),
         /evals\/m\d+\.eval\.ts case "\[REDACTED\]" names a secret, and its masked name is another case's in this eval/,

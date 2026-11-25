@@ -24,7 +24,6 @@
   "yaml: snapshot a number": "UsageError: snapshot in reeval.yaml is true (after the checks), 'turns' (after each c.send too), false, or { when, compress }, e.g. snapshot: { compress: true } (got 0)",
   "yaml: snapshot in a profile": null,
   "cases in options": "UsageError: Unknown option \"cases\" in evals/a.eval.ts. cases belongs to one eval: defineEval({ cases: [...], task: async (c, item) => { … } }).",
-  "caseKey in options": "UsageError: Unknown option \"caseKey\" in evals/a.eval.ts. caseKey belongs to one eval: defineEval({ cases: [...], task: async (c, item) => { … } }).",
   "a bound body": "UsageError: evaluate(\"e\")'s body is a bound or built-in function, whose source reeval can't read to fingerprint the eval. Pass the function itself, e.g. async (c) => { … }, not fn.bind(…).",
   "a case that is not JSON data": "UsageError: evaluate(\"e\") case \"a\": reeval fingerprints each case as JSON data, and this one isn't (it holds a RegExp). Pass plain objects, arrays, strings, finite numbers, booleans, null, functions or environments, and build the rest in the body.",
   "egress a list": "UsageError: egress in evals/a.eval.ts is 'proxy' (the default), 'allow-all', 'deny-all', { allow: ['api.example.com', '*.example.org'] }, or one per phase: { setup: 'allow-all', agent: 'deny-all' } (got [\"api.example.com\"]). For a list of hosts, use { allow: [\"api.example.com\"] }.",

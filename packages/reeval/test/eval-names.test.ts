@@ -24,7 +24,7 @@ describe('eval names that hold a secret', () => {
       'evals/case.eval.ts': `import { defineEval, expect } from 'reeval'
 const k = (c: string) => 'sk-ant-' + c.repeat(24)
 export default defineEval({
-  cases: [{ id: k('b') }],
+  cases: [{ key: k('b') }],
   async task() { expect(1).toBe(2) },
 })
 `,
@@ -76,7 +76,7 @@ export default defineEval({ async task() {} })
       'evals/e.eval.ts': `import { defineEval } from 'reeval'
 const key = (c: string) => 'sk-ant-' + c.repeat(24)
 export default defineEval({
-  cases: [{ id: key('a') }, { id: key('b') }],
+  cases: [{ key: key('a') }, { key: key('b') }],
   async task() {},
 })
 `,
@@ -115,7 +115,7 @@ export default defineEval({ async task() {} })
     const p = await project('masked-filter', {
       'reeval.config.ts': fakeConfig(),
       'evals/plain.eval.ts': `import { defineEval } from 'reeval'
-export default defineEval({ cases: [{ id: 'sk-ant-${'a'.repeat(24)}' }], async task() {} })
+export default defineEval({ cases: [{ key: 'sk-ant-${'a'.repeat(24)}' }], async task() {} })
 `,
     })
     const refused = await runCli(p.dir, ['run', '--dry-run', `plain#sk-ant-${'a'.repeat(24)}`])
@@ -167,7 +167,7 @@ const a = defineEnvironment('a-env', { traits: { stack: 'a' } })
 const b = defineEnvironment('b-env', { traits: { stack: 'b' } })
 export default defineEval({
   environment: [a, b],
-  cases: [{ id: 'k ${value}', stack: 'a' }, { id: 'plain', stack: 'b' }],
+  cases: [{ key: 'k ${value}', stack: 'a' }, { key: 'plain', stack: 'b' }],
   where: ({ case: c, environment }) => environment.traits.stack === c.stack,
   async task() {},
 })
@@ -198,7 +198,7 @@ export default defineEval({
       'reeval.config.ts': fakeConfig(),
       'evals/uses.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 const db = defineEnvironment('db', ({ secret }) => ({ env: { DB_PASS: secret.fromEnv('DB_PASS') } }))
-export default defineEval({ environment: db, cases: ['${value}', 'plain'], async task() {} })
+export default defineEval({ environment: db, cases: [{ key: '${value}' }, { key: 'plain' }], async task() {} })
 `,
     })
     const run = await runCli(p.dir, ['run'], { env: { DB_PASS: value } })

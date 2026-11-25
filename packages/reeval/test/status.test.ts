@@ -54,8 +54,8 @@ export default defineEval({
 `,
   'evals/colors.eval.ts': `import { defineEval, expect } from 'reeval'
 export default defineEval({
-  cases: [{ id: 'red' }, { id: 'green' }, { id: 'blue' }],
-  async task(c, { id }) {
+  cases: [{ key: 'red' }, { key: 'green' }, { key: 'blue' }],
+  async task(c, { key: id }) {
     await c.send('go')
     expect(id, 'is green').toBe('green')
   },

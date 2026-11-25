@@ -184,9 +184,9 @@ describe('reeval compare of an eval with cases', () => {
       'evals/e.eval.ts': `import { defineEval, expect } from 'reeval'
 const bad = process.env.BAD ?? ''
 export default defineEval({
-  cases: ['a', 'b', 'c', 'd', 'e'],
+  cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }, { key: 'd' }, { key: 'e' }],
   gate: { passRate: 0.7 },
-  async task(c, k) {
+  async task(c, { key: k }) {
     await c.send(k)
     expect(k, 'ok').not.toBe(bad)
   },
@@ -211,9 +211,9 @@ describe('reeval run prints an eval with cases', () => {
       'reeval.config.ts': fakeConfig(),
       'evals/e.eval.ts': `import { defineEval, expect } from 'reeval'
 export default defineEval({
-  cases: ${JSON.stringify(keys)},
+  cases: ${JSON.stringify(keys.map((key) => ({ key })))},
   runs: 2,
-  async task(c, k) {
+  async task(c, { key: k }) {
     await c.send(k)
     expect(Number(k.slice(1)) > 10, 'ok').toBe(true)
   },
@@ -249,7 +249,7 @@ export default defineEval({
 const app = defineEnvironment('app', { env: { SKILL: '' } })
 const skilled = app.extend('skilled', { env: { SKILL: 'yes' } })
 export default defineEval({
-  cases: ['a', 'b', 'c', 'd', 'e', 'f'],
+  cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }, { key: 'd' }, { key: 'e' }, { key: 'f' }],
   compare: { control: app, variants: [skilled] },
   async task(c) {
     await c.send('go')

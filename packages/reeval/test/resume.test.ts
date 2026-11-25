@@ -952,11 +952,11 @@ export const vite = defineEnvironment('vite-app', { sandbox, traits: { stack: 'v
 import { next, vite } from './env.ts'
 export default defineEval({
   environment: [next, vite],
-  cases: ['next', 'vite', 'both'],
+  cases: [{ key: 'next' }, { key: 'vite' }, { key: 'both' }],
   runs: 2,
   gate: { passRate: 0.6 },
-  where: ({ case: k, environment }) => k === 'both' || environment.traits.stack === k,
-  async task(_c, k) { if (k === 'next') throw new Error('next fails') },
+  where: ({ case: { key: k }, environment }) => k === 'both' || environment.traits.stack === k,
+  async task(_c, { key: k }) { if (k === 'next') throw new Error('next fails') },
 })
 `,
     }

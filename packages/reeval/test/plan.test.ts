@@ -673,7 +673,7 @@ const vite = defineEnvironment('vite-app', { traits: { stack: 'vite' } })
     const typo = await project('where-trait-typo', {
       ...config,
       'evals/w.eval.ts': `${env}export default defineEval({
-  cases: ['a', 'b'],
+  cases: [{ key: 'a' }, { key: 'b' }],
   environment: [next, vite],
   where: ({ environment }) => environment.traits.stak === 'next',
   task: async () => {},
@@ -688,9 +688,9 @@ const vite = defineEnvironment('vite-app', { traits: { stack: 'vite' } })
     const fits = await project('where-trait-excluded', {
       ...config,
       'evals/w.eval.ts': `${env}export default defineEval({
-  cases: ['next', 'vite'],
+  cases: [{ key: 'next' }, { key: 'vite' }],
   environment: [next, vite],
-  where: ({ case: c, environment }) => environment.traits.stack === c,
+  where: ({ case: c, environment }) => environment.traits.stack === c.key,
   task: async () => {},
 })
 `,

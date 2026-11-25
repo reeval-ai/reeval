@@ -50,7 +50,7 @@
       "body": "b1",
       "source": {
         "body": "eb3e3dcbc03908fdd57fbad9d733b8407d9d149f40ff08f3357926f885cf47d6",
-        "caseJson": "\"ada\""
+        "caseJson": "{\"key\":\"ada\"}"
       },
       "family": {
         "name": "pooled",
@@ -108,7 +108,7 @@
       "body": "b2",
       "source": {
         "body": "eb3e3dcbc03908fdd57fbad9d733b8407d9d149f40ff08f3357926f885cf47d6",
-        "caseJson": "\"grace\""
+        "caseJson": "{\"key\":\"grace\"}"
       },
       "family": {
         "name": "pooled",
@@ -166,7 +166,7 @@
       "body": "b3",
       "source": {
         "body": "eb3e3dcbc03908fdd57fbad9d733b8407d9d149f40ff08f3357926f885cf47d6",
-        "caseJson": "\"linus\""
+        "caseJson": "{\"key\":\"linus\"}"
       },
       "family": {
         "name": "pooled",
@@ -223,7 +223,7 @@
       "body": "b4",
       "source": {
         "body": "eb3e3dcbc03908fdd57fbad9d733b8407d9d149f40ff08f3357926f885cf47d6",
-        "caseJson": "{\"who\":\"ada\"}"
+        "caseJson": "{\"key\":\"ada\",\"who\":\"Ada Lovelace\"}"
       },
       "family": {
         "name": "keyed",
@@ -280,7 +280,7 @@
       "body": "b5",
       "source": {
         "body": "eb3e3dcbc03908fdd57fbad9d733b8407d9d149f40ff08f3357926f885cf47d6",
-        "caseJson": "{\"who\":\"grace\"}"
+        "caseJson": "{\"key\":\"grace\",\"who\":\"Grace Hopper\"}"
       },
       "family": {
         "name": "keyed",
@@ -296,7 +296,7 @@
       "body": "b6",
       "source": {
         "body": "eb3e3dcbc03908fdd57fbad9d733b8407d9d149f40ff08f3357926f885cf47d6",
-        "caseJson": "\"only\""
+        "caseJson": "{\"key\":\"only\"}"
       },
       "family": {
         "name": "one case is not pooled",

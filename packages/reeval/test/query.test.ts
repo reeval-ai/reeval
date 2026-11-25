@@ -109,9 +109,9 @@ export default defineEval({
       'reeval.config.ts': fakeConfig(),
       'evals/rated.eval.ts': `import { defineEval, expect } from 'reeval'
 export default defineEval({
-  cases: ['a', 'b', 'c'],
+  cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }],
   gate: { passRate: 0.6 },
-  async task(_c, k) {
+  async task(_c, { key: k }) {
     expect(k, 'not c').not.toBe('c')
   },
 })

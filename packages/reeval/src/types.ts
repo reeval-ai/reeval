@@ -566,21 +566,23 @@ export type AttemptContext = {
 }
 export type EvalFn = (c: AttemptContext) => Promise<void>
 
+/**
+ * One case of an eval with `cases`: an object whose `key` names it in the output and the record,
+ * its attempts `<eval>#<key>`. The key is 1–80 characters, with no surrounding whitespace, `#`,
+ * `›` or control characters, and unique within the eval.
+ */
+export type Case<T = unknown> = { key: string } & T
+
 /** The body of an eval with `cases`: the attempt and its case. */
-export type CaseFn<T> = (c: AttemptContext, item: T) => Promise<void>
+export type CaseFn<T> = (c: AttemptContext, item: Case<T>) => Promise<void>
 
 /**
  * One eval over several inputs: each case runs the body with every cell and run, and the cases
  * pool into one pass rate (and, with `compare`, one lift paired by case). Per eval only.
  */
 export type CaseOptions<T> = {
-  /** The inputs, each JSON data; the body gets one as its second argument. */
-  cases: readonly T[]
-  /**
-   * Each case's key, which names it in the output and the record. Without it, a string or a
-   * finite number is its own key, and an object uses its `id`, else its `name`.
-   */
-  caseKey?: (item: T) => string
+  /** The inputs, each an object of JSON data with its `key`; the body gets one as its second argument. */
+  cases: readonly Case<T>[]
   /**
    * Which case and environment pairs run, decided at plan time. It sees each environment's
    * `traits`, and with `compare` the control, whose answer holds for every variant. Reading
@@ -607,7 +609,7 @@ export type TraitFilter = {
 
 /** `where`'s predicate: true runs the case on that environment (and harness). */
 export type Where<T> = (pair: {
-  case: T
+  case: Case<T>
   environment: {
     readonly name: string
     /** The environment's traits; reading a key that no listed environment defines is refused. */

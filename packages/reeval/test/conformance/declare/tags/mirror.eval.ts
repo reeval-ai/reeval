@@ -5,4 +5,4 @@ group('slow things', { tags: ['slow'] }, () => {
   evaluate('bigger', { tags: ['flaky'] }, async () => {})
 })
 evaluate('quick', async () => {})
-evaluate('case', { cases: [1, 2], tags: ['slow'] }, async () => {})
+evaluate('case', { cases: [{ key: '1' }, { key: '2' }], tags: ['slow'] }, async () => {})

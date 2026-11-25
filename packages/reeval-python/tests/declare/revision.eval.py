@@ -16,5 +16,5 @@ group("versioned", {"revision": 2, "runs": 2, "timeout": 120}, versioned)
 def unversioned(c): ...
 
 
-@evaluate("case", {"cases": [1, 2], "revision": 1})
+@evaluate("case", {"cases": [{"key": "1"}, {"key": "2"}], "revision": 1})
 def case(c, case): ...
