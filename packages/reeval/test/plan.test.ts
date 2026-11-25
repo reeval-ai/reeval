@@ -268,6 +268,8 @@ export const cases: PlanCase[] = [
   { dir: 'filters', name: 'dir-named-like-cell', args: ['right'] },
   { dir: 'filters', name: 'dir-path-only', args: ['evals/right'] },
   { dir: 'filters', name: 'id-not-substring', args: ['skill'] },
+  { dir: 'filters', name: 'dir-path-not-substring', args: ['evals/skill'] },
+  { dir: 'filters', name: 'file-name-at-segment', args: ['add.eval'] },
   { dir: 'images', name: 'install-from-dockerfile', args: ['own-dockerfile'], env: NO_DOCKER },
   { dir: 'images', name: 'plugin-builds', args: ['built-plugins'], env: NO_DOCKER },
   { dir: 'harnesses', name: 'claude-code', args: [] },

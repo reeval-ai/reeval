@@ -1,7 +1,6 @@
 // The engine's main process: finds the eval files, collects each in a fresh worker for the plan,
 // then runs each in a fresh worker again, at most `concurrency` at once, handing out the
 // scheduler's leases over IPC and turning what workers report into reeval's events and results.
-import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 import { UsageError } from '../errors.ts'
@@ -12,7 +11,14 @@ import { ownVersion, PACKAGE_DIR, WORKER_PACKAGE_NAMES } from '../root.ts'
 import { Scheduler } from '../scheduler/core.ts'
 import { capMiddle } from '../text.ts'
 import { formatError, reevalFrames, type SerializedError } from './errors.ts'
-import { DEFAULT_EXCLUDE, filterFiles, findEvalFiles, matchesCell, matchesFilter } from './files.ts'
+import {
+  DEFAULT_EXCLUDE,
+  filterFiles,
+  findEvalFiles,
+  isPathPart,
+  matchesCell,
+  matchesFilter,
+} from './files.ts'
 import {
   describeExit,
   eachLimited,
@@ -46,9 +52,6 @@ export const engineVersions: Record<string, string> = {
   '@vitest/expect': ownVersion('@vitest/expect'),
   jiti: ownVersion('jiti'),
 }
-
-/** A part that names an eval file in any language. */
-const EVAL_FILE = /\.eval(\.[a-z]+)?$/i
 
 const onlyInCi = (file: string) =>
   `evaluate.only/group.only in ${file} isn't allowed in CI (CI is set). Remove it, or run with CI=false.`
@@ -97,9 +100,8 @@ export async function runEngine(
   // A part that is a file or directory on disk (from the current directory, or absolute) or names
   // an eval file is a path, and picks the evals in the files it names; any other part picks evals
   // by id. Parts of one kind widen the selection, and the two kinds narrow each other.
-  const isPath = (f: string) => EVAL_FILE.test(f) || existsSync(resolve(f))
-  const pathFilters = options.filters.filter(isPath)
-  const nameFilters = options.filters.filter((f) => !isPath(f))
+  const pathFilters = options.filters.filter(isPathPart)
+  const nameFilters = options.filters.filter((f) => !isPathPart(f))
   const specs = filterFiles(files, pathFilters, root)
   if (specs.length === 0)
     return { evals: [], unhandledErrors: [], canceled: false, noFiles: true, stopped: false }

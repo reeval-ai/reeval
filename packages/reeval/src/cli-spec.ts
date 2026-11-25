@@ -2,7 +2,7 @@
 // (`cli-parse.ts`) and its `--help` from it, and `reeval analyze` checks each suggested verify
 // command against it, so a model can't invent a flag.
 
-import { matchesEvalId } from './engine/files.ts'
+import { matchesEvalId, namesEvalFile } from './engine/files.ts'
 
 export type FlagSpec = {
   type: 'string' | 'boolean'
@@ -924,7 +924,7 @@ export function selectionProblem(
     e.id ? matchesEvalId(e.id, f) : matchesEvalId(e.name, f)
   const bare = (f: string) => f.replace(/^\.\//, '').replace(/\/$/, '')
   const picks = (e: SelectableEval, f: string) =>
-    /\.eval(\.[a-z]+)?$/i.test(f) ? e.file.includes(bare(f)) : e.file.startsWith(`${bare(f)}/`)
+    namesEvalFile(e.file, f) || e.file === bare(f) || e.file.startsWith(`${bare(f)}/`)
   const paths = filters.filter((f) => evals.some((e) => picks(e, f)))
   const names = filters.filter((f) => !paths.includes(f))
   const unknown = names.filter((f) => !evals.some((e) => byName(e, f)))

@@ -845,6 +845,22 @@ describe('reeval CLI spec', () => {
       ['reeval run --record && reeval run --tag nope', /--tag nope: no eval/],
     ]
     for (const [c, why] of bad) assert.match(checkCommand(c, [], evals) ?? '', why, c)
+    const nested = [
+      { file: 'evals/skill/add.eval.ts', id: 'skill/add', name: 'add', tags: ['a'], cells: [] },
+      {
+        file: 'evals/skills-old/old.eval.ts',
+        id: 'skills-old/old',
+        name: 'old',
+        tags: ['o'],
+        cells: [],
+      },
+      { file: 'other/badd.eval.ts', id: 'badd', name: 'badd', tags: ['b'], cells: [] },
+    ]
+    for (const c of ['reeval run evals/skill', 'reeval run add.eval', 'reeval run add.eval.ts']) {
+      assert.equal(checkCommand(c, [], nested), null, c)
+      assert.match(checkCommand(`${c} --tag o`, [], nested) ?? '', /selects no eval/, c)
+      assert.match(checkCommand(`${c} --tag b`, [], nested) ?? '', /selects no eval/, c)
+    }
     const withIds = evals.map((e) => ({
       ...e,
       id: e.name,

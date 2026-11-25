@@ -2,13 +2,14 @@
 // CommonJS mixes through jiti, tsconfig checks, and stacks mapped back to the sources.
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, sep } from 'node:path'
 import { describe, test } from 'node:test'
 import { pathToFileURL } from 'node:url'
 import {
   filterFiles,
   findEvalFiles,
+  isPathPart,
   matchesCell,
   matchesEvalId,
   matchesFilter,
@@ -61,26 +62,45 @@ describe('findEvalFiles and filterFiles', () => {
     )
   })
 
-  test('a filter picks files whose path contains it, ignoring case, from the root or the cwd', () => {
-    const root = '/p'
-    const files = ['/p/evals/Greet.eval.ts', '/p/evals/sub/skill.eval.ts', '/p/other/x.eval.ts']
-    assert.deepEqual(filterFiles(files, [], root), files)
-    assert.deepEqual(filterFiles(files, ['greet'], root), ['/p/evals/Greet.eval.ts'])
-    assert.deepEqual(filterFiles(files, ['/p/evals/sub'], root), ['/p/evals/sub/skill.eval.ts'])
-    assert.deepEqual(filterFiles(files, ['evals/sub/'], root), ['/p/evals/sub/skill.eval.ts'])
-    assert.deepEqual(filterFiles(files, ['nope', 'x.eval'], root), ['/p/other/x.eval.ts'])
-    // Typed with backslashes, as on Windows, it picks the same files.
-    assert.deepEqual(filterFiles(files, ['evals\\sub\\'], root), ['/p/evals/sub/skill.eval.ts'])
+  test('a path part on disk picks the files under it; an eval file name matches at a segment boundary', () => {
+    const root = realpathSync(tempDir('filter-files'))
+    const rels = [
+      'evals/Greet.eval.ts',
+      'evals/skill/add.eval.ts',
+      'evals/skills-old/old.eval.ts',
+      'evals/sub/skill.eval.ts',
+      'other/badd.eval.ts',
+      'other/x.eval.ts',
+    ]
+    for (const rel of rels) {
+      mkdirSync(dirname(join(root, rel)), { recursive: true })
+      writeFileSync(join(root, rel), '')
+    }
+    const files = rels.map((rel) => join(root, rel))
+    const pick = (...filters: string[]) =>
+      filterFiles(files, filters, root).map((file) => relative(root, file).split(sep).join('/'))
     const cwd = process.cwd()
-    process.chdir(tempDir('cwd'))
+    process.chdir(root)
     try {
-      // Resolved from the current directory, "sub/" is still under the root: /p/<cwd>/sub/.
-      assert.deepEqual(filterFiles(['/q/evals/a.eval.ts'], ['/q/evals/'], '/q'), [
-        '/q/evals/a.eval.ts',
-      ])
+      assert.deepEqual(pick(), rels)
+      assert.deepEqual(pick('evals/skill'), ['evals/skill/add.eval.ts'])
+      assert.deepEqual(pick('evals/sub/'), ['evals/sub/skill.eval.ts'])
+      assert.deepEqual(pick(join(root, 'evals/sub')), ['evals/sub/skill.eval.ts'])
+      assert.deepEqual(pick('add.eval'), ['evals/skill/add.eval.ts'])
+      assert.deepEqual(pick('skill/add.eval.ts'), ['evals/skill/add.eval.ts'])
+      assert.deepEqual(pick('evals\\skill\\add.eval.ts'), ['evals/skill/add.eval.ts'])
+      assert.deepEqual(pick('greet.eval'), ['evals/Greet.eval.ts'])
+      assert.deepEqual(pick('nope', 'x.eval'), ['other/x.eval.ts'])
+      assert.deepEqual(pick('skill'), [])
+      process.chdir(join(root, 'evals'))
+      assert.deepEqual(pick('sub'), ['evals/sub/skill.eval.ts'])
+      assert.deepEqual(pick('evals/sub'), [])
     } finally {
       process.chdir(cwd)
     }
+    assert.equal(isPathPart('add.eval'), true)
+    assert.equal(isPathPart('a/b.eval.py'), true)
+    assert.equal(isPathPart('no-such-dir'), false)
   })
 
   test('a name filter matches an eval id by exact match, segment prefix, glob or #case', () => {

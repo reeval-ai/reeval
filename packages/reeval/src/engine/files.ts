@@ -1,4 +1,5 @@
 // Which files are eval files, and which of them a path filter picks, matching Vitest's discovery.
+import { existsSync } from 'node:fs'
 import { isAbsolute, relative, resolve } from 'node:path'
 import picomatch from 'picomatch'
 import { glob } from 'tinyglobby'
@@ -22,23 +23,42 @@ export async function findEvalFiles(
   return files.map((file) => resolve(root, file)).sort()
 }
 
+/** A part that names an eval file in any language, with or without its extension. */
+const EVAL_FILE = /\.eval(\.[a-z]+)?$/i
+
 /**
- * The files a filter part picks: those whose path relative to `root` contains it, ignoring case,
- * or contains it resolved from the current directory; an absolute path picks what's under it.
+ * Whether a filter part is a path: it names an eval file, or is a file or directory on disk from
+ * the current directory (or absolute). Any other part picks evals by id.
+ */
+export const isPathPart = (part: string): boolean =>
+  EVAL_FILE.test(part) || existsSync(resolve(part))
+
+/**
+ * Whether an eval file's path relative to the project root is the eval file a part names, at a
+ * path-segment boundary and ignoring case: `add.eval` and `evals/add.eval.ts` pick
+ * `evals/add.eval.ts`, never `evals/badd.eval.ts`.
+ */
+export function namesEvalFile(rel: string, part: string): boolean {
+  if (!EVAL_FILE.test(part)) return false
+  const p = part.replaceAll('\\', '/').replace(/^\.\//, '').toLocaleLowerCase()
+  const path = rel.replaceAll('\\', '/').toLocaleLowerCase()
+  const stem = path.replace(/(\.eval)\.[a-z]+$/, '$1')
+  return [path, stem].some((r) => r === p || r.endsWith(`/${p}`))
+}
+
+/**
+ * The files the path parts pick: a part on disk (or absolute) picks the files under it, and a
+ * part that names an eval file picks it by name (`namesEvalFile`).
  */
 export function filterFiles(files: readonly string[], filters: readonly string[], root: string) {
   if (filters.length === 0) return [...files]
-  // Compared with forward slashes, so `evals/a` picks `evals\a.eval.ts` on Windows, as does `evals\a`.
-  const slashed = (path: string) => path.replaceAll('\\', '/')
-  return files.filter((file) => {
-    const rel = relativeFile(root, file).toLocaleLowerCase()
-    return filters.some((f) => {
-      if (isAbsolute(f) && isUnder(file, resolve(f))) return true
-      const typed = slashed(f)
-      const fromCwd = relativeFile(root, f) + (typed.endsWith('/') ? '/' : '')
-      return rel.includes(typed.toLocaleLowerCase()) || rel.includes(fromCwd.toLocaleLowerCase())
-    })
-  })
+  return files.filter((file) =>
+    filters.some((f) =>
+      isAbsolute(f) || existsSync(resolve(f))
+        ? isUnder(file, resolve(f))
+        : namesEvalFile(relativeFile(root, file), f),
+    ),
+  )
 }
 
 /** Whether `file` is `dir` or under it; any case on Windows, where paths ignore it. */
