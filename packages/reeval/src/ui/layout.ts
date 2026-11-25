@@ -346,6 +346,7 @@ function effortTable(
     )
   if (!failed && !cells.some(effortMoved)) return []
   const tokens = cells.some((x) => x.effort?.tokens !== null)
+  const llmCalls = cells.some((x) => x.effort?.llmCalls !== undefined)
   const waiting = cells.some((x) => (x.effort?.waitingMs ?? 0) > 0)
   const n = (v: number | null | undefined, f: (v: number) => string) => (v == null ? '–' : f(v))
   const items: Item[] = [
@@ -354,6 +355,7 @@ function effortTable(
       cells: [
         'effort',
         t('tools', c.dim),
+        ...(llmCalls ? [t('LLM calls', c.dim)] : []),
         t('time', c.dim),
         ...(tokens ? [t('tokens', c.dim)] : []),
         ...(waiting ? [t('waiting', c.dim)] : []),
@@ -364,6 +366,7 @@ function effortTable(
       cells: [
         label(x),
         n(x.effort?.tools, formatCount),
+        ...(llmCalls ? [n(x.effort?.llmCalls, formatCount)] : []),
         n(x.effort?.agentMs, formatSeconds),
         ...(tokens ? [n(x.effort?.tokens, formatTokens)] : []),
         ...(waiting ? [n(x.effort?.waitingMs, formatSeconds)] : []),

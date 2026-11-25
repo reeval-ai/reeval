@@ -163,7 +163,7 @@ CREATE TABLE attempts (
   machine_memory_bytes INTEGER, cpu_seconds REAL, avg_cores REAL, peak_cores REAL,
   peak_memory_bytes INTEGER, disk_read_bytes INTEGER, disk_write_bytes INTEGER, p95_cores REAL,
   cgroup_peak_memory_bytes INTEGER, cpu_periods INTEGER, throttled_periods INTEGER,
-  throttled_seconds REAL,
+  throttled_seconds REAL, llm_calls INTEGER,
   PRIMARY KEY (run_id, key)
 );
 CREATE TABLE judgements (
@@ -757,7 +757,7 @@ function insertRun(
     }
     for (const a of e.attempts) {
       run(
-        `INSERT INTO attempts VALUES (${Array(54).fill('?').join(', ')})`,
+        `INSERT INTO attempts VALUES (${Array(55).fill('?').join(', ')})`,
         record.runId,
         e.key,
         a.cell,
@@ -812,6 +812,7 @@ function insertRun(
         a.resources?.usage?.throttling?.periods ?? null,
         a.resources?.usage?.throttling?.throttledPeriods ?? null,
         a.resources?.usage?.throttling?.throttledSeconds ?? null,
+        a.activity.llmCalls,
       )
       const env = envOf.get(cellEnv.get(a.cell) ?? '')
       const skills = env?.skills.map((x) => x.name) ?? []

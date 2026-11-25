@@ -834,9 +834,16 @@ export default defineEval({
       rmSync(join(dir, ...(a.files.transcript?.path ?? '').split('/')))
     }
     assert.deepEqual(
-      await query(p.dir, 'SELECT n, tools_median, workspace_calls_median FROM effort'),
-      [{ n: 3, tools_median: 1, workspace_calls_median: 1 }],
+      await query(
+        p.dir,
+        'SELECT n, tools_median, workspace_calls_median, llm_calls_median FROM effort',
+      ),
+      [{ n: 3, tools_median: 1, workspace_calls_median: 1, llm_calls_median: null }],
     )
+    // The fake harness reports no model calls and no steps: unknown, not 0.
+    assert.deepEqual(await query(p.dir, 'SELECT DISTINCT llm_calls FROM attempts'), [
+      { llm_calls: null },
+    ])
   })
 
   test("factor_effects pools a variant across one run's evals, however the evals changed between runs", async () => {

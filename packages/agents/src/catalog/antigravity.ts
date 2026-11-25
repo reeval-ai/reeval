@@ -23,6 +23,7 @@ export const antigravity = {
   platforms: ['linux', 'darwin'],
   // agy's stream-json has only each step's `thinking_tokens`; the adapter reads the thought
   // summaries and their `thinking_duration` from agy's stored conversation after each turn.
+  stepPerCall: true,
   reasoning: 'recovered',
   reasoningTokens: true,
   // A Gemini API key, never the CLI's Google sign-in: automating that session risks the account.

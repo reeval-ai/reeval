@@ -1980,6 +1980,7 @@ function buildAttemptIndex(ctx: Ctx): AttemptIndexRow[] {
         tokens: tokensFigure(a.usage ? totalTokens(a.usage) : null),
         agentMs: durationFigure(a.timings.agentMs),
         toolCalls: countFigure(a.activity.tools),
+        llmCalls: countFigure(a.activity.llmCalls),
         ...(ctx.facts?.has(a.key) ? { facts: ctx.facts.get(a.key) } : {}),
         diff:
           diffStats.files === 0 && diffStats.added === null

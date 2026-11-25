@@ -528,6 +528,25 @@ describe('effort next to lift', () => {
     )
   })
 
+  test('LLM calls print beside tool calls when both sides counted them', () => {
+    const c = contrastEffort(
+      [4, 5, 5, 6].map((tools) => ({ ...sample(tools), llmCalls: tools + 1 })),
+      [30, 40, 50, 60].map((tools) => ({ ...sample(tools, { agentMs: 45_000 }), llmCalls: 12 })),
+    )
+    assert.ok(c)
+    assert.deepEqual(c.variant.llmCalls, { median: 6, q1: 5.75, q3: 6.25 })
+    assert.equal(
+      effortLabel(c),
+      'tools 5 vs 45 (×0.11), LLM calls 6 vs 12 (×0.50), agent 20s vs 45s (×0.44): fewer tool calls (p = 0.029)',
+    )
+    const uncounted = contrastEffort(
+      [4, 5, 5, 6].map((tools) => ({ ...sample(tools), llmCalls: tools + 1 })),
+      [30, 40, 50, 60].map((tools) => sample(tools)),
+    )
+    assert.equal(uncounted?.control.llmCalls, undefined)
+    assert.doesNotMatch(effortLabel(uncounted as never), /LLM calls/)
+  })
+
   test('a side with no usage omits the token metric, not insufficient', () => {
     const c = contrastEffort(
       [4, 5, 5, 6].map((tools) => sample(tools, { tokens: 100 })),

@@ -524,6 +524,8 @@ export type AttemptIndexRow = {
   tokens: Figure
   agentMs: Figure
   toolCalls: Figure
+  /** Its model calls (`activity.llmCalls`); absent in reports from before reeval counted them. */
+  llmCalls?: Figure
   /**
    * What its transcript shows it did, from the report's `facts`; absent when the report had none
    * for it, such as a passing attempt whose transcript `evidence` didn't keep.

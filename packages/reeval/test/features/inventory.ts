@@ -2403,6 +2403,16 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/timeline.test.ts', 'sandbox-docker/test/proxy.test.ts'],
   },
   {
+    id: 'effort.llm-calls',
+    area: 'Records and studio',
+    name: "Each attempt's LLM round-trips (`activity.llmCalls`): the gateway's `main` model calls, else the steps of a harness whose steps are model calls, null where neither counts them, in `reeval query` (`attempts.llm_calls`, `effort`), the effort table, `reeval compare -v` and the studio's attempt rows",
+    unit: [
+      'reeval/test/replay-model-calls.test.ts',
+      'reeval/test/analysis.test.ts',
+      'reeval/test/query.test.ts',
+    ],
+  },
+  {
     id: 'effort.model-call-roles',
     area: 'Records and studio',
     name: "Each `model-call` event's role (`main` for the agent's own steps, `side` for its CLI's titles, searches and helper-model calls) and its tokens as each API counts them, replayed from captured calls",

@@ -83,14 +83,17 @@ export const shortSha = (sha: string | null | undefined) => (sha ? sha.slice(0, 
 export const reasoningLabel = (ms: number | null) => (ms === null ? 'n/a' : formatDuration(ms))
 
 /**
- * An attempt's effort: tool calls, then the files the workspace diff changed, which counts a file
- * the shell wrote, then the calls to the agent's edit tools, which doesn't.
+ * An attempt's effort: tool calls, its model calls when counted, then the files the workspace diff
+ * changed, which counts a file the shell wrote, then the calls to the agent's edit tools, which
+ * doesn't.
  */
 export function activityLabel(
-  a: Pick<AttemptRecord['activity'], 'tools' | 'fileEdits'>,
+  a: Pick<AttemptRecord['activity'], 'tools' | 'fileEdits'> &
+    Partial<Pick<AttemptRecord['activity'], 'llmCalls'>>,
   changed: number,
 ): string {
-  return `${plural(a.tools, 'tool call')} · ${plural(changed, 'file')} changed · ${plural(a.fileEdits, 'edit tool call')}`
+  const calls = a.llmCalls == null ? '' : ` · ${plural(a.llmCalls, 'LLM call')}`
+  return `${plural(a.tools, 'tool call')}${calls} · ${plural(changed, 'file')} changed · ${plural(a.fileEdits, 'edit tool call')}`
 }
 
 // ── Runs list ────────────────────────────────────────────────────────────────────────────────

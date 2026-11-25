@@ -15,6 +15,8 @@ export const TOKENS_UNREPORTED = 'some cells did not report usage'
 
 export type EffortSample = {
   tools: number
+  /** Model calls (`activity.llmCalls`); omitted when the attempt's harness didn't count them. */
+  llmCalls?: number
   agentMs: number
   /** Calls to the agent's file-editing tools (`activity.fileEdits`). */
   fileEdits: number
@@ -32,6 +34,8 @@ type Spread = { median: number; q1: number; q3: number }
 export type CellEffort = {
   n: number
   tools: Spread
+  /** Over the counted attempts that counted their model calls; omitted when none did. */
+  llmCalls?: Spread
   agentMs: Spread
   /** Median file edits: edit tool calls, not the files the diff changed (`filesChanged`). */
   fileEdits: number
@@ -92,6 +96,7 @@ export const effortSample = (
   a: Pick<AttemptRecord, 'activity' | 'timings' | 'usage' | 'changedFiles' | 'timeSplit' | 'cost'>,
 ): EffortSample => ({
   tools: a.activity.tools,
+  ...(a.activity.llmCalls != null ? { llmCalls: a.activity.llmCalls } : {}),
   agentMs: a.timings.agentMs,
   fileEdits: a.activity.fileEdits,
   filesChanged: filesChanged(a.changedFiles),
@@ -134,9 +139,11 @@ export function effortOf(samples: EffortSample[]): CellEffort | null {
   const tokens = tokenValues(samples)
   const split = splitOf(samples)
   const usd = samples.flatMap((s) => (s.usd === undefined ? [] : [s.usd]))
+  const llmCalls = samples.flatMap((s) => (s.llmCalls === undefined ? [] : [s.llmCalls]))
   return {
     n: samples.length,
     tools: spread(samples.map((s) => s.tools)),
+    ...(llmCalls.length ? { llmCalls: spread(llmCalls) } : {}),
     agentMs: spread(samples.map((s) => s.agentMs)),
     fileEdits: median(samples.map((s) => s.fileEdits)) ?? 0,
     filesChanged: median(samples.map((s) => s.filesChanged)) ?? 0,
@@ -336,6 +343,14 @@ export function effortLabel(c: EffortContrast): string {
   const tools = `tools ${formatCount(c.variant.tools.median)} vs ${formatCount(c.control.tools.median)} ${r('tools', c.toolsRatio)}`
   const time = `agent ${formatSeconds(va)} vs ${formatSeconds(ca)}${tiny ? '' : ` ${r('agentS', c.agentMsRatio)}`}`
   const parts = [tools, time]
+  if (c.variant.llmCalls && c.control.llmCalls) {
+    const [vl, cl] = [c.variant.llmCalls.median, c.control.llmCalls.median]
+    parts.splice(
+      1,
+      0,
+      `LLM calls ${formatCount(vl)} vs ${formatCount(cl)} (${formatRatio(ratio(vl, cl))})`,
+    )
+  }
   if (c.tokensVerdict !== null && c.variant.tokens && c.control.tokens) {
     parts.push(
       `tokens ${formatTokens(c.variant.tokens.median)} vs ${formatTokens(c.control.tokens.median)} ${r('tokens', c.tokensRatio)}`,
@@ -350,12 +365,15 @@ export function effortLabel(c: EffortContrast): string {
 }
 
 /**
- * One cell's effort on its own: `tools 43 · agent 46s`, plus tokens and cost when any attempt
- * reported them.
+ * One cell's effort on its own: `tools 43 · agent 46s`, plus LLM calls, tokens and cost when any
+ * attempt reported them.
  */
-export const effortSummary = (e: Pick<CellEffort, 'tools' | 'agentMs' | 'tokens' | 'usd'>) =>
+export const effortSummary = (
+  e: Pick<CellEffort, 'tools' | 'llmCalls' | 'agentMs' | 'tokens' | 'usd'>,
+) =>
   [
     `tools ${formatCount(e.tools.median)}`,
+    ...(e.llmCalls ? [`LLM calls ${formatCount(e.llmCalls.median)}`] : []),
     `agent ${formatSeconds(e.agentMs.median)}`,
     ...(e.tokens ? [`tokens ${formatTokens(e.tokens.median)}`] : []),
     ...(e.usd ? [`cost ${formatUsd(e.usd.median)}`] : []),
@@ -366,8 +384,8 @@ export const effortSummary = (e: Pick<CellEffort, 'tools' | 'agentMs' | 'tokens'
  * `waiting 0s → 1m 21s` when either side waited on a background job.
  */
 export function effortChangeLabel(
-  base: Pick<CellEffort, 'tools' | 'agentMs' | 'tokens' | 'split' | 'usd'>,
-  head: Pick<CellEffort, 'tools' | 'agentMs' | 'tokens' | 'split' | 'usd'>,
+  base: Pick<CellEffort, 'tools' | 'llmCalls' | 'agentMs' | 'tokens' | 'split' | 'usd'>,
+  head: Pick<CellEffort, 'tools' | 'llmCalls' | 'agentMs' | 'tokens' | 'split' | 'usd'>,
 ): string {
   const waited = base.split && head.split && (base.split.waitingMs || head.split.waitingMs)
   const waiting = waited
@@ -377,8 +395,8 @@ export function effortChangeLabel(
 }
 
 function effortCore(
-  base: Pick<CellEffort, 'tools' | 'agentMs' | 'tokens' | 'usd'>,
-  head: Pick<CellEffort, 'tools' | 'agentMs' | 'tokens' | 'usd'>,
+  base: Pick<CellEffort, 'tools' | 'llmCalls' | 'agentMs' | 'tokens' | 'usd'>,
+  head: Pick<CellEffort, 'tools' | 'llmCalls' | 'agentMs' | 'tokens' | 'usd'>,
 ): string {
   const t = ratio(head.tools.median, base.tools.median)
   const a = ratio(head.agentMs.median, base.agentMs.median)
@@ -386,6 +404,10 @@ function effortCore(
   const agent = `agent ${formatSeconds(ba)} → ${formatSeconds(ha)}${bothUnderATenth(ba, ha) ? '' : ` (${formatRatio(a)})`}`
   const core = `tools ${formatCount(base.tools.median)} → ${formatCount(head.tools.median)} (${formatRatio(t)}) · ${agent}`
   const parts = [core]
+  if (base.llmCalls && head.llmCalls) {
+    const [bl, hl] = [base.llmCalls.median, head.llmCalls.median]
+    parts.push(`LLM calls ${formatCount(bl)} → ${formatCount(hl)} (${formatRatio(ratio(hl, bl))})`)
+  }
   if (base.tokens && head.tokens) {
     const tok = ratio(head.tokens.median, base.tokens.median)
     parts.push(
