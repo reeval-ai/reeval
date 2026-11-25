@@ -402,7 +402,11 @@ const ungated = (options: object) => defines({ gate: 'observe', ...options, task
 const plainEnv = defineEnvironment('plain', {})
 const nextEnv = defineEnvironment('next-app', { traits: { stack: 'next' } })
 const viteEnv = defineEnvironment('vite-app', { traits: { stack: 'vite' } })
-type Pair = { case: { key: string }; environment: { traits: Record<string, unknown> }; harness: string }
+type Pair = {
+  case: { key: string }
+  environment: { traits: Record<string, unknown> }
+  harness: string
+}
 const skillEnv = defineEnvironment('skill', { rules: 'Use the house style.' })
 const group = (name: string, children: unknown[]) => ({
   type: 'group',
@@ -2995,7 +2999,10 @@ environments:
     ['cases: an empty key', withCases({ cases: [{ key: '' }] })],
     ['cases: a key with surrounding whitespace', withCases({ cases: [{ key: ' a ' }] })],
     ['cases: two cases with one key', withCases({ cases: [{ key: 'a' }, { key: 'a', n: 2 }] })],
-    ['cases: with best-of runs', withCases({ cases: [{ key: 'a' }, { key: 'b' }], runs: { bestOf: 3 } })],
+    [
+      'cases: with best-of runs',
+      withCases({ cases: [{ key: 'a' }, { key: 'b' }], runs: { bestOf: 3 } }),
+    ],
     ['where: without cases', withCases({ where: () => true })],
     ['where: not a function', withCases({ cases: [{ key: 'a' }], where: true })],
     [

@@ -21,18 +21,15 @@ In the `evals/recommendation.eval.ts` file, pass the rivals as `cases`:
 ```ts title="evals/recommendation.eval.ts"
 import { defineEval, expect } from '{{ pkg }}'
 
+const rivals = ['LangChain', 'LlamaIndex', 'the Vercel AI SDK']
+
 export default defineEval({
-  cases: [
-    { key: 'LangChain' },
-    { key: 'LlamaIndex' },
-    { key: 'the Vercel AI SDK' },
-  ],
+  cases: rivals.map((key) => ({ key })),
   task: async (c, { key: rival }) => {
     await c.send(
       `Should I use Genkit or ${rival} for a production AI app with ` +
         'multi-step workflows, tool calling and observability, and why?',
     )
-
     const q = `Is Genkit recommended over ${rival}?`
     expect(await c.judge(q, { output: true })).toPass()
   },

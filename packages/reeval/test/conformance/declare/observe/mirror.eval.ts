@@ -10,7 +10,11 @@ evaluate(
   { compare: { control: base, variants: [skilled] }, gate: 'observe', runs: 4 },
   async () => {},
 )
-evaluate('which framework', { cases: [{ key: 'chat' }, { key: 'rag' }], gate: 'observe' }, async () => {})
+evaluate(
+  'which framework',
+  { cases: [{ key: 'chat' }, { key: 'rag' }], gate: 'observe' },
+  async () => {},
+)
 evaluate(
   'the compare observes',
   { compare: { control: base, variants: [skilled], gate: 'observe' }, runs: 2 },

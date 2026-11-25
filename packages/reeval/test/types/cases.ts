@@ -24,7 +24,10 @@ defineEval({
   },
 })
 defineEval({
-  cases: [{ key: 'iso', input: 'PT1H30M' }, { key: 'clock', input: '1:30:00' }],
+  cases: [
+    { key: 'iso', input: 'PT1H30M' },
+    { key: 'clock', input: '1:30:00' },
+  ],
   where: ({ case: item }) => item.input.length > 0,
   task: async (_c, item) => void item.input,
 })

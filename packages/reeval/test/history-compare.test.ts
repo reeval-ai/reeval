@@ -219,7 +219,10 @@ export default defineEval({
     const secret = { env: { DB_PASSWORD: 'postgres-dev-pass' } }
     assert.equal((await runCli(p.dir, ['run', '--record'], secret)).code, 0)
     const entry = readRun(p.dir, { history: HISTORY }).run.evals[0]
-    assert.equal(entry?.cases?.[0]?.hash, sha256('{"key":"0","password":"[REDACTED]","user":"ada"}'))
+    assert.equal(
+      entry?.cases?.[0]?.hash,
+      sha256('{"key":"0","password":"[REDACTED]","user":"ada"}'),
+    )
     assert.notEqual(
       entry?.cases?.[0]?.hash,
       sha256('{"key":"0","password":"postgres-dev-pass","user":"ada"}'),
