@@ -1,7 +1,8 @@
 // reeval's CLI as data: every command, subcommand, flag and help line. `reeval` builds its parser
-import { matchesEvalId } from './engine/files.ts'
 // (`cli-parse.ts`) and its `--help` from it, and `reeval analyze` checks each suggested verify
 // command against it, so a model can't invent a flag.
+
+import { matchesEvalId } from './engine/files.ts'
 
 export type FlagSpec = {
   type: 'string' | 'boolean'
@@ -903,7 +904,7 @@ export function checkCommand(
 
 /**
  * Why `filters` and `tags` select nothing among `evals`, or null. As `reeval run` does: a filter that
- * names an eval file picks files, any other picks evals by name or cell, and the two narrow each
+ * names an eval file or a directory of them picks files, any other picks evals by id, and the two narrow each
  * other; every `--tag` must hold (`!tag` excludes).
  */
 export function selectionProblem(
@@ -921,7 +922,10 @@ export function selectionProblem(
   }
   const byName = (e: SelectableEval, f: string) =>
     e.id ? matchesEvalId(e.id, f) : matchesEvalId(e.name, f)
-  const paths = filters.filter((f) => evals.some((e) => e.file.includes(f.replace(/^\.\//, ''))))
+  const bare = (f: string) => f.replace(/^\.\//, '').replace(/\/$/, '')
+  const picks = (e: SelectableEval, f: string) =>
+    /\.eval(\.[a-z]+)?$/i.test(f) ? e.file.includes(bare(f)) : e.file.startsWith(`${bare(f)}/`)
+  const paths = filters.filter((f) => evals.some((e) => picks(e, f)))
   const names = filters.filter((f) => !paths.includes(f))
   const unknown = names.filter((f) => !evals.some((e) => byName(e, f)))
   if (unknown.length) {
@@ -930,7 +934,7 @@ export function selectionProblem(
   const selected = evals.filter(
     (e) =>
       tags.every((t) => (t.startsWith('!') ? !e.tags.includes(t.slice(1)) : e.tags.includes(t))) &&
-      (!paths.length || paths.some((f) => e.file.includes(f.replace(/^\.\//, '')))) &&
+      (!paths.length || paths.some((f) => picks(e, f))) &&
       (!names.length || names.some((f) => byName(e, f))),
   )
   return selected.length

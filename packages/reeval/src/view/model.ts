@@ -261,12 +261,7 @@ export function evalTree(record: Pick<RunRecord, 'evals'>): TreeNode[] {
   }
   for (const e of record.evals) {
     const trail =
-      e.group.length || e.id.includes(' › ')
-        ? [e.file, ...e.group]
-        : (() => {
-            const parts = e.id.split('/')
-            return parts.length > 1 ? [...parts.slice(0, -1), e.name] : [e.name]
-          })()
+      e.group.length || e.id.includes(' › ') ? [e.file, ...e.group] : e.id.split('/').slice(0, -1)
     let node = root
     for (const [i, name] of trail.entries()) {
       const key = trail.slice(0, i + 1).join(' › ')

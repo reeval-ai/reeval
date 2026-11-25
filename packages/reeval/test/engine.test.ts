@@ -94,7 +94,7 @@ describe('engine', () => {
       'evals/a.eval.ts': math(1),
       'evals/named-thing.eval.ts': `import { defineEval } from 'reeval'\nexport default defineEval({ async task() {} })\n`,
     })
-    const byPath = await runCli(p.dir, ['run', 'a.eval'])
+    const byPath = await runCli(p.dir, ['run', 'a.eval.ts'])
     assert.equal(byPath.code, 0)
     assert.match(byPath.stdout, /^└─ ✓ a +1 of 1 run passed$/m)
     assert.doesNotMatch(byPath.stdout, /named thing/)
@@ -275,9 +275,9 @@ export default defineEval({ async task() { expect(process.env.REEVAL_T_BOTH).toB
       "run from a subdirectory, the env files still come from the config's directory",
     )
 
-    const sees = await runCli(p.dir, ['run', 'sees.eval'], { env })
+    const sees = await runCli(p.dir, ['run', 'sees.eval.ts'], { env })
     assert.equal(sees.code, 0, sees.stdout + sees.stderr)
-    const canary = await runCli(p.dir, ['run', 'canary.eval'], { env })
+    const canary = await runCli(p.dir, ['run', 'canary.eval.ts'], { env })
     assert.equal(canary.code, 1, canary.stdout + canary.stderr)
     assert.match(
       readRun(p.dir).evals[0]?.error?.message ?? '',

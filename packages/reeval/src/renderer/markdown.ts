@@ -366,7 +366,7 @@ function regressionMarkdown(primary: RegressionChanges, blockLevel: number): str
   if (primary.rows.length) {
     lines.push(
       table(
-        ['Signal', 'Kind', 'Harness', 'Prior', 'Current', 'Delta', 'Status', 'Gate'],
+        ['Signal', 'Kind', 'Agent', 'Prior', 'Current', 'Delta', 'Status', 'Gate'],
         primary.rows.map((r) => [
           r.signal,
           r.kind,

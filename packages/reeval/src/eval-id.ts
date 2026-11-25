@@ -16,11 +16,13 @@ export const legacyEvalId = (file: string, path: readonly string[]) => [file, ..
 
 /** The directory every include pattern starts in: `evals/**\/*.eval.ts` → `evals`. */
 export function evalRoot(include: readonly string[]): string {
-  const dirs = include.map((pattern) => {
-    const parts = pattern.split('/')
-    const stop = parts.findIndex((part) => GLOB.test(part))
-    return (stop < 0 ? parts.slice(0, -1) : parts.slice(0, stop)).filter((p) => p && p !== '.')
-  })
+  const dirs = include
+    .filter((pattern) => !pattern.startsWith('!'))
+    .map((pattern) => {
+      const parts = pattern.split('/')
+      const stop = parts.findIndex((part) => GLOB.test(part))
+      return (stop < 0 ? parts.slice(0, -1) : parts.slice(0, stop)).filter((p) => p && p !== '.')
+    })
   const common: string[] = []
   for (let i = 0; dirs.every((d) => d[i] !== undefined && d[i] === dirs[0]?.[i]); i++) {
     common.push(dirs[0]?.[i] as string)

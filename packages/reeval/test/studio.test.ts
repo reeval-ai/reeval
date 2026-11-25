@@ -381,9 +381,16 @@ describe('view-models over a real history', () => {
   test('eval tree, cells and lift for a multi-cell run', () => {
     const matrix = records.get(headers[2]?.runId as string) as RunRecord
     const tree = evalTree(matrix)
-    assert.equal(tree[0]?.kind, 'group')
+    assert.equal(tree[0]?.kind, 'eval')
     assert.equal(tree[0]?.name, 'hello')
     assert.deepEqual(tree[0]?.tally, { pass: 4, fail: 0, missed: 0, infra: 0, skipped: 0 })
+    const nested = evalTree({ evals: matrix.evals.map((e) => ({ ...e, id: `a/b/${e.id}` })) })
+    const a = nested[0]
+    const b = a?.kind === 'group' ? a.children[0] : undefined
+    assert.deepEqual(
+      [a?.kind, a?.name, b?.kind, b?.name, b?.kind === 'group' && b.children[0]?.kind],
+      ['group', 'a', 'group', 'b', 'eval'],
+    )
     const rows = cellRows(matrix.evals[0] as RunRecord['evals'][number])
     assert.deepEqual(
       rows.map((r) => [r.environment, r.role, r.gated, r.pass, r.runs, r.lift, r.attempts.length]),

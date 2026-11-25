@@ -47,6 +47,9 @@ export const engineVersions: Record<string, string> = {
   jiti: ownVersion('jiti'),
 }
 
+/** A part that names an eval file in any language. */
+const EVAL_FILE = /\.eval(\.[a-z]+)?$/i
+
 const onlyInCi = (file: string) =>
   `evaluate.only/group.only in ${file} isn't allowed in CI (CI is set). Remove it, or run with CI=false.`
 
@@ -91,18 +94,16 @@ export async function runEngine(
     `${relativeFile(root, config.history.dir)}/**`,
   ])
   refuseSharedIds(root, config.include, files)
-  // A part that names an eval file picks every eval in the files it names. One that is a file or
-  // directory on disk (from the current directory, or absolute) is only a path; any other, such
-  // as `right` beside `evals/right/`, also matches as an id. Any other part picks evals by id.
-  // Parts of one kind widen the selection, and the two kinds narrow each other.
-  const pathFilters = options.filters.filter((f) => filterFiles(files, [f], root).length)
-  const looseFilters = pathFilters.filter((f) => !existsSync(resolve(f)))
-  const nameFilters = options.filters.filter((f) => !pathFilters.includes(f))
+  // A part that is a file or directory on disk (from the current directory, or absolute) or names
+  // an eval file is a path, and picks the evals in the files it names; any other part picks evals
+  // by id. Parts of one kind widen the selection, and the two kinds narrow each other.
+  const isPath = (f: string) => EVAL_FILE.test(f) || existsSync(resolve(f))
+  const pathFilters = options.filters.filter(isPath)
+  const nameFilters = options.filters.filter((f) => !isPath(f))
   const specs = filterFiles(files, pathFilters, root)
   if (specs.length === 0)
     return { evals: [], unhandledErrors: [], canceled: false, noFiles: true, stopped: false }
   const named = new Set(specs.map((file) => relativeFile(root, file)))
-  const toCollect = looseFilters.length ? files : specs
 
   // A file's worker holds its lane until all of its attempts finish, so `concurrency` attempts in
   // flight need that many workers.
@@ -110,21 +111,19 @@ export async function runEngine(
   const entry = workerEntry(root, WORKER_PACKAGE_NAMES)
   const hide = [...reevalFrames(PACKAGE_DIR), ...reevalFrames(join(entry, '..', '..'))]
   const cells = options.cells ?? []
-  // A path part on disk only names files; one that is not also matches ids.
-  const looseParts = [...new Set([...looseFilters, ...pathFilters])]
   const matchesFilters = (e: Named) =>
     (cells.length === 0 || (!!e.attempt && cells.some((c) => matchesCell(e.attempt, c)))) &&
-    (named.has(e.file) || looseParts.some((f) => matchesFilter(e, f))) &&
+    named.has(e.file) &&
     (nameFilters.length === 0 || nameFilters.some((f) => matchesFilter(e, f)))
   const run = options.run
 
-  // Collect: each file in a worker of its own, for the plan. Paths on disk collect only the
-  // files they name; a part that may match by name or cell collects every file, and any of
-  // them failing to load fails the run, as it may hold evals the part picks.
+  // Collect: each file in a worker of its own, for the plan. Path parts collect only the files
+  // they name; with none, every file is collected, and any of them failing to load fails the
+  // run, as it may hold evals an id part picks.
   const collected: Collected[] = []
   const failed = new Map<string, string[]>()
   let usage: string | undefined
-  await eachLimited(toCollect, workers, async (file) => {
+  await eachLimited(specs, workers, async (file) => {
     const rel = relativeFile(root, file)
     const worker = spawn(entry, root)
     let tests: WireTest[] | undefined
@@ -164,7 +163,7 @@ export async function runEngine(
   const matchesName = withControls(collected, matchesFilters)
 
   if (options.onPlan) {
-    const plan = collectPlan(collected, matchesName, nameFilters, toCollect.length < files.length)
+    const plan = collectPlan(collected, matchesName, nameFilters, specs.length < files.length)
     // When no part matched anything, the run's own "no evals matched" says so.
     if (plan.unmatched.length === options.filters.length) plan.unmatched = []
     if (!(await options.onPlan(plan)))

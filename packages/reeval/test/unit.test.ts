@@ -1384,6 +1384,7 @@ test('the history folder sits in the directory the evals live in', () => {
   assert.equal(evalRoot(['evals/**/*.eval.ts']), 'evals')
   assert.equal(evalRoot(['test/evals/a/*.eval.ts', 'test/evals/b/**/*.eval.ts']), 'test/evals')
   assert.equal(evalRoot(['**/*.eval.ts']), '')
+  assert.equal(evalRoot(['evals/**/*.eval.ts', '!evals/deny.eval.ts']), 'evals')
   assert.equal(resolveConfig({}, '/p').history.dir, resolve('/p/evals/.history'))
   const runs = resolveConfig({ history: { store: { kind: 'local', dir: 'runs' } } }, '/p')
   assert.equal(runs.history.dir, resolve('/p/runs'))

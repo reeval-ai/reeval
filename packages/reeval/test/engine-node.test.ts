@@ -264,9 +264,10 @@ describe('runEngine: collecting and the plan', () => {
     assert.deepEqual(all?.traits.sort(), ['lang', 'os'])
     const one = await collectWith([join(root, 'evals/a.eval.ts')])
     assert.deepEqual([one?.harnesses, one?.partial], [['a', 'b'], true])
-    // Not a path from the current directory, so it may match names in every file, which are collected.
-    const loose = await collectWith(['evals/a.eval.ts'])
-    assert.deepEqual([loose?.harnesses.sort(), loose?.partial], [['a', 'b', 'c'], false])
+    const named = await collectWith(['evals/a.eval.ts'])
+    assert.deepEqual([named?.harnesses, named?.partial], [['a', 'b'], true])
+    const byId = await collectWith(['x'])
+    assert.deepEqual([byId?.harnesses.sort(), byId?.partial], [['a', 'b', 'c'], false])
   })
 })
 
@@ -588,15 +589,15 @@ describe('runEngine: running', () => {
     assert.deepEqual(keys, ['h/base/s#2'])
   })
 
-  test('a part that names a file also matches as an id in the other files', async () => {
+  test('a part not on disk matches eval ids, never a cell or a file path', async () => {
     const { run } = project(['evals/fake/a.eval.ts', 'evals/b.eval.ts', 'evals/fake.eval.ts'])
     const tests = {
-      'a.eval.ts': [test0(0, 'alpha [left#1]', { attempt: attempt('alpha', cell('left')) })],
-      'b.eval.ts': [test0(0, 'beta [fake#1]', { attempt: attempt('beta', cell('fake')) })],
-      'fake.eval.ts': [test0(0, 'gamma [left#1]', { attempt: attempt('gamma', cell('left')) })],
+      'a.eval.ts': [test0(0, 'fake/a [left#1]', { attempt: attempt('fake/a', cell('left')) })],
+      'b.eval.ts': [test0(0, 'b [fake#1]', { attempt: attempt('b', cell('fake')) })],
+      'fake.eval.ts': [test0(0, 'fake [left#1]', { attempt: attempt('fake', cell('left')) })],
     }
     const r = await engine({ run, filters: ['fake'] }, fakeSpawn(passing(tests)).spawn)
-    assert.deepEqual(r.evals.map((e) => e.key).sort(), ['alpha # left#1', 'gamma # left#1'])
+    assert.deepEqual(r.evals.map((e) => e.key).sort(), ['fake # left#1', 'fake/a # left#1'])
   })
 
   test('a path on disk is only a path: it collects only the files it names', async () => {
@@ -623,7 +624,7 @@ describe('runEngine: running', () => {
       ctl.exit()
     }
     await assert.rejects(
-      engine({ run, filters: ['a.eval'] }, fakeSpawn(script).spawn),
+      engine({ run, filters: ['one'] }, fakeSpawn(script).spawn),
       /An eval file failed to load:\nevals\/b\.eval\.ts: boom/,
     )
     const r = await engine(

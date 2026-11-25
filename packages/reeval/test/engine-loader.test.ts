@@ -98,6 +98,7 @@ describe('findEvalFiles and filterFiles', () => {
     assert.equal(matchesEvalId('evals/a.eval.ts › rated [b]', 'rated/'), true)
     assert.equal(matchesEvalId('evals/tree.eval.ts › good › child', 'good/'), true)
     assert.equal(matchesEvalId('skill', 'skills-old/old'), false)
+    assert.equal(matchesEvalId('skill/add', 'skill/ad'), false)
     assert.equal(matchesEvalId('slow/big', 'slow/big*'), true)
     assert.equal(matchesFilter({ id: 'foo/bar' }, 'foo'), true)
     assert.equal(matchesFilter({ id: 'x' }, 'h/skill/s'), false, 'a cell key is not an id')

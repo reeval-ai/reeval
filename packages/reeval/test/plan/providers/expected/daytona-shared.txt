@@ -1,4 +1,4 @@
 profile daytona-shared (--profile) · 1 evals · 1 cells · 2 attempts
 hint: 1 eval runs more than once with the default gate, so every attempt must pass (pass^k); set gate: { passRate: 0.8 } to gate on pass@1 instead
-evals/shared  fake/-/docker  control  gated  ×2  sandbox: docker on daytona({ size: 'small', reuse: true, attemptsPerMachine: 2 }) · egress "allow-all"
+shared  fake/-/docker  control  gated  ×2  sandbox: docker on daytona({ size: 'small', reuse: true, attemptsPerMachine: 2 }) · egress "allow-all"
 excluded: —
