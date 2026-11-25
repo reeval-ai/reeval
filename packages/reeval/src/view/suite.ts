@@ -16,7 +16,7 @@ import type {
   UpstreamCount,
 } from '../history/types.ts'
 import { COMPARE_RUNS } from '../stats.ts'
-import type { ErrorKind, Outcome } from '../types.ts'
+import type { AttemptFailure, ErrorKind, Outcome } from '../types.ts'
 import { cellEffort } from './effort.ts'
 import { caseLabel } from './family.ts'
 import { checksByLabel, checkTries, labeledJudgments } from './judgments.ts'
@@ -314,6 +314,8 @@ export type CellError = {
   kind: ErrorKind | 'turn'
   message: string
   attempts: number
+  /** What the task threw, for a throw: its first attempt's, the message being its reason. */
+  failure?: Omit<AttemptFailure, 'kind' | 'reason'>
 }
 
 export type JudgeResult = {
@@ -534,11 +536,14 @@ export function messageLine(text: string): string {
  */
 function errorsOf(e: EvalEntry, cell: CellRecord): CellError[] {
   const out: CellError[] = []
-  const add = (kind: CellError['kind'], text: string) => {
+  const add = (kind: CellError['kind'], text: string, failure?: AttemptFailure) => {
     const message = messageLine(text)
     const same = out.find((x) => x.kind === kind && x.message === message)
     if (same) same.attempts++
-    else out.push({ kind, message, attempts: 1 })
+    else if (failure) {
+      const { kind: _, reason: __, ...rest } = failure
+      out.push({ kind, message, attempts: 1, failure: rest })
+    } else out.push({ kind, message, attempts: 1 })
   }
   for (const a of e.attempts) {
     if (a.cell !== cell.key) continue
@@ -547,7 +552,8 @@ function errorsOf(e: EvalEntry, cell: CellRecord): CellError[] {
     if (!a.error) continue
     const checked = a.error.kind === 'assertion' || a.error.kind === 'judge'
     if (checked && (a.assertions ?? []).some((x) => x.status !== 'pass')) continue
-    add(a.error.kind, a.error.message)
+    if (a.failure) add(a.error.kind, a.failure.reason, a.failure)
+    else add(a.error.kind, a.error.message)
   }
   return out
 }

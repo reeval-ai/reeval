@@ -510,6 +510,18 @@ export type ProvenanceState = {
   warnings: string[]
 }
 
+/** What an attempt's task threw, as the report shows it. */
+export type ReportFailure = {
+  reason: string
+  /** Each key of an `EvalError`'s meta, its value as text: a string as it is, anything else as JSON. */
+  meta: Array<{ key: string; value: string }>
+  /** The class of an error that isn't an `EvalError`, such as `TypeError`. */
+  name: string | null
+  /** How many turns the attempt had sent when the task threw. */
+  turn: number
+  stack: string | null
+}
+
 export type AttemptIndexRow = {
   id: string
   /** `AttemptRecord.key`. */
@@ -521,6 +533,8 @@ export type AttemptIndexRow = {
   outcome: Exclude<Outcome, 'skipped'> | 'canceled'
   reclassified: boolean
   turnError: string | null
+  /** What its task threw (`AttemptRecord.failure`); absent when it threw nothing. */
+  failure?: ReportFailure
   tokens: Figure
   agentMs: Figure
   toolCalls: Figure

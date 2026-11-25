@@ -2,6 +2,7 @@ import type {
   AssertionRecord,
   AttemptAnswer,
   AttemptError,
+  AttemptFailure,
   AttemptImage,
   AttemptResources,
   CaptureStep,
@@ -308,6 +309,14 @@ export type AttemptRecord = {
   servedEffort: string | null
   outcome: Outcome
   error: AttemptError | null
+  /**
+   * What the eval's task threw that failed the attempt (`kind: 'task'`): an `EvalError`'s
+   * `reason` and `meta`, or another error's message as `reason` with its class in `name`; `turn`
+   * is how many turns it had sent then, and `stack` the error's stack. `error` is the same
+   * failure, as `assertion`. Absent when the task didn't throw, or what it threw was a failed
+   * `expect`, a timeout, a cancel or an infra error.
+   */
+  failure?: AttemptFailure
   /**
    * True when the eval body read `turn.status` (so a mid-turn error was intentional). False when a
    * turn errored and the body never inspected status. Absent on older records; the report then

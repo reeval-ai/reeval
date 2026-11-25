@@ -10,6 +10,8 @@ export {
   DEFAULT_SKILL_EXCLUDE,
   defineEnvironment,
 } from './environment.ts'
+export type { EvalErrorOptions } from './eval-error.ts'
+export { EvalError } from './eval-error.ts'
 export { defineEval } from './evaluate.ts'
 export type {
   AttemptRecord,
@@ -23,6 +25,7 @@ export { shellCommands } from './shell-commands.ts'
 export type {
   AttemptAnswer,
   AttemptContext,
+  AttemptFailure,
   BackgroundHandle,
   Budget,
   Capture,

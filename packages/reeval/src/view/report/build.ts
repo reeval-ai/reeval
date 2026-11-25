@@ -1,7 +1,7 @@
 import { caseName } from '../../history/cases.ts'
 import type { AttemptRecord, CellRecord, EvalEntry, RunRecord } from '../../history/types.ts'
 import { COMPARE_RUNS, containsZero, liftInterval } from '../../stats.ts'
-import type { CapturePageFile } from '../../types.ts'
+import type { AttemptFailure, CapturePageFile } from '../../types.ts'
 import { totalTokens } from '../../usage.ts'
 import type { AnalysisDoc } from '../analysis.ts'
 import type { AttemptFacts } from '../classify.ts'
@@ -66,6 +66,7 @@ import type {
   Rate,
   RegressionChanges,
   ReportClaim,
+  ReportFailure,
   RosterRow,
   RunHeader,
   RunReport,
@@ -1949,6 +1950,19 @@ function buildActions(analysis: AnalysisDoc | null): ReportClaim[] {
   }))
 }
 
+function reportFailure(f: AttemptFailure): ReportFailure {
+  return {
+    reason: f.reason,
+    meta: Object.entries(f.meta ?? {}).map(([key, value]) => ({
+      key,
+      value: typeof value === 'string' ? value : JSON.stringify(value),
+    })),
+    name: f.name ?? null,
+    turn: f.turn,
+    stack: f.stack ?? null,
+  }
+}
+
 function buildAttemptIndex(ctx: Ctx): AttemptIndexRow[] {
   const { evals, ids, linkBase, record, hrefByKey } = ctx
   const rows: AttemptIndexRow[] = []
@@ -1977,6 +1991,7 @@ function buildAttemptIndex(ctx: Ctx): AttemptIndexRow[] {
         outcome: canceled ? 'canceled' : (a.outcome as AttemptIndexRow['outcome']),
         reclassified,
         turnError: turnErrorMessage(a),
+        ...(a.failure ? { failure: reportFailure(a.failure) } : {}),
         tokens: tokensFigure(a.usage ? totalTokens(a.usage) : null),
         agentMs: durationFigure(a.timings.agentMs),
         toolCalls: countFigure(a.activity.tools),

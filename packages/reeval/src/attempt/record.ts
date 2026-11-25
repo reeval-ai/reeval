@@ -1,10 +1,11 @@
 import { mkdir, rename, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
 import { AgentError, statusCause } from '@reeval/agents'
 import { debugLog } from '../debug/attempt.ts'
 import { allowedHosts, isDirect } from '../egress.ts'
 import type { RawAssertion } from '../engine/runtime.ts'
 import { isTimeout } from '../errors.ts'
+import { isEvalError } from '../eval-error.ts'
 import { expectedBlockedFor } from '../harness/agents.ts'
 import { ProviderStopError } from '../harness/provider-stop.ts'
 import { attemptKey, recordFileName } from '../ids.ts'
@@ -14,13 +15,21 @@ import { redactJson, redactSecrets, redactSplitSecrets } from '../redact.ts'
 import { InfraError, RunStopped, type Sandbox } from '../sandbox/index.ts'
 import { PrepareError } from '../sandbox/provider.ts'
 import { capMiddle, clip } from '../text.ts'
-import type { ErrorKind, EvalMeta, EvalRecord, TranscriptEvent } from '../types.ts'
+import type {
+  AttemptFailure,
+  ErrorKind,
+  EvalMeta,
+  EvalRecord,
+  JSONValue,
+  TranscriptEvent,
+} from '../types.ts'
 import { resourcesLine } from '../view/resources.ts'
 import { messageLine } from '../view/suite.ts'
 import { inferDurations, sumSplits, timeSplit } from '../view/timeline.ts'
 import { turnErrorKind } from '../view/turn-error.ts'
 import { checkFailure } from './assertions.ts'
 import { writeCaptureSidecars } from './capture.ts'
+import { maskedJson } from './observe.ts'
 import type { Attempt } from './state.ts'
 
 /**
@@ -188,6 +197,48 @@ export function recordFailure(
   record.outcome = record.error.kind === 'infra' ? 'infra_error' : 'fail'
 }
 
+const withoutStack = ({ stack: _, ...failure }: AttemptFailure) => failure
+
+const REASON_MAX = 200
+const STACK_MAX = 8 * 1024
+
+/** A thrown value as the task threw it: one line, with its line breaks and runs of space folded. */
+const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim()
+
+/**
+ * What the task threw, into the record, when it failed the attempt as itself: not a failed
+ * `expect` the body let through, which its assertion records already hold.
+ */
+export function recordTaskFailure(
+  a: Attempt,
+  error: unknown,
+  raw: readonly RawAssertion[],
+  root: string,
+): void {
+  const { record } = a
+  if (record.error?.kind !== 'assertion') return
+  const message = messageOf(error)
+  if (raw.some((r) => r.status !== 'pass' && (r.error === error || messageOf(r.error) === message)))
+    return
+  const evalError = isEvalError(error)
+  const name = error instanceof Error ? error.name : undefined
+  const said = oneLine(evalError ? (error.reason ?? message) : message)
+  const stack = error instanceof Error && error.stack ? error.stack : undefined
+  record.failure = {
+    kind: 'task',
+    reason: clip(redactSecrets(said || name || 'the task threw'), REASON_MAX),
+    ...(evalError && error.meta
+      ? { meta: maskedJson(error.meta) as { [key: string]: JSONValue } }
+      : {}),
+    ...(!evalError && name ? { name } : {}),
+    turn: a.turns.length,
+    ...(stack
+      ? { stack: capMiddle(redactSecrets(stack.replaceAll(`${root}${sep}`, '')), STACK_MAX) }
+      : {}),
+  }
+  if (evalError) record.error.message = record.failure.reason
+}
+
 /** What the sandbox gave the attempt and what it used, into the record, before the sandbox goes. */
 export async function recordResources(a: Attempt): Promise<void> {
   const resources = await a.meter?.stop({ gone: a.signal.aborted }).catch(() => undefined)
@@ -330,6 +381,7 @@ export async function writeRecord(a: Attempt, stagingDir: string, id: string): P
   return {
     outcome: record.outcome,
     errorKind: record.error?.kind ?? null,
+    ...(record.failure ? { failure: withoutStack(record.failure) } : {}),
     judgements: record.judgements.map((j) => ({
       verdict: j.verdict,
       score: j.score,

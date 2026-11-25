@@ -260,7 +260,7 @@ AttemptCall: TypeAlias = "AttemptCallSend | AttemptCallExec | AttemptCallServe |
 # The runner to reeval: the eval's body has finished. The attempt's checks and record follow.
 class AttemptDone(TypedDict):
     # What the body threw, if it threw. A failed `expect.require` is one.
-    error: NotRequired[AttemptError]
+    error: NotRequired[AttemptThrown]
     # True when the body read turn.status. False when a turn errored and status was never read.
     turnStatusRead: NotRequired[bool]
     type: Literal["done"]
@@ -417,6 +417,18 @@ class AttemptStart(TypedDict):
     # The eval file, relative to the project.
     file: str
     type: Literal["start"]
+
+
+# What an eval's body threw: an `EvalError` (`name` `EvalError`, its reason as `message`, and
+# its meta) or any other error.
+class AttemptThrown(TypedDict):
+    message: str
+    # An `EvalError`'s meta: a JSON object recorded beside its reason.
+    meta: NotRequired[dict[str, JSONValue]]
+    # The error's class, e.g. `UsageError` or `AssertionError`.
+    name: str
+    # The error's traceback, in the runner's own format.
+    stack: NotRequired[str]
 
 
 class CaptureConsoleItem(TypedDict):
@@ -2362,6 +2374,7 @@ RECORD_FIELDS: frozenset[str] = frozenset(
         "files",
         "headers",
         "mcp",
+        "meta",
         "params",
         "providerOptions",
         "regions",

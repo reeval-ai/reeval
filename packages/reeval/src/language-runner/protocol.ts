@@ -9,6 +9,7 @@ import type {
   AttemptStart,
 } from '../contract/attempt.ts'
 import type { DeclarationTree } from '../declaration.ts'
+import type { JSONValue } from '../types.ts'
 
 export const RUNNER_PROTOCOL = 3
 
@@ -18,6 +19,7 @@ export type WireError = {
   stack?: string
   expected?: unknown
   actual?: unknown
+  meta?: { [key: string]: JSONValue }
 }
 
 export type SessionToRunner = { t: 'collect'; file: string }

@@ -1,0 +1,45 @@
+import { notJson } from './attempt/observe.ts'
+import type { JSONValue } from './types.ts'
+
+/** `new EvalError({ … })`: why the task stopped, the facts that show it, and what caused it. */
+export type EvalErrorOptions = {
+  /** One line on why the task stopped, such as `the build fails`. */
+  reason: string
+  /** A few facts a reader needs to see why, such as `{ exitCode: 1 }`: a JSON object. */
+  meta?: { [key: string]: JSONValue }
+  /** The error that led to it, as `Error`'s `cause`. */
+  cause?: unknown
+}
+
+/**
+ * Thrown by an eval's task to stop the attempt before it's graded: the attempt didn't get far
+ * enough. It fails the attempt as any error the task throws does, and reads back better: its
+ * `reason` is the attempt's headline and its `meta` is recorded beside it.
+ */
+export class EvalError extends Error {
+  override name = 'EvalError'
+  readonly reason: string
+  readonly meta?: { [key: string]: JSONValue }
+
+  constructor(reason: string | EvalErrorOptions) {
+    const options = typeof reason === 'string' ? { reason } : reason
+    if (typeof options?.reason !== 'string' || !options.reason.trim()) {
+      throw new TypeError('EvalError takes a reason: new EvalError("the build fails")')
+    }
+    super(options.reason, 'cause' in options ? { cause: options.cause } : undefined)
+    this.reason = options.reason
+    if (options.meta !== undefined) {
+      const { meta } = options
+      if (typeof meta !== 'object' || meta === null || Array.isArray(meta)) {
+        throw new TypeError('EvalError meta takes a JSON object, such as { exitCode: 1 }')
+      }
+      const problem = notJson(meta, '', new Set())
+      if (problem) throw new TypeError(`EvalError meta takes JSON: ${problem}`)
+      this.meta = meta
+    }
+  }
+}
+
+/** An `EvalError`, from this copy of reeval or another (a language runner's, by its name). */
+export const isEvalError = (error: unknown): error is EvalError =>
+  error instanceof EvalError || (error instanceof Error && error.name === 'EvalError')

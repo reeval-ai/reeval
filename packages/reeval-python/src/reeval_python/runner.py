@@ -25,7 +25,7 @@ from reeval_python._wire import AttemptCall, AttemptCallRecord
 from reeval_python.checks import bind_recorder, escaped_failures, only_assertions
 from reeval_python.context import AttemptContext, SyncAttemptContext
 from reeval_python.declare import collect_eval_file, get_body, is_async
-from reeval_python.errors import AttemptAborted, ReevalAssertionError, ReevalCallError
+from reeval_python.errors import AttemptAborted, EvalError, ReevalAssertionError, ReevalCallError
 from reeval_python.expect import unawaited
 
 RUNNER_PROTOCOL = 3
@@ -352,6 +352,10 @@ async def _run_body(conn: _Connection, attempt_id: str, body_id: str) -> None:
             own = failures if not isinstance(exc, ReevalAssertionError) else []
             message = "\n".join(c.get("message", "") for c in own) if own else str(exc)
             error = {"name": "AssertionError", "message": message}
+        elif isinstance(exc, EvalError):
+            error = {"name": "EvalError", "message": exc.reason}
+            if exc.meta is not None:
+                error["meta"] = exc.meta
         else:
             error = {"name": type(exc).__name__, "message": str(exc)}
         error["stack"] = traceback.format_exc()

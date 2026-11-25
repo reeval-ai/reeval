@@ -46,6 +46,7 @@ import type { Remark, RunRemarks } from '../view/remarks.ts'
 import {
   type AttemptQuestionResult,
   type CaseResult,
+  type CellError,
   type CellResult,
   type CheckResult,
   countedOf,
@@ -698,11 +699,11 @@ function caseTable(
  * rest are errors, red on a failed eval.
  */
 function errorLines(cells: CellResult[], failedEval: boolean): DetailLine[] {
-  const by = new Map<string, { kind: ErrorKind | 'turn'; message: string; n: number }>()
+  const by = new Map<string, CellError & { n: number }>()
   for (const c of cells) {
     for (const err of c.errors) {
       const key = `${err.kind}\n${err.message}`
-      const e = by.get(key) ?? { kind: err.kind, message: err.message, n: 0 }
+      const e = by.get(key) ?? { ...err, n: 0 }
       e.n += err.attempts
       by.set(key, e)
     }
@@ -716,8 +717,43 @@ function errorLines(cells: CellResult[], failedEval: boolean): DetailLine[] {
       ...messageLines(e.message, '', Number.POSITIVE_INFINITY).map(
         (text) => ({ depth: 1, text, tone }) as const,
       ),
+      ...(e.failure ? failureLines(e.failure) : []),
     ]
   })
+}
+
+/** The most of a stack's frames a throw shows. */
+const STACK_FRAMES = 5
+
+/**
+ * A stack frame in the project's own files, whose paths the record made relative: not Node's, a
+ * package's or reeval's.
+ */
+const ownFrame = (line: string) =>
+  line.startsWith('at ') &&
+  /:\d+:\d+\)?$/.test(line) &&
+  !/node:|node_modules|file:|\(\/|^at \/|[A-Za-z]:\\/.test(line)
+
+/**
+ * What the task threw, under its reason: an `EvalError`'s meta as `key: value`, the turn it
+ * threw after, and its stack's frames in the project, which an `EvalError` shows only in full.
+ */
+function failureLines(f: NonNullable<CellError['failure']>): DetailLine[] {
+  const meta = Object.entries(f.meta ?? {}).map(([key, value]) => {
+    const text = typeof value === 'string' ? value : JSON.stringify(value)
+    return { depth: 2, text: clip(`${key}: ${text.replace(/\s+/g, ' ').trim()}`, LINE_MAX), tone: 'dim' } as const
+  })
+  const frames = (f.stack ?? '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(ownFrame)
+    .slice(0, STACK_FRAMES)
+    .map((text) => ({ depth: 2, text, tone: 'dim', ...(f.name ? {} : { only: 'full' }) }) as const)
+  return [
+    ...meta,
+    { depth: 2, text: f.turn ? `after turn ${f.turn}` : 'before the first turn', tone: 'dim' },
+    ...frames,
+  ]
 }
 
 /** `evals/a.eval.ts:12` from `source:evals/a.eval.ts#L12`. */
