@@ -195,27 +195,32 @@ export const execEnvSchema = z.record(
   z.string().refine((v) => !v.includes('\0'), 'must not hold a NUL character'),
 )
 
-/** A background command has no exit for `retries` to wait on. */
+/** A background command has no exit for `retries` to wait on, and no result for `label` to name. */
 const noBackgroundRetry = (
-  options: { background?: boolean; retries?: number; interval?: number },
+  options: { background?: boolean; retries?: number; interval?: number; label?: string },
   ctx: z.RefinementCtx,
 ) => {
   if (!options.background) return
-  for (const key of ['retries', 'interval'] as const) {
+  for (const key of ['retries', 'interval', 'label'] as const) {
     if (options[key] === undefined) continue
     ctx.addIssue({
       code: 'custom',
       path: [key],
       message:
-        "can't be used with background: true, whose exit reeval doesn't wait for: drop one of them",
+        key === 'label'
+          ? "can't be used with background: true, whose result reeval doesn't keep: drop one of them"
+          : "can't be used with background: true, whose exit reeval doesn't wait for: drop one of them",
     })
   }
 }
+
+const execLabelSchema = z.string().min(1, 'must not be empty')
 
 export const execOptionsSchema = z
   .strictObject({
     background: z.boolean().optional(),
     env: execEnvSchema.optional(),
+    label: execLabelSchema.optional(),
     ...execRetrySchema.shape,
   })
   .superRefine(noBackgroundRetry)
@@ -514,11 +519,14 @@ export const attemptCallSchema = z
           .optional()
           .describe('Leave it running and reply with its handle, not its output.'),
         env: execEnvSchema.optional(),
+        label: execLabelSchema
+          .optional()
+          .describe('A name kept with its result, for a grader to find it by.'),
         ...execRetrySchema.shape,
       })
       .superRefine(noBackgroundRetry)
       .describe(
-        '`c.exec(command, { background?, env?, retries?, interval? })`: a command in the sandbox. Replies with its exit code and output (the last try, with `retries`), or with a handle when it runs in the background.',
+        '`c.exec(command, { background?, env?, label?, retries?, interval? })`: a command in the sandbox. Replies with its exit code and output (the last try, with `retries`), or with a handle when it runs in the background.',
       ),
     z
       .strictObject({
@@ -569,7 +577,7 @@ export const attemptCallSchema = z
           .string()
           .regex(OBSERVE_NAME, 'must be 1 to 64 letters, digits, _ . : / or -')
           .describe('What the value is of, e.g. `installed`.'),
-        value: jsonValueSchema.describe('Any JSON, at most 4 KB once serialized.'),
+        value: jsonValueSchema.describe('Any JSON, nested at most 64 levels deep.'),
       })
       .describe(
         "`c.observe(name, value)`: records a fact about the attempt that never affects its outcome. A name observed again keeps the last value. Fails after the body's `done`.",

@@ -94,6 +94,20 @@ export const SHAPES: PersistedShape[] = [
     where: "One line of a run's spans.jsonl, its trace, in the history folder or .reeval/runs",
   },
   {
+    name: 'exec-line',
+    file: 'src/history/types.ts',
+    type: 'ExecLine',
+    where: "One line of an attempt's execs.jsonl, each c.exec's result, in its run's directory",
+  },
+  {
+    name: 'workspace-manifest',
+    file: 'src/history/types.ts',
+    type: 'WorkspaceManifest',
+    where:
+      "An attempt's workspace.json, the files of its kept workspace.tar.gz, in its run's directory",
+    versionField: 'schemaVersion',
+  },
+  {
     name: 'run-events',
     file: 'src/view/events.ts',
     type: 'RunEventLine',

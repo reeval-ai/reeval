@@ -47,6 +47,7 @@ import { startSession } from './session.ts'
 import { snapshotSidecar, takeSnapshot } from './snapshot.ts'
 import { type AttemptSpec, bindAttemptContext, createAttempt, evalTimer } from './state.ts'
 import { turnSender } from './turns.ts'
+import { keepWorkspace, workspaceSidecar } from './workspace.ts'
 
 export type { AttemptSpec } from './state.ts'
 export { setupAllowance } from './state.ts'
@@ -213,6 +214,10 @@ async function attemptBody(
     oom = a.signal.aborted ? undefined : await recordOom(a, sandbox)
     if (sandbox && spec.snapshot.when && !a.signal.aborted) {
       await takeSnapshot(a, sandbox, 'final', 'teardown')
+    }
+    // Without a session, the workspace never had the git index the kept files are listed from.
+    if (sandbox && a.session && !a.signal.aborted) {
+      await keepWorkspace(a, sandbox, workspaceSidecar(stagingDir, key))
     }
     await sandbox?.destroy()
     recordTimeline(a, sandbox)

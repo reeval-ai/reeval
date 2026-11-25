@@ -6,7 +6,7 @@
 import type { ArchiveManifest } from '../archive/types.ts'
 import type { BundleManifest } from '../bundle/types.ts'
 import { foldCases } from '../history/cases.ts'
-import type { RunRecord } from '../history/types.ts'
+import type { ExecLine, RunRecord, WorkspaceManifest } from '../history/types.ts'
 import { SCHEMA_VERSION } from '../history/types.ts'
 import type { CredentialsFile } from '../login/types.ts'
 import type { CliInvocation } from '../report/types.ts'
@@ -33,6 +33,8 @@ export type ShapeName =
   | 'credentials'
   | 'run-report'
   | 'run-span'
+  | 'exec-line'
+  | 'workspace-manifest'
 
 /**
  * A field added after files were written without it, and what it reads as there. The path is
@@ -79,6 +81,8 @@ export const READ_DEFAULTS: Record<ShapeName, ReadDefault[]> = {
   credentials: [],
   'run-report': [],
   'run-span': [],
+  'exec-line': [],
+  'workspace-manifest': [],
 }
 
 /**
@@ -99,6 +103,7 @@ export const SCHEMA_VERSIONS = {
   'archive-manifest': 1,
   credentials: 1,
   'cloud-origin': 1,
+  'workspace-manifest': 1,
 } as const
 
 /** A file from a newer reeval, whose version (`field`, `schemaVersion` by default) this reeval doesn't know. */
@@ -239,3 +244,13 @@ export const readableCredentials = (
 /** A download's `.reeval/cloud/<run>.json` as `reeval run --resume` sees it; one from a newer reeval throws. */
 export const readableCloudOrigin = <T>(doc: T, what = 'This marker'): T =>
   fillDefaults('cloud-origin', upgrade('cloud-origin', doc, what))
+
+/** A line of an attempt's `execs.jsonl` as every reader sees it. */
+export const readableExecLine = (line: ExecLine): ExecLine => fillDefaults('exec-line', line)
+
+/** An attempt's `workspace.json` as every reader sees it; one from a newer reeval throws. */
+export const readableWorkspaceManifest = (
+  manifest: WorkspaceManifest,
+  what = 'This workspace manifest',
+): WorkspaceManifest =>
+  fillDefaults('workspace-manifest', upgrade('workspace-manifest', manifest, what))

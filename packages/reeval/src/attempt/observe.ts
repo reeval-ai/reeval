@@ -1,11 +1,10 @@
 import { OBSERVE_NAME } from '../contract/attempt.ts'
 import { UsageError } from '../errors.ts'
+import { sha256 } from '../ids.ts'
 import { REDACTED, redactSecrets, redactValue } from '../redact.ts'
 import type { AttemptContext, JSONValue } from '../types.ts'
 import type { Attempt } from './state.ts'
 
-/** The most JSON one value may serialize to, masked. */
-export const MAX_OBSERVED_BYTES = 4096
 /** The most names one attempt may observe. */
 export const MAX_OBSERVATIONS = 50
 /** The deepest a value may nest arrays and objects, so a check of it can't run out of stack. */
@@ -70,10 +69,11 @@ export const observedHere = (a: Attempt, name: string): boolean =>
   givenNames.get(a)?.get(observedName(name)) === name
 
 /**
- * `c.observe`: keeps the last value per name, masked, with the turn it came after. Two names that
- * mask to the same name are refused rather than renamed: a name is the key that tallies, compare
- * and `attempt_values` group by across attempts, and a numbered stand-in would depend on the
- * order of each attempt's calls, joining values that don't belong together.
+ * `c.observe`: keeps the last value per name, masked, with the turn it came after and the sha256 of
+ * its masked JSON. Two names that mask to the same name are refused rather than renamed: a name is
+ * the key that tallies, compare and `attempt_values` group by across attempts, and a numbered
+ * stand-in would depend on the order of each attempt's calls, joining values that don't belong
+ * together.
  */
 export function observer(a: Attempt): AttemptContext['observe'] {
   const raw = new Map<string, string>()
@@ -98,12 +98,6 @@ export function observer(a: Attempt): AttemptContext['observe'] {
     const problem = notJson(value, '', new Set())
     if (problem) throw new UsageError(`c.observe("${name}") takes JSON: ${problem}`)
     const masked = maskNumbers(redactValue(value as JSONValue))
-    const bytes = Buffer.byteLength(JSON.stringify(masked))
-    if (bytes > MAX_OBSERVED_BYTES) {
-      throw new UsageError(
-        `c.observe("${name}") takes at most ${MAX_OBSERVED_BYTES} bytes of JSON (got ${bytes}): observe a count or a summary instead`,
-      )
-    }
     a.record.observations ??= []
     const list = a.record.observations
     const same = list.find((o) => o.name === name)
@@ -113,7 +107,12 @@ export function observer(a: Attempt): AttemptContext['observe'] {
       )
     }
     raw.set(name, given)
-    const observation = { name, value: masked, turn: a.turns.length }
+    const observation = {
+      name,
+      value: masked,
+      turn: a.turns.length,
+      sha256: sha256(JSON.stringify(masked)),
+    }
     if (same) Object.assign(same, observation)
     else list.push(observation)
   }

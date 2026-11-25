@@ -47,7 +47,7 @@
           "additionalProperties": false
         },
         {
-          "description": "`c.exec(command, { background?, env?, retries?, interval? })`: a command in the sandbox. Replies with its exit code and output (the last try, with `retries`), or with a handle when it runs in the background.",
+          "description": "`c.exec(command, { background?, env?, label?, retries?, interval? })`: a command in the sandbox. Replies with its exit code and output (the last try, with `retries`), or with a handle when it runs in the background.",
           "type": "object",
           "properties": {
             "background": {
@@ -67,6 +67,11 @@
               "type": "number",
               "minimum": 0,
               "maximum": 2147483647
+            },
+            "label": {
+              "description": "A name kept with its result, for a grader to find it by.",
+              "type": "string",
+              "minLength": 1
             },
             "op": {
               "type": "string",
@@ -223,7 +228,7 @@
               "const": "observe"
             },
             "value": {
-              "description": "Any JSON, at most 4 KB once serialized.",
+              "description": "Any JSON, nested at most 64 levels deep.",
               "$ref": "#/$defs/JSONValue"
             }
           },

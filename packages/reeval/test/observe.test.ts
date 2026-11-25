@@ -8,6 +8,7 @@ import { observer } from '../src/attempt/observe.ts'
 import type { Attempt } from '../src/attempt/state.ts'
 import { attemptInput } from '../src/compare/questions.ts'
 import { resolveQuestionState } from '../src/compare/state.ts'
+import { sha256 } from '../src/ids.ts'
 import type { EvalRecord } from '../src/types.ts'
 import { observedLine, observedTallies } from '../src/view/observations.ts'
 import { fakeConfig, project, readRun, runCli } from './helpers.ts'
@@ -25,9 +26,19 @@ describe('c.observe', () => {
     observe('deps', ['pg'])
     observe('orm', 'drizzle')
     assert.deepEqual(a.record.observations, [
-      { name: 'orm', value: 'drizzle', turn: 1 },
-      { name: 'deps', value: ['pg'], turn: 1 },
+      { name: 'orm', value: 'drizzle', turn: 1, sha256: sha256('"drizzle"') },
+      { name: 'deps', value: ['pg'], turn: 1, sha256: sha256('["pg"]') },
     ])
+  })
+
+  test('keeps a large value whole, with the sha256 of its masked JSON', () => {
+    const { a, observe } = attempt()
+    const big = { log: 'x'.repeat(1_000_000), token: `ghp_${'a'.repeat(36)}` }
+    observe('big', big)
+    const [kept] = a.record.observations ?? []
+    const masked = { log: big.log, token: '[REDACTED]' }
+    assert.deepEqual(kept?.value, masked)
+    assert.equal(kept?.sha256, sha256(JSON.stringify(masked)))
   })
 
   test('masks a secret-looking value', () => {
@@ -49,10 +60,13 @@ describe('c.observe', () => {
           e.message,
         ) && !e.message.includes('ghp_'),
     )
-    assert.deepEqual(a.record.observations, [
-      { name: '[REDACTED]', value: 2, turn: 0 },
-      { name: 'count_[REDACTED]', value: 3, turn: 0 },
-    ])
+    assert.deepEqual(
+      a.record.observations?.map(({ sha256: _, ...o }) => o),
+      [
+        { name: '[REDACTED]', value: 2, turn: 0 },
+        { name: 'count_[REDACTED]', value: 3, turn: 0 },
+      ],
+    )
   })
 
   test('masks a number that is a secret', () => {
@@ -73,7 +87,6 @@ describe('c.observe', () => {
       ['n', Number.NaN, /takes JSON: NaN isn't a finite number/],
       ['n', { a: [1, undefined] }, /takes JSON: a undefined at a\[1\] isn't JSON/],
       ['n', new Date(0), /takes JSON: a Date isn't plain JSON/],
-      ['n', 'x'.repeat(5000), /takes at most 4096 bytes of JSON \(got 5002\)/],
     ]
     for (const [name, value, message] of refused) {
       assert.throws(() => observe(name, value as never), message)
@@ -330,7 +343,9 @@ describe('a secret-looking observation name in a run', () => {
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const { run } = readRun(p.dir)
     const attempt = run.evals[0]?.attempts[0]
-    assert.deepEqual(attempt?.observations, [{ name: '[REDACTED]', value: 'kept', turn: 1 }])
+    assert.deepEqual(attempt?.observations, [
+      { name: '[REDACTED]', value: 'kept', turn: 1, sha256: sha256('"kept"') },
+    ])
     assert.deepEqual(attempt?.answers?.[0]?.stateOptions.observations, ['[REDACTED]'])
     assert.equal(
       attempt?.answers?.[0]?.text,

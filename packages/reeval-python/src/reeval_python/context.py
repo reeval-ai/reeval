@@ -290,8 +290,7 @@ class AttemptContext:
 
     def observe(self, name: str, value: object) -> Coroutine[Any, Any, None]:
         """Record a fact about the attempt under `name`, such as what the agent installed. It
-        never affects the outcome; observing a name again replaces its value. `value` is JSON, at
-        most 4 KB."""
+        never affects the outcome; observing a name again replaces its value. `value` is JSON."""
         _not_describing("c.observe")
         data = json_value(value, f"c.observe({name!r}, …) takes a JSON value")
         return tracked(self._observe(name, data), "c.observe()")
@@ -468,8 +467,7 @@ class SyncAttemptContext:
 
     def observe(self, name: str, value: object) -> None:
         """Record a fact about the attempt under `name`, such as what the agent installed. It
-        never affects the outcome; observing a name again replaces its value. `value` is JSON, at
-        most 4 KB."""
+        never affects the outcome; observing a name again replaces its value. `value` is JSON."""
         _not_describing("c.observe")
         data = json_value(value, f"c.observe({name!r}, …) takes a JSON value")
         self._run(self._ctx._observe(name, data))  # pyright: ignore[reportPrivateUsage]

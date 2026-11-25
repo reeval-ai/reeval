@@ -37,6 +37,7 @@ import { keptFacts, summaryFiles } from './summary.ts'
 import type {
   ArtifactLevel,
   ArtifactRef,
+  AttemptFiles,
   AttemptRecord,
   FileRef,
   HistoryEntry,
@@ -482,7 +483,22 @@ const failed = (x: { outcome: string }) => x.outcome === 'fail' || x.outcome ===
 const keeps = (x: { outcome: string }, level: ArtifactLevel) =>
   level === 'all' || level === 'evidence' || (level === 'failures' && failed(x))
 
-/** Passing attempts under `evidence` drop transcript, setup, checks, and judge input. */
+/** What a passing attempt keeps under `evidence`: its diff, captures, `c.exec` results and final workspace. */
+const evidenceFiles = ({
+  diff,
+  artifacts,
+  execs,
+  workspace,
+  workspaceManifest,
+}: AttemptFiles): AttemptFiles => ({
+  ...(diff ? { diff } : {}),
+  ...(artifacts?.length ? { artifacts } : {}),
+  ...(execs ? { execs } : {}),
+  ...(workspace ? { workspace } : {}),
+  ...(workspaceManifest ? { workspaceManifest } : {}),
+})
+
+/** Passing attempts under `evidence` drop transcript, setup, check logs, and judge input. */
 const evidencePass = (a: { outcome: string }, level: ArtifactLevel) =>
   level === 'evidence' && !failed(a)
 
@@ -491,12 +507,7 @@ const withPages = (refs: ArtifactRef[]): FileRef[] =>
   refs.flatMap((r) => (r.capture?.page ? [r, r.capture.page] : [r]))
 
 const attemptRefs = (a: AttemptRecord, level: ArtifactLevel = 'all'): FileRef[] => {
-  const files = evidencePass(a, level)
-    ? {
-        diff: a.files.diff,
-        artifacts: a.files.artifacts,
-      }
-    : a.files
+  const files = evidencePass(a, level) ? evidenceFiles(a.files) : a.files
   return [
     ...Object.values(files).flatMap((v) => (Array.isArray(v) ? withPages(v) : v ? [v] : [])),
     ...(evidencePass(a, level) ? [] : a.checks.flatMap((c) => (c.log ? [c.log] : []))),
@@ -821,10 +832,7 @@ async function leveled(
       if (level !== 'none' && (all || keeps(a, level))) {
         for (const ref of attemptRefs(a, all ? 'all' : level)) await keep(ref)
         if (evidencePass(a, level) && !all) {
-          a.files = {
-            ...(a.files.diff ? { diff: a.files.diff } : {}),
-            ...(a.files.artifacts?.length ? { artifacts: a.files.artifacts } : {}),
-          }
+          a.files = evidenceFiles(a.files)
           for (const c of a.checks) delete c.log
         }
         continue

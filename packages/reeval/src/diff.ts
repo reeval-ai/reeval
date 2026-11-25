@@ -20,6 +20,15 @@ const snapshotEnv = (sandbox: Sandbox) =>
   ` GIT_WORK_TREE=${shellQuote(sandbox.workdir)}` +
   ' GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null'
 
+/**
+ * A shell command, run in the workspace, that writes the paths of its files git doesn't ignore to
+ * `list`, NUL-separated and relative to it, leaving out those under a directory named in `exclude`.
+ */
+export const keptFilesCommand = (sandbox: Sandbox, list: string, exclude: readonly string[]) => {
+  const pathspecs = ['.', ...exclude.map((d) => `:(exclude,glob)**/${d}/**`)].map(shellQuote)
+  return `${snapshotEnv(sandbox)} && ${GIT} add -A && ${GIT} ls-files -z -- ${pathspecs.join(' ')} > ${list}`
+}
+
 /** Points HEAD at a commit of `$tree` with no parent, then drops every object nothing reaches. */
 const RESET_HEAD = `c=$(${GIT} commit-tree -m base "$tree") && ${GIT} update-ref HEAD "$c" && ${GIT} prune --expire=now`
 

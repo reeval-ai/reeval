@@ -108,11 +108,21 @@ const tarCommand = (workdir: string) => {
   const flags = EXCLUDED_DIRS.map((d) => `--exclude=${shellQuote(d)}`).join(' ')
   return `cd ${shellQuote(workdir)} && COPYFILE_DISABLE=1 tar -cf - ${flags} . 2>/dev/null`
 }
-const GZIP = 'if command -v gzip >/dev/null 2>&1; then gzip -c; else cat; fi'
-const NEEDS_TAR =
+export const GZIP = 'if command -v gzip >/dev/null 2>&1; then gzip -c; else cat; fi'
+export const NEEDS_TAR =
   "command -v tar >/dev/null 2>&1 || { echo 'the sandbox has no tar' >&2; exit 127; }"
 
-const listed = (paths: string[]) => paths.slice(0, LISTED)
+export const listed = (paths: string[]) => paths.slice(0, LISTED)
+
+/** A `find` printing the directories left out by name under the current one, at most `LISTED`. */
+export const EXCLUDED_FIND = `find . -type d \\( ${EXCLUDED_DIRS.map((d) => `-name ${shellQuote(d)}`).join(' -o ')} \\) -prune -print 2>/dev/null | head -n ${LISTED}`
+
+/** `EXCLUDED_FIND`'s output as the record lists it. */
+export const excludedDirs = (found: string) =>
+  found
+    .split('\n')
+    .filter(Boolean)
+    .map((p) => redactSecrets(`${p.replace(/^\.\//, '')}/`))
 
 export type SnapshotLimits = {
   /** The directory form's cap on its files. */
@@ -152,17 +162,13 @@ export async function archiveWorkspace(
     },
     entries: null,
   })
-  const names = EXCLUDED_DIRS.map((d) => `-name ${shellQuote(d)}`).join(' -o ')
   const tar = tarCommand(box.workdir)
   const sized = await box.execOwn(
-    `${NEEDS_TAR}; cd ${shellQuote(box.workdir)} && { find . -type d \\( ${names} \\) -prune -print 2>/dev/null | head -n ${LISTED}; echo ${SIZE_MARK}; ${tar} | wc -c; echo ${SIZE_MARK}; ${tar} | { ${GZIP}; } | wc -c; }`,
+    `${NEEDS_TAR}; cd ${shellQuote(box.workdir)} && { ${EXCLUDED_FIND}; echo ${SIZE_MARK}; ${tar} | wc -c; echo ${SIZE_MARK}; ${tar} | { ${GZIP}; } | wc -c; }`,
     { signal },
   )
   const [list = '', raw = '', size = ''] = sized.stdout.split(`${SIZE_MARK}\n`)
-  const dirs = list
-    .split('\n')
-    .filter(Boolean)
-    .map((p) => redactSecrets(`${p.replace(/^\.\//, '')}/`))
+  const dirs = excludedDirs(list)
   const rawBytes = Number(raw.trim())
   const gzBytes = Number(size.trim())
   if (sized.exitCode !== 0 || !(rawBytes > 0) || !(gzBytes > 0)) {

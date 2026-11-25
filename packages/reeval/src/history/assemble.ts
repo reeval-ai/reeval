@@ -53,6 +53,7 @@ import type {
   FamilyMeta,
   FileChange,
   HarnessDescriptor,
+  KeptWorkspace,
   Outcome,
   QuestionCall,
   QuestionInput,
@@ -64,6 +65,7 @@ import type {
   WebEventType,
 } from '../types.ts'
 import { promptTokens, sumUsage } from '../usage.ts'
+import { formatBytes } from '../view/debug.ts'
 import { cellOutcome, gatePart, passRateOf, worstOutcome } from '../view/gate.ts'
 import { checkTries } from '../view/judgments.ts'
 import { isLockfile, splitPatch } from '../view/patch.ts'
@@ -82,17 +84,21 @@ import {
   type ContextFile,
   type Cost,
   type EvalEntry,
+  type ExecLine,
   type FileRef,
   type FingerprintParts,
   type GitInfo,
   type JudgmentRecord,
   type Lift,
+  RUN_WORKSPACE_LIMIT,
   type RunInvocation,
   type RunnerInfo,
   type RunRecord,
   SCHEMA_VERSION,
   type Stack,
   type SubagentRecord,
+  WORKSPACE_ARCHIVE,
+  WORKSPACE_MANIFEST,
 } from './types.ts'
 
 /** Final messages are cut at this size in the record; `transcript.jsonl` keeps them whole. */
@@ -246,9 +252,11 @@ export const judgmentKey = (index: number, question: string) =>
 const JSON_FILE = /\.(?:json|jsonl|ndjson)$/
 
 /** Collects artifact files, redacting before anything is hashed. */
-class Artifacts {
+export class Artifacts {
   readonly files = new Map<string, Uint8Array>()
   readonly moves = new Map<string, string>()
+  /** The kept workspaces' bytes so far, held to `RUN_WORKSPACE_LIMIT`. */
+  workspaceBytes = 0
 
   /**
    * A snapshot at `source` placed at `path`, or null when it isn't there: its name and size are
@@ -484,6 +492,64 @@ function checkLog(c: EvalRecord['checks'][number]): string {
       `\ntry ${i + 1} of ${of}: exit ${t.exitCode} after ${formatDuration(t.durationMs)}\n${output(t)}`,
   )
   return `${head}, ${checkTries(c) ?? `passed on try 1 of ${of}`}\n${tries.join('')}`
+}
+
+/** A `c.exec` as its line of `execs.jsonl`, its output capped. */
+function execLine(c: EvalRecord['checks'][number]): string {
+  const line: ExecLine = {
+    command: c.command,
+    ...(c.label !== undefined ? { label: c.label } : {}),
+    exitCode: c.exitCode,
+    stdout: capText(c.stdout),
+    stderr: capText(c.stderr),
+    durationMs: c.durationMs,
+    ...(c.turn !== undefined ? { turn: c.turn } : {}),
+    ...(c.retries && c.tries
+      ? {
+          retries: c.retries,
+          tries: c.tries.map((t) => ({ exitCode: t.exitCode, durationMs: t.durationMs })),
+        }
+      : {}),
+  }
+  return `${JSON.stringify(line)}\n`
+}
+
+/**
+ * The attempt's kept workspace, its archive moved from its staging sidecar and its manifest added
+ * to `files`; none past the run's cap, or when the sidecar is gone.
+ */
+export async function placeWorkspace(
+  { sha256: archiveSha256, ...kept }: NonNullable<EvalRecord['workspace']>,
+  dir: string,
+  out: Artifacts,
+  stagingRecord: string | undefined,
+  files: AttemptFiles,
+  runLimit = RUN_WORKSPACE_LIMIT,
+): Promise<KeptWorkspace | undefined> {
+  if (kept.skipped) return kept
+  if (!stagingRecord || !archiveSha256) return undefined
+  const sidecar = stagingRecord.replace(/\.json$/, '.workspace')
+  const manifest = await readFile(join(sidecar, WORKSPACE_MANIFEST), 'utf8').catch(() => null)
+  if (manifest === null) return undefined
+  if (out.workspaceBytes + kept.bytes > runLimit) {
+    return {
+      ...kept,
+      files: 0,
+      bytes: 0,
+      masked: [],
+      dropped: [],
+      skipped: {
+        cause: 'size',
+        message: `the run's kept workspaces passed ${formatBytes(runLimit)}`,
+      },
+    }
+  }
+  const path = await out.move(`${dir}/${WORKSPACE_ARCHIVE}`, join(sidecar, WORKSPACE_ARCHIVE))
+  if (!path) return undefined
+  out.workspaceBytes += kept.bytes
+  files.workspace = { path, sha256: archiveSha256, bytes: kept.bytes }
+  files.workspaceManifest = out.add(`${dir}/${WORKSPACE_MANIFEST}`, manifest)
+  return kept
 }
 
 /** Dependency and binary noise dropped, and each remaining file's diff capped. */
@@ -733,6 +799,7 @@ async function copyRef(
   if (!from) return ref
   const bytes = await readFile(join(from, ...ref.path.split('/'))).catch(() => null)
   if (!bytes) return ref
+  if (ref.path.endsWith('.gz')) return out.addBinary(ref.path, bytes)
   return out.add(ref.path, Buffer.from(bytes).toString('utf8'))
 }
 
@@ -844,6 +911,7 @@ async function addPreviousAttempt(
   for (const q of kept.answers ?? []) {
     answers.push(q.input ? { ...q, input: await copyRef(q.input, previousArtifacts, out) } : q)
   }
+  out.workspaceBytes += files.workspace?.bytes ?? 0
   const { snapshots: keptSnapshots, ...rest } = kept
   const snapshots = keptSnapshots
     ? await placeSnapshots(
@@ -1070,6 +1138,7 @@ async function attemptEvidence(
     | 'startRetries'
     | 'setupProcesses'
     | 'snapshots'
+    | 'workspace'
     | 'serves'
     | 'checks'
     | 'changedFiles'
@@ -1134,6 +1203,12 @@ async function attemptEvidence(
         out,
       )
     : []
+  if (record?.checks.length) {
+    files.execs = out.add(`${dir}/execs.jsonl`, record.checks.map(execLine).join(''))
+  }
+  const workspace = record?.workspace
+    ? await placeWorkspace(record.workspace, dir, out, stagingRecord, files)
+    : undefined
   const judgments: JudgmentRecord[] = (record?.judgements ?? []).map(({ call, ...j }, i) => ({
     ...j,
     key: judgmentKey(call ?? i, j.question),
@@ -1200,13 +1275,16 @@ async function attemptEvidence(
     ...(record?.startRetries?.length ? { startRetries: record.startRetries } : {}),
     ...(record?.setupProcesses?.length ? { setupProcesses: record.setupProcesses } : {}),
     ...(snapshots.length ? { snapshots } : {}),
+    ...(workspace ? { workspace } : {}),
     ...(record?.serves?.length ? { serves: record.serves } : {}),
     ...(record?.assertions?.length ? { assertions: record.assertions } : {}),
     ...(record?.observations?.length ? { observations: record.observations } : {}),
     checks: (record?.checks ?? []).map((c, i) => ({
       command: c.command,
+      ...(c.label !== undefined ? { label: c.label } : {}),
       exitCode: c.exitCode,
       durationMs: c.durationMs,
+      ...(c.turn !== undefined ? { turn: c.turn } : {}),
       log: out.add(`${dir}/checks/${i + 1}.log`, checkLog(c)),
       ...(c.retries && c.tries
         ? {

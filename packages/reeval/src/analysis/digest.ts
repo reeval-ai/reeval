@@ -47,7 +47,7 @@ import { observedTallies } from '../view/observations.ts'
 
 /**
  * The most of one tallied value the digest quotes: facts are never dropped to fit its cap, and a
- * value can be 4 KB.
+ * value can be any size.
  */
 const OBSERVED_VALUE_CHARS = 80
 

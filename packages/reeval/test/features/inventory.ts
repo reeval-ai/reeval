@@ -2093,9 +2093,23 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'history.observe',
     area: 'Records and studio',
-    name: "Observed values: `c.observe(name, value)` records a JSON fact per attempt (the last value per name, masked), tallied per cell in the output, shown to a judge or question that asks for them, shifted in `reeval compare`, on the studio's attempt and eval pages, in the `attempt_values` view and the analysis, and never gates",
-    fixtures: ['history/observe', 'judge/input-observations'],
+    name: "Observed values: `c.observe(name, value)` records a JSON fact per attempt (the last value per name, masked, of any size, with the sha256 of its masked JSON), tallied per cell in the output, shown to a judge or question that asks for them, shifted in `reeval compare`, on the studio's attempt and eval pages, in the `attempt_values` view and the analysis, and never gates",
+    fixtures: ['history/observe', 'history/observe-whole', 'judge/input-observations'],
     unit: ['reeval/test/observe.test.ts'],
+  },
+  {
+    id: 'history.execs',
+    area: 'Records and studio',
+    name: "Each foreground `c.exec(command, { label })` in the attempt's `execs.jsonl`, in call order: its command, label, exit code, masked stdout and stderr (head and tail past 128 KiB) and the turn it came after, which its `checks` entry keeps too; `label` with `background` refused",
+    fixtures: ['history/execs'],
+    unit: ['reeval/test/refusals.test.ts', 'reeval/test/kept-workspace.test.ts'],
+  },
+  {
+    id: 'history.kept-workspace',
+    area: 'Records and studio',
+    name: "The final workspace kept whole: every file git doesn't ignore, but dependency and cache directories, masked, as `workspace.tar.gz` with `workspace.json` listing each file's sha256, in the attempt's directory, the history and its archives, at most 100 MiB compressed per attempt and 5 GiB per run (an attempt past either keeps none, and `workspace.skipped` says why); `readTrajectory` reads it back with the attempt's execs, observations and captures",
+    fixtures: ['history/kept-workspace'],
+    unit: ['reeval/test/kept-workspace.test.ts'],
   },
   {
     id: 'assert.named-checks',
