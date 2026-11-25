@@ -122,7 +122,7 @@ export default defineEval({
       ['good/fake/fake#1', 'good/fake/fake#2', 'bad/fake/fake#1', 'bad/fake/fake#2'],
     )
 
-    const narrowed = await runCli(p.dir, ['run', 'good/', '--runs', '1'])
+    const narrowed = await runCli(p.dir, ['run', '--cell', 'good/fake/fake', '--runs', '1'])
     assert.equal(narrowed.code, 0, narrowed.stdout)
     assert.deepEqual(
       readRun(p.dir).evals[0]?.attempts.map((a) => a.id),
@@ -669,7 +669,7 @@ describe('profiles', () => {
       r.stdout,
       /^ {2}➜ {2}Profile: +pr \(auto: CI is set\)\n(.*\n)* {2}➜ {2}Scope: +3 eval files · 3 evals \(1 skipped\) · 4 cells · 6 attempts \(budget: 5 ✗\)$/m,
     )
-    assert.match(r.stdout, /^eval +harnesses +variants +runs +attempts +notes$/m)
+    assert.match(r.stdout, /^eval +agents +variants +runs +attempts +notes$/m)
     assert.equal(existsSync(join(p.dir, '.reeval/runs')), false, 'a dry run writes no run')
 
     const over = await runCli(p.dir, ['run'], { env: { CI: 'true' } })
@@ -1146,10 +1146,10 @@ describe('common mistakes', { concurrency: 4 }, () => {
         'a pairwise question across harnesses on one harness',
         () => ({
           compare: { control: a, variants: [b] },
-          questions: [{ question: 'Which?', across: ['environment', 'harness'], diff: true }],
+          questions: [{ question: 'Which?', across: 'harness', diff: true }],
           task: async () => {},
         }),
-        /questions "Which\?" in evals\/m\d+\.eval\.ts: across is 'environment'.*got "harness"/,
+        /questions "Which\?" in evals\/m\d+\.eval\.ts: across is 'environment'.*Did you mean 'agent'\?/,
       ],
       [
         'pinning something that cannot be pinned',

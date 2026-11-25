@@ -33,7 +33,7 @@ export type Effect = 'better' | 'worse' | 'same'
 
 /**
  * What an eval's cells compare: `change` when it has variants (or several environments),
- * `harness` when it has several harnesses, `both`, or `none`.
+ * `harness` when it has several agents, `both`, or `none`.
  */
 export type Across = 'none' | 'change' | 'harness' | 'both'
 

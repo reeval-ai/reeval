@@ -37,7 +37,7 @@ export const JUDGE_MARGIN = 0.1
 
 export const DERIVED_TABLES = `
 CREATE TABLE effort_m (
-  run_id TEXT, eval_key TEXT, cell_key TEXT, role TEXT, variant TEXT, harness TEXT,
+  run_id TEXT, eval_key TEXT, cell_key TEXT, role TEXT, variant TEXT, agent TEXT,
   environment TEXT, n INTEGER, tools_median REAL, tools_q1 REAL, tools_q3 REAL,
   agent_s_median REAL, agent_s_q1 REAL, agent_s_q3 REAL, file_edits_median REAL,
   files_changed_median REAL,
@@ -53,7 +53,7 @@ CREATE TABLE effort_m (
   model_s_median REAL, tool_s_median REAL, waiting_s_median REAL, other_s_median REAL
 );
 CREATE TABLE contrasts_m (
-  run_id TEXT, eval_key TEXT, harness TEXT, sandbox TEXT, a_key TEXT, b_key TEXT,
+  run_id TEXT, eval_key TEXT, agent TEXT, sandbox TEXT, a_key TEXT, b_key TEXT,
   a_environment TEXT, b_environment TEXT, a_pass INTEGER, a_counted INTEGER, b_pass INTEGER,
   b_counted INTEGER, points REAL, lo REAL, hi REAL, pass_verdict TEXT, small_sample INTEGER,
   a_tools_median REAL, b_tools_median REAL, tools_ratio REAL, tools_p REAL, separated INTEGER,
@@ -89,7 +89,7 @@ CREATE TABLE check_streaks_m (
 const CASE_LIFT_COLUMNS = [
   'run_id',
   'eval_key',
-  'harness',
+  'agent',
   'variant',
   'pairs',
   'points',
@@ -122,8 +122,8 @@ type Cell = {
   key: string
   role: string
   variant: string | null
-  harness: string
-  harness_kind: string
+  agent: string
+  agent_kind: string
   model: string | null
   environment: string
   sandbox: string
@@ -442,7 +442,7 @@ export function deriveFacts(db: DatabaseSync): void {
       cell_key: c.key,
       role: c.role,
       variant: c.variant,
-      harness: c.harness,
+      agent: c.agent,
       environment: c.environment,
       n: own?.n ?? 0,
       tools_median: own?.tools.median ?? null,
@@ -522,7 +522,7 @@ export function deriveFacts(db: DatabaseSync): void {
   }
   const contrastRows: Row[] = []
   for (const group of evalCells.values()) {
-    for (const [a, b] of contrastPairs(group)) {
+    for (const [a, b] of contrastPairs<Cell>(group)) {
       const x = side(a)
       const y = side(b)
       const e = contrastEffort(x.samples, y.samples)
@@ -537,7 +537,7 @@ export function deriveFacts(db: DatabaseSync): void {
       contrastRows.push({
         run_id: a.run_id,
         eval_key: a.eval_key,
-        harness: a.harness,
+        agent: a.agent,
         sandbox: a.sandbox,
         a_key: a.key,
         b_key: b.key,
@@ -591,7 +591,7 @@ export function deriveFacts(db: DatabaseSync): void {
         factor: 'environment',
         level: v.variant ?? v.environment,
         baseline: 'control',
-        context: v.harness,
+        context: v.agent,
         run: v.run_id,
         evalKey: v.eval_key,
         pool: `${v.comparable}\0${control.comparable}`,
@@ -607,11 +607,11 @@ export function deriveFacts(db: DatabaseSync): void {
     for (const same of bySetup.values()) {
       const base = same[0] as Cell
       for (const other of same.slice(1)) {
-        if (other.harness === base.harness) continue
+        if (other.agent === base.agent) continue
         pairs.push({
-          factor: other.harness_kind === base.harness_kind ? 'model' : 'harness',
-          level: other.harness,
-          baseline: base.harness,
+          factor: other.agent_kind === base.agent_kind ? 'model' : 'agent',
+          level: other.agent,
+          baseline: base.agent,
           context: other.variant ?? 'control',
           run: other.run_id,
           evalKey: other.eval_key,
@@ -730,7 +730,7 @@ export function deriveFacts(db: DatabaseSync): void {
       factor: 'environment',
       level: f.variant,
       baseline: 'control',
-      context: f.harness,
+      context: f.agent,
       tier: 'paired',
       run_id: f.run_id,
       eval_key: f.eval_key,
@@ -840,8 +840,8 @@ export function deriveFacts(db: DatabaseSync): void {
   // Factors with one level across every run can't be attributed.
   const levels = (pick: (c: Cell) => string) => [...new Set(cells.map(pick))]
   const single: Array<[string, string[]]> = [
-    ['harness', levels((c) => c.harness_kind)],
-    ['model', levels((c) => `${c.harness_kind}:${c.model ?? '-'}`)],
+    ['agent', levels((c) => c.agent_kind)],
+    ['model', levels((c) => `${c.agent_kind}:${c.model ?? '-'}`)],
     ['sandbox', levels((c) => c.sandbox)],
   ]
   if (cells.length && !cells.some((c) => c.role === 'variant')) {

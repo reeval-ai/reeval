@@ -965,6 +965,7 @@ export type RunSettings = {
   concurrency?: string
   tag?: string[]
   trait?: string[]
+  cell?: string[]
   filters: string[]
 }
 
@@ -1026,6 +1027,7 @@ export function resumeSettings(
   }
   if (!given.tag?.length && saved.tags.length) settings.tag = saved.tags
   if (!given.trait?.length && saved.traits?.length) settings.trait = saved.traits
+  if (!given.cell?.length && saved.cells?.length) settings.cell = saved.cells
   return { settings, notes }
 }
 

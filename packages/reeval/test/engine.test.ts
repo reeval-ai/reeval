@@ -128,13 +128,9 @@ export default defineConfig({
       'evals/scaffold.eval.ts': math(1),
       'evals/other.eval.ts': math(1),
     })
-    const r = await runCli(p.dir, ['run', 'scaffold', 'right/', '--ui', 'plain'])
+    const r = await runCli(p.dir, ['run', 'scaffold', '--cell', 'right/fake/fake', '--ui', 'plain'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    assert.match(
-      r.stdout,
-      /^ {2}➜ {2}Harness: +right$/m,
-      'the header names only the harness that runs',
-    )
+    assert.match(r.stdout, /^ {2}➜ {2}Agent: +right$/m, 'the header names only the agent that runs')
     const { evals } = readRun(p.dir)
     assert.deepEqual(
       evals.map((e) => [e.id, e.cells.map((c) => c.key)]),
@@ -142,7 +138,7 @@ export default defineConfig({
     )
   })
 
-  test('a directory named like a cell keeps that cell in the other files', async () => {
+  test('a part named like a directory picks the evals under it, not a cell of that name', async () => {
     const p = await project('dir-named-like-cell', {
       'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
@@ -159,10 +155,7 @@ export default defineConfig({
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.deepEqual(
       readRun(p.dir).evals.map((e) => [e.id, e.cells.map((c) => c.key)]),
-      [
-        ['b', ['right/fake/fake']],
-        ['right/a', ['left/fake/fake', 'right/fake/fake']],
-      ],
+      [['right/a', ['left/fake/fake', 'right/fake/fake']]],
     )
   })
 
@@ -1965,10 +1958,7 @@ export default defineEval({
         resolvedEffort: [],
       },
     ])
-    assert.match(
-      read('summary.md'),
-      /\| Harnesses \| fake \(served composer-2\.5\[fast=true\]\) \|/,
-    )
+    assert.match(read('summary.md'), /\| Agents \| fake \(served composer-2\.5\[fast=true\]\) \|/)
 
     // Canary: a harness that reports no model shows none.
     await writeFile(join(p.dir, 'reeval.config.ts'), fakeConfig())
@@ -1977,7 +1967,7 @@ export default defineEval({
     assert.doesNotMatch(quiet.stdout, / · model /)
     const again = readRun(p.dir)
     assert.deepEqual(again.run.stack.harnesses[0]?.resolvedModels, [])
-    assert.match(again.read('summary.md'), /\| Harnesses \| fake \|/)
+    assert.match(again.read('summary.md'), /\| Agents \| fake \|/)
   })
 
   test('an unawaited toHaveFile or toSucceed fails its eval, and runs before teardown', async () => {

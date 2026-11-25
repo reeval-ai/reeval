@@ -71,7 +71,7 @@ export function headerLines(c: Colors, h: RunHeader, width: number): string[] {
     ...(h.config ? row('Config', h.config) : []),
     ...(h.profile ? row('Profile', `${h.profile.name}${reason}`) : []),
     ...row(
-      many('Harness', h.harnesses.length, 'Harnesses'),
+      many('Agent', h.harnesses.length, 'Agents'),
       h.harnesses.map((id) => harness(c, h, id)),
     ),
     ...row(many('Sandbox', h.sandboxes.length, 'Sandboxes'), h.sandboxes),

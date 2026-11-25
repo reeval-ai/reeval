@@ -46,7 +46,7 @@ export function stateRows(run: RunRecord): Array<{ field: string; value: string 
           .join('; ')
       : 'none (fake sandbox)',
   })
-  rows.push({ field: 'Harnesses', value: env.harnesses.map(harnessLabel).join(', ') || 'none' })
+  rows.push({ field: 'Agents', value: env.harnesses.map(harnessLabel).join(', ') || 'none' })
   const resources = runResourcesLine(run.evals.flatMap((e) => e.attempts.map((a) => a.resources)))
   if (resources) rows.push({ field: 'Resources', value: resources })
   rows.push({

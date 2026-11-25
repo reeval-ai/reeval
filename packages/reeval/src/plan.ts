@@ -512,7 +512,7 @@ export function effortSummary(efforts: Record<string, string>): string | undefin
   for (const effort of Object.values(efforts)) on.set(effort, (on.get(effort) ?? 0) + 1)
   if (on.size <= 1) return on.size ? `effort ${[...on.keys()][0]}` : undefined
   const counts = [...on].map(([effort, n], i) =>
-    i === 0 ? `${effort} on ${plural(n, 'harness', 'harnesses')}` : `${effort} on ${n}`,
+    i === 0 ? `${effort} on ${plural(n, 'agent', 'agents')}` : `${effort} on ${n}`,
   )
   return `efforts ${counts.join(', ')}`
 }
@@ -569,7 +569,7 @@ function bestOfRange(p: EvalPlan, attempts: number): string {
  * with cases is one row, its cases counted in its notes.
  */
 export function planTable(plan: RunPlan, todos: readonly string[] = []): string[] {
-  const header = ['eval', 'harnesses', 'variants', 'runs', 'attempts', 'notes']
+  const header = ['eval', 'agents', 'variants', 'runs', 'attempts', 'notes']
   const egress = egressByEnvironment(plan.rows.filter((m) => !m.plan.skip))
   const groups = evalUnits(plan.rows).map((members) => ({
     id: (members[0] as PlanRow).family?.id ?? (members[0] as PlanRow).id,

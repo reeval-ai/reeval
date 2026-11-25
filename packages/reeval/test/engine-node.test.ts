@@ -163,7 +163,7 @@ describe('runEngine: collecting and the plan', () => {
         assert.equal(e.name, 'UsageError')
         assert.match(
           e.message,
-          /evals\/Foo\.eval\.ts and evals\/foo\.eval\.ts have one eval id, foo: an eval's id is its file's path from the evals root without the \.eval\.ts suffix, ignoring case\. Rename one of them\./,
+          /evals\/Foo\.eval\.ts \(id Foo\) and evals\/foo\.eval\.ts \(id foo\) have one eval id when case is ignored/,
         )
         return true
       },
@@ -496,7 +496,7 @@ describe('runEngine: running', () => {
     assert.equal(none.noFiles, true)
   })
 
-  test('a filter that picks a whole variant cell also runs its control, on its harness and sandbox', async () => {
+  test('--cell on a whole variant cell also runs its control, on its harness and sandbox', async () => {
     const { run } = project(['evals/a.eval.ts'])
     const arm = (index: number, key: string, role: string, n = 1) => {
       const [harness, , sandbox] = key.split('/')
@@ -516,12 +516,13 @@ describe('runEngine: running', () => {
         test0(7, 'later', { mode: 'todo' }),
       ],
     }
-    const planned = async (filters: string[]) => {
+    const planned = async (cells: string[]) => {
       let keys: string[] = []
       await engine(
         {
           run,
-          filters,
+          filters: [],
+          cells,
           onPlan: async (p) => {
             keys = p.planned.map((a) => a.key.split(' # ')[1] as string)
             return false
@@ -538,42 +539,64 @@ describe('runEngine: running', () => {
       'h/skill/s#2',
     ])
     assert.deepEqual(await planned(['h/skill/s#2']), ['h/skill/s#2'], 'one attempt runs alone')
-    assert.deepEqual(await planned(['/base/']), ['h/base/s#1', 'h/base/s#2', 'g/base/s#1'])
   })
 
-  test('a part that names a file also matches as a name or cell part in the other files', async () => {
-    const { run } = project(['evals/fake/a.eval.ts', 'evals/b.eval.ts', 'evals/c.eval.ts'])
-    const tests = {
-      'a.eval.ts': [test0(0, 'alpha [left#1]', { attempt: attempt('alpha', cell('left')) })],
-      'b.eval.ts': [
-        test0(0, 'beta [left#1]', { attempt: attempt('beta', cell('left')) }),
-        test0(1, 'beta [fake#1]', { attempt: attempt('beta', cell('fake')) }),
-      ],
-      'c.eval.ts': [test0(0, 'gamma [left#1]', { attempt: attempt('gamma', cell('left')) })],
+  test('--cell runs only that cell key or attempt id, and skips attempts with no cell', async () => {
+    const { run } = project(['evals/a.eval.ts'])
+    const arm = (index: number, key: string, role: string, n = 1) => {
+      const [harness, , sandbox] = key.split('/')
+      return test0(index, `x [${key}#${n}]`, {
+        attempt: attempt('x', { cell: { key, role, harness, sandbox }, n } as never),
+      })
     }
-    const { spawn, spawned } = fakeSpawn(passing(tests))
-    const r = await engine({ run, filters: ['fake'] }, spawn)
-    assert.deepEqual(spawned.sort(), [
-      'a.eval.ts:0',
-      'a.eval.ts:collect',
-      'b.eval.ts:1',
-      'b.eval.ts:collect',
-      'c.eval.ts:collect',
-    ])
-    assert.deepEqual(
-      r.evals.map((e) => e.key),
-      ['beta # fake#1', 'alpha # left#1'],
-    )
-
-    const narrowed = await engine(
-      { run, filters: ['fake', 'beta'] },
+    const tests = {
+      'a.eval.ts': [
+        arm(0, 'h/base/s', 'control'),
+        arm(1, 'h/base/s', 'control', 2),
+        arm(2, 'h/skill/s', 'variant'),
+        test0(3, 'todo', { mode: 'todo' }),
+      ],
+    }
+    let keys: string[] = []
+    await engine(
+      {
+        run,
+        filters: [],
+        cells: ['h/skill/s#1'],
+        onPlan: async (p) => {
+          keys = p.planned.map((a) => a.key.split(' # ')[1] as string)
+          return false
+        },
+      },
       fakeSpawn(passing(tests)).spawn,
     )
-    assert.deepEqual(
-      narrowed.evals.map((e) => e.key),
-      ['beta # fake#1'],
-      'a name part still narrows what a path part picks',
+    assert.ok(keys.includes('h/skill/s#1'))
+    assert.ok(!keys.some((k) => k.startsWith('todo')))
+    keys = []
+    await engine(
+      {
+        run,
+        filters: [],
+        cells: ['h/base/s#2'],
+        onPlan: async (p) => {
+          keys = p.planned.map((a) => a.key.split(' # ')[1] as string)
+          return false
+        },
+      },
+      fakeSpawn(passing(tests)).spawn,
     )
+    assert.deepEqual(keys, ['h/base/s#2'])
+  })
+
+  test('a part that names a file also matches as an id in the other files', async () => {
+    const { run } = project(['evals/fake/a.eval.ts', 'evals/b.eval.ts', 'evals/fake.eval.ts'])
+    const tests = {
+      'a.eval.ts': [test0(0, 'alpha [left#1]', { attempt: attempt('alpha', cell('left')) })],
+      'b.eval.ts': [test0(0, 'beta [fake#1]', { attempt: attempt('beta', cell('fake')) })],
+      'fake.eval.ts': [test0(0, 'gamma [left#1]', { attempt: attempt('gamma', cell('left')) })],
+    }
+    const r = await engine({ run, filters: ['fake'] }, fakeSpawn(passing(tests)).spawn)
+    assert.deepEqual(r.evals.map((e) => e.key).sort(), ['alpha # left#1', 'gamma # left#1'])
   })
 
   test('a path on disk is only a path: it collects only the files it names', async () => {

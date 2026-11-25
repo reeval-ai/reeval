@@ -1326,9 +1326,10 @@ export const CASES: Record<string, Case[]> = {
     ],
     ['across unknown', options({ questions: [{ question: 'Q', diff: true, across: 'cell' }] })],
     ['across an empty list', options({ questions: [{ question: 'Q', diff: true, across: [] }] })],
+    ['across harness', options({ questions: [{ question: 'Q', diff: true, across: 'harness' }] })],
     [
       'across twice',
-      options({ questions: [{ question: 'Q', diff: true, across: ['harness', 'harness'] }] }),
+      options({ questions: [{ question: 'Q', diff: true, across: ['agent', 'agent'] }] }),
     ],
     ['choices a string', options({ questions: [{ question: 'Q', diff: true, choices: 'yes' }] })],
     ['choices of one', options({ questions: [{ question: 'Q', diff: true, choices: ['yes'] }] })],
@@ -1393,7 +1394,7 @@ export const CASES: Record<string, Case[]> = {
         compare: { control: e1, variants: [e2] },
         questions: [
           { question: 'Q', transcript: 'tools', turns: 'last' },
-          { question: 'R', model: 'google/g', across: ['environment', 'harness'], diff: true },
+          { question: 'R', model: 'google/g', across: ['environment', 'agent'], diff: true },
           { question: 'S', choices: ['yes', 'no'], task: true, output: true },
         ],
       }),

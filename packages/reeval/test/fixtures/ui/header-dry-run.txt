@@ -4,7 +4,7 @@ REEVAL v0.16.1  dry run
                 (resumed, 3 attempts done, 2 errors to retry)
   ➜  Config:    ../reeval.config.ts
   ➜  Profile:   pr (auto: CI is set)
-  ➜  Harnesses: cursor:composer-2.5 (effort: not checked)
+  ➜  Agents:    cursor:composer-2.5 (effort: not checked)
                 claude-code:claude-haiku-4-5 (effort: none)
                 codex:gpt-5.1-codex (effort: medium)
   ➜  Sandboxes: docker, fake
@@ -13,7 +13,7 @@ REEVAL v0.16.1  dry run
                 3–20 attempts (budget: 15 ✗, 30m)
   ➜  Est. Time: ~1m 54s (concurrency: 8) · ~15m 10s (serial)
 
-eval  harnesses  runs
+eval  agents  runs
 a     3          4
 
   ⚠  Warning: skill.git(github:firebase/agent-skills) uses no

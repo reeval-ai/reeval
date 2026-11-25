@@ -86,7 +86,7 @@ const STATE_ROWS = [
   'Executed at',
   'Lockfiles',
   'Images',
-  'Harnesses',
+  'Agents',
   'Environments',
   'Judge',
   'Context',

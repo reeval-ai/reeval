@@ -1935,7 +1935,7 @@ test("compare names a gate change and classifies base's attempts under head's ga
   )
   assert.deepEqual(
     row(cell(loose, half), cell('all', half, { harness: 'h2' })),
-    ['drift', 'pass', 'fail', null, ['harness config changed', 'gate changed']],
+    ['drift', 'pass', 'fail', null, ['agent config changed', 'gate changed']],
     'a gate change beside another part is drift, naming both',
   )
 })

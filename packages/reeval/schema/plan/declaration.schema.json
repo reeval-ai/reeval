@@ -2363,7 +2363,7 @@
     "PairFactor": {
       "description": "A matrix factor a pairwise question varies; the others are held.",
       "type": "string",
-      "enum": ["environment", "agent"]
+      "enum": ["environment", "agent", "harness"]
     },
     "PhasedEgress": {
       "description": "An egress policy per phase of the attempt: `setup` covers its files and setup steps, `agent` the harness's start, every turn and every check after them. A phase it leaves unset keeps the policy it inherits.",
@@ -2808,13 +2808,15 @@
           "description": "The factor it varies when pairing, or both: `'environment'` holds the harness, `'harness'` holds the environment. Unset, it's asked of each attempt on its own.",
           "anyOf": [
             {
-              "$ref": "#/$defs/PairFactor"
+              "type": "string",
+              "enum": ["environment", "agent"]
             },
             {
               "minItems": 1,
               "type": "array",
               "items": {
-                "$ref": "#/$defs/PairFactor"
+                "type": "string",
+                "enum": ["environment", "agent"]
               }
             }
           ]

@@ -11,6 +11,9 @@ export const isOneEvalFile = (file: string) => ONE_EVAL_FILE.test(file)
 export const evalId = (file: string, path: readonly string[]) =>
   (isOneEvalFile(file) ? path : [file, ...path]).join(' › ')
 
+/** Stable id for a tree eval or a case entry recorded before one eval per file: always prefixes the file. */
+export const legacyEvalId = (file: string, path: readonly string[]) => [file, ...path].join(' › ')
+
 /** The directory every include pattern starts in: `evals/**\/*.eval.ts` → `evals`. */
 export function evalRoot(include: readonly string[]): string {
   const dirs = include.map((pattern) => {

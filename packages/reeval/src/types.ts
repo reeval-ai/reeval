@@ -3944,6 +3944,8 @@ export type RunContext = {
   tags: string[]
   /** `reeval run --trait`: the cells to run, by their environment's traits; all must hold. */
   traits?: TraitFilter[]
+  /** `reeval run --cell`: only attempts on these cell keys or `cell#n` ids. */
+  cells?: string[]
   /** How many attempts run at once, across the run. */
   concurrency: number
   profile: ResolvedProfile | null

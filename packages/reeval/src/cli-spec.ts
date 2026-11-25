@@ -1,4 +1,5 @@
 // reeval's CLI as data: every command, subcommand, flag and help line. `reeval` builds its parser
+import { matchesEvalId } from './engine/files.ts'
 // (`cli-parse.ts`) and its `--help` from it, and `reeval analyze` checks each suggested verify
 // command against it, so a model can't invent a flag.
 
@@ -45,6 +46,7 @@ export const FLAGS = {
   'output-logs': { type: 'string' },
   tag: { type: 'string', multiple: true },
   trait: { type: 'string', multiple: true },
+  cell: { type: 'string', multiple: true },
   http: { type: 'boolean' },
   port: { type: 'string' },
   host: { type: 'string', multiple: true },
@@ -151,6 +153,7 @@ export const RUN_FLAGS: FlagName[] = [
   'registry',
   'tag',
   'trait',
+  'cell',
   'record',
   'ui',
   'log-order',
@@ -239,6 +242,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
       },
       { flags: '--tag <tag>', help: 'Only evals with this tag; !tag excludes; repeatable' },
       { flags: '--trait <key=value>', help: 'Only cells with this environment trait; repeatable' },
+      { flags: '--cell <key>', help: 'Only this cell key or cell#n attempt id; repeatable' },
       { flags: '--record', help: 'Also record the run to the history folder' },
       { flags: '--resume [ref]', help: 'Resume a stopped or interrupted run (default: newest)' },
       {
@@ -916,12 +920,12 @@ export function selectionProblem(
     }
   }
   const byName = (e: SelectableEval, f: string) =>
-    e.name.includes(f) || e.cells.some((c) => c.includes(f)) || e.id?.includes(f)
+    e.id ? matchesEvalId(e.id, f) : matchesEvalId(e.name, f)
   const paths = filters.filter((f) => evals.some((e) => e.file.includes(f.replace(/^\.\//, ''))))
   const names = filters.filter((f) => !paths.includes(f))
   const unknown = names.filter((f) => !evals.some((e) => byName(e, f)))
   if (unknown.length) {
-    return `${name}: filter ${unknown.map((f) => `"${f}"`).join(', ')} matches no eval file, eval name or cell in the run`
+    return `${name}: filter ${unknown.map((f) => `"${f}"`).join(', ')} matches no eval file or eval id in the run`
   }
   const selected = evals.filter(
     (e) =>

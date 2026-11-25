@@ -132,8 +132,12 @@ export const cases: PlanCase[] = [
     args: ['--profile', 'one-lean', 'evals/scoped-pinned.eval.ts'],
   },
   { dir: 'compare', name: 'cases', args: ['evals/cases/'] },
-  { dir: 'compare', name: 'cases-filtered', args: ['evals/cases/', 'grace'] },
-  { dir: 'compare', name: 'mixed-filter', args: ['evals/variants/', 'b/skilled'] },
+  { dir: 'compare', name: 'cases-filtered', args: ['evals/cases/', 'cases/keyed#grace'] },
+  {
+    dir: 'compare',
+    name: 'mixed-filter',
+    args: ['evals/variants/', '--cell', 'b/skilled/docker'],
+  },
   { dir: 'compare', name: 'study', args: ['evals/study.eval.ts'] },
   { dir: 'observe', name: 'observe', args: [] },
   { dir: 'where', name: 'where', args: [] },
@@ -142,11 +146,15 @@ export const cases: PlanCase[] = [
   { dir: 'where', name: 'trait-none', args: ['--trait', 'auth=clerk', '--trait', 'stack=vite'] },
   { dir: 'where', name: 'limit-traits', args: ['--profile', 'vite'] },
   { dir: 'compare', name: 'verdicts', args: ['evals/verdicts/'] },
-  { dir: 'compare', name: 'verdicts-filtered', args: ['evals/verdicts/', 'b/skilled'] },
+  {
+    dir: 'compare',
+    name: 'verdicts-filtered',
+    args: ['evals/verdicts/', '--cell', 'b/skilled/docker'],
+  },
   {
     dir: 'compare',
     name: 'verdicts-some-cases',
-    args: ['evals/verdicts/', 'verdicts/six-cases [a]'],
+    args: ['evals/verdicts/', 'verdicts/six-cases#a'],
   },
   { dir: 'compare', name: 'max-variants', args: ['--profile', 'lean', 'evals/limited/'] },
   { dir: 'compare', name: 'off-study', args: ['--profile', 'off', 'evals/study.eval.ts'] },
@@ -250,6 +258,12 @@ export const cases: PlanCase[] = [
   { dir: 'selection', name: 'only-local', args: [] },
   { dir: 'selection', name: 'tags', args: ['--tag', 'slow', '--tag', '!flaky'] },
   { dir: 'selection', name: 'group-and-eval-filter', args: ['slow/big'] },
+  { dir: 'ids', name: 'default', args: [] },
+  { dir: 'ids', name: 'nested', args: ['nested/deep'] },
+  { dir: 'ids', name: 'case', args: ['with-case#x'] },
+  { dir: 'ids', name: 'glob', args: ['nested/*'] },
+  { dir: 'skip', name: 'reason', args: [] },
+  { dir: 'agents-profile', name: 'replaces', args: ['--profile', 'ci'] },
   { dir: 'revision', name: 'cascade', args: [] },
   { dir: 'filters', name: 'dir-named-like-cell', args: ['right'] },
   { dir: 'filters', name: 'dir-path-only', args: ['evals/right'] },
@@ -1639,7 +1653,7 @@ export default defineEval({ environment: mixed, runs: 1, egress: 'deny-all', tas
 
   test("a cell filter narrows each row's counts in the text plan, a variant keeping its control", async () => {
     const p = await fixture('plan/compare')
-    const r = await runCli(p.dir, ['run', '--dry-run', 'variants/', 'b/skilled'])
+    const r = await runCli(p.dir, ['run', '--dry-run', 'variants/', '--cell', 'b/skilled/docker'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.match(r.stdout, /2 evals · 4 cells · 12 attempts/)
     const rows = r.stdout
@@ -1652,20 +1666,18 @@ export default defineEval({ environment: mixed, runs: 1, egress: 'deny-all', tas
     ])
   })
 
-  test('a filter part that matches no file, eval name or cell exits 2 and names it', async () => {
+  test('a filter part that matches no file or eval id exits 2 and names it', async () => {
     const p = await fixture('plan/compare')
-    for (const args of [
-      ['variants/', 'nosuchcell'],
-      ['b/skilled', 'nosuchcell'],
-    ]) {
-      const r = await runCli(p.dir, ['run', '--dry-run', ...args])
-      assert.equal(r.code, 2, r.stdout + r.stderr)
-      assert.equal(r.stdout, '')
-      assert.match(
-        r.stderr,
-        /filter "nosuchcell" matches no eval file, eval name or cell in evals\/\*\*\/\*\.eval\.ts/,
-      )
-    }
+    const unknownName = await runCli(p.dir, ['run', '--dry-run', 'variants/', 'nosuchcell'])
+    assert.equal(unknownName.code, 2, unknownName.stdout + unknownName.stderr)
+    assert.equal(unknownName.stdout, '')
+    assert.match(
+      unknownName.stderr,
+      /filter "nosuchcell" matches no eval file or eval id in evals\/\*\*\/\*\.eval\.ts/,
+    )
+    const unknownCell = await runCli(p.dir, ['run', '--dry-run', '--cell', 'nosuchcell'])
+    assert.equal(unknownCell.code, 2, unknownCell.stdout + unknownCell.stderr)
+    assert.match(unknownCell.stderr, /No evals matched/)
   })
 
   test('--json without --dry-run runs, and prints the suite result instead of the plan', async () => {

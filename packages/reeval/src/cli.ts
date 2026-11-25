@@ -1523,6 +1523,7 @@ async function runCommand(
         filters: savedFilters(setup.config.root, filters),
         tags: runFlags.tag ?? [],
         ...(runFlags.trait?.length ? { traits: runFlags.trait } : {}),
+        ...(runFlags.cell?.length ? { cells: runFlags.cell } : {}),
       }
   invocation.runId = ctx.runId
   const githubOut = process.env.GITHUB_OUTPUT
@@ -1596,7 +1597,9 @@ async function runCommand(
     executed = await executeRun(ctx, setup, filters, renderer, {
       startedWith,
       notes: resumed?.notes ?? [],
-      narrowed: !!resumed && (given.length > 0 || !!flags.tag?.length || !!flags.trait?.length),
+      narrowed:
+        !!resumed &&
+        (given.length > 0 || !!flags.tag?.length || !!flags.trait?.length || !!flags.cell?.length),
       ...(savedEvents ? { events: savedEvents } : {}),
       ...(heartbeat ? { heartbeat } : {}),
       ...(cloud ? { target: cloud.target, targetDetail: cloud.detail } : {}),
@@ -2021,6 +2024,7 @@ async function resumedRun(
     concurrency: flags.concurrency,
     tag: flags.tag,
     trait: flags.trait,
+    cell: flags.cell,
     filters,
   }
   const flag = flags.resume === undefined ? '--retry-errors' : '--resume'
@@ -2129,6 +2133,7 @@ async function prepareRun(
     runs,
     tags: [...(flags.tag ?? []), ...(profile?.tags ?? [])],
     traits: traitFlags(flags.trait),
+    ...(flags.cell?.length ? { cells: flags.cell } : {}),
     sandboxes,
     /**
      * The run's concurrency. Without one given, it's sized from where the first sandbox that
@@ -2233,6 +2238,7 @@ async function startRun(
     runs,
     tags,
     traits,
+    cells,
     sandboxes,
     sizeRun,
     verbosity,
@@ -2282,6 +2288,7 @@ async function startRun(
       runs,
       tags,
       traits,
+      ...(cells?.length ? { cells } : {}),
       concurrency,
       profile,
       verbosity,
@@ -2329,6 +2336,7 @@ async function startRun(
     runs,
     tags,
     traits,
+    ...(cells?.length ? { cells } : {}),
     concurrency,
     profile,
     verbosity,
@@ -2366,7 +2374,7 @@ function maskedFilterHint(parts: string[]): string {
 function unmatchedFilter(config: StartedRun['config'], parts: string[]) {
   const which = parts.map((p) => `"${p}"`).join(', ')
   return new UsageError(
-    `filter ${which} ${parts.length === 1 ? 'matches' : 'match'} no eval file, eval name or cell in ${config.include.join(', ')}${maskedFilterHint(parts)}`,
+    `filter ${which} ${parts.length === 1 ? 'matches' : 'match'} no eval file or eval id in ${config.include.join(', ')}${maskedFilterHint(parts)}`,
   )
 }
 
@@ -2381,8 +2389,9 @@ function namesDeclaredSecret(evals: ReadonlyArray<{ id: string }>): UsageError |
     const [file, ...names] = parts.length > 1 ? parts : ['', ...parts]
     const masked = names.map((n) => redactSecrets(n))
     if (masked.every((n, i) => n === names[i])) continue
+    const caseMember = /#/.test(id) || / \[.*\]$/.test(id)
     const fix =
-      parts.length === 1 && !/ \[.*\]$/.test(id)
+      parts.length === 1 && !caseMember
         ? 'rename the file without the secret'
         : 'name it without the secret'
     return new UsageError(
@@ -2465,6 +2474,7 @@ async function executeRun(
       runs,
       tags,
       traits,
+      ...(ctx.cells?.length ? { cells: ctx.cells } : {}),
       concurrency,
       profile,
       verbosity,
@@ -3031,6 +3041,7 @@ async function executeRun(
       // an environment's `extend` method doesn't cross to the workers.
       run,
       filters,
+      ...(run.cells?.length ? { cells: run.cells } : {}),
       onPlan,
       ...(started.heartbeat ? { heartbeat: beatWith(started.heartbeat, machines) } : {}),
       services: {

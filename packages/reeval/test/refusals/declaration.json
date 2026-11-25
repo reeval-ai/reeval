@@ -47,7 +47,7 @@
   "load: environments": "UsageError: evals/load-environments.eval.ts sets environments. defineEval takes environment: one environment, or a list.",
   "load: no default export": "UsageError: it has no default export. An eval file's default export is its eval: export default defineEval({ \u2026 }).",
   "load: no task": "UsageError: its eval has no task. Give defineEval the eval's body, e.g. task: async (c) => { \u2026 }.",
-  "load: two ids equal ignoring case": "UsageError: exit 2: reeval: evals/Foo.eval.ts and evals/foo.eval.ts have one eval id, foo: an eval's id is its file's path from the evals root without the .eval.ts suffix, ignoring case. Rename one of them.",
+  "load: two ids equal ignoring case": "UsageError: exit 2: reeval: evals/Foo.eval.ts (id Foo) and evals/foo.eval.ts (id foo) have one eval id when case is ignored. An eval's id is its file's path from the evals root without the .eval.ts suffix. Rename one of them.",
   "not a list": "UsageError: The declaration tree's children must be a list (got {\"type\":\"eval\"})",
   "skip: a number": "UsageError: skip in evals/skip-a-number.eval.ts must be true, false or why it's skipped, e.g. skip: 'flaky on CI' (got 1).",
   "skip: a reason is accepted": null,

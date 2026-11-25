@@ -911,7 +911,7 @@ describe('run header', () => {
       [
         planEvent({
           header: many,
-          details: ['eval  harnesses  runs', 'a     3          4'],
+          details: ['eval  agents  runs', 'a     3          4'],
           hints: [],
           sandboxWarnings: [
             {

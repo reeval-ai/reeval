@@ -941,6 +941,8 @@ export type RunInvocation = {
   tags: string[]
   /** `--trait`, as given (`key=value`); unset without any. */
   traits?: string[]
+  /** `--cell`; unset without any. */
+  cells?: string[]
   /**
    * The file `--events` wrote the run's event stream to, from the project root in posix form
    * (`../…` outside it), so a resume appends to it; unset without `--events`.

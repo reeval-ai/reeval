@@ -168,6 +168,18 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/refusals.test.ts'],
   },
   {
+    id: 'eval.define',
+    area: 'Config and selection',
+    name: '`defineEval` as the file default export: one eval per file, id from its path, case members as `#key`, `--cell` for cell selection',
+    plan: ['ids/default', 'ids/case', 'agents-profile/replaces'],
+    fixtures: ['run/define-eval'],
+    unit: [
+      'reeval/test/engine-loader.test.ts',
+      'reeval/test/cases.test.ts',
+      'reeval/test/eval-names.test.ts',
+    ],
+  },
+  {
     id: 'cases',
     area: 'Config and selection',
     name: '`cases` and `caseKey`: one eval over a list of cases, counted and named once with its cases as rows inside it, pooled into a pass rate that `gate: { passRate }` gates and a paired lift that `minLift` gates; older records fold into the same shape, an `evaluate.each` family under its template without placeholders, so a port continues its history',
@@ -574,7 +586,15 @@ export const inventory: InventoryFeature[] = [
     id: 'selection.modes',
     area: 'Config and selection',
     name: '`skip`, `skip: "reason"` and filters; profile `limit` and file-path filters',
-    plan: ['selection/only-local'],
+    plan: [
+      'selection/only-local',
+      'selection/group-and-eval-filter',
+      'skip/reason',
+      'ids/default',
+      'ids/nested',
+      'ids/case',
+      'ids/glob',
+    ],
     unit: ['reeval/test/options.test.ts', 'reeval/test/engine.test.ts', 'reeval/test/plan.test.ts'],
   },
   {
@@ -617,7 +637,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'selection.filters',
     area: 'Config and selection',
-    name: 'Filters (path, eval name, cell key; the kinds narrow each other; a part naming a file but not on disk also matches names and cells; a whole variant cell brings its control); no match exits 2',
+    name: 'Filters (path and eval id: exact, segment prefix and glob; `--cell` for a cell key or attempt id; the kinds narrow each other; a part naming a file but not on disk also matches eval ids; a whole variant cell brings its control); no match exits 2',
     plan: [
       'compare/mixed-filter',
       'selection/group-and-eval-filter',

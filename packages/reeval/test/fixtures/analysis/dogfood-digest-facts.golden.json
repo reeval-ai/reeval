@@ -694,7 +694,7 @@
     "id": "F21",
     "kind": "factor",
     "tier": "not_measured",
-    "factor": "harness",
+    "factor": "agent",
     "level": "cursor",
     "note": "one level in every run, so its effect is not measured"
   },

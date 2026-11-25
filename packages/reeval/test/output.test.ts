@@ -67,7 +67,7 @@ describe('every layout', () => {
     for (const [across, kind] of [
       ['none', 'results'],
       ['change', 'measure'],
-      ['harness', 'harnesses'],
+      ['harness', 'agents'],
       ['both', 'both'],
     ] as const) {
       assert.deepEqual(layout(across, false, false), { kind, family: false })

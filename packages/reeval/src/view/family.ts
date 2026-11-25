@@ -80,6 +80,9 @@ const EDGE = /^[\s:;,|–—-]+|[\s:;,|–—-]+$/g
  * the first placeholder and after the last comes off: `fixes $id` labels `fixes GH-101` `GH-101`.
  */
 export function caseLabel(template: string, name: string): string {
+  if (name.startsWith(`${template}#`)) {
+    return name.slice(template.length + 1) || name
+  }
   if (name.startsWith(`${template} [`) && name.endsWith(']')) {
     return name.slice(template.length + 2, -1) || name
   }

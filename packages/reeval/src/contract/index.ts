@@ -83,7 +83,12 @@ import {
   skillSourceSchema,
   substituteInSchema,
 } from './plain.ts'
-import { pairFactorSchema, questionOptionsSchema, questionSchema } from './questions.ts'
+import {
+  pairFactorPersistedSchema,
+  pairFactorSchema,
+  questionOptionsSchema,
+  questionSchema,
+} from './questions.ts'
 import { installStepSchema } from './recipe.ts'
 import { durationSchema, jsonValueSchema } from './shared.ts'
 import { tartSandboxSchema } from './tart.ts'
@@ -126,7 +131,7 @@ export const CONTRACT_SCHEMAS: Record<string, z.ZodType> = {
   GatewayEntryData: gatewayEntryDataSchema,
   Question: questionSchema,
   QuestionOptions: questionOptionsSchema,
-  PairFactor: pairFactorSchema,
+  PairFactor: pairFactorPersistedSchema,
   GatePolicy: gatePolicySchema,
   EgressPolicy: egressPolicySchema,
   PhasedEgress: phasedEgressSchema,

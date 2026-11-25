@@ -17,6 +17,17 @@ const raw = before?.runs[0]?.raw as unknown as RunRecord
 const read = () => readableRecord(structuredClone(raw) as never)
 const evalNamed = (r: RunRecord, name: string) => r.evals.find((e) => e.name === name)
 
+for (const corpus of ['before-cases', 'before-families'] as const) {
+  test(`${corpus}: unfoldCases(foldCases(r)) keeps each case entry's stored id`, () => {
+    const entry = corpusEntries().find((e) => e.name === corpus)
+    const stored = entry?.runs[0]?.raw as unknown as RunRecord | undefined
+    assert.ok(stored, corpus)
+    const folded = foldCases(readableRecord(structuredClone(stored) as never))
+    const back = unfoldCases(folded)
+    assert.deepEqual(back.evals.map((e) => e.id).sort(), stored.evals.map((e) => e.id).sort())
+  })
+}
+
 describe('an eval with cases in a record from before it was one entry', () => {
   test('is one eval per declaration, its cases inside it, and the run counts it once', () => {
     assert.ok(raw, 'the before-cases corpus entry')
@@ -100,7 +111,7 @@ describe('an eval with cases in a record from before it was one entry', () => {
     const back = unfoldCases(r)
     const keys = (x: RunRecord) => x.evals.flatMap((e) => e.attempts.map((a) => a.key)).sort()
     assert.deepEqual(keys(back), keys(raw))
-    assert.deepEqual(back.evals.map((e) => e.id).sort(), raw.evals.map((e) => e.name).sort())
+    assert.deepEqual(back.evals.map((e) => e.id).sort(), raw.evals.map((e) => e.id).sort())
     const rated = back.families?.find((f) => f.name === 'rated')
     const old = raw.families?.find((f) => f.name === 'rated')
     assert.deepEqual(rated?.rates, old?.rates)
@@ -110,7 +121,7 @@ describe('an eval with cases in a record from before it was one entry', () => {
     )
     const [only] = caseEntries(evalNamed(r, 'alone') as never)
     assert.deepEqual(only?.family, {
-      id: 'alone',
+      id: 'evals/cases.eval.ts › alone',
       name: 'alone',
       case: 0,
       cases: 1,

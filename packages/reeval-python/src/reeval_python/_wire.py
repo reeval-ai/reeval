@@ -1563,7 +1563,7 @@ class OpenRouterGatewayDescriptor(TypedDict):
 
 
 # A matrix factor a pairwise question varies; the others are held.
-PairFactor: TypeAlias = "Literal[\"environment\", \"agent\"]"
+PairFactor: TypeAlias = "Literal[\"environment\", \"agent\", \"harness\"]"
 
 
 # A regular expression, where a matcher takes a string or a `RegExp`.
@@ -1737,7 +1737,7 @@ class QuestionTranscript3(TypedDict):
 class Question(TypedDict):
     # The factor it varies when pairing, or both: `'environment'` holds the harness, `'harness'`
     # holds the environment. Unset, it's asked of each attempt on its own.
-    across: NotRequired[PairFactor | list[PairFactor]]
+    across: NotRequired[Literal["environment", "agent"] | list[Literal["environment", "agent"]]]
     # Each attempt's own captures, by name; `true` sends all of them.
     artifacts: NotRequired[Literal[True] | list[str]]
     # `c.exec` results; a list shows only those commands, as passed to `c.exec`.

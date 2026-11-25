@@ -200,16 +200,16 @@ export default defineEval({
     })
     assert.equal((await runCli(p.dir)).code, 0)
     const { run } = readRun(p.dir)
-    const cells = await query(p.dir, 'SELECT key, harness FROM cells ORDER BY key')
-    const harness = (key: string) => cells.find((c) => c.key === key)?.harness
-    assert.ok(harness('fake/plain/fake'))
+    const cells = await query(p.dir, 'SELECT key, agent FROM cells ORDER BY key')
+    const agentOf = (key: string) => cells.find((c) => c.key === key)?.agent
+    assert.ok(agentOf('fake/plain/fake'))
 
     const rows = await query(p.dir, 'SELECT * FROM check_rates ORDER BY role, label')
     const row = (cell: string, environment: string, role: string, label: string) => ({
       run_id: run.runId,
       eval_key: 'greets',
       cell_key: cell,
-      harness: harness(cell),
+      agent: agentOf(cell),
       environment,
       role,
       label,

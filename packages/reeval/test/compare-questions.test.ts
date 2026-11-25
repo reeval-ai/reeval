@@ -532,17 +532,17 @@ export default defineEval({ ...one, agents: fakeAgent({ failWith: 'agent CLI fai
     ])
     const byCell = await runCli(p.dir, [
       'query',
-      `SELECT harness, role, choice, COUNT(*) AS n FROM attempt_answers WHERE ${okTxt} GROUP BY harness, role, choice ORDER BY harness, role`,
+      `SELECT agent, role, choice, COUNT(*) AS n FROM attempt_answers WHERE ${okTxt} GROUP BY agent, role, choice ORDER BY agent, role`,
       '--json',
     ])
     assert.equal(byCell.code, 0, byCell.stderr)
     assert.deepEqual(JSON.parse(byCell.stdout), [
-      { harness: 'bad', role: 'control', choice: 'no', n: 2 },
-      { harness: 'bad', role: 'variant', choice: 'no', n: 2 },
-      { harness: 'one', role: 'control', choice: 'yes', n: 2 },
-      { harness: 'one', role: 'variant', choice: 'yes', n: 2 },
-      { harness: 'two', role: 'control', choice: 'yes', n: 2 },
-      { harness: 'two', role: 'variant', choice: 'yes', n: 2 },
+      { agent: 'bad', role: 'control', choice: 'no', n: 2 },
+      { agent: 'bad', role: 'variant', choice: 'no', n: 2 },
+      { agent: 'one', role: 'control', choice: 'yes', n: 2 },
+      { agent: 'one', role: 'variant', choice: 'yes', n: 2 },
+      { agent: 'two', role: 'control', choice: 'yes', n: 2 },
+      { agent: 'two', role: 'variant', choice: 'yes', n: 2 },
     ])
     const facts = await digestFacts(p.dir, 'attempt-question')
     assert.deepEqual(facts.find((f) => f.question === 'Did it write ok.txt?')?.choices, [

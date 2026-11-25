@@ -182,7 +182,7 @@ describe('facts on the dogfood history (2 runs, 36 real Cursor attempts)', () =>
         .filter((r) => r.tier === 'not_measured')
         .map((r) => [r.factor, r.level]),
       [
-        ['harness', 'cursor'],
+        ['agent', 'cursor'],
         ['model', 'cursor:composer-2.5'],
         ['sandbox', 'es-tarball'],
       ],
@@ -237,7 +237,7 @@ describe('facts on the harness-compare history (Cursor and Antigravity, 3 runs)'
     const compareControl = rows.find(
       (r) =>
         r.tier === 'controlled' &&
-        r.factor === 'harness' &&
+        r.factor === 'agent' &&
         r.context === 'control' &&
         String(r.eval_key).startsWith('evals/compare.es.ts'),
     )
@@ -823,7 +823,6 @@ describe('reeval CLI spec', () => {
       'reeval run --tag !skill',
       'reeval run evals/skill.eval.ts --runs 6',
       'reeval run skill',
-      'reeval run with-skill --tag skill',
       'reeval image build hello',
       'reeval query effort',
     ]
@@ -835,7 +834,7 @@ describe('reeval CLI spec', () => {
       ],
       [
         'reeval run nosuchname',
-        /reeval run: filter "nosuchname" matches no eval file, eval name or cell in the run/,
+        /reeval run: filter "nosuchname" matches no eval file or eval id in the run/,
       ],
       [
         'reeval run hello.eval.ts --tag skill',

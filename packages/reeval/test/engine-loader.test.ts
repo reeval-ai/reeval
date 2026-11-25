@@ -6,7 +6,13 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, sep } from 'node:path'
 import { describe, test } from 'node:test'
 import { pathToFileURL } from 'node:url'
-import { filterFiles, findEvalFiles, matchesFilter } from '../src/engine/files.ts'
+import {
+  filterFiles,
+  findEvalFiles,
+  matchesCell,
+  matchesEvalId,
+  matchesFilter,
+} from '../src/engine/files.ts'
 import {
   checkTsconfig,
   loadEvalFile,
@@ -77,14 +83,32 @@ describe('findEvalFiles and filterFiles', () => {
     }
   })
 
-  test('a name filter matches part of the eval id or cell#n', () => {
-    const attempt = { cell: { key: 'fake/-/fake' }, n: 2 }
+  test('a name filter matches an eval id by exact match, segment prefix, glob or #case', () => {
+    assert.equal(matchesEvalId('foo/bar', 'foo/bar'), true)
+    assert.equal(matchesEvalId('foo/bar/baz', 'foo/bar'), true)
+    assert.equal(matchesEvalId('foo/bar/baz', 'foo/bar/'), true)
+    assert.equal(matchesEvalId('good/child', 'good/'), true)
+    assert.equal(matchesEvalId('good/child', 'good'), true)
+    assert.equal(matchesEvalId('foo/bigger', 'foo/big'), false)
+    assert.equal(matchesEvalId('slow/bigger', 'slow/big'), false)
+    assert.equal(matchesEvalId('rated#b', 'rated#b'), true)
+    assert.equal(matchesEvalId('rated#b', 'rated#c'), false)
+    assert.equal(matchesEvalId('skill/add#x', 'skill/add#xy'), false)
+    assert.equal(matchesEvalId('evals/a.eval.ts › rated [b]', 'rated'), true)
+    assert.equal(matchesEvalId('evals/a.eval.ts › rated [b]', 'rated/'), true)
+    assert.equal(matchesEvalId('evals/tree.eval.ts › good › child', 'good/'), true)
+    assert.equal(matchesEvalId('skill', 'skills-old/old'), false)
+    assert.equal(matchesEvalId('slow/big', 'slow/big*'), true)
     assert.equal(matchesFilter({ id: 'foo/bar' }, 'foo'), true)
-    assert.equal(matchesFilter({ id: 'rated [b]', attempt }, 'fake#2'), true)
-    assert.equal(matchesFilter({ id: 'rated [b]', attempt }, 'fake#3'), false)
-    assert.equal(matchesFilter({ id: 'rated [b]', attempt }, 'rated#b'), true)
-    assert.equal(matchesFilter({ id: 'rated [b]', attempt }, 'rated#2'), false)
-    assert.equal(matchesFilter({ id: 'x' }, 'fake#1'), false)
+    assert.equal(matchesFilter({ id: 'x' }, 'h/skill/s'), false, 'a cell key is not an id')
+  })
+
+  test('--cell matches a cell key or cell#n exactly', () => {
+    const attempt = { cell: { key: 'fake/-/fake' }, n: 2 }
+    assert.equal(matchesCell(attempt, 'fake/-/fake'), true)
+    assert.equal(matchesCell(attempt, 'fake/-/fake#2'), true)
+    assert.equal(matchesCell(attempt, 'fake#2'), false)
+    assert.equal(matchesCell(undefined, 'fake'), false)
   })
 })
 

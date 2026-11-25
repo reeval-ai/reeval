@@ -1,5 +1,6 @@
 // Which files are eval files, and which of them a path filter picks, matching Vitest's discovery.
 import { isAbsolute, relative, resolve } from 'node:path'
+import picomatch from 'picomatch'
 import { glob } from 'tinyglobby'
 import { attemptId, relativeFile } from '../ids.ts'
 
@@ -46,14 +47,32 @@ function isUnder(file: string, dir: string): boolean {
   return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
 }
 
-/**
- * A name or cell filter part matches part of the eval id or `cell#n`; `id#case` matches the case
- * of an eval with `cases`.
- */
-export const matchesFilter = (
-  e: { id: string; attempt?: { cell: { key: string }; n: number } | undefined },
-  filter: string,
-): boolean =>
-  e.id.includes(filter) ||
-  e.id.includes(filter.replace(/#([^#]+)$/, ' [$1')) ||
-  (!!e.attempt && attemptId(e.attempt.cell.key, e.attempt.n).includes(filter))
+const GLOB_IN_FILTER = /[*?[\]{}!]/
+
+/** Normalizes a filter part: `good/` is the segment prefix `good`, same as `good`. */
+const filterSegment = (filter: string) => (filter.endsWith('/') ? filter.slice(0, -1) : filter)
+
+/** A Python tree eval's id still matches filter substrings; one-eval-file ids match exactly, as a segment prefix, or by glob. */
+export function matchesEvalId(id: string, filter: string): boolean {
+  const segment = filterSegment(filter)
+  if (id.includes(' › ')) return id.includes(filter.endsWith('/') ? segment : filter)
+  if (id === segment) return true
+  const hash = segment.lastIndexOf('#')
+  if (hash > 0) return id === segment
+  if (id.startsWith(`${segment}/`)) return true
+  if (GLOB_IN_FILTER.test(segment)) return picomatch(segment, { dot: true })(id)
+  return false
+}
+
+/** `--cell`: the cell key or `cell#n` attempt id, matched exactly. */
+export function matchesCell(
+  attempt: { cell: { key: string }; n: number } | undefined,
+  cell: string,
+): boolean {
+  if (!attempt) return false
+  return cell === attempt.cell.key || cell === attemptId(attempt.cell.key, attempt.n)
+}
+
+/** A positional filter part matches an eval's id; cells are picked with `--cell` alone. */
+export const matchesFilter = (e: { id: string }, filter: string): boolean =>
+  matchesEvalId(e.id, filter)

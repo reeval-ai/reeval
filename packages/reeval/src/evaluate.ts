@@ -1,7 +1,7 @@
 import { dirname } from 'node:path'
 import { runAttempt } from './attempt/index.ts'
 import { bestOfCell } from './best-of.ts'
-import { caseEvalName, caseKeys } from './cases.ts'
+import { caseEvalName, caseKeys, legacyCaseEvalName } from './cases.ts'
 import { declarationProblem } from './contract/declaration.ts'
 import type {
   DeclarationTree,
@@ -72,6 +72,8 @@ export function resetDeclarationCollector(): void {
   declared.clear()
   givenPaths.clear()
   families.clear()
+  const g = globalThis as Record<symbol, object[] | undefined>
+  g[Symbol.for('reeval.defined')] = []
 }
 
 /** What the file being collected has declared so far. */
@@ -141,7 +143,7 @@ type GroupFn = {
   <N extends number = number>(name: string, options: GroupOptions<N>, fn: () => void): void
 }
 
-/** `evaluate.only` and `group.only` are refused in CI, where they'd silently skip the rest. */
+/** `evaluate.only` / `group.only` — used only on the Python and conformance declaration-tree path. */
 function checkOnly(mode: DeclaredMode, what: string): void {
   if (mode !== 'only' || !inCI()) return
   const error = new Error(`${what}.only isn't allowed in CI`)
@@ -442,7 +444,7 @@ function prepare(
 let registered = 0
 
 const defineEvaluate =
-  (mode: DeclaredMode, declared?: DeclaredSource): EvaluateFn =>
+  (mode: DeclaredMode, declared?: DeclaredSource, legacyCaseNames = false): EvaluateFn =>
   (name: string, a?: unknown, b?: unknown) => {
     checkOnly(mode, 'evaluate')
     const shown = redactSecrets(name)
@@ -454,7 +456,17 @@ const defineEvaluate =
       )
     }
     if (isObjectLike(written) && ('cases' in written || 'caseKey' in written)) {
-      return registerCases(mode, name, written as EvalOptions & CaseOptions<unknown>, fn, where)
+      return registerCases(
+        mode,
+        name,
+        written as EvalOptions & CaseOptions<unknown>,
+        fn,
+        where,
+        undefined,
+        undefined,
+        undefined,
+        legacyCaseNames,
+      )
     }
     register(
       mode,
@@ -479,6 +491,7 @@ function registerCases(
   label?: (key: string) => string,
   skipReason?: string,
   base?: string,
+  legacyCaseNames = false,
 ): void {
   const { cases, caseKey, where: pick, ...rest } = written
   if (!Array.isArray(cases)) {
@@ -518,7 +531,9 @@ function registerCases(
     const source = { body, caseJson: caseJson(item, `${where} case "${key}"`, file) }
     const run: EvalFn = (c) => (fn as CaseFn<unknown>)(c, item)
     const picks = pick ? { label: where, key, item, where: pick } : undefined
-    const member = caseEvalName(name, keys[i] as string)
+    const member = legacyCaseNames
+      ? legacyCaseEvalName(name, keys[i] as string)
+      : caseEvalName(name, keys[i] as string)
     const named = { ...(label ? { label: label(key) } : {}), ...(skipReason ? { skipReason } : {}) }
     return prepare(mode, member, own, run, source, '', family, picks, named)
   })
@@ -743,7 +758,10 @@ function optionsFrom(written: EvalOptionsData, where: string, base: string): Eva
   }
 }
 
-/** Multi-eval files in conformance goldens and the Python mirrors; not the one-eval-per-file authoring API. */
+/**
+ * Declaration-tree API for conformance goldens and other-language runners (Python); not the
+ * one-eval-per-file `defineEval` authoring path.
+ */
 export const group: GroupFn & { skip: GroupFn; only: GroupFn; todo: (name: string) => void } =
   Object.assign(defineGroup('run'), {
     skip: defineGroup('skip'),
@@ -755,8 +773,8 @@ export const evaluate: EvaluateFn & {
   skip: EvaluateFn
   only: EvaluateFn
   todo: (name: string) => void
-} = Object.assign(defineEvaluate('run'), {
-  skip: defineEvaluate('skip'),
-  only: defineEvaluate('only'),
+} = Object.assign(defineEvaluate('run', undefined, true), {
+  skip: defineEvaluate('skip', undefined, true),
+  only: defineEvaluate('only', undefined, true),
   todo: registerTodo,
 })

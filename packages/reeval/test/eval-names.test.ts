@@ -118,15 +118,15 @@ export default defineEval({ async task() {} })
 export default defineEval({ cases: [{ id: 'sk-ant-${'a'.repeat(24)}' }], async task() {} })
 `,
     })
-    const refused = await runCli(p.dir, ['run', '--dry-run', `plain [sk-ant-${'a'.repeat(24)}]`])
+    const refused = await runCli(p.dir, ['run', '--dry-run', `plain#sk-ant-${'a'.repeat(24)}`])
     const out = refused.stdout + refused.stderr
     assert.equal(refused.code, 2, out)
     assert.match(
       out,
-      /Eval names are masked, so a filter that holds a secret can't match one: filter by the masked name \("plain \[\[REDACTED\]\]"\)/,
+      /Eval names are masked, so a filter that holds a secret can't match one: filter by the masked name \("plain#\[REDACTED\]"\)/,
     )
     assert.doesNotMatch(out, KEYS)
-    const matched = await runCli(p.dir, ['run', '--dry-run', 'plain [[REDACTED]]'])
+    const matched = await runCli(p.dir, ['run', '--dry-run', 'plain#[REDACTED]'])
     assert.equal(matched.code, 0, matched.stdout + matched.stderr)
     assert.match(matched.stdout, /1 eval · 1 cell · 1 attempt/)
   })
@@ -204,7 +204,7 @@ export default defineEval({ environment: db, cases: ['${value}', 'plain'], async
     const run = await runCli(p.dir, ['run'], { env: { DB_PASS: value } })
     const out = run.stdout + run.stderr
     assert.equal(run.code, 2, out)
-    assert.match(out, /uses \[\[REDACTED\]\] names a secret declared with secret\(\)/)
+    assert.match(out, /uses#\[REDACTED\] names a secret declared with secret\(\)/)
     assert.doesNotMatch(out, /hunter9/)
     const reeval = join(p.dir, '.reeval')
     for (const text of existsSync(reeval) ? filesUnder(reeval) : []) {

@@ -1810,7 +1810,7 @@
     "PairFactor": {
       "description": "A matrix factor a pairwise question varies; the others are held.",
       "type": "string",
-      "enum": ["environment", "agent"]
+      "enum": ["environment", "agent", "harness"]
     },
     "PiHarnessDescriptor": {
       "description": "pi through `@reeval/harness-pi` (`pi --mode json` in the sandbox), made by `pi()`. It runs a model on its provider's key and reports each model call's tokens. It takes stdio and HTTP MCP servers, not SSE ones.",

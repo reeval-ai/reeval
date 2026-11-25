@@ -96,7 +96,7 @@ export type StackChange = {
 const STACK_FIELDS: Array<{ field: keyof StackSummary; label: string; outside: boolean }> = [
   { field: 'imageIds', label: 'image ids', outside: false },
   { field: 'agentClis', label: 'agent CLI', outside: false },
-  { field: 'harnesses', label: 'harnesses', outside: false },
+  { field: 'harnesses', label: 'agents', outside: false },
   { field: 'environments', label: 'environments', outside: false },
   { field: 'judgeModel', label: 'judge model', outside: false },
   { field: 'threshold', label: 'judge threshold', outside: false },
@@ -212,7 +212,7 @@ export function sourceChanges(
 }
 
 const PART_LABELS: Record<Exclude<keyof FingerprintParts, 'sources' | 'gate'>, string> = {
-  harness: 'harness config',
+  harness: 'agent config',
   environment: 'environment',
   image: 'image',
   agentCli: 'agent CLI',

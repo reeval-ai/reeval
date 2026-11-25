@@ -48,6 +48,7 @@ loading. The `reeval.config.ts` follows the config API like any other project.
 | `before-snapshots` | The corpus project's fake-harness runs from before `evals[].attempts[].snapshots` (copies of the attempt's workspace in `.reeval/runs`) and `files.artifacts[].capture.step` (each capture instruction's screenshot; the recipe's fake sandbox drives no journey, so it never writes one) |
 | `with-best-of` | The fake harness with `runs: { bestOf }`: `evals[].cells[].bestOf`, and `evals[].attempts[].bestOf` on the attempt the majority added to a split best of 3 and the one it left unrun in a best of 5 that failed, beside a best of 3 that agreed after two |
 | `with-cases` | `before-cases`' evals recorded once an eval with `cases` is one record entry (`survey` written as `gate: 'observe'`): `evals[].cases`, `caseCount`, `cells[].rate`, `lifts` on a paired lift below its `minLift`, `attempts[].case` and `<cell>#<case>#<n>` ids, `where` exclusions, a one-case eval and observations over cases |
+| `one-eval-per-file` | The corpus recipe on `defineEval` (one export per file, eval ids from the path, case entries named `eval#key`): `evals[].cases` and `attempts[].case` on those ids |
 | `before-capture-page` | The fake harness in Docker capturing a page that renders with console output, an uncaught error, an unhandled rejection and a missing script, a page that throws before it renders, and a path the server answers with its 404 page, from before `capture.page` |
 | `with-capture-page` | The same captures recorded with `capture.page`: each capture's `artifacts/<name>.capture.json` (status, final URL, console, page errors and failed requests), and `capture.status` and `capture.pageErrors` on the record |
 | `with-unfinished-tools` | The fake harness reporting a tool call whose result never came, `ok: null` on its transcript line (and a null `tool_calls.ok`), beside an ok call and a failed one |
@@ -55,11 +56,8 @@ loading. The `reeval.config.ts` follows the config API like any other project.
 | `before-time-split` | Cursor and Claude Code in Docker on a 90-second install script they run in the background and poll, from before the transcript's `model-call` events, a tool call's `durationInferred` and `turns[].timeSplit`: Cursor polls its terminal file until the job succeeds, Claude Code ends its turn with the job still running |
 | `before-eval-skip` | The corpus project's fake-harness runs from before `evals[].skip` (an eval declared with `evaluate.skip`, told apart from one that hasn't run yet) and the `evals.declared` query column |
 | `before-tool-output-view` | The corpus project's fake-harness runs from before transcript lines' `outputView` and `outputTruncated` (which view of a tool's output the transcript holds, and whether reeval cut it) |
-<<<<<<< HEAD
 | `before-edit-web-payloads` | The corpus project's fake-harness runs from before `input`, `output`, `outputView` and `outputTruncated` on transcript lines of type `file-edit`, `web-search` and `web-fetch` (the tool call's arguments and result beside its semantic fields) |
-=======
 | `before-transcript-step` | The corpus project's fake-harness runs from before transcript lines' `step` (the harness's step in its turn each event came in) |
->>>>>>> 16cc9348 (feat(transcript): number each transcript event's step from finish-step parts)
 | `before-retry-errors` | The corpus project's fake-harness runs from before `evals[].attempts[].retries` (the infra errors an attempt ended with before `reeval run --retry-errors` or `--resume` ran it again) |
 | `before-vm-image` | The fake harness in `tart()` on the fake `tart`, from before `evals[].attempts[].vmImage` (the image an attempt's VM was cloned from, with its digest), when a run pulled the image itself |
 | `with-vm-image` | The same run with `evals[].attempts[].vmImage`, its digest also the cell's `fingerprintParts.image` |

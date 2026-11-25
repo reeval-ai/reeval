@@ -3,7 +3,8 @@
 // (`family` set, named `<eval> [<key>]`), so attempts, resume and artifacts keep their keys;
 // `foldCases` turns those entries, and the `families` beside them, into the eval, and
 // `unfoldCases` turns it back. Browser-safe: reading a record from before this shape folds it too.
-import { evalId } from '../eval-id.ts'
+import { legacyCaseEvalName } from '../cases.ts'
+import { evalId, legacyEvalId } from '../eval-id.ts'
 import { sha256Hex } from '../sha256.ts'
 import { evalSlug } from '../slug.ts'
 import type { Outcome } from '../types.ts'
@@ -66,12 +67,23 @@ export const controlOf = (cells: readonly CellRecord[], variant: CellRecord) =>
     (x) => x.role === 'control' && x.harness === variant.harness && x.sandbox === variant.sandbox,
   )
 
-/** The member name a case ran under: `adds a check [nextjs]`. */
-export const caseName = (e: Pick<EvalEntry, 'name'>, c: Pick<CaseRecord, 'key' | 'name'>) =>
-  c.name ?? `${e.name} [${c.key}]`
+/** Whether a record entry was written before one eval per TypeScript file. */
+export const legacyCaseEntry = (e: Pick<EvalEntry, 'file' | 'group' | 'id'>) =>
+  e.group.length > 0 || e.id.startsWith(`${e.file} › `)
+
+/** The member name a case ran under: `adds-a-check#nextjs`, or `adds a check [nextjs]` in older records. */
+export const caseName = (
+  e: Pick<EvalEntry, 'name'>,
+  c: Pick<CaseRecord, 'key' | 'name'>,
+  legacy = false,
+) => c.name ?? (legacy ? legacyCaseEvalName(e.name, c.key) : `${e.name}#${c.key}`)
 
 /** A case's key from the member name it ran under, or a template's label in an older record. */
 export const caseKeyOf = caseLabel
+
+function caseMemberName(template: string, key: string, legacy: boolean) {
+  return legacy ? legacyCaseEvalName(template, key) : `${template}#${key}`
+}
 
 /** One cell over every case that has it, gated on its rate when the eval's `passRate` pools. */
 function mergeCell(
@@ -132,12 +144,15 @@ function mergedParts(pairs: ReadonlyArray<readonly [string, CellRecord]>): Finge
 function caseOf(member: EvalEntry, template: string): CaseRecord {
   const family = member.family as NonNullable<EvalEntry['family']>
   const key = caseKeyOf(template, member.name)
-  const named = member.name !== `${template} [${key}]` ? { name: member.name } : {}
+  const named =
+    member.name !== caseMemberName(template, key, legacyCaseEntry(member))
+      ? { name: member.name }
+      : {}
   return {
     key,
     index: family.case,
     ...named,
-    label: caseName({ name: template }, { key, ...named }),
+    label: caseName({ name: template }, { key, ...named }, legacyCaseEntry(member)),
     ...(member.source?.case !== undefined ? { hash: member.source.case } : {}),
     outcome: member.outcome,
     ...(member.verdict ? { verdict: member.verdict } : {}),
@@ -164,11 +179,14 @@ function foldOne(
   const first = sorted[0] as EvalEntry
   const meta = first.family as NonNullable<EvalEntry['family']>
   const template = family?.name ?? meta.name
-  const templated = sorted.some(
-    (m) => !(m.name.startsWith(`${template} [`) && m.name.endsWith(']')),
-  )
+  const templated = sorted.some((m) => {
+    const key = caseKeyOf(template, m.name)
+    return m.name !== caseMemberName(template, key, legacyCaseEntry(m))
+  })
   const renamed = templated ? templateName(template) : template
-  const renamedId = evalId(first.file, [...first.group, renamed])
+  const renamedId = legacyCaseEntry(first)
+    ? legacyEvalId(first.file, [...first.group, renamed])
+    : evalId(first.file, [...first.group, renamed])
   const id = renamed === template || taken.has(renamedId) ? (family?.id ?? meta.id) : renamedId
   const name = template
   const cases = sorted.map((m) => caseOf(m, template))
@@ -241,9 +259,11 @@ function foldOne(
  */
 function loneCase(e: EvalEntry): EvalEntry {
   if (e.family || e.source?.case === undefined) return e
-  const name = /^(.*) \[[^\]]*\]$/.exec(e.name)?.[1]
+  const bracketed = /^(.*) \[[^\]]*\]$/.exec(e.name)
+  const hashed = /^(.*)#([^#]+)$/.exec(e.name)
+  const name = bracketed?.[1] ?? hashed?.[1]
   if (!name) return e
-  const id = evalId(e.file, [...e.group, name])
+  const id = legacyCaseEntry(e) ? legacyEvalId(e.file, [...e.group, name]) : name
   return { ...e, family: { id, name, case: 0, cases: 1 } }
 }
 
@@ -292,8 +312,8 @@ export function caseEntries(e: EvalEntry): EvalEntry[] {
   if (!e.cases) return [e]
   const { cases, caseCount, lifts: _lifts, excluded: _excluded, ...rest } = e
   return cases.map((c): EvalEntry => {
-    const name = caseName(e, c)
-    const id = evalId(e.file, [...e.group, name])
+    const name = caseName(e, c, legacyCaseEntry(e))
+    const id = legacyCaseEntry(e) ? legacyEvalId(e.file, [...e.group, name]) : `${e.id}#${c.key}`
     return {
       ...rest,
       id,

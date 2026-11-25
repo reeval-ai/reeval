@@ -12,7 +12,7 @@ import { ownVersion, PACKAGE_DIR, WORKER_PACKAGE_NAMES } from '../root.ts'
 import { Scheduler } from '../scheduler/core.ts'
 import { capMiddle } from '../text.ts'
 import { formatError, reevalFrames, type SerializedError } from './errors.ts'
-import { DEFAULT_EXCLUDE, filterFiles, findEvalFiles, matchesFilter } from './files.ts'
+import { DEFAULT_EXCLUDE, filterFiles, findEvalFiles, matchesCell, matchesFilter } from './files.ts'
 import {
   describeExit,
   eachLimited,
@@ -70,8 +70,9 @@ function refuseSharedIds(root: string, include: readonly string[], files: string
     const id = fileEvalId(include, rel)
     const earlier = seen.get(id.toLowerCase())
     if (earlier) {
+      const earlierId = fileEvalId(include, earlier)
       throw new UsageError(
-        `${earlier} and ${rel} have one eval id, ${id}: an eval's id is its file's path from the evals root without the .eval.ts suffix, ignoring case. Rename one of them.`,
+        `${earlier} (id ${earlierId}) and ${rel} (id ${id}) have one eval id when case is ignored. An eval's id is its file's path from the evals root without the .eval.ts suffix. Rename one of them.`,
       )
     }
     seen.set(id.toLowerCase(), rel)
@@ -92,10 +93,8 @@ export async function runEngine(
   refuseSharedIds(root, config.include, files)
   // A part that names an eval file picks every eval in the files it names. One that is a file or
   // directory on disk (from the current directory, or absolute) is only a path; any other, such
-  // as `right` beside `evals/right/`, also matches as a name or cell part anywhere, so a
-  // directory called `fake` doesn't hide the `fake` cells of the other files. Any other part
-  // picks evals by name or cell. Parts of one kind widen the selection, and the two kinds
-  // narrow each other.
+  // as `right` beside `evals/right/`, also matches as an id. Any other part picks evals by id.
+  // Parts of one kind widen the selection, and the two kinds narrow each other.
   const pathFilters = options.filters.filter((f) => filterFiles(files, [f], root).length)
   const looseFilters = pathFilters.filter((f) => !existsSync(resolve(f)))
   const nameFilters = options.filters.filter((f) => !pathFilters.includes(f))
@@ -110,8 +109,12 @@ export async function runEngine(
   const workers = Math.max(1, Math.min(concurrency, specs.length))
   const entry = workerEntry(root, WORKER_PACKAGE_NAMES)
   const hide = [...reevalFrames(PACKAGE_DIR), ...reevalFrames(join(entry, '..', '..'))]
+  const cells = options.cells ?? []
+  // A path part on disk only names files; one that is not also matches ids.
+  const looseParts = [...new Set([...looseFilters, ...pathFilters])]
   const matchesFilters = (e: Named) =>
-    (named.has(e.file) || looseFilters.some((f) => matchesFilter(e, f))) &&
+    (cells.length === 0 || (!!e.attempt && cells.some((c) => matchesCell(e.attempt, c)))) &&
+    (named.has(e.file) || looseParts.some((f) => matchesFilter(e, f))) &&
     (nameFilters.length === 0 || nameFilters.some((f) => matchesFilter(e, f)))
   const run = options.run
 

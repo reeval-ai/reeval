@@ -31,7 +31,7 @@ one profile you need.
 anything runs:
 
 ```text
-reeval: with-strict-secrets.eval.ts: GITHUB_TOKEN in evaluate("reads a repo from the GitHub API") isn't brokered, and secrets.unbrokered is 'error' in reeval.config.ts. To broker it, add the hosts it's sent to, e.g. secret.fromEnv('GITHUB_TOKEN', { hosts: ['api.example.com'] }).
+reeval: with-strict-secrets.eval.ts: GITHUB_TOKEN in with-strict-secrets.eval.ts isn't brokered, and secrets.unbrokered is 'error' in reeval.config.ts. To broker it, add the hosts it's sent to, e.g. secret.fromEnv('GITHUB_TOKEN', { hosts: ['api.github.com'] }).
 ```
 
 It refuses an `optional` secret whether or not it's set, so the config passes or fails the same on

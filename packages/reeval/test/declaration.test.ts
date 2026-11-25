@@ -166,7 +166,7 @@ test('defineEval records its eval in the tree, and its body by id', async () => 
     skipped: ['skip skipped'],
     c: ['run c'],
     d: ['run d'],
-    case: ['run case [1]', 'run case [2]'],
+    case: ['run case#1', 'run case#2'],
   })
   assert.deepEqual(
     [files.a, files.skipped].flatMap((f) => f?.tests.map((t) => `${t.mode} ${t.name}`)),

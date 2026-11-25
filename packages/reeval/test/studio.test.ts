@@ -382,7 +382,7 @@ describe('view-models over a real history', () => {
     const matrix = records.get(headers[2]?.runId as string) as RunRecord
     const tree = evalTree(matrix)
     assert.equal(tree[0]?.kind, 'group')
-    assert.equal(tree[0]?.name, 'evals/hello.eval.ts')
+    assert.equal(tree[0]?.name, 'hello')
     assert.deepEqual(tree[0]?.tally, { pass: 4, fail: 0, missed: 0, infra: 0, skipped: 0 })
     const rows = cellRows(matrix.evals[0] as RunRecord['evals'][number])
     assert.deepEqual(
@@ -1533,7 +1533,7 @@ export default defineEval({
     assert.deepEqual(validate(reportSchema(), report), [])
     assert.deepEqual(readableRunReport(report), report)
     const outcomes = report.attempts.map((a) => [a.evalId, a.outcome, !!a.links.transcript])
-    assert.deepEqual(outcomes, [
+    assert.deepEqual(outcomes.sort(), [
       ['hello', 'pass', false],
       ['writes-bye', 'fail', true],
     ])

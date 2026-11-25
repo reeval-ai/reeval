@@ -986,11 +986,11 @@ export default defineEval({
     }
     const scratch = join(p.dir, '.reeval', 'runs', `${started.runId}.json`)
     writeFileSync(scratch, JSON.stringify({ ...started, status: 'interrupted' }))
-    const r = await runCli(p.dir, ['run', '--resume', started.runId, '[next]', '[both]'])
+    const r = await runCli(p.dir, ['run', '--resume', started.runId, 'fam#next', 'fam#both'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
     const part = unfoldCases(readRun(p.dir).run)
     assert.equal(part.status, 'interrupted')
-    const vite = part.evals.find((e) => e.name === 'fam [vite]')
+    const vite = part.evals.find((e) => e.name === 'fam#vite')
     assert.deepEqual(
       vite?.attempts.map((a) => a.outcome),
       ['skipped', 'skipped'],

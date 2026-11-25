@@ -1,5 +1,5 @@
 // `cases` on an eval: each case's key, and the name its attempts plan under. A case plans as an
-// entry of its own named `<eval> [<key>]`, so its attempts keep their keys, and the record folds
+// entry of its own named `<eval>#<key>`, so its attempts keep their keys, and the record folds
 // the entries back into one eval with cases (`history/cases.ts`).
 import { UsageError } from './errors.ts'
 import { isObjectLike } from './object.ts'
@@ -15,8 +15,11 @@ export const CASE_KEY_MAX = 80
 // biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are what it refuses
 const BAD_KEY = /[#›\u0000-\u001f\u007f]/
 
-/** The name a case's eval plans under: `adds a health check [nextjs]`. */
-export const caseEvalName = (name: string, key: string) => `${name} [${key}]`
+/** The name a case's eval plans under: `adds-a-check#nextjs`. */
+export const caseEvalName = (name: string, key: string) => `${name}#${key}`
+
+/** The member name an older record's case entry used: `adds a health check [nextjs]`. */
+export const legacyCaseEvalName = (name: string, key: string) => `${name} [${key}]`
 
 /** The key a case gets without `caseKey`: a string, a finite number, or an object's `id` or `name`. */
 function defaultKey(item: unknown): string | undefined {

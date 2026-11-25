@@ -3244,6 +3244,13 @@
     "RunContext": {
       "type": "object",
       "properties": {
+        "cells": {
+          "description": "`reeval run --cell`: only attempts on these cell keys or `cell#n` ids.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "completed": {
           "description": "Attempt keys already finished when this run was resumed; workers register them as skip.",
           "type": "array",

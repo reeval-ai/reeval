@@ -17,7 +17,8 @@
   "a question model that is an evaluation model": "UsageError: questions \"Q\" in evals/a.eval.ts names typesafe-ai/jev-1.14.0, an evaluation model: it scores yes/no questions and can't answer a question. Use a language model, e.g. 'google/gemini-3.8-flash'.",
   "across unknown": "UsageError: questions \"Q\" in evals/a.eval.ts: across is 'environment' (vary the environment, same agent) or 'agent' (vary the agent, same environment), or a list of both (got \"cell\"). Leave it out to ask each attempt on its own.",
   "across an empty list": "UsageError: questions \"Q\" in evals/a.eval.ts: across is 'environment' (vary the environment, same agent) or 'agent' (vary the agent, same environment), or a list of both (got a list of 0). Leave it out to ask each attempt on its own.",
-  "across twice": "UsageError: questions \"Q\" in evals/a.eval.ts: across is 'environment' (vary the environment, same agent) or 'agent' (vary the agent, same environment), or a list of both (got \"harness\"). Leave it out to ask each attempt on its own.",
+  "across harness": "UsageError: questions \"Q\" in evals/a.eval.ts: across is 'environment' (vary the environment, same agent) or 'agent' (vary the agent, same environment) (got \"harness\"). Did you mean 'agent'?",
+  "across twice": "UsageError: questions \"Q\" in evals/a.eval.ts: across lists \"agent\" twice. List each factor once.",
   "choices a string": "UsageError: questions \"Q\" choices in evals/a.eval.ts is a list of at least two answers, e.g. choices: ['the test', 'the code'] (got \"yes\")",
   "choices of one": "UsageError: questions \"Q\" choices in evals/a.eval.ts is a list of at least two answers, e.g. choices: ['the test', 'the code'] (got a list of 1)",
   "choices twice": "UsageError: questions \"Q\" choices in evals/a.eval.ts lists \"yes\" twice. List each answer once.",
@@ -42,7 +43,7 @@
   "the question option with an input": "UsageError: Unknown question option \"transcript\" in evals/a.eval.ts. transcript goes on each questions entry, { question, transcript }: what a question is and what it's shown are its own.",
   "the question option with turns": "UsageError: Unknown question option \"turns\" in evals/a.eval.ts. turns goes on each questions entry, { question, turns }: what a question is and what it's shown are its own.",
   "good: question inputs and artifacts": null,
-  "good": "UsageError: questions \"R\" in evals/a.eval.ts: across is 'environment' (vary the environment, same agent) or 'agent' (vary the agent, same environment), or a list of both (got \"harness\"). Leave it out to ask each attempt on its own.",
+  "good": null,
   "config: questions": "UsageError: questions can't be set in reeval.config.ts: each is about one eval's task. Put them on the group or eval they ask about; question: { model } in reeval.config.ts sets every question's model.",
   "config: question with an input": "UsageError: Unknown question option \"diff\" in reeval.config.ts. diff goes on each questions entry, { question, diff }: what a question is and what it's shown are its own."
 }

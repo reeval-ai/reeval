@@ -454,7 +454,7 @@ No attempt reported usage.
 | Executed at | da3d797c474f on master, clean (the commit that adds this record is later) |
 | Lockfiles | none found |
 | Images | none (fake sandbox) |
-| Harnesses | broken, fake, learner, skilled, terse |
+| Agents | broken, fake, learner, skilled, terse |
 | Environments | plain eca09e8f139f; with-doc 4f15431ec693; with-skill 7b5dd0e29b0d · skills house-greeting |
 | Judge | none by default · threshold 0.8 · version 5ca76dcaadfa |
 | Packages | @vitest/expect 5.0.5 · jiti 2.7.0 · @reeval/harness-antigravity 0.1.8 · @reeval/harness-opencode 0.2.8 · @reeval/harness-goose 0.1.3 · @reeval/harness-pi 0.2.7 · @reeval/harness-cursor-sdk 0.1.5 · @a… |

@@ -40,6 +40,8 @@ export type CollectedPlan = {
 export type EngineOptions = {
   run: RunContext
   filters: string[]
+  /** `--cell`: only attempts on these cell keys or `cell#n` ids; each matches exactly. */
+  cells?: string[]
   /** Called once the eval files are known, with how many there are. */
   onRunStart?: (files: number) => void
   /** Collection, start, progress, console output and result of each attempt, as they happen. */

@@ -63,7 +63,7 @@ export function stateRows(
           .join('; ')
       : 'none (fake sandbox)',
   ])
-  rows.push(['Harnesses', env.harnesses.map(harnessLabel).join(', ') || 'none'])
+  rows.push(['Agents', env.harnesses.map(harnessLabel).join(', ') || 'none'])
   const resources = runResourcesLine(run.evals.flatMap((e) => e.attempts.map((a) => a.resources)))
   if (resources) rows.push(['Resources', resources])
   rows.push([

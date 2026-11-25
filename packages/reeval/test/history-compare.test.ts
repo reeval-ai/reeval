@@ -203,7 +203,7 @@ export default defineEval({
       join(p.dir, 'reeval.config.ts'),
       fakeConfig({ harness: harness('Wrote it, differently') }),
     )
-    assert.deepEqual(await agentRow(p.dir), ['drift', ['harness config changed']])
+    assert.deepEqual(await agentRow(p.dir), ['drift', ['agent config changed']])
   })
 
   test("a case's hash masks its secrets, so the record can't confirm a guess and a rotated secret stays the same eval", async () => {
@@ -1219,12 +1219,12 @@ describe('history recorded with evaluate.each by reeval 0.18', () => {
     )
   })
 
-  test('a template family reads under the id of the eval with cases its port declares', () => {
+  test('a template family reads under its file and the name its template drops placeholders from', () => {
     const [family] = readableRecord(raw()).evals
     assert.deepEqual(
       [family?.id, family?.name, family?.cases?.map((c) => c.key)],
       [
-        'discovery',
+        'evals/discovery.eval.ts › discovery',
         'discovery: %s',
         ['add user authentication', 'add social login and email/password auth'],
       ],
@@ -1256,7 +1256,7 @@ describe('history recorded with evaluate.each by reeval 0.18', () => {
     r.evals.push({ ...other, id: 'evals/discovery.eval.ts › discovery', name: 'discovery' })
     const names = readableRecord(r).evals.map((e) => e.id)
     assert.deepEqual(names, [
-      'discovery',
+      'evals/discovery.eval.ts › discovery: %s',
       'evals/options.eval.ts › renamed options › writes greet.js',
       'evals/discovery.eval.ts › discovery',
     ])
@@ -1279,7 +1279,8 @@ describe('history recorded with evaluate.each by reeval 0.18', () => {
     )
   })
 
-  test('reeval compare lines a 0.19 port up with the 0.18 run, case by case', async () => {
+  test('reeval compare reads a one-eval-file port as new evals beside the 0.18 run', async () => {
+    const CASES = ['add user authentication', 'add social login and email/password auth']
     const p = await fixture(OLD)
     await writeFile(join(p.dir, 'reeval.config.ts'), fakeConfig())
     await writeFile(
@@ -1340,16 +1341,11 @@ export default defineEval({
         }>
       ).map((x) => [x.id, x.status, x.changes, x.cases?.map((k) => k.id)])
     }
-    // The judge's part of the fingerprint holds reeval's version. defineEval's body hash differs
-    // from evaluate's; options' id is the file now, not the old group path.
+    // A one-eval file's id is its path, so the port's evals are new and the 0.18 run's keep their ids.
     assert.deepEqual(await rows(), [
-      [
-        'discovery',
-        'drift',
-        ['body changed', 'judge changed'],
-        ['add user authentication', 'add social login and email/password auth'],
-      ],
+      ['discovery', 'added', undefined, CASES],
       ['options', 'added', undefined, undefined],
+      ['evals/discovery.eval.ts › discovery', 'removed', undefined, CASES],
       [
         'evals/options.eval.ts › renamed options › writes greet.js',
         'removed',
@@ -1357,21 +1353,5 @@ export default defineEval({
         undefined,
       ],
     ])
-    // Canary: a port under another file is a new eval, and the old one removed.
-    await writeFile(
-      join(p.dir, 'evals/discovery-v2.eval.ts'),
-      readFileSync(join(p.dir, 'evals/discovery.eval.ts'), 'utf8'),
-    )
-    await rm(join(p.dir, 'evals/discovery.eval.ts'))
-    sh(p.dir, 'add', '-A')
-    sh(p.dir, 'commit', '-q', '-m', 'rename discovery file')
-    const renamed = await rows()
-    assert.deepEqual(
-      renamed.filter(([id]) => (id as string).startsWith('discovery')).map((x) => x.slice(0, 2)),
-      [
-        ['discovery-v2', 'added'],
-        ['discovery', 'removed'],
-      ],
-    )
   })
 })

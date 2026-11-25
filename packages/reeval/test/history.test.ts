@@ -1041,7 +1041,7 @@ export default defineEval({
     })
     const r = await runCli(p.dir, ['run', '--profile', 'fake', '--ui', 'plain'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    assert.match(r.stdout, /^ {2}➜ {2}Harness: +fake\n {2}➜ {2}Sandbox: +fake$/m)
+    assert.match(r.stdout, /^ {2}➜ {2}Agent: +fake\n {2}➜ {2}Sandbox: +fake$/m)
     const { run } = readRun(p.dir)
     assert.equal(run.evals[0]?.cells[0]?.sandbox, 'fake', 'the cell ran on the fake sandbox')
     assert.equal(run.config.sandbox, 'fake')

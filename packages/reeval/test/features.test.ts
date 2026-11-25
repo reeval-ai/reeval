@@ -3160,7 +3160,7 @@ export const features: Feature[] = [
       // An endpoint refusal is a 403 on an allowed host, so it's in the debug requests only.
       const root = join(project, '.reeval', 'debug', run.runId)
       const requests = readdirSync(root, { recursive: true, encoding: 'utf8' })
-        .filter((f) => f.startsWith('evals-lands') && f.endsWith('requests.ndjson'))
+        .filter((f) => f.startsWith('lands-') && f.endsWith('requests.ndjson'))
         .flatMap((f) => readFileSync(join(root, f), 'utf8').trim().split('\n'))
         .map((l) => JSON.parse(l) as { method: string; url: string; status?: number })
       const searches = requests.filter((r) => r.url === 'https://api.openai.com/v1/alpha/search')
@@ -3185,7 +3185,7 @@ export const features: Feature[] = [
       // An endpoint refusal is a 403 on an allowed host, so it's in the debug requests only.
       const root = join(project, '.reeval', 'debug', run.runId)
       const requests = readdirSync(root, { recursive: true, encoding: 'utf8' })
-        .filter((f) => f.startsWith('evals-lands') && f.endsWith('requests.ndjson'))
+        .filter((f) => f.startsWith('lands-') && f.endsWith('requests.ndjson'))
         .flatMap((f) => readFileSync(join(root, f), 'utf8').trim().split('\n'))
         .map((l) => JSON.parse(l) as { method: string; url: string; status?: number })
       const searches = requests.filter((r) => r.url.endsWith(':generateContent'))
@@ -4852,6 +4852,20 @@ export const features: Feature[] = [
       assert.equal(step?.name, 'after.step-1')
       assert.equal(step?.capture?.step?.ended, 'final')
       assert.ok(pngSize(readFileSync(join(runDir, step.path))).width > 0)
+    },
+  },
+  {
+    dir: 'run/define-eval',
+    tiers: ['fake'],
+    env: 'fake',
+    canary: /expected 'not-define-eval' to be 'define-eval'/,
+    evals: {
+      lands: { outcome: 'pass', attempts: ['fake/fake/fake#1'] },
+      canary: {
+        outcome: 'fail',
+        attempts: ['fake/fake/fake#1'],
+        error: { kind: 'assertion', message: /expected 'not-define-eval' to be 'define-eval'/ },
+      },
     },
   },
   {

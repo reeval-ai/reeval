@@ -1356,14 +1356,15 @@ const brokerEnvHint = (e: PlainCredentialEnv) =>
 export const plainEnvError = (e: PlainCredentialEnv, where: string, configFile: string) =>
   `${e.label} in ${where} is a plain string that looks like a credential, and secrets.unbrokered is 'error' in ${configFile}. To broker it, ${brokerEnvHint(e)}.`
 
-export const levelOf = (where: string): SandboxWarning['level'] =>
-  where.startsWith('evaluate(') || /\.eval\.[cm]?[jt]s\b/.test(where)
-    ? 'eval'
-    : where.startsWith('group(')
-      ? 'group'
-      : where.startsWith('profiles.')
-        ? 'profile'
-        : 'config'
+export const levelFromSource = (source: string): SandboxWarning['level'] => {
+  if (source.startsWith('group(')) return 'group'
+  if (source.startsWith('profiles.')) return 'profile'
+  if (source.startsWith('evaluate(') || /\.eval\.[cm]?[jt]s(?:[?#]|$)/.test(source)) return 'eval'
+  return 'config'
+}
+
+/** @deprecated Use {@link levelFromSource} with the cascade source path. */
+export const levelOf = (where: string): SandboxWarning['level'] => levelFromSource(where)
 
 /**
  * A warning per privilege an attempt's Docker sandbox adds, naming the level that set the
@@ -1380,8 +1381,14 @@ export function sandboxWarnings(
     const privileges = sandboxKind(a.sandbox).privileges(a.sandbox)
     const devices = privileges.devices ?? []
     if (!privileges.root && !privileges.capabilities.length && !devices.length) continue
+    const source =
+      (!a.environment.layers.some((l) => l.spec.sandbox)
+        ? resolved.sources?.sandbox
+        : resolved.compare
+          ? resolved.sources?.compare
+          : resolved.sources?.environments) ?? origin.configFile
     const where = sandboxSetBy(a, resolved, origin.configFile)
-    const level = levelOf(where)
+    const level = levelFromSource(source)
     const file = level === 'eval' || level === 'group' ? origin.file : null
     if (privileges.root) {
       const message = `running as root in the sandbox: ${where} (docker({ root: true }))`
@@ -1491,7 +1498,7 @@ function questionWarnings(resolved: Resolved): string[] {
     .filter((q) => pairFactors(q.across).includes('agent') && q.state?.transcript)
     .map(
       (q) =>
-        `question "${q.question}" shows the transcript, which names each harness's tools, so its harness pairs aren't blind. Ask it with across: 'environment', or leave the transcript out.`,
+        `question "${q.question}" shows the transcript, which names each agent's tools, so its agent pairs aren't blind. Ask it with across: 'environment', or leave the transcript out.`,
     )
 }
 
