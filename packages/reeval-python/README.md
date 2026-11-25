@@ -185,14 +185,13 @@ expect.poll(c, "the server wrote its log").to_have_file("server.log")
 
 ### Cases
 
-`"cases"` runs one eval over a list, and the body takes the attempt and its case. Each case has a
-key: a string or a number is its own, a dict or an object its `id` or `name`, and `"case_key"`
-gives any other. A key is 1–80 characters with no `#`, `/`, `›` or control characters, and unique
-within the eval; the run reports each case as `<eval> [<key>]`.
+`"cases"` runs one eval over a list, and the body takes the attempt and its case. Each case is a
+dict (a `Case`, `TypedDict` with `key`) or a dataclass with a `key`. A key is 1–80 characters with
+no surrounding whitespace, `#`, `›` or control characters, and unique within the eval; the run reports each case as `<eval> [<key>]`.
 
 ```python
-@evaluate("greets", {"cases": [{"lang": "en"}, {"lang": "fr"}], "case_key": lambda c: c["lang"]})
-def greets(c: SyncAttemptContext, case: dict[str, str]) -> None: ...
+@evaluate("greets", {"cases": [{"key": "en"}, {"key": "fr"}]})
+def greets(c: SyncAttemptContext, case: Case) -> None: ...
 ```
 
 ## Examples

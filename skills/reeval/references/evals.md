@@ -2,13 +2,13 @@
 
 ## Contents
 
-- Cases: `cases`, `caseKey`, `where`, and `gate: 'observe'`
+- Cases: `cases`, `where`, and `gate: 'observe'`
 - The attempt: `c.send`, `c.exec`, `c.serve`, files
 - The judge: inputs, input size, errors
 - Trustworthy evals
 - Matchers
 
-## Cases: `cases`, `caseKey`, `where`, and `gate: 'observe'`
+## Cases: `cases`, `where`, and `gate: 'observe'`
 
 - ``export default defineEval({ …, task })`; `skip: true` or `skip: 'reason'` (no `.only`/`.todo` in TypeScript)
   (an error in CI), `.todo`. The eval id is the file path under the eval root without `.eval.ts`; renaming an eval restarts its history.
@@ -24,12 +24,12 @@
   case table under it when it fails, or with `-v`), one entry in the record with its cases
   inside, counted once in the tally. The failing case still records `fail`.
 - For evals that pass or fail on their own, don't use `cases`: give each item its own `*.eval.ts` file, with the item in the name.
-- Each case has a key, which names its row: a string or number is its own key, an object its
-  `id`, else its `name`; otherwise pass `caseKey: (item) => item.slug`. Keys are unique, at most
-  80 characters, with no `#` or `›`. `cases`, `caseKey` and `where` go on `defineEval`, not the config.
+- Each case is an object with a `key`, which names its row (`cases: [{ key: 'users', table:
+  'users' }]`; `Case<T>` is `{ key: string } & T`). Keys are unique, at most 80 characters, with
+  no surrounding whitespace, `#` or `›`. `cases` and `where` go on `defineEval`, not the config.
 - Porting `evaluate.each`: write `defineEval({ cases: items, ...opts, task })` with the old option names made plural (`agents`, `environments`,
-  `compare.control`). The old runs then read as this eval, keyed by what `%s` or `$id` held, so
-  `reeval compare` lines them up; a `caseKey` that changes a key starts that case's history again.
+  `compare.control`). Give each item the `key` that `%s` or `$id` held, and the old runs read as this eval, so
+  `reeval compare` lines them up; a changed key starts that case's history again.
 - `where: ({ case, environment, harness }) => boolean` (TypeScript only) picks which case runs
   on which environment, at plan time, from each environment's `traits` (`defineEnvironment('next',
   { traits: { stack: 'next' } })`; never shown to the agent). Reading a trait no environment
