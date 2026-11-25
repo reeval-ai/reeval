@@ -1,7 +1,7 @@
 import { dirname } from 'node:path'
 import { runAttempt } from './attempt/index.ts'
 import { bestOfCell } from './best-of.ts'
-import { caseEvalName, caseKeys, legacyCaseEvalName } from './cases.ts'
+import { caseEvalName, caseKeys } from './cases.ts'
 import { declarationProblem } from './contract/declaration.ts'
 import type {
   DeclarationTree,
@@ -28,7 +28,7 @@ import {
   sandboxPaths,
 } from './environment.ts'
 import { UsageError } from './errors.ts'
-import { badEvalId, fileEvalId } from './eval-id.ts'
+import { badEvalId, fileEvalId, legacyCaseEvalName } from './eval-id.ts'
 import { bodyHash, caseJson } from './eval-source.ts'
 import { evalId, relativeFile } from './ids.ts'
 import { environmentInputs } from './inputs.ts'

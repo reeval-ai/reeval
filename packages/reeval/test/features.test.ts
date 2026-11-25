@@ -4858,13 +4858,13 @@ export const features: Feature[] = [
     dir: 'run/define-eval',
     tiers: ['fake'],
     env: 'fake',
-    canary: /expected 'not-define-eval' to be 'define-eval'/,
+    canary: /expected 'define-eval' to be 'not-define-eval'/,
     evals: {
-      lands: { outcome: 'pass', attempts: ['fake/fake/fake#1'] },
+      lands: { outcome: 'pass', attempts: ['fake/-/fake#1'] },
       canary: {
         outcome: 'fail',
-        attempts: ['fake/fake/fake#1'],
-        error: { kind: 'assertion', message: /expected 'not-define-eval' to be 'define-eval'/ },
+        attempts: ['fake/-/fake#1'],
+        error: { kind: 'assertion', message: /expected 'define-eval' to be 'not-define-eval'/ },
       },
     },
   },

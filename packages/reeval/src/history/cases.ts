@@ -3,8 +3,7 @@
 // (`family` set, named `<eval> [<key>]`), so attempts, resume and artifacts keep their keys;
 // `foldCases` turns those entries, and the `families` beside them, into the eval, and
 // `unfoldCases` turns it back. Browser-safe: reading a record from before this shape folds it too.
-import { legacyCaseEvalName } from '../cases.ts'
-import { evalId, legacyEvalId } from '../eval-id.ts'
+import { evalId, legacyCaseEvalName, legacyEvalId } from '../eval-id.ts'
 import { sha256Hex } from '../sha256.ts'
 import { evalSlug } from '../slug.ts'
 import type { Outcome } from '../types.ts'

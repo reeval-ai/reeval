@@ -185,7 +185,7 @@ export default defineEval({
     )
     const q = await runCli(p.dir, [
       'query',
-      'SELECT attempt_id, outcome, name, kind, num, text, harness FROM attempt_values ORDER BY attempt_id, name',
+      'SELECT attempt_id, outcome, name, kind, num, text, agent FROM attempt_values ORDER BY attempt_id, name',
       '--json',
     ])
     assert.equal(q.code, 0, q.stderr)
@@ -197,7 +197,7 @@ export default defineEval({
         kind: 'number',
         num: 1,
         text: null,
-        harness: 'fake',
+        agent: 'fake',
       },
       {
         attempt_id: 'fake/fake/fake#1',
@@ -206,7 +206,7 @@ export default defineEval({
         kind: 'string',
         num: null,
         text: 'drizzle',
-        harness: 'fake',
+        agent: 'fake',
       },
       {
         attempt_id: 'fake/fake/fake#2',
@@ -215,7 +215,7 @@ export default defineEval({
         kind: 'number',
         num: 2,
         text: null,
-        harness: 'fake',
+        agent: 'fake',
       },
       {
         attempt_id: 'fake/fake/fake#2',
@@ -224,7 +224,7 @@ export default defineEval({
         kind: 'string',
         num: null,
         text: 'prisma',
-        harness: 'fake',
+        agent: 'fake',
       },
     ])
   })

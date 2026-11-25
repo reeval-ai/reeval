@@ -86,6 +86,8 @@ describe('findEvalFiles and filterFiles', () => {
       assert.deepEqual(pick('evals/skill'), ['evals/skill/add.eval.ts'])
       assert.deepEqual(pick('evals/sub/'), ['evals/sub/skill.eval.ts'])
       assert.deepEqual(pick(join(root, 'evals/sub')), ['evals/sub/skill.eval.ts'])
+      assert.deepEqual(pick(join(root, 'evals/skill/add.eval')), ['evals/skill/add.eval.ts'])
+      assert.deepEqual(pick(join(root, 'nowhere')), [])
       assert.deepEqual(pick('add.eval'), ['evals/skill/add.eval.ts'])
       assert.deepEqual(pick('skill/add.eval.ts'), ['evals/skill/add.eval.ts'])
       assert.deepEqual(pick('evals\\skill\\add.eval.ts'), ['evals/skill/add.eval.ts'])

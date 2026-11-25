@@ -835,8 +835,8 @@ export default defineEval({ async task() {} })
 
   test('an absolute filter naming no path on disk is saved relative to the root', async () => {
     const p = await project('resume-filter-abs-part', split)
-    const run = await interrupted(p.dir, p.dir, [join(p.dir, 'evals', 'a', 'on')])
-    assert.deepEqual(run.invocation?.filters, ['evals/a/on'])
+    const run = await interrupted(p.dir, p.dir, [join(p.dir, 'evals', 'a', 'one.eval')])
+    assert.deepEqual(run.invocation?.filters, ['evals/a/one.eval'])
     assert.ok(!JSON.stringify(run).includes(p.dir))
     assert.equal(await planned(join(p.dir, 'evals', 'b'), run.runId), 1)
   })
@@ -858,7 +858,7 @@ export default defineEval({ async task() {} })
   test('a filtered resume keeps the attempts it leaves out as not run, and the run incomplete', async () => {
     const p = await project('resume-filter-left-out', split)
     const run = await interrupted(p.dir, p.dir, [])
-    const dry = await runCli(p.dir, ['run', '--resume', run.runId, 'one', '--dry-run', '--json'])
+    const dry = await runCli(p.dir, ['run', '--resume', run.runId, 'a/one', '--dry-run', '--json'])
     assert.equal(dry.code, 0, dry.stdout + dry.stderr)
     assert.ok(
       (JSON.parse(dry.stdout) as { warnings: string[] }).warnings.includes(
@@ -866,7 +866,7 @@ export default defineEval({ async task() {} })
       ),
       dry.stdout,
     )
-    const r = await runCli(p.dir, ['run', '--resume', run.runId, 'one', '--ui', 'plain'])
+    const r = await runCli(p.dir, ['run', '--resume', run.runId, 'a/one', '--ui', 'plain'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.match(r.stdout, /Incomplete: 1 attempt this resume’s filters left out is not run/)
     const filtered = readRun(p.dir).run
@@ -1074,7 +1074,7 @@ export default defineEval({ skip: true, async task() {} })
       writeFileSync(scratch, JSON.stringify(run))
       return run.runId
     }
-    for (const filter of ['evals/a', 'one']) {
+    for (const filter of ['evals/a', 'a/one']) {
       const runId = await seed(true)
       const r = await runCli(p.dir, ['run', '--resume', runId, filter, '--ui', 'plain'])
       assert.equal(r.code, 0, r.stdout + r.stderr)

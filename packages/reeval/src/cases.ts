@@ -18,9 +18,6 @@ const BAD_KEY = /[#›\u0000-\u001f\u007f]/
 /** The name a case's eval plans under: `adds-a-check#nextjs`. */
 export const caseEvalName = (name: string, key: string) => `${name}#${key}`
 
-/** The member name an older record's case entry used: `adds a health check [nextjs]`. */
-export const legacyCaseEvalName = (name: string, key: string) => `${name} [${key}]`
-
 /** The key a case gets without `caseKey`: a string, a finite number, or an object's `id` or `name`. */
 function defaultKey(item: unknown): string | undefined {
   if (typeof item === 'string') return item

@@ -47,16 +47,16 @@ export function namesEvalFile(rel: string, part: string): boolean {
 }
 
 /**
- * The files the path parts pick: a part on disk (or absolute) picks the files under it, and a
- * part that names an eval file picks it by name (`namesEvalFile`).
+ * The files the path parts pick: a part on disk picks the files under it, and a part that names
+ * an eval file picks it by name (`namesEvalFile`), an absolute one by its path from the root.
  */
 export function filterFiles(files: readonly string[], filters: readonly string[], root: string) {
   if (filters.length === 0) return [...files]
   return files.filter((file) =>
     filters.some((f) =>
-      isAbsolute(f) || existsSync(resolve(f))
+      existsSync(resolve(f))
         ? isUnder(file, resolve(f))
-        : namesEvalFile(relativeFile(root, file), f),
+        : namesEvalFile(relativeFile(root, file), isAbsolute(f) ? relativeFile(root, f) : f),
     ),
   )
 }

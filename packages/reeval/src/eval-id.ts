@@ -14,6 +14,9 @@ export const evalId = (file: string, path: readonly string[]) =>
 /** Stable id for a tree eval or a case entry recorded before one eval per file: always prefixes the file. */
 export const legacyEvalId = (file: string, path: readonly string[]) => [file, ...path].join(' › ')
 
+/** The member name a tree eval's case, or an older record's case entry, plans under: `adds a health check [nextjs]`. */
+export const legacyCaseEvalName = (name: string, key: string) => `${name} [${key}]`
+
 /** The directory every include pattern starts in: `evals/**\/*.eval.ts` → `evals`. */
 export function evalRoot(include: readonly string[]): string {
   const dirs = include

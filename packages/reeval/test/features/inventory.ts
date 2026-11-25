@@ -637,12 +637,15 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'selection.filters',
     area: 'Config and selection',
-    name: 'Filters (path and eval id: exact, segment prefix and glob; `--cell` for a cell key or attempt id; the kinds narrow each other; a part naming a file but not on disk also matches eval ids; a whole variant cell brings its control); no match exits 2',
+    name: 'Filters (path and eval id: exact, segment prefix and glob; `--cell` for a cell key or attempt id; the kinds narrow each other; a part is a path only when it names an eval file or is on disk, and a path matches at a path-segment boundary; a whole variant cell brings its control); no match exits 2',
     plan: [
       'compare/mixed-filter',
       'selection/group-and-eval-filter',
       'filters/dir-named-like-cell',
       'filters/dir-path-only',
+      'filters/id-not-substring',
+      'filters/dir-path-not-substring',
+      'filters/file-name-at-segment',
     ],
     unit: [
       'reeval/test/engine.test.ts',
