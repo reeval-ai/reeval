@@ -1,0 +1,111 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "20260927T161031Z_cc7e11c_cursor-agent_a3yh",
+  "trajectory_id": "evals/hello.es.ts › writes hello.txt # antigravity:gemini-3.8-flash-medium/-/docker#1",
+  "agent": {
+    "name": "antigravity",
+    "version": "1.2.11",
+    "model_name": "gemini-3.8-flash-medium"
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-27T16:10:33.868Z",
+      "source": "user",
+      "message": "Run `ls -a` to look around, then create hello.txt containing exactly: hi"
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-27T16:10:44.730Z",
+      "source": "agent",
+      "model_name": "gemini-3.8-flash-medium",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "agy-48d25378-f513-428b-a19f-083d022ab4e6-2",
+          "function_name": "bash",
+          "arguments": {
+            "command": "ls -a",
+            "CommandLine": "ls -a"
+          }
+        },
+        {
+          "tool_call_id": "agy-48d25378-f513-428b-a19f-083d022ab4e6-4",
+          "function_name": "file-edit",
+          "arguments": {
+            "path": "hello.txt"
+          },
+          "extra": {
+            "path": "hello.txt",
+            "kind": "modify",
+            "added": null,
+            "removed": null
+          }
+        },
+        {
+          "tool_call_id": "agy-48d25378-f513-428b-a19f-083d022ab4e6-6",
+          "function_name": "bash",
+          "arguments": {
+            "command": "cat hello.txt",
+            "CommandLine": "cat hello.txt"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "agy-48d25378-f513-428b-a19f-083d022ab4e6-2",
+            "content": ".  ..\n",
+            "extra": {
+              "ok": true,
+              "durationMs": 2244
+            }
+          },
+          {
+            "source_call_id": "agy-48d25378-f513-428b-a19f-083d022ab4e6-4",
+            "extra": {
+              "durationMs": 8884
+            }
+          },
+          {
+            "source_call_id": "agy-48d25378-f513-428b-a19f-083d022ab4e6-6",
+            "content": "hi\n",
+            "extra": {
+              "ok": true,
+              "durationMs": 1893
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-27T16:10:57.753Z",
+      "source": "agent",
+      "model_name": "gemini-3.8-flash-medium",
+      "message": "Ran `ls -a` (directory was empty) and created [hello.txt](file:///es/workspace/hello.txt) containing `hi`.\n",
+      "metrics": {
+        "prompt_tokens": 50325,
+        "completion_tokens": 456,
+        "cached_tokens": 0,
+        "extra": {
+          "cache_creation_input_tokens": 0,
+          "reasoning_tokens": 228
+        }
+      }
+    }
+  ],
+  "final_metrics": {
+    "total_prompt_tokens": 50325,
+    "total_completion_tokens": 456,
+    "total_cached_tokens": 0,
+    "extra": {
+      "cache_creation_input_tokens": 0,
+      "reasoning_tokens": 228
+    },
+    "total_steps": 3
+  },
+  "extra": {
+    "outcome": "pass"
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "20260927T161031Z_cc7e11c_cursor-agent_a3yh",
+  "trajectory_id": "evals/hello.es.ts › writes hello.txt # pi:gemini-3.8-flash/-/docker#1",
+  "agent": {
+    "name": "pi",
+    "version": "0.87.1",
+    "model_name": "gemini-3.8-flash"
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-27T16:10:44.718Z",
+      "source": "user",
+      "message": "Run `ls -a` to look around, then create hello.txt containing exactly: hi"
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-27T16:10:53.082Z",
+      "source": "agent",
+      "model_name": "gemini-3.8-flash",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_44915",
+          "function_name": "bash",
+          "arguments": {
+            "timeout": null,
+            "command": "ls -a"
+          }
+        },
+        {
+          "tool_call_id": "call_70833",
+          "function_name": "file-edit",
+          "arguments": {
+            "path": "hello.txt"
+          },
+          "extra": {
+            "path": "hello.txt",
+            "kind": "modify",
+            "added": null,
+            "removed": null
+          }
+        },
+        {
+          "tool_call_id": "call_70173",
+          "function_name": "read",
+          "arguments": {
+            "path": "hello.txt",
+            "limit": 10,
+            "offset": 1
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_44915",
+            "content": ".\n..\n",
+            "extra": {
+              "ok": true,
+              "durationMs": 1923
+            }
+          },
+          {
+            "source_call_id": "call_70833",
+            "extra": {
+              "durationMs": 3972
+            }
+          },
+          {
+            "source_call_id": "call_70173",
+            "content": "hi",
+            "extra": {
+              "ok": true,
+              "durationMs": 1565
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-27T16:11:00.414Z",
+      "source": "agent",
+      "model_name": "gemini-3.8-flash",
+      "message": "Ran `ls -a` and created `hello.txt` containing `hi`.",
+      "metrics": {
+        "prompt_tokens": 6513,
+        "completion_tokens": 205,
+        "cached_tokens": 0,
+        "extra": {
+          "cache_creation_input_tokens": 0,
+          "reasoning_tokens": 121
+        }
+      }
+    }
+  ],
+  "final_metrics": {
+    "total_prompt_tokens": 6513,
+    "total_completion_tokens": 205,
+    "total_cached_tokens": 0,
+    "extra": {
+      "cache_creation_input_tokens": 0,
+      "reasoning_tokens": 121
+    },
+    "total_steps": 3
+  },
+  "extra": {
+    "outcome": "pass"
+  }
+}

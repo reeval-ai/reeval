@@ -8,6 +8,8 @@
 #                        (scripts/drift/opencode-providers.mjs; the probe's proxy answers every request)
 #   cursor-sdk shape     the newest @cursor/sdk still declares the stored-conversation fields the
 #                        Cursor harness recovers web calls from (scripts/drift/cursor-sdk-shape.mjs)
+#   atif validator       the newest Harbor's own trajectory validator, from PyPI, on reeval's ATIF
+#                        goldens (packages/reeval/test/fixtures/atif/), which its Zod port also checks
 # What only a real agent can tell (an output format, the stored conversation's contents, behavior)
 # stays in real.yml's latest leg. When a scheduled run finds an agent CLI release newer than its pin
 # that the last scheduled run hadn't seen, `latest leg` dispatches real.yml's latest leg on main on
@@ -36,6 +38,8 @@ on:
       - packages/harness-fx/src/fx-harness.ts
       - packages/harness-grok-build/src/grok-build-harness.ts
       - packages/reeval/package.json
+      - packages/reeval/src/view/atif*.ts
+      - packages/reeval/test/fixtures/atif/**
 
 permissions:
   contents: read
@@ -147,6 +151,29 @@ jobs:
           echo "line=$(head -1 out.txt)" >> "$GITHUB_OUTPUT"
           exit "$status"
 
+  atif-validator:
+    name: atif validator
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      line: ${{ steps.check.outputs.line }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - id: check
+        name: the newest Harbor's validator on the ATIF goldens
+        run: |
+          version=$(uvx --from harbor python -c 'from importlib.metadata import version; print(version("harbor"))')
+          failed=0
+          for f in packages/reeval/test/fixtures/atif/*/*.json; do
+            uvx --from harbor python -m harbor.utils.trajectory_validator --no-validate-images "$f" || failed=$((failed + 1))
+          done
+          if [ "$failed" = 0 ]; then line="harbor $version accepts every golden"; else line="harbor $version refuses $failed golden(s)"; fi
+          echo "line=$line" >> "$GITHUB_OUTPUT"
+          echo "$line"
+          exit "$failed"
+
   latest-leg:
     name: latest leg
     needs: versions
@@ -190,7 +217,7 @@ jobs:
 
   summary:
     name: summary
-    needs: [versions, claude-code-patch, opencode-providers, cursor-sdk-shape, latest-leg]
+    needs: [versions, claude-code-patch, opencode-providers, cursor-sdk-shape, atif-validator, latest-leg]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 2
@@ -205,6 +232,8 @@ jobs:
           OPENCODE_LINE: ${{ needs.opencode-providers.outputs.line }}
           CURSOR: ${{ needs.cursor-sdk-shape.result }}
           CURSOR_LINE: ${{ needs.cursor-sdk-shape.outputs.line }}
+          ATIF: ${{ needs.atif-validator.result }}
+          ATIF_LINE: ${{ needs.atif-validator.outputs.line }}
           LATEST: ${{ needs.latest-leg.result }}
           LATEST_LINE: ${{ needs.latest-leg.outputs.line }}
         run: |
@@ -218,6 +247,7 @@ jobs:
             echo "| claude-code patch | $(mark "$PATCH") | $PATCH_LINE |"
             echo "| opencode providers | $(mark "$OPENCODE") | $OPENCODE_LINE |"
             echo "| cursor-sdk shape | $(mark "$CURSOR") | $CURSOR_LINE |"
+            echo "| atif validator | $(mark "$ATIF") | $ATIF_LINE |"
             hint=
             [ "$LATEST" != failure ] || hint=' (the releases are in the snapshot now, so dispatch real.yml with latest=true by hand)'
             [ "$LATEST" = skipped ] || echo "| latest leg | $(mark "$LATEST" '**dispatch failed**') | $LATEST_LINE$hint |"

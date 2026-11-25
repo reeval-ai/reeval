@@ -1,0 +1,72 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "20260927T161031Z_cc7e11c_cursor-agent_a3yh",
+  "trajectory_id": "evals/hello.es.ts › writes hello.txt # opencode:gemini-3.8-flash/-/docker#1",
+  "agent": {
+    "name": "opencode",
+    "version": "1.18.32",
+    "model_name": "gemini-3.8-flash"
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-27T16:10:34.328Z",
+      "source": "user",
+      "message": "Run `ls -a` to look around, then create hello.txt containing exactly: hi"
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-27T16:10:39.782Z",
+      "source": "agent",
+      "model_name": "gemini-3.8-flash",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "iceBr66enbsL0bMK",
+          "function_name": "bash",
+          "arguments": {
+            "command": "ls -a",
+            "cwd": "."
+          }
+        },
+        {
+          "tool_call_id": "4rk5UIXGeBcA7Ka9",
+          "function_name": "file-edit",
+          "arguments": {
+            "path": "hello.txt"
+          },
+          "extra": {
+            "path": "hello.txt",
+            "kind": "create",
+            "added": 1,
+            "removed": 0
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "iceBr66enbsL0bMK",
+            "content": "{\"output\":\".\\n..\\n\",\"metadata\":{\"output\":\".\\n..\\n\",\"exit\":0,\"truncated\":false}}",
+            "extra": {
+              "ok": true,
+              "durationMs": 1
+            }
+          },
+          {
+            "source_call_id": "4rk5UIXGeBcA7Ka9",
+            "extra": {
+              "durationMs": 1
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "final_metrics": {
+    "total_steps": 2
+  },
+  "extra": {
+    "outcome": "pass"
+  }
+}

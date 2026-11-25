@@ -1,0 +1,106 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "20260927T161031Z_cc7e11c_cursor-agent_a3yh",
+  "trajectory_id": "evals/hello.es.ts › writes hello.txt # claude-code:claude-sonnet-5/-/docker#1",
+  "agent": {
+    "name": "claude-code",
+    "version": "2.1.276 (Claude Code)",
+    "model_name": "claude-sonnet-5"
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-27T16:10:34.357Z",
+      "source": "user",
+      "message": "Run `ls -a` to look around, then create hello.txt containing exactly: hi"
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-27T16:10:36.826Z",
+      "source": "agent",
+      "model_name": "claude-sonnet-5",
+      "message": "I'll list the directory contents, then create the file.",
+      "tool_calls": [
+        {
+          "tool_call_id": "toolu_019jfoVwYEEZoQKTj4SHXB9W",
+          "function_name": "bash",
+          "arguments": {
+            "command": "ls -a",
+            "description": "List all files including hidden ones"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "toolu_019jfoVwYEEZoQKTj4SHXB9W",
+            "content": "{\"stdout\":\".\\n..\",\"stderr\":\"\",\"interrupted\":false,\"isImage\":false,\"noOutputExpected\":false}",
+            "extra": {
+              "ok": true,
+              "durationMs": 44
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-27T16:10:39.091Z",
+      "source": "agent",
+      "model_name": "claude-sonnet-5",
+      "message": "The directory is empty. Creating hello.txt now.",
+      "tool_calls": [
+        {
+          "tool_call_id": "toolu_01J2d2TMcR36tjYkJc7kr1dJ",
+          "function_name": "file-edit",
+          "arguments": {
+            "path": "hello.txt"
+          },
+          "extra": {
+            "path": "hello.txt",
+            "kind": "create",
+            "added": 1,
+            "removed": 0
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "toolu_01J2d2TMcR36tjYkJc7kr1dJ",
+            "extra": {
+              "durationMs": 15
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 4,
+      "timestamp": "2026-09-27T16:10:41.075Z",
+      "source": "agent",
+      "model_name": "claude-sonnet-5",
+      "message": "Created `hello.txt` containing \"hi\".",
+      "metrics": {
+        "prompt_tokens": 86014,
+        "completion_tokens": 211,
+        "cached_tokens": 57171,
+        "extra": {
+          "cache_creation_input_tokens": 28837
+        }
+      }
+    }
+  ],
+  "final_metrics": {
+    "total_prompt_tokens": 86014,
+    "total_completion_tokens": 211,
+    "total_cached_tokens": 57171,
+    "extra": {
+      "cache_creation_input_tokens": 28837
+    },
+    "total_steps": 4
+  },
+  "extra": {
+    "outcome": "pass"
+  }
+}
