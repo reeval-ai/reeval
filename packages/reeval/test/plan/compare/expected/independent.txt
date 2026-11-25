@@ -1,9 +1,9 @@
 no profile · 1 evals · 4 cells · 16 attempts
 hint: 1 eval runs more than once with the default gate, so every attempt must pass (pass^k); set gate: { passRate: 0.8 } to gate on pass@1 instead
-evals/independent.eval.ts › parent › baseline, not the inherited environment  a/base/docker  control       ungated  ×4  runs 4 (compare default)
-                                                                              a/peer/docker  variant peer  gated    ×4
-                                                                              b/base/docker  control       ungated  ×4
-                                                                              b/peer/docker  variant peer  gated    ×4
+independent  a/base/docker  control       ungated  ×4  runs 4 (compare default)
+             a/peer/docker  variant peer  gated    ×4
+             b/base/docker  control       ungated  ×4
+             b/peer/docker  variant peer  gated    ×4
 excluded: —
 image docker · cursor · 1 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

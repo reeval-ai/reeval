@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeJudge } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
 
@@ -14,7 +14,7 @@ const summary = Array.from(
 ).join('\n')
 
 export default defineConfig({
-  harnesses: fakeHarness({ script: [[{ exec: `node ${write}` }]], text: `Done.\n\n${summary}` }),
+  agents: fakeAgent({ script: [[{ exec: `node ${write}` }]], text: `Done.\n\n${summary}` }),
   sandbox: fakeSandbox(),
   judge: { model: fakeJudge({ score: 0.9 }) },
 })

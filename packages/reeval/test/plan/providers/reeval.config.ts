@@ -1,10 +1,11 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { boat, createBoat } from 'reeval/provider/boat'
 import { createDaytona, daytona } from 'reeval/provider/daytona'
 
 export default defineConfig({
-  harnesses: fakeHarness(),
+  include: ['evals/**/*.eval.ts', '!evals/deny.eval.ts'],
+  agents: fakeAgent(),
   profiles: {
     boat: { provider: boat() },
     'boat-large': { provider: boat({ type: 'large', maxConcurrent: 4 }) },

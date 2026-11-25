@@ -7,7 +7,7 @@
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"glob","input":{"pattern":"**/*"},"ok":true,"durationMs":674}
 {"turn":0,"type":"tool","tool":"glob","input":{"pattern":"**/*.es.ts"},"ok":true,"durationMs":43}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"fake.*harness|fakeHarness|dry-run"},"ok":true,"durationMs":82}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"fake.*harness|fakeAgent|dry-run"},"ok":true,"durationMs":82}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"glob","input":{"pattern":"**/*"},"ok":true,"durationMs":95}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"defineEval|eval\\(|cells|environment"},"ok":true,"durationMs":46}
@@ -22,7 +22,7 @@
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":69}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/harness.d.ts"},"ok":true,"durationMs":69}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/sandbox.d.ts"},"ok":true,"durationMs":67}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"defineConfig|evaluate\\(|fakeHarness|fakeJudge|fakeSandbox|compare:"},"ok":true,"durationMs":66}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"defineConfig|evaluate\\(|fakeAgent|fakeJudge|fakeSandbox|compare:"},"ok":true,"durationMs":66}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/matchers.d.ts"},"ok":true,"durationMs":0}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":2}
@@ -64,7 +64,7 @@
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/matchers.js"},"ok":true,"durationMs":28}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/judge/model.js"},"ok":true,"durationMs":72}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"fakeHarness|fakeJudge|fakeSandbox|withSkill"},"ok":true,"durationMs":76}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"fakeAgent|fakeJudge|fakeSandbox|withSkill"},"ok":true,"durationMs":76}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/plan.js"},"ok":true,"durationMs":24}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/judge/index.js"},"ok":true,"durationMs":63}

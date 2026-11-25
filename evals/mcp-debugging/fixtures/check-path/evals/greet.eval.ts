@@ -1,14 +1,14 @@
-import { evaluate, expect, group } from 'reeval'
+import { defineEval, expect } from 'reeval'
 
 const greetsAda = `node -e "import('./lib/greet.js').then((m) =>
   process.exit(m.greet('Ada') === 'Hello, Ada!' ? 0 : 1))"`
 
-group('greeter', () => {
-  evaluate('creates the greeter', async (c) => {
+export default defineEval({
+  task: async (c) => {
     const turn = await c.send(
       'Create lib/greet.js exporting greet(name), which returns "Hello, <name>!".',
     )
     await expect(turn, 'greet.js exists').toHaveFile('src/greet.js', /export/)
     await expect(c.exec(greetsAda), 'greets Ada').toSucceed()
-  })
+  },
 })

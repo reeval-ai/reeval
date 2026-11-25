@@ -9,10 +9,10 @@ import {
   grokBuild,
   opencode,
   pi,
-} from 'reeval/harness'
+} from 'reeval/agent'
 
 export default defineConfig({
-  harnesses: [
+  agents: [
     codex({ model: 'gpt-5.6-sol' }),
     codex({ model: 'gpt-5.6-sol', effort: 'high' }),
     claudeCode({ model: 'claude-sonnet-5-5' }),

@@ -6,12 +6,12 @@ import { readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { describe, test } from 'node:test'
 import { fileURLToPath } from 'node:url'
+import { fakeAgent } from '../src/agent.ts'
 import { setupAllowance } from '../src/attempt/index.ts'
 import { neededCredentials, resolveConfig } from '../src/config.ts'
 import { SANDBOX_EGRESS } from '../src/egress.ts'
 import { agentSandboxProblem } from '../src/harness/agent.ts'
 import { AGENTS } from '../src/harness/agents.ts'
-import { fakeHarness } from '../src/harness.ts'
 import type { PlannedAttempt } from '../src/options.ts'
 import { planEval } from '../src/plan-eval.ts'
 import {
@@ -157,7 +157,7 @@ describe('sandbox kinds', () => {
     const allowance = (sandbox: SandboxDescriptor) =>
       setupAllowance({
         sandbox,
-        harness: fakeHarness(),
+        harness: fakeAgent(),
         environment: { layers: [] },
       } as unknown as PlannedAttempt)
     const plain = allowance(docker())
@@ -200,7 +200,7 @@ describe('which sandbox a real harness runs in', () => {
   test('the fake sandbox names what it lacks and the sandbox that has it', () => {
     assert.equal(
       agentSandboxProblem(AGENTS.cursor, fakeSandbox()),
-      "The Cursor harness can't run in the fake sandbox, which has no harness session and can't keep CURSOR_API_KEY out of it: set sandbox: docker() or tart() for this eval, or use fakeHarness() with fakeSandbox()",
+      "The Cursor harness can't run in the fake sandbox, which has no harness session and can't keep CURSOR_API_KEY out of it: set sandbox: docker() or tart() for this eval, or use fakeAgent() with fakeSandbox()",
     )
   })
 
@@ -226,7 +226,7 @@ describe('which sandbox a real harness runs in', () => {
     const windowsOnly = { ...AGENTS.cursor, platforms: ['win32'] as const }
     assert.equal(
       agentSandboxProblem(windowsOnly, docker()),
-      "The Cursor harness can't run in the docker sandbox, which runs linux, not win32: use fakeHarness() with fakeSandbox()",
+      "The Cursor harness can't run in the docker sandbox, which runs linux, not win32: use fakeAgent() with fakeSandbox()",
     )
   })
 })
@@ -254,7 +254,7 @@ describe('how many sandboxes run at once', () => {
   test("each attempt's gate holds Tart to its limit, whatever the run's concurrency", () => {
     const plan = (sandbox: SandboxDescriptor) => {
       const config = resolveConfig(
-        { harnesses: fakeHarness(), sandbox, egress: 'allow-all' },
+        { agents: fakeAgent(), sandbox, egress: 'allow-all' },
         tmpdir(),
         'reeval.config.ts',
       )

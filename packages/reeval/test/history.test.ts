@@ -27,37 +27,43 @@ const sh = (cwd: string, ...args: string[]) =>
   execFileSync('git', args, { cwd, env: GIT_ENV, encoding: 'utf8' }).trim()
 
 const HISTORY = 'evals/.history'
-const agent = (name = 'agent') => `import { evaluate, expect } from 'reeval'
-evaluate('${name}', async (c) => {
-  await c.send('write hello.txt')
-  expect(await c.judge('Did it write hello.txt?', { diff: true })).toPass()
+const agent = `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('write hello.txt')
+    expect(await c.judge('Did it write hello.txt?', { diff: true })).toPass()
+  },
 })
 `
-const failing = `import { evaluate, expect } from 'reeval'
-evaluate('broken', async (c) => {
-  await c.send('write hello.txt')
-  await expect(c.exec('exit 4')).toSucceed()
+const failing = `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('write hello.txt')
+    await expect(c.exec('exit 4')).toSucceed()
+  },
 })
 `
-const logged = `import { evaluate, expect } from 'reeval'
-evaluate('logged', async (c) => {
-  await c.send('write hello.txt')
-  await expect(c.exec('echo ok')).toSucceed()
+const logged = `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('write hello.txt')
+    await expect(c.exec('echo ok')).toSucceed()
+  },
 })
 `
 /** An eval whose environment has a setup step, so its attempt writes setup.log and checks/1.log. */
-const setUp = (
-  name: string,
-  command: string,
-) => `import { defineEnvironment, evaluate, expect } from 'reeval'
+const setUp = (command: string) => `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const environment = defineEnvironment('set-up', {
   sandbox: fakeSandbox({ dir: new URL('../sandboxes', import.meta.url) }),
   setup: [{ run: 'echo ready' }],
 })
-evaluate('${name}', { environments: environment }, async (c) => {
-  await c.send('write hello.txt')
-  await expect(c.exec('${command}')).toSucceed()
+export default defineEval({
+  environment,
+  async task(c) {
+    await c.send('write hello.txt')
+    await expect(c.exec('${command}')).toSucceed()
+  },
 })
 `
 const harness = (text = 'Wrote it') => `{ files: { 'hello.txt': 'hi\\n' }, text: '${text}' }`
@@ -89,7 +95,7 @@ const historyJson = async (dir: string, args: string[] = []) => {
 
 describe('recording runs into evals/.history', () => {
   test('reeval run writes scratch; reeval record promotes it next to the evals', async () => {
-    const p = await gitProject('record-basic', { 'evals/agent.eval.ts': agent() })
+    const p = await gitProject('record-basic', { 'evals/agent.eval.ts': agent })
     assert.equal((await runCli(p.dir)).code, 0)
     assert.deepEqual(recordedRuns(p.dir), [], 'nothing recorded without --record')
     const { run, evals } = readRun(p.dir)
@@ -154,7 +160,7 @@ describe('recording runs into evals/.history', () => {
     assert.match(summary, /^# agent$/m, 'passes get detail')
     assert.match(
       summary,
-      /^\| <a id="attempt-[a-z0-9-]+"><\/a>A1 \| evals\/agent\.eval\.ts › agent \| fake \| fake \| pass \|/m,
+      /^\| <a id="attempt-[a-z0-9-]+"><\/a>A1 \| agent \| fake \| fake \| pass \|/m,
     )
     assert.match(summary, /^## Judgments$/m)
     assert.match(summary, /Did it write hello\.txt/)
@@ -192,10 +198,7 @@ describe('recording runs into evals/.history', () => {
     const shown = await runCli(p.dir, ['show', 'latest', '--json'])
     assert.equal((JSON.parse(shown.stdout) as RunRecord).kind, 'reeval-run')
     assert.match((await runCli(p.dir, ['show', run.runId, '--md'])).stdout, /^# agent$/m)
-    assert.match(
-      (await runCli(p.dir, ['history'])).stdout,
-      /✓✓ +2\/2 +evals\/agent\.eval\.ts › agent/,
-    )
+    assert.match((await runCli(p.dir, ['history'])).stdout, /✓✓ +2\/2 +agent/)
   })
 
   test('a parent *.log does not drop recorded logs', async () => {
@@ -259,7 +262,7 @@ describe('recording runs into evals/.history', () => {
   test('history.archive writes each recorded run as a zip, and reeval record rebuilds one', async () => {
     const p = await gitProject(
       'record-archive',
-      { 'evals/agent.eval.ts': agent() },
+      { 'evals/agent.eval.ts': agent },
       'history: { archive: true },',
     )
     const first = await runCli(p.dir, ['run', '--record'])
@@ -354,7 +357,7 @@ describe('recording runs into evals/.history', () => {
   }, async () => {
     const p = await gitProject(
       'record-archive-unreadable',
-      { 'evals/agent.eval.ts': agent() },
+      { 'evals/agent.eval.ts': agent },
       'history: { archive: true },',
     )
     assert.equal((await runCli(p.dir, ['run', '--record'])).code, 0)
@@ -376,7 +379,7 @@ describe('recording runs into evals/.history', () => {
   test('a parent *.zip ignore leaves the history folder archives committed', async () => {
     const p = await gitProject(
       'record-archive-ignored',
-      { 'evals/agent.eval.ts': agent() },
+      { 'evals/agent.eval.ts': agent },
       'history: { archive: true },',
     )
     await appendFile(join(p.dir, '.gitignore'), '*.zip\n')
@@ -397,7 +400,7 @@ describe('recording runs into evals/.history', () => {
   test("history.debugArchive zips the run's .reeval/debug data there, and reeval clean removes it", async () => {
     const p = await gitProject(
       'record-debug-archive',
-      { 'evals/agent.eval.ts': agent() },
+      { 'evals/agent.eval.ts': agent },
       'history: { debugArchive: true },',
     )
     const r = await runCli(p.dir, ['run', '--record'])
@@ -469,7 +472,7 @@ describe('recording runs into evals/.history', () => {
   })
 
   test('without history.archive no zip is written', async () => {
-    const p = await gitProject('record-no-archive', { 'evals/agent.eval.ts': agent() })
+    const p = await gitProject('record-no-archive', { 'evals/agent.eval.ts': agent })
     const r = await runCli(p.dir, ['run', '--record'])
     assert.equal(r.code, 0, r.stderr)
     assert.doesNotMatch(r.stdout, /archived/)
@@ -501,7 +504,7 @@ describe('recording runs into evals/.history', () => {
   })
 
   test("an existing .gitattributes keeps its lines and gains the history's", async () => {
-    const p = await gitProject('record-gitattributes', { 'evals/agent.eval.ts': agent() })
+    const p = await gitProject('record-gitattributes', { 'evals/agent.eval.ts': agent })
     mkdirSync(join(p.dir, HISTORY), { recursive: true })
     const own = '*.png binary'
     await writeFile(join(p.dir, HISTORY, '.gitattributes'), own)
@@ -532,7 +535,7 @@ describe('recording runs into evals/.history', () => {
   })
 
   test('a history file that is not a readable record is named on stderr, not silently skipped', async () => {
-    const p = await gitProject('record-unreadable', { 'evals/agent.eval.ts': agent() })
+    const p = await gitProject('record-unreadable', { 'evals/agent.eval.ts': agent })
     assert.equal((await runCli(p.dir, ['run', '--record'])).code, 0)
     const [good] = recordedRuns(p.dir)
     // What a merge that went wrong, or a copy cut short, leaves behind.
@@ -562,49 +565,49 @@ describe('recording runs into evals/.history', () => {
     await rm(join(p.dir, 'evals/canary.eval.ts'))
     await writeFile(
       join(p.dir, 'evals/mixed.eval.ts'),
-      `import { evaluate, expect } from 'reeval'
+      `import { defineEval, expect } from 'reeval'
 import { baseline, variant } from './env.ts'
 
-evaluate(
-  'mixed',
-  {
-    runs: 2,
-    compare: { control: baseline, variants: [variant] },
-    questions: [{ question: 'Which page looks better?', across: 'environment', task: true, artifacts: ['landing'] }],
-  },
-  async (c) => {
+export default defineEval({
+  runs: 2,
+  compare: { control: baseline, variants: [variant] },
+  questions: [{ question: 'Which page looks better?', across: 'environment', task: true, artifacts: ['landing'] }],
+  async task(c) {
     await c.send('write the page')
     const server = await c.serve('node server.mjs')
     await c.capture(server, { name: 'aside' })
     await c.capture(server, { name: 'landing' })
     expect(c.attempt.n, 'first try').toBe(1)
   },
-)
+})
 `,
     )
     await writeFile(
       join(p.dir, 'evals/flat.eval.ts'),
-      `import { evaluate } from 'reeval'
+      `import { defineEval } from 'reeval'
 import { baseline, variant } from './env.ts'
 
-evaluate('flat', { compare: { control: baseline, variants: [variant], minLift: 0.5 } }, async (c) => {
-  await c.send('write the page')
+export default defineEval({
+  compare: { control: baseline, variants: [variant], minLift: 0.5 },
+  async task(c) {
+    await c.send('write the page')
+  },
 })
 `,
     )
     await writeFile(
       join(p.dir, 'evals/lifted.eval.ts'),
-      `import { evaluate, expect } from 'reeval'
+      `import { defineEval, expect } from 'reeval'
 import { baseline, variant } from './env.ts'
 
-evaluate(
-  'lifted',
-  { runs: 2, compare: { control: baseline, variants: [variant], minLift: 0.6 } },
-  async (c) => {
+export default defineEval({
+  runs: 2,
+  compare: { control: baseline, variants: [variant], minLift: 0.6 },
+  async task(c) {
     await c.send('write the page')
     expect(c.attempt.cell.role === 'variant' || c.attempt.n === 1, 'passes').toBe(true)
   },
-)
+})
 `,
     )
     assert.equal((await runCli(p.dir)).code, 1)
@@ -651,8 +654,8 @@ evaluate(
 
   test("history.artifacts defaults to 'evidence': a passing attempt keeps diffs, not logs", async () => {
     const p = await gitProject('record-default-level', {
-      'evals/passes.eval.ts': setUp('passes', 'echo ok'),
-      'evals/fails.eval.ts': setUp('fails', 'exit 4'),
+      'evals/passes.eval.ts': setUp('echo ok'),
+      'evals/fails.eval.ts': setUp('exit 4'),
     })
     const ran = await runCli(p.dir)
     assert.equal(ran.code, 1, ran.stdout + ran.stderr)
@@ -683,10 +686,14 @@ evaluate(
 
   test("'failures' keeps a passing attempt's diff beside a failure of its own case only", async () => {
     const p = await gitProject('record-cases-diff', {
-      'evals/cases.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('cased', { cases: ['a', 'b'], runs: 2 }, async (c, k) => {
-  await c.send(k)
-  expect(k === 'a' && c.attempt.n === 1, 'first a fails').toBe(false)
+      'evals/cased.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  cases: ['a', 'b'],
+  runs: 2,
+  async task(c, k) {
+    await c.send(k)
+    expect(k === 'a' && c.attempt.n === 1, 'first a fails').toBe(false)
+  },
 })
 `,
     })
@@ -709,7 +716,7 @@ evaluate('cased', { cases: ['a', 'b'], runs: 2 }, async (c, k) => {
   test('artifact levels, and config.record modes', async () => {
     const p = await gitProject(
       'record-levels',
-      { 'evals/agent.eval.ts': agent(), 'evals/broken.eval.ts': failing },
+      { 'evals/agent.eval.ts': agent, 'evals/broken.eval.ts': failing },
       `history: { artifacts: 'failures' }, record: 'always',`,
     )
     assert.equal((await runCli(p.dir)).code, 1)
@@ -732,7 +739,7 @@ evaluate('cased', { cases: ['a', 'b'], runs: 2 }, async (c, k) => {
     assert.equal(none.code, 2)
     assert.match(none.stderr, /already recorded with different content.*never rewritten/)
 
-    const q = await gitProject('record-ci', { 'evals/agent.eval.ts': agent() })
+    const q = await gitProject('record-ci', { 'evals/agent.eval.ts': agent })
     assert.equal((await runCli(q.dir)).code, 0)
     const local = readRun(q.dir).run.runId
     assert.deepEqual(recordedRuns(q.dir), [], "record: 'ci' is the default, and this isn't CI")
@@ -748,7 +755,7 @@ evaluate('cased', { cases: ['a', 'b'], runs: 2 }, async (c, k) => {
   })
 
   test('two branches record, merge with zero conflicts, and old checkouts show old history', async () => {
-    const p = await gitProject('record-merge', { 'evals/agent.eval.ts': agent() })
+    const p = await gitProject('record-merge', { 'evals/agent.eval.ts': agent })
     sh(p.dir, 'checkout', '-q', '-b', 'a')
     assert.equal((await runCli(p.dir, ['run', '--record'])).code, 0)
     sh(p.dir, 'add', '-A')
@@ -759,7 +766,7 @@ evaluate('cased', { cases: ['a', 'b'], runs: 2 }, async (c, k) => {
     sh(p.dir, 'checkout', '-q', 'main')
     sh(p.dir, 'checkout', '-q', '-b', 'b')
     assert.deepEqual(recordedRuns(p.dir), [], "b doesn't see a's run")
-    await writeFile(join(p.dir, 'evals/second.eval.ts'), agent('second'))
+    await writeFile(join(p.dir, 'evals/second.eval.ts'), agent)
     sh(p.dir, 'add', '-A')
     sh(p.dir, 'commit', '-q', '-m', 'add an eval')
     assert.equal((await runCli(p.dir, ['run', '--record'])).code, 0)
@@ -779,7 +786,7 @@ evaluate('cased', { cases: ['a', 'b'], runs: 2 }, async (c, k) => {
       merged,
     )
     assert.deepEqual(view.orphaned, [])
-    const agentRow = view.rows.find((r) => r.id === 'evals/agent.eval.ts › agent')
+    const agentRow = view.rows.find((r) => r.id === 'agent')
     assert.deepEqual(agentRow?.outcomes, ['pass', 'pass', 'pass'])
 
     sh(p.dir, 'checkout', '-q', commitA)
@@ -793,7 +800,7 @@ evaluate('cased', { cases: ['a', 'b'], runs: 2 }, async (c, k) => {
   })
 
   test('runs recorded before a rebase are flagged but still compared', async () => {
-    const p = await gitProject('record-rebase', { 'evals/agent.eval.ts': agent() })
+    const p = await gitProject('record-rebase', { 'evals/agent.eval.ts': agent })
     sh(p.dir, 'checkout', '-q', '-b', 'feature')
     await writeFile(join(p.dir, 'feature.txt'), 'x\n')
     sh(p.dir, 'add', '-A')
@@ -833,7 +840,7 @@ evaluate('cased', { cases: ['a', 'b'], runs: 2 }, async (c, k) => {
   })
 
   test('runs further back than the first 20,000 commits are still in HEAD’s history', async () => {
-    const p = await gitProject('record-deep', { 'evals/agent.eval.ts': agent() })
+    const p = await gitProject('record-deep', { 'evals/agent.eval.ts': agent })
     const commit = async (name: string) => {
       await writeFile(join(p.dir, `${name}.txt`), 'x\n')
       sh(p.dir, 'add', `${name}.txt`)
@@ -888,7 +895,7 @@ evaluate('cased', { cases: ['a', 'b'], runs: 2 }, async (c, k) => {
 
   test('recording refuses files that look like secrets, or that changed after the run', async () => {
     const leaked = 'totally-private-value-4242'
-    const p = await gitProject('record-secret', { 'evals/agent.eval.ts': agent() })
+    const p = await gitProject('record-secret', { 'evals/agent.eval.ts': agent })
     await writeFile(
       join(p.dir, 'reeval.config.ts'),
       fakeConfig({ harness: harness(`Used ${leaked}`) }),
@@ -923,7 +930,7 @@ evaluate('cased', { cases: ['a', 'b'], runs: 2 }, async (c, k) => {
 
   test('a dirty run saves worktree.patch, lockfile hashes and state; reeval checkout reproduces it', async () => {
     const p = await gitProject('record-state', {
-      'evals/agent.eval.ts': agent(),
+      'evals/agent.eval.ts': agent,
       'package-lock.json': '{"lockfileVersion":3}\n',
       'src/app.js': 'export const v = 1\n',
     })
@@ -980,7 +987,7 @@ evaluate('cased', { cases: ['a', 'b'], runs: 2 }, async (c, k) => {
 
   test("a profile's judge is the judge the record names and fingerprints", async () => {
     const withProfile = await project('record-profile-judge', {
-      'evals/agent.eval.ts': agent(),
+      'evals/agent.eval.ts': agent,
       'reeval.config.ts': fakeConfig({
         harness: harness(),
         judge: `{ model: 'google/gemini-2.5-flash', threshold: 0.5 }`,
@@ -1003,7 +1010,7 @@ evaluate('cased', { cases: ['a', 'b'], runs: 2 }, async (c, k) => {
     )
 
     const direct = await project('record-config-judge', {
-      'evals/agent.eval.ts': agent(),
+      'evals/agent.eval.ts': agent,
       'reeval.config.ts': fakeConfig({
         harness: harness(),
         judge: '{ model: fakeJudge({ score: 0.9 }), threshold: 0.8 }',
@@ -1021,7 +1028,7 @@ evaluate('cased', { cases: ['a', 'b'], runs: 2 }, async (c, k) => {
 
   test("a profile's defaults.sandbox is the sandbox the run header and the record name", async () => {
     const p = await project('record-profile-sandbox', {
-      'evals/agent.eval.ts': agent(),
+      'evals/agent.eval.ts': agent,
       'reeval.config.ts': fakeConfig({
         harness: harness(),
         extra: 'profiles: { fake: { defaults: { sandbox } } },',
@@ -1034,7 +1041,7 @@ evaluate('cased', { cases: ['a', 'b'], runs: 2 }, async (c, k) => {
     })
     const r = await runCli(p.dir, ['run', '--profile', 'fake', '--ui', 'plain'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    assert.match(r.stdout, /^ {2}➜ {2}Harness: +fake\n {2}➜ {2}Sandbox: +fake$/m)
+    assert.match(r.stdout, /^ {2}➜ {2}Agent: +fake\n {2}➜ {2}Sandbox: +fake$/m)
     const { run } = readRun(p.dir)
     assert.equal(run.evals[0]?.cells[0]?.sandbox, 'fake', 'the cell ran on the fake sandbox')
     assert.equal(run.config.sandbox, 'fake')
@@ -1043,7 +1050,7 @@ evaluate('cased', { cases: ['a', 'b'], runs: 2 }, async (c, k) => {
 
   test("the config's judge names no inputs, so the record's stack has no judge.state", async () => {
     const p = await project('state-none', {
-      'evals/agent.eval.ts': agent(),
+      'evals/agent.eval.ts': agent,
       'reeval.config.ts': fakeConfig({ harness: harness() }),
     })
     const r = await runCli(p.dir)
@@ -1056,7 +1063,7 @@ evaluate('cased', { cases: ['a', 'b'], runs: 2 }, async (c, k) => {
   test("the cell's gateway is in the record, and direct leaves the fingerprint as it was", async () => {
     const run = async (name: string, gateway?: string) => {
       const p = await project(name, {
-        'evals/agent.eval.ts': agent(),
+        'evals/agent.eval.ts': agent,
         'reeval.config.ts': `import { direct, vercel } from 'reeval/gateway'
 ${fakeConfig({ harness: harness(), ...(gateway ? { extra: `gateway: ${gateway},` } : {}) })}`,
       })
@@ -1081,7 +1088,7 @@ ${fakeConfig({ harness: harness(), ...(gateway ? { extra: `gateway: ${gateway},`
     // A symlink here; on Windows an 8.3 short name (C:\\Users\\RUNNER~1). git reports its top
     // level canonically, so paths reeval works out against it must be spelled from the project's root.
     const p = await gitProject('record-symlink', {
-      'evals/agent.eval.ts': agent(),
+      'evals/agent.eval.ts': agent,
       'package-lock.json': '{"lockfileVersion":3}\n',
     })
     const link = join(tempDir('record-symlink-link'), 'project')
@@ -1108,7 +1115,7 @@ ${fakeConfig({ harness: harness(), ...(gateway ? { extra: `gateway: ${gateway},`
 
   test('paths print from the current directory when the config is reached through a symlink', async () => {
     // As on macOS, where the temp dir is /var/… and the current directory /private/var/….
-    const p = await gitProject('display-symlink', { 'evals/agent.eval.ts': agent() })
+    const p = await gitProject('display-symlink', { 'evals/agent.eval.ts': agent })
     const link = join(tempDir('display-symlink-link'), 'project')
     symlinkSync(p.dir, link, 'junction')
     const r = await runCli(p.dir, ['run', '--record', '--config', join(link, 'reeval.config.ts')])
@@ -1120,7 +1127,7 @@ ${fakeConfig({ harness: harness(), ...(gateway ? { extra: `gateway: ${gateway},`
 
   test('a secret in the uncommitted changes records the run without worktree.patch, and says where', async () => {
     const key = `AIza${'Q'.repeat(31)}WXYZ`
-    const p = await gitProject('record-patch-secret', { 'evals/agent.eval.ts': agent() })
+    const p = await gitProject('record-patch-secret', { 'evals/agent.eval.ts': agent })
     await writeFile(join(p.dir, '.env.example'), `# keys\nCURSOR_API_KEY=\nGEMINI_API_KEY=${key}\n`)
     assert.equal((await runCli(p.dir)).code, 0)
     const r = await runCli(p.dir, ['record'])
@@ -1177,7 +1184,7 @@ ${fakeConfig({ harness: harness(), ...(gateway ? { extra: `gateway: ${gateway},`
   })
 
   test('--skip-secret-scan keeps a worktree.patch that looks like it holds a secret', async () => {
-    const p = await gitProject('record-patch-skip', { 'evals/agent.eval.ts': agent() })
+    const p = await gitProject('record-patch-skip', { 'evals/agent.eval.ts': agent })
     await writeFile(join(p.dir, 'config.js'), `export const key = 'AIza${'Q'.repeat(35)}'\n`)
     assert.equal((await runCli(p.dir)).code, 0)
     const r = await runCli(p.dir, ['record', '--skip-secret-scan'])
@@ -1189,7 +1196,7 @@ ${fakeConfig({ harness: harness(), ...(gateway ? { extra: `gateway: ${gateway},`
   })
 
   test('reeval checkout stops before making a worktree when the recorded worktree.patch is gone', async () => {
-    const p = await gitProject('record-patch-missing', { 'evals/agent.eval.ts': agent() })
+    const p = await gitProject('record-patch-missing', { 'evals/agent.eval.ts': agent })
     await writeFile(join(p.dir, 'notes.txt'), 'uncommitted\n')
     assert.equal((await runCli(p.dir, ['run', '--record'])).code, 0)
     const [runId] = recordedRuns(p.dir)

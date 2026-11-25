@@ -160,6 +160,13 @@
       "description": "The `reeval run` settings that shaped a run's plan, as it was first started. A resume keeps them, so it finishes the attempts the run planned.",
       "type": "object",
       "properties": {
+        "cells": {
+          "description": "`--cell`; unset without any.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "concurrency": {
           "description": "`--concurrency` or `REEVAL_CONCURRENCY`; unset when the config or the machine sized it.",
           "type": "number"

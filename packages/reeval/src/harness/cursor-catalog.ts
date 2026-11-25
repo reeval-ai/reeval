@@ -164,7 +164,7 @@ export function checkCursorCatalog(
     seen.add(id)
     const problem = cursorCatalogProblem(h, catalog)
     if (problem) {
-      const where = `evaluate("${[...attempt.groups, attempt.name].join(' › ')}")`
+      const where = `eval ${[...attempt.groups, attempt.name].join(' › ')}`
       throw new UsageError(`${where} on ${id}: ${problem}`)
     }
   }

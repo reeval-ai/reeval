@@ -1,5 +1,5 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 
 const build = `import { mkdirSync, writeFileSync } from 'node:fs'
@@ -12,7 +12,7 @@ setTimeout(() => {
 `
 
 export default defineConfig({
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     files: { 'build.js': build },
     text: 'Created build.js.',
   }),

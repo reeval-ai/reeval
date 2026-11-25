@@ -13,7 +13,9 @@ import {
 } from './judge.ts'
 import { type Assert, closest, nonEmpty, type Same } from './shared.ts'
 
-export const pairFactorSchema = z.enum(['environment', 'harness'])
+/** Persisted shape includes `harness`; plan-time uses `pairFactorSchema` without it. */
+export const pairFactorPersistedSchema = z.enum(['environment', 'agent', 'harness'])
+export const pairFactorSchema = z.enum(['environment', 'agent'])
 
 /** Evaluation models score yes/no questions only, so they can't answer a question. */
 export const isEvaluationModel = (model: string) => model.startsWith('typesafe-ai/')
@@ -87,7 +89,7 @@ export type _SameAsSchema = [
 ]
 
 const QUESTION_EXAMPLE = `questions: [{ question: 'How did the agent find the failing test?', transcript: true }]`
-const ACROSS_HINT = `'environment' (vary the environment, same harness) or 'harness' (vary the harness, same environment)`
+const ACROSS_HINT = `'environment' (vary the environment, same agent) or 'agent' (vary the agent, same environment)`
 const ACROSS_MEAN =
   ' Did you mean "across"? It is the factor a pairwise question varies: across: \'environment\'.'
 const QUESTION_KEYS = Object.keys(questionSchema.shape)
@@ -179,8 +181,11 @@ function acrossProblem(question: string, across: unknown, where: string): string
     return `${at}: across lists "${twice(across)}" twice. List each factor once.`
   }
   const bad = Array.isArray(across)
-    ? across.find((f) => !pairFactorSchema.safeParse(f).success)
+    ? across.find((f) => !pairFactorPersistedSchema.safeParse(f).success)
     : across
+  if (bad === 'harness') {
+    return `${at}: across is ${ACROSS_HINT} (got "harness"). Did you mean 'agent'?`
+  }
   return `${at}: across is ${ACROSS_HINT}, or a list of both (got ${describe(Array.isArray(across) && across.length === 0 ? across : bad)}). Leave it out to ask each attempt on its own.`
 }
 

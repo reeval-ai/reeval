@@ -124,13 +124,13 @@ CREATE TABLE question_pairs_m (
 -- Each variant against its control on every measure: one row per measure (pass, check, judge,
 -- question, tools, agentMs, tokens) and label, per eval per run.
 CREATE TABLE measure_effects_m (
-  run_id TEXT NOT NULL, eval_key TEXT NOT NULL, pooled INTEGER, harness TEXT, variant TEXT,
+  run_id TEXT NOT NULL, eval_key TEXT NOT NULL, pooled INTEGER, agent TEXT, variant TEXT,
   cell_key TEXT, control TEXT, measure TEXT, label TEXT, variant_value REAL,
   control_value REAL, estimate REAL, lo REAL, hi REAL, p REAL, verdict TEXT, leaning TEXT,
   text TEXT, needed INTEGER, unit TEXT
 );
 CREATE TABLE case_lift_m (
-  run_id TEXT NOT NULL, eval_key TEXT NOT NULL, name TEXT, harness TEXT, variant TEXT,
+  run_id TEXT NOT NULL, eval_key TEXT NOT NULL, name TEXT, agent TEXT, variant TEXT,
   cell_key TEXT, control TEXT,
   pairs INTEGER, variant_pass_at_1 REAL, control_pass_at_1 REAL, discordant_vc INTEGER,
   discordant_cv INTEGER, points REAL, lo REAL, hi REAL, method TEXT, p REAL,
@@ -140,7 +140,7 @@ CREATE TABLE case_lift_m (
 );
 CREATE TABLE cells (
   run_id TEXT NOT NULL, eval_key TEXT NOT NULL, key TEXT NOT NULL, role TEXT, variant TEXT,
-  harness TEXT, harness_kind TEXT, model TEXT, reasoning_effort TEXT, environment TEXT,
+  agent TEXT, agent_kind TEXT, model TEXT, reasoning_effort TEXT, environment TEXT,
   environment_digest TEXT, sandbox TEXT, gate TEXT, gate_pass_rate REAL, fingerprint TEXT,
   ${Object.values(PART_COLUMNS)
     .map(([, col]) => `${col} TEXT`)
@@ -262,9 +262,9 @@ CREATE INDEX attempts_by_cell ON attempts (run_id, eval_key, cell_key);
 
 /** Canned questions about the history, as views to filter. */
 const VIEWS = `
--- Variant against control, per harness, per run.
+-- Variant against control, per agent, per run.
 CREATE VIEW lift AS
-  SELECT c.run_id, r.started_at, r.branch, c.eval_key, c.harness, c.model, c.variant,
+  SELECT c.run_id, r.started_at, r.branch, c.eval_key, c.agent, c.model, c.variant,
     c.lift_vs AS control, c.pass AS variant_pass, c.pass + c.fail AS variant_counted,
     k.pass AS control_pass, k.pass + k.fail AS control_counted, c.pass_at_1 AS variant_pass_at_1,
     k.pass_at_1 AS control_pass_at_1, c.lift_points AS points,
@@ -310,14 +310,14 @@ CREATE VIEW contrasts AS SELECT * FROM contrasts_m;
 -- Each answer to a question asked of each attempt on its own, with the attempt's outcome and
 -- cell: tally the choices with GROUP BY question, choice, or split them by harness or arm.
 CREATE VIEW attempt_answers AS
-  SELECT q.*, c.harness, c.environment, c.role, r.started_at, r.branch
+  SELECT q.*, c.agent, c.environment, c.role, r.started_at, r.branch
   FROM attempt_answers_m q JOIN runs r USING (run_id)
   JOIN cells c ON c.run_id = q.run_id AND c.eval_key = q.eval_key AND c.key = q.cell_key;
 
 -- Each value an attempt observed with c.observe, with the attempt's outcome and cell: tally text
 -- with GROUP BY name, text, summarize num, or read an array's items with json_each(value).
 CREATE VIEW attempt_values AS
-  SELECT v.*, c.harness, c.environment, c.role, c.variant, r.started_at, r.branch
+  SELECT v.*, c.agent, c.environment, c.role, c.variant, r.started_at, r.branch
   FROM attempt_values_m v JOIN runs r USING (run_id)
   JOIN cells c ON c.run_id = v.run_id AND c.eval_key = v.eval_key AND c.key = v.cell_key;
 
@@ -392,7 +392,7 @@ CREATE VIEW skill_files AS
 -- Failed attempts and infra errors (an OOM kill among them) with the cell's harness, model, each
 -- of its environment's skills and the label of the first check that failed.
 CREATE VIEW failing_attempts AS
-  SELECT a.run_id, r.started_at, a.eval_key, a.key AS attempt_key, a.cell_key, c.harness,
+  SELECT a.run_id, r.started_at, a.eval_key, a.key AS attempt_key, a.cell_key, c.agent,
     c.model, c.environment, s.name AS skill, a.outcome, a.error_kind, a.error_message,
     a.duration_ms, a.oom_kills,
     (SELECT x.label FROM assertions x WHERE x.run_id = a.run_id AND x.attempt_key = a.key
@@ -412,7 +412,7 @@ CREATE VIEW failing_attempts AS
 -- attempts are left out; one whose sandbox had nothing to read (cgroup v1, a macOS VM) has its
 -- machine and null usage.
 CREATE VIEW attempt_resources AS
-  SELECT a.run_id, r.started_at, a.eval_key, a.cell_key, a.key AS attempt_key, c.harness,
+  SELECT a.run_id, r.started_at, a.eval_key, a.cell_key, a.key AS attempt_key, c.agent,
     c.model, c.environment, c.sandbox, a.resource_scope AS scope, a.machine_size,
     a.machine_vcpus, a.machine_memory_bytes, a.outcome, a.duration_ms, a.cpu_seconds,
     a.avg_cores, a.p95_cores, a.peak_cores, a.peak_memory_bytes, a.cgroup_peak_memory_bytes,
@@ -426,7 +426,7 @@ CREATE VIEW attempt_resources AS
 
 -- Each check of a variant cell beside its control's: whether it tells them apart.
 CREATE VIEW check_discrimination AS
-  SELECT k.run_id, k.eval_key, c.harness, c.variant, c.key AS cell_key, k.label,
+  SELECT k.run_id, k.eval_key, c.agent, c.variant, c.key AS cell_key, k.label,
     k.pass AS variant_pass, k.fail AS variant_fail, k.not_run AS variant_not_run,
     k.control_pass, k.control_fail, k.control_not_run, k.verdict
   FROM cell_checks k
@@ -437,7 +437,7 @@ CREATE VIEW check_discrimination AS
 -- cell's counted attempts. rate = pass / (pass + fail): an error (the matcher couldn't answer) and
 -- a not-run (an expect.require or a thrown error before it ended the body) are left out; null when neither passed nor failed.
 CREATE VIEW check_rates AS
-  SELECT k.run_id, k.eval_key, k.cell_key, c.harness, c.environment, c.role, k.label, k.pass,
+  SELECT k.run_id, k.eval_key, k.cell_key, c.agent, c.environment, c.role, k.label, k.pass,
     k.fail, k.error, k.not_run, CAST(k.pass AS REAL) / NULLIF(k.pass + k.fail, 0) AS rate
   FROM cell_checks k
   JOIN cells c ON c.run_id = k.run_id AND c.eval_key = k.eval_key AND c.key = k.cell_key;

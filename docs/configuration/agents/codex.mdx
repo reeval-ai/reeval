@@ -19,14 +19,14 @@ For more information about the variable, see [`OPENAI_API_KEY`](/reference/envir
 
 ## `codex()`
 
-`codex()` is exported from `{{ pkg }}/harness`. The `reeval.config.ts` file passes it as the `harness` option:
+`codex()` is exported from `{{ pkg }}/agent`. The `reeval.config.ts` file passes it as the `harness` option:
 
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
-import { codex } from '{{ pkg }}/harness'
+import { codex } from '{{ pkg }}/agent'
 
 export default defineConfig({
-  harnesses: codex({
+  agents: codex({
     model: 'gpt-5.6-luna',
     effort: 'medium',
   }),

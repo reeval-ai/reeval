@@ -141,7 +141,8 @@ describe('reeval on MinIO', { skip }, () => {
     },
   },`,
       }),
-      'evals/a.eval.ts': "import { evaluate } from 'reeval'\nevaluate('a', async () => {})\n",
+      'evals/a.eval.ts':
+        "import { defineEval } from 'reeval'\nexport default defineEval({ async task() {} })\n",
     })
     a = p.dir
     git(a, 'init', '-q', '-b', 'main')

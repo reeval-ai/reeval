@@ -20,7 +20,7 @@ export function tracePlan(debug: AttemptDebug, spec: AttemptSpec, ctx: RunContex
     'plan',
     `config ${config} · ${profile} · run ${ctx.runId} · attempt ${spec.cell.key}#${spec.n}`,
   )
-  debug.log('plan', `harness ${harnessId(spec.harness)} ${from('harnesses')}`)
+  debug.log('plan', `harness ${harnessId(spec.harness)} ${from('agents')}`)
   debug.log('plan', `sandbox ${sandboxId(spec.sandbox)} ${from('sandbox')}`)
   const env = spec.environment
   const role = spec.cell.role === 'variant' ? ` · variant ${spec.cell.variant}` : ''

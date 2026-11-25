@@ -19,14 +19,14 @@ For more information about the variable, see [`CURSOR_API_KEY`](/reference/envir
 
 ## `cursor()`
 
-`cursor()` is exported from `{{ pkg }}/harness`. The following configuration passes it as the `harness` option:
+`cursor()` is exported from `{{ pkg }}/agent`. The following configuration passes it as the `harness` option:
 
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
-import { cursor } from '{{ pkg }}/harness'
+import { cursor } from '{{ pkg }}/agent'
 
 export default defineConfig({
-  harnesses: cursor({
+  agents: cursor({
     model: 'grok-4.7',
     effort: 'high',
   }),

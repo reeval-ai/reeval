@@ -19,7 +19,7 @@
 {"turn":0,"type":"tool","tool":"read","input":{"path":"evals/environments.ts"},"ok":true,"durationMs":75}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"text","text":"Checking the foobar package API and docs for the correct configuration pattern.\n"}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"/opt/es","pattern":"compare|baseline|defineConfig|evaluate|repeat|fakeHarness"},"ok":true,"durationMs":90}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"/opt/es","pattern":"compare|baseline|defineConfig|evaluate|repeat|fakeAgent"},"ok":true,"durationMs":90}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"cd . && npx es run --dry-run 2>&1; ls -la node_modules/@invertase/foobar/ 2>/dev/null | head -20"},"ok":true,"durationMs":576}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"compare|baseline|defineConfig|evaluate|repeat|environment"},"ok":true,"durationMs":109}
@@ -32,7 +32,7 @@
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"baseline|export.*baseline"},"ok":true,"durationMs":36}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"/opt/es","pattern":"compare.*withDocs|environment.*compare|runs: 3"},"ok":true,"durationMs":115}
 {"turn":0,"type":"reasoning"}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"fakeHarness|compare:|runs:"},"ok":true,"durationMs":65}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"fakeAgent|compare:|runs:"},"ok":true,"durationMs":65}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"docs/api.md"},"ok":true,"durationMs":64}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/index.d.ts"},"ok":true,"durationMs":61}
 {"turn":0,"type":"reasoning"}

@@ -1,11 +1,10 @@
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { marked, plain } from './env.ts'
 
 // A study: nothing gates it, so its misses in both arms leave it `ran`, never `pass`.
-evaluate(
-  'lands',
-  { compare: { control: plain, variants: [marked], gate: 'observe' } },
-  async (c) => {
+export default defineEval({
+  compare: { control: plain, variants: [marked], gate: 'observe' },
+  task: async (c) => {
     await expect(c, 'has the marker').toHaveFile('marker.txt', /nope/)
   },
-)
+})

@@ -2018,8 +2018,8 @@ export const features: Feature[] = [
       assert.deepEqual(
         run.evals.map((e) => [e.id, e.cases?.map((k) => k.key)]),
         [
-          ['evals/canary.eval.ts › canary', ['[REDACTED]']],
-          ['evals/lands.eval.ts › lands', ['[REDACTED]']],
+          ['canary', ['[REDACTED]']],
+          ['lands', ['[REDACTED]']],
         ],
       )
       const recorded = await runCli(project, ['record'])
@@ -3160,7 +3160,7 @@ export const features: Feature[] = [
       // An endpoint refusal is a 403 on an allowed host, so it's in the debug requests only.
       const root = join(project, '.reeval', 'debug', run.runId)
       const requests = readdirSync(root, { recursive: true, encoding: 'utf8' })
-        .filter((f) => f.startsWith('evals-lands') && f.endsWith('requests.ndjson'))
+        .filter((f) => f.startsWith('lands-') && f.endsWith('requests.ndjson'))
         .flatMap((f) => readFileSync(join(root, f), 'utf8').trim().split('\n'))
         .map((l) => JSON.parse(l) as { method: string; url: string; status?: number })
       const searches = requests.filter((r) => r.url === 'https://api.openai.com/v1/alpha/search')
@@ -3185,7 +3185,7 @@ export const features: Feature[] = [
       // An endpoint refusal is a 403 on an allowed host, so it's in the debug requests only.
       const root = join(project, '.reeval', 'debug', run.runId)
       const requests = readdirSync(root, { recursive: true, encoding: 'utf8' })
-        .filter((f) => f.startsWith('evals-lands') && f.endsWith('requests.ndjson'))
+        .filter((f) => f.startsWith('lands-') && f.endsWith('requests.ndjson'))
         .flatMap((f) => readFileSync(join(root, f), 'utf8').trim().split('\n'))
         .map((l) => JSON.parse(l) as { method: string; url: string; status?: number })
       const searches = requests.filter((r) => r.url.endsWith(':generateContent'))
@@ -3888,7 +3888,7 @@ export const features: Feature[] = [
           matcher: 'toHaveFile',
           status: 'pass',
           soft: true,
-          at: 'evals/lands.eval.ts:7',
+          at: 'evals/lands.eval.ts:9',
           target: 'marker.txt ok',
         },
       ])
@@ -3930,18 +3930,18 @@ export const features: Feature[] = [
       assert.deepEqual(
         lands?.assertions?.map((x) => [x.label, x.status, x.soft, x.at]),
         [
-          ['says nope', 'fail', true, 'evals/lands.eval.ts:8'],
-          ['is the second', 'fail', true, 'evals/lands.eval.ts:9'],
-          ['writes the marker', 'pass', true, 'evals/lands.eval.ts:10'],
-          ['gate', 'fail', false, 'evals/lands.eval.ts:11'],
+          ['says nope', 'fail', true, 'evals/lands.eval.ts:10'],
+          ['is the second', 'fail', true, 'evals/lands.eval.ts:11'],
+          ['writes the marker', 'pass', true, 'evals/lands.eval.ts:12'],
+          ['gate', 'fail', false, 'evals/lands.eval.ts:13'],
         ],
         'every failed expect is recorded, and nothing runs after the failed expect.require',
       )
       const entry = entryOf(stdout, 'lands')
       for (const [label, line] of [
-        ['says nope', 8],
-        ['is the second', 9],
-        ['gate', 11],
+        ['says nope', 10],
+        ['is the second', 11],
+        ['gate', 13],
       ])
         assert.match(
           entry,
@@ -4003,7 +4003,7 @@ export const features: Feature[] = [
           matcher: 'toSucceed',
           status: 'pass',
           soft: true,
-          at: 'evals/lands.eval.ts:7',
+          at: 'evals/lands.eval.ts:9',
         },
       ])
       assert.equal(recorded('canary')?.[0]?.status, 'fail')
@@ -4014,7 +4014,7 @@ export const features: Feature[] = [
     tiers: ['fake', 'docker'],
     env: 'plain',
     canary:
-      /expect\(…\)\.toHaveFile\(\) at evals\/canary\.eval\.ts:7 wasn't awaited\. Its check is async: write `await expect\(…\)\.toHaveFile\(\)`\./,
+      /expect\(…\)\.toHaveFile\(\) at evals\/canary\.eval\.ts:9 wasn't awaited\. Its check is async: write `await expect\(…\)\.toHaveFile\(\)`\./,
   },
   {
     dir: 'assert/called-skill',
@@ -4855,6 +4855,20 @@ export const features: Feature[] = [
     },
   },
   {
+    dir: 'run/define-eval',
+    tiers: ['fake'],
+    env: 'fake',
+    canary: /expected 'define-eval' to be 'not-define-eval'/,
+    evals: {
+      lands: { outcome: 'pass', attempts: ['fake/-/fake#1'] },
+      canary: {
+        outcome: 'fail',
+        attempts: ['fake/-/fake#1'],
+        error: { kind: 'assertion', message: /expected 'define-eval' to be 'not-define-eval'/ },
+      },
+    },
+  },
+  {
     dir: 'run/cases',
     tiers: ['fake'],
     env: 'cases',
@@ -5221,7 +5235,7 @@ export const features: Feature[] = [
           '✗ canary  0 of 1 run passed',
           '  Failed on fake.',
           '  ✗ second try  failed 1 of 1 run',
-          '    expected 1 to be 2 // Object.is equality · evals/canary.eval.ts:5',
+          '    expected 1 to be 2 // Object.is equality · evals/canary.eval.ts:6',
         ].join('\n'),
       )
       assert.match(stdout, /\nDone in \S+ · 1 failed · 1 passed\n/)
@@ -5276,7 +5290,7 @@ export const features: Feature[] = [
       const compared = await runCli(project, ['compare'])
       assert.match(compared.stdout, /^2 new evals \(1 fail · 1 ran\)$/m)
       const history = await runCli(project, ['history'])
-      assert.match(history.stdout, /^ {2}○ +– {2}evals\/lands\.eval\.ts › lands$/m)
+      assert.match(history.stdout, /^ {2}○ +– {2}lands$/m)
     },
   },
   {
@@ -5294,7 +5308,7 @@ export const features: Feature[] = [
       )
       assert.match(
         entryOf(stdout, 'lands'),
-        /\n +Worth knowing: 1 run per side; set runs: 4 at evals\/lands\.eval\.ts:5 to confirm this difference\.$/,
+        /\n +Worth knowing: 1 run per side; set runs: 4 at evals\/lands\.eval\.ts to confirm this difference\.$/,
       )
       assert.match(entryOf(stdout, 'canary'), /^ +marked +0 of 1 {2}same$/m)
       assert.doesNotMatch(stdout, /%|pass@1/)
@@ -5318,7 +5332,7 @@ export const features: Feature[] = [
       assert.equal(entryOf(stdout, 'lands').trim(), '✓ lands  2 of 2 runs passed')
       assert.match(
         entryOf(stdout, 'canary'),
-        /✗ canary {2}1 of 2 runs passed\n +writer passed 1 of 1, idler 0 of 1\.\n +✗ writes out\.txt {2}failed 1 of 2 runs, on idler\n +expected file out\.txt to exist · evals\/canary\.eval\.ts:7$/,
+        /✗ canary {2}1 of 2 runs passed\n +writer passed 1 of 1, idler 0 of 1\.\n +✗ writes out\.txt {2}failed 1 of 2 runs, on idler\n +expected file out\.txt to exist · evals\/canary\.eval\.ts:9$/,
       )
     },
   },
@@ -5359,7 +5373,7 @@ export const features: Feature[] = [
       assert.match(lands, /^ +✗ has the marker {2}failed on the control · expected$/m)
       assert.match(
         lands,
-        /\n +Worth knowing: 1 run per side; set runs: 4 at evals\/lands\.eval\.ts:7 to confirm these differences\.$/,
+        /\n +Worth knowing: 1 run per side; set runs: 4 at evals\/lands\.eval\.ts to confirm these differences\.$/,
       )
     },
   },
@@ -5896,19 +5910,21 @@ test("cloud(): a recipe that doesn't build fails its attempts as config, buildin
   const p = await project('cloud-recipe-fails', {
     'reeval.config.ts': `
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { cloud } from 'reeval/internal/vm'
 export default defineConfig({
-  harnesses: fakeHarness({ script: [[{ exec: 'true' }]] }),
+  agents: fakeAgent({ script: [[{ exec: 'true' }]] }),
   sandbox: cloud({ install: ['echo no such package >&2; exit 7'], reuse: true }),
   runs: 2,
   concurrency: 1,
 })
 `,
     'evals/a.eval.ts': `
-import { evaluate } from 'reeval'
-evaluate('broken', async (c) => {
-  await c.send('hi')
+import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('hi')
+  },
 })
 `,
   })

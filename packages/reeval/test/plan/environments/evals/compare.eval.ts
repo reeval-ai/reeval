@@ -1,4 +1,4 @@
-import { defineEnvironment, evaluate } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
 
 const plain = defineEnvironment('plain', { sandbox: docker({ from: 'node:22-bookworm' }) })
@@ -7,8 +7,7 @@ const skilled = defineEnvironment('skilled', {
 })
 
 // compare.control replaces the config's `environments`.
-evaluate(
-  'the control replaces the config environment',
-  { compare: { control: plain, variants: [skilled] } },
-  async () => {},
-)
+export default defineEval({
+  compare: { control: plain, variants: [skilled] },
+  task: async () => {},
+})

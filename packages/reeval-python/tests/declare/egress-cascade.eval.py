@@ -34,6 +34,6 @@ evaluate(
 )
 evaluate(
     "a fake agent with a layout gets that agent's hosts",
-    {"environments": closed, "harnesses": fake_harness(layout="claude-code")},
+    {"environments": closed, "agents": fake_harness(layout="claude-code")},
     body,
 )

@@ -1,7 +1,10 @@
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { OPEN_KVM, plain } from './env.ts'
 
 // Must fail: without devices the container has no /dev/kvm.
-evaluate('canary', { environments: plain }, async (c) => {
-  expect((await c.exec(OPEN_KVM)).stdout.trim()).toBe('opened')
+export default defineEval({
+  environment: plain,
+  task: async (c) => {
+    expect((await c.exec(OPEN_KVM)).stdout.trim()).toBe('opened')
+  },
 })

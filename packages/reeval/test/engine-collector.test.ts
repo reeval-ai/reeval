@@ -45,8 +45,8 @@ describe('collect', () => {
   })
 
   test('declaring outside a file load is refused', () => {
-    assert.throws(() => t('late'), /can't be called inside an eval/)
-    assert.throws(() => g('late', () => {}), /can't be called inside an eval/)
+    assert.throws(() => t('late'), /can't be declared inside an eval/)
+    assert.throws(() => g('late', () => {}), /can't be declared inside an eval/)
   })
 
   test("a group body's error fails the collection, and collecting stops", async () => {

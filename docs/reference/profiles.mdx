@@ -28,7 +28,7 @@ export default defineConfig({
   Named profile objects.
 </Property>
 
-reeval applies the `reeval.config.ts` file, then `defaults`, then each group, outermost first, then the evaluation, then `limit`. `defaults.judge` wins over the profile `judge` in that `defaults` step. `--runs` then replaces `runs`.
+reeval applies the `reeval.config.ts` file, then `defaults`, then each eval, then `limit`. `defaults.judge` wins over the profile `judge` in that `defaults` step. `--runs` then replaces `runs`.
 
 For more information about the per-key cascade, see [The cascade](/reference/options#the-cascade).
 
@@ -36,17 +36,17 @@ For more information about sizing a run with a profile, see [Size runs with prof
 
 ## `defaults`
 
-`defaults` applies before groups and the evaluation. A later `harnesses` can replace or edit `defaults.harnesses`; the plan notes `harnesses set by the eval` whenever a group or evaluation sets `harnesses`.
+`defaults` applies before each eval. `defaults.agents` replaces the eval's own `agents` unless the eval sets `pin: ['agents']`; the plan notes `agents set by the eval` when the eval keeps its own list. A later `agents` on the eval can replace or edit `defaults.agents`.
 
 <Property name="defaults" type="ProfileDefaults" optional>
-  `harnesses`, `sandbox`, `environments`, `runs`, `gate`, `env`, `egress`, `judge`, `capture`, `question`, and `timeout`.
+  `agents`, `sandbox`, `environments`, `runs`, `gate`, `env`, `egress`, `judge`, `capture`, `question`, and `timeout`.
 </Property>
 
 For more information about those keys, see [Options reference](/reference/options).
 
 ## `limit`
 
-`limit` narrows `runs`, `compare`, `harnesses`, and the cells by `traits` after the evaluation. `pin` names keys that stay as resolved. reeval unions `pin` from each group, outermost first, then the evaluation.
+`limit` narrows `runs`, `compare`, `agents`, and the cells by `traits` after the eval. `pin` on the eval names keys that stay as resolved.
 
 <Property name="limit" type="ProfileLimit" optional>
   The plan notes a cut, as in `runs 3 → 1 (profile nightly)`. It notes protected keys that `limit` also sets, as in `pinned: compare, runs`.
@@ -70,15 +70,15 @@ For more information about `pin`, see [Options reference](/reference/options#pin
 
 A pairwise question needs two attempts that differ in a factor it varies. When the limit leaves none of its factors varying, the plan notes `1 pairwise question off (profile nightly)`, or `2 pairwise questions off (profile nightly)` for two. When it leaves some, the question keeps those and the plan notes `1 pairwise question narrowed (profile nightly)`, or `2 pairwise questions narrowed (profile nightly)` for two.
 
-### `harnesses`
+### `agents`
 
-<Property name="harnesses" type="string[]" optional>
+<Property name="agents" type="string[]" optional>
   Harness ids to keep. A default id includes `[effort=<value>]` whenever `effort` is set. reeval skips an evaluation left with none.
 </Property>
 
-The plan notes `harnesses 2 → 1 (profile nightly)`. A miss notes `skipped: no harness left: profile nightly allows none`, with the allowed ids in place of `none`.
+The plan notes `agents 2 → 1 (profile nightly)`. A miss notes `skipped: no agent left: profile nightly allows none`, with the allowed ids in place of `none`.
 
-reeval exits with code 2 for anything but a list of id strings. Descriptors belong on `defaults.harnesses`.
+reeval exits with code 2 for anything but a list of id strings. Descriptors belong on `defaults.agents`.
 
 ### `traits`
 
@@ -98,7 +98,7 @@ reeval exits with code 2 for a value that isn't a string or a non-empty list of 
 
 ## `judge`
 
-`defaults.judge` wins field by field over the profile `judge`, and that result wins over the config `judge`. Each group merges over that result, outermost first, and then the evaluation does.
+`defaults.judge` wins field by field over the profile `judge`, and that result wins over the config `judge`. The eval merges over that result.
 
 <Property name="judge" type="ConfigJudgeOptions" optional>
   The same fields as `defaults.judge`.

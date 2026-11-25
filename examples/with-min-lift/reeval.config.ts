@@ -1,21 +1,21 @@
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 import { profiles } from '../profiles.ts'
 
-const fakeAgent = (path: string) =>
+const fakeFile = (path: string) =>
   readFileSync(new URL(`./fake-agent/${path}`, import.meta.url), 'utf8')
 
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that copies ./fake-agent's files into the workspace: multiply without a
   // JSDoc block, or with one when it has the skill, so the compare runs without keys or Docker.
-  harnesses: fakeHarness({
-    files: { 'src/math.js': fakeAgent('without-skill/src/math.js') },
+  agents: fakeAgent({
+    files: { 'src/math.js': fakeFile('without-skill/src/math.js') },
     text: 'I added multiply(a, b) to src/math.js.',
     withSkill: {
-      files: { 'src/math.js': fakeAgent('with-skill/src/math.js') },
+      files: { 'src/math.js': fakeFile('with-skill/src/math.js') },
       text: 'I added multiply(a, b) to src/math.js, with a JSDoc block.',
     },
   }),

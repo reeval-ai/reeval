@@ -1,8 +1,8 @@
 import { defineConfig } from 'reeval'
-import { claudeCode, cursor } from 'reeval/harness'
+import { claudeCode, cursor } from 'reeval/agent'
 
 export default defineConfig({
-  harnesses: [cursor({ model: 'composer-2.5' }), claudeCode({ model: 'claude-sonnet-5' })],
+  agents: [cursor({ model: 'composer-2.5' }), claudeCode({ model: 'claude-sonnet-5' })],
   judge: { model: 'google/gemini-3.8-flash' },
   runs: 2,
 })

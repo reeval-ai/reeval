@@ -1,5 +1,5 @@
 import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 
 export const net = defineEnvironment('net', {
@@ -12,7 +12,7 @@ export const rooted = defineEnvironment('rooted', {
 
 // The config environment adds a capability; the rooted profile replaces it entirely.
 export default defineConfig({
-  harnesses: fakeHarness(),
+  agents: fakeAgent(),
   environments: net,
   profiles: { rooted: { defaults: { environments: rooted } } },
 })

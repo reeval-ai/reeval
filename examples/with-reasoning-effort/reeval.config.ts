@@ -1,23 +1,23 @@
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'reeval'
-import { claudeCode, fakeHarness } from 'reeval/harness'
+import { claudeCode, fakeAgent } from 'reeval/agent'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 import { profiles } from '../profiles.ts'
 
-const fakeAgent = (path: string) =>
+const fakeFile = (path: string) =>
   readFileSync(new URL(`./fake-agent/${path}`, import.meta.url), 'utf8')
 const files = {
-  'src/math.js': fakeAgent('src/math.js'),
-  'test/math.test.js': fakeAgent('test/math.test.js'),
+  'src/math.js': fakeFile('src/math.js'),
+  'test/math.test.js': fakeFile('test/math.test.js'),
 }
 
 export default defineConfig({
   include: ['*.eval.ts'],
   // One scripted agent at two reasoning efforts, each its own cell. It copies ./fake-agent's
   // files into the workspace, so the checks run without keys or Docker.
-  harnesses: [
-    fakeHarness({ effort: 'low', servedModel: 'fake-1[effort=low]', files }),
-    fakeHarness({ effort: 'high', servedModel: 'fake-1[effort=high]', files }),
+  agents: [
+    fakeAgent({ effort: 'low', servedModel: 'fake-1[effort=low]', files }),
+    fakeAgent({ effort: 'high', servedModel: 'fake-1[effort=high]', files }),
   ],
   sandbox: fakeSandbox(),
   profiles: {
@@ -27,7 +27,7 @@ export default defineConfig({
     // Claude Code at two efforts: ANTHROPIC_API_KEY.
     'claude-code-efforts': {
       defaults: {
-        harnesses: [
+        agents: [
           claudeCode({ model: 'claude-sonnet-5', effort: 'low' }),
           claudeCode({ model: 'claude-sonnet-5', effort: 'high' }),
         ],

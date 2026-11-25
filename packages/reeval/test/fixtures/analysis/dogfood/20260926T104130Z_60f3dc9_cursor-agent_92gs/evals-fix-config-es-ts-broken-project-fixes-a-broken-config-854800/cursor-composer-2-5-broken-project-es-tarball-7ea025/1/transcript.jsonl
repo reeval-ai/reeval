@@ -17,7 +17,7 @@
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"evals/environments.ts"},"ok":true,"durationMs":68}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"evals/docs.es.ts"},"ok":true,"durationMs":70}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"compare|defineEval|defineGroup|fakeHarness"},"ok":true,"durationMs":65}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"compare|defineEval|defineGroup|fakeAgent"},"ok":true,"durationMs":65}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"export.*baseline|export.*evaluate|defineEval|defineGroup"},"ok":true,"durationMs":44}
 {"turn":0,"type":"tool","tool":"glob","input":{"pattern":"**/*"},"ok":true,"durationMs":117}

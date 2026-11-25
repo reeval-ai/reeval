@@ -1,7 +1,7 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
 // REEVAL_FIXTURE_SANDBOX picks the tier: the fake sandbox (F) by default, or docker (D).
 export default defineConfig({
-  harnesses: fakeHarness({ script: [[{ write: { 'notes.txt': 'hello\n' } }]] }),
+  agents: fakeAgent({ script: [[{ write: { 'notes.txt': 'hello\n' } }]] }),
 })

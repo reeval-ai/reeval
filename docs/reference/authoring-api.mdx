@@ -1,64 +1,57 @@
 ---
 title: "Authoring API reference"
-description: "evaluate, group, and defineEnvironment declare evaluations and environments, with the types they take."
+description: "defineEval, defineEnvironment, and defineConfig declare evaluations and environments, with the types they take."
 ---
 
-## `evaluate()`
+## `defineEval()`
 
-`evaluate(name, options?, fn)` declares one evaluation, as in the following file:
+`defineEval(spec)` declares one evaluation. Each `*.eval.ts` file holds exactly one eval and exports it as the default:
 
-```ts title="evals/shoehorn.eval.ts"
-import { evaluate, expect } from '{{ pkg }}'
-import { plain } from './environments.ts'
+```ts title="evals/shoehorn/build-only-fields.eval.ts"
+import { defineEval, expect } from '{{ pkg }}'
+import { plain, shared } from './shared.ts'
 
-evaluate(
-  'tests build only the request fields they read',
-  { environments: plain, timeout: '30m' },
-  async (c) => {
+export default defineEval({
+  ...shared,
+  task: async (c) => {
     await c.send('Add a Vitest test for getUserId in src/user.test.ts.')
     await expect(c, 'uses fromPartial').toHaveFile(
       'src/user.test.ts',
       /fromPartial(<\w+>)?\(/,
     )
   },
-)
+})
 ```
 
-<Property name="name" type="string" required>
-  The evaluation's name. Results and history list it first. A secret-looking value in it, such as an API key, is masked as `[REDACTED]` in the plan, the terminal, the run record and every view, so the evaluation's id is the masked name. A part masked because it's the value of a secret-named variable, such as `POSTGRES_PASSWORD`, changes the id only where that variable holds it, and the plan notes it as `name masked: it holds the value of POSTGRES_PASSWORD`. A name filter matches the masked name, so filter by `[REDACTED]` or a part without the secret.
+The eval's id is its file path under the eval root without `.eval.ts`, such as `shoehorn/build-only-fields`. Results and history list that id first.
+
+<Property name="spec" type="EvalOptions & { task: EvalFn | CaseFn<T> }" required>
+  A plain object of eval options plus `task`, the body called once per attempt. With `cases`, `task` is `(c, item) => Promise<void>`. `environments` is not accepted; use `environment`, one environment or a list.
 </Property>
 
-<Property name="options" type="EvalOptions" optional>
-  A plain object. `environments` and `compare` cannot both be set: the control goes in `compare.control`.
-</Property>
+`skip: true` or `skip: 'reason'` declares without running; the plan lists a string reason. TypeScript eval files have no `.only` or `.todo`.
 
-<Property name="fn" type="EvalFn" required>
-  The body, called once per attempt.
-</Property>
+reeval refuses, with exit code 2, no default export, a default export that is not a `defineEval` result, more than one `defineEval` call in one file, a missing `task`, `skip` that is not `true`, `false`, or a non-empty string, `environments` on the eval, `where` without `cases`, and two eval files whose ids differ only in a masked secret.
 
-`options` and `fn` take either order. `evaluate.skip(name, options?, fn)` declares without running. `evaluate.only(name, options?, fn)` runs only the marked evaluations in its file. `evaluate.todo(name)` takes no body, and the plan lists it as `todo`.
-
-reeval refuses, with exit code 2, two functions, no function, a second evaluation with the same full name in one file, a second name in one file that masks to the same name as another (`evaluate("e [REDACTED]") names a secret, and its masked name is another eval's in this file`), including an evaluation and an `evaluate.todo` whose names mask alike, a name that holds a value declared with `secret()` (`… names a secret declared with secret()`), and `evaluate.only()` when the `CI` variable is set to a value other than `false`.
-
-For more information about `EvalOptions`, `GroupOptions`, and the type of each key, see [Options reference](/reference/options).
+For more information about `EvalOptions` and the type of each key, see [Options reference](/reference/options).
 
 ## Cases
 
-`cases` runs one evaluation over a list of inputs, and the body receives each as its second argument:
+`cases` runs one evaluation over a list of inputs, and `task` receives each as its second argument:
 
-```ts title="evals/shoehorn.eval.ts"
+```ts title="evals/shoehorn/handlers.eval.ts"
+import { defineEval, expect } from '{{ pkg }}'
+import { plain, withShoehorn } from './shared.ts'
+
 const handlers = ['getUserId', 'getUserEmail', 'getUserRole']
 
-evaluate(
-  'tests a handler with only the request fields it reads',
-  {
-    cases: handlers,
-    compare: { control: plain, variants: [withShoehorn] },
-  },
-  async (c, handler) => {
+export default defineEval({
+  cases: handlers,
+  compare: { control: plain, variants: [withShoehorn] },
+  async task(c, handler) {
     // ...
   },
-)
+})
 ```
 
 <Property name="cases" type="readonly T[]" required>
@@ -73,11 +66,11 @@ evaluate(
   TypeScript only. Which case and environment pairs run, from each environment's `traits`. For more information, see [the `cases` option](/reference/options#cases).
 </Property>
 
-<Property name="fn" type="CaseFn<T>" required>
+<Property name="task" type="CaseFn<T>" required>
   The body, `(c: AttemptContext, item: T) => Promise<void>`, called once per attempt with its case.
 </Property>
 
-Results print the evaluation's name as a heading and a row per case key. reeval refuses, with exit code 2, a `cases` value that is not a non-empty list, a case with no key, two cases with one key, including two whose keys differ only in a masked secret, `caseKey` or `where` without `cases`, and `runs: { bestOf }` beside `cases`. `cases`, `caseKey` and `where` are options of `evaluate()` only, not of `group()` or the config.
+Results print the evaluation's id as a heading and a row per case key. reeval refuses, with exit code 2, a `cases` value that is not a non-empty list, a case with no key, two cases with one key, including two whose keys differ only in a masked secret, `caseKey` or `where` without `cases`, and `runs: { bestOf }` beside `cases`. `cases`, `caseKey` and `where` are options of `defineEval()` only, not of the config.
 
 For more information about the `all cases` row, see [`compare`](/reference/options#compare).
 
@@ -86,9 +79,15 @@ For more information about the `all cases` row, see [`compare`](/reference/optio
 `gate: 'observe'` declares an evaluation that records what its attempts do and gates nothing:
 
 ```ts title="evals/database.eval.ts"
-evaluate('which database', { gate: 'observe', runs: 3 }, async (c) => {
-  await c.send('Add persistence to the app.')
-  c.observe('package.json', await c.readFile('package.json'))
+import { defineEval } from '{{ pkg }}'
+
+export default defineEval({
+  gate: 'observe',
+  runs: 3,
+  task: async (c) => {
+    await c.send('Add persistence to the app.')
+    c.observe('package.json', await c.readFile('package.json'))
+  },
 })
 ```
 
@@ -96,38 +95,9 @@ Every cell prints `ran` rather than a pass or a fail, and only run and infra err
 
 ## `EvalFn`
 
-`EvalFn` is the type of the body `evaluate()` takes: `(c: AttemptContext) => Promise<void>`. The attempt fails when it throws, rejects, or leaves a failed `expect`.
+`EvalFn` is the type of `task` without `cases`: `(c: AttemptContext) => Promise<void>`. The attempt fails when it throws, rejects, or leaves a failed `expect`.
 
 For more information about `AttemptContext` and the types the methods of `c` take and return, see [Attempt context reference](/reference/attempt-context).
-
-## `group()`
-
-`group(name, options?, fn)` applies its options to every evaluation and nested group inside it, as in the following call:
-
-```ts title="evals/shoehorn.eval.ts"
-group('request builders', { environments: plain, tags: ['smoke'] }, () => {
-  // ...
-  group('billing', { tags: ['billing'] }, () => {
-    // ...
-  })
-})
-```
-
-<Property name="name" type="string" required>
-  The group's name. The full name of each evaluation inside it joins the group names and its own with `›`. A secret in it is masked as in an evaluation's name.
-</Property>
-
-<Property name="options" type="GroupOptions" optional>
-  The same type as `EvalOptions`.
-</Property>
-
-<Property name="fn" type="() => void" required>
-  The body, which declares evaluations and nested groups and returns synchronously.
-</Property>
-
-`options` and `fn` take either order. `group.skip(name, options?, fn)` skips every evaluation inside the group, including a nested group. `group.only(name, options?, fn)` runs only that group in its file, and other files still run. `group.todo(name)` takes no body, the plan lists it as `todo`, and the groups around it still add their tags to it. reeval refuses, with exit code 2, two groups in one file whose names differ only in a masked secret, and `group.only()` when the `CI` variable is set to a value other than `false`.
-
-For more information about the cascade from `ReevalConfig` and `Profile` to an evaluation, see [The cascade](/reference/options#the-cascade), [Configuration reference](/reference/configuration), and [Profiles reference](/reference/profiles).
 
 ## `defineEnvironment()`
 
@@ -190,7 +160,7 @@ For more information about `EnvironmentSpec`, `EnvironmentHelpers`, each field's
 `shellCommands(subject)` returns the programs the agent ran from its shell calls, the tool calls named `bash` or `shell`, in order. The subject is a turn from `c.send()`, a list of turns such as `c.turns`, or `c`.
 
 ```ts title="evals/adoption.eval.ts"
-import { evaluate, shellCommands } from '{{ pkg }}'
+import { defineEval, shellCommands } from '{{ pkg }}'
 // ...
   const runs = shellCommands(c).filter((r) => r.program === 'genkit')
   c.observe('genkit runs', runs.length)
@@ -237,7 +207,7 @@ For more information about egress policies, see [`egress`](/reference/options#eg
 `HarnessCapabilityError` is the error `toHaveSearched()` and `toHaveFetched()` throw when the turn's `unreported` list holds `web-search` or `web-fetch`. The following assertion catches it:
 
 ```ts title="evals/search.eval.ts"
-import { evaluate, expect, HarnessCapabilityError } from '{{ pkg }}'
+import { defineEval, expect, HarnessCapabilityError } from '{{ pkg }}'
 // ...
   try {
     expect(turn, 'searched the web').toHaveSearched(/ai sdk/i)

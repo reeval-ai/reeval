@@ -48,7 +48,7 @@ export function agentSandboxProblem(agent: Agent, sandbox: SandboxDescriptor): s
       : [`runs ${can.platform}, not ${agent.platforms.join(' or ')}`]),
   ]
   const fix = suggestedSandbox(fits)
-  return `The ${agent.name} harness can't run in the ${sandboxKind(sandbox).provider(sandbox)} sandbox, which ${lacks.join(' and ')}: ${fix ? `set sandbox: ${fix} for this eval, or ` : ''}use fakeHarness() with fakeSandbox()`
+  return `The ${agent.name} harness can't run in the ${sandboxKind(sandbox).provider(sandbox)} sandbox, which ${lacks.join(' and ')}: ${fix ? `set sandbox: ${fix} for this eval, or ` : ''}use fakeAgent() with fakeSandbox()`
 }
 
 /** The core's spec of a harness descriptor: which agent, on which model. */

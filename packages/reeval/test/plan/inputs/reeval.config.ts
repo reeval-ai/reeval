@@ -1,4 +1,4 @@
 import { defineConfig } from 'reeval'
-import { harnesses } from './config/harnesses.ts'
+import { agents } from './config/agents.ts'
 
-export default defineConfig({ harnesses })
+export default defineConfig({ agents })

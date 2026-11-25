@@ -1,10 +1,10 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeJudge } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
 
 export default defineConfig({
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     files: {
       'README.md':
         '# wordcount\n\nInstall with `npm i -g .`, then run `wordcount notes.txt`.\n' +

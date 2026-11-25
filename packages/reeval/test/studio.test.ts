@@ -71,17 +71,26 @@ const RUN = '20260924T220414Z_f7e1b53_elliot-hesp_k3f9'
 
 // A real history: three recorded runs of the fake agent (pass, fail, a control and a variant ×
 // two runs, with a compare question) and one scratch run.
-const evalFile = `import { defineEnvironment, evaluate, expect, group } from 'reeval'
+const evalFile = `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
 const other = defineEnvironment('other', { sandbox })
-group('greet', process.env.REEVAL_TEST_COMPARE ? { compare: { control: plain, variants: [other] }, questions: [{ question: 'Which wrote hello.txt?', across: 'environment', task: true, diff: true }], runs: 2 } : {}, () => {
-  evaluate('writes hello', async (c) => {
+export default defineEval({
+  ...(process.env.REEVAL_TEST_COMPARE
+    ? {
+        compare: { control: plain, variants: [other] },
+        questions: [
+          { question: 'Which wrote hello.txt?', across: 'environment', task: true, diff: true },
+        ],
+        runs: 2,
+      }
+    : {}),
+  async task(c) {
     await c.send('write hello.txt')
     await expect(c.exec('test -f hello.txt')).toSucceed()
     expect(await c.judge('Did it write hello.txt?', { diff: true })).toPass()
-  })
+  },
 })
 `
 const agent =
@@ -128,7 +137,7 @@ before(async () => {
 })
 
 describe('run outcome and activity, as the CLI has them', () => {
-  const skilled = `import { defineEnvironment, evaluate, expect } from 'reeval'
+  const skilled = `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
@@ -139,9 +148,12 @@ const skilled = defineEnvironment('skilled', ({ skill }) => ({
 const compare = process.env.REEVAL_TEST_GATE_ALL
   ? { control: plain, variants: [skilled], gate: 'all' as const }
   : { control: plain, variants: [skilled] }
-evaluate('writes ok', { runs: 1, compare }, async (c) => {
-  await c.send('write ok.txt')
-  await expect(c.exec('test -f ok.txt')).toSucceed()
+export default defineEval({
+  runs: 1, compare,
+  async task(c) {
+    await c.send('write ok.txt')
+    await expect(c.exec('test -f ok.txt')).toSucceed()
+  },
 })
 `
 
@@ -275,7 +287,7 @@ describe('view-models over a real history', () => {
       [...headers.map((h) => h.runId)].sort(),
     )
     const evalHeader = headers[0]?.evals[0]
-    assert.match(evalHeader?.slug ?? '', /^evals-hello-eval-ts-greet-writes-hello-/)
+    assert.match(evalHeader?.slug ?? '', /^hello-/)
     assert.deepEqual(
       evalHeader?.cells.map((c) => [c.key, c.pass, c.runs]),
       [['fake/fake/fake', 1, 1]],
@@ -333,7 +345,7 @@ describe('view-models over a real history', () => {
         },
         evals: [
           {
-            id: 'evals/scaffold.eval.ts › scaffolds',
+            id: 'scaffolds',
             slug: 'scaffolds',
             outcome: 'pass',
             fingerprint: cells.map((c) => c.fingerprint).join(),
@@ -369,9 +381,16 @@ describe('view-models over a real history', () => {
   test('eval tree, cells and lift for a multi-cell run', () => {
     const matrix = records.get(headers[2]?.runId as string) as RunRecord
     const tree = evalTree(matrix)
-    assert.equal(tree[0]?.kind, 'group')
-    assert.equal(tree[0]?.name, 'evals/hello.eval.ts')
+    assert.equal(tree[0]?.kind, 'eval')
+    assert.equal(tree[0]?.name, 'hello')
     assert.deepEqual(tree[0]?.tally, { pass: 4, fail: 0, missed: 0, infra: 0, skipped: 0 })
+    const nested = evalTree({ evals: matrix.evals.map((e) => ({ ...e, id: `a/b/${e.id}` })) })
+    const a = nested[0]
+    const b = a?.kind === 'group' ? a.children[0] : undefined
+    assert.deepEqual(
+      [a?.kind, a?.name, b?.kind, b?.name, b?.kind === 'group' && b.children[0]?.kind],
+      ['group', 'a', 'group', 'b', 'eval'],
+    )
     const rows = cellRows(matrix.evals[0] as RunRecord['evals'][number])
     assert.deepEqual(
       rows.map((r) => [r.environment, r.role, r.gated, r.pass, r.runs, r.lift, r.attempts.length]),
@@ -889,7 +908,7 @@ const json = async <T>(res: Response) => {
 
 describe('studio API contract', () => {
   test('every path builder parses back to its route, eval ids of any character included', () => {
-    const evalId = 'evals/hello.eval.ts › greet › writes hello [case 1] # fake/a b#1 100%'
+    const evalId = 'hello [case 1] # fake/a b#1 100%'
     assert.deepEqual(parseStudioPath(studioPaths.pair()), { route: 'pair' })
     assert.deepEqual(parseStudioPath(studioPaths.handshake()), { route: 'handshake' })
     assert.deepEqual(parseStudioPath(studioPaths.runs()), { route: 'runs' })
@@ -1493,14 +1512,20 @@ describe('studio data server', () => {
         harness: agent,
         extra: "history: { artifacts: 'evidence' },",
       }),
-      'evals/hello.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('writes hello', async (c) => {
-  await c.send('write hello.txt')
-  await expect(c.exec('test -f hello.txt')).toSucceed()
+      'evals/hello.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('write hello.txt')
+    await expect(c.exec('test -f hello.txt')).toSucceed()
+  },
 })
-evaluate('writes bye', async (c) => {
-  await c.send('write bye.txt')
-  await expect(c.exec('test -f bye.txt')).toSucceed()
+`,
+      'evals/writes-bye.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('write bye.txt')
+    await expect(c.exec('test -f bye.txt')).toSucceed()
+  },
 })
 `,
     })
@@ -1514,14 +1539,10 @@ evaluate('writes bye', async (c) => {
     assert.equal(report.provenance.artifacts, 'evidence')
     assert.deepEqual(validate(reportSchema(), report), [])
     assert.deepEqual(readableRunReport(report), report)
-    const outcomes = report.attempts.map((a) => [
-      a.evalId.split(' › ').at(-1),
-      a.outcome,
-      !!a.links.transcript,
-    ])
-    assert.deepEqual(outcomes, [
-      ['writes hello', 'pass', false],
-      ['writes bye', 'fail', true],
+    const outcomes = report.attempts.map((a) => [a.evalId, a.outcome, !!a.links.transcript])
+    assert.deepEqual(outcomes.sort(), [
+      ['hello', 'pass', false],
+      ['writes-bye', 'fail', true],
     ])
     const failed = report.attempts.find((a) => a.outcome === 'fail')?.links.transcript as string
     const page = await json<TranscriptPage>(

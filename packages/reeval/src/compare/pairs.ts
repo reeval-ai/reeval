@@ -86,17 +86,25 @@ const distinct = (values: string[]) => [...new Set(values)]
 /** Both pair kinds, in the order `pairsOf` builds them. */
 export const ALL_CUTS: CompareCut[] = ['within', 'across']
 
+const normalizePairFactor = (factor: PairFactor | 'harness'): PairFactor =>
+  factor === 'harness' ? 'agent' : factor
+
 /** A question's `across` as a list: empty when it's asked of each attempt on its own. */
-export const pairFactors = (across?: PairFactor | readonly PairFactor[]): PairFactor[] =>
-  across === undefined ? [] : typeof across === 'string' ? [across] : [...across]
+export const pairFactors = (
+  across?: PairFactor | 'harness' | readonly (PairFactor | 'harness')[],
+): PairFactor[] => {
+  if (across === undefined) return []
+  const list = typeof across === 'string' ? [across] : [...across]
+  return list.map(normalizePairFactor)
+}
 
 /**
  * The pair kinds a pairwise question asks: `environment` varies the environment and holds the
- * harness (`within`); `harness` varies the harness and holds the environment (`across`).
+ * agent (`within`); `agent` varies the agent and holds the environment (`across`).
  */
 export const acrossOf = (across: PairFactor | readonly PairFactor[]): CompareCut[] => {
   const factors = pairFactors(across)
-  return ALL_CUTS.filter((cut) => factors.includes(cut === 'within' ? 'environment' : 'harness'))
+  return ALL_CUTS.filter((cut) => factors.includes(cut === 'within' ? 'environment' : 'agent'))
 }
 
 /**

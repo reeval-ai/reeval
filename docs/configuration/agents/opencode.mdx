@@ -19,14 +19,14 @@ For more information about every provider variable, see [Environment variables](
 
 ## `opencode()`
 
-`opencode()` is exported from `{{ pkg }}/harness`. The following configuration passes it as the `harness` option:
+`opencode()` is exported from `{{ pkg }}/agent`. The following configuration passes it as the `harness` option:
 
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
-import { opencode } from '{{ pkg }}/harness'
+import { opencode } from '{{ pkg }}/agent'
 
 export default defineConfig({
-  harnesses: opencode({
+  agents: opencode({
     model: 'google/gemini-3.8-flash',
     effort: 'high',
   }),

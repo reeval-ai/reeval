@@ -26,11 +26,11 @@ type Tool = { structuredContent?: unknown; content: unknown; isError?: boolean }
 
 const config = `
 import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 import { fakeAnalysis, fakeJudge } from 'reeval/judge'
 export default defineConfig({
-  harnesses: fakeHarness({ files: process.env.BREAK ? {} : { 'ok.txt': 'y' } }),
+  agents: fakeAgent({ files: process.env.BREAK ? {} : { 'ok.txt': 'y' } }),
   environments: defineEnvironment('fake', { sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }) }),
   judge: { model: fakeJudge({ score: 0.9 }) },
   analysis: {
@@ -45,16 +45,20 @@ export default defineConfig({
 `
 
 const evals = {
-  'evals/a.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('writes ok', async (c) => {
-  await c.send('go')
-  await expect(c).toHaveFile('ok.txt')
+  'evals/writes-ok.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('go')
+    await expect(c).toHaveFile('ok.txt')
+  },
 })
 `,
-  'evals/b.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('also writes ok ${PLANTED}', async (c) => {
-  await c.send('go')
-  await expect(c).toHaveFile('ok.txt')
+  [`evals/also-writes-ok-${PLANTED}.eval.ts`]: `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('go')
+    await expect(c).toHaveFile('ok.txt')
+  },
 })
 `,
 }
@@ -268,7 +272,7 @@ describe('reeval mcp', () => {
     const attempts = r.attempts as Json[]
     assert.deepEqual(
       attempts.map((a) => a.eval),
-      ['evals/a.eval.ts › writes ok', `evals/b.eval.ts › also writes ok ${PLANTED}`],
+      [`also-writes-ok-${PLANTED}`, 'writes-ok'],
     )
     const [first] = attempts as [Json]
     assert.equal(first.outcome, 'fail')
@@ -359,7 +363,7 @@ describe('reeval mcp', () => {
     try {
       const shown = JSON.stringify(await json(client, 'show'))
       assert.ok(!shown.includes(PLANTED))
-      assert.match(shown, /also writes ok \[REDACTED\]/)
+      assert.match(shown, /also-writes-ok-\[REDACTED\]/)
       const rows = JSON.stringify(await json(client, 'query_eval_trend'))
       assert.ok(!rows.includes(PLANTED))
       const run = await client.readResource({ uri: `reeval://runs/${runs[0]}` })
@@ -500,7 +504,7 @@ describe('reeval mcp', () => {
       assert.match(String(h.note), /No recorded runs yet/)
       const all = await json(client, 'history', { all: true })
       assert.equal(all.note, undefined, 'all asks for scratch runs, so no note')
-      const f = await json(client, 'failures', { filter: 'writes ok', limit: 1 })
+      const f = await json(client, 'failures', { filter: 'writes-ok', limit: 1 })
       assert.equal(f.shown, 1)
       const [cell] = f.cells as [Json]
       assert.equal(cell.new, false, 'it failed in the run before too')
@@ -534,7 +538,7 @@ describe('reeval mcp', () => {
     writeFileSync(path, JSON.stringify(record))
     const client = await connect(p.dir, MODERN)
     try {
-      const f = await json(client, 'failures', { filter: 'writes ok', limit: 1 })
+      const f = await json(client, 'failures', { filter: 'writes-ok', limit: 1 })
       const [cell] = f.cells as [Json]
       assert.equal((cell.lastPass as Json).runId, passed)
       assert.deepEqual((cell.lastPass as Json).changed, ['harness', 'gateway'])

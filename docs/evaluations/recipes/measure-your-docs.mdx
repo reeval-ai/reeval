@@ -39,20 +39,19 @@ Replace the rules string with the docs. For more information about rules files, 
 In the `evals/stream.eval.ts` file, declare the evaluation:
 
 ```ts title="evals/stream.eval.ts"
-import { evaluate, expect } from '{{ pkg }}'
+import { defineEval, expect } from '{{ pkg }}'
 import { plain, withDocs } from './environments.ts'
 
-evaluate(
-  'streams the chat reply',
-  { runs: 4, compare: { control: plain, variants: [withDocs] } },
-  async (c) => {
+export default defineEval({
+  runs: 4, compare: { control: plain, variants: [withDocs] },
+  task: async (c) => {
     await c.send('Stream the chat reply from src/chat.ts.')
     await expect(c, 'uses streamText').toHaveFile(
       'src/chat.ts',
       /streamText/,
     )
   },
-)
+})
 ```
 
 The rules text names `streamText` from the Vercel AI SDK. The prompt does not name `streamText`, so the assertion passes only when the docs lead the harness to call it.

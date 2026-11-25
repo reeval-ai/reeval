@@ -5,7 +5,7 @@
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"ls -la . && ls -la /opt/es/ 2>/dev/null; tar -tzf /opt/es/invertase-foobar.tgz 2>/dev/null | head -50"},"ok":true,"durationMs":153}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"text","text":"Exploring the fake harness API and example patterns in the installed package.\n"}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"/opt/es","pattern":"fakeHarness|withSkill"},"ok":true,"durationMs":85}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"/opt/es","pattern":"fakeAgent|withSkill"},"ok":true,"durationMs":85}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"cd . && npm init -y && npm i -D /opt/es/invertase-foobar.tgz"},"ok":true,"durationMs":5728}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/harness/fake.js"},"ok":true,"durationMs":70}

@@ -6,15 +6,7 @@ description: "Run the same evaluation over a list of cases and read one result."
 The `cases` option runs one evaluation over a list of inputs. Every case shares the options and the body, which takes the case as its second argument. An evaluation with cases is one evaluation, its cases inside it: under the default gate a failing case fails it. For how cases multiply cells and attempts, see [Cell](/reference/glossary#cell).
 
 <Info>
-For evaluations that pass or fail on their own, write a loop instead: each `evaluate` call is its own evaluation.
-
-```ts
-for (const rival of ['LangChain', 'LlamaIndex']) {
-  evaluate(`recommends Genkit over ${rival}`, async (c) => {
-    // ...
-  })
-}
-```
+For evaluations that pass or fail on their own, give each one its own `*.eval.ts` file instead of `cases`.
 </Info>
 
 The evaluation below asks an agent to choose between Genkit and three other AI frameworks, and a judge reads each answer.
@@ -27,12 +19,11 @@ The evaluation below asks an agent to choose between Genkit and three other AI f
 In the `evals/recommendation.eval.ts` file, pass the rivals as `cases`:
 
 ```ts title="evals/recommendation.eval.ts"
-import { evaluate, expect } from '{{ pkg }}'
+import { defineEval, expect } from '{{ pkg }}'
 
-evaluate(
-  'recommends Genkit over a rival',
-  { cases: ['LangChain', 'LlamaIndex', 'the Vercel AI SDK'] },
-  async (c, rival) => {
+export default defineEval({
+  cases: ['LangChain', 'LlamaIndex', 'the Vercel AI SDK'],
+  task: async (c, rival) => {
     await c.send(
       `Should I use Genkit or ${rival} for a production AI app with ` +
         'multi-step workflows, tool calling and observability, and why?',
@@ -41,7 +32,7 @@ evaluate(
     const q = `Is Genkit recommended over ${rival}?`
     expect(await c.judge(q, { output: true })).toPass()
   },
-)
+})
 ```
 
 For a runnable project, see [`with-recommendation`](https://github.com/reeval-ai/reeval/tree/main/examples/with-recommendation).
@@ -58,10 +49,9 @@ const cases = [
   { fn: 'power', a: 2, b: 5, want: '32' },
 ]
 
-evaluate(
-  'adds a function to src/math.js',
-  { cases, caseKey: (item) => item.fn, environments: math },
-  async (c, item) => {
+export default defineEval({
+  cases, caseKey: (item) => item.fn, environment: math,
+  task: async (c, item) => {
     // ...
 ```
 
@@ -79,7 +69,7 @@ npx reeval run --dry-run
 The evaluation lists its case count in the `notes` column:
 
 ```text
-eval                                                 harnesses  variants  runs  attempts  notes
+eval                                                 agents     variants  runs  attempts  notes
 with-cases.eval.ts › adds a function to src/math.js  1          —         1     3         3 cases
 ```
 
@@ -108,16 +98,15 @@ Past eight cases, the table lists only the failed ones; `-v` lists every case. W
 With `gate: { passRate }`, each cell passes on its rate over the cases, the mean of each case's pass@1. A failing case doesn't fail the evaluation on its own:
 
 ```ts title="evals/rate.eval.ts"
-import { evaluate, expect } from '{{ pkg }}'
+import { defineEval, expect } from '{{ pkg }}'
 
-evaluate(
-  'rate',
-  { gate: { passRate: 0.6 }, cases: ['a', 'b', 'c'] },
-  async (c, key) => {
+export default defineEval({
+  gate: { passRate: 0.6 }, cases: ['a', 'b', 'c'],
+  task: async (c, key) => {
     await c.send(key)
     expect(key).not.toBe('c')
   },
-)
+})
 ```
 
 Two of three cases pass, a rate of 67%, so the evaluation passes (shown with `-v`):
@@ -147,15 +136,12 @@ In the record, the cases are rows in the evaluation's `cases`. Case `c` keeps it
 const next = defineEnvironment('next-app', { traits: { stack: 'next' } })
 const vite = defineEnvironment('vite-app', { traits: { stack: 'vite' } })
 
-evaluate(
-  'answers a stack question',
-  {
-    environments: [next, vite],
+export default defineEval({
+  environment: [next, vite],
     cases: questions,
     where: ({ case: q, environment }) =>
-      q.stacks.some((s) => s === environment.traits.stack),
-  },
-  async (c, q) => {
+      q.stacks.some((s) => s === environment.traits.stack),,
+  task: async (c, q) => {
     // ...
 ```
 

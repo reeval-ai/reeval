@@ -5,6 +5,16 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
 import { cursorEffortParam } from '@reeval/harness-cursor-sdk'
+import {
+  antigravity,
+  claudeCode,
+  codex,
+  cursor,
+  fx,
+  grokBuild,
+  opencode,
+  pi,
+} from '../src/agent.ts'
 import { UsageError } from '../src/errors.ts'
 import {
   checkCursorCatalog,
@@ -17,20 +27,10 @@ import {
   noDefaultEffort,
   withDefaultEffort,
 } from '../src/harness/default-effort.ts'
-import {
-  antigravity,
-  claudeCode,
-  codex,
-  cursor,
-  fx,
-  grokBuild,
-  opencode,
-  pi,
-} from '../src/harness.ts'
 import { harnessId } from '../src/options.ts'
 import { effortSummary } from '../src/plan.ts'
 import type { CursorEfforts } from '../src/types.ts'
-import { colors } from '../src/ui/colors.ts'
+import { colors, stripAnsi } from '../src/ui/colors.ts'
 import type { RunHeader } from '../src/ui/events.ts'
 import { headerLines } from '../src/ui/header.ts'
 
@@ -212,7 +212,7 @@ describe('the effort in the plan line and the run header', () => {
     assert.equal(effortSummary({ 'codex:a': 'medium', 'pi:b': 'medium' }), 'effort medium')
     assert.equal(
       effortSummary({ 'codex:a': 'medium', 'pi:b': 'medium', 'cursor:c': 'none', 'x:d': 'high' }),
-      'efforts medium on 2 harnesses, none on 1, high on 1',
+      'efforts medium on 2 agents, none on 1, high on 1',
     )
     assert.equal(effortSummary({}), undefined)
   })
@@ -233,7 +233,11 @@ describe('the effort in the plan line and the run header', () => {
       },
       100,
     )
-    assert.ok(lines.includes('  ➜  Harnesses: codex:a (effort: medium), codex:a[effort=high]'))
+    assert.ok(
+      lines.some((line) =>
+        stripAnsi(line).includes('Agents:    codex:a (effort: medium), codex:a[effort=high]'),
+      ),
+    )
   })
 })
 
@@ -283,9 +287,7 @@ describe("Cursor's model catalog at plan time", () => {
         checkCursorCatalog([attempt(cursor({ model: 'composer-2.5', effort: 'medium' }))], CATALOG),
       (e) =>
         e instanceof UsageError &&
-        e.message.startsWith(
-          'evaluate("api › fixes the bug") on cursor:composer-2.5[effort=medium]: ',
-        ),
+        e.message.startsWith('eval api › fixes the bug on cursor:composer-2.5[effort=medium]: '),
     )
     assert.deepEqual(
       checkCursorCatalog(

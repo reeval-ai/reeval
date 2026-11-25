@@ -9,7 +9,7 @@
 //
 //   pnpm --filter reeval corpus:add <name> --from <project> [--from <project>…] [<runId>…] [--note "why"]
 //     copies runs (every one, or those named), their artifacts, event streams and the evals they ran
-//     from other projects, e.g. runs on real harnesses: recorded runs from evals/.history, and runs
+//     from other projects, e.g. runs on real agents: recorded runs from evals/.history, and runs
 //     never recorded (the harness contract's) from .reeval/runs
 //
 //   --archive also writes each run's history archive, <runId>.zip beside it, of the record and
@@ -47,14 +47,14 @@ const config = (
   note: string,
   recordedBy: string,
 ) => `import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeAnalysis } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
 
 // A record corpus entry (${note}), recorded by ${recordedBy}.
 // Don't re-record it: test/corpus.test.ts reads it to prove this shape still loads.
 export default defineConfig({
-  harnesses: fakeHarness(),
+  agents: fakeAgent(),
   environments: defineEnvironment('fake', { sandbox: fakeSandbox() }),
   analysis: {
     model: fakeAnalysis({ output: () => ({ tldr: 'corpus', whatHappened: [], results: [], why: [], anomalies: [], actions: [], confidence: { overall: 'low', why: 'corpus' } }) }),

@@ -19,12 +19,12 @@
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-pkg/package/dist/evaluate.d.ts"},"ok":true,"durationMs":110}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-pkg/package/dist/types.d.ts"},"ok":true,"durationMs":109}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"/tmp/es-pkg/package/dist","pattern":"hello|\\.es\\.ts|defineConfig|fakeHarness|expect\\("},"ok":true,"durationMs":109}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"/tmp/es-pkg/package/dist","pattern":"hello|\\.es\\.ts|defineConfig|fakeAgent|expect\\("},"ok":true,"durationMs":109}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-pkg/package/dist/engine/runtime.d.ts"},"ok":true,"durationMs":86}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"/tmp/es-pkg/package/dist","pattern":"expect|readFile|fileExists"},"ok":true,"durationMs":81}
 {"turn":0,"type":"reasoning"}
-{"turn":0,"type":"tool","tool":"bash","input":{"command":"rg -l \"toHaveFile|fakeHarness|es\\.config\" /tmp/es-pkg/package/dist 2>/dev/null | head -20; rg \"toHaveFile|evaluate\\(\" /tmp/es-pkg/package/dist --glob \"*.js\" -A …"},"ok":true,"durationMs":50}
+{"turn":0,"type":"tool","tool":"bash","input":{"command":"rg -l \"toHaveFile|fakeAgent|es\\.config\" /tmp/es-pkg/package/dist 2>/dev/null | head -20; rg \"toHaveFile|evaluate\\(\" /tmp/es-pkg/package/dist --glob \"*.js\" -A …"},"ok":true,"durationMs":50}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-pkg/package/dist/types.d.ts"},"ok":true,"durationMs":4}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-pkg/package/dist/evaluate.js"},"ok":true,"durationMs":35}
@@ -32,14 +32,14 @@
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-pkg/package/dist/attempt/checks.js"},"ok":true,"durationMs":35}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-pkg/package/dist/config.js"},"ok":true,"durationMs":29}
-{"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -r \"toHaveFile\\|fakeHarness\\|hello\" /tmp/es-pkg/package/dist --include=\"*.js\" 2>/dev/null | head -40"},"ok":true,"durationMs":133}
+{"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -r \"toHaveFile\\|fakeAgent\\|hello\" /tmp/es-pkg/package/dist --include=\"*.js\" 2>/dev/null | head -40"},"ok":true,"durationMs":133}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-pkg/package/dist/matchers.js"},"ok":true,"durationMs":1}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-pkg/package/dist/harness/fake.js"},"ok":true,"durationMs":24}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"find /opt -name \"*.es.ts\" 2>/dev/null | head -20; find /root -name \"*.es.ts\" 2>/dev/null | head -20"},"ok":true,"durationMs":360}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/es-pkg/package/dist/cli.js"},"ok":true,"durationMs":25}
-{"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -r \"evaluate\\|toHaveFile\\|fakeHarness\" /tmp/es-pkg/package/dist --include=\"*.md\" 2>/dev/null; ls /tmp/es-pkg/package/dist/*.md 2>/dev/null"},"ok":true,"durationMs":68}
+{"turn":0,"type":"tool","tool":"bash","input":{"command":"grep -r \"evaluate\\|toHaveFile\\|fakeAgent\" /tmp/es-pkg/package/dist --include=\"*.md\" 2>/dev/null; ls /tmp/es-pkg/package/dist/*.md 2>/dev/null"},"ok":true,"durationMs":68}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"text","text":"Creating the project files and installing the package from the tarball.\n"}
 {"turn":0,"type":"file-edit"}

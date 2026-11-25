@@ -1,5 +1,6 @@
 {
-  "eval": "plan/revision/evals/revision.eval.ts",
+  "eval": "plan/revision/evals",
+  "treeRoot": "plan/revision",
   "plan": "plan/revision/expected/cascade.txt",
   "args": []
 }

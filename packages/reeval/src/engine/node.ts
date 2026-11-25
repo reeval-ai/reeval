@@ -1,17 +1,24 @@
 // The engine's main process: finds the eval files, collects each in a fresh worker for the plan,
 // then runs each in a fresh worker again, at most `concurrency` at once, handing out the
 // scheduler's leases over IPC and turning what workers report into reeval's events and results.
-import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 import { UsageError } from '../errors.ts'
+import { fileEvalId, isOneEvalFile } from '../eval-id.ts'
 import { attemptKey, evalId, relativeFile } from '../ids.ts'
 import { redactSecrets } from '../redact.ts'
 import { ownVersion, PACKAGE_DIR, WORKER_PACKAGE_NAMES } from '../root.ts'
 import { Scheduler } from '../scheduler/core.ts'
 import { capMiddle } from '../text.ts'
 import { formatError, reevalFrames, type SerializedError } from './errors.ts'
-import { DEFAULT_EXCLUDE, filterFiles, findEvalFiles, matchesFilter } from './files.ts'
+import {
+  DEFAULT_EXCLUDE,
+  filterFiles,
+  findEvalFiles,
+  isPathPart,
+  matchesCell,
+  matchesFilter,
+} from './files.ts'
 import {
   describeExit,
   eachLimited,
@@ -57,6 +64,27 @@ type Collected = {
   traits: string[]
 }
 
+/**
+ * Two eval files whose ids differ only in case are refused: they'd share one history on a
+ * case-insensitive file system, and across machines.
+ */
+function refuseSharedIds(root: string, include: readonly string[], files: string[]): void {
+  const seen = new Map<string, string>()
+  for (const file of files) {
+    const rel = relativeFile(root, file)
+    if (!isOneEvalFile(rel)) continue
+    const id = fileEvalId(include, rel)
+    const earlier = seen.get(id.toLowerCase())
+    if (earlier) {
+      const earlierId = fileEvalId(include, earlier)
+      throw new UsageError(
+        `${earlier} (id ${earlierId}) and ${rel} (id ${id}) have one eval id when case is ignored. An eval's id is its file's path from the evals root without the .eval.ts suffix. Rename one of them.`,
+      )
+    }
+    seen.set(id.toLowerCase(), rel)
+  }
+}
+
 export async function runEngine(
   options: EngineOptions,
   spawn: Spawn = forkWorker,
@@ -68,38 +96,36 @@ export async function runEngine(
     '**/.reeval/**',
     `${relativeFile(root, config.history.dir)}/**`,
   ])
-  // A part that names an eval file picks every eval in the files it names. One that is a file or
-  // directory on disk (from the current directory, or absolute) is only a path; any other, such
-  // as `right` beside `evals/right/`, also matches as a name or cell part anywhere, so a
-  // directory called `fake` doesn't hide the `fake` cells of the other files. Any other part
-  // picks evals by name or cell. Parts of one kind widen the selection, and the two kinds
-  // narrow each other.
-  const pathFilters = options.filters.filter((f) => filterFiles(files, [f], root).length)
-  const looseFilters = pathFilters.filter((f) => !existsSync(resolve(f)))
-  const nameFilters = options.filters.filter((f) => !pathFilters.includes(f))
+  refuseSharedIds(root, config.include, files)
+  // A part that is a file or directory on disk (from the current directory, or absolute) or names
+  // an eval file is a path, and picks the evals in the files it names; any other part picks evals
+  // by id. Parts of one kind widen the selection, and the two kinds narrow each other.
+  const pathFilters = options.filters.filter(isPathPart)
+  const nameFilters = options.filters.filter((f) => !isPathPart(f))
   const specs = filterFiles(files, pathFilters, root)
   if (specs.length === 0)
     return { evals: [], unhandledErrors: [], canceled: false, noFiles: true, stopped: false }
   const named = new Set(specs.map((file) => relativeFile(root, file)))
-  const toCollect = looseFilters.length ? files : specs
 
   // A file's worker holds its lane until all of its attempts finish, so `concurrency` attempts in
   // flight need that many workers.
   const workers = Math.max(1, Math.min(concurrency, specs.length))
   const entry = workerEntry(root, WORKER_PACKAGE_NAMES)
   const hide = [...reevalFrames(PACKAGE_DIR), ...reevalFrames(join(entry, '..', '..'))]
+  const cells = options.cells ?? []
   const matchesFilters = (e: Named) =>
-    (named.has(e.file) || looseFilters.some((f) => matchesFilter(e, f))) &&
+    (cells.length === 0 || (!!e.attempt && cells.some((c) => matchesCell(e.attempt, c)))) &&
+    named.has(e.file) &&
     (nameFilters.length === 0 || nameFilters.some((f) => matchesFilter(e, f)))
   const run = options.run
 
-  // Collect: each file in a worker of its own, for the plan. Paths on disk collect only the
-  // files they name; a part that may match by name or cell collects every file, and any of
-  // them failing to load fails the run, as it may hold evals the part picks.
+  // Collect: each file in a worker of its own, for the plan. Path parts collect only the files
+  // they name; with none, every file is collected, and any of them failing to load fails the
+  // run, as it may hold evals an id part picks.
   const collected: Collected[] = []
   const failed = new Map<string, string[]>()
   let usage: string | undefined
-  await eachLimited(toCollect, workers, async (file) => {
+  await eachLimited(specs, workers, async (file) => {
     const rel = relativeFile(root, file)
     const worker = spawn(entry, root)
     let tests: WireTest[] | undefined
@@ -139,7 +165,7 @@ export async function runEngine(
   const matchesName = withControls(collected, matchesFilters)
 
   if (options.onPlan) {
-    const plan = collectPlan(collected, matchesName, nameFilters, toCollect.length < files.length)
+    const plan = collectPlan(collected, matchesName, nameFilters, specs.length < files.length)
     // When no part matched anything, the run's own "no evals matched" says so.
     if (plan.unmatched.length === options.filters.length) plan.unmatched = []
     if (!(await options.onPlan(plan)))

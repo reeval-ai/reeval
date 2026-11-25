@@ -1,10 +1,10 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
 // Docker only: reeval looks for the processes setup left running in the container.
 export default defineConfig({
   // As the agent: CHECK_TOKEN in any process's environment, as `value` or `placeholder`.
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     script: [
       [
         {

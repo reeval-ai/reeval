@@ -1,5 +1,5 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeJudge } from 'reeval/judge'
 
 // As the agent: print the unbrokered secret raw, base64-, URL- and JSON-encoded, one per line,
@@ -13,6 +13,6 @@ console.log(forms.join("\\n"))
 
 // REEVAL_FIXTURE_SANDBOX picks the tier: the fake sandbox (F) by default, or docker (D).
 export default defineConfig({
-  harnesses: fakeHarness({ script: [[{ exec: leak }]] }),
+  agents: fakeAgent({ script: [[{ exec: leak }]] }),
   judge: { model: fakeJudge({ score: 0.9 }) },
 })

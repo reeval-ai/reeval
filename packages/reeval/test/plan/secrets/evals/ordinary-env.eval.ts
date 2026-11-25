@@ -1,7 +1,6 @@
-import { evaluate } from 'reeval'
+import { defineEval } from 'reeval'
 
-evaluate(
-  'ordinary env strings',
-  { env: { NODE_ENV: 'production', LOG_LEVEL: 'debug' } },
-  async () => {},
-)
+export default defineEval({
+  env: { NODE_ENV: 'production', LOG_LEVEL: 'debug' },
+  task: async () => {},
+})

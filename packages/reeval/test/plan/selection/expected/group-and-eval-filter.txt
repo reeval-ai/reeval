@@ -1,6 +1,5 @@
-no profile · 2 evals · 2 cells · 2 attempts
-evals/tags.eval.ts › slow things › big [slow]            fake/-/docker  control  gated  ×1
-evals/tags.eval.ts › slow things › bigger [slow, flaky]  fake/-/docker  control  gated  ×1
+no profile · 1 evals · 1 cells · 1 attempts
+slow/big [slow]  fake/-/docker  control  gated  ×1
 excluded: —
-image docker · cursor · 2 evals
+image docker · cursor · 1 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

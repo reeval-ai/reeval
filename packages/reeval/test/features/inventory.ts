@@ -116,7 +116,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'matrix.cascade',
     area: 'Config and selection',
-    name: 'Option cascade through groups and evals; harness edits (`{ add }`, `{ only }`, functions)',
+    name: 'Option cascade through config, profiles and evals; agent edits (`{ add }`, `{ only }`, functions)',
     plan: ['harness-edits/data-and-functions'],
     unit: ['reeval/test/engine.test.ts', 'reeval/test/options.test.ts'],
   },
@@ -166,6 +166,18 @@ export const inventory: InventoryFeature[] = [
     plan: ['environments/traits'],
     fixtures: ['run/traits-hidden'],
     unit: ['reeval/test/refusals.test.ts'],
+  },
+  {
+    id: 'eval.define',
+    area: 'Config and selection',
+    name: '`defineEval` as the file default export: one eval per file, id from its path, case members as `#key`, `--cell` for cell selection',
+    plan: ['ids/default', 'ids/case', 'agents-profile/replaces'],
+    fixtures: ['run/define-eval'],
+    unit: [
+      'reeval/test/engine-loader.test.ts',
+      'reeval/test/cases.test.ts',
+      'reeval/test/eval-names.test.ts',
+    ],
   },
   {
     id: 'cases',
@@ -573,15 +585,23 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'selection.modes',
     area: 'Config and selection',
-    name: '`evaluate.only`, `.skip`, `.todo` and `.for`; `group.only`',
-    plan: ['selection/only-local'],
+    name: '`skip`, `skip: "reason"` and filters; profile `limit` and file-path filters',
+    plan: [
+      'selection/only-local',
+      'selection/group-and-eval-filter',
+      'skip/reason',
+      'ids/default',
+      'ids/nested',
+      'ids/case',
+      'ids/glob',
+    ],
     unit: ['reeval/test/options.test.ts', 'reeval/test/engine.test.ts', 'reeval/test/plan.test.ts'],
   },
   {
     id: 'selection.group-skip',
     area: 'Config and selection',
-    name: '`group.skip` and `group.todo`, and todo shown in the plan, summary, record and studio',
-    plan: ['selection/only-local', 'only-in-skip/only-in-skipped-group'],
+    name: 'Skip and todo at the file level, shown in the plan, summary, record and studio',
+    plan: ['selection/only-local'],
     unit: ['reeval/test/engine.test.ts'],
   },
   {
@@ -617,12 +637,15 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'selection.filters',
     area: 'Config and selection',
-    name: 'Filters (path, eval name, cell key; the kinds narrow each other; a part naming a file but not on disk also matches names and cells; a whole variant cell brings its control); no match exits 2',
+    name: 'Filters (path and eval id: exact, segment prefix and glob; `--cell` for a cell key or attempt id; the kinds narrow each other; a part is a path only when it names an eval file or is on disk, and a path matches at a path-segment boundary; a whole variant cell brings its control); no match exits 2',
     plan: [
       'compare/mixed-filter',
       'selection/group-and-eval-filter',
       'filters/dir-named-like-cell',
       'filters/dir-path-only',
+      'filters/id-not-substring',
+      'filters/dir-path-not-substring',
+      'filters/file-name-at-segment',
     ],
     unit: [
       'reeval/test/engine.test.ts',
@@ -1837,7 +1860,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'harness.fake-script',
     area: 'Harnesses',
-    name: '`fakeHarness({ script })` and `layout`',
+    name: '`fakeAgent({ script })` and `layout`',
     fixtures: ['secrets/checks-hidden-from-agent', 'harness/rules:cursor'],
     unit: ['reeval/test/harness.test.ts', 'reeval/test/engine.test.ts'],
   },

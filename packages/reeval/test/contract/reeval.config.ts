@@ -9,7 +9,7 @@ import { contractHarness } from './harness.ts'
 // picks the harness, model and gateway (REEVAL_CONTRACT_HARNESS, REEVAL_CONTRACT_MODEL,
 // REEVAL_CONTRACT_GATEWAY) from its table.
 export default defineConfig({
-  harnesses: contractHarness(),
+  agents: contractHarness(),
   ...(process.env.REEVAL_CONTRACT_SANDBOX === 'boat' ? { provider: boat() } : {}),
   ...(process.env.REEVAL_CONTRACT_SANDBOX === 'boat-image'
     ? { provider: boat(), sandbox: docker({ from: 'debian:bookworm-slim', id: 'boat-image' }) }

@@ -1,7 +1,7 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
 // Docker only: the fake sandbox has no limits to set.
 export default defineConfig({
-  harnesses: fakeHarness(),
+  agents: fakeAgent(),
 })

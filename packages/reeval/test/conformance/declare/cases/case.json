@@ -1,5 +1,6 @@
 {
-  "eval": "plan/compare/evals/cases.eval.ts",
+  "eval": "plan/compare/evals/cases",
+  "treeRoot": "plan/compare",
   "plan": "plan/compare/expected/cases.txt",
-  "args": ["evals/cases.eval.ts"]
+  "args": []
 }

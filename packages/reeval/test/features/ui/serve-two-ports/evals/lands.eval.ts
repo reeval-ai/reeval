@@ -1,7 +1,10 @@
-import { evaluate } from 'reeval'
+import { defineEval } from 'reeval'
 import { ui } from './env.ts'
 
 // c.serve fails, listing both ports, rather than guess one.
-evaluate('lands', { environments: ui }, async (c) => {
-  await c.serve('node server.mjs')
+export default defineEval({
+  environment: ui,
+  task: async (c) => {
+    await c.serve('node server.mjs')
+  },
 })

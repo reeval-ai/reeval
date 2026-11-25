@@ -15,17 +15,16 @@ The example uses the `nextApp` environment, whose workspace holds a Next.js app 
 Ask the harness for the page, then check the app builds. In the `evals/chat.eval.ts` file, declare the evaluation:
 
 ```ts title="evals/chat.eval.ts"
-import { evaluate, expect } from '{{ pkg }}'
+import { defineEval, expect } from '{{ pkg }}'
 import { nextApp } from './environments.ts'
 
-evaluate(
-  'the chat page shows a composer',
-  { environments: nextApp },
-  async (c) => {
+export default defineEval({
+  environment: nextApp,
+  task: async (c) => {
     await c.send('Add a /chat page built on useChat from @ai-sdk/react.')
     await expect(c.exec('npm run build'), 'builds').toSucceed()
   },
-)
+})
 ```
 
 The `builds` assertion runs before the app starts, so a build error fails the attempt with the compiler's output instead of a blank capture.

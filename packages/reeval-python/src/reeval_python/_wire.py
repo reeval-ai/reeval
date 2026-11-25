@@ -859,15 +859,23 @@ class EnvironmentSpec(TypedDict):
     workspace: NotRequired[GitWorkspace]
 
 
+class EvalOptionsDataCompareAgentsAdd(TypedDict):
+    add: AntigravityHarnessDescriptor | ClaudeCodeHarnessDescriptor | CodexHarnessDescriptor | CursorHarnessDescriptor | FakeHarnessDescriptor | FxHarnessDescriptor | GooseHarnessDescriptor | GrokBuildHarnessDescriptor | OpenCodeHarnessDescriptor | PiHarnessDescriptor | list[HarnessDescriptor]
+
+
+class EvalOptionsDataCompareAgentsOnly(TypedDict):
+    only: list[str] | str
+
+
 # Environments to run side by side; `control` is what each variant is measured against.
 class EvalOptionsDataCompareCompare(TypedDict):
+    # Agents (ids or descriptors) to compare on; the others run the control only.
+    agents: NotRequired[list[AntigravityHarnessDescriptor | ClaudeCodeHarnessDescriptor | CodexHarnessDescriptor | CursorHarnessDescriptor | FakeHarnessDescriptor | FxHarnessDescriptor | GooseHarnessDescriptor | GrokBuildHarnessDescriptor | OpenCodeHarnessDescriptor | PiHarnessDescriptor | str]]
     # The environment each variant is measured against. Not layered under the variants, and it
     # replaces any `environments` the eval inherits.
     control: EnvironmentData
     # Which cells decide pass/fail: `variants` (default), `all`, or `observe` (none of them).
     gate: NotRequired[Literal["all", "observe", "variants"]]
-    # Harnesses (ids or descriptors) to compare on; the others run the control only.
-    harnesses: NotRequired[list[AntigravityHarnessDescriptor | ClaudeCodeHarnessDescriptor | CodexHarnessDescriptor | CursorHarnessDescriptor | FakeHarnessDescriptor | FxHarnessDescriptor | GooseHarnessDescriptor | GrokBuildHarnessDescriptor | OpenCodeHarnessDescriptor | PiHarnessDescriptor | str]]
     # Lift in points from -1 to 1; a variant cell below it fails.
     minLift: NotRequired[float]
     # Other environments, each planned and run as itself.
@@ -882,19 +890,13 @@ class EvalOptionsDataCompareGatePassRate(TypedDict):
     passRate: float
 
 
-class EvalOptionsDataCompareHarnessesAdd(TypedDict):
-    add: AntigravityHarnessDescriptor | ClaudeCodeHarnessDescriptor | CodexHarnessDescriptor | CursorHarnessDescriptor | FakeHarnessDescriptor | FxHarnessDescriptor | GooseHarnessDescriptor | GrokBuildHarnessDescriptor | OpenCodeHarnessDescriptor | PiHarnessDescriptor | list[HarnessDescriptor]
-
-
-class EvalOptionsDataCompareHarnessesOnly(TypedDict):
-    only: list[str] | str
-
-
 class EvalOptionsDataCompareRunsBestOf(TypedDict):
     bestOf: float
 
 
 class EvalOptionsDataCompare(TypedDict):
+    # Which agents run the eval; each is its own cell.
+    agents: NotRequired[AntigravityHarnessDescriptor | ClaudeCodeHarnessDescriptor | CodexHarnessDescriptor | CursorHarnessDescriptor | FakeHarnessDescriptor | FxHarnessDescriptor | GooseHarnessDescriptor | GrokBuildHarnessDescriptor | OpenCodeHarnessDescriptor | PiHarnessDescriptor | list[HarnessDescriptor] | EvalOptionsDataCompareAgentsAdd | EvalOptionsDataCompareAgentsOnly]
     # Screenshot defaults for `c.capture()`. Shallow-merged; `viewport` and `model` replace the
     # value.
     capture: NotRequired[CaptureOptions]
@@ -907,8 +909,6 @@ class EvalOptionsDataCompare(TypedDict):
     env: NotRequired[EnvVars]
     # How each cell's attempts decide its outcome; default `'all'`.
     gate: NotRequired[Literal["all", "observe"] | EvalOptionsDataCompareGatePassRate]
-    # Which agents run the eval; each harness is its own cell.
-    harnesses: NotRequired[AntigravityHarnessDescriptor | ClaudeCodeHarnessDescriptor | CodexHarnessDescriptor | CursorHarnessDescriptor | FakeHarnessDescriptor | FxHarnessDescriptor | GooseHarnessDescriptor | GrokBuildHarnessDescriptor | OpenCodeHarnessDescriptor | PiHarnessDescriptor | list[HarnessDescriptor] | EvalOptionsDataCompareHarnessesAdd | EvalOptionsDataCompareHarnessesOnly]
     # Defaults for `c.judge()`, merged field by field down the cascade.
     judge: NotRequired[ConfigJudgeOptions]
     # Keys a profile's `limit` may not narrow for this group or eval.
@@ -929,8 +929,8 @@ class EvalOptionsDataCompare(TypedDict):
     # eval. Unset at every level, a compare with variants runs 4 a side, the fewest whose lift
     # can reach a verdict, and anything else runs once, a case of an eval with `cases` included.
     runs: NotRequired[float | EvalOptionsDataCompareRunsBestOf]
-    # The default machine when the resolved environment omits `sandbox`. Cascades like
-    # `harnesses`. Not an environment: it does not invent skills, files or a name.
+    # The default machine when the resolved environment omits `sandbox`. Cascades like `agents`.
+    # Not an environment: it does not invent skills, files or a name.
     sandbox: NotRequired[CloudSandboxDescriptor | DockerSandboxDescriptor | FakeSandboxDescriptor | TartSandboxDescriptor]
     # When each attempt's workspace is copied into its directory in `.reeval/runs`: `true` after
     # the checks, `'turns'` after each `c.send` too, `false` never. Default `true`.
@@ -939,6 +939,14 @@ class EvalOptionsDataCompare(TypedDict):
     tags: NotRequired[list[str]]
     # Per attempt.
     timeout: NotRequired[float | str]
+
+
+class EvalOptionsData2AgentsAdd(TypedDict):
+    add: AntigravityHarnessDescriptor | ClaudeCodeHarnessDescriptor | CodexHarnessDescriptor | CursorHarnessDescriptor | FakeHarnessDescriptor | FxHarnessDescriptor | GooseHarnessDescriptor | GrokBuildHarnessDescriptor | OpenCodeHarnessDescriptor | PiHarnessDescriptor | list[HarnessDescriptor]
+
+
+class EvalOptionsData2AgentsOnly(TypedDict):
+    only: list[str] | str
 
 
 class EvalOptionsData2EgressAllow(TypedDict):
@@ -957,19 +965,13 @@ class EvalOptionsData2GatePassRate(TypedDict):
     passRate: float
 
 
-class EvalOptionsData2HarnessesAdd(TypedDict):
-    add: AntigravityHarnessDescriptor | ClaudeCodeHarnessDescriptor | CodexHarnessDescriptor | CursorHarnessDescriptor | FakeHarnessDescriptor | FxHarnessDescriptor | GooseHarnessDescriptor | GrokBuildHarnessDescriptor | OpenCodeHarnessDescriptor | PiHarnessDescriptor | list[HarnessDescriptor]
-
-
-class EvalOptionsData2HarnessesOnly(TypedDict):
-    only: list[str] | str
-
-
 class EvalOptionsData2RunsBestOf(TypedDict):
     bestOf: float
 
 
 class EvalOptionsData2(TypedDict):
+    # Which agents run the eval; each is its own cell.
+    agents: NotRequired[AntigravityHarnessDescriptor | ClaudeCodeHarnessDescriptor | CodexHarnessDescriptor | CursorHarnessDescriptor | FakeHarnessDescriptor | FxHarnessDescriptor | GooseHarnessDescriptor | GrokBuildHarnessDescriptor | OpenCodeHarnessDescriptor | PiHarnessDescriptor | list[HarnessDescriptor] | EvalOptionsData2AgentsAdd | EvalOptionsData2AgentsOnly]
     # Screenshot defaults for `c.capture()`. Shallow-merged; `viewport` and `model` replace the
     # value.
     capture: NotRequired[CaptureOptions]
@@ -983,8 +985,6 @@ class EvalOptionsData2(TypedDict):
     environments: NotRequired[EnvironmentData | list[EnvironmentData] | EvalOptionsData2EnvironmentsAdd | EvalOptionsData2EnvironmentsOnly]
     # How each cell's attempts decide its outcome; default `'all'`.
     gate: NotRequired[Literal["all", "observe"] | EvalOptionsData2GatePassRate]
-    # Which agents run the eval; each harness is its own cell.
-    harnesses: NotRequired[AntigravityHarnessDescriptor | ClaudeCodeHarnessDescriptor | CodexHarnessDescriptor | CursorHarnessDescriptor | FakeHarnessDescriptor | FxHarnessDescriptor | GooseHarnessDescriptor | GrokBuildHarnessDescriptor | OpenCodeHarnessDescriptor | PiHarnessDescriptor | list[HarnessDescriptor] | EvalOptionsData2HarnessesAdd | EvalOptionsData2HarnessesOnly]
     # Defaults for `c.judge()`, merged field by field down the cascade.
     judge: NotRequired[ConfigJudgeOptions]
     # Keys a profile's `limit` may not narrow for this group or eval.
@@ -1005,8 +1005,8 @@ class EvalOptionsData2(TypedDict):
     # eval. Unset at every level, a compare with variants runs 4 a side, the fewest whose lift
     # can reach a verdict, and anything else runs once, a case of an eval with `cases` included.
     runs: NotRequired[float | EvalOptionsData2RunsBestOf]
-    # The default machine when the resolved environment omits `sandbox`. Cascades like
-    # `harnesses`. Not an environment: it does not invent skills, files or a name.
+    # The default machine when the resolved environment omits `sandbox`. Cascades like `agents`.
+    # Not an environment: it does not invent skills, files or a name.
     sandbox: NotRequired[CloudSandboxDescriptor | DockerSandboxDescriptor | FakeSandboxDescriptor | TartSandboxDescriptor]
     # When each attempt's workspace is copied into its directory in `.reeval/runs`: `true` after
     # the checks, `'turns'` after each `c.send` too, `false` never. Default `true`.
@@ -1074,7 +1074,7 @@ class FakeHarnessDescriptorWithSkill(TypedDict):
     text: NotRequired[str]
 
 
-# A canned agent for tests and dry runs, made by `fakeHarness()` in `reeval/harness`.
+# A canned agent for tests and dry runs, made by `fakeAgent()` in `reeval/agent`.
 class FakeHarnessDescriptor(TypedDict):
     # A shell command the fake agent runs as its session starts, once per sandbox, as a real
     # adapter's bootstrap installs its CLI: `tart()` bakes it into the image it clones, as it
@@ -1563,7 +1563,7 @@ class OpenRouterGatewayDescriptor(TypedDict):
 
 
 # A matrix factor a pairwise question varies; the others are held.
-PairFactor: TypeAlias = "Literal[\"environment\", \"harness\"]"
+PairFactor: TypeAlias = "Literal[\"environment\", \"agent\", \"harness\"]"
 
 
 # A regular expression, where a matcher takes a string or a `RegExp`.
@@ -1608,7 +1608,7 @@ class PiHarnessDescriptor(TypedDict):
 
 
 # An option a profile's `limit` can narrow, and `pin` can protect.
-PinnableKey: TypeAlias = "Literal[\"compare\", \"harnesses\", \"runs\"]"
+PinnableKey: TypeAlias = "Literal[\"agents\", \"compare\", \"runs\"]"
 
 
 class PluginMarketplace1(TypedDict):
@@ -1737,7 +1737,7 @@ class QuestionTranscript3(TypedDict):
 class Question(TypedDict):
     # The factor it varies when pairing, or both: `'environment'` holds the harness, `'harness'`
     # holds the environment. Unset, it's asked of each attempt on its own.
-    across: NotRequired[PairFactor | list[PairFactor]]
+    across: NotRequired[Literal["environment", "agent"] | list[Literal["environment", "agent"]]]
     # Each attempt's own captures, by name; `true` sends all of them.
     artifacts: NotRequired[Literal[True] | list[str]]
     # `c.exec` results; a list shows only those commands, as passed to `c.exec`.

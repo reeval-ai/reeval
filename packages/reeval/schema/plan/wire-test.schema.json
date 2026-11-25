@@ -1125,7 +1125,7 @@
       "required": ["case", "environment"]
     },
     "FakeHarnessDescriptor": {
-      "description": "A canned agent for tests and dry runs, made by `fakeHarness()` in `reeval/harness`.",
+      "description": "A canned agent for tests and dry runs, made by `fakeAgent()` in `reeval/agent`.",
       "type": "object",
       "properties": {
         "bootstrap": {
@@ -1810,7 +1810,7 @@
     "PairFactor": {
       "description": "A matrix factor a pairwise question varies; the others are held.",
       "type": "string",
-      "enum": ["environment", "harness"]
+      "enum": ["environment", "agent", "harness"]
     },
     "PiHarnessDescriptor": {
       "description": "pi through `@reeval/harness-pi` (`pi --mode json` in the sandbox), made by `pi()`. It runs a model on its provider's key and reports each model call's tokens. It takes stdio and HTTP MCP servers, not SSE ones.",
@@ -1917,7 +1917,7 @@
           "description": "Set on a pairwise question; unset, it's asked of each attempt.",
           "anyOf": [
             {
-              "enum": ["environment", "harness"]
+              "enum": ["agent", "environment"]
             },
             {
               "type": "array",
@@ -2510,7 +2510,7 @@
           "type": "string"
         },
         "where": {
-          "description": "The value is the level as reeval names it: the `reeval.config.ts` file, `profiles.pr.defaults`, `group(\"net\")`, or `evaluate(\"installs deps\")`.",
+          "description": "The value is the level as reeval names it: the `reeval.config.ts` file, `profiles.pr.defaults`, or the eval file, such as `evals/installs-deps.eval.ts`.",
           "type": "string"
         }
       },

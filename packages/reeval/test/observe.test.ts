@@ -156,12 +156,15 @@ describe('observations in a run', () => {
   test('recorded per attempt, tallied in the output and queryable, and never gating', async () => {
     const p = await project('observe-run', {
       'reeval.config.ts': fakeConfig(),
-      'evals/a.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('picks', { runs: 2 }, async (c) => {
-  await c.send('x')
-  c.observe('orm', c.attempt.n === 1 ? 'drizzle' : 'prisma')
-  c.observe('files', c.attempt.n)
-  expect(c.attempt.n, 'first run only').toBe(1)
+      'evals/a.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  runs: 2,
+  async task(c) {
+    await c.send('x')
+    c.observe('orm', c.attempt.n === 1 ? 'drizzle' : 'prisma')
+    c.observe('files', c.attempt.n)
+    expect(c.attempt.n, 'first run only').toBe(1)
+  },
 })
 `,
     })
@@ -182,7 +185,7 @@ evaluate('picks', { runs: 2 }, async (c) => {
     )
     const q = await runCli(p.dir, [
       'query',
-      'SELECT attempt_id, outcome, name, kind, num, text, harness FROM attempt_values ORDER BY attempt_id, name',
+      'SELECT attempt_id, outcome, name, kind, num, text, agent FROM attempt_values ORDER BY attempt_id, name',
       '--json',
     ])
     assert.equal(q.code, 0, q.stderr)
@@ -194,7 +197,7 @@ evaluate('picks', { runs: 2 }, async (c) => {
         kind: 'number',
         num: 1,
         text: null,
-        harness: 'fake',
+        agent: 'fake',
       },
       {
         attempt_id: 'fake/fake/fake#1',
@@ -203,7 +206,7 @@ evaluate('picks', { runs: 2 }, async (c) => {
         kind: 'string',
         num: null,
         text: 'drizzle',
-        harness: 'fake',
+        agent: 'fake',
       },
       {
         attempt_id: 'fake/fake/fake#2',
@@ -212,7 +215,7 @@ evaluate('picks', { runs: 2 }, async (c) => {
         kind: 'number',
         num: 2,
         text: null,
-        harness: 'fake',
+        agent: 'fake',
       },
       {
         attempt_id: 'fake/fake/fake#2',
@@ -221,7 +224,7 @@ evaluate('picks', { runs: 2 }, async (c) => {
         kind: 'string',
         num: null,
         text: 'prisma',
-        harness: 'fake',
+        agent: 'fake',
       },
     ])
   })
@@ -231,16 +234,16 @@ describe('observations as judge and question input', () => {
   test('c.judge() and questions see them only when they turn them on', async () => {
     const p = await project('observe-input', {
       'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeAnalysis } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
 export default defineConfig({
-  harnesses: fakeHarness(),
+  agents: fakeAgent(),
   environments: defineEnvironment('fake', { sandbox: fakeSandbox() }),
   analysis: { model: fakeAnalysis({ answer: (q) => JSON.stringify(q.attempt.observations ?? null) }) },
 })
 `,
-      'evals/a.eval.ts': `import { evaluate, expect } from 'reeval'
+      'evals/a.eval.ts': `import { defineEval, expect } from 'reeval'
 import { fakeJudge } from 'reeval/judge'
 const seen = (state) => (state.observations?.orm === 'drizzle' ? 0.9 : 0.1)
 const questions = [
@@ -248,15 +251,18 @@ const questions = [
   { question: 'What did it say?', output: true },
   { question: 'All of them?', observations: true },
 ]
-evaluate('input', { questions, judge: { model: fakeJudge({ score: seen }) } }, async (c) => {
-  await c.send('x')
-  c.observe('orm', 'drizzle')
-  c.observe('lines', 3)
-  expect(await c.judge('picked drizzle?', { observations: ['orm'] })).toPass()
-  expect(await c.judge('saw it without asking?', { output: true })).not.toPass()
-  await expect(() => c.judge('typo', { observations: ['ormm'] })).rejects.toThrow(
-    'c.judge() observations names a value this attempt hasn\\'t observed: "ormm"',
-  )
+export default defineEval({
+  questions, judge: { model: fakeJudge({ score: seen }) },
+  async task(c) {
+    await c.send('x')
+    c.observe('orm', 'drizzle')
+    c.observe('lines', 3)
+    expect(await c.judge('picked drizzle?', { observations: ['orm'] })).toPass()
+    expect(await c.judge('saw it without asking?', { output: true })).not.toPass()
+    await expect(() => c.judge('typo', { observations: ['ormm'] })).rejects.toThrow(
+      'c.judge() observations names a value this attempt hasn\\'t observed: "ormm"',
+    )
+  },
 })
 `,
     })
@@ -290,30 +296,34 @@ describe('a secret-looking observation name in a run', () => {
     const token = `ghp_${'q'.repeat(36)}`
     const p = await project('observe-secret-name', {
       'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
-import { fakeAnalysis } from 'reeval/judge'
-import { fakeSandbox } from 'reeval/sandbox'
-export default defineConfig({
-  harnesses: fakeHarness(),
-  environments: defineEnvironment('fake', { sandbox: fakeSandbox() }),
-  analysis: { model: fakeAnalysis({ answer: (q) => JSON.stringify(q.attempt.observations ?? null) }) },
-})
-`,
-      'evals/a.eval.ts': `import { evaluate, expect } from 'reeval'
-import { fakeJudge } from 'reeval/judge'
-const token = 'ghp_' + 'q'.repeat(36)
-const other = 'ghp_' + 'z'.repeat(36)
-const seen = (state) => (state.observations?.['[REDACTED]'] === 'kept' ? 0.9 : 0.1)
-const questions = [{ question: 'Kept?', observations: [token] }]
-evaluate('masked', { questions, judge: { model: fakeJudge({ score: seen }) } }, async (c) => {
-  await c.send('x')
-  c.observe(token, 'kept')
-  expect(() => c.observe(other, 'lost')).toThrow('names a secret')
-  expect(await c.judge('kept?', { observations: [token] })).toPass()
-  await expect(() => c.judge('other?', { observations: [other] })).rejects.toThrow(
-    'c.judge() observations names a value this attempt hasn\\'t observed: "[REDACTED]"',
-  )
-})
+  import { fakeAgent } from 'reeval/agent'
+  import { fakeAnalysis } from 'reeval/judge'
+  import { fakeSandbox } from 'reeval/sandbox'
+  export default defineConfig({
+    agents: fakeAgent(),
+    environments: defineEnvironment('fake', { sandbox: fakeSandbox() }),
+    analysis: { model: fakeAnalysis({ answer: (q) => JSON.stringify(q.attempt.observations ?? null) }) },
+  })
+  `,
+      'evals/masked.eval.ts': `import { defineEval, expect } from 'reeval'
+  import { fakeJudge } from 'reeval/judge'
+  const token = 'ghp_' + 'q'.repeat(36)
+  const other = 'ghp_' + 'z'.repeat(36)
+  const seen = (state) => (state.observations?.['[REDACTED]'] === 'kept' ? 0.9 : 0.1)
+  const questions = [{ question: 'Kept?', observations: [token] }]
+  export default defineEval({
+    questions,
+    judge: { model: fakeJudge({ score: seen }) },
+    async task(c) {
+      await c.send('x')
+      c.observe(token, 'kept')
+      expect(() => c.observe(other, 'lost')).toThrow('names a secret')
+      expect(await c.judge('kept?', { observations: [token] })).toPass()
+      await expect(() => c.judge('other?', { observations: [other] })).rejects.toThrow(
+        'c.judge() observations names a value this attempt hasn\\'t observed: "[REDACTED]"',
+      )
+    },
+  })
 `,
     })
     const r = await runCli(p.dir)
@@ -353,11 +363,14 @@ describe('observations in reeval compare', () => {
   test('a moved tally shows on an eval that is otherwise the same', async () => {
     const p = await project('observe-compare', {
       'reeval.config.ts': fakeConfig(),
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'
-evaluate('picks', { runs: 2 }, async (c) => {
-  await c.send('x')
-  c.observe('orm', c.attempt.n === 1 ? 'drizzle' : (process.env.SECOND_ORM ?? 'drizzle'))
-  c.observe('steady', 1)
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  runs: 2,
+  async task(c) {
+    await c.send('x')
+    c.observe('orm', c.attempt.n === 1 ? 'drizzle' : (process.env.SECOND_ORM ?? 'drizzle'))
+    c.observe('steady', 1)
+  },
 })
 `,
     })
@@ -367,7 +380,7 @@ evaluate('picks', { runs: 2 }, async (c) => {
     const head = readRun(p.dir).run.runId
     const r = await runCli(p.dir, ['compare', base, head])
     assert.equal(r.code, 0, r.stderr)
-    assert.match(r.stdout, /same +picks\n +observed orm +drizzle 2 → 1 · prisma 0 → 1\n/)
+    assert.match(r.stdout, /same +a\n +observed orm +drizzle 2 → 1 · prisma 0 → 1\n/)
     assert.doesNotMatch(r.stdout, /observed steady/)
   })
 })

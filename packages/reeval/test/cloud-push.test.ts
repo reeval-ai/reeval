@@ -178,10 +178,12 @@ const GIT_ENV = {
 const sh = (cwd: string, ...args: string[]) =>
   execFileSync('git', args, { cwd, env: GIT_ENV, encoding: 'utf8' }).trim()
 
-const EVAL = `import { evaluate, expect } from 'reeval'
-evaluate('agent', async (c) => {
-  await c.send('write hello.txt')
-  await expect(c.exec('cat hello.txt')).toSucceed()
+const EVAL = `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('write hello.txt')
+    await expect(c.exec('cat hello.txt')).toSucceed()
+  },
 })
 `
 

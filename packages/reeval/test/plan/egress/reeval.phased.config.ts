@@ -1,8 +1,8 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
 export default defineConfig({
-  harnesses: fakeHarness(),
+  agents: fakeAgent(),
   egress: { setup: 'allow-all', agent: { allow: ['config.example.com'] } },
   profiles: { 'agent-locked': { defaults: { egress: { agent: 'deny-all' } } } },
 })

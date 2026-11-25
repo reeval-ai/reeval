@@ -56,7 +56,7 @@ export function registerTest(
 function current(): Suite {
   if (!collecting)
     throw new UsageError(
-      "evaluate() and group() declare evals while reeval loads the file; they can't be called inside an eval.",
+      "Evals are declared while reeval loads the file; one can't be declared inside an eval.",
     )
   return collecting.current
 }

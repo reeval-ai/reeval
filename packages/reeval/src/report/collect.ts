@@ -90,7 +90,7 @@ export function configShape(config: ResolvedConfig): NonNullable<ReportBundle['c
     ),
   )
   for (const profile of Object.values(config.profiles)) {
-    for (const h of [profile.defaults?.harnesses ?? []].flat()) harnesses.add(h.kind)
+    for (const h of [profile.defaults?.agents ?? []].flat()) harnesses.add(h.kind)
     sandboxes.add(placedKind(profileSandbox(config, profile.defaults), config, profile))
   }
   return {

@@ -1,10 +1,10 @@
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
+import { composer, pim } from './agents.ts'
 import { plain, withHouseGreeting } from './environments.ts'
-import { composer, pim } from './harnesses.ts'
 
-// A pairwise question over two agents and two arms, and one asked of each attempt. Any greeting that names the person passes, so
-// every attempt can be in a pair: within each harness the question compares the arms, and across
-// harnesses it compares Cursor and pi on the same arm. The model sees only the diffs (not the
+// A pairwise question over two agents and two arms, and one asked of each attempt. Any greeting
+// that names the person passes, so every attempt can be in a pair: within each agent the question
+// compares the arms, and across agents it compares Cursor and pi on the same arm. The model sees only the diffs (not the
 // skill), so the question asks about what they show. Its win rates annotate; the check gates.
 // The nightly runs it with --profile questions (test/questions-real.test.ts).
 const namesAda = `node -e "import('./greet.js').then((m) => {
@@ -14,28 +14,25 @@ const namesAda = `node -e "import('./greet.js').then((m) => {
   process.exit(out.includes('Ada') ? 0 : 1)
 })"`
 
-evaluate(
-  'greets by name',
-  {
-    tags: ['questions'],
-    harnesses: [composer, pim],
-    runs: 1,
-    compare: { control: plain, variants: [withHouseGreeting] },
-    questions: [
-      {
-        question: 'Which greet.js handles a missing or empty name better?',
-        across: ['environment', 'harness'],
-        task: true,
-        diff: true,
-      },
-      { question: 'Does greet.js handle a missing name?', choices: ['yes', 'no'], diff: true },
-    ],
-  },
-  async (c) => {
+export default defineEval({
+  tags: ['questions'],
+  agents: [composer, pim],
+  runs: 1,
+  compare: { control: plain, variants: [withHouseGreeting] },
+  questions: [
+    {
+      question: 'Which greet.js handles a missing or empty name better?',
+      across: ['environment', 'agent'],
+      task: true,
+      diff: true,
+    },
+    { question: 'Does greet.js handle a missing name?', choices: ['yes', 'no'], diff: true },
+  ],
+  task: async (c) => {
     await c.send(
       'Create greet.js exporting greet(name) that greets the person in our house greeting style. ' +
         'Add a package.json with "type": "module". No dependencies.',
     )
     await expect(c.exec(namesAda)).toSucceed()
   },
-)
+})

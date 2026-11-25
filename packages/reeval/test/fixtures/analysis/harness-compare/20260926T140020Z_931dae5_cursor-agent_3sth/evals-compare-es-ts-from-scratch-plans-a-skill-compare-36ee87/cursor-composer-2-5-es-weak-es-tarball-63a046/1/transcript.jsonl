@@ -24,14 +24,14 @@
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/harness.d.ts"},"ok":true,"durationMs":40}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":16}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"compare|baseline|defineEnvironment|fakeHarness|fakeSandbox|fakeJudge"},"ok":true,"durationMs":16}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"compare|baseline|defineEnvironment|fakeAgent|fakeSandbox|fakeJudge"},"ok":true,"durationMs":16}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"tar -tzf /opt/es/invertase-foobar.tgz | rg -i 'test|example|fixture' | head -40"},"ok":true,"durationMs":81}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"cd . && npx es --help 2>&1; echo '---'; npx es run --help 2>&1"},"ok":true,"durationMs":873}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/matchers.d.ts"},"ok":true,"durationMs":68}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"defineConfig|evaluate\\(|compare:|house-style|withSkill"},"ok":true,"durationMs":75}
 {"turn":0,"type":"reasoning"}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"/root/.ai-sdk-harness/.harness-bootstrap/cursor/implementation/home/.cursor/projects/es-workspace/agent-transcripts","pattern":"greet|house-style|es\\.config|fakeHarness|compare:"},"ok":true,"durationMs":66}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"/root/.ai-sdk-harness/.harness-bootstrap/cursor/implementation/home/.cursor/projects/es-workspace/agent-transcripts","pattern":"greet|house-style|es\\.config|fakeAgent|compare:"},"ok":true,"durationMs":66}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/harness/fake.js"},"ok":true,"durationMs":32}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/engine/runtime.js"},"ok":true,"durationMs":32}
 {"turn":0,"type":"reasoning"}

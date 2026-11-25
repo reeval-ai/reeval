@@ -1,11 +1,11 @@
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { snapshots } from './env.ts'
 
-evaluate(
-  'lands',
-  { environments: snapshots, snapshot: { when: 'turns', compress: true } },
-  async (c) => {
+export default defineEval({
+  environment: snapshots,
+  snapshot: { when: 'turns', compress: true },
+  task: async (c) => {
     await c.send('build the app')
     expect(await c.readFile('app/built.js')).toContain('built')
   },
-)
+})

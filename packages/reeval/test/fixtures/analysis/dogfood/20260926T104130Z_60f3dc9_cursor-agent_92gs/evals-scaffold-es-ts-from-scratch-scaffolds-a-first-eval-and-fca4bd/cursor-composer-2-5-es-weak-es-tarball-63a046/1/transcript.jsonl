@@ -19,7 +19,7 @@
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/sandbox/fake.d.ts"},"ok":true,"durationMs":100}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/judge/index.d.ts"},"ok":true,"durationMs":95}
 {"turn":0,"type":"reasoning"}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"defineConfig|fakeHarness|fakeSandbox|fakeJudge|EsConfig"},"ok":true,"durationMs":36}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"defineConfig|fakeAgent|fakeSandbox|fakeJudge|EsConfig"},"ok":true,"durationMs":36}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"npx es --help 2>&1; echo \"---\"; npx es run --help 2>&1"},"ok":true,"durationMs":845}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/harness.d.ts"},"ok":true,"durationMs":29}
@@ -36,7 +36,7 @@
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"tar -tzf /opt/es/invertase-foobar.tgz | rg -i 'test|example|fixture|eval'"},"ok":true,"durationMs":45}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/matchers.js"},"ok":true,"durationMs":0}
 {"turn":0,"type":"reasoning"}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"fakeHarness|fakeSandbox|fakeJudge|defineConfig"},"ok":true,"durationMs":78}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"fakeAgent|fakeSandbox|fakeJudge|defineConfig"},"ok":true,"durationMs":78}
 {"turn":0,"type":"tool","tool":"glob","input":{"pattern":"**/*.es.ts"},"ok":true,"durationMs":103}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":41}
@@ -55,7 +55,7 @@
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":68}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"\\.es\\.ts|evaluate\\("},"ok":true,"durationMs":108}
 {"turn":0,"type":"reasoning"}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"/root/.ai-sdk-harness/.harness-bootstrap/cursor/implementation/home/.cursor/projects/es-workspace/agent-transcripts","pattern":"hello\\.es|fakeHarness|es\\.config"},"ok":true,"durationMs":375}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"/root/.ai-sdk-harness/.harness-bootstrap/cursor/implementation/home/.cursor/projects/es-workspace/agent-transcripts","pattern":"hello\\.es|fakeAgent|es\\.config"},"ok":true,"durationMs":375}
 {"turn":0,"type":"tool","tool":"glob","input":{"pattern":"**/*"},"ok":true,"durationMs":1353}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"tar -tzf /opt/es/invertase-foobar.tgz | grep -E 'test/|\\.es\\.ts|fixture' | head -40"},"ok":true,"durationMs":90}

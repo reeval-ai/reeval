@@ -1,6 +1,9 @@
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { plain } from './env.ts'
 
-evaluate('canary', { environments: plain }, async (c) => {
-  expect(await c.readFile('missing.txt')).toBe('present')
+export default defineEval({
+  environment: plain,
+  task: async (c) => {
+    expect(await c.readFile('missing.txt')).toBe('present')
+  },
 })

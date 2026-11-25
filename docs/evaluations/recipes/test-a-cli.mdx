@@ -13,7 +13,7 @@ You test a CLI by installing it on the sandbox image, giving the harness a task 
 In the `evals/cli.eval.ts` file, define an environment that installs the CLI on the sandbox image and copies in the files the harness starts from:
 
 ```ts title="evals/cli.eval.ts"
-import { defineEnvironment, evaluate, expect } from '{{ pkg }}'
+import { defineEnvironment, defineEval, expect } from '{{ pkg }}'
 import { docker } from '{{ pkg }}/sandbox'
 
 // jq is baked onto reeval's image once, and the image is cached by the
@@ -39,9 +39,9 @@ The `project/orders.json` file has five orders, and two of them have a total ove
 In the `evals/cli.eval.ts` file, write the task that uses the CLI and check its result:
 
 ```ts title="evals/cli.eval.ts"
-evaluate('counts the large orders with jq', {
-  environments: withJq,
-}, async (c) => {
+export default defineEval({
+  environment: withJq,,
+  task: async (c) => {
   await c.send(
     'Write count.sh, a bash script that prints how many orders in ' +
       'orders.json have a total over 100, using jq.',

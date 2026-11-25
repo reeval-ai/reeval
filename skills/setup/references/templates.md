@@ -28,15 +28,14 @@ export const withSkill = plain.extendEnvironment('with-billing-skill', ({ skill 
 
 ```ts
 // evals/invoice-amounts.eval.ts
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { plain, withSkill } from './environments.ts'
 
 const migration = 'migrations/001_invoices.sql'
 
-evaluate(
-  'stores invoice totals in cents with the billing skill',
-  { compare: { control: plain, variants: [withSkill] } },
-  async (c) => {
+export default defineEval({
+  compare: { control: plain, variants: [withSkill] },
+  task: async (c) => {
     await c.send(
       `Write ${migration}: a Postgres migration creating an invoices table ` +
         'with a customer id, an issue date and the invoice total.',
@@ -46,7 +45,7 @@ evaluate(
     expect(sql, 'total in integer cents').toMatch(/\btotal\w*_cents\s+(big)?int/)
     expect(sql, 'a currency column').toMatch(/\bcurrency\w*\s+(char|varchar)\s*\(\s*3/)
   },
-)
+})
 ```
 
 Read the skill you're evaluating and choose its own most specific rules that a file or a command
@@ -57,15 +56,15 @@ The canary and the oracle: profiles in `reeval.config.ts` whose fake agent write
 right answer. Write the oracle's answer differently from the one you had in mind (other column
 names, another order, `bigint` for `integer`, `public.` before the table), so it catches a check
 that wants one spelling.
-Add `fakeHarness` to the harness import.
+Add `fakeAgent` to the harness import.
 
 ```ts
-import { cursor, fakeHarness } from 'reeval/harness'
+import { cursor, fakeAgent } from 'reeval/agent'
 // … inside defineConfig({ … profiles: { …
     // A fake agent that stores the total as numeric: every eval must fail.
     canary: {
       defaults: {
-        harnesses: fakeHarness({
+        agents: fakeAgent({
           files: {
             'migrations/001_invoices.sql':
               'create table invoices (id int, total numeric(10,2));\n',
@@ -77,7 +76,7 @@ import { cursor, fakeHarness } from 'reeval/harness'
     // A fake agent with a right answer: every eval must pass.
     oracle: {
       defaults: {
-        harnesses: fakeHarness({
+        agents: fakeAgent({
           files: {
             'migrations/001_invoices.sql':
               'CREATE TABLE public.invoices (\n  id bigserial PRIMARY KEY,\n' +
@@ -113,19 +112,22 @@ export const repo = defineEnvironment('repo', ({ directory }) => ({
 
 ```ts
 // evals/slugify.eval.ts
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { repo } from './environments.ts'
 
-evaluate('adds a slugify helper that passes a hidden test', { environments: repo }, async (c) => {
-  await c.send('Add slugify(text) to src/strings.ts and export it from src/index.ts.')
-  await c.writeFile(
-    'test/slugify.hidden.test.ts',
-    "import { slugify } from '../src/index.ts'\n" +
-      "import { test, expect } from 'vitest'\n" +
-      "test('slugify', () => expect(slugify('Hello, World!')).toBe('hello-world'))\n",
-  )
-  await expect(c.exec('npx vitest run test/slugify.hidden.test.ts'), 'hidden test').toSucceed()
-  await expect(c.exec('npm test'), 'existing tests').toSucceed()
+export default defineEval({
+  environment: repo,
+  task: async (c) => {
+    await c.send('Add slugify(text) to src/strings.ts and export it from src/index.ts.')
+    await c.writeFile(
+      'test/slugify.hidden.test.ts',
+      "import { slugify } from '../src/index.ts'\n" +
+        "import { test, expect } from 'vitest'\n" +
+        "test('slugify', () => expect(slugify('Hello, World!')).toBe('hello-world'))\n",
+    )
+    await expect(c.exec('npx vitest run test/slugify.hidden.test.ts'), 'hidden test').toSucceed()
+    await expect(c.exec('npm test'), 'existing tests').toSucceed()
+  },
 })
 ```
 
@@ -169,19 +171,18 @@ export const withRules = repo.extendEnvironment('with-agents-md', ({ file }) => 
 
 ```ts
 // evals/deploy-region.eval.ts
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { repo, withRules } from './environments.ts'
 
-evaluate(
-  'follows AGENTS.md on a user-facing CLI change',
-  { compare: { control: repo, variants: [withRules] } },
-  async (c) => {
+export default defineEval({
+  compare: { control: repo, variants: [withRules] },
+  task: async (c) => {
     await c.send('`acme deploy` should stop with a clear error when no region is set.')
     expect(c, 'a CHANGELOG.md entry').toHaveChanged('CHANGELOG.md')
     expect(c, 'a test beside the code').toHaveChanged('src/**/*.test.ts')
     await expect(c.exec('npx tsc --noEmit'), 'compiles').toSucceed()
   },
-)
+})
 ```
 
 - Leave out every rules file the agent might read (`!AGENTS.md`, `!CLAUDE.md`, `!GEMINI.md`),
@@ -230,7 +231,7 @@ export const withZodSkill = zod.extendEnvironment('with-zod-skill', ({ skill }) 
 
 ```ts
 // evals/zod-email.eval.ts
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { withZodSkill, zod } from './environments.ts'
 
 const accepts = `node -e "import('./user.js').then(({ User }) => {
@@ -239,20 +240,19 @@ const accepts = `node -e "import('./user.js').then(({ User }) => {
   process.exit(ok && !bad ? 0 : 1)
 })"`
 
-evaluate(
-  "uses Zod 4's top-level email format",
-  { compare: { control: zod, variants: [withZodSkill] } },
-  async (c) => {
+export default defineEval({
+  compare: { control: zod, variants: [withZodSkill] },
+  task: async (c) => {
     await c.send('Create user.js exporting a zod schema User with a required email field.')
     await expect(c.exec(accepts), 'validates emails').toSucceed()
     const src = (await c.readFile('user.js')) ?? ''
     expect(src, 'uses z.email()').toMatch(/z\.email\(/)
   },
-)
+})
 ```
 
 - Pin the version you researched (`zod@4.1.12`), in the setup step and in what you tell the user.
 - Write the facts down as a skill only if the user wants to know what docs or a skill would
-  change. Otherwise drop the compare and keep `environments: zod`.
+  change. Otherwise drop the compare and keep `environment: zod`.
 - Check behavior (`validates emails`) and the specific API (`uses z.email()`) as two labeled
   checks, so the result says which one an agent missed.

@@ -10,7 +10,7 @@ The `egress` option sets which hosts the sandbox can reach. The default is `'pro
 In the `evals/egress.eval.ts` file, set `egress` to `'deny-all'` on an environment:
 
 ```ts title="evals/egress.eval.ts"
-import { defineEnvironment, evaluate, expect } from '{{ pkg }}'
+import { defineEnvironment, defineEval, expect } from '{{ pkg }}'
 
 const offline = defineEnvironment('offline', {
   files: {
@@ -21,14 +21,13 @@ export const getUserId = (req: Request) => req.params.id
   egress: 'deny-all',
 })
 
-evaluate(
-  'adds a test without installing anything',
-  { environments: offline },
-  async (c) => {
+export default defineEval({
+  environment: offline,
+  task: async (c) => {
     await c.send('Add a Vitest test for getUserId in src/user.test.ts.')
     await expect(c, 'writes the test').toHaveFile('src/user.test.ts')
   },
-)
+})
 ```
 
 A restricted policy still lets through the hosts an attempt can't run without: the harness's own API, the `hosts` of each brokered secret, and each `http` or `sse` MCP server. reeval adds these automatic hosts to `'deny-all'` and to every allow list, and the plan prints them:

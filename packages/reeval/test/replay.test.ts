@@ -174,8 +174,8 @@ for (const harness of harnesses) {
   })
 }
 
-/** The eval a capture's file is named after: `edit-and-run.raw.jsonl` is `edit and run`. */
-const behaviorOf = (file: string) => file.replace('.raw.jsonl', '').replaceAll('-', ' ')
+/** The eval a capture's file is named after: `edit-and-run.raw.jsonl` is `edit-and-run`. */
+const behaviorOf = (file: string) => file.replace('.raw.jsonl', '')
 
 // agy 1.4.3 renamed its file tools (view_file → read_file, write_to_file → write_file,
 // replace_file_content → edit_file) with every event's shape unchanged. The adapter before it
@@ -237,7 +237,7 @@ describe("replay: agy's file tools renamed under an adapter that knows only the 
       tools: new Map([...catalog.tools, ...RENAMED.map((n) => [n, undefined] as const)]),
     }
     for (const c of [catalog, passthrough]) {
-      const edit = misfiled(c, 'edit and run', events(beforeRename('edit-and-run.raw.jsonl')))
+      const edit = misfiled(c, 'edit-and-run', events(beforeRename('edit-and-run.raw.jsonl')))
       assert.equal(edit.length, 1, edit.join('\n'))
       assert.match(
         edit[0] ?? '',
@@ -267,7 +267,7 @@ describe("replay: agy's file tools renamed under an adapter that knows only the 
     )
     assert.deepEqual(unmappedTools(catalog, events(lines)), ['run_cmd_v2'])
     assert.match(
-      misfiled(catalog, 'edit and run', events(lines)).join('\n'),
+      misfiled(catalog, 'edit-and-run', events(lines)).join('\n'),
       /^antigravity: the command printing contract-42 isn't a bash tool: it arrived as run_cmd_v2 \(not in the catalog\)$/,
     )
   })

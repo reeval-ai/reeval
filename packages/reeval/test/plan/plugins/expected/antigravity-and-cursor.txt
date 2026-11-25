@@ -1,8 +1,10 @@
-no profile · 1 evals · 2 cells · 2 attempts
-evals/every-part.eval.ts › loads the plugin  antigravity:gemini-3.8-flash-low/review/docker  control  gated  ×1  effort: antigravity:gemini-3.8-flash-low none (the model id names its effort, low) · effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: none on antigravity:gemini-3.8-flash-low; not checked on cursor:composer-2.5 · plugins review (skills, agents, commands, hooks, mcp, rules)
-                                             cursor:composer-2.5/review/docker               control  gated  ×1  plugins review (skills, agents, commands, hooks, mcp, rules)
+no profile · 2 evals · 4 cells · 4 attempts
+every-part-2  antigravity:gemini-3.8-flash-low/review/docker  control  gated  ×1  effort: antigravity:gemini-3.8-flash-low none (the model id names its effort, low) · effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: none on antigravity:gemini-3.8-flash-low; not checked on cursor:composer-2.5 · plugins review (skills, agents, commands, hooks, mcp, rules)
+              cursor:composer-2.5/review/docker               control  gated  ×1  plugins review (skills, agents, commands, hooks, mcp, rules)
+every-part    antigravity:gemini-3.8-flash-low/review/docker  control  gated  ×1  effort: antigravity:gemini-3.8-flash-low none (the model id names its effort, low) · effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: none on antigravity:gemini-3.8-flash-low; not checked on cursor:composer-2.5 · plugins review (skills, agents, commands, hooks, mcp, rules)
+              cursor:composer-2.5/review/docker               control  gated  ×1  plugins review (skills, agents, commands, hooks, mcp, rules)
 excluded: —
-image docker · antigravity · 1 evals
+image docker · antigravity · 2 evals
   base  reeval-sandbox:antigravity-0.1.17  (reeval's image: pulled or built when missing or when its key changed)
-image docker · cursor · 1 evals
+image docker · cursor · 2 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

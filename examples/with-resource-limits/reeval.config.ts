@@ -1,19 +1,19 @@
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { profiles } from '../profiles.ts'
 
-const fakeAgent = (path: string) =>
+const fakeFile = (path: string) =>
   readFileSync(new URL(`./fake-agent/${path}`, import.meta.url), 'utf8')
 
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that copies ./fake-agent's files into the workspace. The environment's
   // docker() sandbox still applies, so even the fake agent runs in Docker.
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     files: {
-      'src/math.js': fakeAgent('src/math.js'),
-      'test/math.test.js': fakeAgent('test/math.test.js'),
+      'src/math.js': fakeFile('src/math.js'),
+      'test/math.test.js': fakeFile('test/math.test.js'),
     },
     text: 'I added multiply(a, b) to src/math.js and a test for it.',
   }),

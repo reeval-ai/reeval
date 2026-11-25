@@ -29,7 +29,7 @@ import { type Colors, colors, type Paint } from './colors.ts'
 import { remarkLines } from './remarks.ts'
 
 export type Layout = {
-  kind: 'results' | 'measure' | 'harnesses' | 'both' | 'regressions'
+  kind: 'results' | 'measure' | 'agents' | 'both' | 'regressions'
   /** An eval with `cases`: the kind's rows, one per case, inside one block. */
   family: boolean
 }
@@ -41,7 +41,7 @@ export function layout(across: Across, isFamily: boolean, isCompare: boolean): L
     across === 'change'
       ? 'measure'
       : across === 'harness'
-        ? 'harnesses'
+        ? 'agents'
         : across === 'both'
           ? 'both'
           : 'results'
@@ -440,7 +440,7 @@ function cellsBody(
   o: BodyOptions,
 ): string[] {
   if (kind === 'measure') return measureBody(c, cells, indent, o)
-  if (kind === 'harnesses') return cellRows(c, cells, 'harness', indent)
+  if (kind === 'agents') return cellRows(c, cells, 'harness', indent)
   if (kind === 'both') return bothBody(c, cells, indent, o)
   if (cells.length > 1) return cellRows(c, cells, 'sandbox', indent)
   return resultsBody(c, cells[0] as CellResult, indent)
@@ -657,7 +657,7 @@ function familyBlock(c: Colors, e: EvalResult, kind: Layout['kind'], verbose: bo
     const label = labeler(columns, ['harness', 'arm', 'sandbox'])
     const byKey = new Map(pooled.map((p) => [p.key, p]))
     const items: Item[] = [
-      { indent: 4, cells: [kind === 'harnesses' ? 'harness' : 'arm', t('pass', c.dim)] },
+      { indent: 4, cells: [kind === 'agents' ? 'agent' : 'arm', t('pass', c.dim)] },
     ]
     for (const col of columns) {
       const p = byKey.get(col.key)

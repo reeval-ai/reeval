@@ -7,11 +7,11 @@ description: "Run each attempt in its own boat.dev VM, over SSH."
 
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
-import { cursor } from '{{ pkg }}/harness'
+import { cursor } from '{{ pkg }}/agent'
 import { boat } from '{{ pkg }}/provider/boat'
 
 export default defineConfig({
-  harnesses: cursor({ model: 'composer-2.5' }),
+  agents: cursor({ model: 'composer-2.5' }),
   provider: boat(),
 })
 ```

@@ -1,6 +1,7 @@
 // The options cascade shared by the config, profiles, groups and evals, and the cells it expands to.
 
 import { z } from 'zod'
+import { opencodeModelError } from './agent.ts'
 import { pairFactors } from './compare/pairs.ts'
 import { mergeQuestion, withQuestionDefaults } from './compare/state.ts'
 import { compareProblem } from './contract/compare.ts'
@@ -42,7 +43,6 @@ import { UsageError } from './errors.ts'
 import type { VertexSettings } from './gateway/vertex.ts'
 import { HARNESS_EXAMPLE, isAgentKind } from './harness/agents.ts'
 import { harnessEffort } from './harness/effort.ts'
-import { opencodeModelError } from './harness.ts'
 import { mergeJudge } from './judge/state-options.ts'
 import { isObjectLike } from './object.ts'
 import { isPlaceholder } from './redact.ts'
@@ -93,7 +93,7 @@ import { gateLabel } from './view/gate.ts'
 
 /** Every eval/group option key `checkOptions` accepts. The feature matrix holds each to an inventory entry. */
 export const EVAL_OPTION_KEYS = [
-  'harnesses',
+  'agents',
   'sandbox',
   'environments',
   'compare',
@@ -112,12 +112,14 @@ export const EVAL_OPTION_KEYS = [
   'pin',
 ] as const
 
-/** Options of one `evaluate()`, read before the cascade, so never a group's. */
+/** Options of one eval with cases, read before the cascade. */
 export const CASE_OPTION_KEYS = ['cases', 'caseKey', 'where'] as const
 
 const KNOWN: string[] = [...EVAL_OPTION_KEYS]
 const SUGGEST: Record<string, string> = {
-  harness: 'harnesses',
+  harness: 'agents',
+  harnesses: 'agents',
+  agent: 'agents',
   sandboxes: 'sandbox',
   environment: 'environments',
   baseline: 'compare',
@@ -160,7 +162,7 @@ export function checkGate(value: unknown, where: string): void {
   const problem = gateProblem(value, where)
   if (problem) throw new UsageError(problem)
 }
-const PINNABLE: PinnableKey[] = ['harnesses', 'runs', 'compare']
+const PINNABLE: PinnableKey[] = ['agents', 'runs', 'compare']
 
 const ID = /^[A-Za-z0-9._:@+\-=[\]]+$/
 
@@ -291,9 +293,9 @@ export function checkOptions(options: object, where: string, allowed = KNOWN): v
     const value = (options as Record<string, unknown>)[key]
     const hint =
       key === 'cases' || key === 'caseKey'
-        ? ` ${key} belongs to one eval: evaluate(name, { cases: [...] }, async (c, item) => { … }).`
+        ? ` ${key} belongs to one eval: defineEval({ cases: [...], task: async (c, item) => { … } }).`
         : key === 'where'
-          ? ' where is an option of evaluate() only, beside cases: evaluate(name, { cases: [...], where: ({ case, environment }) => … }, …).'
+          ? ' where is an option of defineEval only, beside cases: defineEval({ cases: [...], where: ({ case, environment }) => …, task }).'
           : key === 'workspace' && typeof value !== 'boolean'
             ? " workspace is an environment's starting tree: defineEnvironment(name, { workspace: git(…) })."
             : near
@@ -353,7 +355,7 @@ export function checkOptions(options: object, where: string, allowed = KNOWN): v
     const bad = Array.isArray(o.pin) ? o.pin.filter((k) => !PINNABLE.includes(k)) : [o.pin]
     if (bad.length) {
       throw new UsageError(
-        `pin in ${where} lists harnesses, runs and/or compare (got ${bad.map((k) => JSON.stringify(k)).join(', ')})`,
+        `pin in ${where} lists agents, runs and/or compare (got ${bad.map((k) => JSON.stringify(k)).join(', ')})`,
       )
     }
   }
@@ -529,7 +531,7 @@ function editEnvironments(
 
 function applyHarness(
   inherited: HarnessDescriptor[],
-  value: EvalOptions['harnesses'],
+  value: EvalOptions['agents'],
   where: string,
 ): HarnessDescriptor[] {
   if (value === undefined) return inherited
@@ -542,7 +544,7 @@ function applyHarness(
   const list = Array.isArray(next) ? next : [next]
   if (list.length === 0) {
     throw new UsageError(
-      `harnesses is an empty list in ${where}. Give at least one, e.g. harnesses: ${HARNESS_EXAMPLE}`,
+      `agents is an empty list in ${where}. Give at least one, e.g. agents: ${HARNESS_EXAMPLE}`,
     )
   }
   checkHarnesses(list, where)
@@ -556,7 +558,7 @@ const isHarnessEdit = (v: unknown): v is HarnessEdit =>
   !('kind' in v) &&
   ('add' in v || 'only' in v)
 
-/** `{ add }` appends to the inherited harnesses; `{ only }` keeps those with these ids. */
+/** `{ add }` appends to the inherited agents; `{ only }` keeps those with these ids. */
 function editHarness(
   inherited: HarnessDescriptor[],
   edit: HarnessEdit,
@@ -564,7 +566,7 @@ function editHarness(
 ): HarnessDescriptor[] {
   if ('add' in edit && 'only' in edit) {
     throw new UsageError(
-      `harnesses in ${where} takes { add } or { only }, not both. Use add to append to the inherited harnesses, only to keep some of them.`,
+      `agents in ${where} takes { add } or { only }, not both. Use add to append to the inherited agents, only to keep some of them.`,
     )
   }
   if ('add' in edit) return [...inherited, ...(Array.isArray(edit.add) ? edit.add : [edit.add])]
@@ -573,7 +575,7 @@ function editHarness(
   const missing = ids.filter((id) => typeof id !== 'string' || !have.includes(id))
   if (missing.length) {
     throw new UsageError(
-      `harnesses { only: ${missing.map((id) => JSON.stringify(id)).join(', ')} } in ${where} names no inherited harness (inherited: ${have.join(', ')})`,
+      `agents { only: ${missing.map((id) => JSON.stringify(id)).join(', ')} } in ${where} names no inherited agent (inherited: ${have.join(', ')})`,
     )
   }
   return inherited.filter((h) => ids.includes(harnessId(h)))
@@ -584,24 +586,24 @@ export function checkHarnesses(list: unknown[], where: string): void {
   for (const item of list) {
     if (!isHarness(item)) {
       throw new UsageError(
-        `harnesses in ${where} must be like ${HARNESS_EXAMPLE} (got ${describe(item)})`,
+        `agents in ${where} must be like ${HARNESS_EXAMPLE} (got ${describe(item)})`,
       )
     }
     if (item.kind === 'opencode') {
       const why = opencodeModelError(item.model)
       if (why) throw new UsageError(`opencode() in ${where}: ${why}`)
     }
-    checkMaxConcurrent(item.maxConcurrent, `harnesses.maxConcurrent in ${where}`)
+    checkMaxConcurrent(item.maxConcurrent, `agents.maxConcurrent in ${where}`)
     const { startTimeout } = item
     if (startTimeout !== undefined) {
       try {
         parseDuration(startTimeout)
       } catch (error) {
-        throw new UsageError(`harnesses.startTimeout in ${where}: ${(error as Error).message}`)
+        throw new UsageError(`agents.startTimeout in ${where}: ${(error as Error).message}`)
       }
     }
     const problem = harnessProblem(item)
-    if (problem) throw new UsageError(`harnesses in ${where}: ${problem}`)
+    if (problem) throw new UsageError(`agents in ${where}: ${problem}`)
   }
 }
 
@@ -611,12 +613,12 @@ function checkUnique(list: HarnessDescriptor[], where: string) {
     const key = harnessId(item)
     if (!ID.test(key)) {
       throw new UsageError(
-        `The harness id "${key}" in ${where} may only use letters, digits and . _ : @ + - [ ] =`,
+        `The agent id "${key}" in ${where} may only use letters, digits and . _ : @ + - [ ] =`,
       )
     }
     if (seen.has(key)) {
       throw new UsageError(
-        `Two harnesses in ${where} resolve to the id "${key}". Give one an id, e.g. cursor({ model: '…', id: '…' })`,
+        `Two agents in ${where} resolve to the id "${key}". Give one an id, e.g. cursor({ model: '…', id: '…' })`,
       )
     }
     seen.add(key)
@@ -630,8 +632,8 @@ export type NormalizedCompare = {
   variants: Environment[]
   gate: CompareGate
   minLift?: number
-  /** Harness ids; unset means every harness the eval runs. */
-  harnesses?: string[]
+  /** Agent ids; unset means every agent the eval runs. */
+  agents?: string[]
   /** How many variants the eval asked for, before a profile's limit. */
   of: number
 }
@@ -658,14 +660,14 @@ const variesBy = (
   r: Pick<Resolved, 'compare' | 'harness' | 'environments'>,
 ): Record<PairFactor, boolean> => ({
   environment: r.compare ? r.compare.variants.length > 0 : r.environments.length > 1,
-  harness: r.harness.length > 1,
+  agent: r.harness.length > 1,
 })
 
 const FACTOR_FIX: Record<PairFactor, (r: Pick<Resolved, 'harness'>, where: string) => string> = {
   environment: (_, where) =>
     `varies the environment (across: 'environment'), but ${where} runs one environment, so it has no pairs to ask. Run it in two or more, environments: [a, b], or compare: { control, variants: [...] }`,
-  harness: (r, where) =>
-    `varies the harness (across: 'harness'), but ${where} runs one harness (${r.harness.map(harnessId).join(', ')}), so it has no pairs to ask. Run it on two or more, harnesses: [a, b]`,
+  agent: (r, where) =>
+    `varies the agent (across: 'agent'), but ${where} runs one agent (${r.harness.map(harnessId).join(', ')}), so it has no pairs to ask. Run it on two or more, agents: [a, b]`,
 }
 
 export type Resolved = {
@@ -706,8 +708,8 @@ function normalizeCompare(value: EvalOptions['compare']): NormalizedCompare | un
     variants: value.variants,
     gate: value.gate ?? 'variants',
     ...(value.minLift !== undefined ? { minLift: value.minLift } : {}),
-    ...(value.harnesses
-      ? { harnesses: value.harnesses.map((h) => (typeof h === 'string' ? h : harnessId(h))) }
+    ...(value.agents
+      ? { agents: value.agents.map((h) => (typeof h === 'string' ? h : harnessId(h))) }
       : {}),
     of: value.variants.length,
   }
@@ -734,7 +736,7 @@ function applyLevel(
   if (options.egress !== undefined) {
     out.egress[egress] = layerEgress(out.egress[egress], options.egress)
   }
-  out.harness = applyHarness(out.harness, options.harnesses, where)
+  out.harness = applyHarness(out.harness, options.agents, where)
   if (options.sandbox !== undefined) out.sandbox = options.sandbox
   out.environments = applyEnvironments(out.environments, options.environments, where)
   if (options.compare !== undefined) out.compare = normalizeCompare(options.compare)
@@ -823,6 +825,18 @@ export function cascade(
     applyLevel(out, own, at)
     if (own.compare !== undefined) compareAt = at
   }
+  // A profile's agents replace the eval's own, unless the eval pins them.
+  const profileAgents = profile?.defaults.agents
+  const ownAgents = levels.some((l) => l.options.agents)
+  const keepsOwn = ownAgents && out.pin.includes('agents')
+  const ownList = ownAgents ? out.harness : base.harness
+  if (profile && profileAgents !== undefined && ownAgents) {
+    if (keepsOwn) notes.push('agents pinned by the eval')
+    else {
+      out.harness = applyHarness(out.harness, profileAgents, `profiles.${profile.name}.defaults`)
+      notes.push(`agents set by profile ${profile.name}`)
+    }
+  }
   if (out.questions.length) {
     out.questions = out.questions.map((q) => withQuestionDefaults(q, out.question))
   }
@@ -836,12 +850,11 @@ export function cascade(
       )
     }
   }
-  // A harness list only a profile's defaults set may narrow the config's, which drops a question
-  // below rather than refusing it; neither list varying the harness is the eval's mistake.
-  const harnessFromProfile =
-    profile?.defaults.harnesses !== undefined && !levels.some((l) => l.options.harnesses)
+  // An agent list a profile set may narrow the eval's, which drops a question below rather than
+  // refusing it; the profile's list not varying the agent is not the eval's mistake.
+  const harnessFromProfile = profileAgents !== undefined && !keepsOwn
   const authored = variesBy(out)
-  if (harnessFromProfile) authored.harness ||= base.harness.length > 1
+  if (harnessFromProfile) authored.agent ||= ownList.length > 1
   // A skipped eval asks nothing, so a pairwise question it inherits needs no factor to vary.
   for (const q of options.skipped ? [] : out.questions) {
     for (const factor of pairFactors(q.across)) {
@@ -851,15 +864,12 @@ export function cascade(
       )
     }
   }
-  if (profile?.defaults.harnesses !== undefined && levels.some((l) => l.options.harnesses)) {
-    notes.push('harnesses set by the eval')
-  }
   const ids = out.harness.map(harnessId)
-  const scope = out.compare?.harnesses
+  const scope = out.compare?.agents
   const missing = scope?.filter((id) => !ids.includes(id)) ?? []
   if (missing.length) {
     throw new UsageError(
-      `compare.harnesses lists ${missing.join(', ')}, which ${where} doesn't run (it runs ${ids.join(', ')}).`,
+      `compare.agents lists ${missing.join(', ')}, which ${where} doesn't run (it runs ${ids.join(', ')}).`,
     )
   }
   for (const v of out.compare?.variants ?? []) {
@@ -891,16 +901,16 @@ export function cascade(
     const tag = `profile ${profile.name}`
     const pinned = (key: PinnableKey) => out.pin.includes(key)
     let comparedLeft = true
-    if (limit.harnesses && !pinned('harnesses')) {
-      const kept = out.harness.filter((h) => limit.harnesses?.includes(harnessId(h)))
+    if (limit.agents && !pinned('agents')) {
+      const kept = out.harness.filter((h) => limit.agents?.includes(harnessId(h)))
       if (kept.length === 0) {
-        skip = `no harness left: ${tag} allows ${limit.harnesses.join(', ') || 'none'}`
+        skip = `no agent left: ${tag} allows ${limit.agents.join(', ') || 'none'}`
       } else if (kept.length < out.harness.length) {
-        notes.push(`harnesses ${out.harness.length} → ${kept.length} (${tag})`)
+        notes.push(`agents ${out.harness.length} → ${kept.length} (${tag})`)
         out.harness = kept
-        // With every harness compare.harnesses names gone, no harness runs a variant, so the
+        // With every agent compare.agents names gone, no agent runs a variant, so the
         // compare is off and its controls gate as limit.compare: false leaves them.
-        const scope = out.compare?.harnesses
+        const scope = out.compare?.agents
         if (
           out.compare?.variants.length &&
           scope &&
@@ -1022,7 +1032,7 @@ function defaultRuns(
 }
 
 /**
- * Refuses a profile's `limit.harnesses` id that no collected eval runs on: it keeps nothing, and a
+ * Refuses a profile's `limit.agents` id that no collected eval runs on: it keeps nothing, and a
  * limit that keeps nothing skips every eval. `harnesses` are the ids every eval in the loaded
  * files runs on before the limit, whatever the tag and name filters pick. When a path filter
  * loaded only some files (`partial`), an id may name a harness of the others, so only a limit
@@ -1033,7 +1043,7 @@ export function checkLimitHarness(
   configFile: string,
   collected: { harnesses: readonly string[]; partial: boolean },
 ): void {
-  const ids = profile?.limit.harnesses
+  const ids = profile?.limit.agents
   if (!profile || !ids?.length) return
   const unknown = ids.filter((id) => !collected.harnesses.includes(id))
   if (!unknown.length || (collected.partial && unknown.length < ids.length)) return
@@ -1042,7 +1052,7 @@ export function checkLimitHarness(
   const evals = collected.partial ? 'eval in the selected files' : 'eval'
   const the = collected.partial ? 'the evals in the selected files' : 'the evals'
   throw new UsageError(
-    `profiles.${profile.name}.limit.harnesses in ${configFile} lists ${listed}, which no ${evals} runs on. Harness ids ${the} run on: ${have.join(', ') || 'none'}.`,
+    `profiles.${profile.name}.limit.agents in ${configFile} lists ${listed}, which no ${evals} runs on. Agent ids ${the} run on: ${have.join(', ') || 'none'}.`,
   )
 }
 
@@ -1147,7 +1157,7 @@ export function expand(
         gate: gateIf(!compare || compare.variants.length === 0 || compare.gate === 'all'),
       }
     })
-    if (compare && (!compare.harnesses || compare.harnesses.includes(hid))) {
+    if (compare && (!compare.agents || compare.agents.includes(hid))) {
       for (const v of compare.variants) {
         const env = applied(v)
         const { sandbox, sid } = sandboxFor(env)
@@ -1346,14 +1356,15 @@ const brokerEnvHint = (e: PlainCredentialEnv) =>
 export const plainEnvError = (e: PlainCredentialEnv, where: string, configFile: string) =>
   `${e.label} in ${where} is a plain string that looks like a credential, and secrets.unbrokered is 'error' in ${configFile}. To broker it, ${brokerEnvHint(e)}.`
 
-export const levelOf = (where: string): SandboxWarning['level'] =>
-  where.startsWith('evaluate(')
-    ? 'eval'
-    : where.startsWith('group(')
-      ? 'group'
-      : where.startsWith('profiles.')
-        ? 'profile'
-        : 'config'
+export const levelFromSource = (source: string): SandboxWarning['level'] => {
+  if (source.startsWith('group(')) return 'group'
+  if (source.startsWith('profiles.')) return 'profile'
+  if (source.startsWith('evaluate(') || /\.eval\.[cm]?[jt]s(?:[?#]|$)/.test(source)) return 'eval'
+  return 'config'
+}
+
+/** @deprecated Use {@link levelFromSource} with the cascade source path. */
+export const levelOf = (where: string): SandboxWarning['level'] => levelFromSource(where)
 
 /**
  * A warning per privilege an attempt's Docker sandbox adds, naming the level that set the
@@ -1370,8 +1381,14 @@ export function sandboxWarnings(
     const privileges = sandboxKind(a.sandbox).privileges(a.sandbox)
     const devices = privileges.devices ?? []
     if (!privileges.root && !privileges.capabilities.length && !devices.length) continue
+    const source =
+      (!a.environment.layers.some((l) => l.spec.sandbox)
+        ? resolved.sources?.sandbox
+        : resolved.compare
+          ? resolved.sources?.compare
+          : resolved.sources?.environments) ?? origin.configFile
     const where = sandboxSetBy(a, resolved, origin.configFile)
-    const level = levelOf(where)
+    const level = levelFromSource(source)
     const file = level === 'eval' || level === 'group' ? origin.file : null
     if (privileges.root) {
       const message = `running as root in the sandbox: ${where} (docker({ root: true }))`
@@ -1478,10 +1495,10 @@ export function evalPlan(
 function questionWarnings(resolved: Resolved): string[] {
   if (resolved.harness.length < 2) return []
   return resolved.questions
-    .filter((q) => pairFactors(q.across).includes('harness') && q.state?.transcript)
+    .filter((q) => pairFactors(q.across).includes('agent') && q.state?.transcript)
     .map(
       (q) =>
-        `question "${q.question}" shows the transcript, which names each harness's tools, so its harness pairs aren't blind. Ask it with across: 'environment', or leave the transcript out.`,
+        `question "${q.question}" shows the transcript, which names each agent's tools, so its agent pairs aren't blind. Ask it with across: 'environment', or leave the transcript out.`,
     )
 }
 

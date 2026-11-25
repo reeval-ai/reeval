@@ -41,17 +41,24 @@ describe('reeval query', () => {
     const p = await project('query-basics', {
       'reeval.config.ts': fakeConfig({ harness: "{ withSkill: { files: { 'ok.txt': 'y' } } }" }),
       'skills/house-greeting/SKILL.md': skill('house-greeting'),
-      'evals/s.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/envs.ts': `import { defineEnvironment } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
-const sandbox = fakeSandbox()
-const plain = defineEnvironment('plain', { sandbox })
-const skilled = defineEnvironment('skilled', ({ skill }) => ({
+export const sandbox = fakeSandbox()
+export const plain = defineEnvironment('plain', { sandbox })
+export const skilled = defineEnvironment('skilled', ({ skill }) => ({
   sandbox,
   skills: [skill.local('../skills/house-greeting')],
 }))
-evaluate('greets', { compare: { control: plain, variants: [skilled] }, runs: 3 }, async (c) => {
-  await c.send('go')
-  await expect(c).toHaveFile('ok.txt')
+`,
+      'evals/greets.eval.ts': `import { defineEval, expect } from 'reeval'
+import { plain, skilled } from './envs.ts'
+export default defineEval({
+  compare: { control: plain, variants: [skilled] },
+  runs: 3,
+  async task(c) {
+    await c.send('go')
+    await expect(c).toHaveFile('ok.txt')
+  },
 })
 `,
     })
@@ -88,31 +95,37 @@ evaluate('greets', { compare: { control: plain, variants: [skilled] }, runs: 3 }
     const trend = await query(p.dir, 'eval_trend')
     assert.deepEqual(
       trend.map((t) => [t.eval_key, t.outcome, t.pass_at_1, t.recorded]),
-      [['evals/s.eval.ts › greets', 'pass', 1, 0]],
+      [['greets', 'pass', 1, 0]],
     )
 
     const text = await runCli(p.dir, ['query', 'SELECT key, outcome FROM evals'])
     assert.equal(text.code, 0, text.stderr)
-    assert.equal(text.stdout, 'key                       outcome\nevals/s.eval.ts › greets  pass\n')
+    assert.equal(text.stdout, 'key     outcome\ngreets  pass\n')
     assert.match(text.stderr, /history\.db: 1 runs/)
   })
 
   test('an eval with cases is one eval_trend row, its cases in cases with verdict family', async () => {
     const p = await project('query-trend-verdict', {
       'reeval.config.ts': fakeConfig(),
-      'evals/r.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('rated', { cases: ['a', 'b', 'c'], gate: { passRate: 0.6 } }, async (_c, k) => {
-  expect(k, 'not c').not.toBe('c')
+      'evals/rated.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  cases: ['a', 'b', 'c'],
+  gate: { passRate: 0.6 },
+  async task(_c, k) {
+    expect(k, 'not c').not.toBe('c')
+  },
 })
-evaluate('plain', {}, async () => {})
+`,
+      'evals/plain.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ async task() {} })
 `,
     })
     const r = await runCli(p.dir, ['run'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const trend = await query(p.dir, 'SELECT eval_key, outcome, cases FROM eval_trend')
     assert.deepEqual(trend.map((t) => [t.eval_key, t.outcome, t.cases]).sort(), [
-      ['evals/r.eval.ts › plain', 'pass', null],
-      ['evals/r.eval.ts › rated', 'pass', 3],
+      ['plain', 'pass', null],
+      ['rated', 'pass', 3],
     ])
     const cases = await query(
       p.dir,
@@ -136,22 +149,22 @@ evaluate('plain', {}, async () => {})
     )
   })
 
-  test('evals.declared names a todo and a declared skip, apart from an eval that ran', async () => {
+  test('evals.declared names a declared skip, apart from an eval that ran', async () => {
     const p = await project('query-declared', {
       'reeval.config.ts': fakeConfig(),
-      'evals/s.eval.ts': `import { evaluate, group } from 'reeval'
-evaluate('ran', async () => {})
-evaluate.skip('parked', async () => {})
-group.skip('shelf', () => {
-  evaluate('shelved', async () => {})
-})
-evaluate.todo('later')
+      'evals/ran.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ async task() {} })
+`,
+      'evals/parked.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ skip: true, async task() {} })
+`,
+      'evals/shelved.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ skip: true, async task() {} })
 `,
     })
     assert.equal((await runCli(p.dir)).code, 0)
     const rows = await query(p.dir, 'SELECT name, outcome, declared FROM evals ORDER BY name')
     assert.deepEqual(rows, [
-      { name: 'later', outcome: 'skipped', declared: 'todo' },
       { name: 'parked', outcome: 'skipped', declared: 'skip' },
       { name: 'ran', outcome: 'pass', declared: null },
       { name: 'shelved', outcome: 'skipped', declared: 'skip' },
@@ -165,7 +178,8 @@ evaluate.todo('later')
           "{ files: { 'ok.txt': 'y' }, withSkill: { files: { 'ok.txt': 'y', 'styled.txt': 'Ahoy' } } }",
       }),
       'skills/house/SKILL.md': skill('house'),
-      'evals/s.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/greets.eval.ts': `import { defineEval, expect } from 'reeval'
+import { defineEnvironment } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
@@ -173,25 +187,29 @@ const styled = defineEnvironment('styled', ({ skill }) => ({
   sandbox,
   skills: [skill.local('../skills/house')],
 }))
-evaluate('greets', { compare: { control: plain, variants: [styled] }, runs: 2 }, async (c) => {
-  await c.send('go')
-  await expect(c, 'writes ok.txt').toHaveFile('ok.txt')
-  await expect(c, 'house style').toHaveFile('styled.txt', /Ahoy/)
+export default defineEval({
+  compare: { control: plain, variants: [styled] },
+  runs: 2,
+  async task(c) {
+    await c.send('go')
+    await expect(c, 'writes ok.txt').toHaveFile('ok.txt')
+    await expect(c, 'house style').toHaveFile('styled.txt', /Ahoy/)
+  },
 })
 `,
     })
     assert.equal((await runCli(p.dir)).code, 0)
     const { run } = readRun(p.dir)
-    const cells = await query(p.dir, 'SELECT key, harness FROM cells ORDER BY key')
-    const harness = (key: string) => cells.find((c) => c.key === key)?.harness
-    assert.ok(harness('fake/plain/fake'))
+    const cells = await query(p.dir, 'SELECT key, agent FROM cells ORDER BY key')
+    const agentOf = (key: string) => cells.find((c) => c.key === key)?.agent
+    assert.ok(agentOf('fake/plain/fake'))
 
     const rows = await query(p.dir, 'SELECT * FROM check_rates ORDER BY role, label')
     const row = (cell: string, environment: string, role: string, label: string) => ({
       run_id: run.runId,
-      eval_key: 'evals/s.eval.ts › greets',
+      eval_key: 'greets',
       cell_key: cell,
-      harness: harness(cell),
+      agent: agentOf(cell),
       environment,
       role,
       label,
@@ -220,11 +238,14 @@ evaluate('greets', { compare: { control: plain, variants: [styled] }, runs: 2 },
     const p = await project('query-check-streaks', {
       '.gitignore': '.reeval/\nnode_modules/\nsandboxes/\n',
       'reeval.config.ts': fakeConfig(),
-      'evals/s.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('steady', { runs: 2 }, async (c) => {
-  await c.send('go')
-  expect(1, 'always one').toBe(1)
-  expect(process.env.FLIP, 'flips').toBeUndefined()
+      'evals/steady.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  runs: 2,
+  async task(c) {
+    await c.send('go')
+    expect(1, 'always one').toBe(1)
+    expect(process.env.FLIP, 'flips').toBeUndefined()
+  },
 })
 `,
     })
@@ -272,7 +293,7 @@ evaluate('steady', { runs: 2 }, async (c) => {
       'reeval.config.ts': fakeConfig({
         harness: "{ id: 'fake', effort: 'high', servedModel: 'fake-1[effort=medium]' }",
       }),
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'\nevaluate('a', async (c) => { await c.send('x') })\n`,
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'\nexport default defineEval({ async task(c) { await c.send('x') } })\n`,
     })
     assert.equal((await runCli(p.dir)).code, 0)
     assert.deepEqual(await one(p.dir, 'SELECT model, reasoning_effort FROM cells'), {
@@ -323,7 +344,7 @@ evaluate('steady', { runs: 2 }, async (c) => {
   test('it syncs incrementally; a recorded run wins over its scratch copy; deleted runs drop', async () => {
     const p = await project('query-sync', {
       'reeval.config.ts': fakeConfig(),
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'\nevaluate('a', async (c) => { await c.send('x') })\n`,
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'\nexport default defineEval({ async task(c) { await c.send('x') } })\n`,
     })
     const git = (...args: string[]) =>
       execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], {
@@ -357,7 +378,7 @@ evaluate('steady', { runs: 2 }, async (c) => {
   test('a database from another version, or --rebuild, is rebuilt from the records', async () => {
     const p = await project('query-rebuild', {
       'reeval.config.ts': fakeConfig(),
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'\nevaluate('a', async (c) => { await c.send('x') })\n`,
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'\nexport default defineEval({ async task(c) { await c.send('x') } })\n`,
     })
     assert.equal((await runCli(p.dir)).code, 0)
     await query(p.dir, 'SELECT 1')
@@ -374,7 +395,7 @@ evaluate('steady', { runs: 2 }, async (c) => {
   test('processes building the database at once each see every run once', async () => {
     const p = await project('query-parallel-sync', {
       'reeval.config.ts': fakeConfig(),
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'\nevaluate('a', async (c) => { await c.send('x') })\n`,
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'\nexport default defineEval({ async task(c) { await c.send('x') } })\n`,
     })
     for (let i = 0; i < 3; i++) assert.equal((await runCli(p.dir)).code, 0)
     for (let round = 0; round < 3; round++) {
@@ -394,7 +415,7 @@ evaluate('steady', { runs: 2 }, async (c) => {
   test('a sync waits for another process that holds the database longer than 5s', async () => {
     const p = await project('query-held-sync', {
       'reeval.config.ts': fakeConfig(),
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'\nevaluate('a', async (c) => { await c.send('x') })\n`,
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'\nexport default defineEval({ async task(c) { await c.send('x') } })\n`,
     })
     assert.equal((await runCli(p.dir)).code, 0)
     await query(p.dir, 'SELECT 1')
@@ -432,7 +453,7 @@ evaluate('steady', { runs: 2 }, async (c) => {
   test('SQL that starts with a -- comment is the statement, with flags before, after or --', async () => {
     const p = await project('query-dash-comment', {
       'reeval.config.ts': fakeConfig(),
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'\nevaluate('a', async (c) => { await c.send('x') })\n`,
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'\nexport default defineEval({ async task(c) { await c.send('x') } })\n`,
     })
     assert.equal((await runCli(p.dir)).code, 0)
     const sql = '-- attempts per run\nSELECT COUNT(*) AS n FROM attempts'
@@ -454,7 +475,7 @@ evaluate('steady', { runs: 2 }, async (c) => {
   test('it is read-only and runs one statement; mistakes exit 2 with a fix', async () => {
     const p = await project('query-readonly', {
       'reeval.config.ts': fakeConfig(),
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'\nevaluate('a', async (c) => { await c.send('x') })\n`,
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'\nexport default defineEval({ async task(c) { await c.send('x') } })\n`,
     })
     assert.equal((await runCli(p.dir)).code, 0)
     const cases: Array<[string, RegExp]> = [
@@ -480,7 +501,7 @@ evaluate('steady', { runs: 2 }, async (c) => {
   test('--run binds :run to a run id or the last run; a view filters on run_id', async () => {
     const p = await project('query-run', {
       'reeval.config.ts': fakeConfig(),
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'\nevaluate('a', async (c) => { await c.send('x') })\n`,
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'\nexport default defineEval({ async task(c) { await c.send('x') } })\n`,
     })
     assert.equal((await runCli(p.dir)).code, 0)
     const first = readRun(p.dir).run.runId
@@ -541,15 +562,18 @@ evaluate('steady', { runs: 2 }, async (c) => {
           "{ tools: [{ tool: 'skill', input: { id: 'house-greeting' }, output: 'loaded' }] }",
       }),
       'skills/house-greeting/SKILL.md': skill('house-greeting'),
-      'evals/s.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/loads.eval.ts': `import { defineEval } from 'reeval'
+import { defineEnvironment } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
-const sandbox = fakeSandbox()
 const skilled = defineEnvironment('skilled', ({ skill }) => ({
-  sandbox,
+  sandbox: fakeSandbox(),
   skills: [skill.local('../skills/house-greeting')],
 }))
-evaluate('loads', { environments: skilled }, async (c) => {
-  await c.send('go')
+export default defineEval({
+  environment: skilled,
+  async task(c) {
+    await c.send('go')
+  },
 })
 `,
     })
@@ -571,11 +595,15 @@ evaluate('loads', { environments: skilled }, async (c) => {
       'reeval.config.ts': fakeConfig({
         harness: `{ tools: ${JSON.stringify(tools)}, files: ${JSON.stringify(files)} }`,
       }),
-      'evals/s.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/control.eval.ts': `import { defineEval } from 'reeval'
+import { defineEnvironment } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const bare = defineEnvironment('bare', { sandbox: fakeSandbox() })
-evaluate('control', { environments: bare }, async (c) => {
-  await c.send('go')
+export default defineEval({
+  environment: bare,
+  async task(c) {
+    await c.send('go')
+  },
 })
 `,
     })
@@ -628,14 +656,18 @@ evaluate('control', { environments: bare }, async (c) => {
     const p = await project('query-unbalanced-bracket', {
       'reeval.config.ts': fakeConfig({ harness: `{ tools: ${JSON.stringify(tools)} }` }),
       'skills/house-greeting/SKILL.md': skill('house-greeting'),
-      'evals/s.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/brackets.eval.ts': `import { defineEval } from 'reeval'
+import { defineEnvironment } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const skilled = defineEnvironment('skilled', ({ skill }) => ({
   sandbox: fakeSandbox(),
   skills: [skill.local('../skills/house-greeting')],
 }))
-evaluate('brackets', { environments: skilled }, async (c) => {
-  await c.send('go')
+export default defineEval({
+  environment: skilled,
+  async task(c) {
+    await c.send('go')
+  },
 })
 `,
     })
@@ -651,24 +683,39 @@ evaluate('brackets', { environments: skilled }, async (c) => {
   test('effort’s per-class call medians count an attempt with no tool calls as 0', async () => {
     const p = await project('query-effort-zero-calls', {
       'reeval.config.ts': fakeConfig({ harness: "{ script: [[], [{ exec: 'true' }]] }" }),
-      'evals/e.eval.ts': `import { evaluate } from 'reeval'
-const started = { once: 0, turnless: 0 }
-evaluate('once', { runs: 3 }, async (c) => {
-  await c.send('go')
-  if (++started.once === 1) await c.send('again')
+      'evals/started.ts': 'export const started = { once: 0, turnless: 0 }\n',
+      'evals/once.eval.ts': `import { defineEval } from 'reeval'
+import { started } from './started.ts'
+export default defineEval({
+  runs: 3,
+  async task(c) {
+    await c.send('go')
+    if (++started.once === 1) await c.send('again')
+  },
 })
-evaluate('never', { runs: 3 }, async (c) => {
-  await c.send('go')
+`,
+      'evals/never.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  runs: 3,
+  async task(c) {
+    await c.send('go')
+  },
 })
-evaluate('turnless', { runs: 3 }, async (c) => {
-  if (++started.turnless > 1) return
-  await c.send('go')
-  await c.send('again')
+`,
+      'evals/turnless.eval.ts': `import { defineEval } from 'reeval'
+import { started } from './started.ts'
+export default defineEval({
+  runs: 3,
+  async task(c) {
+    if (++started.turnless > 1) return
+    await c.send('go')
+    await c.send('again')
+  },
 })
 `,
     })
     assert.equal((await runCli(p.dir)).code, 0)
-    const name = (r: Row) => String(r.eval_key).replace('evals/e.eval.ts › ', '')
+    const name = (r: Row) => String(r.eval_key)
     const calls = await query(
       p.dir,
       `SELECT a.eval_key, a.turns, COUNT(t.line) AS n FROM attempts a LEFT JOIN tool_calls t
@@ -709,9 +756,11 @@ evaluate('turnless', { runs: 3 }, async (c) => {
           { prompt: 'write mul.js', files: { 'mul.js': 'm' }, events: 'none' },
         ] }`,
       }),
-      'evals/e.eval.ts': `import { evaluate } from 'reeval'
-evaluate('delegates', async (c) => {
-  await c.send('go')
+      'evals/delegates.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('go')
+  },
 })
 `,
     })
@@ -765,9 +814,12 @@ evaluate('delegates', async (c) => {
   test('effort’s per-class call medians leave out an attempt with calls but no transcript file', async () => {
     const p = await project('query-effort-missing-transcript', {
       'reeval.config.ts': fakeConfig({ harness: "{ script: [[{ exec: 'true' }]] }" }),
-      'evals/e.eval.ts': `import { evaluate } from 'reeval'
-evaluate('calls', { runs: 3 }, async (c) => {
-  await c.send('go')
+      'evals/calls.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  runs: 3,
+  async task(c) {
+    await c.send('go')
+  },
 })
 `,
     })
@@ -788,22 +840,31 @@ evaluate('calls', { runs: 3 }, async (c) => {
   })
 
   test("factor_effects pools a variant across one run's evals, however the evals changed between runs", async () => {
-    const evals = (prompt: string) => `import { defineEnvironment, evaluate, expect } from 'reeval'
-import { fakeSandbox } from 'reeval/sandbox'
-const sandbox = fakeSandbox()
-const plain = defineEnvironment('plain', { sandbox })
-const skilled = defineEnvironment('skilled', ({ skill }) => ({ sandbox, skills: [skill.local('../skills/s')] }))
-for (const name of ['one', 'two']) {
-  evaluate(name, { compare: { control: plain, variants: [skilled] }, runs: 2 }, async (c) => {
+    const evalBody = (prompt: string, id: string) => `import { defineEval, expect } from 'reeval'
+import { plain, skilled } from './pool-envs.ts'
+export default defineEval({
+  compare: { control: plain, variants: [skilled] },
+  runs: 2,
+  async task(c) {
     await c.send('${prompt}')
     await expect(c).toHaveFile('ok.txt')
-  })
-}
+  },
+})
 `
     const p = await project('query-pooled-per-run', {
       'reeval.config.ts': fakeConfig({ harness: "{ withSkill: { files: { 'ok.txt': 'y' } } }" }),
       'skills/s/SKILL.md': skill('s'),
-      'evals/s.eval.ts': evals('go'),
+      'evals/pool-envs.ts': `import { defineEnvironment } from 'reeval'
+import { fakeSandbox } from 'reeval/sandbox'
+export const sandbox = fakeSandbox()
+export const plain = defineEnvironment('plain', { sandbox })
+export const skilled = defineEnvironment('skilled', ({ skill }) => ({
+  sandbox,
+  skills: [skill.local('../skills/s')],
+}))
+`,
+      'evals/one.eval.ts': evalBody('go', 'one'),
+      'evals/two.eval.ts': evalBody('go', 'two'),
     })
     const sql = `SELECT run_id, strata, runs, variant_pass, variant_counted, control_pass, control_counted
       FROM factor_effects WHERE tier = 'pooled' AND eval_key IS NULL ORDER BY run_id`
@@ -820,7 +881,8 @@ for (const name of ['one', 'two']) {
     })
     assert.deepEqual(await query(p.dir, sql), [row(first)], 'one run: its own row, once')
 
-    await writeFile(join(p.dir, 'evals/s.eval.ts'), evals('go on'))
+    await writeFile(join(p.dir, 'evals/one.eval.ts'), evalBody('go on', 'one'))
+    await writeFile(join(p.dir, 'evals/two.eval.ts'), evalBody('go on', 'two'))
     assert.equal((await runCli(p.dir)).code, 0)
     const second = readRun(p.dir).run.runId
     assert.deepEqual(
@@ -836,15 +898,25 @@ for (const name of ['one', 'two']) {
         harness: `{ script: [[{ exec: 'if test -f ~/.agents/skills/s/SKILL.md; then echo y > ok.txt; fi' }]] }`,
       }),
       'skills/s/SKILL.md': skill('s'),
-      'evals/s.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
-import { fakeSandbox } from 'reeval/sandbox'
-const sandbox = fakeSandbox()
-const plain = defineEnvironment('plain', { sandbox })
-const skilled = defineEnvironment('skilled', ({ skill }) => ({ sandbox, skills: [skill.local('../skills/s')] }))
-evaluate('writes', { compare: { control: plain, variants: [skilled] }, runs: 2 }, async (c) => {
-  await c.send('go')
-  await expect(c).toHaveFile('ok.txt')
+      'evals/writes.eval.ts': `import { defineEval, expect } from 'reeval'
+import { plain, skilled } from './pool-envs.ts'
+export default defineEval({
+  compare: { control: plain, variants: [skilled] },
+  runs: 2,
+  async task(c) {
+    await c.send('go')
+    await expect(c).toHaveFile('ok.txt')
+  },
 })
+`,
+      'evals/pool-envs.ts': `import { defineEnvironment } from 'reeval'
+import { fakeSandbox } from 'reeval/sandbox'
+export const sandbox = fakeSandbox()
+export const plain = defineEnvironment('plain', { sandbox })
+export const skilled = defineEnvironment('skilled', ({ skill }) => ({
+  sandbox,
+  skills: [skill.local('../skills/s')],
+}))
 `,
     })
     const ran = await runCli(p.dir, ['run'])
@@ -877,19 +949,35 @@ evaluate('writes', { compare: { control: plain, variants: [skilled] }, runs: 2 }
       'reeval.config.ts': fakeConfig(),
       'skills/alpha/SKILL.md': skill('alpha'),
       'skills/beta/SKILL.md': skill('beta'),
-      'evals/j.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/with-alpha.eval.ts': `import { defineEval } from 'reeval'
+import { defineEnvironment } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
-const sandbox = fakeSandbox()
 const a = defineEnvironment('tools', ({ skill }) => ({
-  sandbox,
+  sandbox: fakeSandbox(),
   skills: [skill.local('../skills/alpha')],
 }))
+export default defineEval({
+  environment: a,
+  async task(c) {
+    await c.send('x')
+    throw new Error('no')
+  },
+})
+`,
+      'evals/with-beta.eval.ts': `import { defineEval } from 'reeval'
+import { defineEnvironment } from 'reeval'
+import { fakeSandbox } from 'reeval/sandbox'
 const b = defineEnvironment('tools', ({ skill }) => ({
-  sandbox,
+  sandbox: fakeSandbox(),
   skills: [skill.local('../skills/beta')],
 }))
-evaluate('with alpha', { environments: a }, async (c) => { await c.send('x'); throw new Error('no') })
-evaluate('with beta', { environments: b }, async (c) => { await c.send('x'); throw new Error('no') })
+export default defineEval({
+  environment: b,
+  async task(c) {
+    await c.send('x')
+    throw new Error('no')
+  },
+})
 `,
     })
     assert.equal((await runCli(p.dir)).code, 1)
@@ -916,13 +1004,35 @@ evaluate('with beta', { environments: b }, async (c) => { await c.send('x'); thr
     const p = await project('query-env-twins', {
       'reeval.config.ts': fakeConfig(),
       'skills/greet/SKILL.md': skill('greet'),
-      'evals/t.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/one.eval.ts': `import { defineEval } from 'reeval'
+import { defineEnvironment } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
-const sandbox = fakeSandbox()
-const a = defineEnvironment('alpha', ({ skill }) => ({ sandbox, skills: [skill.local('../skills/greet')] }))
-const b = defineEnvironment('beta', ({ skill }) => ({ sandbox, skills: [skill.local('../skills/greet')] }))
-evaluate('one', { environments: a }, async (c) => { await c.send('x'); throw new Error('no') })
-evaluate('two', { environments: b }, async (c) => { await c.send('x'); throw new Error('no') })
+const a = defineEnvironment('alpha', ({ skill }) => ({
+  sandbox: fakeSandbox(),
+  skills: [skill.local('../skills/greet')],
+}))
+export default defineEval({
+  environment: a,
+  async task(c) {
+    await c.send('x')
+    throw new Error('no')
+  },
+})
+`,
+      'evals/two.eval.ts': `import { defineEval } from 'reeval'
+import { defineEnvironment } from 'reeval'
+import { fakeSandbox } from 'reeval/sandbox'
+const b = defineEnvironment('beta', ({ skill }) => ({
+  sandbox: fakeSandbox(),
+  skills: [skill.local('../skills/greet')],
+}))
+export default defineEval({
+  environment: b,
+  async task(c) {
+    await c.send('x')
+    throw new Error('no')
+  },
+})
 `,
     })
     assert.equal((await runCli(p.dir)).code, 1)
@@ -962,15 +1072,24 @@ evaluate('two', { environments: b }, async (c) => { await c.send('x'); throw new
       }),
       'evals/helpers.ts': "export const prompt = 'go'\n",
       'evals/unrelated.ts': 'export const x = 1\n',
-      'evals/d.eval.ts': `import { evaluate, expect } from 'reeval'
+      'evals/flaky.eval.ts': `import { defineEval } from 'reeval'
 import { prompt } from './helpers.ts'
-evaluate('flaky', { runs: 3, gate: { passRate: 0.5 } }, async (c) => {
-  await c.send(prompt)
-  if (c.attempt.n === 2) throw new Error('the second attempt fails')
+export default defineEval({
+  runs: 3,
+  gate: { passRate: 0.5 },
+  async task(c) {
+    await c.send(prompt)
+    if (c.attempt.n === 2) throw new Error('the second attempt fails')
+  },
 })
-evaluate('judged', async (c) => {
-  await c.send(prompt)
-  expect(await c.judge('Is it fine?', { diff: true })).toPass()
+`,
+      'evals/judged.eval.ts': `import { defineEval, expect } from 'reeval'
+import { prompt } from './helpers.ts'
+export default defineEval({
+  async task(c) {
+    await c.send(prompt)
+    expect(await c.judge('Is it fine?', { diff: true })).toPass()
+  },
 })
 `,
     })
@@ -983,22 +1102,24 @@ evaluate('judged', async (c) => {
     assert.equal((await runCli(p.dir)).code, 0)
     assert.deepEqual(await query(p.dir, 'drift'), [], 'twin: a helper the evals import is no drift')
 
-    const source = readFileSync(join(p.dir, 'evals/d.eval.ts'), 'utf8')
-    await writeFile(
-      join(p.dir, 'evals/d.eval.ts'),
-      source.replaceAll('send(prompt)', "send(prompt + '?')"),
-    )
+    for (const file of ['flaky.eval.ts', 'judged.eval.ts']) {
+      const source = readFileSync(join(p.dir, 'evals', file), 'utf8')
+      await writeFile(
+        join(p.dir, 'evals', file),
+        source.replaceAll('send(prompt)', "send(prompt + '?')"),
+      )
+    }
     assert.equal((await runCli(p.dir, ['run'], { env: { REEVAL_TEST_SCORE: '0.1' } })).code, 1)
     const drift = await query(p.dir, 'SELECT eval_key, changed FROM drift ORDER BY eval_key')
     assert.deepEqual(drift, [
-      { eval_key: 'evals/d.eval.ts › flaky', changed: 'sources' },
-      { eval_key: 'evals/d.eval.ts › judged', changed: 'sources' },
+      { eval_key: 'flaky', changed: 'sources' },
+      { eval_key: 'judged', changed: 'sources' },
     ])
 
     const [flaky] = await query(p.dir, 'flaky_cells')
     assert.deepEqual(
       [flaky?.eval_key, flaky?.cell_key, flaky?.pass, flaky?.counted, flaky?.pass_at_1],
-      ['evals/d.eval.ts › flaky', 'fake/fake/fake', 6, 9, 0.667],
+      ['flaky', 'fake/fake/fake', 6, 9, 0.667],
       'grouped by fingerprint: three runs at the first, one at the second',
     )
     const flips = await query(
@@ -1246,8 +1367,18 @@ describe('tool-call classes', () => {
 })
 
 describe('context_use and skill_files on real runs', () => {
+  const recordFixture = async (path: string) => {
+    const p = await fixture(path)
+    const config = readFileSync(join(p.dir, 'reeval.config.ts'), 'utf8')
+      .replaceAll('reeval/harness', 'reeval/agent')
+      .replaceAll('fakeHarness', 'fakeAgent')
+      .replaceAll('harnesses:', 'agents:')
+    await writeFile(join(p.dir, 'reeval.config.ts'), config)
+    return p
+  }
+
   test('each harness opened its placed SKILL.md; web and MCP calls have their classes', async () => {
-    const p = await fixture('fixtures/records/real-contract')
+    const p = await recordFixture('fixtures/records/real-contract')
     const q = async (sql: string) => {
       const r = await runCli(p.dir, ['query', sql, '--json'])
       assert.equal(r.code, 0, r.stderr)
@@ -1282,7 +1413,7 @@ describe('context_use and skill_files on real runs', () => {
   })
 
   test("skill_reads sees each real harness's skill use, as toHaveCalledSkill does", async () => {
-    const p = await fixture('fixtures/records/real-contract')
+    const p = await recordFixture('fixtures/records/real-contract')
     const r = await runCli(p.dir, [
       'query',
       "SELECT attempt_id, reads FROM skill_reads WHERE eval_key = 'evals/skill.eval.ts › skill' ORDER BY attempt_id",
@@ -1302,7 +1433,7 @@ describe('context_use and skill_files on real runs', () => {
   })
 
   test('an attempt whose transcript is gone has no skill_files or skill_reads rows', async () => {
-    const p = await fixture('fixtures/records/real-contract')
+    const p = await recordFixture('fixtures/records/real-contract')
     rmSync(
       join(
         p.dir,

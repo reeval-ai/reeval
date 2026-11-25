@@ -36,8 +36,8 @@ export default defineConfig({})
 ```
 
 ```ts title="evals/mac.eval.ts"
-import { defineEnvironment, evaluate, expect } from '{{ pkg }}'
-import { cursor } from '{{ pkg }}/harness'
+import { defineEnvironment, defineEval, expect } from '{{ pkg }}'
+import { cursor } from '{{ pkg }}/agent'
 import { tart } from '{{ pkg }}/sandbox'
 
 const mac = defineEnvironment('mac', {
@@ -45,12 +45,13 @@ const mac = defineEnvironment('mac', {
   egress: 'allow-all',
 })
 
-evaluate('swift-version', {
-  harnesses: cursor({ model: 'composer-2.5' }),
-  environments: mac,
-}, async (c) => {
-  await c.send('Write the output of sw_vers -productVersion to version.txt')
-  expect(await c.readFile('version.txt')).toMatch(/^\d+\./)
+export default defineEval({
+  agents: cursor({ model: 'composer-2.5' }),
+  environment: mac,
+  task: async (c) => {
+    await c.send('Write the output of sw_vers -productVersion to version.txt')
+    await expect(await c.readFile('version.txt')).toMatch(/^\d+\./)
+  },
 })
 ```
 

@@ -1,12 +1,14 @@
 # Web UIs: serve, capture and artifacts
 
 ```ts
-evaluate('builds the sign-in page', async (c) => {
-  await c.send('Build a sign-in page served by `npm start` on $PORT.')
-  const app = await c.serve('npm start')
-  await c.capture(app, { name: 'sign-in', path: '/login', wait: 'idle' })
-  const q = 'Does the screenshot show an email field and a password field?'
-  expect(await c.judge(q, { artifacts: ['sign-in'] })).toPass()
+export default defineEval({
+  task: async (c) => {
+    await c.send('Build a sign-in page served by `npm start` on $PORT.')
+    const app = await c.serve('npm start')
+    await c.capture(app, { name: 'sign-in', path: '/login', wait: 'idle' })
+    const q = 'Does the screenshot show an email field and a password field?'
+    expect(await c.judge(q, { artifacts: ['sign-in'] })).toPass()
+  },
 })
 ```
 
@@ -29,7 +31,7 @@ evaluate('builds the sign-in page', async (c) => {
   network to go quiet from that beat, so it covers a click that only fetches) — no
   selectors; the model clicks pixels. `viewport: 'full-page'` is the saved shot (default window + tall PNG).
 - `capture.model` cascades like `question`; the call may override. Default is
-  `analysis.model`, else the attempt's judge model (a profile's, group's or eval's),
+  `analysis.model`, else the attempt's judge model (a profile's or the eval's),
   whichever is first a language model; never Jev. Gemini's 0–1000 points are scaled to the screenshot. Fixture evals import
   `fakeInstructions` from `reeval/testing` and pass it as `instructions`.
   The same `timeout` is the budget for the whole capture, its instructions included: if it

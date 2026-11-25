@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 
 // The agent under test: it writes what agent/ holds, so a change there is a change in the
@@ -8,6 +8,6 @@ import { fakeSandbox } from 'reeval/sandbox'
 const agent = JSON.stringify(join(import.meta.dirname, 'agent'))
 
 export default defineConfig({
-  harnesses: fakeHarness({ script: [[{ exec: `cp -R ${agent}/. .` }]], text: 'Done.' }),
+  agents: fakeAgent({ script: [[{ exec: `cp -R ${agent}/. .` }]], text: 'Done.' }),
   sandbox: fakeSandbox(),
 })

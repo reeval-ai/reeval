@@ -1,4 +1,4 @@
-// `reeval`: the core authoring API. Harnesses, sandboxes and judges live in subpaths.
+// `reeval`: the core authoring API. Agents, sandboxes and judges live in subpaths.
 
 export type { RunMatch } from './assert.ts'
 export { HarnessCapabilityError } from './assert.ts'
@@ -10,7 +10,7 @@ export {
   DEFAULT_SKILL_EXCLUDE,
   defineEnvironment,
 } from './environment.ts'
-export { evaluate, group } from './evaluate.ts'
+export { defineEval } from './evaluate.ts'
 export type {
   AttemptRecord,
   CellRecord,
@@ -35,6 +35,7 @@ export type {
   CaptureUseScript,
   CaptureWait,
   CaptureWindow,
+  CaseEvalSpec,
   CaseFn,
   CaseOptions,
   Cell,
@@ -56,13 +57,13 @@ export type {
   EnvVars,
   EvalFn,
   EvalOptions,
+  EvalSpec,
   ExecEnv,
   ExecResult,
   ExecRetry,
-  GroupOptions,
-  HarnessData,
-  HarnessEdit,
-  HarnessOption,
+  HarnessData as AgentsData,
+  HarnessEdit as AgentEdit,
+  HarnessOption as AgentsOption,
   HistoryConfig,
   HistoryConfigData,
   HistoryStoreDescriptor,

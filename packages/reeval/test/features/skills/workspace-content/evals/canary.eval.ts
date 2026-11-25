@@ -1,7 +1,10 @@
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { greeting, staged } from './env.ts'
 
 // Must fail: the source frontmatter's other keys aren't copied.
-evaluate('canary', { environments: greeting }, async (c) => {
-  expect(await c.readFile(staged)).toContain('license: MIT')
+export default defineEval({
+  environment: greeting,
+  task: async (c) => {
+    expect(await c.readFile(staged)).toContain('license: MIT')
+  },
 })

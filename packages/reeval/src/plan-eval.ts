@@ -88,6 +88,10 @@ export type EvalDeclaration = {
   family?: DeclaredFamily
   /** Set on each case of an eval with `cases` and `where`. */
   where?: CaseWhere
+  /** What messages call the eval; `evaluate("…")` with its groups when unset. */
+  label?: string
+  /** Why the eval is skipped, as its `skip` says; with mode `skip`. */
+  skipReason?: string
 }
 
 /** Where the eval is planned: the run, the eval file, and how many evals the file planned before it. */
@@ -155,18 +159,23 @@ export type PlannedEval = {
 /** The tests an eval registers. Throws a UsageError for options the plan refuses. */
 export function planEval(declaration: EvalDeclaration, ctx: PlanContext): PlannedEval {
   const { name, groups: enclosing, options: own } = declaration
-  const where = `evaluate("${[...enclosing.map((g) => g.name), name].join(' › ')}")`
+  const where =
+    declaration.label ?? `evaluate("${[...enclosing.map((g) => g.name), name].join(' › ')}")`
   checkOptions(own, where)
   const levels: Level[] = [
     ...enclosing.map((g) => ({ options: g.options, where: `group("${g.name}")` })),
     { options: own, where },
   ]
-  const resolvedEval = cascade(configLevel(ctx.config), levels, where, {
+  const cascaded = cascade(configLevel(ctx.config), levels, where, {
     profile: ctx.profile,
     runs: ctx.runs,
     skipped: declaration.mode === 'skip' || declaration.mode === 'todo',
     pooled: (declaration.family?.cases ?? 0) >= 2,
   })
+  const resolvedEval =
+    declaration.skipReason && !cascaded.skip
+      ? { ...cascaded, skip: declaration.skipReason }
+      : cascaded
   const { harnesses } = resolvedEval
   if (!matchesTags(resolvedEval.resolved.tags, ctx.tags)) {
     return { tests: null, harnesses, traits: [] }
@@ -357,7 +366,7 @@ function planTests(
     id: evalId(rankFile, [...groups, declaration.family.name]),
     ...declaration.family,
   }
-  const harnessBy = resolved.sources?.harnesses ?? ctx.config.file
+  const harnessBy = resolved.sources?.agents ?? ctx.config.file
   const plan = evalPlan(resolvedEval, plannedAttempts, { configFile: ctx.config.file, file: path })
   // OpenRouter's fallbacks reach only reeval's own calls; the plan says so where they're on.
   if (gatewayNotes.length && openRouterFallbacks(gateways)) {

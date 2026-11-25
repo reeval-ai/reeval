@@ -14,7 +14,7 @@ Create the `evals/sdk.eval.ts` file with the environment, the task, the check sc
 
 ```ts title="evals/sdk.eval.ts"
 import { readFileSync } from 'node:fs'
-import { defineEnvironment, evaluate, expect } from '{{ pkg }}'
+import { defineEnvironment, defineEval, expect } from '{{ pkg }}'
 
 // An empty package with the Acme SDK seeded into vendor/acme.
 const app = defineEnvironment('acme-app', ({ directory }) => ({
@@ -27,7 +27,9 @@ const checkClient = readFileSync(
   new URL('./hidden/check-client.mjs', import.meta.url), 'utf8',
 )
 
-evaluate('uses the Acme SDK correctly', { environments: app }, async (c) => {
+export default defineEval({
+  environment: app,
+  task: async (c) => {
   await c.send(
     'Write src/forecast.js exporting forecast(city), which resolves to ' +
       'the temperature in Celsius from the Acme SDK in vendor/acme (see ' +

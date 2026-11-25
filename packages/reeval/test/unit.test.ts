@@ -27,7 +27,6 @@ import { regressions } from '../src/commands.ts'
 import {
   CONFIG_FILES,
   defaultConcurrency,
-  evalRoot,
   findConfig,
   loadConfig,
   malformedCredentials,
@@ -63,6 +62,7 @@ import {
   parseGitRepo,
 } from '../src/environment.ts'
 import { isTimeout, TimeoutError } from '../src/errors.ts'
+import { evalRoot } from '../src/eval-id.ts'
 import { vercel } from '../src/gateway.ts'
 import {
   AGENTS,
@@ -1384,6 +1384,7 @@ test('the history folder sits in the directory the evals live in', () => {
   assert.equal(evalRoot(['evals/**/*.eval.ts']), 'evals')
   assert.equal(evalRoot(['test/evals/a/*.eval.ts', 'test/evals/b/**/*.eval.ts']), 'test/evals')
   assert.equal(evalRoot(['**/*.eval.ts']), '')
+  assert.equal(evalRoot(['evals/**/*.eval.ts', '!evals/deny.eval.ts']), 'evals')
   assert.equal(resolveConfig({}, '/p').history.dir, resolve('/p/evals/.history'))
   const runs = resolveConfig({ history: { store: { kind: 'local', dir: 'runs' } } }, '/p')
   assert.equal(runs.history.dir, resolve('/p/runs'))
@@ -1935,7 +1936,7 @@ test("compare names a gate change and classifies base's attempts under head's ga
   )
   assert.deepEqual(
     row(cell(loose, half), cell('all', half, { harness: 'h2' })),
-    ['drift', 'pass', 'fail', null, ['harness config changed', 'gate changed']],
+    ['drift', 'pass', 'fail', null, ['agent config changed', 'gate changed']],
     'a gate change beside another part is drift, naming both',
   )
 })
@@ -2322,7 +2323,7 @@ test('expand: per harness, the control then each variant; labels name the role',
   const { resolved } = cascade(
     base,
     [
-      { options: { environments: extra }, where: 'group("parent")' },
+      { options: { environments: extra }, where: 'profiles.parent.defaults' },
       {
         options: { compare: { control: plain, variants: [skill] }, runs: 1 },
         where: 'e',
@@ -2400,24 +2401,20 @@ test('environments beside a compare is an error: compare.control names what the 
     () =>
       checkOptions(
         { environments: plain, compare: { control: plain, variants: [skill] } } as never,
-        'evaluate("e")',
+        'evals/e.eval.ts',
       ),
-    /evaluate\("e"\) sets both environments and compare\. With compare, the control is compare\.control: move it there, as compare: \{ control: plain, variants: \[\.\.\.\] \}\./,
+    /evals\/e\.eval\.ts sets both environments and compare\. With compare, the control is compare\.control: move it there, as compare: \{ control: plain, variants: \[\.\.\.\] \}\./,
   )
   assert.throws(
-    () => checkOptions({ compare: { variants: [skill] } } as never, 'evaluate("e")'),
-    /compare in evaluate\("e"\) has no control\. Name it: compare: \{ control: app, variants: \[\.\.\.\] \}\./,
+    () => checkOptions({ compare: { variants: [skill] } } as never, 'evals/e.eval.ts'),
+    /compare in evals\/e\.eval\.ts has no control\. Name it: compare: \{ control: app, variants: \[\.\.\.\] \}\./,
   )
   assert.throws(
-    () => checkOptions({ environments: plain, compare: false }, 'evaluate("e")'),
-    /compare: false can't be set in evaluate\("e"\)/,
+    () => checkOptions({ environments: plain, compare: false }, 'evals/e.eval.ts'),
+    /compare: false can't be set in evals\/e\.eval\.ts/,
   )
-  assert.throws(
-    () => checkOptions({ compare: false }, 'group("g")'),
-    /compare: false can't be set in group\("g"\)/,
-  )
-  checkOptions({ compare: { control: plain, variants: [skill] } }, 'evaluate("e")')
-  checkOptions({ environments: plain }, 'evaluate("e")')
+  checkOptions({ compare: { control: plain, variants: [skill] } }, 'evals/e.eval.ts')
+  checkOptions({ environments: plain }, 'evals/e.eval.ts')
 })
 
 test('cascade: profile defaults sit under evals, limits narrow unless pinned, --runs wins', () => {
@@ -2427,7 +2424,7 @@ test('cascade: profile defaults sit under evals, limits narrow unless pinned, --
     name: 'pr',
     reason: '--profile',
     defaults: { runs: 5 },
-    limit: { runs: 1, compare: false as const, harnesses: ['a'] },
+    limit: { runs: 1, compare: false as const, agents: ['a'] },
     judge: {},
     tags: [],
     budget: {},
@@ -2445,7 +2442,7 @@ test('cascade: profile defaults sit under evals, limits narrow unless pinned, --
   )
   assert.deepEqual(narrowed.resolved.compare?.variants, [])
   assert.deepEqual(narrowed.notes, [
-    'harnesses 2 → 1 (profile pr)',
+    'agents 2 → 1 (profile pr)',
     'compare off (profile pr)',
     'runs 5 → 1 (profile pr)',
   ])
@@ -2470,11 +2467,11 @@ test('cascade: profile defaults sit under evals, limits narrow unless pinned, --
   )
   const skipped = cascade(
     base,
-    [{ options: { harnesses: { kind: 'fake', id: 'c' } }, where: 'e' }],
+    [{ options: { agents: { kind: 'fake', id: 'c' } }, where: 'e' }],
     'e',
     { profile },
   )
-  assert.equal(skipped.skip, 'no harness left: profile pr allows a')
+  assert.equal(skipped.skip, 'no agent left: profile pr allows a')
 })
 
 test('cascade: unset runs default to 4 for a compare with variants, 1 otherwise', () => {
@@ -2764,7 +2761,7 @@ test('skill directories leave out eval material, recorded as excluded', async ()
   write('skills/greet/references/evals/notes.md', 'Kept: only the root evals/ is eval material.')
   write('skills/greet/evals/evals.json', '{"prompts":["secret"]}')
   write('skills/greet/evals/.history/run.json', '{}')
-  write('skills/greet/greet.eval.ts', 'evaluate()')
+  write('skills/greet/greet.eval.ts', 'export default defineEval({ async task() {} })')
   write('skills/greet/scripts/.history/x', 'x')
   write('skills/greet/.git/HEAD', 'ref: refs/heads/main')
   write('skills/greet/drafts/next.md', 'WIP')

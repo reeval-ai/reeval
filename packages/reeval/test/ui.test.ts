@@ -27,8 +27,10 @@ import { corpusEntries } from './support/corpus.ts'
 const T0 = 1_790_000_000_000
 const s = (seconds: number) => T0 + seconds * 1000
 
-const GREET = 'evals/hello.eval.ts › greet module › creates a tested greet module'
-const DEFAULT = 'evals/hello.eval.ts › greet module › adds a default name in a follow-up turn'
+const GREET = 'creates-a-tested-greet-module'
+const DEFAULT = 'adds-a-default-name-in-a-follow-up-turn'
+const GREET_FILE = 'evals/creates-a-tested-greet-module.eval.ts'
+const DEFAULT_FILE = 'evals/adds-a-default-name-in-a-follow-up-turn.eval.ts'
 
 const CELL = 'cursor:composer-2.5/-/docker'
 const keyOf = (id: string) => `${id} # ${CELL}#1`
@@ -57,10 +59,10 @@ const progress = (id: string, at: number, p: Omit<Progress, 'at'>): ReevalEvent 
 const greetResult: EvalResult = {
   id: GREET,
   key: keyOf(GREET),
-  file: 'evals/hello.eval.ts',
-  group: ['greet module'],
-  name: 'creates a tested greet module',
-  attempt: attempt('creates a tested greet module', ['greet module']),
+  file: GREET_FILE,
+  group: [],
+  name: GREET,
+  attempt: attempt(GREET, []),
   state: 'passed',
   durationMs: 192_000,
   errors: [],
@@ -82,16 +84,16 @@ const assertion = [
   '- 2',
   '+ 1',
   '',
-  ' ❯ evals/hello.eval.ts:31:20',
+  ' ❯ evals/adds-a-default-name-in-a-follow-up-turn.eval.ts:31:20',
 ].join('\n')
 
 const defaultResult: EvalResult = {
   id: DEFAULT,
   key: keyOf(DEFAULT),
-  file: 'evals/hello.eval.ts',
-  group: ['greet module'],
-  name: 'adds a default name in a follow-up turn',
-  attempt: attempt('adds a default name in a follow-up turn', ['greet module']),
+  file: DEFAULT_FILE,
+  group: [],
+  name: DEFAULT,
+  attempt: attempt(DEFAULT, []),
   state: 'failed',
   durationMs: 363_000,
   errors: ['expected 1 to be 2 // Object.is equality'],
@@ -119,7 +121,7 @@ const interleaved: ReevalEvent[] = [
     type: 'run-start',
     at: T0,
     version: '0.1.0',
-    files: 1,
+    files: 2,
     harness: 'cursor/composer-2.5',
     sandbox: 'docker',
     concurrency: 2,
@@ -128,22 +130,15 @@ const interleaved: ReevalEvent[] = [
   {
     type: 'collected',
     at: T0,
-    file: 'evals/hello.eval.ts',
+    file: GREET_FILE,
+    evals: [{ id: GREET, key: keyOf(GREET), group: [], name: greetResult.name, skipped: false }],
+  },
+  {
+    type: 'collected',
+    at: T0,
+    file: DEFAULT_FILE,
     evals: [
-      {
-        id: GREET,
-        key: keyOf(GREET),
-        group: ['greet module'],
-        name: greetResult.name,
-        skipped: false,
-      },
-      {
-        id: DEFAULT,
-        key: keyOf(DEFAULT),
-        group: ['greet module'],
-        name: defaultResult.name,
-        skipped: false,
-      },
+      { id: DEFAULT, key: keyOf(DEFAULT), group: [], name: defaultResult.name, skipped: false },
     ],
   },
   { type: 'eval-start', at: s(0), id: GREET, key: keyOf(GREET), attempt: greetResult.attempt },
@@ -330,14 +325,14 @@ describe('plain renderer', () => {
         '… 2 running after 1m 00s: [creates#1 cursor] agent turn 1 1m 00s, [adds#1 cursor] agent turn 1 59s',
         '… 2 running after 2m 00s: [creates#1 cursor] agent turn 1 2m 00s, [adds#1 cursor] agent turn 1 1m 59s',
         '… 2 running after 3m 00s: [creates#1 cursor] cleanup 3m 00s, [adds#1 cursor] agent turn 1 2m 59s',
-        '[creates#1 cursor] ▶ evals/hello.eval.ts › greet module › creates a tested greet module',
+        '[creates#1 cursor] ▶ creates-a-tested-greet-module',
         '[creates#1 cursor]  +0:01 sandbox ready 4s',
         '[creates#1 cursor]  +0:05 turn 1 done 2m 45s · 6 tool calls, 2 files changed',
         '[creates#1 cursor]  +2:50 $ node --test  exit 0 1s',
         '[creates#1 cursor]  +2:52 judge  pass 0.92 (≥ 0.8)  Accurate summary?',
         '… 1 running after 4m 12s: [adds#1 cursor] agent turn 2 4m 11s',
         '… 1 running after 5m 12s: [adds#1 cursor] agent turn 2 5m 11s',
-        '[adds#1 cursor] ▶ evals/hello.eval.ts › greet module › adds a default name in a follow-up turn',
+        '[adds#1 cursor] ▶ adds-a-default-name-in-a-follow-up-turn',
         '[adds#1 cursor]  +0:01 sandbox ready 4s',
         '[adds#1 cursor]  +0:05 turn 1 done 3m 14s · 3 tool calls, 1 file changed',
         '[adds#1 cursor]  +1:09 stdout | seeding greet.js',
@@ -351,7 +346,7 @@ describe('plain renderer', () => {
         '[adds#1 cursor]  - 2',
         '[adds#1 cursor]  + 1',
         '[adds#1 cursor]',
-        '[adds#1 cursor]   ❯ evals/hello.eval.ts:31:20',
+        '[adds#1 cursor]   ❯ evals/adds-a-default-name-in-a-follow-up-turn.eval.ts:31:20',
         ...RESULT,
       ),
     )
@@ -399,8 +394,8 @@ describe('plain renderer', () => {
   test('stream: every prefixed line prints as it happens, interleaved', () => {
     const out = render(interleaved, options({ logOrder: 'stream' })).split('\n')
     assert.deepEqual(out.slice(2, 18), [
-      '[creates#1 cursor] ▶ evals/hello.eval.ts › greet module › creates a tested greet module',
-      '[adds#1 cursor] ▶ evals/hello.eval.ts › greet module › adds a default name in a follow-up turn',
+      '[creates#1 cursor] ▶ creates-a-tested-greet-module',
+      '[adds#1 cursor] ▶ adds-a-default-name-in-a-follow-up-turn',
       '[creates#1 cursor]  +0:01 sandbox starting',
       '[adds#1 cursor]  +0:01 sandbox starting',
       '[creates#1 cursor]  +0:03 sandbox up, preparing it',
@@ -424,7 +419,7 @@ describe('plain renderer', () => {
     assert.equal(
       block,
       lines(
-        '::group::[creates#1 cursor] ▶ evals/hello.eval.ts › greet module › creates a tested greet module',
+        '::group::[creates#1 cursor] ▶ creates-a-tested-greet-module',
         ' +0:01 sandbox ready 4s',
         ' +0:05 turn 1 done 2m 45s · 6 tool calls, 2 files changed',
         ' +2:50 $ node --test  exit 0 1s',
@@ -432,7 +427,7 @@ describe('plain renderer', () => {
         '::endgroup::',
         '… 1 running after 4m 12s: [adds#1 cursor] agent turn 2 4m 11s',
         '… 1 running after 5m 12s: [adds#1 cursor] agent turn 2 5m 11s',
-        '[adds#1 cursor] ▶ evals/hello.eval.ts › greet module › adds a default name in a follow-up turn',
+        '[adds#1 cursor] ▶ adds-a-default-name-in-a-follow-up-turn',
         ' +0:01 sandbox ready 4s',
         ' +0:05 turn 1 done 3m 14s · 3 tool calls, 1 file changed',
         ' +1:09 stdout | seeding greet.js',
@@ -446,8 +441,8 @@ describe('plain renderer', () => {
         ' - 2',
         ' + 1',
         '',
-        '  ❯ evals/hello.eval.ts:31:20',
-        '::error file=evals/hello.eval.ts,line=31,col=20,title=evals/hello.eval.ts › greet module › adds a default name in a follow-up turn::expected 1 to be 2 // Object.is equality%0A%0A- Expected%0A+ Received%0A%0A- 2%0A+ 1%0A%0A ❯ evals/hello.eval.ts:31:20',
+        '  ❯ evals/adds-a-default-name-in-a-follow-up-turn.eval.ts:31:20',
+        '::error file=evals/adds-a-default-name-in-a-follow-up-turn.eval.ts,line=31,col=20,title=adds-a-default-name-in-a-follow-up-turn::expected 1 to be 2 // Object.is equality%0A%0A- Expected%0A+ Received%0A%0A- 2%0A+ 1%0A%0A ❯ evals/adds-a-default-name-in-a-follow-up-turn.eval.ts:31:20',
       ),
     )
   })
@@ -463,12 +458,12 @@ describe('plain renderer', () => {
         failedChecks: [
           {
             label: 'toBe 2',
-            at: 'evals/hello.eval.ts:31',
+            at: 'evals/adds-a-default-name-in-a-follow-up-turn.eval.ts:31',
             message: 'expected 1 to be 2 // Object.is equality',
           },
           {
             label: 'tests pass',
-            at: 'evals/hello.eval.ts:33',
+            at: 'evals/adds-a-default-name-in-a-follow-up-turn.eval.ts:33',
             message: 'tests pass: expected command to succeed, exit code 1',
           },
           { label: 'names it', message: 'names it: expected 1 to be 3' },
@@ -479,12 +474,12 @@ describe('plain renderer', () => {
       e.type === 'eval-end' && e.result === defaultResult ? { ...e, result: checked } : e,
     )
     const out = render(events, options({ githubActions: true, logPrefix: 'none' })).split('\n')
-    const at = out.indexOf('  ❯ evals/hello.eval.ts:31:20')
+    const at = out.indexOf('  ❯ evals/adds-a-default-name-in-a-follow-up-turn.eval.ts:31:20')
     assert.deepEqual(out.slice(at + 1, at + 6), [
-      ' ✗ failed  tests pass: expected command to succeed, exit code 1  evals/hello.eval.ts:33',
+      ' ✗ failed  tests pass: expected command to succeed, exit code 1  evals/adds-a-default-name-in-a-follow-up-turn.eval.ts:33',
       ' ✗ failed  names it: expected 1 to be 3',
-      '::error file=evals/hello.eval.ts,line=31,title=evals/hello.eval.ts › greet module › adds a default name in a follow-up turn%3A toBe 2::expected 1 to be 2 // Object.is equality',
-      '::error file=evals/hello.eval.ts,line=33,title=evals/hello.eval.ts › greet module › adds a default name in a follow-up turn%3A tests pass::tests pass: expected command to succeed, exit code 1',
+      '::error file=evals/adds-a-default-name-in-a-follow-up-turn.eval.ts,line=31,title=adds-a-default-name-in-a-follow-up-turn%3A toBe 2::expected 1 to be 2 // Object.is equality',
+      '::error file=evals/adds-a-default-name-in-a-follow-up-turn.eval.ts,line=33,title=adds-a-default-name-in-a-follow-up-turn%3A tests pass::tests pass: expected command to succeed, exit code 1',
       out[at + 5],
     ])
     assert.doesNotMatch(out[at + 5] ?? '', /^::error/, 'one annotation per check, not the attempt')
@@ -496,14 +491,20 @@ describe('plain renderer', () => {
       ...defaultResult,
       errors: ['Error: user code bug'],
       errorName: 'Error',
-      formattedErrors: ['Error: user code bug\n ❯ evals/hello.eval.ts:40:9'],
+      formattedErrors: [
+        'Error: user code bug\n ❯ evals/adds-a-default-name-in-a-follow-up-turn.eval.ts:40:9',
+      ],
       meta: {
         outcome: 'fail',
         errorKind: 'assertion',
         judgements: [],
         recordPath: '',
         failedChecks: [
-          { label: 'soft one', at: 'evals/hello.eval.ts:31', message: 'soft one: no' },
+          {
+            label: 'soft one',
+            at: 'evals/adds-a-default-name-in-a-follow-up-turn.eval.ts:31',
+            message: 'soft one: no',
+          },
         ],
       },
     }
@@ -580,9 +581,13 @@ describe('plain renderer', () => {
     const clear = '\r\x1b[2K'
     assert.ok(out.includes(`${clear}2 evals · 0/2 tries`), out)
     assert.ok(out.includes(`${clear}2 evals · 1/2 tries`), out)
-    assert.ok(out.includes(`  ◆  Running...\n\n${clear}2 evals · 0/2 tries`), out)
     assert.ok(
-      out.includes(`${clear}2 evals · 2/2 tries${clear}evals/`),
+      out.includes(`  ◆  Running...\n\n${clear}2 evals · 0/2 tries`) ||
+        out.includes(`  ◆  Running...\n\n${clear}1 eval · 0/1 tries`),
+      out,
+    )
+    assert.ok(
+      out.includes(`${clear}2 evals · 2/2 tries${clear}evals/results.eval.ts`),
       'no second gap above the list',
     )
     assert.doesNotMatch(out, /running after/)
@@ -620,7 +625,7 @@ test('browser-download names the binary, version, size and cache', () => {
     {
       type: 'collected',
       at: T0,
-      file: 'evals/hello.eval.ts',
+      file: 'evals/adds-a-default-name-in-a-follow-up-turn.eval.ts',
       evals: [
         {
           id: GREET,
@@ -668,7 +673,7 @@ test("a gateway warning prints as it happens, in the plain and agent output, on 
     {
       type: 'collected',
       at: T0,
-      file: 'evals/hello.eval.ts',
+      file: 'evals/adds-a-default-name-in-a-follow-up-turn.eval.ts',
       evals: [
         {
           id: GREET,
@@ -906,7 +911,7 @@ describe('run header', () => {
       [
         planEvent({
           header: many,
-          details: ['eval  harnesses  runs', 'a     3          4'],
+          details: ['eval  agents  runs', 'a     3          4'],
           hints: [],
           sandboxWarnings: [
             {
@@ -1376,7 +1381,7 @@ test('the interactive list takes a burst of events in one update, as attach repl
       },
     }),
   })
-  for (const e of interleaved.slice(0, 3)) renderer.onEvent(e)
+  for (const e of interleaved.slice(0, 4)) renderer.onEvent(e)
   await new Promise((resolve) => setImmediate(resolve))
   let updates = 0
   store?.subscribe(() => updates++)
@@ -1480,7 +1485,7 @@ test("nothing the interactive list draws shows a secret: an eval's name, an atte
       {
         type: 'collected',
         at: T0,
-        file: 'evals/hello.eval.ts',
+        file: 'evals/adds-a-default-name-in-a-follow-up-turn.eval.ts',
         evals: [
           { id: GREET, key: keyOf(GREET), group: [], name, skipped: false },
           { id: GREET, key: `${GREET} # ${CELL}#2`, group: [], name, skipped: false },

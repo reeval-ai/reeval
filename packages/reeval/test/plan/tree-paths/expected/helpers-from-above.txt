@@ -1,13 +1,11 @@
-no profile · 3 evals · 4 cells · 10 attempts
+no profile · 1 evals · 2 cells · 8 attempts
 hint: 1 eval runs more than once with the default gate, so every attempt must pass (pass^k); set gate: { passRate: 0.8 } to gate on pass@1 instead
-evals/helpers.eval.ts › images › from the group  fake/-/docker:images      control      gated    ×1
-evals/helpers.eval.ts › an environment           fake/built/docker:docker  control      gated    ×1
-evals/helpers.eval.ts › a compare                fake/built/docker:docker  control      ungated  ×4  runs 4 (compare default)
-                                                 fake/own/docker:images    variant own  gated    ×4
+a-compare  fake/built/docker:docker  control      ungated  ×4  runs 4 (compare default)
+           fake/own/docker:images    variant own  gated    ×4
 excluded: —
-image docker:images · cursor · 2 evals
-  dockerfile evals/images/Dockerfile  reeval-dockerfile:images-01f297fbbcd7a60e  (docker build (layer cache), tagged by content hash)
-  harness                             reeval-dockerfile:images-01f297fbbcd7a60e  (inherited: FROM ${REEVAL_BASE}, which is reeval-sandbox:cursor-0.1.9)
-image docker:docker · cursor · 2 evals
+image docker:docker · cursor · 1 evals
   dockerfile docker/Dockerfile  reeval-dockerfile:docker-d4ceb9f7c18a402a  (docker build (layer cache), tagged by content hash)
   harness                       reeval-dockerfile:docker-d4ceb9f7c18a402a  (inherited: FROM ${REEVAL_BASE}, which is reeval-sandbox:cursor-0.1.9)
+image docker:images · cursor · 1 evals
+  dockerfile evals/images/Dockerfile  reeval-dockerfile:images-01f297fbbcd7a60e  (docker build (layer cache), tagged by content hash)
+  harness                             reeval-dockerfile:images-01f297fbbcd7a60e  (inherited: FROM ${REEVAL_BASE}, which is reeval-sandbox:cursor-0.1.9)

@@ -1,20 +1,20 @@
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 import { profiles } from '../profiles.ts'
 
-const fakeAgent = (path: string) =>
+const fakeFile = (path: string) =>
   readFileSync(new URL(`./fake-agent/${path}`, import.meta.url), 'utf8')
 
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that applies ./fake-agent's patch to the checkout with git, so the checks
   // run without keys or Docker.
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     script: [
       [
-        { write: { 'separators.patch': fakeAgent('separators.patch') } },
+        { write: { 'separators.patch': fakeFile('separators.patch') } },
         { exec: 'git apply separators.patch && rm separators.patch' },
         { exec: 'node --test' },
         { reply: 'camelCase takes a separators option now, with a test and a readme section.' },

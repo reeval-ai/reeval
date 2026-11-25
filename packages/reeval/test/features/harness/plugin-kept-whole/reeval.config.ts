@@ -1,5 +1,5 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { layout, ownSkills } from './layout.ts'
 
 // REEVAL_FIXTURE_SANDBOX picks the tier: the fake sandbox (F) by default, or docker (D). The fake
@@ -7,7 +7,7 @@ import { layout, ownSkills } from './layout.ts'
 // the plugin's skill where it was copied, look for it among the harness's own skills, then read
 // the MCP config the harness starts the plugin's server from.
 export default defineConfig({
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     layout,
     script: [
       [

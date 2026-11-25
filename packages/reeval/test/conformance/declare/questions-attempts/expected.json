@@ -109,7 +109,7 @@
         "questions": [
           {
             "question": "Which agent explained its change better?",
-            "across": "harness",
+            "across": "agent",
             "diff": true
           }
         ]

@@ -273,18 +273,20 @@ describe('an attempt on a sandbox it cannot reach', () => {
   const files = {
     'reeval.config.ts': `
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { daytona } from 'reeval/provider/daytona'
 export default defineConfig({
-  harnesses: fakeHarness({ script: [[{ exec: 'true' }]] }),
+  agents: fakeAgent({ script: [[{ exec: 'true' }]] }),
   provider: daytona(),
   egress: 'allow-all',
 })
 `,
     'evals/a.eval.ts': `
-import { evaluate } from 'reeval'
-evaluate('reaches', async (c) => {
-  await c.exec('true')
+import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.exec('true')
+  },
 })
 `,
   }

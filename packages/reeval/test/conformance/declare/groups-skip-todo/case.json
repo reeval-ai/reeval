@@ -1,5 +1,6 @@
 {
-  "eval": "plan/selection/evals/groups.eval.ts",
+  "eval": "plan/selection/evals",
+  "treeRoot": "plan/selection",
   "plan": "plan/selection/expected/only-local.txt",
   "args": []
 }

@@ -1,8 +1,7 @@
-no profile · 2 evals · 2 cells · 2 attempts
-evals/plugins.eval.ts › built plugins       fake/built/docker+687abd2a  control  gated  ×1  plugins built (skills); github:acme/agent-plugins#v1.2.0:plugins/review; lint@github:acme/agent-plugins#v3
-evals/plugins.eval.ts › same plugins again  fake/built/docker+687abd2a  control  gated  ×1  plugins built (skills); github:acme/agent-plugins#v1.2.0:plugins/review; lint@github:acme/agent-plugins#v3
+no profile · 1 evals · 1 cells · 1 attempts
+built-plugins  fake/built/docker+687abd2a  control  gated  ×1  plugins built (skills); github:acme/agent-plugins#v1.2.0:plugins/review; lint@github:acme/agent-plugins#v3
 excluded: —
-image docker+687abd2a · cursor + install + 3 plugin builds · 2 evals
+image docker+687abd2a · cursor + install + 3 plugin builds · 1 evals
   base                                                        reeval-sandbox:cursor-0.1.9                       (reeval's image: pulled or built when missing or when its key changed)
   install 1 command                                           reeval-install:6b4863e1d3ad6474                   (build unless cached)
   build plugin.local('plugins/built')                         reeval-plugin:c6017661fee4-344bad2041a5fe22       (build unless cached: npm ci && npm run build)

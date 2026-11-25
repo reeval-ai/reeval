@@ -1,24 +1,21 @@
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { env } from './env.ts'
 
 // Must fail: out.txt is as the agent wrote it, not 'bye'.
-evaluate(
-  'canary',
-  {
-    environments: env,
-    questions: [
-      {
-        question: 'Did it write out.txt?',
-        choices: ['yes', 'no'],
-        task: true,
-        output: true,
-        diff: true,
-        transcript: true,
-      },
-    ],
-  },
-  async (c) => {
+export default defineEval({
+  environment: env,
+  questions: [
+    {
+      question: 'Did it write out.txt?',
+      choices: ['yes', 'no'],
+      task: true,
+      output: true,
+      diff: true,
+      transcript: true,
+    },
+  ],
+  task: async (c) => {
     await c.send('write out.txt')
     expect(await c.readFile('out.txt')).toBe('bye\n')
   },
-)
+})

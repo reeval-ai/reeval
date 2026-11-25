@@ -10,9 +10,9 @@
 
 ## Cases: `cases`, `caseKey`, `where`, and `gate: 'observe'`
 
-- `evaluate(name, [options,] fn)` and `group(name, [options,] fn)`; also `.skip`, `.only`
-  (an error in CI), `.todo`. The eval id is `file › group › name`; renaming an eval restarts its history.
-- `evaluate(name, { cases: [...] }, async (c, item) => …)` runs one eval over a list: one pass
+- ``export default defineEval({ …, task })`; `skip: true` or `skip: 'reason'` (no `.only`/`.todo` in TypeScript)
+  (an error in CI), `.todo`. The eval id is the file path under the eval root without `.eval.ts`; renaming an eval restarts its history.
+- `defineEval({ cases: [...], task: async (c, item) => … })` runs one eval over a list: one pass
   rate over the cases and, with `compare`, one lift paired by case, which `minLift` gates (not
   each case's). Prefer it to separate evals when the cases are one population: six cases at
   `runs: 1` can reach a lift verdict where each case alone is within noise. Fewer than six
@@ -23,14 +23,11 @@
   failing case fails the eval. It is one eval: one row in `--dry-run` and the run output (a
   case table under it when it fails, or with `-v`), one entry in the record with its cases
   inside, counted once in the tally. The failing case still records `fail`.
-- For evals that pass or fail on their own, don't use `cases`: write a `for` loop that calls
-  `evaluate` once per item, with the item in the name.
+- For evals that pass or fail on their own, don't use `cases`: give each item its own `*.eval.ts` file, with the item in the name.
 - Each case has a key, which names its row: a string or number is its own key, an object its
   `id`, else its `name`; otherwise pass `caseKey: (item) => item.slug`. Keys are unique, at most
-  80 characters, with no `#` or `›`. `cases`, `caseKey` and `where` go on `evaluate`, never a
-  group or the config.
-- Porting `evaluate.each(items)('name: %s', opts, fn)`: write `evaluate('name', { cases: items,
-  ...opts }, fn)` with the old option names made plural (`harnesses`, `environments`,
+  80 characters, with no `#` or `›`. `cases`, `caseKey` and `where` go on `defineEval`, not the config.
+- Porting `evaluate.each`: write `defineEval({ cases: items, ...opts, task })` with the old option names made plural (`agents`, `environments`,
   `compare.control`). The old runs then read as this eval, keyed by what `%s` or `$id` held, so
   `reeval compare` lines them up; a `caseKey` that changes a key starts that case's history again.
 - `where: ({ case, environment, harness }) => boolean` (TypeScript only) picks which case runs
@@ -44,7 +41,7 @@
   `limit: { traits: { stack: ['next', 'vite'] } }`. Both narrow after `where`, by the control's
   traits under `compare`, and `--dry-run` notes `--trait stack=next leaves out vite-app`. Never
   read a flag or a variable in `where` to do this.
-- `evaluate(name, { gate: 'observe' }, fn)` records what agents do (with `c.observe` and
+- `defineEval({ gate: 'observe', task })` records what agents do (with `c.observe` and
   checks) and fails only on run or infra errors. Its block reads `ran`. `compare.minLift` and
   `runs: { bestOf }` are errors beside it; `compare: { gate: 'observe' }` ungates a compare's cells.
   Any gate but `'all'`, `{ passRate }` or `'observe'` is an error.
@@ -131,24 +128,24 @@
 ## Trustworthy evals
 
 Before a real run, prove each check can pass and fail with the fake harness in the eval's real
-sandbox: an oracle `fakeHarness` that does the task right (must pass) and a canary that cheats
+sandbox: an oracle `fakeAgent` that does the task right (must pass) and a canary that cheats
 or gets it wrong (must fail). A canary that passes means a check isn't checking. Give each check
 you rely on a canary that only it catches.
 
 ```ts
 // reeval.config.ts: the real harness, plus two profiles that swap only the harness and judge
 export default defineConfig({
-  harnesses: cursor({ model: 'composer-2.5' }),
+  agents: cursor({ model: 'composer-2.5' }),
   profiles: {
     oracle: {
       defaults: {
-        harnesses: fakeHarness({ files: { 'greet.js': 'export const greet = …' } }),
+        agents: fakeAgent({ files: { 'greet.js': 'export const greet = …' } }),
         judge: { model: fakeJudge({ score: 0.95 }) },
       },
     },
     canary: {
       defaults: {
-        harnesses: fakeHarness({ files: { 'greet.test.js': "test('greets', () => {})\n" } }),
+        agents: fakeAgent({ files: { 'greet.test.js': "test('greets', () => {})\n" } }),
         judge: { model: fakeJudge({ score: 0.1 }) },
       },
     },
@@ -162,7 +159,7 @@ npx reeval run --profile oracle           # every check passes, exit 0
 npx reeval run --profile canary           # the checks you meant fail, exit 1
 ```
 
-- Set `defaults.harnesses`, never `defaults.sandbox`: the environment's `docker()` (image,
+- Set `defaults.agents`, never `defaults.sandbox`: the environment's `docker()` (image,
   `install`, egress, brokered secrets) stays, so the checks run where they will for real. A
   profile's `sandbox` only fills in for an environment that omits one, and the fake harness
   without `layout` uses Cursor's image; `layout: 'claude-code'` (or another agent id) uses that
@@ -173,8 +170,7 @@ npx reeval run --profile canary           # the checks you meant fail, exit 1
   oracle, with its key, to check that a question passes good work.
 - `fakeSandbox()` isn't the oracle's sandbox: it runs on the host, brokers nothing and enforces no
   egress. It's for trying reeval and testing configs without Docker.
-- An eval or group that sets its own `harnesses` keeps it (the plan notes `harnesses set by the
-  eval`), and an ungated cell's (`compare: { gate: 'observe' }`, a control's) failed checks don't change the
+- An eval that sets its own `agents` and `pin: ['agents']` keeps it (the plan notes `agents set by the eval`), and an ungated cell's (`compare: { gate: 'observe' }`, a control's) failed checks don't change the
   exit code: its row in the result block shows its count (`plain  0 of 4`).
 
 Keep grading out of the

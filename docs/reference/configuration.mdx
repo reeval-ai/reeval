@@ -9,11 +9,11 @@ description: "defineConfig sets a project's defaults, reeval finds reeval.config
 
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
-import { claudeCode } from '{{ pkg }}/harness'
+import { claudeCode } from '{{ pkg }}/agent'
 
 export default defineConfig({
   include: ['evals/**/*.eval.ts'],
-  harnesses: claudeCode({ model: 'claude-sonnet-5' }),
+  agents: claudeCode({ model: 'claude-sonnet-5' }),
   judge: { model: 'google/gemini-3.8-flash' },
   timeout: '15m',
 })

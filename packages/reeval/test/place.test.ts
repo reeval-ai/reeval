@@ -9,7 +9,7 @@ import { slotLimits } from '../src/sandbox/vm-container.ts'
 import { docker, fakeSandbox, podman, tart } from '../src/sandbox.ts'
 import type { SandboxDescriptor } from '../src/types.ts'
 
-const where = 'evals/a.eval.ts › a'
+const where = 'evals/a.eval.ts'
 
 describe('place()', () => {
   test('no provider leaves every sandbox on this machine', () => {
@@ -69,7 +69,7 @@ describe('place()', () => {
   test('podman(), tart() and options for a local container are refused', () => {
     assert.throws(
       () => place(podman(), boat(), 'here', where),
-      /^UsageError: evals\/a\.eval\.ts › a: boat\(\) runs docker\(\) sandboxes, not podman\(\)\.$/,
+      /^UsageError: evals\/a\.eval\.ts: boat\(\) runs docker\(\) sandboxes, not podman\(\)\.$/,
     )
     assert.throws(
       () => place(tart({ image: 'macos' }), daytona(), 'here', where),
@@ -110,7 +110,7 @@ describe('place()', () => {
   })
 })
 
-const WHERE = 'evaluate("e")'
+const WHERE = 'evals/e.eval.ts'
 
 test('here, every sandbox stays as written', () => {
   for (const sandbox of [
@@ -172,7 +172,8 @@ test('on a cloud run, a sandbox already on VMs, or the fake one, stays as writte
 test('on a cloud run, tart() and podman() are refused, with no run here instead', () => {
   assert.throws(
     () => place({ kind: 'tart', image: 'macos-base' }, undefined, 'cloud', WHERE),
-    (e: unknown) => e instanceof CloudUnsupported && /^evaluate\("e"\): tart\(\)/.test(e.message),
+    (e: unknown) =>
+      e instanceof CloudUnsupported && /^evals\/e\.eval\.ts: tart\(\)/.test(e.message),
   )
   assert.throws(
     () => place({ kind: 'docker', engine: 'podman' }, undefined, 'cloud', WHERE),

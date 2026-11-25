@@ -1,5 +1,5 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
 // REEVAL_FIXTURE_SANDBOX picks fake (F) or docker (D).
@@ -10,6 +10,6 @@ const sandbox =
 
 export default defineConfig({
   include: ['evals/**/*.eval.py'],
-  harnesses: fakeHarness({ script: [[{ reply: 'Nothing to do.' }]] }),
+  agents: fakeAgent({ script: [[{ reply: 'Nothing to do.' }]] }),
   sandbox,
 })

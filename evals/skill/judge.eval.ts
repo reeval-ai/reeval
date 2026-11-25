@@ -1,4 +1,4 @@
-import { evaluate, expect, group } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { channels, PREAMBLE, project } from './channels.ts'
 import { dryRun, runsOnFake, typechecks } from './checks.ts'
 
@@ -9,22 +9,19 @@ const task =
   "LLM judge whether the README explains how to install and run the CLI, labeling that judge's " +
   'check `explains usage`. It must typecheck with `npx tsc -p .` and pass with `npx reeval run`.'
 
-group(
-  'write an eval with a judge',
-  { compare: { ...channels(project('cli', 'judge')), gate: 'observe' } },
-  () => {
-    evaluate('writes a judged eval', async (c) => {
-      await c.send(task)
-      const source = (await c.readFile('evals/readme.eval.ts')) ?? ''
-      expect(source, 'writes evals/readme.eval.ts').not.toBe('')
-      await expect(c.exec(typechecks), 'typechecks').toSucceed()
-      const { plan } = await dryRun(c)
-      expect(plan?.totals.evals, 'plans one eval').toBe(1)
-      await expect(c.exec(runsOnFake), 'passes on the fake config').toSucceed()
-      expect(source, 'asks the judge').toMatch(/\.judge\(/)
-      expect(source, 'labels the judge check').toMatch(/['"`]explains usage['"`]/)
-      expect(source, 'checks README.md deterministically').toMatch(/README\.md/)
-      expect(source, 'checks --help').toMatch(/--help/)
-    })
+export default defineEval({
+  compare: { ...channels(project('cli', 'judge')), gate: 'observe' },
+  task: async (c) => {
+    await c.send(task)
+    const source = (await c.readFile('evals/readme.eval.ts')) ?? ''
+    expect(source, 'writes evals/readme.eval.ts').not.toBe('')
+    await expect(c.exec(typechecks), 'typechecks').toSucceed()
+    const { plan } = await dryRun(c)
+    expect(plan?.totals.evals, 'plans one eval').toBe(1)
+    await expect(c.exec(runsOnFake), 'passes on the fake config').toSucceed()
+    expect(source, 'asks the judge').toMatch(/\.judge\(/)
+    expect(source, 'labels the judge check').toMatch(/['"`]explains usage['"`]/)
+    expect(source, 'checks README.md deterministically').toMatch(/README\.md/)
+    expect(source, 'checks --help').toMatch(/--help/)
   },
-)
+})

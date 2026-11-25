@@ -22,7 +22,7 @@
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":63}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/environment.d.ts"},"ok":true,"durationMs":64}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/attempt/checks.d.ts"},"ok":true,"durationMs":64}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"hello|\\.es\\.ts|defineConfig|fakeHarness|fakeSandbox|fakeJudge"},"ok":true,"durationMs":87}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"hello|\\.es\\.ts|defineConfig|fakeAgent|fakeSandbox|fakeJudge"},"ok":true,"durationMs":87}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":44}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"expect|EsConfig"},"ok":true,"durationMs":49}

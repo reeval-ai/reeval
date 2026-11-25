@@ -1,4 +1,4 @@
-import type { FakeHarnessDescriptor } from 'reeval/harness'
+import type { FakeHarnessDescriptor } from 'reeval/agent'
 
 /** The harness this run mimics: features.test.ts runs the fixture once per harness tart() runs. */
 export const layout = process.env.REEVAL_FIXTURE_LAYOUT as NonNullable<

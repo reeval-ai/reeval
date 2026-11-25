@@ -2,6 +2,8 @@
 // (`cli-parse.ts`) and its `--help` from it, and `reeval analyze` checks each suggested verify
 // command against it, so a model can't invent a flag.
 
+import { matchesEvalId, namesEvalFile } from './engine/files.ts'
+
 export type FlagSpec = {
   type: 'string' | 'boolean'
   short?: string
@@ -45,6 +47,7 @@ export const FLAGS = {
   'output-logs': { type: 'string' },
   tag: { type: 'string', multiple: true },
   trait: { type: 'string', multiple: true },
+  cell: { type: 'string', multiple: true },
   http: { type: 'boolean' },
   port: { type: 'string' },
   host: { type: 'string', multiple: true },
@@ -60,7 +63,7 @@ export const FLAGS = {
   context: { type: 'boolean' },
   'no-cache': { type: 'boolean' },
   yes: { type: 'boolean', short: 'y' },
-  harness: { type: 'string' },
+  agent: { type: 'string' },
   bare: { type: 'boolean' },
   online: { type: 'boolean' },
   offline: { type: 'boolean' },
@@ -151,6 +154,7 @@ export const RUN_FLAGS: FlagName[] = [
   'registry',
   'tag',
   'trait',
+  'cell',
   'record',
   'ui',
   'log-order',
@@ -188,7 +192,7 @@ const KEY_TARGET: OptionHelp[] = [
 
 export const COMMANDS: Record<string, CommandSpec> = {
   init: {
-    flags: ['harness', 'yes', 'bare', 'force', 'dry-run'],
+    flags: ['agent', 'yes', 'bare', 'force', 'dry-run'],
     positionals: 1,
     group: 'Get started',
     usage: 'init [dir]',
@@ -196,8 +200,8 @@ export const COMMANDS: Record<string, CommandSpec> = {
     description: 'Create a reeval project in dir (default: .)',
     options: [
       {
-        flags: '--harness <name>',
-        help: 'Agent harness: cursor, claude-code, antigravity, opencode, goose, pi,\ncodex, fx or grok-build (default: cursor)',
+        flags: '--agent <name>',
+        help: 'Agent: cursor, claude-code, antigravity, opencode, goose, pi,\ncodex, fx or grok-build (default: cursor)',
       },
       { flags: '-y, --yes', help: 'Accept all defaults without prompting' },
       { flags: '--bare', help: 'Write only reeval.config.ts, .gitignore and package.json' },
@@ -239,6 +243,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
       },
       { flags: '--tag <tag>', help: 'Only evals with this tag; !tag excludes; repeatable' },
       { flags: '--trait <key=value>', help: 'Only cells with this environment trait; repeatable' },
+      { flags: '--cell <key>', help: 'Only this cell key or cell#n attempt id; repeatable' },
       { flags: '--record', help: 'Also record the run to the history folder' },
       { flags: '--resume [ref]', help: 'Resume a stopped or interrupted run (default: newest)' },
       {
@@ -899,7 +904,7 @@ export function checkCommand(
 
 /**
  * Why `filters` and `tags` select nothing among `evals`, or null. As `reeval run` does: a filter that
- * names an eval file picks files, any other picks evals by name or cell, and the two narrow each
+ * names an eval file or a directory of them picks files, any other picks evals by id, and the two narrow each
  * other; every `--tag` must hold (`!tag` excludes).
  */
 export function selectionProblem(
@@ -916,17 +921,20 @@ export function selectionProblem(
     }
   }
   const byName = (e: SelectableEval, f: string) =>
-    e.name.includes(f) || e.cells.some((c) => c.includes(f)) || e.id?.includes(f)
-  const paths = filters.filter((f) => evals.some((e) => e.file.includes(f.replace(/^\.\//, ''))))
+    e.id ? matchesEvalId(e.id, f) : matchesEvalId(e.name, f)
+  const bare = (f: string) => f.replace(/^\.\//, '').replace(/\/$/, '')
+  const picks = (e: SelectableEval, f: string) =>
+    namesEvalFile(e.file, f) || e.file === bare(f) || e.file.startsWith(`${bare(f)}/`)
+  const paths = filters.filter((f) => evals.some((e) => picks(e, f)))
   const names = filters.filter((f) => !paths.includes(f))
   const unknown = names.filter((f) => !evals.some((e) => byName(e, f)))
   if (unknown.length) {
-    return `${name}: filter ${unknown.map((f) => `"${f}"`).join(', ')} matches no eval file, eval name or cell in the run`
+    return `${name}: filter ${unknown.map((f) => `"${f}"`).join(', ')} matches no eval file or eval id in the run`
   }
   const selected = evals.filter(
     (e) =>
       tags.every((t) => (t.startsWith('!') ? !e.tags.includes(t.slice(1)) : e.tags.includes(t))) &&
-      (!paths.length || paths.some((f) => e.file.includes(f.replace(/^\.\//, '')))) &&
+      (!paths.length || paths.some((f) => picks(e, f))) &&
       (!names.length || names.some((f) => byName(e, f))),
   )
   return selected.length

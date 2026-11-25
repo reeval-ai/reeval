@@ -25,7 +25,7 @@ Every example takes the real agents in [`profiles.ts`](./profiles.ts) by name: `
 | [`with-web-matchers`](./with-web-matchers) | Checking the agent searched the web and read the docs |
 | [`with-multi-turn`](./with-multi-turn) | A session with a follow-up turn |
 | [`with-cases`](./with-cases) | One task over a list of cases |
-| [`with-groups`](./with-groups) | Options cascading from a group to its evals |
+| [`with-skip`](./with-skip) | Evals sharing the config's options, and one skipped with a reason |
 | [`with-pass-rate`](./with-pass-rate) | A cell that passes on most tries, not all |
 | [`with-background-process`](./with-background-process) | A server started in the attempt and checked over HTTP |
 
@@ -44,12 +44,12 @@ Every example takes the real agents in [`profiles.ts`](./profiles.ts) by name: `
 
 | Example | Shows |
 |---|---|
-| [`with-many-harnesses`](./with-many-harnesses) | One eval on several agents, a cell each |
-| [`with-harness-edits`](./with-harness-edits) | An eval adding to the harness list it inherits |
+| [`with-many-agents`](./with-many-agents) | One eval on several agents, a cell each |
+| [`with-agent-edits`](./with-agent-edits) | An eval adding to the agent list it inherits |
 | [`with-reasoning-effort`](./with-reasoning-effort) | One agent at two reasoning efforts |
 | [`with-vercel-gateway`](./with-vercel-gateway) | Model calls through Vercel AI Gateway, on one key |
 | [`with-vertex-gateway`](./with-vertex-gateway) | Claude Code and its judge on Vertex AI, with no key |
-| [`with-fake-harness`](./with-fake-harness) | A scripted agent for building and testing evals |
+| [`with-fake-agent`](./with-fake-agent) | A scripted agent for building and testing evals |
 | [`with-oracle-canary`](./with-oracle-canary) | Proving an eval with an oracle and a canary |
 
 ## Environments
@@ -99,7 +99,7 @@ Every example takes the real agents in [`profiles.ts`](./profiles.ts) by name: `
 | [`with-two-variants`](./with-two-variants) | One convention handed over two ways |
 | [`with-rules-ab`](./with-rules-ab) | Which of two rules files works better |
 | [`with-compare-questions`](./with-compare-questions) | Asking a model which arm did better |
-| [`with-compare-harness`](./with-compare-harness) | A compare on one agent, a control on another |
+| [`with-compare-agents`](./with-compare-agents) | A compare on one agent, a control on another |
 | [`with-case-lift`](./with-case-lift) | A lift pooled over an eval's cases |
 | [`with-effort`](./with-effort) | A skill's effect on effort |
 | [`with-skill-reads`](./with-skill-reads) | Whether the agent opened the skill's files |

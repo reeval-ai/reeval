@@ -1,25 +1,22 @@
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { baseline, variant } from './env.ts'
 
 // The question's calls are saved with the prompt (its token masked) and the landing capture's ref.
-evaluate(
-  'lands',
-  {
-    compare: { control: baseline, variants: [variant] },
-    questions: [
-      {
-        question: 'Which page looks better?',
-        across: 'environment',
-        task: true,
-        artifacts: ['landing'],
-      },
-    ],
-  },
-  async (c) => {
+export default defineEval({
+  compare: { control: baseline, variants: [variant] },
+  questions: [
+    {
+      question: 'Which page looks better?',
+      across: 'environment',
+      task: true,
+      artifacts: ['landing'],
+    },
+  ],
+  task: async (c) => {
     await c.send(`write the page for ${process.env.REEVAL_FIXTURE_TOKEN}`)
     const server = await c.serve('node server.mjs')
     await c.capture(server, { name: 'aside' })
     const landing = await c.capture(server, { name: 'landing' })
     expect(landing.file.path).toBe('artifacts/landing.png')
   },
-)
+})

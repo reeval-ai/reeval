@@ -6,8 +6,16 @@
 // Every message fits the attempt protocol's Zod schemas and its JSON Schema.
 // REEVAL_UPDATE_SNAPSHOTS=1 rewrites the goldens; review the diff.
 import assert from 'node:assert/strict'
-import { cpSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
+import { basename, dirname, join, relative } from 'node:path'
 import { before, describe, test } from 'node:test'
 import { createJiti } from 'jiti'
 import { biome } from '../scripts/schema/check.ts'
@@ -28,7 +36,7 @@ import { declarationProblem } from '../src/contract/declaration.ts'
 import type { DeclarationTree, DeclaredNode } from '../src/declaration.ts'
 import { collect, collectingFile, registerGroup, registerTest } from '../src/engine/collector.ts'
 import { useEngine } from '../src/engine/runtime.ts'
-import { declaredBody, declaredTree } from '../src/evaluate.ts'
+import { declaredBody, declaredTree, resetDeclarationCollector } from '../src/evaluate.ts'
 import { jitiTransform } from '../src/jiti.ts'
 import type { RunContext } from '../src/types.ts'
 import { project, readRun, runCli } from './helpers.ts'
@@ -54,7 +62,18 @@ function matchJson(path: string, value: unknown): void {
   assert.deepEqual(value, golden, `test/${path} (REEVAL_UPDATE_SNAPSHOTS=1 rewrites it)`)
 }
 
-type DeclareCase = { name: string; eval: string; plan: string; args: string[] }
+type DeclareCase = {
+  name: string
+  eval: string
+  plan: string
+  args: string[]
+  /** Plan directory for loading a declare mirror; defaults from `eval`. */
+  treeRoot?: string
+  /** Eval sources for the records test; defaults to the declare mirror. */
+  sources?: string[]
+  /** Plan eval files to copy; defaults to everything `eval` resolves. */
+  planSources?: string[]
+}
 
 const declareCases: DeclareCase[] = readdirSync(join(conformance, 'declare'))
   .sort()
@@ -63,10 +82,20 @@ const declareCases: DeclareCase[] = readdirSync(join(conformance, 'declare'))
     ...JSON.parse(readFileSync(join(conformance, 'declare', name, 'case.json'), 'utf8')),
   }))
 
+const evaluateModule = await import('../src/evaluate.ts')
+const environmentModule = await import('../src/environment.ts')
+const egressModule = await import('../src/egress.ts')
+
 /** reeval's own modules, so an eval file loaded here declares into this process's collector. */
 const virtualModules = {
   reeval: await import('../src/index.ts'),
-  'reeval/harness': await import('../src/harness.ts'),
+  'reeval/legacy': {
+    evaluate: evaluateModule.evaluate,
+    group: evaluateModule.group,
+    defineEnvironment: environmentModule.defineEnvironment,
+    DEFAULT_EGRESS_ALLOW: egressModule.DEFAULT_EGRESS_ALLOW,
+  },
+  'reeval/agent': await import('../src/agent.ts'),
   'reeval/sandbox': await import('../src/sandbox.ts'),
   'reeval/judge': await import('../src/judge.ts'),
   'reeval/gateway': await import('../src/gateway.ts'),
@@ -83,16 +112,95 @@ function renumbered(nodes: DeclaredNode[], from: number): DeclaredNode[] {
   )
 }
 
-/** The tree `evaluate` and `group` record for an eval file under test/, as a worker collects it. */
-async function treeOf(path: string): Promise<DeclarationTree> {
-  const file = join(testDir, path)
-  const root = join(file, '../..')
-  const jiti = createJiti(root, { transform: jitiTransform, virtualModules, moduleCache: false })
-  const config = (await jiti.import(join(root, 'reeval.config.ts'), { default: true })) as never
+function listEvals(dir: string): string[] {
+  const out: string[] = []
+  for (const ent of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, ent.name)
+    if (ent.isDirectory()) out.push(...listEvals(p))
+    else if (ent.name.endsWith('.eval.ts')) out.push(p)
+  }
+  return out.sort()
+}
+
+function declareMirror(caseName: string) {
+  return join(conformance, 'declare', caseName, 'mirror.eval.ts')
+}
+
+/** Eval file paths for a plan case's eval (one file, a split directory, or an evals tree). */
+function evalSources(path: string, extra?: string[]): string[] {
+  if (extra?.length) return extra.map((p) => join(testDir, p)).sort()
+  const abs = join(testDir, path)
+  if (path.endsWith('.eval.ts')) {
+    if (existsSync(abs)) return [abs]
+    const dir = abs.replace(/\.eval\.ts$/, '')
+    if (existsSync(dir)) return listEvals(dir)
+    throw new Error(`Missing eval source ${path}`)
+  }
+  if (existsSync(abs)) return listEvals(abs)
+  throw new Error(`Missing eval source ${path}`)
+}
+
+function planRootOf(path: string) {
+  return join(testDir, path.replace(/\/evals(?:\/[^/]+)?$/, ''))
+}
+
+function declareSources(c: DeclareCase): string[] {
+  const mirror = declareMirror(c.name)
+  if (c.sources?.length) return evalSources('', c.sources)
+  if (existsSync(mirror)) return [mirror]
+  return evalSources(c.eval)
+}
+
+function planEvalsDir(path: string) {
+  if (path.endsWith('.eval.ts')) return join(testDir, dirname(path))
+  const abs = join(testDir, path)
+  const parent = dirname(abs)
+  if (parent.endsWith('/evals') && basename(abs) !== 'evals') return parent
+  return abs
+}
+
+function planFilterArg(path: string, sources: string[]) {
+  const planEvals = planEvalsDir(path)
+  if (sources.length === 1) return `evals/${relative(planEvals, sources[0]!)}`
+  const abs = join(testDir, path)
+  const parent = dirname(abs)
+  if (parent.endsWith('/evals') && basename(abs) !== 'evals') return `evals/${basename(abs)}`
+  if (!path.endsWith('.eval.ts')) return 'evals'
+  return `evals/${basename(dirname(sources[0]!))}`
+}
+
+function installPlanEvals(root: string, c: DeclareCase) {
+  const planEvals = planEvalsDir(c.eval)
+  const destRoot = join(root, 'evals')
+  rmSync(destRoot, { recursive: true, force: true })
+  for (const src of evalSources(c.eval, c.planSources)) {
+    const rel = relative(planEvals, src)
+    const dest = join(destRoot, rel)
+    mkdirSync(dirname(dest), { recursive: true })
+    cpSync(src, dest)
+  }
+  for (const ent of readdirSync(planEvals, { withFileTypes: true })) {
+    if (!ent.isFile() || ent.name.endsWith('.eval.ts')) continue
+    if (!/\.tsx?$/.test(ent.name)) continue
+    cpSync(join(planEvals, ent.name), join(destRoot, ent.name))
+  }
+}
+
+/** The tree defineEval records for a plan case's eval sources, as a worker collects them. */
+async function treeOf(c: DeclareCase): Promise<DeclarationTree> {
+  resetDeclarationCollector()
+  const sources = declareSources(c)
+  const planRoot = join(testDir, c.treeRoot ?? planRootOf(c.eval))
+  const jiti = createJiti(planRoot, {
+    transform: jitiTransform,
+    virtualModules,
+    moduleCache: false,
+  })
+  const config = (await jiti.import(join(planRoot, 'reeval.config.ts'), { default: true })) as never
   const run: RunContext = {
     runId: 'conformance',
-    stagingDir: root,
-    config: resolveConfig(config, root),
+    stagingDir: planRoot,
+    config: resolveConfig(config, planRoot),
     tags: [],
     concurrency: 4,
     profile: null,
@@ -106,20 +214,20 @@ async function treeOf(path: string): Promise<DeclarationTree> {
   })
   let before = 0
   while (declaredBody(`b${before + 1}`)) before++
-  await collect(file, () => jiti.import(file))
-  const tree = declaredTree(file)
-  assert.ok(tree, `${path} declared nothing`)
-  return JSON.parse(JSON.stringify({ children: renumbered(tree.children, before) }))
+  const children: DeclaredNode[] = []
+  for (const file of sources) {
+    await collect(file, () => jiti.import(file))
+    const tree = declaredTree(file)
+    assert.ok(tree, `${relative(testDir, file)} declared nothing`)
+    children.push(...tree.children)
+  }
+  return JSON.parse(JSON.stringify({ children: renumbered(children, before) }))
 }
-
-/** An eval file that declares `tree` as another language's runner would hand it over. */
-const declaringFile = (tree: DeclarationTree) =>
-  `import { declareTree } from 'reeval/testing'\n\ndeclareTree(${JSON.stringify(tree.children)}, () => async () => {})\n`
 
 describe('declare goldens', () => {
   for (const c of declareCases) {
     test(`${c.name}: ${c.eval} records expected.json`, async () => {
-      const tree = await treeOf(c.eval)
+      const tree = await treeOf(c)
       assert.equal(declarationProblem(tree.children), undefined)
       assert.deepEqual(validate(schema('plan/declaration'), tree), [])
       matchJson(`conformance/declare/${c.name}/expected.json`, tree)
@@ -127,14 +235,13 @@ describe('declare goldens', () => {
   }
   for (const c of declareCases) {
     test(`${c.name}: expected.json, declared in its place, plans ${c.plan}`, async () => {
-      const tree = JSON.parse(
-        readFileSync(join(conformance, 'declare', c.name, 'expected.json'), 'utf8'),
-      ) as DeclarationTree
-      const [, dir = '', ...file] = c.eval.split('/')
+      const [, dir = ''] = c.eval.split('/')
+      const installed = evalSources(c.eval, c.planSources)
+      const planArgs = c.args.length ? c.args : [planFilterArg(c.eval, installed)]
       const plan = await planJson({
         dir,
-        args: c.args,
-        prepare: (root) => writeFileSync(join(root, ...file), declaringFile(tree)),
+        args: planArgs,
+        prepare: (root) => installPlanEvals(root, c),
       })
       assert.equal(
         renderPlan(plan),
@@ -189,12 +296,12 @@ function steady(value: unknown, root: string): unknown {
 }
 
 const CONFIG = `import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeJudge } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
 
 export default defineConfig({
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     files: { 'greet.js': 'export const greet = (name) => \`Hello, \${name}!\`\\n' },
     text: 'Wrote greet.js.',
   }),
@@ -206,12 +313,22 @@ export default defineConfig({
 /** One eval per script, each the only one in its file, so its body is b1. */
 const evalFile = (name: string, options: unknown, out: string) => {
   const run = { script: scriptPath(name), out, file: `evals/${name}.eval.ts`, body: 'b1' }
-  return `import { evaluate } from 'reeval'
+  const extra =
+    options && typeof options === 'object' && Object.keys(options as object).length > 0
+      ? `${Object.entries(options as Record<string, unknown>)
+          .map(([k, v]) => `  ${k}: ${JSON.stringify(v)},`)
+          .join('\n')}\n`
+      : ''
+  return `import { defineEval } from 'reeval'
 import { runScript } from './runner.ts'
 
-evaluate(${JSON.stringify(name)}, ${JSON.stringify(options)}, (c) =>
-  runScript(c, ${JSON.stringify(run)}),
-)
+const run = ${JSON.stringify(run)}
+
+export default defineEval({
+${extra}  async task(c) {
+    await runScript(c, run)
+  },
+})
 `
 }
 
@@ -276,7 +393,7 @@ describe('context goldens', () => {
     for (const name of contextCases) {
       const out = outs.get(name) as string
       assert.ok(existsSync(out), `${name}: the runner wrote nothing\n${r.stdout}${r.stderr}`)
-      const entry = evals.find((e) => e.name === name)
+      const entry = evals.find((e) => e.id === name || e.name === name)
       assert.ok(entry, `${name}: no eval in the run record`)
       const {
         outcome,

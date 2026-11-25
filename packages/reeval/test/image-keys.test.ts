@@ -647,7 +647,8 @@ describe('--registry and --push', () => {
   test('--push needs --registry, and --registry is a registry prefix', async () => {
     const p = await project('image-registry-flags', {
       'reeval.config.ts': fakeConfig(),
-      'evals/a.eval.ts': "import { evaluate } from 'reeval'\nevaluate('a', async () => {})\n",
+      'evals/a.eval.ts':
+        "import { defineEval } from 'reeval'\nexport default defineEval({ async task() {} })\n",
     })
     const push = await runCli(p.dir, ['image', 'build', '--push'])
     assert.equal(push.code, 2, push.stdout + push.stderr)

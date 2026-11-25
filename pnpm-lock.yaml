@@ -49,6 +49,12 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
+  examples/with-agent-edits:
+    dependencies:
+      reeval:
+        specifier: workspace:*
+        version: link:../../packages/reeval
+
   examples/with-analysis:
     dependencies:
       reeval:
@@ -127,13 +133,13 @@ importers:
         specifier: workspace:*
         version: link:../../packages/reeval
 
-  examples/with-compare-control:
+  examples/with-compare-agents:
     dependencies:
       reeval:
         specifier: workspace:*
         version: link:../../packages/reeval
 
-  examples/with-compare-harness:
+  examples/with-compare-control:
     dependencies:
       reeval:
         specifier: workspace:*
@@ -229,7 +235,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/reeval
 
-  examples/with-fake-harness:
+  examples/with-fake-agent:
     dependencies:
       reeval:
         specifier: workspace:*
@@ -271,19 +277,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/reeval
 
-  examples/with-groups:
-    dependencies:
-      reeval:
-        specifier: workspace:*
-        version: link:../../packages/reeval
-
   examples/with-guarded-files:
-    dependencies:
-      reeval:
-        specifier: workspace:*
-        version: link:../../packages/reeval
-
-  examples/with-harness-edits:
     dependencies:
       reeval:
         specifier: workspace:*
@@ -337,7 +331,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/reeval
 
-  examples/with-many-harnesses:
+  examples/with-many-agents:
     dependencies:
       reeval:
         specifier: workspace:*
@@ -488,6 +482,12 @@ importers:
         version: link:../../packages/reeval
 
   examples/with-skill-sources:
+    dependencies:
+      reeval:
+        specifier: workspace:*
+        version: link:../../packages/reeval
+
+  examples/with-skip:
     dependencies:
       reeval:
         specifier: workspace:*

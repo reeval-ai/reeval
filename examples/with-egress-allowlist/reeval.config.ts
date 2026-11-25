@@ -1,17 +1,17 @@
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 import { profiles } from '../profiles.ts'
 
-const fakeAgent = (path: string) =>
+const fakeFile = (path: string) =>
   readFileSync(new URL(`./fake-agent/${path}`, import.meta.url), 'utf8')
 
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that copies ./fake-agent's files into the workspace.
-  harnesses: fakeHarness({
-    files: { 'title.js': fakeAgent('title.js') },
+  agents: fakeAgent({
+    files: { 'title.js': fakeFile('title.js') },
     text: "I wrote title.js, which prints example.com's title.",
   }),
   // fakeSandbox() can't enforce an egress policy, so the plan refuses an allowlist on it.

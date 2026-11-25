@@ -36,13 +36,12 @@ The server is the only change between the cells. For more information about `mcp
 In the `evals/releases.eval.ts` file, declare the evaluation and name the variant in `compare.variants`:
 
 ```ts title="evals/releases.eval.ts"
-import { evaluate, expect } from '{{ pkg }}'
+import { defineEval, expect } from '{{ pkg }}'
 import { app, withReleases } from './environments.ts'
 
-evaluate(
-  'bumps to the latest release',
-  { compare: { control: app, variants: [withReleases] }, runs: 4 },
-  async (c) => {
+export default defineEval({
+  compare: { control: app, variants: [withReleases] }, runs: 4,
+  task: async (c) => {
     const turn = await c.send(
       "Set package.json's version to the latest acme-cli release.",
     )
@@ -52,7 +51,7 @@ evaluate(
     }
     await expect(turn).toHaveFile('package.json', /"version": "2\.4\.0"/)
   },
-)
+})
 ```
 
 The prompt doesn't name the server, so the file assertion passes on the control only when the harness finds the version another way. The control has no server to call, so only the variant checks the call. `runs: 4` gives each cell four attempts. Below four counted attempts a side, the `too-few-tries` remark often says the effect doesn't hold yet.

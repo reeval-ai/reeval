@@ -312,7 +312,7 @@ async function brokerKey(
   }
   const network = hasNetworkSession(sandbox) ? sandbox.network : undefined
   if (!network?.setRequestTransformations) {
-    throw new InfraError("fakeHarness({ brokers: true }) needs docker(): this sandbox can't broker")
+    throw new InfraError("fakeAgent({ brokers: true }) needs docker(): this sandbox can't broker")
   }
   const placeholder = `reeval_fake_${randomBytes(24).toString('base64url')}`
   await network.setRequestTransformations(

@@ -128,12 +128,12 @@ export async function project(name: string, files: Record<string, string>): Prom
 
 export const fakeConfig = (options: { harness?: string; judge?: string; extra?: string } = {}) => `
 import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 import { fakeJudge } from 'reeval/judge'
 const sandbox = fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) })
 export default defineConfig({
-  harnesses: fakeHarness(${options.harness ?? '{}'}),
+  agents: fakeAgent(${options.harness ?? '{}'}),
   sandbox,
   environments: defineEnvironment('fake', {}),
   judge: ${options.judge ?? '{ model: fakeJudge({ score: 0.9 }) }'},

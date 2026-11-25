@@ -1,6 +1,7 @@
 import { defineConfig } from 'reeval'
-import { claudeCode, grokBuild } from 'reeval/harness'
+import { claudeCode, grokBuild } from 'reeval/agent'
 
 export default defineConfig({
-  harnesses: [claudeCode({ model: 'claude-sonnet-5' }), grokBuild({ model: 'grok-4.6' })],
+  include: ['evals/namespaced.eval.ts'],
+  agents: [claudeCode({ model: 'claude-sonnet-5' }), grokBuild({ model: 'grok-4.6' })],
 })

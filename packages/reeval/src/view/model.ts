@@ -23,12 +23,6 @@ import { type CellEffort, cellContrast, cellEffort, type EffortContrast } from '
 import { cellJudgeRates, cellUsage, type JudgeKeyRate, uniqueJudgeLabels } from './judgments.ts'
 import { readableTranscriptLine } from './record.ts'
 
-/** Splits `file › group › … › name` back into its parts. */
-export function splitEvalId(id: string): { file: string; path: string[] } {
-  const [file = id, ...path] = id.split(' › ')
-  return { file, path: path.length ? path : [file] }
-}
-
 // ── Formatting ───────────────────────────────────────────────────────────────────────────────
 
 export function formatDuration(ms: number | null | undefined): string {
@@ -266,7 +260,8 @@ export function evalTree(record: Pick<RunRecord, 'evals'>): TreeNode[] {
     children: [],
   }
   for (const e of record.evals) {
-    const trail = [e.file, ...e.group]
+    const trail =
+      e.group.length || e.id.includes(' › ') ? [e.file, ...e.group] : e.id.split('/').slice(0, -1)
     let node = root
     for (const [i, name] of trail.entries()) {
       const key = trail.slice(0, i + 1).join(' › ')

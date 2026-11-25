@@ -7,10 +7,10 @@ Each harness factory takes a `model`. All but `fx` also take an optional `effort
 
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
-import { claudeCode } from '{{ pkg }}/harness'
+import { claudeCode } from '{{ pkg }}/agent'
 
 export default defineConfig({
-  harnesses: claudeCode({ model: '<model>', effort: 'high' }),
+  agents: claudeCode({ model: '<model>', effort: 'high' }),
 })
 ```
 

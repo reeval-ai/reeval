@@ -34,23 +34,28 @@ function attemptDir(root: string, name: string): string {
 const read = (path: string) => readFileSync(path, 'utf8')
 
 const script = "{ script: [[{ exec: 'echo from-the-agent' }, { write: { 'out.txt': 'hi\\n' } }]] }"
-const passing = `import { defineEnvironment, evaluate, expect } from 'reeval'
+const passing = `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const env = defineEnvironment('traced', {
   sandbox: fakeSandbox(),
   files: { 'notes.md': 'notes\\n' },
   setup: ['echo set-up > setup.txt'],
 })
-evaluate('traces every phase', { environments: env }, async (c) => {
-  await c.send('write out.txt')
-  await expect(c.exec('test -f out.txt')).toSucceed()
-  expect(await c.judge('Did it write out.txt?', { diff: true })).toPass()
+export default defineEval({
+  environment: env,
+  async task(c) {
+    await c.send('write out.txt')
+    await expect(c.exec('test -f out.txt')).toSucceed()
+    expect(await c.judge('Did it write out.txt?', { diff: true })).toPass()
+  },
 })
 `
-const failing = `import { evaluate, expect } from 'reeval'
-evaluate('fails its check', async (c) => {
-  await c.send('write out.txt')
-  expect((await c.exec('test -f missing.txt')).exitCode).toBe(0)
+const failing = `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('write out.txt')
+    expect((await c.exec('test -f missing.txt')).exitCode).toBe(0)
+  },
 })
 `
 
@@ -67,7 +72,7 @@ describe('verbosity', () => {
   test('-v prints each phase line for an attempt, prefixed with the attempt', async () => {
     const p = await project('debug-v', {
       'reeval.config.ts': fakeConfig({ harness: script }),
-      'evals/a.eval.ts': passing,
+      'evals/traces.eval.ts': passing,
     })
     const r = await runCli(p.dir, ['run', '-v'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
@@ -77,7 +82,7 @@ describe('verbosity', () => {
       r.stdout,
       / plan {6}config reeval\.config\.ts · no profile · run \S+ · attempt fake\/traced\/fake#1$/m,
     )
-    assert.match(r.stdout, / plan {6}environment traced \(evaluate\("traces every phase"\)\)$/m)
+    assert.match(r.stdout, / plan {6}environment traced \(evals\/traces\.eval\.ts\)$/m)
     assert.match(r.stdout, / env {7}file notes\.md \(6 bytes\)$/m)
     assert.match(r.stdout, / env {7}setup 1\/1 \$ echo set-up > setup\.txt → exit 0 · \d+m?s$/m)
     assert.match(r.stdout, / harness {3}tool shell called: \$ echo from-the-agent$/m)
@@ -94,20 +99,20 @@ describe('verbosity', () => {
   test('canary: without -v, no phase line prints', async () => {
     const p = await project('debug-quiet', {
       'reeval.config.ts': fakeConfig({ harness: script }),
-      'evals/a.eval.ts': passing,
+      'evals/traces.eval.ts': passing,
     })
     const r = await runCli(p.dir, ['run', '--output-logs', 'full'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
     for (const phase of PHASES) assert.doesNotMatch(r.stdout, phaseLine(phase), phase)
     // Twin: the attempt's own lines still print, under the same prefix.
-    assert.match(r.stdout, /^\[traces#1 [^\]]+\] ▶ evals\/a\.eval\.ts › traces every phase$/m)
+    assert.match(r.stdout, /^\[traces#1 [^\]]+\] ▶ traces$/m)
   })
 
   test('grouped logs keep each attempt’s debug lines in its own block', async () => {
     const p = await project('debug-grouped', {
       'reeval.config.ts': fakeConfig({ harness: script }),
-      'evals/a.eval.ts': passing,
-      'evals/b.eval.ts': failing,
+      'evals/traces.eval.ts': passing,
+      'evals/fails.eval.ts': failing,
     })
     const r = await runCli(p.dir, ['run', '-v', '--log-order', 'grouped'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
@@ -129,7 +134,7 @@ describe('verbosity', () => {
   test('agent mode prints -v lines too, under the attempt tag', async () => {
     const p = await project('debug-agent', {
       'reeval.config.ts': fakeConfig({ harness: script }),
-      'evals/a.eval.ts': passing,
+      'evals/traces.eval.ts': passing,
     })
     const r = await runCli(p.dir, ['run', '-v'], { env: { REEVAL_UI: 'agent' } })
     assert.equal(r.code, 0, r.stdout + r.stderr)
@@ -142,7 +147,7 @@ describe('verbosity', () => {
   test('-vv adds raw payloads with millisecond times', async () => {
     const p = await project('debug-vv', {
       'reeval.config.ts': fakeConfig({ harness: script }),
-      'evals/a.eval.ts': passing,
+      'evals/traces.eval.ts': passing,
     })
     const r = await runCli(p.dir, ['run', '-vv'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
@@ -159,12 +164,12 @@ describe('local debug data', () => {
   test('debug.log is always written to .reeval/debug, and nothing of it lands in the history', async () => {
     const p = await project('debug-log', {
       'reeval.config.ts': fakeConfig({ harness: script }),
-      'evals/a.eval.ts': passing,
+      'evals/traces.eval.ts': passing,
     })
     const r = await runCli(p.dir, ['run', '--record'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const { run } = readRun(p.dir)
-    const dir = attemptDir(p.dir, 'traces-every-phase')
+    const dir = attemptDir(p.dir, 'traces-')
     assert.ok(dir.includes(join('.reeval', 'debug', run.runId)), dir)
     const log = read(join(dir, 'debug.log'))
     for (const phase of PHASES) {
@@ -188,13 +193,13 @@ describe('local debug data', () => {
   test('trace.ndjson is kept for a failing attempt, not a passing one unless -vv', async () => {
     const p = await project('debug-trace', {
       'reeval.config.ts': fakeConfig({ harness: script }),
-      'evals/a.eval.ts': passing,
-      'evals/b.eval.ts': failing,
+      'evals/traces.eval.ts': passing,
+      'evals/fails.eval.ts': failing,
     })
     const r = await runCli(p.dir, ['run'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
-    const pass = attemptDir(p.dir, 'traces-every-phase')
-    const fail = attemptDir(p.dir, 'fails-its-check')
+    const pass = attemptDir(p.dir, 'traces-')
+    const fail = attemptDir(p.dir, 'fails-')
     assert.equal(existsSync(join(pass, 'trace.ndjson')), false, 'no trace for the pass')
     const trace = read(join(fail, 'trace.ndjson'))
       .trim()
@@ -212,7 +217,7 @@ describe('local debug data', () => {
 
     const traced = await runCli(p.dir, ['run', '-vv'])
     assert.equal(traced.code, 1, traced.stdout + traced.stderr)
-    assert.ok(existsSync(join(attemptDir(p.dir, 'traces-every-phase'), 'trace.ndjson')))
+    assert.ok(existsSync(join(attemptDir(p.dir, 'traces-'), 'trace.ndjson')))
   })
 
   test('a small trace buffer drops the oldest entries and says how many', async () => {
@@ -221,11 +226,11 @@ describe('local debug data', () => {
         harness: script,
         extra: 'debug: { traceBufferMb: 0.002 },',
       }),
-      'evals/b.eval.ts': failing,
+      'evals/fails.eval.ts': failing,
     })
     const r = await runCli(p.dir, ['run'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
-    const text = read(join(attemptDir(p.dir, 'fails-its-check'), 'trace.ndjson'))
+    const text = read(join(attemptDir(p.dir, 'fails-'), 'trace.ndjson'))
     const [head, ...entries] = text
       .trim()
       .split('\n')
@@ -256,11 +261,13 @@ describe('local debug data', () => {
         .replace('export default defineConfig({', 'export default defineConfig(({ secret }) => ({')
         .replace(/\}\)\n$/, '}))\n')
         .replace('judge:', "env: { LEAKY: secret.fromEnv('REEVAL_DEBUG_LEAKY') },\n  judge:"),
-      'evals/b.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('leaks', async (c) => {
-  await c.send('print it')
-  const r = await c.exec(${JSON.stringify(leak)})
-  expect(r.exitCode).toBe(0)
+      'evals/leaks.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('print it')
+    const r = await c.exec(${JSON.stringify(leak)})
+    expect(r.exitCode).toBe(0)
+  },
 })
 `,
     })
@@ -288,17 +295,20 @@ evaluate('leaks', async (c) => {
     const DSN = 'dsn_7c1d9ab04e4f2a6b8c'
     const p = await project('debug-redact-declared', {
       'reeval.config.ts': fakeConfig(),
-      'evals/b.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/b.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const env = defineEnvironment('sentry', ({ secret }) => ({
   sandbox: fakeSandbox(),
   env: { SENTRY_DSN: secret.fromEnv('REEVAL_DEBUG_DSN') },
 }))
-evaluate('prints the dsn', { environments: env }, async (c) => {
-  const dsn = (await c.exec('printenv SENTRY_DSN')).stdout.trim()
-  console.log('logged', dsn)
-  console.error('warned', dsn)
-  expect(dsn).toBe('wrong')
+export default defineEval({
+  environment: env,
+  async task(c) {
+    const dsn = (await c.exec('printenv SENTRY_DSN')).stdout.trim()
+    console.log('logged', dsn)
+    console.error('warned', dsn)
+    expect(dsn).toBe('wrong')
+  },
 })
 `,
     })
@@ -328,9 +338,9 @@ evaluate('prints the dsn', { environments: env }, async (c) => {
         'export default',
         `if (process.env.REEVAL_FATAL_WHERE === 'config') throw new Error('config refused ' + process.env.REEVAL_FATAL_API_KEY)\nexport default`,
       ),
-      'evals/b.eval.ts': `import { evaluate } from 'reeval'
+      'evals/b.eval.ts': `import { defineEval } from 'reeval'
 if (process.env.REEVAL_FATAL_WHERE === 'eval') throw new Error(\`eval refused \${process.env.REEVAL_FATAL_API_KEY}\`)
-evaluate('e', async () => {})
+export default defineEval({ async task() {} })
 `,
     })
     for (const where of ['config', 'eval']) {
@@ -356,12 +366,14 @@ evaluate('e', async () => {})
       'reeval.config.ts': fakeConfig({
         harness: `{ script: [[{ exec: ${JSON.stringify(search)} }]] }`,
       }),
-      'evals/b.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('searches for the tail', async (c) => {
-  await c.send('search')
-  const tail = (process.env.REEVAL_DEBUG_PROVIDER_API_KEY ?? '').slice(-12)
-  const r = await c.exec(\`echo searching for \${tail}; grep -rlsF -e '\${tail}' . || true\`)
-  expect(r.exitCode).toBe(0)
+      'evals/searches.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('search')
+    const tail = (process.env.REEVAL_DEBUG_PROVIDER_API_KEY ?? '').slice(-12)
+    const r = await c.exec(\`echo searching for \${tail}; grep -rlsF -e '\${tail}' . || true\`)
+    expect(r.exitCode).toBe(0)
+  },
 })
 `,
     })
@@ -394,7 +406,7 @@ evaluate('searches for the tail', async (c) => {
     const config = `Authorization: ${AUTH}\nX-Request-Source: ${SOURCE}\n`
     const p = await project('debug-redact-mcp-header', {
       'reeval.config.ts': fakeConfig({ harness: "{ script: [[{ exec: 'cat mcp-config.txt' }]] }" }),
-      'evals/b.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/prints.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const env = defineEnvironment('headers', ({ mcp }) => ({
   sandbox: fakeSandbox(),
@@ -405,9 +417,12 @@ const env = defineEnvironment('headers', ({ mcp }) => ({
     }),
   },
 }))
-evaluate('prints its headers', { environments: env }, async (c) => {
-  const turn = await c.send('print them')
-  expect(turn.text).toBe('Done.')
+export default defineEval({
+  environment: env,
+  async task(c) {
+    const turn = await c.send('print them')
+    expect(turn.text).toBe('Done.')
+  },
 })
 `,
     })
@@ -441,7 +456,7 @@ evaluate('prints its headers', { environments: env }, async (c) => {
   test('keeps the newest debug.keep runs, and reeval clean clears them', async () => {
     const p = await project('debug-keep', {
       'reeval.config.ts': fakeConfig({ extra: 'debug: { keep: 2 },' }),
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'\nevaluate('e', async (c) => { await c.send('go') })\n`,
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'\nexport default defineEval({ async task(c) { await c.send('go') } })\n`,
     })
     const runs = () => (existsSync(debugRoot(p.dir)) ? readdirSync(debugRoot(p.dir)).sort() : [])
     const ids: string[] = []

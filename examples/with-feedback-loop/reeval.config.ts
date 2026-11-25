@@ -1,15 +1,15 @@
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeJudge } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
 import { profiles } from '../profiles.ts'
 
-const fakeAgent = (path: string) =>
+const fakeFile = (path: string) =>
   readFileSync(new URL(`./fake-agent/${path}`, import.meta.url), 'utf8')
 const turn = (n: number) => ({
-  'src/notes.js': fakeAgent(`turn-${n}/src/notes.js`),
-  'test/notes.test.js': fakeAgent(`turn-${n}/test/notes.test.js`),
+  'src/notes.js': fakeFile(`turn-${n}/src/notes.js`),
+  'test/notes.test.js': fakeFile(`turn-${n}/test/notes.test.js`),
 })
 
 export default defineConfig({
@@ -17,7 +17,7 @@ export default defineConfig({
   // A scripted agent that copies ./fake-agent/turn-1 into the workspace on the first turn and
   // ./fake-agent/turn-2 on the second, and a judge with a fixed score, so the checks run without
   // keys or Docker.
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     script: [
       [{ write: turn(1) }, { reply: 'listNotes({ page }) returns ten notes a page, with a test.' }],
       [{ write: turn(2) }, { reply: 'listNotes({ cursor }) pages by cursor now; tests updated.' }],

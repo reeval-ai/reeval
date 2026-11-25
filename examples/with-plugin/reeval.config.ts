@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 import { profiles } from '../profiles.ts'
 
-const fakeAgent = (path: string) =>
+const fakeFile = (path: string) =>
   readFileSync(new URL(`./fake-agent/${path}`, import.meta.url), 'utf8')
 
 export default defineConfig({
@@ -12,11 +12,11 @@ export default defineConfig({
   // A scripted agent that calls the plugin's MCP server, as an agent following the release skill
   // would, then copies ./fake-agent's files into the workspace, so the checks run without keys or
   // Docker.
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     script: [[{ mcp: 'release:releases/next_version' }]],
     files: {
-      'package.json': fakeAgent('package.json'),
-      'CHANGELOG.md': fakeAgent('CHANGELOG.md'),
+      'package.json': fakeFile('package.json'),
+      'CHANGELOG.md': fakeFile('CHANGELOG.md'),
     },
     text: 'Released 1.3.0: package.json and CHANGELOG.md are updated.',
   }),

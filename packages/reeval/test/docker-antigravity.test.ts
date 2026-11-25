@@ -47,16 +47,17 @@ describe('antigravity in docker', () => {
     async () => {
       const agyConfig = (sandbox: string) => `
 import { defineConfig, defineEnvironment } from 'reeval'
-import { antigravity } from 'reeval/harness'
+import { antigravity } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 export default defineConfig({
-  harnesses: antigravity({ model: 'gemini-3.8-flash-low' }),
+  agents: antigravity({ model: 'gemini-3.8-flash-low' }),
   environments: defineEnvironment('box', { sandbox: ${sandbox} }),
   timeout: '90s',
 })
 `
-      const eval_ = `import { evaluate, expect } from 'reeval'
-evaluate('hi', async (c) => {
+      const eval_ = `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  task: async (c) => {
   // The rejected key makes the attempt an infra error; the checks below still run, caught.
   await c.send('Reply with the word hi.').catch(() => {})
   // Nothing in the sandbox holds the key: the CLI's own env had only the placeholder.
@@ -64,6 +65,7 @@ evaluate('hi', async (c) => {
   expect((await search('not_a_real_key')).stdout.trim()).toBe('')
   // Twin: the same search finds the settings the adapter wrote.
   expect((await search('modelProvider')).stdout).toContain('/.gemini/antigravity-cli/settings.json')
+  },
 })
 `
       // A made-up key, and host Google keys the adapter must ignore: the sandbox, the gateway and
@@ -142,21 +144,23 @@ evaluate('hi', async (c) => {
       const p = await project('docker-agy-real', {
         'reeval.config.ts': `
 import { defineConfig } from 'reeval'
-import { antigravity } from 'reeval/harness'
+import { antigravity } from 'reeval/agent'
 export default defineConfig({
-  harnesses: antigravity({ model: 'gemini-3.8-flash-low' }),
+  agents: antigravity({ model: 'gemini-3.8-flash-low' }),
   timeout: '5m',
 })
 `,
         'skills/owl-facts/SKILL.md':
           '---\nname: owl-facts\ndescription: Facts about owls. Use when asked for the owl code.\n---\n\nThe owl code is OWL-5521.\n',
-        'evals/d.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+        'evals/real.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 const house = defineEnvironment('house', ({ skill }) => ({
   rules: 'When asked for the house word, answer exactly: PERIWINKLE-42',
   files: { 'probe.sh': 'printf %s "$GEMINI_API_KEY" | cut -c1-8 > /tmp/probe.txt\\necho probed\\n' },
   skills: [skill.local('../skills/owl-facts')],
 }))
-evaluate('real', { environments: house }, async (c) => {
+export default defineEval({
+  environment: house,
+  task: async (c) => {
   const edit = await c.send('Create hello.js that prints "hi from agy" with console.log, then run it with node and tell me what it printed.')
   expect(edit.status).toBe('completed')
   await expect(edit).toHaveFile('hello.js', /hi from agy/)
@@ -170,6 +174,7 @@ evaluate('real', { environments: house }, async (c) => {
   const probe = await c.send('Run the shell command: sh probe.sh')
   expect(probe.transcript.some((e) => e.type === 'tool' && e.tool === 'bash')).toBe(true)
   expect((await c.exec('cat /tmp/probe.txt')).stdout.trim()).toBe('aisdkhc_')
+  },
 })
 `,
       })

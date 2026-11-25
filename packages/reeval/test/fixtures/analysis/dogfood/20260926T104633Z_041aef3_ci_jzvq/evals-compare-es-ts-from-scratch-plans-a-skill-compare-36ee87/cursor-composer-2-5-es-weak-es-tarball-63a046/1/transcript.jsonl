@@ -20,7 +20,7 @@
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/sandbox.d.ts"},"ok":true,"durationMs":32}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":17}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"defineConfig|compare|baseline|fakeHarness|fakeJudge|fakeSandbox"},"ok":true,"durationMs":62}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"defineConfig|compare|baseline|fakeAgent|fakeJudge|fakeSandbox"},"ok":true,"durationMs":62}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/harness/fake.d.ts"},"ok":true,"durationMs":61}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":6}

@@ -62,12 +62,12 @@ case $part in
     reeval init -y
     cat >fake.config.ts <<'EOF'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 
 export default defineConfig({
   include: ['evals/**/*.eval.ts'],
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     files: { 'greet.js': 'export const greet = (name) => `Hello, ${name}!`\n' },
   }),
   sandbox: fakeSandbox(),
@@ -80,7 +80,7 @@ EOF
     mkdir "$work/docker" && cd "$work/docker"
     npm init -y >/dev/null
     npm install --no-audit --no-fund "../$tarball"
-    reeval init -y --harness cursor | tee init.log
+    reeval init -y --agent cursor | tee init.log
     os=$(docker info --format '{{.OSType}}' 2>/dev/null || true)
     if reeval doctor >doctor.log 2>&1; then status=0; else status=$?; fi
     cat doctor.log

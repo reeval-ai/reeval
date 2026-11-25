@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { defineEnvironment, evaluate, expect } from 'reeval'
+import { defineEnvironment, defineEval, expect } from 'reeval'
 
 // The small package in ./project, whose tests must pass before the agent starts.
 const math = defineEnvironment('math', ({ directory }) => ({
@@ -15,9 +15,12 @@ const withDocs = math.extendEnvironment('math-with-docs', ({ file }) => ({
 
 const hiddenTest = readFileSync(new URL('./hidden/multiply.test.js', import.meta.url), 'utf8')
 
-evaluate('follows the API conventions', { environments: withDocs }, async (c) => {
-  await c.send('Add a multiply(a, b) function to src/math.js. Follow docs/api.md.')
+export default defineEval({
+  environment: withDocs,
+  task: async (c) => {
+    await c.send('Add a multiply(a, b) function to src/math.js. Follow docs/api.md.')
 
-  await c.writeFile('test/multiply.test.js', hiddenTest)
-  await expect(c.exec('node --test')).toSucceed()
+    await c.writeFile('test/multiply.test.js', hiddenTest)
+    await expect(c.exec('node --test')).toSucceed()
+  },
 })

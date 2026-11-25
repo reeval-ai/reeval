@@ -122,12 +122,18 @@ export const traced = async (name: string, fn: () => Promise<unknown>) => {
 `
 
 /** Each attempt sends one turn to the fake agent, which takes `delayMs`. */
-const tracedEval = (name: string, options = '{}') => `import { evaluate } from 'reeval'
+const tracedEval = (name: string, options = '{}') => {
+  const opts =
+    options === '{}' ? '' : `${options.replace(/^\{/, '').replace(/\}$/, '').trim()},\n  `
+  return `import { defineEval } from 'reeval'
 import { traced } from './trace.ts'
-evaluate('${name}', ${options}, async (c) => {
-  await traced(\`${name} \${c.attempt.cell.harness}#\${c.attempt.n}\`, () => c.send('go'))
+export default defineEval({
+  ${opts}async task(c) {
+    await traced(\`${name} \${c.attempt.cell.harness}#\${c.attempt.n}\`, () => c.send('go'))
+  },
 })
 `
+}
 
 function readTrace(dir: string): Trace[] {
   const path = join(dir, 'trace.jsonl')
@@ -199,13 +205,13 @@ describe('concurrency', () => {
   test("the estimate runs a capped sandbox's attempts only as many at once as it allows", async () => {
     const p = await project('conc-estimate-cap', {
       'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 
-export default defineConfig({ harnesses: fakeHarness(), sandbox: docker({ maxConcurrent: 2 }) })
+export default defineConfig({ agents: fakeAgent(), sandbox: docker({ maxConcurrent: 2 }) })
 `,
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'
-evaluate('a', { runs: 6 }, async () => {})
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ runs: 6, async task() {} })
 `,
     })
     const r = await runCli(p.dir, ['run', '--dry-run', '--concurrency', '4'])
@@ -237,7 +243,7 @@ evaluate('a', { runs: 6 }, async () => {})
     assert.equal(run.config.concurrency, 4)
     assert.deepEqual(
       run.evals.map((e) => e.id),
-      ['evals/a.eval.ts › a', 'evals/b.eval.ts › b'],
+      ['a', 'b'],
     )
     // A queued attempt that counted its wait would take about the whole run. Where starting a
     // sandbox is slow (Windows), one round alone passes 3 s, so the bound is the run's span.
@@ -271,16 +277,16 @@ evaluate('a', { runs: 6 }, async () => {})
   test('--dry-run sizes the default concurrency from the Docker VM, as a real run does', async () => {
     const p = await project('conc-docker-vm', {
       'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 import { fakeJudge } from 'reeval/judge'
 export default defineConfig({
-  harnesses: fakeHarness(),
+  agents: fakeAgent(),
   environments: defineEnvironment('docker', { sandbox: docker() }),
   judge: { model: fakeJudge({ score: 0.9 }) },
 })
 `,
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'\nevaluate('a', async (c) => { await c.send('go') })\n`,
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'\nexport default defineEval({ async task(c) { await c.send('go') } })\n`,
       // A docker CLI whose VM has 3 CPUs and 16 GB, whatever the host has: Node, behind an sh
       // and a .cmd wrapper, so it runs on every OS.
       'bin/docker.js': `const a = process.argv.slice(2).join(' ')\nif (a.startsWith('info') && a.includes('NCPU')) console.log('3 16000000000')\nelse process.exit(1)\n`,
@@ -297,21 +303,24 @@ export default defineConfig({
   test('a sandbox cap holds on top of the run cap; the judge takes its own leases', async () => {
     const p = await project('conc-sandbox-cap', {
       'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 import { fakeJudge } from 'reeval/judge'
 export default defineConfig({
-  harnesses: fakeHarness({ delayMs: 400 }),
+  agents: fakeAgent({ delayMs: 400 }),
   environments: defineEnvironment('fake', { sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url), maxConcurrent: 2 }) }),
   judge: { model: fakeJudge({ score: 0.9 }), maxConcurrent: 1 },
 })
 `,
       'evals/trace.ts': TRACE,
-      'evals/a.eval.ts': `import { evaluate, expect } from 'reeval'
+      'evals/a.eval.ts': `import { defineEval, expect } from 'reeval'
 import { traced } from './trace.ts'
-evaluate('a', { runs: 5 }, async (c) => {
-  await traced(\`a#\${c.attempt.n}\`, () => c.send('go'))
-  expect(await c.judge('ok?', { diff: true })).toPass()
+export default defineEval({
+  runs: 5,
+  async task(c) {
+    await traced(\`a#\${c.attempt.n}\`, () => c.send('go'))
+    expect(await c.judge('ok?', { diff: true })).toPass()
+  },
 })
 `,
     })
@@ -331,16 +340,14 @@ evaluate('a', { runs: 5 }, async (c) => {
     const p = await project('conc-order', {
       'reeval.config.ts': fakeConfig({ extra: 'runs: 2,' }),
       'evals/trace.ts': TRACE,
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
-import { traced } from './trace.ts'
-const harness = [fakeHarness({ id: 'x' }), fakeHarness({ id: 'y' })]
-for (const name of ['a', 'b']) {
-  evaluate(name, { harnesses: harness }, async (c) => {
-    await traced(\`\${name} \${c.attempt.cell.harness}#\${c.attempt.n}\`, () => c.send('go'))
-  })
-}
-`,
+      'evals/a.eval.ts': tracedEval(
+        'a',
+        '{ agents: [fakeAgent({ id: "x" }), fakeAgent({ id: "y" })] }',
+      ).replace("from 'reeval'", "from 'reeval'\nimport { fakeAgent } from 'reeval/agent'"),
+      'evals/b.eval.ts': tracedEval(
+        'b',
+        '{ agents: [fakeAgent({ id: "x" }), fakeAgent({ id: "y" })] }',
+      ).replace("from 'reeval'", "from 'reeval'\nimport { fakeAgent } from 'reeval/agent'"),
     })
     const r = await runCli(p.dir, ['run', '--concurrency', '1'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
@@ -348,7 +355,7 @@ for (const name of ['a', 'b']) {
     assert.equal(maxOverlap(trace), 1)
     assert.deepEqual(
       trace.filter((t) => t.event === 'start').map((t) => t.name),
-      ['a x#1', 'a y#1', 'b x#1', 'b y#1', 'a x#2', 'a y#2', 'b x#2', 'b y#2'],
+      ['a x#1', 'a y#1', 'a x#2', 'a y#2', 'b x#1', 'b y#1', 'b x#2', 'b y#2'],
     )
   })
 

@@ -101,7 +101,7 @@ export async function reevalJiti(id: string, options: JitiOptions = {}): Promise
 /** Every module subpath in package.json's `exports`, which `test/manifest.test.ts` holds it to. */
 export const OWN_EXPORTS: Record<string, () => Promise<unknown>> = {
   '': () => import('./index.ts'),
-  '/harness': () => import('./harness.ts'),
+  '/agent': () => import('./agent.ts'),
   '/sandbox': () => import('./sandbox.ts'),
   '/provider/boat': () => import('./provider-boat.ts'),
   '/provider/daytona': () => import('./provider-daytona.ts'),

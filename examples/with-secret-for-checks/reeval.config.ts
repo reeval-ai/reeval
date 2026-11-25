@@ -1,12 +1,12 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 import { profiles } from '../profiles.ts'
 
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that runs the prompt's command in the sandbox, as a real agent would.
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     script: [[{ exec: 'env | sort > env.txt' }, { reply: 'env.txt has the environment.' }]],
   }),
   // fakeSandbox() runs everything on the host, so its agent would see the token too.

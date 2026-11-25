@@ -23,14 +23,14 @@ For more information about blocked requests, see [Read blocked requests](/config
 
 ## `antigravity()`
 
-`antigravity()` is exported from `{{ pkg }}/harness`. The following configuration passes it as the `harness` option:
+`antigravity()` is exported from `{{ pkg }}/agent`. The following configuration passes it as the `harness` option:
 
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
-import { antigravity } from '{{ pkg }}/harness'
+import { antigravity } from '{{ pkg }}/agent'
 
 export default defineConfig({
-  harnesses: antigravity({
+  agents: antigravity({
     model: 'gemini-3.8-flash-medium',
     effort: 'high',
   }),

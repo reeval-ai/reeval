@@ -1,4 +1,4 @@
-import { defineEnvironment, evaluate, expect } from 'reeval'
+import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeJudge } from 'reeval/judge'
 
 // The agent starts from the small package in ./project, README.md included.
@@ -14,13 +14,13 @@ const readsReadme = fakeJudge({
   },
 })
 
-evaluate(
-  'documents the new function',
-  { environments: math, judge: { model: readsReadme } },
-  async (c) => {
+export default defineEval({
+  environment: math,
+  judge: { model: readsReadme },
+  task: async (c) => {
     await c.send('Add a multiply(a, b) function to src/math.js, and document it in README.md.')
 
     const verdict = await c.judge('Does README.md document multiply?', { contents: ['README.md'] })
     expect(verdict).toPass()
   },
-)
+})

@@ -74,7 +74,7 @@ if (answers[task]) {
   answer(answers[task]())
 } else if (fixes[task]) {
   const [file, fix] = fixes[task]
-  if (cheat) edit(file, "evaluate('", "evaluate.skip('")
+  if (cheat) edit(file, 'defineEval({', 'defineEval({ skip: true,')
   else fix()
   answer({ cause: task === 'big-record' ? 'check-path' : task, evidence: 'the oracle knows' })
 } else throw new Error(`No fixture named ${task}`)

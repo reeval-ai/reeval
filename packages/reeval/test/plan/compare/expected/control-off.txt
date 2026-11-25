@@ -1,8 +1,6 @@
-profile off (--profile) · 2 evals · 4 cells · 4 attempts
-evals/control.eval.ts › names its control                                      a/base/docker   control  gated  ×1  compare off (profile off)
-                                                                               b/base/docker   control  gated  ×1
-evals/control.eval.ts › inherits › the control replaces the group environment  a/terse/docker  control  gated  ×1  compare off (profile off)
-                                                                               b/terse/docker  control  gated  ×1
+profile off (--profile) · 1 evals · 2 cells · 2 attempts
+control  a/base/docker  control  gated  ×1  compare off (profile off)
+         b/base/docker  control  gated  ×1
 excluded: —
-image docker · cursor · 2 evals
+image docker · cursor · 1 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

@@ -117,7 +117,7 @@ export const providerDescriptorSchema = z.union([boatProviderSchema, daytonaProv
 const recordMode = z.enum(['manual', 'ci', 'always'])
 
 export const profileDefaultsDataSchema = z.strictObject({
-  harnesses: harnessList.optional(),
+  agents: harnessList.optional(),
   sandbox: declaredSandboxSchema.optional(),
   environments: environmentList.optional(),
   runs: runs().optional(),
@@ -136,7 +136,7 @@ export const profileLimitSchema = z.strictObject({
   compare: z
     .union([z.literal(false), z.strictObject({ maxVariants: z.number().int().min(0) })])
     .optional(),
-  harnesses: z.array(z.string()).optional(),
+  agents: z.array(z.string()).optional(),
   traits: z.record(z.string(), z.union([z.string(), z.array(z.string()).min(1)])).optional(),
 })
 
@@ -180,7 +180,7 @@ export const analysisConfigDataSchema = z.strictObject({
 
 export const reevalConfigDataSchema = z.strictObject({
   include: z.array(z.string()).optional(),
-  harnesses: harnessList.optional(),
+  agents: harnessList.optional(),
   sandbox: declaredSandboxSchema.optional(),
   environments: environmentList.optional(),
   runs: runs().optional(),

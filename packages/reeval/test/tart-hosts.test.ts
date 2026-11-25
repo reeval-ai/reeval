@@ -505,19 +505,20 @@ describe('the host an attempt starts on', {
     mkdirSync(join(fake.dir, 'hosts', 'b', 'vms', left), { recursive: true })
     const p = await project('tart-hosts-resume', {
       'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
-export default defineConfig({ harnesses: fakeHarness() })
+import { fakeAgent } from 'reeval/agent'
+export default defineConfig({ agents: fakeAgent() })
 `,
-      'evals/r.eval.ts': `import { evaluate } from 'reeval'
+      'evals/r.eval.ts': `import { defineEval } from 'reeval'
 import { tart } from 'reeval/sandbox'
-evaluate('e', {
+export default defineEval({
   sandbox: tart({ image: '${SEQUOIA}', hosts: ['a', 'b'] }),
   egress: 'allow-all',
-}, async () => {})
+  async task() {},
+})
 `,
     })
     writeStoppedStaging(p.dir, SEEDED_RUN_ID, [
-      { file: 'evals/r.eval.ts', name: 'e', cell: 'fake/-/tart:macos-sequoia-base:15.6' },
+      { file: 'evals/r.eval.ts', name: 'r', cell: 'fake/-/tart:macos-sequoia-base:15.6' },
     ])
     const r = await runCli(p.dir, ['run', '--resume', SEEDED_RUN_ID], { env: fake.env })
     assert.equal(r.code, 0, r.stderr)

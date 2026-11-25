@@ -29,7 +29,7 @@ one profile you need.
 score.
 
 ```text
-[writes#1 fake] 14:54:17 plan      judge typesafe-ai/jev-1.14.0 · threshold 0.8 (evaluate("writes a README for the package"))
+[with-jev#1 fake] 14:54:17 plan      judge typesafe-ai/jev-1.14.0 · threshold 0.8
 [writes#1 fake] 14:54:17 judge     asking typesafe-ai/jev-1.14.0: "Could a new user call add correctly from README.md alone?"
 [writes#1 fake] 14:54:17 judge     jev-1.14.0 · 133ms · score 0.89 ≥ 0.8 · pass · reason: P(yes) 0.89 is at or above the 0.8 threshold
 ```

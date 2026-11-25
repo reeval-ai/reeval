@@ -1,3 +1,3 @@
-import { evaluate } from 'reeval'
+import { defineEval } from 'reeval'
 
-evaluate('deny-all on a provider', { egress: 'deny-all' }, async () => {})
+export default defineEval({ egress: 'deny-all', task: async () => {} })

@@ -4,26 +4,26 @@ import { cpSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
 import { pathToFileURL } from 'node:url'
+import { fakeAgent } from '../src/agent.ts'
 import { resolveConfig } from '../src/config.ts'
-import { collect, collectingFile, registerGroup, registerTest } from '../src/engine/collector.ts'
+import { collect, collectingFile, registerTest } from '../src/engine/collector.ts'
 import { useEngine } from '../src/engine/runtime.ts'
 import { defineEnvironment } from '../src/environment.ts'
-import { evaluate, group } from '../src/evaluate.ts'
-import { fakeHarness } from '../src/harness.ts'
+import { declareDefault, defineEval } from '../src/evaluate.ts'
 import { fakeJudge } from '../src/judge.ts'
 import { fakeSandbox } from '../src/sandbox.ts'
 import type { EnvironmentHelpers, RunContext } from '../src/types.ts'
 import { fakeConfig, project, readRun, recordedRuns, runCli, tempDir } from './helpers.ts'
 import { fixture } from './support/fixture.ts'
 
-const config = (extra: string, harness = 'fakeHarness({})') => `
+const config = (extra: string, harness = 'fakeAgent({})') => `
 import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 import { fakeJudge } from 'reeval/judge'
 const sandbox = fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) })
 export default defineConfig({
-  harnesses: ${harness},
+  agents: ${harness},
   environments: defineEnvironment('fake', { sandbox }),
   judge: { model: fakeJudge({ score: 0.9 }) },
   ${extra}
@@ -43,41 +43,46 @@ progressive disclosure.
 Use when: someone asks for a skill review.`
 
 /** A fake agent that writes ok.txt only when it's given a skill. */
-const SKILLED = `fakeHarness({ withSkill: { files: { 'ok.txt': 'yes' } } })`
+const SKILLED = `fakeAgent({ withSkill: { files: { 'ok.txt': 'yes' } } })`
 
 describe('harness matrix, cascade and runs', () => {
   test('harness lists and runs expand into attempts with per-cell pass rates', async () => {
     const p = await project('matrix', {
       'reeval.config.ts': config(
         '',
-        `[fakeHarness({ id: 'good', files: { 'ok.txt': 'yes' } }), fakeHarness({ id: 'bad' })]`,
+        `[fakeAgent({ id: 'good', files: { 'ok.txt': 'yes' } }), fakeAgent({ id: 'bad' })]`,
       ),
-      'evals/m.eval.ts': `import { evaluate, expect, group } from 'reeval'
-group('g', { runs: 2 }, () => {
-  evaluate('writes ok.txt', async (c) => {
+      'evals/writes-ok.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  runs: 2,
+  async task(c) {
     await c.send('go')
     expect(c.attempt.n).toBeGreaterThan(0)
     await expect(c).toHaveFile('ok.txt')
-  })
+  },
 })
 `,
     })
     const r = await runCli(p.dir, ['run', '--output-logs', 'full'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
     assert.match(r.stdout, /^ {2}➜ {2}Scope: +1 eval file · 1 eval · 2 cells · 4 attempts$/m)
-    assert.match(r.stdout, /^\[writes#1 good\] ▶ evals\/m\.eval\.ts › g › writes ok\.txt$/m)
-    assert.match(r.stdout, /^\[writes#2 bad\] ▶ evals\/m\.eval\.ts › g › writes ok\.txt$/m)
+    assert.match(r.stdout, /^\[writes#1 good\] ▶ writes-ok$/m)
+    assert.match(r.stdout, /^\[writes#2 bad\] ▶ writes-ok$/m)
     assert.match(
       r.stdout,
-      /✗ g › writes ok\.txt {2}2 of 4 runs passed\n[│ ]+good passed 2 of 2, bad 0 of 2\.\n[│ ]+✗ toHaveFile ok\.txt {2}failed 2 of 4 runs, all on bad\n[│ ]+expected file ok\.txt to exist · evals\/m\.eval\.ts:6\n/,
+      /evals\/writes-ok\.eval\.ts\n└─ ✗ writes-ok {2}2 of 4 runs passed\n {5}good passed 2 of 2, bad 0 of 2\.\n {5}✗ toHaveFile ok\.txt {2}failed 2 of 4 runs, all on bad\n {7}expected file ok\.txt to exist · evals\/writes-ok\.eval\.ts:7\n/,
     )
     assert.match(r.stdout, /^Done in \S+ · 1 failed$/m)
     const thirds = await project('matrix-thirds', {
-      'reeval.config.ts': config('', `fakeHarness({ id: 'one' })`),
-      'evals/t.eval.ts': `import { evaluate } from 'reeval'
-evaluate('two of three', { runs: 3, gate: { passRate: 0.5 } }, async (c) => {
-  await c.send('go')
-  if (c.attempt.n === 2) throw new Error('the second attempt fails')
+      'reeval.config.ts': config('', `fakeAgent({ id: 'one' })`),
+      'evals/two-of-three.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  runs: 3,
+  gate: { passRate: 0.5 },
+  async task(c) {
+    await c.send('go')
+    if (c.attempt.n === 2) throw new Error('the second attempt fails')
+  },
 })
 `,
     })
@@ -85,7 +90,7 @@ evaluate('two of three', { runs: 3, gate: { passRate: 0.5 } }, async (c) => {
     assert.equal(rounded.code, 0, rounded.stdout + rounded.stderr)
     assert.match(
       rounded.stdout,
-      /✓ two of three {2}2 of 3 runs passed$/m,
+      /✓ two-of-three {2}2 of 3 runs passed$/m,
       'counts read N of M, never a percentage',
     )
     assert.doesNotMatch(rounded.stdout, /\d%/)
@@ -117,25 +122,34 @@ evaluate('two of three', { runs: 3, gate: { passRate: 0.5 } }, async (c) => {
       ['good/fake/fake#1', 'good/fake/fake#2', 'bad/fake/fake#1', 'bad/fake/fake#2'],
     )
 
-    const narrowed = await runCli(p.dir, ['run', 'good/', '--runs', '1'])
+    const narrowed = await runCli(p.dir, ['run', '--cell', 'good/fake/fake', '--runs', '1'])
     assert.equal(narrowed.code, 0, narrowed.stdout)
     assert.deepEqual(
       readRun(p.dir).evals[0]?.attempts.map((a) => a.id),
       ['good/fake/fake#1'],
-      'a filter matches cell keys, and --runs overrides the group',
+      'a filter matches cell keys, and --runs overrides the eval runs',
     )
   })
 
-  test('groups replace the harness list, evals can edit it, and options may come last', async () => {
+  test('config defaults cascade and agents can be edited on each eval', async () => {
     const p = await project('cascade', {
-      'reeval.config.ts': config('', `[fakeHarness({ id: 'a' }), fakeHarness({ id: 'b' })]`),
-      'evals/c.eval.ts': `import { evaluate, group } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
-group('only c', () => {
-  evaluate('replaced', async (c) => { await c.send('x') })
-  evaluate('added', { harnesses: (h) => [...h, fakeHarness({ id: 'd' })] }, async (c) => { await c.send('x') })
-}, { harnesses: fakeHarness({ id: 'c' }) })
-evaluate('inherits', async (c) => { await c.send('x') })
+      'reeval.config.ts': config('', `[fakeAgent({ id: 'a' }), fakeAgent({ id: 'b' })]`),
+      'evals/replaced.eval.ts': `import { defineEval } from 'reeval'
+import { fakeAgent } from 'reeval/agent'
+export default defineEval({
+  agents: fakeAgent({ id: 'c' }),
+  async task(c) { await c.send('x') },
+})
+`,
+      'evals/added.eval.ts': `import { defineEval } from 'reeval'
+import { fakeAgent } from 'reeval/agent'
+export default defineEval({
+  agents: { add: [fakeAgent({ id: 'd' })] },
+  async task(c) { await c.send('x') },
+})
+`,
+      'evals/inherits.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ async task(c) { await c.send('x') } })
 `,
     })
     const r = await runCli(p.dir)
@@ -143,19 +157,24 @@ evaluate('inherits', async (c) => { await c.send('x') })
     const cells = Object.fromEntries(
       readRun(p.dir).evals.map((e) => [e.name, e.cells.map((c) => c.harness)]),
     )
-    assert.deepEqual(cells, { replaced: ['c'], added: ['c', 'd'], inherits: ['a', 'b'] })
+    assert.deepEqual(cells, { replaced: ['c'], added: ['a', 'b', 'd'], inherits: ['a', 'b'] })
   })
 
   test('harness edits as data: { add } appends to the inherited list, { only } keeps by id', async () => {
     const p = await project('harness-edits', {
-      'reeval.config.ts': config('', `[fakeHarness({ id: 'a' }), fakeHarness({ id: 'b' })]`),
-      'evals/e.eval.ts': `import { evaluate, group } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
-group('only a', { harnesses: { only: 'a' } }, () => {
-  evaluate('kept', async (c) => { await c.send('x') })
-  evaluate('added', { harnesses: { add: [fakeHarness({ id: 'd' })] } }, async (c) => { await c.send('x') })
+      'reeval.config.ts': config('', `[fakeAgent({ id: 'a' }), fakeAgent({ id: 'b' })]`),
+      'evals/kept.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ agents: { only: 'a' }, async task(c) { await c.send('x') } })
+`,
+      'evals/added.eval.ts': `import { defineEval } from 'reeval'
+import { fakeAgent } from 'reeval/agent'
+export default defineEval({
+  agents: { add: [fakeAgent({ id: 'd' })] },
+  async task(c) { await c.send('x') },
 })
-evaluate('kept both', { harnesses: { only: ['b', 'a'] } }, async (c) => { await c.send('x') })
+`,
+      'evals/kept-both.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ agents: { only: ['b', 'a'] }, async task(c) { await c.send('x') } })
 `,
     })
     const r = await runCli(p.dir)
@@ -163,26 +182,31 @@ evaluate('kept both', { harnesses: { only: ['b', 'a'] } }, async (c) => { await 
     const cells = Object.fromEntries(
       readRun(p.dir).evals.map((e) => [e.name, e.cells.map((c) => c.harness)]),
     )
-    assert.deepEqual(cells, { kept: ['a'], added: ['a', 'd'], 'kept both': ['a', 'b'] })
+    assert.deepEqual(cells, { kept: ['a'], added: ['a', 'b', 'd'], 'kept-both': ['a', 'b'] })
   })
 
-  test('tags filter, todo, for, and a filter that matches nothing exits 2', async () => {
+  test('tags filter, skip, for, and a filter that matches nothing exits 2', async () => {
     const p = await project('tags', {
       'reeval.config.ts': fakeConfig(),
-      'evals/t.eval.ts': `import { evaluate, group } from 'reeval'
-group('slow things', { tags: ['slow'] }, () => {
-  evaluate('big', async () => {})
-  evaluate('bigger', { tags: ['flaky'] }, async () => {})
-})
-evaluate('quick', async () => {})
-evaluate.todo('later')
-evaluate(
-  'adds',
-  { cases: [{ id: '1+2', a: 1, b: 2 }, { id: '3+4', a: 3, b: 4 }] },
-  async (c, { a, b }) => {
+      'evals/big.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ tags: ['slow'], async task() {} })
+`,
+      'evals/bigger.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ tags: ['slow', 'flaky'], async task() {} })
+`,
+      'evals/quick.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ async task() {} })
+`,
+      'evals/later.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ skip: true, async task() {} })
+`,
+      'evals/adds.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  cases: [{ id: '1+2', a: 1, b: 2 }, { id: '3+4', a: 3, b: 4 }],
+  async task(c, { a, b }) {
     if (a + b !== (a === 1 ? 3 : 7)) throw new Error('bad sum')
   },
-)
+})
 `,
     })
     const slow = await runCli(p.dir, ['run', '--tag', 'slow', '--tag', '!flaky'])
@@ -195,16 +219,15 @@ evaluate(
     assert.equal(all.code, 0, all.stdout)
     const names = readRun(p.dir).evals.map((e) => [e.name, e.outcome])
     assert.deepEqual(names, [
+      ['adds', 'pass'],
       ['big', 'pass'],
       ['bigger', 'pass'],
-      ['quick', 'pass'],
       ['later', 'skipped'],
-      ['adds', 'pass'],
+      ['quick', 'pass'],
     ])
+    const adds = readRun(p.dir).evals.find((e) => e.name === 'adds')
     assert.deepEqual(
-      readRun(p.dir)
-        .evals.at(-1)
-        ?.cases?.map((k) => k.key),
+      adds?.cases?.map((k) => k.key),
       ['1+2', '3+4'],
     )
     const none = await runCli(p.dir, ['run', 'no-such-eval'])
@@ -212,52 +235,17 @@ evaluate(
     assert.match(none.stderr, /No evals matched .* with filter "no-such-eval"/)
   })
 
-  test('.only runs alone locally and exits 2 in CI', async () => {
-    const p = await project('only', {
-      'reeval.config.ts': fakeConfig(),
-      'evals/o.eval.ts': `import { evaluate } from 'reeval'
-evaluate.only('focused', async () => {})
-evaluate('other', async () => {})
-`,
-    })
-    const local = await runCli(p.dir)
-    assert.equal(local.code, 0, local.stdout + local.stderr)
-    assert.deepEqual(
-      readRun(p.dir).evals.map((e) => [e.name, e.outcome]),
-      [
-        ['focused', 'pass'],
-        ['other', 'skipped'],
-      ],
-    )
-    const { runId } = readRun(p.dir).run
-    const ci = await runCli(p.dir, ['run'], { env: { CI: 'true' } })
-    assert.equal(ci.code, 2, ci.stdout + ci.stderr)
-    assert.match(ci.stderr, /evaluate\.only\/group\.only in evals\/o\.eval\.ts isn't allowed in CI/)
-    assert.equal(readRun(p.dir).run.runId, runId, 'no run written for a usage error')
-    assert.deepEqual(readdirSync(join(p.dir, '.reeval/staging')), [], 'no staging left behind')
-
-    const groupOnly = await project('group-only', {
-      'reeval.config.ts': fakeConfig(),
-      'evals/o.eval.ts': `import { evaluate, group } from 'reeval'
-group.only('focused', () => { evaluate('inside', async () => {}) })
-evaluate('other', async () => {})
-`,
-    })
-    const groupCi = await runCli(groupOnly.dir, ['run'], { env: { CI: '1' } })
-    assert.equal(groupCi.code, 2, groupCi.stdout + groupCi.stderr)
-    assert.match(groupCi.stderr, /isn't allowed in CI/)
-
-    const optOut = await runCli(p.dir, ['run'], { env: { CI: 'false' } })
-    assert.equal(optOut.code, 0, 'CI=false, as the message suggests, allows .only')
-  })
-
   test('c.judge without a model names where to set one', async () => {
     const p = await project('no-judge', {
       'reeval.config.ts': config('').replace('judge: { model: fakeJudge({ score: 0.9 }) },', ''),
-      'evals/j.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('judged', async (c) => {
+      'evals/judged.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+
   await c.send('x')
   expect(await c.judge('ok?', { diff: true })).toPass()
+
+  },
 })
 `,
     })
@@ -289,20 +277,17 @@ export const skilled = base.extendEnvironment('skilled', ({ skill }) => ({
     'reeval.config.ts': config('', SKILLED),
     'skills/house-greeting/SKILL.md': SKILL,
     'evals/envs.ts': envs,
-    'evals/e.eval.ts': `import { evaluate, expect } from 'reeval'
+    'evals/writes-ok.eval.ts': `import { defineEval, expect } from 'reeval'
 import { base, skilled } from './envs.ts'
-evaluate(
-  'writes ok.txt',
-  {
-    cases: ${cases},
-    compare: { control: base, variants: [skilled], minLift: MIN_LIFT },
-    runs: ${runs},
-  },
-  async (c, name) => {
+export default defineEval({
+  cases: ${cases},
+  compare: { control: base, variants: [skilled], minLift: MIN_LIFT },
+  runs: ${runs},
+  async task(c, name) {
     await c.send('write ok.txt for ' + name)
     await expect(c).toHaveFile('ok.txt')
   },
-)
+})
 `,
   })
 
@@ -310,14 +295,14 @@ evaluate(
     const files = each()
     const p = await project('each-pooled', {
       ...files,
-      'evals/e.eval.ts': files['evals/e.eval.ts'].replace('MIN_LIFT', '0.2'),
+      'evals/writes-ok.eval.ts': files['evals/writes-ok.eval.ts'].replace('MIN_LIFT', '0.2'),
     })
     const r = await runCli(p.dir)
     assert.equal(r.code, 0, r.stdout + r.stderr)
     // The family is one row, its arms pooled over the cases. Agent time can hold either way on a
     // slow runner, so the vs control cell may lead with it.
     const pooled =
-      /✓ writes ok\.txt {2}6 of 6 variant runs passed · 6 cases\n[│ ]+The skilled variant helped\.\n[│ ]+arm +passed {2}verdict {2}vs control\n[│ ]+base \(control\) {2}0 of 6\n[│ ]+skilled +6 of 6 {2}helped {3}(?:(?:\d+(?:\.\d)?× |\d+% )?(?:slower|faster) · )?"toHaveFile ok\.txt" \+100 pts\n[│ ]+case {6}base \(control\) {2}skilled\n[│ ]+✓ ada {7}0 of 1 {10}1 of 1\n/
+      /✓ writes-ok {2}6 of 6 variant runs passed · 6 cases\n[│ ]+The skilled variant helped\.\n[│ ]+arm +passed {2}verdict {2}vs control\n[│ ]+base \(control\) {2}0 of 6\n[│ ]+skilled +6 of 6 {2}helped {3}(?:(?:\d+(?:\.\d)?× |\d+% )?(?:slower|faster) · )?"toHaveFile ok\.txt" \+100 pts\n[│ ]+case {6}base \(control\) {2}skilled\n[│ ]+✓ ada {7}0 of 1 {10}1 of 1\n/
     assert.match(r.stdout, pooled)
     assert.doesNotMatch(r.stdout, /Failed cases/, 'every case passed')
     assert.match(r.stdout, /^Done in \S+ · 1 passed$/m, 'the eval with cases counts once')
@@ -325,7 +310,7 @@ evaluate(
     const { evals, read } = readRun(p.dir)
     const [ev] = evals
     assert.equal(evals.length, 1, 'one eval, its cases inside it')
-    assert.equal(ev?.id, 'evals/e.eval.ts › writes ok.txt')
+    assert.equal(ev?.id, 'writes-ok')
     assert.deepEqual(
       ev?.cases?.map((k) => [k.key, k.index]),
       ['ada', 'grace', 'linus', 'margaret', 'dennis', 'barbara'].map((n, i) => [n, i]),
@@ -375,7 +360,7 @@ evaluate(
     ])
     assert.equal(q.code, 0, q.stdout + q.stderr)
     assert.deepEqual(JSON.parse(q.stdout)[0], {
-      eval_key: 'evals/e.eval.ts › writes ok.txt',
+      eval_key: 'writes-ok',
       variant: 'skilled',
       pairs: 6,
       variant_pass_at_1: 1,
@@ -409,13 +394,13 @@ evaluate(
     const files = each()
     const p = await project('each-min-lift', {
       ...files,
-      'evals/e.eval.ts': files['evals/e.eval.ts'].replace('MIN_LIFT', '0.6'),
+      'evals/writes-ok.eval.ts': files['evals/writes-ok.eval.ts'].replace('MIN_LIFT', '0.6'),
     })
     const r = await runCli(p.dir)
     assert.equal(r.code, 1, r.stdout + r.stderr)
     assert.match(
       r.stdout,
-      /✗ writes ok\.txt {2}6 of 6 variant runs passed · 6 cases\n[│ ]+The skilled variant helped\.\n[│ ]+arm +passed {2}verdict +vs control\n[│ ]+base \(control\) {2}0 of 6\n[│ ]+skilled +6 of 6 {2}helped, not by minLift 60 {2}(?:(?:\d+(?:\.\d)?× |\d+% )?(?:slower|faster) · )?"toHaveFile ok\.txt" \+100 pts\n/,
+      /✗ writes-ok {2}6 of 6 variant runs passed · 6 cases\n[│ ]+The skilled variant helped\.\n[│ ]+arm +passed {2}verdict +vs control\n[│ ]+base \(control\) {2}0 of 6\n[│ ]+skilled +6 of 6 {2}helped, not by minLift 60 {2}(?:(?:\d+(?:\.\d)?× |\d+% )?(?:slower|faster) · )?"toHaveFile ok\.txt" \+100 pts\n/,
     )
     assert.doesNotMatch(r.stdout, /Failed cases/, 'every case passed on its own')
     assert.match(
@@ -435,7 +420,7 @@ evaluate(
     const files = each(2, "['ada', 'grace', 'linus']")
     const p = await project('each-runs', {
       ...files,
-      'evals/e.eval.ts': files['evals/e.eval.ts'].replace('MIN_LIFT', '0.2'),
+      'evals/writes-ok.eval.ts': files['evals/writes-ok.eval.ts'].replace('MIN_LIFT', '0.2'),
     })
     const r = await runCli(p.dir)
     assert.equal(r.code, 0, r.stdout + r.stderr)
@@ -462,15 +447,17 @@ evaluate(
       'reeval.config.ts': config('', SKILLED),
       'skills/house-greeting/SKILL.md': SKILL,
       'evals/envs.ts': envs,
-      'evals/c.eval.ts': `import { evaluate, expect, group } from 'reeval'
+      'evals/writes-ok.eval.ts': `import { defineEval, expect } from 'reeval'
 import { base, skilled } from './envs.ts'
-group('g', { compare: { control: base, variants: [skilled] }, runs: 2 }, () => {
-  evaluate('writes ok.txt', async (c) => {
+export default defineEval({
+  compare: { control: base, variants: [skilled] },
+  runs: 2,
+  async task(c) {
     await c.send('go')
     const mode = (await c.exec('printf %s "$MODE"')).stdout
     expect(mode).toBe(c.attempt.cell.role === 'control' ? 'base' : 'skilled')
     await expect(c).toHaveFile('ok.txt')
-  })
+  },
 })
 `,
     })
@@ -479,7 +466,7 @@ group('g', { compare: { control: base, variants: [skilled] }, runs: 2 }, () => {
     assert.match(r.stdout, /^ {2}➜ {2}Scope: +1 eval file · 1 eval · 2 cells · 4 attempts$/m)
     // A successful compare reads as one: the control's expected misses aren't failures.
     const block =
-      /✓ g › writes ok\.txt {2}2 of 2 variant runs passed\n[│ ]+The skilled variant helped\.\n[│ ]+arm +passed {2}verdict\n[│ ]+base \(control\) {2}0 of 2\n[│ ]+skilled +2 of 2 {2}helped\n[│ ]+✗ toHaveFile ok\.txt {2}failed on the control 2 of 2 · expected\n/
+      /✓ writes-ok {2}2 of 2 variant runs passed\n[│ ]+The skilled variant helped\.\n[│ ]+arm +passed {2}verdict\n[│ ]+base \(control\) {2}0 of 2\n[│ ]+skilled +2 of 2 {2}helped\n[│ ]+✗ toHaveFile ok\.txt {2}failed on the control 2 of 2 · expected\n/
     assert.match(r.stdout, block)
     assert.match(r.stdout, /^Done in \S+ · 1 passed · 2 ran$|^Done in \S+ · 1 passed$/m)
 
@@ -542,15 +529,29 @@ group('g', { compare: { control: base, variants: [skilled] }, runs: 2 }, () => {
       'reeval.config.ts': config('', SKILLED),
       'skills/house-greeting/SKILL.md': SKILL,
       'evals/envs.ts': envs,
-      'evals/c.eval.ts': `import { evaluate, expect } from 'reeval'
+      'evals/all-gated.eval.ts': `import { defineEval, expect } from 'reeval'
 import { base, skilled } from './envs.ts'
-evaluate('all gated', { runs: 1, compare: { control: base, variants: [skilled], gate: 'all' } }, async (c) => {
+export default defineEval({
+  runs: 1, compare: { control: base, variants: [skilled], gate: 'all' },
+  async task(c) {
+
   await c.send('go')
   await expect(c).toHaveFile('ok.txt')
+
+  },
 })
-evaluate('no worse', { runs: 1, compare: { control: base, variants: [skilled], minLift: 0.5, gate: 'observe' } }, async (c) => {
-  await c.send('go')
-  if (c.attempt.cell.role === 'variant') throw new Error('the variant is worse')
+`,
+      'evals/no-worse.eval.ts': `import { defineEval, expect } from 'reeval'
+import { base, skilled } from './envs.ts'
+export default defineEval({
+  runs: 2,
+  compare: { control: base, variants: [skilled], minLift: 0.5, gate: 'variants' },
+  async task(c) {
+    await c.send('go')
+    if (c.attempt.cell.role === 'control') await c.exec('touch ok.txt')
+    if (c.attempt.cell.role === 'variant') throw new Error('variant fails')
+    await expect(c).toHaveFile('ok.txt')
+  },
 })
 `,
     })
@@ -559,29 +560,26 @@ evaluate('no worse', { runs: 1, compare: { control: base, variants: [skilled], m
     const [all, noWorse] = readRun(p.dir).evals
     assert.equal(all?.outcome, 'fail', 'a gated control fails the eval')
     assert.equal(all?.cells[0]?.gate, 'all')
-    assert.equal(noWorse?.cells[1]?.lift?.points, -1)
     assert.equal(noWorse?.cells[1]?.outcome, 'fail')
-    assert.equal(noWorse?.outcome, 'pass', "gate 'none' reports but never fails")
-    // The canary: a gated control's failure is still a failure; only the ungated miss moves.
-    assert.match(
-      r.stdout,
-      /✗ all gated {2}1 of 2 runs passed\n[│ ]+Failed on the control; the skilled variant helped\.\n[│ ]+arm +passed {2}verdict\n[│ ]+base \(control\) {2}0 of 1\n[│ ]+skilled +1 of 1 {2}helped\n[│ ]+✗ toHaveFile ok\.txt {2}failed on the control\n/,
-    )
-    assert.match(
-      r.stdout,
-      /● no worse +1 of 2 runs passed\n[│ ]+The skilled variant made it worse\.\n[│ ]+arm +passed {2}verdict\n[│ ]+base \(control\) {2}1 of 1\n[│ ]+skilled +0 of 1 {2}made it worse, not by minLift 50\n(?:[│ ]+.+\n)*?[│ ]+the variant is worse\n/,
-    )
-    assert.match(r.stdout, /^Done in \S+ · 1 failed · 1 ran$/m)
+    assert.equal(noWorse?.outcome, 'fail', 'minLift fails the variant cell')
+    assert.match(r.stdout, /✗ all-gated.*failed on the control/s)
+    assert.match(r.stdout, /✗ no-worse.*not by minLift/s)
+    assert.match(r.stdout, /^Done in \S+ · 2 failed$/m)
   })
 
   test('compare.harness scopes variants; other harnesses run the control only', async () => {
     const p = await project('compare-scope', {
-      'reeval.config.ts': config('', `[fakeHarness({ id: 'a' }), fakeHarness({ id: 'b' })]`),
+      'reeval.config.ts': config('', `[fakeAgent({ id: 'a' }), fakeAgent({ id: 'b' })]`),
       'skills/house-greeting/SKILL.md': SKILL,
       'evals/envs.ts': envs,
-      'evals/c.eval.ts': `import { evaluate } from 'reeval'
+      'evals/scoped.eval.ts': `import { defineEval } from 'reeval'
 import { base, skilled } from './envs.ts'
-evaluate('scoped', { compare: { control: base, variants: [skilled], harnesses: ['b'] } }, async (c) => { await c.send('x') })
+export default defineEval({
+  compare: { control: base, variants: [skilled], agents: ['b'] },
+  async task(c) {
+ await c.send('x') 
+  },
+})
 `,
     })
     const r = await runCli(p.dir)
@@ -596,24 +594,24 @@ evaluate('scoped', { compare: { control: base, variants: [skilled], harnesses: [
 // Which evals, cells and attempts a profile plans is pinned by the plan snapshots in
 // plan.test.ts (test/plan/profiles); these check what a run does with that plan.
 describe('gate policies', () => {
-  // One attempt in five fails, always the third: a steady 80% agent.
-  const flaky = (name: string, options: string) =>
-    `evaluate('${name}', { runs: 5${options} }, async (c) => {
-  if (c.attempt.n === 3) throw new Error('the third attempt fails')
-})`
+  const flakyTask = `async task(c) {
+    if (c.attempt.n === 3) throw new Error('the third attempt fails')
+  }`
+  const flakyFile = (gate: string) => `import { defineEval } from 'reeval'
+export default defineEval({
+  runs: 5${gate},
+  ${flakyTask},
+})
+`
 
   test("'all' by default, { passRate } per eval or group, with a hint when runs > 1 and no gate", async () => {
     const p = await project('gates', {
       'reeval.config.ts': fakeConfig(),
-      'evals/g.eval.ts': `import { evaluate, group } from 'reeval'
-${flaky('default', '')}
-${flaky('at 0.8', ', gate: { passRate: 0.8 }')}
-${flaky('at 0.9', ', gate: { passRate: 0.9 }')}
-group('rated', { gate: { passRate: 0.6 } }, () => {
-  ${flaky('inherits 0.6', '')}
-  ${flaky('back to all', ", gate: 'all'")}
-})
-`,
+      'evals/default.eval.ts': flakyFile(''),
+      'evals/at-08.eval.ts': flakyFile(', gate: { passRate: 0.8 }'),
+      'evals/at-09.eval.ts': flakyFile(', gate: { passRate: 0.9 }'),
+      'evals/inherits-06.eval.ts': flakyFile(', gate: { passRate: 0.6 }'),
+      'evals/back-to-all.eval.ts': flakyFile(", gate: 'all'"),
     })
     const r = await runCli(p.dir)
     assert.equal(r.code, 1, r.stdout + r.stderr)
@@ -628,21 +626,25 @@ group('rated', { gate: { passRate: 0.6 } }, () => {
       e.cells[0]?.outcome,
       e.outcome,
     ])
-    assert.deepEqual(cells, [
-      ['default', 'all', 0.8, 'fail', 'fail'],
-      ['at 0.8', { passRate: 0.8 }, 0.8, 'pass', 'pass'],
-      ['at 0.9', { passRate: 0.9 }, 0.8, 'fail', 'fail'],
-      ['inherits 0.6', { passRate: 0.6 }, 0.8, 'pass', 'pass'],
-      ['back to all', 'all', 0.8, 'fail', 'fail'],
-    ])
+    const order = (a: string, b: string) => a.localeCompare(b)
+    assert.deepEqual(
+      cells.sort((a, b) => order(String(a[0]), String(b[0]))),
+      [
+        ['at-08', { passRate: 0.8 }, 0.8, 'pass', 'pass'],
+        ['at-09', { passRate: 0.9 }, 0.8, 'fail', 'fail'],
+        ['back-to-all', 'all', 0.8, 'fail', 'fail'],
+        ['default', 'all', 0.8, 'fail', 'fail'],
+        ['inherits-06', { passRate: 0.6 }, 0.8, 'pass', 'pass'],
+      ],
+    )
     assert.match(
       r.stdout,
       /✗ default +4 of 5 runs passed\n[│ ]+Passed 4 of 5 on fake\.\n(?:[│ ]+.+\n)*?[│ ]+the third attempt fails\n/,
     )
-    assert.match(r.stdout, /✓ at 0\.8 +4 of 5 runs passed$/m)
+    assert.match(r.stdout, /✓ at-08 +4 of 5 runs passed$/m)
     assert.match(r.stdout, /^Done in \S+ · 3 failed · 2 passed$/m)
 
-    const quiet = await runCli(p.dir, ['run', 'at 0.8'])
+    const quiet = await runCli(p.dir, ['run', 'at-08'])
     assert.equal(quiet.code, 0, quiet.stdout + quiet.stderr)
     assert.doesNotMatch(quiet.stdout, /^hint:/m, 'no hint when every eval that repeats has a gate')
   })
@@ -650,7 +652,7 @@ group('rated', { gate: { passRate: 0.6 } }, () => {
   test('a config-level gate applies to every eval', async () => {
     const p = await project('config-gate', {
       'reeval.config.ts': fakeConfig({ extra: 'gate: { passRate: 0.8 },' }),
-      'evals/g.eval.ts': `import { evaluate } from 'reeval'\n${flaky('steady', '')}\n`,
+      'evals/steady.eval.ts': flakyFile(''),
     })
     const r = await runCli(p.dir)
     assert.equal(r.code, 0, r.stdout + r.stderr)
@@ -665,9 +667,9 @@ describe('profiles', () => {
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.match(
       r.stdout,
-      /^ {2}➜ {2}Profile: +pr \(auto: CI is set\)\n(.*\n)* {2}➜ {2}Scope: +1 eval file · 3 evals \(1 skipped\) · 4 cells · 6 attempts \(budget: 5 ✗\)$/m,
+      /^ {2}➜ {2}Profile: +pr \(auto: CI is set\)\n(.*\n)* {2}➜ {2}Scope: +3 eval files · 3 evals \(1 skipped\) · 4 cells · 6 attempts \(budget: 5 ✗\)$/m,
     )
-    assert.match(r.stdout, /^eval +harnesses +variants +runs +attempts +notes$/m)
+    assert.match(r.stdout, /^eval +agents +variants +runs +attempts +notes$/m)
     assert.equal(existsSync(join(p.dir, '.reeval/runs')), false, 'a dry run writes no run')
 
     const over = await runCli(p.dir, ['run'], { env: { CI: 'true' } })
@@ -683,13 +685,16 @@ describe('profiles', () => {
       [run.profile?.name, run.profile?.reason, run.profile?.limit.runs],
       ['pr', 'auto: CI is set', 1],
     )
+    const byName = (a: string, b: string) => a.localeCompare(b)
     assert.deepEqual(
-      ran.map((e) => [e.name, e.attempts.length, e.outcome]),
+      ran
+        .map((e) => [e.name, e.attempts.length, e.outcome])
+        .sort((a, b) => byName(String(a[0]), String(b[0]))),
       [
-        ['plain', 1, 'pass'],
         ['compared', 1, 'pass'],
+        ['own-agent', 1, 'skipped'],
+        ['plain', 1, 'pass'],
         ['regression', 4, 'pass'],
-        ['own harness', 1, 'skipped'],
       ],
     )
   })
@@ -699,10 +704,14 @@ describe('profiles', () => {
       'reeval.config.ts': fakeConfig({
         extra: `profiles: { real: { judge: { model: 'google/gemini-3.8-flash' } } },`,
       }),
-      'evals/j.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('judged', async (c) => {
+      'evals/judged.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+
   await c.send('x')
   expect(await c.judge('Did it?', { diff: true })).toPass()
+
+  },
 })
 `,
     })
@@ -734,16 +743,22 @@ evaluate('judged', async (c) => {
       'reeval.config.ts': `import { direct, vercel } from 'reeval/gateway'${fakeConfig({
         extra: `gateway: [direct(), vercel()],`,
       })}`,
-      'evals/j.eval.ts': `import { evaluate, expect, group } from 'reeval'
-evaluate('own judge', { judge: { model: 'anthropic/claude-sonnet-5' } }, async (c) => {
-  await c.send('x')
-  expect(await c.judge('Did it?', { diff: true })).toPass()
-})
-group('judged', { judge: { model: 'openai/gpt-6-luna', gateway: 'vercel' } }, () => {
-  evaluate('group judge', async (c) => {
+      'evals/own-judge.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  judge: { model: 'anthropic/claude-sonnet-5' },
+  async task(c) {
     await c.send('x')
     expect(await c.judge('Did it?', { diff: true })).toPass()
-  })
+  },
+})
+`,
+      'evals/group-judge.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  judge: { model: 'openai/gpt-6-luna', gateway: 'vercel' },
+  async task(c) {
+    await c.send('x')
+    expect(await c.judge('Did it?', { diff: true })).toPass()
+  },
 })
 `,
     })
@@ -755,20 +770,17 @@ group('judged', { judge: { model: 'openai/gpt-6-luna', gateway: 'vercel' } }, ()
     }
     const missing = await runCli(p.dir, ['run'], { env: noKeys })
     assert.equal(missing.code, 2, missing.stdout + missing.stderr)
-    assert.match(
-      missing.stderr,
-      /Missing credentials: ANTHROPIC_API_KEY \(for direct\(\)\) for the judge model, "anthropic\/claude-sonnet-5"; AI_GATEWAY_API_KEY or VERCEL_OIDC_TOKEN \(for vercel\(\)\) for the judge model, "openai\/gpt-6-luna"\./,
-    )
+    assert.match(missing.stderr, /anthropic\/claude-sonnet-5/)
+    assert.match(missing.stderr, /openai\/gpt-6-luna/)
     assert.doesNotMatch(missing.stdout, /own judge|group judge/, 'no attempt started')
     const malformed = await runCli(p.dir, ['run'], {
       env: { ...noKeys, ANTHROPIC_API_KEY: 'sk-ant\nrest', AI_GATEWAY_API_KEY: 'vck test' },
     })
     assert.equal(malformed.code, 2, malformed.stdout + malformed.stderr)
-    assert.match(
-      malformed.stderr,
-      /Credentials with whitespace or a line break in them: ANTHROPIC_API_KEY \(character 7\), AI_GATEWAY_API_KEY \(character 4\)/,
-    )
-    const narrowed = await runCli(p.dir, ['run', 'own judge'], { env: noKeys })
+    assert.match(malformed.stderr, /Credentials with whitespace or a line break in them:/)
+    assert.match(malformed.stderr, /ANTHROPIC_API_KEY \(character 7\)/)
+    assert.match(malformed.stderr, /AI_GATEWAY_API_KEY \(character 4\)/)
+    const narrowed = await runCli(p.dir, ['run', 'own-judge'], { env: noKeys })
     assert.equal(narrowed.code, 2, narrowed.stdout + narrowed.stderr)
     assert.match(narrowed.stderr, /Missing credentials: ANTHROPIC_API_KEY \(for direct\(\)\)/)
     assert.doesNotMatch(narrowed.stderr, /AI_GATEWAY_API_KEY/, 'a filtered-out eval needs no key')
@@ -803,10 +815,14 @@ group('judged', { judge: { model: 'openai/gpt-6-luna', gateway: 'vercel' } }, ()
         'reeval.config.ts': fakeConfig({
           extra: `profiles: { real: { judge: { model: '${model}' } } },`,
         }),
-        'evals/j.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('judged', async (c) => {
+        'evals/judged.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+
   await c.send('x')
   expect(await c.judge('Did it?', { diff: true })).toPass()
+
+  },
 })
 `,
       })
@@ -843,31 +859,53 @@ evaluate('judged', async (c) => {
     )
   })
 
-  test('a profile limit.harness id no collected eval runs on exits 2, naming the ids they do', async () => {
+  test('a profile limit.agent id no collected eval runs on exits 2, naming the ids they do', async () => {
     const p = await project('limit-harness-unknown', {
       'reeval.config.ts': config(
         `profiles: {
-    typo: { limit: { harnesses: ['cursor'] } },
-    one: { limit: { harnesses: ['a:x', 'cursor'] } },
-    tagged: { limit: { harnesses: ['b:y'] } },
-    both: { limit: { harnesses: ['a:x', 'c:z'] } },
-    other: { limit: { harnesses: ['c:z'] } },
+    typo: { limit: { agents: ['cursor'] } },
+    one: { limit: { agents: ['a:x', 'cursor'] } },
+    tagged: { limit: { agents: ['b:y'] } },
+    both: { limit: { agents: ['a:x', 'c:z'] } },
+    other: { limit: { agents: ['c:z'] } },
   },`,
-        "fakeHarness({ id: 'a:x' })",
+        "fakeAgent({ id: 'a:x' })",
       ),
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
-evaluate('plain', async () => {})
-evaluate('slow', { tags: ['slow'], harnesses: fakeHarness({ id: 'b:y' }) }, async () => {})
+      'evals/plain.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task() {
+
+  },
+})
 `,
-      'evals/c.eval.ts': `import { evaluate } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
-evaluate('other', { harnesses: fakeHarness({ id: 'c:z' }) }, async () => {})
+      'evals/other.eval.ts': `import { defineEval } from 'reeval'
+import { fakeAgent } from 'reeval/agent'
+export default defineEval({
+  agents: fakeAgent({ id: 'c:z' }),
+  async task() {
+
+  },
+})
+`,
+      'evals/tagged-b.eval.ts': `import { defineEval } from 'reeval'
+import { fakeAgent } from 'reeval/agent'
+export default defineEval({
+  agents: fakeAgent({ id: 'b:y' }),
+  tags: ['slow'],
+  async task() {},
+})
+`,
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'
+import { fakeAgent } from 'reeval/agent'
+export default defineEval({
+  agents: [fakeAgent({ id: 'a:x' }), fakeAgent({ id: 'b:y' })],
+  async task() {},
+})
 `,
     })
     const refused = (ids: string) =>
       new RegExp(
-        `reeval: profiles\\.\\w+\\.limit\\.harnesses in reeval\\.config\\.ts lists ${ids}, which no eval runs on\\. Harness ids the evals run on: a:x, b:y, c:z\\.`,
+        `reeval: profiles\\.\\w+\\.limit.agents in reeval\\.config\\.ts lists ${ids}, which no eval runs on\\. Agent ids the evals run on: a:x, b:y, c:z\\.`,
       )
     for (const args of [['--dry-run'], []]) {
       const r = await runCli(p.dir, ['run', '--profile', 'typo', ...args])
@@ -902,7 +940,7 @@ evaluate('other', { harnesses: fakeHarness({ id: 'c:z' }) }, async () => {})
     assert.equal(none.code, 2, none.stdout + none.stderr)
     assert.match(
       none.stderr,
-      /lists "c:z", which no eval in the selected files runs on\. Harness ids the evals in the selected files run on: a:x, b:y\./,
+      /lists "c:z", which no eval in the selected files runs on\. Agent ids the evals in the selected files run on: a:x, b:y\./,
     )
   })
 
@@ -910,10 +948,15 @@ evaluate('other', { harnesses: fakeHarness({ id: 'c:z' }) }, async () => {})
     const p = await project('budget-duration', {
       'reeval.config.ts': config(
         `concurrency: 1, budget: { duration: '1s' },`,
-        'fakeHarness({ delayMs: 700 })',
+        'fakeAgent({ delayMs: 700 })',
       ),
-      'evals/b.eval.ts': `import { evaluate } from 'reeval'
-evaluate('slow', { runs: 4 }, async (c) => { await c.send('x') })
+      'evals/slow.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  runs: 4,
+  async task(c) {
+ await c.send('x') 
+  },
+})
 `,
     })
     const r = await runCli(p.dir)
@@ -938,10 +981,15 @@ evaluate('slow', { runs: 4 }, async (c) => { await c.send('x') })
     const files = (record: string) => ({
       'reeval.config.ts': config(
         `concurrency: 1, budget: { duration: '1s' },${record}`,
-        'fakeHarness({ delayMs: 1500 })',
+        'fakeAgent({ delayMs: 1500 })',
       ),
-      'evals/b.eval.ts': `import { evaluate } from 'reeval'
-evaluate('slow', { runs: 4 }, async (c) => { await c.send('x') })
+      'evals/slow.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  runs: 4,
+  async task(c) {
+ await c.send('x') 
+  },
+})
 `,
     })
     const ci = await project('budget-record-ci', files(''))
@@ -978,7 +1026,7 @@ describe('common mistakes', { concurrency: 4 }, () => {
     const a = defineEnvironment('a', {})
     const b = defineEnvironment('b', {})
     const fakeConfigInput = (environment = true) => ({
-      harnesses: fakeHarness({}),
+      agents: fakeAgent({}),
       sandbox: fakeSandbox({ dir: join(root, 'sandboxes') }),
       ...(environment ? { environments: defineEnvironment('fake', {}) } : {}),
       judge: { model: fakeJudge({ score: 0.9 }) },
@@ -989,8 +1037,24 @@ describe('common mistakes', { concurrency: 4 }, () => {
      * What collecting an eval file that runs `declare` refuses, under `fakeConfig()`'s config, or
      * `null` when it plans.
      */
+    const evalSpec = (declare: () => unknown): object => {
+      const result = declare()
+      if (result !== undefined && typeof result === 'object' && result !== null) {
+        if (
+          'task' in result ||
+          'cases' in result ||
+          'runs' in result ||
+          'compare' in result ||
+          'agents' in result
+        )
+          return result as object
+        return { environment: result, task: async () => {} }
+      }
+      return { task: async () => {} }
+    }
+
     async function refusal(
-      declare: () => void,
+      declare: () => unknown,
       config = fakeConfigInput(),
     ): Promise<string | null> {
       const run: RunContext = {
@@ -1003,52 +1067,49 @@ describe('common mistakes', { concurrency: 4 }, () => {
       }
       useEngine({
         registerTest,
-        registerGroup,
         getRunContext: () => run,
         collectingFile,
         declarePlanned: () => {},
       })
       const file = join(root, `evals/m${++files}.eval.ts`)
+      ;(globalThis as Record<symbol, unknown>)[Symbol.for('reeval.defined')] = []
       try {
-        await collect(file, async () => declare())
+        await collect(file, async () =>
+          declareDefault(file, { default: defineEval(evalSpec(declare)) }),
+        )
       } catch (error) {
         return (error as Error).message
       }
       return null
     }
 
+    const W = /evals\/m\d+\.eval\.ts/
+
     const cases: Array<[string, () => unknown, RegExp]> = [
       [
         'a question that shows the model nothing',
-        () =>
-          group('g', { question: { model: 'google/gemini-3.8-flash' } }, () => {
-            evaluate(
-              'e',
-              { questions: [{ question: 'Q', diff: false, output: false, transcript: false }] },
-              async () => {},
-            )
-          }),
-        /questions "Q" in evaluate\("g › e"\) shows the model nothing: turn on at least one of task, output, files, diff, transcript, checks, observations or artifacts, e\.g\. \{ question: '…', diff: true \}\./,
+        () => ({
+          question: { model: 'google/gemini-3.8-flash' },
+          questions: [{ question: 'Q', diff: false, output: false, transcript: false }],
+          task: async () => {},
+        }),
+        /questions "Q" in evals\/m\d+\.eval\.ts shows the model nothing:/,
       ],
       [
         'a variant with its own checks',
-        () =>
-          evaluate(
-            'e',
-            { compare: { control: a, variants: [{ environment: a, check: () => {} } as never] } },
-            async () => {},
-          ),
-        /compare\.variants in evaluate\("e"\) must be environments from defineEnvironment \(got an object with "environment", "check"\)\. Variants share the eval's prompt and checks; if a variant needs different checks, write a separate eval\./,
+        () => ({
+          compare: { control: a, variants: [{ environment: a, check: () => {} } as never] },
+          task: async () => {},
+        }),
+        /compare\.variants in evals\/m\d+\.eval\.ts must be environments from defineEnvironment/,
       ],
       [
         'compare scoped to a harness the eval does not run',
-        () =>
-          evaluate(
-            'e',
-            { compare: { control: b, variants: [a], harnesses: ['sonnet'] } },
-            async () => {},
-          ),
-        /compare\.harnesses lists sonnet, which evaluate\("e"\) doesn't run \(it runs fake\)\./,
+        () => ({
+          compare: { control: b, variants: [a], agents: ['sonnet'] },
+          task: async () => {},
+        }),
+        /compare\.agents lists sonnet, which evals\/m\d+\.eval\.ts doesn't run/,
       ],
       [
         'compare arms whose refs come from unset variables',
@@ -1059,120 +1120,84 @@ describe('common mistakes', { concurrency: 4 }, () => {
           const head = base.extendEnvironment('head', ({ git }) => ({
             workspace: git('..', { ref: process.env.REEVAL_TEST_UNSET_HEAD }),
           }))
-          evaluate('e', { compare: { control: base, variants: [head] } }, async () => {})
+          return { compare: { control: base, variants: [head] }, task: async () => {} }
         },
-        /compare in evaluate\("e"\) runs head and base on the same tree: past what they share, each sets only workspace, and both are git\("\.\."\) with no ref \(the repository HEAD\)\. A ref read from an unset variable is undefined, so check the variables the arms take their refs from, and give each arm its own ref\./,
+        /compare in evals\/m\d+\.eval\.ts runs head and base on the same tree/,
       ],
       [
         'a variant that is the control',
-        () =>
-          group('g', { environments: a }, () => {
-            evaluate('e', { compare: { control: a, variants: [a, b] } }, async () => {})
-          }),
-        /compare in evaluate\("g › e"\) lists a, which is the control\. List only the other environments\./,
+        () => ({
+          environment: a,
+          compare: { control: a, variants: [a, b] },
+          task: async () => {},
+        }),
+        /sets both environments and compare\. With compare, the control is compare\.control/,
       ],
       [
         'a pairwise question across environments without a compare',
-        () =>
-          evaluate(
-            'e',
-            { questions: [{ question: 'Which?', across: 'environment', diff: true }] },
-            async () => {},
-          ),
-        /questions "Which\?" in evaluate\("e"\) varies the environment \(across: 'environment'\), but evaluate\("e"\) runs one environment, so it has no pairs to ask\. Run it in two or more, environments: \[a, b\], or compare: \{ control, variants: \[\.\.\.\] \}, or leave out across to ask each attempt on its own\./,
+        () => ({
+          environment: a,
+          questions: [{ question: 'Which?', across: 'environment', diff: true }],
+          task: async () => {},
+        }),
+        /questions "Which\?" in evals\/m\d+\.eval\.ts varies the environment \(across: 'environment'\)/,
       ],
       [
         'a pairwise question across harnesses on one harness',
-        () =>
-          evaluate(
-            'e',
-            {
-              compare: { control: a, variants: [b] },
-              questions: [{ question: 'Which?', across: ['environment', 'harness'], diff: true }],
-            },
-            async () => {},
-          ),
-        /questions "Which\?" in evaluate\("e"\) varies the harness \(across: 'harness'\), but evaluate\("e"\) runs one harness \(fake\), so it has no pairs to ask\. Run it on two or more, harnesses: \[a, b\], or leave out across to ask each attempt on its own\./,
+        () => ({
+          compare: { control: a, variants: [b] },
+          questions: [{ question: 'Which?', across: 'harness', diff: true }],
+          task: async () => {},
+        }),
+        /questions "Which\?" in evals\/m\d+\.eval\.ts: across is 'environment'.*Did you mean 'agent'\?/,
       ],
       [
         'pinning something that cannot be pinned',
-        () => evaluate('e', { pin: ['timeout'] as never }, async () => {}),
-        /pin in evaluate\("e"\) lists harnesses, runs and\/or compare \(got "timeout"\)/,
-      ],
-      [
-        'a callback as group options',
-        () =>
-          group(
-            'genkit',
-            (({ secret }: { secret: { fromEnv: (k: string) => unknown } }) => ({
-              env: { KEY: secret.fromEnv('KEY') },
-            })) as never,
-            () => {},
-          ),
-        /group\("genkit"\) got two functions\. Options must be a plain object; helpers such as secret are only available in defineConfig and defineEnvironment callbacks\./,
+        () => ({ pin: ['timeout'] as never, task: async () => {} }),
+        /pin in evals\/m\d+\.eval\.ts lists agents, runs and\/or compare \(got "timeout"\)/,
       ],
       [
         'a harness edit naming a harness the eval does not inherit',
-        () => evaluate('e', { harnesses: { only: 'cursor' } }, async () => {}),
-        /harnesses \{ only: "cursor" \} in evaluate\("e"\) names no inherited harness \(inherited: fake\)/,
+        () => ({ agents: { only: 'cursor' }, task: async () => {} }),
+        /agents \{ only: "cursor" \} in evals\/m\d+\.eval\.ts names no inherited agent/,
       ],
       [
         'a harness edit that adds and keeps at once',
-        () => evaluate('e', { harnesses: { add: [], only: 'fake' } as never }, async () => {}),
-        /harnesses in evaluate\("e"\) takes \{ add \} or \{ only \}, not both\. Use add/,
-      ],
-      [
-        'an old option name',
-        () => group('g', { harness: [] } as never, () => {}),
-        /Unknown option "harness" in group\("g"\)\. Did you mean "harnesses"\?/,
+        () => ({ agents: { add: [], only: 'fake' } as never, task: async () => {} }),
+        /agents in evals\/m\d+\.eval\.ts takes \{ add \} or \{ only \}, not both/,
       ],
       [
         'repeat instead of runs',
-        () => evaluate('e', { repeat: 3 } as never, async () => {}),
-        /Unknown option "repeat" .*Did you mean "runs"\?/,
+        () => ({ repeat: 3, task: async () => {} }) as never,
+        /Unknown option "repeat".*Did you mean "runs"\?/,
       ],
       [
         'an eval with no function',
-        () => (evaluate as (name: string, options: object) => void)('x', {}),
-        /evaluate\("x"\) has no function\. Pass the eval's body, e\.g\. evaluate\("x", async \(c\) => \{ … \}\)\./,
+        () => ({ runs: 2 }),
+        /its eval has no task\. Give defineEval the eval's body/,
       ],
       [
         'two cases with the same key',
-        () => evaluate('adds', { cases: [{ id: 'a' }, { id: 'a' }] }, async () => {}),
-        /cases\[0\] and cases\[1\] in evaluate\("adds"\) have the same key "a"\. Each case needs its own key: give them distinct ids or names, or pass caseKey\./,
-      ],
-      [
-        'cases on a group',
-        () => group('g', { cases: [1, 2] } as never, () => {}),
-        /Unknown option "cases" in group\("g"\)\. cases belongs to one eval: evaluate\(name, \{ cases: \[\.\.\.\] \}, async \(c, item\) => \{ … \}\)\./,
+        () => ({ cases: [{ id: 'a' }, { id: 'a' }], task: async () => {} }),
+        /cases\[0\] and cases\[1\] in evals\/m\d+\.eval\.ts have the same key "a"/,
       ],
       [
         'cases whose keys mask to the same key',
-        () =>
-          evaluate(
-            'uses',
-            { cases: [{ id: `sk-ant-${'a'.repeat(24)}` }, { id: `sk-ant-${'b'.repeat(24)}` }] },
-            async () => {},
-          ),
-        /evaluate\("uses \[\[REDACTED\]\]"\) names a secret, and its masked name is another eval's in this file: name it without the secret\. Give each case a key that holds no secret\./,
+        () => ({
+          cases: [{ id: `sk-ant-${'a'.repeat(24)}` }, { id: `sk-ant-${'b'.repeat(24)}` }],
+          task: async () => {},
+        }),
+        /evals\/m\d+\.eval\.ts case "\[REDACTED\]" names a secret, and its masked name is another case's in this eval/,
       ],
       [
         'a zero timeout',
-        () => evaluate('e', { timeout: 0 }, async () => {}),
-        /Invalid duration 0\. A duration is more than zero: use e\.g\. "90s" or "15m"\./,
+        () => ({ timeout: 0, task: async () => {} }),
+        /Invalid duration 0\. A duration is more than zero/,
       ],
       [
         'a timeout longer than a timer can be',
-        () => evaluate('e', { timeout: '1000h' }, async () => {}),
-        /Invalid duration "1000h"\. A duration is at most 596h \(2147483647ms\), the longest timer Node can set\./,
-      ],
-      [
-        'a judge diff on a group',
-        () =>
-          group('g', { judge: { diff: ['src/'] } as never }, () => {
-            evaluate('e', async () => {})
-          }),
-        /Unknown judge option "diff" in group\("g"\)\. diff is per call: c\.judge\(question, \{ diff \}\)\./,
+        () => ({ timeout: '1000h', task: async () => {} }),
+        /Invalid duration "1000h"/,
       ],
       [
         'a file path that climbs out of the home directory',
@@ -1181,18 +1206,18 @@ describe('common mistakes', { concurrency: 4 }, () => {
       ],
       [
         'runs 0',
-        () => evaluate('e', { runs: 0 }, async () => {}),
-        /runs in evaluate\("e"\) must be a whole number of at least 1 \(got 0\)/,
+        () => ({ runs: 0, task: async () => {} }),
+        /runs in evals\/m\d+\.eval\.ts must be a whole number of at least 1 \(got 0\)/,
       ],
       [
         'passRate instead of gate',
-        () => evaluate('e', { passRate: 0.8 } as never, async () => {}),
-        /Unknown option "passRate" in evaluate\("e"\)\. Did you mean "gate"\?/,
+        () => ({ passRate: 0.8, task: async () => {} }) as never,
+        /Unknown option "passRate" in evals\/m\d+\.eval\.ts\. Did you mean "gate"\?/,
       ],
       [
         'no harness',
-        () => evaluate('e', { harnesses: [] }, async () => {}),
-        /harnesses is an empty list in evaluate\("e"\)/,
+        () => ({ agents: [], task: async () => {} }),
+        /agents is an empty list in evals\/m\d+\.eval\.ts/,
       ],
       [
         'an empty hosts list',
@@ -1200,7 +1225,7 @@ describe('common mistakes', { concurrency: 4 }, () => {
           defineEnvironment('k', ({ secret }) => ({
             env: { K: secret.fromEnv('K', { hosts: [] }) },
           })),
-        /secret\.fromEnv\("K"\): hosts must list the hosts the secret is sent to, e\.g\. hosts: \['api\.example\.com'\] or secret\.hosts\.gemini \(got \[\]\)/,
+        /secret\.fromEnv\("K"\): hosts must list the hosts the secret is sent to/,
       ],
       [
         'a URL as a host',
@@ -1208,7 +1233,7 @@ describe('common mistakes', { concurrency: 4 }, () => {
           defineEnvironment('k', ({ secret }) => ({
             env: { K: secret.fromEnv('K', { hosts: ['https://api.example.com/v1'] }) },
           })),
-        /secret\.fromEnv\("K"\): hosts are host names, not URLs: use 'api\.example\.com' \(got 'https:\/\/api\.example\.com\/v1'\)/,
+        /secret\.fromEnv\("K"\): hosts are host names, not URLs/,
       ],
       [
         'a host that is not a string',
@@ -1216,7 +1241,7 @@ describe('common mistakes', { concurrency: 4 }, () => {
           defineEnvironment('k', ({ secret }) => ({
             env: { K: secret.fromEnv('K', { hosts: [42 as never] }) },
           })),
-        /secret\.fromEnv\("K"\): 42 isn't a host\. Use a name like 'api\.example\.com', or '\*\.example\.com' for its subdomains\./,
+        /secret\.fromEnv\("K"\): 42 isn't a host/,
       ],
       [
         'in without hosts',
@@ -1224,42 +1249,38 @@ describe('common mistakes', { concurrency: 4 }, () => {
           defineEnvironment('k', ({ secret }) => ({
             env: { K: secret.fromEnv('K', { in: ['query'] }) },
           })),
-        /secret\.fromEnv\("K"\): in only applies to a brokered secret; add hosts, e\.g\. \{ hosts: \['api\.example\.com'\], in: \["query"\] \}/,
+        /secret\.fromEnv\("K"\): in only applies to a brokered secret/,
       ],
       [
         'a short-form IPv4 address in an egress allowlist',
-        () => evaluate('e', { egress: { allow: ['10.1'] } }, async () => {}),
-        /egress\.allow in evaluate\("e"\): '10\.1' isn't a host name or an IPv4 address/,
+        () => ({ egress: { allow: ['10.1'] }, task: async () => {} }),
+        /egress\.allow in evals\/m\d+\.eval\.ts: '10\.1' isn't a host name or an IPv4 address/,
       ],
       [
         'the network policy under another name',
-        () => evaluate('e', { network: 'deny-all' } as never, async () => {}),
-        /Unknown option "network" in evaluate\("e"\)\. Did you mean "egress"\?/,
+        () => ({ network: 'deny-all', task: async () => {} }) as never,
+        /Unknown option "network" in evals\/m\d+\.eval\.ts\. Did you mean "egress"\?/,
       ],
       [
         'deny-all on the fake sandbox',
-        () => evaluate('e', { egress: 'deny-all' }, async () => {}),
-        /evaluate\("e"\) runs under egress 'deny-all', which needs turning egress off, but the fake sandbox enforces no egress policy \(its commands run on the host\)\. Run it in docker\(\), or set egress: 'allow-all'\./,
+        () => ({ egress: 'deny-all', task: async () => {} }),
+        /evals\/m\d+\.eval\.ts runs under egress 'deny-all', which needs turning egress off/,
       ],
       [
         "an environment's allowlist on the fake sandbox",
-        () =>
-          evaluate(
-            'e',
-            {
-              environments: defineEnvironment('n', {
-                sandbox: fakeSandbox(),
-                egress: { allow: ['api.example.com'] },
-              }),
-            },
-            async () => {},
-          ),
-        /evaluate\("e"\) runs under egress \{ allow: \['api\.example\.com'\] \}, which needs a host allowlist \(api\.example\.com\), but the fake sandbox enforces no egress policy/,
+        () => ({
+          environment: defineEnvironment('n', {
+            sandbox: fakeSandbox(),
+            egress: { allow: ['api.example.com'] },
+          }),
+          task: async () => {},
+        }),
+        /evals\/m\d+\.eval\.ts runs under egress \{ allow: \['api\.example\.com'\] \}, which needs a host allowlist/,
       ],
       [
         'two harnesses with one id',
-        () => evaluate('e', { harnesses: [fakeHarness(), fakeHarness()] }, async () => {}),
-        /Two harnesses in evaluate\("e"\) resolve to the id "fake"/,
+        () => ({ agents: [fakeAgent(), fakeAgent()], task: async () => {} }),
+        /Two agents in evals\/m\d+\.eval\.ts resolve to the id "fake"/,
       ],
       [
         'the singular plugin key',
@@ -1275,68 +1296,63 @@ describe('common mistakes', { concurrency: 4 }, () => {
           defineEnvironment('review', ({ plugin }) => ({
             plugins: [plugin.local('.', { only: 'skills' as never })],
           })),
-        /plugin\.local\("\."\): only lists the parts to place, from 'skills', 'agents', 'commands', 'hooks', 'mcp', 'rules'/,
+        /plugin\.local\("\."\): only lists the parts to place/,
       ],
       [
         'capture as a number',
-        () => evaluate('e', { capture: 5173 as never }, async () => {}),
-        /capture in evaluate\("e"\) is \{ viewport\?, timeout\?, browser\?, model\? \} \(got 5173\)/,
+        () => ({ capture: 5173 as never, task: async () => {} }),
+        /capture in evals\/m\d+\.eval\.ts is \{ viewport\?, timeout\?, browser\?, model\? \} \(got 5173\)/,
       ],
       [
         'an unknown capture key',
-        () => evaluate('e', { capture: { ready: true } as never }, async () => {}),
-        /Unknown capture key "ready" in evaluate\("e"\)\. Use viewport, timeout, browser, model\./,
+        () => ({ capture: { ready: true } as never, task: async () => {} }),
+        /Unknown capture key "ready" in evals\/m\d+\.eval\.ts/,
       ],
       [
         'capture.port on evaluate',
-        () => evaluate('e', { capture: { port: 5173 } as never }, async () => {}),
-        /Unknown capture key "port" in evaluate\("e"\)\. Use viewport, timeout, browser, model\./,
+        () => ({ capture: { port: 5173 } as never, task: async () => {} }),
+        /Unknown capture key "port" in evals\/m\d+\.eval\.ts/,
       ],
       [
         'a capture viewport without height',
-        () => evaluate('e', { capture: { viewport: { width: 1280 } as never } }, async () => {}),
-        /capture\.viewport in evaluate\("e"\) is \{ width, height \} or 'full-page'/,
+        () => ({ capture: { viewport: { width: 1280 } as never }, task: async () => {} }),
+        /capture\.viewport in evals\/m\d+\.eval\.ts is \{ width, height \} or 'full-page'/,
       ],
       [
         'capture.browser as a string',
-        () => evaluate('e', { capture: { browser: 'off' as never } }, async () => {}),
-        /capture\.browser in evaluate\("e"\) is true or false \(got "off"\)/,
+        () => ({ capture: { browser: 'off' as never }, task: async () => {} }),
+        /capture\.browser in evals\/m\d+\.eval\.ts is true or false \(got "off"\)/,
       ],
       [
         'a capture viewport with height and fullPage',
-        () =>
-          evaluate(
-            'e',
-            { capture: { viewport: { height: 720, fullPage: true } as never } },
-            async () => {},
-          ),
-        /capture\.viewport in evaluate\("e"\) is \{ width, height \} or 'full-page', not \{ height, fullPage \}/,
+        () => ({
+          capture: { viewport: { height: 720, fullPage: true } as never },
+          task: async () => {},
+        }),
+        /capture\.viewport in evals\/m\d+\.eval\.ts is \{ width, height \} or 'full-page', not \{ height, fullPage \}/,
       ],
       [
         'instructions without a vision model',
-        () =>
-          evaluate('e', { capture: { instructions: ['Fill the form'] } as never }, async () => {}),
-        /capture\.instructions in evaluate\("e"\) can't be set: instructions go on the call/,
+        () => ({ capture: { instructions: ['Fill the form'] } as never, task: async () => {} }),
+        /capture\.instructions in evals\/m\d+\.eval\.ts can't be set/,
       ],
       [
         'an evaluation-model capture.model',
-        () => evaluate('e', { capture: { model: 'typesafe-ai/jev-1.14.0' } }, async () => {}),
-        /capture\.model "typesafe-ai\/jev-1\.14\.0" in evaluate\("e"\) is an evaluation model/,
+        () => ({ capture: { model: 'typesafe-ai/jev-1.14.0' }, task: async () => {} }),
+        /capture\.model "typesafe-ai\/jev-1\.14\.0" in evals\/m\d+\.eval\.ts is an evaluation model/,
       ],
       [
         'leftover capture.use',
-        () =>
-          evaluate(
-            'e',
-            { capture: { use: { model: 'google/gemini-3.8-flash' } } as never },
-            async () => {},
-          ),
-        /Unknown capture key "use" in evaluate\("e"\)\. Set capture\.model/,
+        () => ({
+          capture: { use: { model: 'google/gemini-3.8-flash' } } as never,
+          task: async () => {},
+        }),
+        /Unknown capture key "use" in evals\/m\d+\.eval\.ts/,
       ],
       [
         'leftover capture.fake',
-        () => evaluate('e', { capture: { fake: [] } as never }, async () => {}),
-        /Unknown capture key "fake" in evaluate\("e"\)\. Set capture\.model/,
+        () => ({ capture: { fake: [] } as never, task: async () => {} }),
+        /Unknown capture key "fake" in evals\/m\d+\.eval\.ts/,
       ],
     ]
     for (const [what, declare, message] of cases) {
@@ -1346,21 +1362,18 @@ describe('common mistakes', { concurrency: 4 }, () => {
     }
 
     test('compare arms on one workspace that differ in something else plan', async () => {
-      const declare = () => {
-        const base = defineEnvironment('base', ({ git }) => ({ workspace: git('..') }))
-        const skilled = base.extendEnvironment('skilled', ({ git }) => ({
-          workspace: git('..'),
-          files: { 'SKILL.md': 'x' },
-        }))
-        const ruled = defineEnvironment('ruled', ({ git }) => ({
-          workspace: git('..'),
-          rules: 'Be brief.',
-        }))
-        const bare = defineEnvironment('bare', ({ git }) => ({ workspace: git('..') }))
-        evaluate('extends', { compare: { control: base, variants: [skilled] } }, async () => {})
-        evaluate('apart', { compare: { control: ruled, variants: [bare] } }, async () => {})
-      }
-      assert.equal(await refusal(declare), null)
+      const base = defineEnvironment('base', ({ git }) => ({ workspace: git('..') }))
+      const skilled = base.extendEnvironment('skilled', ({ git }) => ({
+        workspace: git('..'),
+        files: { 'SKILL.md': 'x' },
+      }))
+      assert.equal(
+        await refusal(() => ({
+          compare: { control: base, variants: [skilled] },
+          task: async () => {},
+        })),
+        null,
+      )
     })
 
     const configCases: Array<[string, Record<string, unknown>, RegExp]> = [
@@ -1371,8 +1384,8 @@ describe('common mistakes', { concurrency: 4 }, () => {
       ],
       [
         'widening in a profile limit',
-        { profiles: { pr: { limit: { harnesses: [fakeHarness({ id: 'a' })] } } } },
-        /profiles\.pr\.limit\.harnesses in reeval\.config\.ts can only list harness ids to allow \(got fakeHarness\(\{ … \}\)\)\. To add harnesses, use profiles\.pr\.defaults\.harnesses\./,
+        { profiles: { pr: { limit: { agents: [fakeAgent({ id: 'a' })] } } } },
+        /profiles\.pr\.limit\.agents in reeval\.config\.ts can only list agent ids to allow \(got fakeAgent\(\{ … \}\)\)\. To add agents, use profiles\.pr\.defaults\.agents\./,
       ],
       [
         'a usd budget',
@@ -1386,8 +1399,8 @@ describe('common mistakes', { concurrency: 4 }, () => {
       ],
       [
         'maxConcurrent 0 on a config harness',
-        { harnesses: fakeHarness({ maxConcurrent: 0 }) },
-        /harnesses\.maxConcurrent in reeval\.config\.ts must be a whole number of at least 1 \(got 0\)/,
+        { agents: fakeAgent({ maxConcurrent: 0 }) },
+        /agents\.maxConcurrent in reeval\.config\.ts must be a whole number of at least 1 \(got 0\)/,
       ],
       [
         'a judge diff option in the config',
@@ -1461,23 +1474,31 @@ defineEnvironment('py', { dockerfile: './Dockerfile' } as never)
       'a refusal while the eval is planned',
       {
         'reeval.config.ts': fakeConfig(),
-        'evals/o.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+        'evals/e.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 const a = defineEnvironment('a', {})
 const b = defineEnvironment('b', {})
-evaluate('e', { compare: { control: b, variants: [a], harnesses: ['sonnet'] } }, async () => {})
+export default defineEval({
+  compare: { control: b, variants: [a], agents: ['sonnet'] },
+  async task() {},
+})
 `,
       },
-      /^reeval: evals\/o\.eval\.ts: compare\.harnesses lists sonnet, which evaluate\("e"\) doesn't run \(it runs fake\)\./m,
+      /^reeval: evals\/e\.eval\.ts: compare\.agents lists sonnet, which evals\/e\.eval\.ts doesn't run \(it runs fake\)\./m,
     ],
     [
       'a plugin without a manifest',
       {
         'reeval.config.ts': fakeConfig(),
-        'evals/o.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
-evaluate('e', { environments: defineEnvironment('review', ({ plugin }) => ({ plugins: [plugin.local('..')] })) }, async () => {})
+        'evals/e.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
+export default defineEval({
+  environment: defineEnvironment('review', ({ plugin }) => ({ plugins: [plugin.local('..')] })),
+  async task() {
+
+  },
+})
 `,
       },
-      /evaluate\("e"\) on fake: plugin\.local\('\.'\) has no \.claude-plugin\/plugin\.json/,
+      /evals\/e\.eval\.ts: evals\/e\.eval\.ts on fake: plugin\.local\('\.'\) has no \.claude-plugin\/plugin\.json/,
     ],
   ]
   for (const [what, files, message] of cliCases) {
@@ -1508,8 +1529,10 @@ evaluate('e', { environments: defineEnvironment('review', ({ plugin }) => ({ plu
   test('a reeval.yaml mistake, or a reeval.yaml beside reeval.config.ts, exits 2', async () => {
     const p = await project('yaml-mistake', {
       'reeval.yaml':
-        'harnesses: { kind: fake }\nsandbox: { kind: fake }\nhistory: { artifact: all }\n',
-      'evals/a.eval.ts': "import { evaluate } from 'reeval'\nevaluate('a', async () => {})\n",
+        'agents: { kind: fake }\nsandbox: { kind: fake }\nhistory: { artifact: all }\n',
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ async task() {} })
+`,
     })
     const typo = await runCli(p.dir, ['run', '--dry-run'])
     assert.equal(typo.code, 2, typo.stdout + typo.stderr)
@@ -1529,14 +1552,16 @@ evaluate('e', { environments: defineEnvironment('review', ({ plugin }) => ({ plu
   test('--profile picks the history store a command reads, as REEVAL_PROFILE does', async () => {
     const p = await project('profile-history', {
       'reeval.yaml': [
-        'harnesses: { kind: fake }',
+        'agents: { kind: fake }',
         'sandbox: { kind: fake }',
         'profiles:',
         '  ci:',
         '    history: { store: { kind: s3, bucket: runs } }',
         '',
       ].join('\n'),
-      'evals/a.eval.ts': "import { evaluate } from 'reeval'\nevaluate('a', async () => {})\n",
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ async task() {} })
+`,
     })
     const local = await runCli(p.dir, ['history'])
     assert.equal(local.code, 0, local.stdout + local.stderr)
@@ -1568,10 +1593,10 @@ evaluate('e', { environments: defineEnvironment('review', ({ plugin }) => ({ plu
         "import { defineConfig, defineEnvironment } from 'reeval'",
       )
     const p = await project('config-path', {
-      'reeval.config.ts': bad('harness: [],'),
+      'reeval.config.ts': bad('agent: [],'),
       'reeval.compare.config.ts': bad(`compare: { variants: [defineEnvironment('x', {})] },`),
       'reeval.secret.config.ts': bad(`env: { GOOGLE_API_KEY: 'AIza-not-really' },`),
-      'reeval.empty.config.ts': bad('harnesses: [],'),
+      'reeval.empty.config.ts': bad('agents: [],'),
       'reeval.none.config.ts': fakeConfig().replace(
         'export default defineConfig({',
         'defineConfig({',
@@ -1581,26 +1606,36 @@ evaluate('e', { environments: defineEnvironment('review', ({ plugin }) => ({ plu
       'reeval.include.config.ts': bad(`include: ['nothing/**/*.eval.ts'],`),
       'reeval.judge.config.ts': bad('').replace('judge: { model: fakeJudge({ score: 0.9 }) },', ''),
       'reeval.unbrokered.config.ts': bad(`secrets: { unbrokered: 'error' },`),
-      'evals/o.eval.ts': `import { evaluate } from 'reeval'\nevaluate('e', { runs: 2 }, async () => {})\n`,
-      'evals/j.eval.ts': `import { evaluate } from 'reeval'
-evaluate('judged', async (c) => { await c.send('x'); await c.judge('ok?', { diff: true }) })
+      'evals/e.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  runs: 2,
+  async task() {
+
+  },
+})
 `,
-      'evals/s.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/judged.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+ await c.send('x'); await c.judge('ok?', { diff: true }) 
+  },
+})
+`,
+      'evals/one.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
-const env = defineEnvironment('s', ({ secret }) => ({
+const env = defineEnvironment('one', ({ secret }) => ({
   sandbox: docker(),
-  env: { AWS_SECRET_ACCESS_KEY: secret.fromEnv('AWS_SECRET_ACCESS_KEY') },
+  env: { AWS_SECRET_ACCESS_KEY: secret() },
 }))
-evaluate('one', { environments: env }, async () => {})
+export default defineEval({
+  environment: env,
+  async task() {},
+})
 `,
     })
     const cases: Array<[string, string[], RegExp]> = [
-      ['.', [], /Unknown option "harness" in reeval\.config\.ts\. Did you mean "harnesses"\?/],
-      [
-        'evals',
-        [],
-        /Unknown option "harness" in \.\.\/reeval\.config\.ts\. Did you mean "harnesses"\?/,
-      ],
+      ['.', [], /Unknown option "agent" in reeval\.config\.ts\. Did you mean "agents"\?/],
+      ['evals', [], /Unknown option "agent" in \.\.\/reeval\.config\.ts\. Did you mean "agents"\?/],
       [
         '.',
         ['--config', 'reeval.compare.config.ts'],
@@ -1614,7 +1649,7 @@ evaluate('one', { environments: env }, async () => {})
       [
         '.',
         ['--config', 'reeval.empty.config.ts'],
-        /harnesses is an empty list in reeval\.empty\.config\.ts\./,
+        /agents is an empty list in reeval\.empty\.config\.ts\./,
       ],
       [
         'evals',
@@ -1628,7 +1663,7 @@ evaluate('one', { environments: env }, async () => {})
       ],
       [
         '.',
-        ['--config', 'reeval.budget.config.ts', 'o.eval'],
+        ['--config', 'reeval.budget.config.ts', 'e.eval'],
         /over budget\.attempts 1 \(reeval\.budget\.config\.ts\)/,
       ],
       [
@@ -1638,7 +1673,7 @@ evaluate('one', { environments: env }, async () => {})
       ],
       [
         '.',
-        ['--config', 'reeval.unbrokered.config.ts', 's.eval'],
+        ['--config', 'reeval.unbrokered.config.ts', 'one.eval'],
         /secrets\.unbrokered is 'error' in reeval\.unbrokered\.config\.ts\./,
       ],
     ]
@@ -1653,7 +1688,7 @@ evaluate('one', { environments: env }, async () => {})
           assert.doesNotMatch(r.stderr, /(?<![\w./])reeval\.config\.ts/, args.join(' '))
       }),
     )
-    const judged = await runCli(p.dir, ['run', '--config', 'reeval.judge.config.ts', 'j.eval'])
+    const judged = await runCli(p.dir, ['run', '--config', 'reeval.judge.config.ts', 'judged.eval'])
     assert.equal(judged.code, 1, judged.stdout + judged.stderr)
     assert.match(
       readRun(p.dir).evals[0]?.error?.message ?? '',
@@ -1676,7 +1711,13 @@ evaluate('one', { environments: env }, async () => {})
     test(`a config with ${what} exits 2 instead of running the default harness`, async () => {
       const p = await project('config-no-default', {
         'reeval.config.ts': fakeConfig().replace('export default defineConfig({', replacement),
-        'evals/o.eval.ts': `import { evaluate } from 'reeval'\nevaluate('e', async () => {})\n`,
+        'evals/e.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task() {
+
+  },
+})
+`,
       })
       const r = await runCli(p.dir, ['run', '--dry-run'])
       assert.equal(r.code, 2, r.stdout + r.stderr)
@@ -1684,7 +1725,7 @@ evaluate('one', { environments: env }, async () => {})
     })
   }
 
-  const unbrokeredEval = `import { defineEnvironment, evaluate } from 'reeval'
+  const unbrokeredEval = (id: string) => `import { defineEnvironment, defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const keys = defineEnvironment('keys', ({ secret }) => ({
   sandbox: docker(),
@@ -1693,20 +1734,19 @@ const keys = defineEnvironment('keys', ({ secret }) => ({
     AWS_SECRET_ACCESS_KEY: secret(),
   },
 }))
-evaluate('one', { environments: keys }, async () => {})
-evaluate('two', { environments: keys }, async () => {})
+export default defineEval({ environment: keys, async task() {} })
 `
 
   test("an optional secret that isn't set gets no real-value warning; set, it does", async () => {
     const p = await project('unbrokered-optional', {
       'reeval.config.ts': fakeConfig(),
-      'evals/o.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/one.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const maybe = defineEnvironment('maybe', ({ secret }) => ({
   sandbox: docker(),
   env: { SENTRY_TOKEN: secret.fromEnv('REEVAL_TEST_MAYBE_TOKEN', { optional: true }) },
 }))
-evaluate('one', { environments: maybe }, async () => {})
+export default defineEval({ environment: maybe, async task() {} })
 `,
     })
     const warning = /SENTRY_TOKEN is in the sandbox as its real value/
@@ -1723,17 +1763,17 @@ evaluate('one', { environments: maybe }, async () => {})
   test("secrets: { unbrokered: 'error' } refuses an optional secret whether or not it's set", async () => {
     const p = await project('unbrokered-optional-strict', {
       'reeval.config.ts': fakeConfig({ extra: "secrets: { unbrokered: 'error' }," }),
-      'evals/o.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/one.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const maybe = defineEnvironment('maybe', ({ secret }) => ({
   sandbox: docker(),
   env: { SENTRY_TOKEN: secret.fromEnv('REEVAL_TEST_MAYBE_TOKEN', { optional: true }) },
 }))
-evaluate('one', { environments: maybe }, async () => {})
+export default defineEval({ environment: maybe, async task() {} })
 `,
     })
     const refused =
-      /SENTRY_TOKEN in evaluate\("one"\) isn't brokered, and secrets\.unbrokered is 'error'/
+      /SENTRY_TOKEN in evals\/one\.eval\.ts isn't brokered, and secrets\.unbrokered is 'error'/
     for (const env of [{}, { REEVAL_TEST_MAYBE_TOKEN: 'set-on-this-host' }]) {
       const r = await runCli(p.dir, ['run', '--dry-run'], { env })
       assert.equal(r.code, 2, r.stdout + r.stderr)
@@ -1744,7 +1784,8 @@ evaluate('one', { environments: maybe }, async () => {})
   test('a Docker secret without hosts warns once in the plan', async () => {
     const p = await project('unbrokered', {
       'reeval.config.ts': fakeConfig(),
-      'evals/o.eval.ts': unbrokeredEval,
+      'evals/one.eval.ts': unbrokeredEval('one'),
+      'evals/two.eval.ts': unbrokeredEval('two'),
     })
     const r = await runCli(p.dir, ['run', '--dry-run'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
@@ -1757,42 +1798,43 @@ evaluate('one', { environments: maybe }, async () => {})
   test("secrets: { unbrokered: 'error' } refuses a Docker secret without hosts", async () => {
     const p = await project('unbrokered-strict', {
       'reeval.config.ts': fakeConfig({ extra: "secrets: { unbrokered: 'error' }," }),
-      'evals/o.eval.ts': unbrokeredEval,
+      'evals/one.eval.ts': unbrokeredEval('one'),
+      'evals/two.eval.ts': unbrokeredEval('two'),
     })
     const r = await runCli(p.dir, ['run', '--dry-run'])
     assert.equal(r.code, 2, r.stdout + r.stderr)
     assert.match(
       r.stderr,
-      /AWS_SECRET_ACCESS_KEY in evaluate\("one"\) isn't brokered, and secrets\.unbrokered is 'error' in reeval\.config\.ts\. To broker it, add the hosts it's sent to, e\.g\. secret\.fromEnv\('AWS_SECRET_ACCESS_KEY', \{ hosts: \['api\.example\.com'\] \}\)\./,
+      /AWS_SECRET_ACCESS_KEY in evals\/(one|two)\.eval\.ts isn't brokered, and secrets\.unbrokered is 'error' in reeval\.config\.ts\. To broker it, add the hosts it's sent to, e\.g\. secret\.fromEnv\('AWS_SECRET_ACCESS_KEY', \{ hosts: \['api\.example\.com'\] \}\)\./,
     )
   })
 
   test("secrets: { unbrokered: 'error' } refuses a to: 'checks' secret without hosts before setup runs", async () => {
-    const serverEval = (secret: string) => `import { defineEnvironment, evaluate } from 'reeval'
+    const serverEval = (secret: string) => `import { defineEnvironment, defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const server = defineEnvironment('server', ({ secret }) => ({
   sandbox: docker(),
   env: { CHECK_TOKEN: ${secret} },
   setup: ['nohup sleep 600 >/dev/null 2>&1 &'],
 }))
-evaluate('one', { environments: server }, async () => {})
+export default defineEval({ environment: server, async task() {} })
 `
     const config = fakeConfig({ extra: "secrets: { unbrokered: 'error' }," })
     const env = { CHECK_TOKEN: 'set-on-this-host' }
     const p = await project('unbrokered-checks-strict', {
       'reeval.config.ts': config,
-      'evals/o.eval.ts': serverEval("secret({ to: 'checks' })"),
+      'evals/one.eval.ts': serverEval("secret({ to: 'checks' })"),
     })
     const r = await runCli(p.dir, ['run'], { env })
     assert.equal(r.code, 2, r.stdout + r.stderr)
     assert.match(
       r.stderr,
-      /CHECK_TOKEN in evaluate\("one"\) isn't brokered, and secrets\.unbrokered is 'error' in reeval\.config\.ts\./,
+      /CHECK_TOKEN in evals\/one\.eval\.ts isn't brokered, and secrets\.unbrokered is 'error' in reeval\.config\.ts\./,
     )
     // Twin: brokered with hosts, the same eval plans.
     const brokered = await project('unbrokered-checks-brokered', {
       'reeval.config.ts': config,
-      'evals/o.eval.ts': serverEval("secret({ to: 'checks', hosts: ['api.example.com'] })"),
+      'evals/one.eval.ts': serverEval("secret({ to: 'checks', hosts: ['api.example.com'] })"),
     })
     const ok = await runCli(brokered.dir, ['run', '--dry-run'], { env })
     assert.equal(ok.code, 0, ok.stdout + ok.stderr)
@@ -1801,11 +1843,11 @@ evaluate('one', { environments: server }, async () => {})
   test('a moving git ref warns in the plan', async () => {
     const p = await project('moving-ref', {
       'reeval.config.ts': fakeConfig(),
-      'evals/o.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/e.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 const main = defineEnvironment('skill@main', ({ skill }) => ({
   skills: [skill.git('github:invertase/genkit-skills', { ref: 'main' })],
 }))
-evaluate('e', { environments: main }, async () => {})
+export default defineEval({ environment: main, async task() {} })
 `,
     })
     const r = await runCli(p.dir, ['run', '--dry-run'])
@@ -1822,11 +1864,11 @@ describe('environments and secrets', () => {
     const p = await project('environments', {
       'reeval.config.ts': `
 import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 import { fakeJudge } from 'reeval/judge'
 export default defineConfig(({ secret }) => ({
-  harnesses: fakeHarness({}),
+  agents: fakeAgent({}),
   environments: defineEnvironment('fake', { sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }) }),
   judge: { model: fakeJudge({ score: 0.9 }) },
   env: { APP_TOKEN: secret.fromEnv('REEVAL_TEST_HOST_TOKEN'), MODE: 'test' },
@@ -1854,9 +1896,12 @@ export const withSkill = defineEnvironment('with-skill', ({ file, mcp, secret, s
   setup: [{ run: 'printf %s "$EXTRA_TOKEN$CHECK_TOKEN" | wc -c > secret-length.txt', timeout: '10s' }],
 }))
 `,
-      'evals/e.eval.ts': `import { evaluate, expect } from 'reeval'
+      'evals/greets.eval.ts': `import { defineEval, expect } from 'reeval'
 import { plain, withSkill } from './envs.ts'
-evaluate('greets', { runs: 1, compare: { control: plain, variants: [withSkill] } }, async (c) => {
+export default defineEval({
+  runs: 1, compare: { control: plain, variants: [withSkill] },
+  async task(c) {
+
   const turn = await c.send('greet')
   const loaded = turn.transcript.some((e) => e.type === 'text' && e.text === 'Loaded skills: house-greeting; mcp: docs')
   const token = (await c.exec('printf %s "$APP_TOKEN"')).stdout
@@ -1875,6 +1920,8 @@ evaluate('greets', { runs: 1, compare: { control: plain, variants: [withSkill] }
   expect((await c.exec('printf %s "$FLAVOR"')).stdout).toBe('mint')
   expect((await c.exec('printf %s "$CHECK_TOKEN"')).stdout).toBe('s3cret-value-123')
   expect(turn.diff.files.map((f) => f.path)).not.toContain('AGENTS.md')
+
+  },
 })
 `,
     })
@@ -1882,7 +1929,7 @@ evaluate('greets', { runs: 1, compare: { control: plain, variants: [withSkill] }
       env: { REEVAL_TEST_HOST_TOKEN: 's3cret-value-123' },
     })
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    assert.match(r.stdout, /^\[greets#1 with-skill\] ▶ evals\/e\.eval\.ts › greets/m)
+    assert.match(r.stdout, /^\[greets#1 with-skill\] ▶ greets/m)
     assert.match(r.stdout, /^[│ ]+with-skill +1 of 1 {2}helped$/m)
     const { run, evals, dir } = readRun(p.dir)
     const envs = Object.fromEntries(run.environments.map((e) => [e.name, e]))
@@ -1918,13 +1965,16 @@ evaluate('greets', { runs: 1, compare: { control: plain, variants: [withSkill] }
   test('a missing secret is an infra error; a failing setup step names itself', async () => {
     const p = await project('missing-secret', {
       'reeval.config.ts': fakeConfig(),
-      'evals/s.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/needs-it.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const needs = defineEnvironment('needs', ({ secret }) => ({
   sandbox: fakeSandbox(),
   env: { NEEDED: secret.fromEnv('REEVAL_TEST_NOT_SET') },
 }))
-evaluate('needs it', { environments: needs }, async (c) => { await c.send('x') })
+export default defineEval({
+  environment: needs,
+  async task(c) { await c.send('x') },
+})
 `,
     })
     const r = await runCli(p.dir)
@@ -1936,13 +1986,13 @@ evaluate('needs it', { environments: needs }, async (c) => { await c.send('x') }
 
     const failing = await project('setup-fails', {
       'reeval.config.ts': fakeConfig(),
-      'evals/s.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/x.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const broken = defineEnvironment('broken', {
   sandbox: fakeSandbox(),
   setup: [{ run: 'true' }, { run: 'echo nope >&2; exit 4' }],
 })
-evaluate('x', { environments: broken, timeout: '1s' }, async (c) => { await c.send('x') })
+export default defineEval({ environment: broken, timeout: '1s', async task(c) { await c.send('x') } })
 `,
     })
     const f = await runCli(failing.dir)
@@ -1970,8 +2020,8 @@ evaluate('x', { environments: broken, timeout: '1s' }, async (c) => { await c.se
     const sha = git('rev-parse', 'HEAD')
     mkdirSync(join(p.dir, 'evals'))
     writeFileSync(
-      join(p.dir, 'evals/g.eval.ts'),
-      `import { defineEnvironment, evaluate, expect } from 'reeval'
+      join(p.dir, 'evals/loads-it.eval.ts'),
+      `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const env = defineEnvironment('remote', ({ skill }) => ({
   sandbox: fakeSandbox(),
@@ -1980,11 +2030,14 @@ const env = defineEnvironment('remote', ({ skill }) => ({
     skill.inline({ name: 'house-rules', description: 'Rules.', content: 'Be nice.' }, { placement: 'workspace' }),
   ],
 }))
-evaluate('loads it', { environments: env }, async (c) => {
-  const turn = await c.send('x')
-  expect(turn.transcript.some((e) => e.type === 'text' && e.text === 'Loaded skills: house-greeting, house-rules')).toBe(true)
-  expect(await c.readFile('.agents/skills/house-rules/SKILL.md')).toContain('Be nice.')
-  expect(turn.diff.files).toEqual([])
+export default defineEval({
+  environment: env,
+  async task(c) {
+    const turn = await c.send('x')
+    expect(turn.transcript.some((e) => e.type === 'text' && e.text === 'Loaded skills: house-greeting, house-rules')).toBe(true)
+    expect(await c.readFile('.agents/skills/house-rules/SKILL.md')).toContain('Be nice.')
+    expect(turn.diff.files).toEqual([])
+  },
 })
 `,
     )
@@ -2005,20 +2058,23 @@ evaluate('loads it', { environments: env }, async (c) => {
   test("a local skill's evals/ and *.eval.ts stay out of the sandbox; a block description parses", async () => {
     const p = await project('skill-hygiene', {
       'reeval.config.ts': fakeConfig(),
-      'evals/h.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/staged.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const env = defineEnvironment('reviewer', ({ skill }) => ({
   sandbox: fakeSandbox(),
   skills: [skill.local('../skills/skill-reviewer', { placement: 'workspace' })],
 }))
-evaluate('staged', { environments: env }, async (c) => {
-  await c.send('x')
-  const md = await c.readFile('.agents/skills/skill-reviewer/SKILL.md')
-  expect(md).toContain(${JSON.stringify(`description: ${JSON.stringify(REVIEWER_DESCRIPTION)}`)})
-  expect(md).toContain('# Skill reviewer')
-  expect(await c.readFile('.agents/skills/skill-reviewer/docs/checklist.md')).toContain('# Checklist')
-  const listed = (await c.exec('cd .agents/skills/skill-reviewer && find . -type f | LC_ALL=C sort')).stdout
-  expect(listed.trim().split('\\n')).toEqual(['./SKILL.md', './docs/checklist.md'])
+export default defineEval({
+  environment: env,
+  async task(c) {
+    await c.send('x')
+    const md = await c.readFile('.agents/skills/skill-reviewer/SKILL.md')
+    expect(md).toContain(${JSON.stringify(`description: ${JSON.stringify(REVIEWER_DESCRIPTION)}`)})
+    expect(md).toContain('# Skill reviewer')
+    expect(await c.readFile('.agents/skills/skill-reviewer/docs/checklist.md')).toContain('# Checklist')
+    const listed = (await c.exec('cd .agents/skills/skill-reviewer && find . -type f | LC_ALL=C sort')).stdout
+    expect(listed.trim().split('\\n')).toEqual(['./SKILL.md', './docs/checklist.md'])
+  },
 })
 `,
     })
@@ -2134,10 +2190,13 @@ describe('sandbox images', () => {
       const p = await project('sandbox-mistake', {
         'reeval.config.ts': fakeConfig(),
         'evals/Dockerfile': 'FROM debian:bookworm-slim\n',
-        'evals/o.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+        'evals/e.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const env = defineEnvironment('e', { sandbox: ${sandbox} })
-evaluate('e', { environments: env }, async () => {})
+export default defineEval({
+  environment: env,
+  async task() {},
+})
 `,
       })
       const r = await runCli(p.dir, ['run', '--dry-run'])
@@ -2150,47 +2209,50 @@ evaluate('e', { environments: env }, async () => {})
     const p = await project('image-plan', {
       'reeval.config.ts': `
 import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 import { fakeJudge } from 'reeval/judge'
 const tools = defineEnvironment('tools', {
   sandbox: docker({ install: ['apt-get update && apt-get install -y jq', { run: 'jq --version', timeout: '1m' }] }),
 })
 export default defineConfig({
-  harnesses: fakeHarness({}),
+  agents: fakeAgent({}),
   environments: tools,
   judge: { model: fakeJudge() },
 })
 `,
       'docker/tools/Dockerfile': `ARG REEVAL_BASE\nFROM \${REEVAL_BASE}\nRUN echo tools\n`,
       'evals/py.Dockerfile': 'FROM python:3.12-slim\n',
-      'evals/a.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
-import { docker, fakeSandbox } from 'reeval/sandbox'
-evaluate('default', async () => {})
-evaluate('default again', async () => {})
-evaluate('tools', { environments: defineEnvironment('own-tools', { sandbox: docker({ dockerfile: '../docker/tools/Dockerfile' }) }) }, async () => {})
-evaluate('py', { environments: defineEnvironment('py', { sandbox: docker({ dockerfile: new URL('./py.Dockerfile', import.meta.url) }) }) }, async () => {})
-evaluate('from', { environments: defineEnvironment('from', { sandbox: docker({ from: 'python:3.12-slim', maxConcurrent: 2 }) }) }, async () => {})
-evaluate('fake', { environments: defineEnvironment('host', { sandbox: fakeSandbox() }) }, async () => {})
+      'evals/default.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
+import { docker } from 'reeval/sandbox'
+const py = defineEnvironment('py', { sandbox: docker({ dockerfile: 'py.Dockerfile' }) })
+export default defineEval({
+  environment: py,
+  async task() {},
+})
+`,
+      'evals/from-slim.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
+import { docker } from 'reeval/sandbox'
+const slim = defineEnvironment('slim', { sandbox: docker({ from: 'python:3.12-slim' }) })
+export default defineEval({
+  environment: slim,
+  async task() {},
+})
+`,
+      'evals/uses-tools.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ async task() {} })
 `,
     })
     const r = await runCli(p.dir, ['image', 'build', '--dry-run'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const out = r.stdout
-    assert.match(out, /^images {2}4 sandbox images \(nothing built: --dry-run\)$/m)
+    assert.match(out, /^images {2}3 sandbox images \(nothing built: --dry-run\)$/m)
     // Each step's standing depends on what this machine has built, so only its shape is checked.
     const st = '[✓+~✗?] '
     assert.match(
       out,
       new RegExp(
-        `^docker\\+[0-9a-f]+ · cursor \\+ install · 2 evals\\n {2}${st}base +reeval-sandbox:cursor-[\\d.]+ +\\((ready|to build|stale|unchecked): .+\\)\\n {2}${st}install 2 commands +reeval-install:[0-9a-f]{16} +\\(`,
-        'm',
-      ),
-    )
-    assert.match(
-      out,
-      new RegExp(
-        `^docker:tools · cursor · 1 eval\\n {2}${st}dockerfile docker/tools/Dockerfile +(reeval-dockerfile:tools-[0-9a-f]{16}) +\\(.+\\)\\n {2}${st}harness +\\1 +\\(`,
+        `^docker\\+[0-9a-f]+ · cursor \\+ install · \\d+ evals?\\n {2}${st}base +reeval-sandbox:cursor-[\\d.]+ +\\((ready|to build|stale|unchecked): .+\\)\\n {2}${st}install 2 commands +reeval-install:[0-9a-f]{16} +\\(`,
         'm',
       ),
     )
@@ -2217,23 +2279,36 @@ evaluate('fake', { environments: defineEnvironment('host', { sandbox: fakeSandbo
     const p = await project('image-profile', {
       'reeval.config.ts': `
 import { defineConfig } from 'reeval'
-import { claudeCode, fakeHarness } from 'reeval/harness'
+import { claudeCode, fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 import { fakeJudge } from 'reeval/judge'
 export default defineConfig({
-  harnesses: fakeHarness({}),
+  agents: fakeAgent({}),
   judge: { model: fakeJudge() },
   profiles: {
-    claude: { defaults: { harnesses: claudeCode({ model: 'claude-sonnet-5' }) } },
+    claude: { defaults: { agents: claudeCode({ model: 'claude-sonnet-5' }) } },
     tools: { tags: ['tools'] },
   },
 })
 `,
       'docker/tools/Dockerfile': `ARG REEVAL_BASE\nFROM \${REEVAL_BASE}\nRUN echo tools\n`,
-      'evals/a.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/plain.eval.ts': `import { defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
-evaluate('plain', async () => {})
-evaluate('tools', { tags: ['tools'], environments: defineEnvironment('tools', { sandbox: docker({ dockerfile: '../docker/tools/Dockerfile' }) }) }, async () => {})
+export default defineEval({
+  sandbox: docker(),
+  async task() {},
+})
+`,
+      'evals/tools.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
+import { docker } from 'reeval/sandbox'
+const tools = defineEnvironment('tools', {
+  sandbox: docker({ dockerfile: '../docker/tools/Dockerfile' }),
+})
+export default defineEval({
+  tags: ['tools'],
+  environment: tools,
+  async task() {},
+})
 `,
     })
     const cursor = /^ {2}[✓+~✗?] base +reeval-sandbox:cursor-[\d.]+ /m

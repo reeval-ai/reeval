@@ -1,5 +1,5 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
 const target = `http://${process.env.REEVAL_EGRESS_TARGET}/`
 
@@ -11,7 +11,7 @@ export default defineConfig({
   // As the agent: reach the host's listener directly, around the proxy, resolve a name in the
   // sandbox (through its own resolver, or else from the host's DNS server), then reach the
   // listener through the proxy.
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     script: [
       [
         {

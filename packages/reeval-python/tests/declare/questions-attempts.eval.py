@@ -47,7 +47,7 @@ async def beside_a_compare(c): ...
         "questions": [
             {
                 "question": "Which agent explained its change better?",
-                "across": "harness",
+                "across": "agent",
                 "diff": True,
             }
         ]

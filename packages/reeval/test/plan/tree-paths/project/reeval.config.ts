@@ -1,4 +1,4 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
-export default defineConfig({ harnesses: fakeHarness() })
+export default defineConfig({ agents: fakeAgent() })

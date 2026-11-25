@@ -149,19 +149,21 @@ describe('Tart image names', () => {
 })
 
 const CONFIG = `import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { tart } from 'reeval/sandbox'
 
 export default defineConfig({
-  harnesses: fakeHarness({}),
+  agents: fakeAgent({}),
   sandbox: tart({ image: process.env.TART_IMAGE ?? '' }),
   egress: 'allow-all',
 })
 `
-const EVAL = `import { evaluate, expect } from 'reeval'
+const EVAL = `import { defineEval, expect } from 'reeval'
 
-evaluate('works in the VM', async (c) => {
+export default defineEval({
+  async task(c) {
   expect((await c.exec('printf ok')).stdout).toBe('ok')
+  },
 })
 `
 
@@ -293,11 +295,14 @@ describe('tart() images before the run', {
     const p = await project('tart-images-mixed-short', {
       'reeval.config.ts': CONFIG,
       'evals/vm.eval.ts': EVAL,
-      'evals/d.eval.ts': `import { evaluate, expect } from 'reeval'
+      'evals/in-docker.eval.ts': `import { defineEval, expect } from 'reeval'
 import { docker } from 'reeval/sandbox'
 
-evaluate('in docker', { sandbox: docker() }, async () => {
+export default defineEval({
+  sandbox: docker(),
+  async task() {
   expect(1).toBe(1)
+  },
 })
 `,
     })
@@ -414,8 +419,8 @@ evaluate('in docker', { sandbox: docker() }, async () => {
     })
     writeFileSync(
       join(p.dir, 'reeval.config.ts'),
-      CONFIG.replace('{ fakeHarness }', '{ claudeCode, opencode }').replace(
-        'fakeHarness({})',
+      CONFIG.replace('{ fakeAgent }', '{ claudeCode, opencode }').replace(
+        'fakeAgent({})',
         "[claudeCode({ model: 'claude-sonnet-5-5' }), opencode({ model: 'google/gemini-2.5-flash' })]",
       ),
     )
@@ -431,11 +436,14 @@ evaluate('in docker', { sandbox: docker() }, async () => {
     const p = await project('tart-images-mixed', {
       'reeval.config.ts': CONFIG,
       'evals/vm.eval.ts': EVAL,
-      'evals/d.eval.ts': `import { evaluate, expect } from 'reeval'
+      'evals/in-docker.eval.ts': `import { defineEval, expect } from 'reeval'
 import { docker } from 'reeval/sandbox'
 
-evaluate('in docker', { sandbox: docker() }, async () => {
+export default defineEval({
+  sandbox: docker(),
+  async task() {
   expect(1).toBe(1)
+  },
 })
 `,
     })

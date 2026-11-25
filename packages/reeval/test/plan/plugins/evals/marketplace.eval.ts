@@ -1,4 +1,4 @@
-import { defineEnvironment, evaluate, group } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
 
 const listed = defineEnvironment('listed', ({ plugin }) => ({
   plugins: [
@@ -7,6 +7,4 @@ const listed = defineEnvironment('listed', ({ plugin }) => ({
   ],
 }))
 
-group('marketplace plugins', { environments: listed }, () => {
-  evaluate('entries read at the attempt', async () => {})
-})
+export default defineEval({ environment: listed, task: async () => {} })

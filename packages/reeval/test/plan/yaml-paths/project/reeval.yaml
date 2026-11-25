@@ -1,5 +1,5 @@
 # Relative paths resolve against this file's directory, wherever reeval runs from.
-harnesses: { kind: fake }
+agents: { kind: fake }
 sandbox: { kind: docker, dockerfile: docker/Dockerfile }
 environments:
   kind: environment

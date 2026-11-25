@@ -2,8 +2,7 @@
 // Docker (`pnpm reeval image build --profile <name>` once), judges on a model of its own
 // provider where there is one, and needs the keys in its comment, in the example's .env.local.
 import type { Profile } from 'reeval'
-import { vercel } from 'reeval/gateway'
-import type { HarnessDescriptor } from 'reeval/harness'
+import type { Agent } from 'reeval/agent'
 import {
   antigravity,
   claudeCode,
@@ -14,11 +13,12 @@ import {
   grokBuild,
   opencode,
   pi,
-} from 'reeval/harness'
+} from 'reeval/agent'
+import { vercel } from 'reeval/gateway'
 import { docker } from 'reeval/sandbox'
 
-const inDocker = (harness: HarnessDescriptor, judge: string): Profile => ({
-  defaults: { harnesses: harness, sandbox: docker() },
+const inDocker = (agent: Agent, judge: string): Profile => ({
+  defaults: { agents: agent, sandbox: docker() },
   judge: { model: judge },
 })
 

@@ -9,7 +9,7 @@
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"cd . && npm init -y && npm i -D /opt/es/invertase-foobar.tgz"},"ok":true,"durationMs":7125}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"package.json"},"ok":true,"durationMs":25}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"fakeHarness|withSkill|defineEnvironment"},"ok":true,"durationMs":69}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"fakeAgent|withSkill|defineEnvironment"},"ok":true,"durationMs":69}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/judge.d.ts"},"ok":true,"durationMs":206}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/harness.d.ts"},"ok":true,"durationMs":207}

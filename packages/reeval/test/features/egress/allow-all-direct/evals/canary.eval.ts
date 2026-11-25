@@ -1,8 +1,11 @@
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { agentSaw, proxied } from './env.ts'
 
 // Must fail: under the default, 'proxy', the container has no network for the connection to use.
-evaluate('canary', { environments: proxied }, async (c) => {
-  const [raw] = agentSaw(await c.send('connect over raw TCP'))
-  expect(raw?.trim()).toBe('reeval-egress-ok exit=0')
+export default defineEval({
+  environment: proxied,
+  task: async (c) => {
+    const [raw] = agentSaw(await c.send('connect over raw TCP'))
+    expect(raw?.trim()).toBe('reeval-egress-ok exit=0')
+  },
 })

@@ -1,4 +1,4 @@
-import { evaluate, expect } from 'reeval'
+import { defineEval, expect } from 'reeval'
 import { contractHarness } from '../harness.ts'
 import { notes, prompts, trimmed } from './probes.ts'
 
@@ -6,15 +6,12 @@ import { notes, prompts, trimmed } from './probes.ts'
 // (REEVAL_CONTRACT_REASONING_MODEL): contract.test.ts checks the transcript has the reasoning's
 // text and the turn its time. Tagged so a row with no such model leaves it out with
 // --tag '!reasoning'.
-evaluate(
-  'reasoning',
-  {
-    environments: notes,
-    harnesses: contractHarness(undefined, process.env.REEVAL_CONTRACT_REASONING_MODEL),
-    tags: ['reasoning'],
-  },
-  async (c) => {
+export default defineEval({
+  environment: notes,
+  agents: contractHarness(undefined, process.env.REEVAL_CONTRACT_REASONING_MODEL),
+  tags: ['reasoning'],
+  task: async (c) => {
     await c.send(prompts.reasoning)
     expect(await trimmed(c.readFile, 'primes.txt')).toBe('97')
   },
-)
+})

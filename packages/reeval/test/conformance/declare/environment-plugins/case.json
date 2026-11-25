@@ -1,5 +1,10 @@
 {
-  "eval": "plan/plugins/evals/remote.eval.ts",
+  "eval": "plan/plugins/evals",
+  "treeRoot": "plan/plugins",
   "plan": "plan/plugins/expected/remote.txt",
-  "args": ["evals/remote.eval.ts"]
+  "args": [],
+  "planSources": [
+    "plan/plugins/evals/remote-plugins-git-and-npm-read-at-the-attempt.eval.ts",
+    "plan/plugins/evals/remote-plugins-a-child-adds-another.eval.ts"
+  ]
 }

@@ -58,12 +58,12 @@ async function dockerOnPath(state: 'running' | 'down') {
 
 /** A config on the fake agent and sandbox, for checking the scaffolded eval passes without keys. */
 const fakeConfig = `import { defineConfig } from '${pkg}'
-import { fakeHarness } from '${pkg}/harness'
+import { fakeAgent } from '${pkg}/agent'
 import { fakeSandbox } from '${pkg}/sandbox'
 
 export default defineConfig({
   include: ['evals/**/*.eval.ts'],
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     files: { 'greet.js': 'export const greet = (name) => \`Hello, \${name}!\`\\n' },
   }),
   sandbox: fakeSandbox(),
@@ -80,7 +80,8 @@ describe('reeval init', () => {
     assert.match(init.stdout, /npx reeval run +the eval on Cursor, with CURSOR_API_KEY/)
     assert.match(p.read('evals/environments.ts'), /export const greeter = defineEnvironment\(/)
     assert.match(p.read('evals/greet.eval.ts'), /import \{ greeter \} from '\.\/environments\.ts'/)
-    assert.match(p.read('evals/greet.eval.ts'), /\{ environments: greeter \}/)
+    assert.match(p.read('evals/greet.eval.ts'), /environment: greeter/)
+    assert.match(p.read('evals/greet.eval.ts'), /export default defineEval/)
     assert.match(
       p.read('reeval.config.ts'),
       /^ {2}analysis: \{ model: 'google\/gemini-3\.8-flash' \},$/m,
@@ -104,19 +105,19 @@ describe('reeval init', () => {
     await writeFile(join(p.dir, 'fake.config.ts'), fakeConfig)
     const run = await runCli(p.dir, ['run', '--config', 'fake.config.ts'])
     assert.equal(run.code, 0, run.stdout + run.stderr)
-    assert.match(run.stdout, /^└─ ✓ creates greet\.js {2}1 of 1 run passed$/m)
+    assert.match(run.stdout, /^evals\/greet\.eval\.ts\n└─ ✓ greet {2}1 of 1 run passed$/m)
   })
 
   test('--bare writes only the config and its essentials', async () => {
     const p = await empty('init-bare')
-    const init = await runCli(p.dir, ['init', '--harness', 'codex', '--bare'])
+    const init = await runCli(p.dir, ['init', '--agent', 'codex', '--bare'])
     assert.equal(init.code, 0, init.stderr)
     for (const file of BARE) assert.match(init.stdout, new RegExp(`create +${file}`), file)
     assert.doesNotMatch(init.stdout, /environments\.ts|greet\.eval\.ts/)
     assert.ok(!existsSync(join(p.dir, 'evals')), 'no evals/ directory')
     assert.match(init.stdout, /run +the evals you write in evals\/ on Codex, with OPENAI_API_KEY/)
     assert.match(p.read('reeval.config.ts'), /include: \['evals\/\*\*\/\*\.eval\.ts'\]/)
-    const again = await runCli(p.dir, ['init', '--harness', 'codex', '--bare'])
+    const again = await runCli(p.dir, ['init', '--agent', 'codex', '--bare'])
     for (const file of BARE) assert.match(again.stdout, new RegExp(`skip +${file}`), file)
   })
 
@@ -152,9 +153,9 @@ describe('reeval init', () => {
   })
 
   for (const h of INIT_HARNESSES) {
-    test(`--harness ${h.kind} plans ${h.kind} and pr, and names no fake agent`, async () => {
+    test(`--agent ${h.kind} plans ${h.kind} and pr, and names no fake agent`, async () => {
       const p = await empty(`init-${h.kind}`)
-      const init = await runCli(p.dir, ['init', '--harness', h.kind])
+      const init = await runCli(p.dir, ['init', '--agent', h.kind])
       assert.equal(init.code, 0, init.stderr)
       const key = agentFor({ kind: h.kind, model: h.model } as never).credential
       assert.match(init.stdout, new RegExp(`with ${key} in \\.env\\.local`))
@@ -203,9 +204,9 @@ describe('reeval init', () => {
 
   test('a second reeval init changes nothing', async () => {
     const p = await empty('init-twice')
-    await runCli(p.dir, ['init', '--harness', 'pi'])
+    await runCli(p.dir, ['init', '--agent', 'pi'])
     const before = FILES.map(p.read)
-    const again = await runCli(p.dir, ['init', '--harness', 'pi'])
+    const again = await runCli(p.dir, ['init', '--agent', 'pi'])
     assert.equal(again.code, 0, again.stderr)
     for (const file of FILES) assert.match(again.stdout, new RegExp(`skip +${file}`), file)
     assert.deepEqual(FILES.map(p.read), before)
@@ -219,7 +220,7 @@ describe('reeval init', () => {
     await writeFile(join(p.dir, 'evals/greet.eval.ts'), '// mine\n')
     const refusal =
       /^reeval: reeval is already set up in \.: reeval\.config\.ts exists and isn't the one reeval init writes\. Nothing was written\. Pass --force to replace it; init never overwrites another file\.\n$/
-    for (const args of [['--yes'], ['--yes', '--bare'], ['--harness', 'codex']]) {
+    for (const args of [['--yes'], ['--yes', '--bare'], ['--agent', 'codex']]) {
       const refused = await runCli(p.dir, ['init', ...args])
       assert.equal(refused.code, 2, args.join(' '))
       assert.match(refused.stderr, refusal)
@@ -253,7 +254,7 @@ describe('reeval init', () => {
 
     // A config init wrote is its own answer: no question, and -y doesn't swap the agent.
     const pi = await empty('init-set-up-pi')
-    await runCli(pi.dir, ['init', '--harness', 'pi'])
+    await runCli(pi.dir, ['init', '--agent', 'pi'])
     const again = await runCli(pi.dir, ['init', '--yes'])
     assert.equal(again.code, 0, again.stderr)
     assert.match(again.stdout, /skip +reeval\.config\.ts +already as reeval init writes it/)
@@ -436,7 +437,7 @@ describe('reeval init', () => {
     assert.equal(dry.code, 0, dry.stderr)
     assert.match(dry.stdout, /^reeval init · a b\/evals project \(nothing written: --dry-run\)\n/)
     assert.ok(!existsSync(join(p.root, 'a b')))
-    const real = await runCli(p.root, ['init', 'a b/evals project', '--harness', 'goose'])
+    const real = await runCli(p.root, ['init', 'a b/evals project', '--agent', 'goose'])
     assert.equal(real.code, 0, real.stderr)
     assert.match(real.stdout, /Next:\n {2}cd a b\/evals project\n/)
     // Nothing it writes names this machine's paths, so the project works on Windows too.
@@ -448,17 +449,17 @@ describe('reeval init', () => {
     assert.equal((await runCli(p.dir, ['run', '--dry-run'])).code, 0)
   })
 
-  test('without a terminal it needs --yes or --harness; a bad --harness is exit 2', async () => {
+  test('without a terminal it needs --yes or --agent; a bad --agent is exit 2', async () => {
     const p = await empty('init-tty')
     const r = await runCli(p.dir, ['init'])
     assert.equal(r.code, 2)
-    assert.match(r.stderr, /no terminal to ask in\. Pass --harness <name> or --yes\./)
+    assert.match(r.stderr, /no terminal to ask in\. Pass --agent <name> or --yes\./)
     for (const name of ['gemini', 'none', 'fake']) {
-      const bad = await runCli(p.dir, ['init', '--harness', name])
+      const bad = await runCli(p.dir, ['init', '--agent', name])
       assert.equal(bad.code, 2)
       assert.match(
         bad.stderr,
-        new RegExp(`--harness must be one of cursor, claude-code, .*grok-build \\(got ${name}\\)`),
+        new RegExp(`--agent must be one of cursor, claude-code, .*grok-build \\(got ${name}\\)`),
       )
     }
     assert.ok(!existsSync(join(p.dir, 'reeval.config.ts')))

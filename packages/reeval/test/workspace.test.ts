@@ -34,13 +34,18 @@ function makeRepo(dir: string) {
 async function withEval(env: string, body = "await c.exec('true')", harness?: string) {
   const p = await project('workspace', {
     'reeval.config.ts': fakeConfig(harness ? { harness } : {}),
-    'evals/w.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+    'evals/works-on-the-repo.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const env = defineEnvironment('app', ({ git }) => ({ sandbox: fakeSandbox(), ${env} }))
-evaluate('works on the repo', { environments: env }, async (c) => {
+export default defineEval({
+  environment: env,
+  async task(c) {
   ${body}
+  },
 })
-evaluate('needs no workspace', async () => {})
+`,
+    'evals/needs-no-workspace.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ async task() {} })
 `,
   })
   return { ...p, repo: makeRepo(p.dir) }
@@ -63,9 +68,9 @@ async function failsOnlyItsAttempts(env: string, message: RegExp, hostEnv: NodeJ
   const { run } = readRun(p.dir)
   const outcome = (name: string) =>
     run.evals.find((e) => e.name === name)?.attempts.map((a) => a.outcome)
-  assert.deepEqual(outcome('works on the repo'), ['infra_error'])
-  assert.deepEqual(outcome('needs no workspace'), ['pass'])
-  const error = run.evals.find((e) => e.name === 'works on the repo')?.attempts[0]?.error
+  assert.deepEqual(outcome('works-on-the-repo'), ['infra_error'])
+  assert.deepEqual(outcome('needs-no-workspace'), ['pass'])
+  const error = run.evals.find((e) => e.name === 'works-on-the-repo')?.attempts[0]?.error
   assert.equal(error?.prepare?.stage, 'workspace')
   assert.match(error?.message ?? '', message)
   assert.match(
@@ -128,7 +133,7 @@ describe('git workspaces', { concurrency: false }, () => {
   test('compare arms on different refs of the same tree get a warning', async () => {
     const p = await project('workspace-same-tree', {
       'reeval.config.ts': fakeConfig(),
-      'evals/w.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/lift.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const base = defineEnvironment('base', ({ git }) => ({
   sandbox: fakeSandbox(),
@@ -137,8 +142,11 @@ const base = defineEnvironment('base', ({ git }) => ({
 const head = base.extendEnvironment('head', ({ git }) => ({
   workspace: git('../repo', { ref: process.env.HEAD_REF }),
 }))
-evaluate('lift', { compare: { control: base, variants: [head] } }, async (c) => {
+export default defineEval({
+  compare: { control: base, variants: [head] },
+  async task(c) {
   await c.exec('true')
+  },
 })
 `,
     })
@@ -149,7 +157,7 @@ evaluate('lift', { compare: { control: base, variants: [head] } }, async (c) => 
     assert.match(
       same.stdout,
       new RegExp(
-        `warning: compare in evals/w\\.eval\\.ts › lift: head and base start from the same tree \\([0-9a-f]{12}\\): git\\("\\.\\./repo#v1"\\) and git\\("\\.\\./repo#${v1}"\\) resolve to it, so the lift can't show a change to the workspace\\. Check the refs the arms read\\.`,
+        `warning: compare in lift: head and base start from the same tree \\([0-9a-f]{12}\\): git\\("\\.\\./repo#v1"\\) and git\\("\\.\\./repo#${v1}"\\) resolve to it, so the lift can't show a change to the workspace\\. Check the refs the arms read\\.`,
       ),
     )
     // Canary: a head that changed the tree gets no warning.
@@ -238,18 +246,22 @@ evaluate('lift', { compare: { control: base, variants: [head] } }, async (c) => 
       'reeval.config.ts': fakeConfig({
         harness: `{ script: [[{ exec: 'echo x > NOTES.md && git add -A && git -c user.name=a -c user.email=a@b commit -qm notes' }]] }`,
       }),
-      'evals/w.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/commits-in-the-repo.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const env = defineEnvironment('app', ({ git }) => ({
   sandbox: fakeSandbox(),
   workspace: git('../repo', { ref: 'v1', init: true }),
   files: { 'app/extra.js': 'x' },
 }))
-evaluate('commits in the repo', { environments: env, runs: 2 }, async (c) => {
+export default defineEval({
+  environment: env,
+  runs: 2,
+  async task(c) {
   expect((await c.exec('git status --porcelain')).stdout).toBe('?? app/extra.js\\n')
   expect((await c.exec('git rev-parse HEAD')).stdout.trim()).toBe(process.env.EXPECTED_HEAD)
   const turn = await c.send('x')
   expect(turn.diff.files).toEqual([{ path: 'NOTES.md', status: 'added' }])
+  },
 })
 `,
     })
@@ -324,22 +336,35 @@ evaluate('commits in the repo', { environments: env, runs: 2 }, async (c) => {
       'reeval.config.ts': fakeConfig({
         harness: `{ script: [[{ write: { 'app/greet.js': "export const greeting = 'Hi'\\n", 'NOTES.md': 'x' } }]] }`,
       }),
-      'evals/w.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/edits-the-repo.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+import { fakeSandbox } from 'reeval/sandbox'
+const base = defineEnvironment('base', ({ git }) => ({
+  sandbox: fakeSandbox(),
+  workspace: git('../repo', { ref: 'v1' }),
+}))
+export default defineEval({
+  environment: base,
+  async task(c) {
+  const turn = await c.send('x')
+  expect(turn.diff.files).toEqual([
+    { path: 'NOTES.md', status: 'added' },
+    { path: 'app/greet.js', status: 'modified' },
+  ])
+  },
+})
+`,
+      'evals/in-the-subdirectory.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const base = defineEnvironment('base', ({ git }) => ({
   sandbox: fakeSandbox(),
   workspace: git('../repo', { ref: 'v1' }),
 }))
 const sub = base.extendEnvironment('sub', ({ git }) => ({ workspace: git('../repo', { ref: 'v1', path: 'app' }) }))
-evaluate('edits the repo', { environments: base }, async (c) => {
-  const turn = await c.send('x')
-  expect(turn.diff.files).toEqual([
-    { path: 'NOTES.md', status: 'added' },
-    { path: 'app/greet.js', status: 'modified' },
-  ])
-})
-evaluate('in the subdirectory', { environments: sub }, async (c) => {
+export default defineEval({
+  environment: sub,
+  async task(c) {
   expect(await c.readFile('greet.js')).toContain('Hello')
+  },
 })
 `,
     })

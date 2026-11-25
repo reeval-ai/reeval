@@ -1,7 +1,7 @@
 import { defineConfig } from 'reeval'
-import { cursor, fakeHarness } from 'reeval/harness'
+import { cursor, fakeAgent } from 'reeval/agent'
 
 export default defineConfig({
-  harnesses: [cursor({ model: 'my-model' }), cursor({ model: 'gpt-5.6-luna-high' }), fakeHarness()],
+  agents: [cursor({ model: 'my-model' }), cursor({ model: 'gpt-5.6-luna-high' }), fakeAgent()],
   judge: { model: 'typesafe-ai/jev' },
 })

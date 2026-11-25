@@ -59,7 +59,7 @@ REEVAL v0.16.1  dry run
   ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 attempt
   ➜  Est. Time: ~3m 00s (serial)
 
-eval                                    harnesses  variants  runs  attempts  notes
+eval                                    agents     variants  runs  attempts  notes
 evals/greet.eval.ts › creates greet.js  1          —         1     1         effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set)
 …
 ```
@@ -80,7 +80,7 @@ The Vercel AI SDK deprecates `generateObject` in favor of `Output.object`, and a
 
 ```ts
 // evals/ai-sdk.eval.ts
-import { defineEnvironment, evaluate, expect } from 'reeval';
+import { defineEnvironment, defineEval, expect } from 'reeval';
 
 const plain = defineEnvironment('plain', {});
 
@@ -88,10 +88,10 @@ const withSkill = plain.extendEnvironment('with-skill', ({ skill }) => ({
   skills: [skill.local('../skills/ai-sdk')],
 }));
 
-evaluate(
-  'triages a GitHub issue with the AI SDK',
-  { runs: 4, compare: { control: plain, variants: [withSkill] } },
-  async (c) => {
+export default defineEval({
+  runs: 4,
+  compare: { control: plain, variants: [withSkill] },
+  task: async (c) => {
     await c.send(`
       Add triage.ts: triageIssue(title, body) uses the ai package to
       return a typed { labels, priority, duplicateOf }.
@@ -100,7 +100,7 @@ evaluate(
     await expect(c, 'writes triage.ts').toHaveFile('triage.ts');
     await expect(c, 'uses Output.object').toHaveFile('triage.ts', /Output\.object/);
   },
-);
+});
 ```
 
 ```text

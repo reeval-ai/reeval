@@ -26,7 +26,7 @@
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":44}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/package.json"},"ok":true,"durationMs":44}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"expect\\(|fakeHarness|fakeSandbox|fakeJudge|defineConfig"},"ok":true,"durationMs":44}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"expect\\(|fakeAgent|fakeSandbox|fakeJudge|defineConfig"},"ok":true,"durationMs":44}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/engine/runtime.d.ts"},"ok":true,"durationMs":60}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"tar -xzf /opt/es/invertase-foobar.tgz -O package/test/features.test.ts 2>/dev/null | head -300"},"ok":true,"durationMs":92}
@@ -38,7 +38,7 @@
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/harness.js"},"ok":true,"durationMs":35}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/attempt/checks.js"},"ok":true,"durationMs":75}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"/root/.ai-sdk-harness/.harness-bootstrap/cursor/implementation/home/.cursor/projects/es-workspace/agent-transcripts","pattern":"greet\\.es|house-style|fakeHarness|es\\.config"},"ok":true,"durationMs":158}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"/root/.ai-sdk-harness/.harness-bootstrap/cursor/implementation/home/.cursor/projects/es-workspace/agent-transcripts","pattern":"greet\\.es|house-style|fakeAgent|es\\.config"},"ok":true,"durationMs":158}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/evaluate.js"},"ok":true,"durationMs":59}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"\\.es\\.ts|evaluate\\("},"ok":true,"durationMs":60}

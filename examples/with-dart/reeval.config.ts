@@ -1,21 +1,21 @@
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { boat } from 'reeval/provider/boat'
 import { daytona } from 'reeval/provider/daytona'
 import { profiles } from '../profiles.ts'
 
-const fakeAgent = (path: string) =>
+const fakeFile = (path: string) =>
   readFileSync(new URL(`./fake-agent/${path}`, import.meta.url), 'utf8')
 
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that copies ./fake-agent's files into the workspace. The environment's
   // sandbox still applies, so even the fake agent runs in the Dart image.
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     files: {
-      'fizzbuzz.dart': fakeAgent('fizzbuzz.dart'),
-      'fizzbuzz_test.dart': fakeAgent('fizzbuzz_test.dart'),
+      'fizzbuzz.dart': fakeFile('fizzbuzz.dart'),
+      'fizzbuzz_test.dart': fakeFile('fizzbuzz_test.dart'),
     },
     text: 'I wrote fizzbuzz.dart and its checks in fizzbuzz_test.dart.',
   }),

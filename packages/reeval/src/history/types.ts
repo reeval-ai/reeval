@@ -551,11 +551,11 @@ export type EvalEntry = {
    * `CaseRecord.verdict`.
    */
   verdict?: 'family'
-  /** A placeholder, `evaluate.todo` or `group.todo`: it never runs, and its outcome is `skipped`. */
+  /** A placeholder (Python's `evaluate.todo` or `group.todo`): it never runs, and its outcome is `skipped`. */
   todo: boolean
   /**
-   * Declared not to run: `evaluate.skip`, inside a `group.skip`, or left out by an `.only` in its
-   * file. Its outcome is `skipped`. Unset otherwise, so in a run that isn't `complete` a skipped
+   * Declared not to run: `skip` on its `defineEval`, or in Python `evaluate.skip`, inside a
+   * `group.skip`, or left out by an `.only` in its file. Its outcome is `skipped`. Unset otherwise, so in a run that isn't `complete` a skipped
    * eval with neither `todo` nor `skip` hasn't run yet. Unset on records from before it.
    */
   skip?: true
@@ -941,6 +941,8 @@ export type RunInvocation = {
   tags: string[]
   /** `--trait`, as given (`key=value`); unset without any. */
   traits?: string[]
+  /** `--cell`; unset without any. */
+  cells?: string[]
   /**
    * The file `--events` wrote the run's event stream to, from the project root in posix form
    * (`../…` outside it), so a resume appends to it; unset without `--events`.

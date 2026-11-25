@@ -27,10 +27,19 @@ export function checkVerdict(a: CheckTally, b: CheckTally): CheckVerdict | undef
   return 'mixed'
 }
 
-type PairCell = { key: string; role: string; harness: string; sandbox: string }
+type PairCell = {
+  key: string
+  role: string
+  sandbox: string
+  /** Persisted cell records name the agent `harness`; the query cache uses `agent`. */
+  harness?: string
+  agent?: string
+  checks?: CellRecord['checks']
+}
+const agentKey = (c: PairCell) => c.agent ?? c.harness ?? ''
 
 /**
- * Each unordered pair of cells on one harness and sandbox, when it has at least two variants
+ * Each unordered pair of cells on one agent and sandbox, when it has at least two variants
  * (with one, the only pair is the variant against its control, which the cell already has).
  * The control comes first, so a pair is `[later, earlier]`: every variant against the control,
  * then each variant against those before it.
@@ -38,7 +47,7 @@ type PairCell = { key: string; role: string; harness: string; sandbox: string }
 export function contrastPairs<T extends PairCell>(cells: T[]): Array<[T, T]> {
   const groups = new Map<string, T[]>()
   for (const c of cells) {
-    const id = `${c.harness}\0${c.sandbox}`
+    const id = `${agentKey(c)}\0${c.sandbox}`
     groups.set(id, [...(groups.get(id) ?? []), c])
   }
   const pairs: Array<[T, T]> = []

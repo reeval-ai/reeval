@@ -75,8 +75,8 @@ async function failingProject(name: string) {
       harness: `{ failWith: ['agent broke', process.env.MY_API_KEY, process.env.WEBHOOK, '${TOKEN}', '${FRAGMENT}', process.cwd(), process.env.HOME + '/elsewhere/cache'].join(' ') }`,
       extra: 'profiles: { pr: { defaults: { runs: 1 } } },',
     }),
-    'evals/agent.eval.ts': `import { evaluate } from 'reeval'
-evaluate('agent eval', async (c) => { await c.send('go') })
+    'evals/agent.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ async task(c) { await c.send('go') } })
 `,
     '.env.local': `WEBHOOK=${UNNAMED}\n`,
   })
@@ -244,8 +244,8 @@ describe('reeval report: the bundle', () => {
     assert.ok(bundle.run?.failures[0]?.debugLog.some((l) => l.includes('teardown')))
     assert.ok(bundle.run?.failures[0]?.debugFiles.includes('debug.log'))
     assert.deepEqual(bundle.config?.optionKeys, [
+      'agents',
       'environments',
-      'harnesses',
       'judge',
       'profiles',
       'sandbox',
@@ -266,7 +266,7 @@ describe('reeval report: the bundle', () => {
     // The summary names the run, the failure and where it wrote.
     assert.match(r.stdout, /^reeval report\n/)
     assert.match(r.stdout, /\ncommand +reeval run --profile <value> <arg> → exit 3/)
-    assert.match(r.stdout, /\nfailing +evals\/agent\.eval\.ts › agent eval # .*\(infra\)/)
+    assert.match(r.stdout, /\nfailing +agent # .*\(infra\)/)
     assert.match(r.stdout, /\nlogs +2 debug files attached/)
 
     // The count is every masked value the report holds: the key reeval masked in the record and
@@ -294,8 +294,8 @@ describe('reeval report: the bundle', () => {
       'reeval.config.ts': fakeConfig({
         harness: `{ failWith: 'agent failed: key ' + process.env.MY_API_KEY }`,
       }),
-      'evals/agent.eval.ts': `import { evaluate } from 'reeval'
-evaluate('agent eval', async (c) => { await c.send('go') })
+      'evals/agent.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ async task(c) { await c.send('go') } })
 `,
     })
     const env = { MY_API_KEY: NAMED }
@@ -351,8 +351,8 @@ if (process.argv.includes('run')) {
 }
 `,
       '.gitignore': '.env*\n.reeval/\n',
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'
-evaluate('slow', async (c) => { await new Promise((r) => setTimeout(r, 2000)) })
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ async task(c) { await new Promise((r) => setTimeout(r, 2000)) } })
 `,
       '.reeval/.keep': '',
     })
@@ -550,9 +550,9 @@ describe('reeval report: the failure hint', () => {
     // An error the engine caught outside any eval gets it too, and reeval report has it.
     const stray = await project('report-hint-stray', {
       'reeval.config.ts': fakeConfig(),
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'
 setTimeout(() => Promise.reject(new Error('stray rejection')), 0)
-evaluate('waits', async () => { await new Promise((r) => setTimeout(r, 500)) })
+export default defineEval({ async task() { await new Promise((r) => setTimeout(r, 500)) } })
 `,
       '.reeval/.keep': '',
     })
@@ -568,8 +568,8 @@ evaluate('waits', async () => { await new Promise((r) => setTimeout(r, 500)) })
     assert.doesNotMatch(usage.stderr, hint)
     const ok = await project('report-hint-ok', {
       'reeval.config.ts': fakeConfig(),
-      'evals/a.eval.ts': `import { evaluate } from 'reeval'
-evaluate('passes', async () => {})
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ async task() {} })
 `,
     })
     const pass = await runCli(ok.dir, ['run'])

@@ -34,7 +34,7 @@ compare a skill, fix a config, read a failure. Read a reference file when the ta
 | [references/mistakes.md](references/mistakes.md) | An error message from reeval you need to map to its fix (the full table) |
 | [../eval-rubric/SKILL.md](../eval-rubric/SKILL.md) | A `Worth knowing:` list after a run, or reviewing an eval's name, prompts and judge questions: one section per remark kind, with its fix |
 
-Use reeval's terms in code and messages: eval (`evaluate`), attempt (one run of a cell;
+Use reeval's terms in code and messages: eval (`defineEval`), attempt (one run of a cell;
 `runs: n`), harness (`cursor()`, …), cell (harness × environment × sandbox), control and variant,
 lift (variant pass@1 − control pass@1, 95% interval), gate, checks and judge, transcript, effort
 (measured tool calls, agent time, tokens). Not "trial", "baseline/treatment" or "grader";
@@ -48,7 +48,7 @@ writes the first evals. This section is the reference it builds on.
 
 ```bash
 npm i -D reeval
-npx reeval init --harness cursor   # or --bare: the config, no example eval
+npx reeval init --agent cursor   # or --bare: the config, no example eval
 npx reeval run --dry-run           # the plan, no keys or Docker
 npx reeval image build             # once, for real agents
 npx reeval doctor                  # Docker, keys and images, with fixes
@@ -58,7 +58,7 @@ npx reeval run
 1. Install: `npm init -y` if there's no `package.json`, then `npm i -D reeval`
    (or a tarball: `npm i -D /path/to/reeval.tgz`). Pre-release: pin the version.
    Node 22.16 or later; npm, pnpm or Yarn.
-2. `npx reeval init --harness <cursor|claude-code|antigravity|opencode|goose|pi|codex|fx|grok-build>`
+2. `npx reeval init --agent <cursor|claude-code|antigravity|opencode|goose|pi|codex|fx|grok-build>`
    (it only asks in a terminal) writes `reeval.config.ts` (the agent, `analysis.model:
    'google/gemini-3.8-flash'` for `reeval analyze`, and `pr` and `nightly` profiles), `evals/environments.ts` (one `defineEnvironment`), `evals/greet.eval.ts` (an eval
    in that environment), the `.gitignore` entries (`.reeval/`, `.env*`), an `eval` script and a
@@ -94,11 +94,11 @@ message, one at a time.
 
 ```ts
 import { defineConfig } from 'reeval'
-import { cursor } from 'reeval/harness'
+import { cursor } from 'reeval/agent'
 
 export default defineConfig({
   include: ['evals/**/*.eval.ts'],            // default
-  harnesses: cursor({ model: 'composer-2.5' }), // model required; CURSOR_API_KEY
+  agents: cursor({ model: 'composer-2.5' }), // model required; CURSOR_API_KEY
   // no default judge model; pin versions
   judge: { model: 'typesafe-ai/jev-1.14.0', threshold: 0.8 },
   // runs: attempts per cell; unset, 1, or 4 for a compare with variants
@@ -106,11 +106,11 @@ export default defineConfig({
 })
 ```
 
-- Harnesses (`reeval/harness`), each with a required `model`; a list runs each as its own cell:
+- Harnesses (`reeval/agent`), each with a required `model`; a list runs each as its own cell:
   `cursor` (`CURSOR_API_KEY`), `claudeCode` (`ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN`), `antigravity`
   (`GEMINI_API_KEY`), `opencode` (the provider's key; model `<provider>/<model>`), `goose` and
   `pi` (the provider's key; model `<provider>/<model>`, e.g. `google/gemini-3.8-flash` on `GOOGLE_GENERATIVE_AI_API_KEY`), `codex` (`OPENAI_API_KEY`), `fx` (`OPENAI_API_KEY` for a bare id,
-  `AI_GATEWAY_API_KEY` with `vercel()` or `OPENROUTER_API_KEY` with `openrouter()` in `gateway`), `grokBuild` (`XAI_API_KEY`), `fakeHarness`. Details
+  `AI_GATEWAY_API_KEY` with `vercel()` or `OPENROUTER_API_KEY` with `openrouter()` in `gateway`), `grokBuild` (`XAI_API_KEY`), `fakeAgent`. Details
   and `effort` in [references/config.md](references/config.md).
 - Judge models: `'typesafe-ai/jev-1.14.0'` (`TYPESAFE_AI_API_KEY`, recommended),
   `'google/gemini-3.8-flash'` (`GOOGLE_GENERATIVE_AI_API_KEY`), `anthropic/*` (`ANTHROPIC_API_KEY`)
@@ -123,13 +123,13 @@ export default defineConfig({
   pin a language-model judge to `gateway: 'direct'`. Always a provider prefix. Every `gateway`
   list ends with `direct()`, so a cell no listed gateway serves falls back to its own key (the
   plan's hint says so); `direct({ enabled: false })` refuses it instead.
-- Imports: `reeval` (`defineConfig`, `defineEnvironment`, `group`, `evaluate`,
-  `expect`, `DEFAULT_EGRESS_ALLOW`, `DEFAULT_SKILL_EXCLUDE`, types), `/harness`, `/sandbox`
+- Imports: `reeval` (`defineConfig`, `defineEnvironment`, `defineEval`,
+  `expect`, `DEFAULT_EGRESS_ALLOW`, `DEFAULT_SKILL_EXCLUDE`, types), `/agent`, `/sandbox`
   (`docker`, `fakeSandbox`), `/judge` (`fakeJudge`, `RECOMMENDED_JUDGE_MODEL`,
   `DEFAULT_THRESHOLD`). There is no `test`, `describe`, `baseline`, `secret` or `skill` export.
-- `defineConfig`, `group` and `evaluate` take the same options (`harnesses`, `sandbox`,
-  `environments`, `env`, `judge`, `runs`, `gate`, `timeout`, `tags`, …) and inner levels win;
-  `compare` is for groups and evals only. Options are plain objects, never functions. Unknown
+- `defineConfig` and each eval's `defineEval` take the same options (`agents`, `sandbox`,
+  `environment`, `env`, `judge`, `runs`, `gate`, `timeout`, `tags`, …); profile `defaults` apply
+  first unless the eval sets `pin`. Options are plain objects, never functions. Unknown
   keys are errors with a hint (`repeat` → "Did you mean runs?"), and type errors in a
   `defineConfig` object.
 - `runs: { bestOf: 5 }` (odd, 3 or more) stops each cell once pass or fail has a majority (3 to 5
@@ -138,20 +138,20 @@ export default defineConfig({
   only reaches `flaky_cells`' 6-attempt `flaky` in one run from `bestOf: 7`.
 - An eval's fingerprint reads its own body, options, case and `revision`, not
   helpers, constants outside the body or fixtures. After changing one of those in a way that
-  changes what the eval measures, bump `revision` (`{ revision: 2 }`, on the eval or its group)
+  changes what the eval measures, bump `revision` (`{ revision: 2 }` on the eval)
   so `reeval compare` says `can't compare … revision 1 → 2` instead of `regressed`.
 
 ### Without Docker or API keys: the fake trio
 
 ```ts
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeJudge } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
 
 export default defineConfig({
   // A scripted "agent": writes these files every turn and replies with text.
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     files: { 'hello.txt': 'hello\n' },
     text: 'Created hello.txt.',
   }),
@@ -160,7 +160,7 @@ export default defineConfig({
 })
 ```
 
-`fakeHarness` also takes `withSkill: { files, text }` (used when the environment gives the agent
+`fakeAgent` also takes `withSkill: { files, text }` (used when the environment gives the agent
 a skill), `script` (one list of `{ exec }`, `{ write }`, `{ reply }`, `{ mcp: 'server/tool' }`
 steps per turn), `layout` (an agent's id, such as `'claude-code'`), `failWith`, `delayMs`,
 `turnMs` (each turn's agent time, exactly: effort comparisons without scheduling jitter),
@@ -175,26 +175,26 @@ real Cursor runs need Docker.
 
 ```ts
 // evals/hello.eval.ts
-import { evaluate, expect, group } from 'reeval'
+import { defineEval, expect } from 'reeval'
 
-group('hello', () => {
-  evaluate('creates hello.txt', async (c) => {
+export default defineEval({
+  task: async (c) => {
     const turn = await c.send('Create hello.txt containing "hello".')
     await expect(turn).toHaveFile('hello.txt', /hello/) // async: await it
     await expect(c.exec('grep -q hello hello.txt')).toSucceed()
     const q = 'Does hello.txt contain the right content?'
     expect(await c.judge(q, { contents: ['hello.txt'] })).toPass()
-  })
+  },
 })
 ```
 
-- `evaluate(name, [options,] fn)` and `group(name, [options,] fn)`; also `.skip`, `.only`
-  (an error in CI), `.todo`. `{ cases: [...] }` runs one eval over a list, with the body
-  `(c, item) => …` (cases pool into one pass rate, see [references/evals.md](references/evals.md)).
-  `gate: 'observe'` gates nothing: the eval records what agents do. The eval id is `file › group › name`; renaming an
-  eval restarts its history. Name the eval after the question it answers
-  (`recommends Genkit for a production AI feature`, not `genkit test 2`), so the results and
-  `reeval analyze` read in those terms.
+- One `*.eval.ts` file is one eval: `export default defineEval({ …options, task })`. `skip: true`
+  or `skip: 'reason'` skips it (no `.only` or `.todo` in TypeScript). `{ cases: [...] }` runs one
+  eval over a list, with `task: async (c, item) => …` (cases pool into one pass rate, see
+  [references/evals.md](references/evals.md)). `gate: 'observe'` gates nothing: the eval records
+  what agents do. The eval id is the file path under the eval root without `.eval.ts`; moving the
+  file restarts its history. Organize paths after the question they answer
+  (`recommendation/genkit`, not `genkit-test-2`), so results and `reeval analyze` read clearly.
 - `await c.send(prompt)` runs one agent turn and returns a `Turn` (`text`, `status`, `diff`,
   `transcript`). Call it again for multi-turn;
   `c.judge(q, { on: firstTurn, task: true, output: true })` grades an earlier one.
@@ -223,9 +223,9 @@ group('hello', () => {
   `expect(await c.judge(q, { diff: true }), name).toPass()` records each judge's result and carries on.
 - Make the eval trustworthy. Before a real run, swap in the fake harness, and only the harness,
   so the eval runs in its real sandbox (its `docker()` image, `install`, egress and brokered
-  secrets): an oracle `fakeHarness` that does the task right must pass, and a canary that cheats
+  secrets): an oracle `fakeAgent` that does the task right must pass, and a canary that cheats
   or gets it wrong must fail. A canary that passes means a check isn't checking. Put them in the
-  one config as profiles that set `defaults.harnesses` (and `defaults.judge`), never
+  one config as profiles that set `defaults.agents` (and `defaults.judge`), never
   `defaults.sandbox`, then `reeval image build --profile oracle` and
   `reeval run --profile oracle` / `--profile canary` (needs Docker, no keys); see
   [references/evals.md](references/evals.md#trustworthy-evals). Not `fakeSandbox()`.
@@ -271,7 +271,7 @@ steps and the workspace's starting code. `compare` runs the same eval in a contr
 variant and reports lift.
 
 ```ts
-import { defineEnvironment, evaluate, expect, group } from 'reeval'
+import { defineEnvironment, defineEval, expect } from 'reeval'
 
 const greetsAda = `node -e "import('./greet.js').then((m) =>
   process.exit(m.greet('Ada') === 'Ahoy, Ada!' ? 0 : 1))"`
@@ -280,16 +280,13 @@ const houseStyle = plain.extendEnvironment('house-style', ({ skill }) => ({
   skills: [skill.local('./skills/house-greeting')], // a dir with SKILL.md, relative to this file
 }))
 
-group(
-  'greetings',
-  { compare: { control: plain, variants: [houseStyle] } },
-  () => {
-    evaluate('greets in the house style', async (c) => {
-      await c.send('Create greet.js exporting greet(name) in our house style.')
-      await expect(c.exec(greetsAda)).toSucceed()
-    })
+export default defineEval({
+  compare: { control: plain, variants: [houseStyle] },
+  task: async (c) => {
+    await c.send('Create greet.js exporting greet(name) in our house style.')
+    await expect(c.exec(greetsAda)).toSucceed()
   },
-)
+})
 ```
 
 - A spec, or a synchronous callback that destructures the helpers it needs (`skill`, `plugin`,
@@ -298,7 +295,7 @@ group(
   `mcp: { docs: mcp.stdio('npx', ['-y', '@acme/docs-mcp@1.0.0']) }`,
   `setup: [{ run: 'npm ci', timeout: '5m' }]`. More in
   [references/environments.md](references/environments.md).
-- Attempts = evals × harnesses × (1 control + variants) × runs. The example is 1 eval, 2 cells
+- Attempts = evals × agents × (1 control + variants) × runs. The example is 1 eval, 2 cells
   (`<harness>/plain/<sandbox>` control, `<harness>/house-style/<sandbox>` variant), 8 attempts:
   without `runs`, a compare runs 4 a cell, the fewest whose lift often holds (with `cases`, once a
   case: the lift pairs cases). A `runs` below 4 shows
@@ -338,7 +335,7 @@ reeval analyze           reeval studio          reeval image build      reeval d
 
 `reeval run` ends with a status list: each eval file, a line per eval under it with its icon and
 `N of M runs passed`, and for a failure, a compare or an eval with remarks, a sentence for each
-way it went (the harnesses, a variant's effect as `helped`, `made it worse` or `same`, the failed
+way it went (the agents, a variant's effect as `helped`, `made it worse` or `same`, the failed
 checks with their messages and lines; for an agent, also the rest of each message, the snapshot
 and each remark's whole sentence); `-v` expands every eval. Then the tally
 (`Done in 12s · 1 failed · 2 passed`; an `error:` outside any eval, such as a stray rejection in an eval file, is
@@ -357,14 +354,14 @@ server: [references/cli.md](references/cli.md).
 
 | Mistake | Fix |
 |---|---|
-| `compare` in `reeval.config.ts` | Put it on the group or eval |
+| `compare` in `reeval.config.ts` | Put it on the eval's `defineEval` |
 | `environments: [a, b]` to measure b, or `compare: [b]` | `compare: { control: a, variants: [b] }` |
 | `compare: { baseline: a, … }` | `compare: { control: a, … }` |
 | `repeat: 3` / `times` | `runs: 3` |
 | Judge model `'gemini-3.8-flash'` | `'google/gemini-3.8-flash'` |
 | Forgetting `await` on `toHaveFile`, or on `toSucceed` given `c.exec()`'s promise | `await expect(...)` |
 | `toPass()` on `c.exec()`'s result | `toSucceed()`; `toPass()` is for `await c.judge()` |
-| `cursor()` with `fakeSandbox()` | Use `fakeHarness()` or `docker()` |
+| `cursor()` with `fakeSandbox()` | Use `fakeAgent()` or `docker()` |
 | Test file named `*.test.ts` | `*.eval.ts` under `evals/` |
 
 Every error message and its fix: [references/mistakes.md](references/mistakes.md).

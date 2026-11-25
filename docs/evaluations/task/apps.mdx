@@ -16,13 +16,12 @@ Three calls check the app the agent built:
 `c.serve` starts a command in the background and returns its port. reeval allocates a free port and sets it as `PORT`, so a server that reads `PORT` listens where reeval expects it. In the `evals/sign-in.eval.ts` file, build and start the app:
 
 ```ts title="evals/sign-in.eval.ts"
-import { evaluate, expect } from '{{ pkg }}'
+import { defineEval, expect } from '{{ pkg }}'
 import { nextApp } from './environments.ts'
 
-evaluate(
-  'the sign-in page shows an email and a password field',
-  { environments: nextApp },
-  async (c) => {
+export default defineEval({
+  environment: nextApp,
+  task: async (c) => {
     await c.send('Add a /login page with email and password fields.')
     await expect(c.exec('npm run build'), 'builds').toSucceed()
     const app = await c.serve('npm start')
@@ -30,7 +29,7 @@ evaluate(
     const q = 'Does the screenshot show an email field and a password field?'
     expect(await c.judge(q, { artifacts: [shot] }), 'two fields').toPass()
   },
-)
+})
 ```
 
 ## Check the running app

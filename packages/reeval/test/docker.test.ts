@@ -50,10 +50,10 @@ const liveContainers = (runId: string) =>
 
 const config = (harness: string) => `
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeJudge } from 'reeval/judge'
 export default defineConfig({
-  harnesses: fakeHarness(${harness}),
+  agents: fakeAgent(${harness}),
   judge: { model: fakeJudge() },
 })
 `
@@ -95,6 +95,12 @@ const harnessImage = (harness: Parameters<typeof imageFor>[0]) => {
   }
 }
 /** A `docker` shim on PATH that counts reeval's `docker build` calls. */
+/** Pull only when the image is not already on the host (avoids Docker Hub rate limits). */
+function ensureImage(ref: string) {
+  if (spawnSync('docker', ['image', 'inspect', ref], { stdio: 'ignore' }).status === 0) return
+  execFileSync('docker', ['pull', '-q', ref], { stdio: 'ignore' })
+}
+
 function countBuilds(dir: string, match = '') {
   const shim = join(dir, 'bin')
   const log = join(dir, 'builds.log')
@@ -120,16 +126,19 @@ describe('docker sandbox', () => {
       'reeval.config.ts': config(
         `{ files: { 'greet.js': 'export const greet = (n) => \`Hello, \${n}!\`\\n', 'package.json': '{"type":"module"}' } }`,
       ),
-      'evals/d.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('docker', async (c) => {
+      'evals/d.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+
   const turn = await c.send('write greet.js')
   await expect(turn).toHaveFile('greet.js', /Hello/)
   await expect(c.exec('node -e "import(\\'./greet.js\\').then(m => console.log(m.greet(\\'Ada\\')))"')).toSucceed()
   const r = await c.exec('pwd && git --version && ls -A')
   expect(r.stdout).toContain('/reeval/workspace')
   expect(turn.diff.files).toEqual(expect.arrayContaining([{ path: 'greet.js', status: 'added' }]))
-})
-`,
+
+  },
+})`,
     })
     const r = await runCli(p.dir, ['run'], slow)
     assert.equal(r.code, 0, r.stdout + r.stderr)
@@ -160,15 +169,16 @@ evaluate('docker', async (c) => {
   test('labels its containers with the run as a Compose project', docker, async () => {
     const p = await project('docker-compose-labels', {
       'reeval.config.ts': config('{}'),
-      'evals/d.eval.ts': `import { execFileSync } from 'node:child_process'
+      'evals/compose-labels.eval.ts': `import { execFileSync } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
-import { evaluate } from 'reeval'
-evaluate('Compose Labels!', async (c) => {
+import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
   await c.exec('true')
   const labels = execFileSync('docker', ['ps', '--filter', 'label=com.docker.compose.service', '--format', '{{json .Labels}}'], { encoding: 'utf8' })
   writeFileSync('labels.txt', labels)
-})
-`,
+  },
+})`,
     })
     const r = await runCli(p.dir, ['run'], slow)
     assert.equal(r.code, 0, r.stdout + r.stderr)
@@ -177,10 +187,7 @@ evaluate('Compose Labels!', async (c) => {
     const labels = readFileSync(join(p.dir, 'labels.txt'), 'utf8')
     assert.match(labels, new RegExp(`com\\.docker\\.compose\\.project=${composeProject}[,"]`))
     assert.match(labels, new RegExp(`${LABEL.run}=${run.runId}[,"]`))
-    assert.match(
-      labels,
-      /com\.docker\.compose\.service=evals-d-eval-ts-compose-labels-[a-z0-9_-]+[,"]/,
-    )
+    assert.match(labels, /com\.docker\.compose\.service=compose-labels[^,"]*[,"]/)
     assert.equal(liveContainers(run.runId), '')
   })
 
@@ -195,7 +202,7 @@ evaluate('Compose Labels!', async (c) => {
         },
         '(printenv DB_URL || echo none) > /opt/reeval-secret && echo layer > /opt/reeval-layer && date +%s%N > /opt/reeval-built',
       ]
-      const eval_ = `import { defineEnvironment, evaluate, expect } from 'reeval'
+      const eval_ = `import { defineEval, defineEnvironment, expect } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const tools = defineEnvironment('tools', ({ secret }) => ({
   files: { '~/.config/reeval/hint.txt': 'from home' },
@@ -205,7 +212,10 @@ const tools = defineEnvironment('tools', ({ secret }) => ({
   },
   setup: [{ run: 'sleep 6 && printf %s "$CHECK_ONLY" > /tmp/check-only', timeout: '30s' }],
 }))
-evaluate('layered', { environments: tools.extend('layered', { sandbox: docker({ install: ${JSON.stringify(install)} }) }), timeout: '5s' }, async (c) => {
+export default defineEval({
+  environment: tools.extend('layered', { sandbox: docker({ install: ${JSON.stringify(install)} }) }), timeout: '5s',
+  async task(c) {
+
   const turn = await c.send('x')
   const agentEnv = turn.transcript.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : [])).join('')
   expect(agentEnv.split('\\n')).toContain('DB_URL')
@@ -218,8 +228,9 @@ evaluate('layered', { environments: tools.extend('layered', { sandbox: docker({ 
   expect((await c.exec('cat ~/.config/reeval/hint.txt')).stdout).toBe('from home')
   await c.exec('cat /opt/reeval-built')
   expect((await c.exec('cat /tmp/check-only')).stdout).toBe('postgres://u:pw-long-enough@db')
-})
-`
+
+  },
+})`
       const p = await project('docker-env', {
         // The agent's own environment: the container's, without the checks' variables.
         'reeval.config.ts': config(`{ script: [[{ exec: 'env | cut -d= -f1' }]] }`),
@@ -261,20 +272,25 @@ evaluate('layered', { environments: tools.extend('layered', { sandbox: docker({ 
     async () => {
       const p = await project('docker-root-warning', {
         'reeval.config.ts': config('{}'),
-        'evals/root.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+        'evals/installs-deps.eval.ts': `import { defineEval, defineEnvironment, expect } from 'reeval'
 import { docker } from 'reeval/sandbox'
-evaluate('installs deps', { environments: defineEnvironment('installs-deps', { sandbox: docker({ root: true }) }) }, async (c) => {
+export default defineEval({
+  environment: defineEnvironment('installs-deps', { sandbox: docker({ root: true }) }),
+  async task(c) {
   expect((await c.exec('id -u')).stdout.trim()).toBe('0')
-})
-`,
-        'evals/plain.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('stays unprivileged', async (c) => {
+  },
+})`,
+        'evals/plain.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+
   expect((await c.exec('id -u')).stdout.trim()).toBe('10001')
-})
-`,
+
+  },
+})`,
       })
       const message =
-        'running as root in the sandbox: evaluate("installs deps") (docker({ root: true }))'
+        'running as root in the sandbox: evals/installs-deps.eval.ts (docker({ root: true }))'
       const warned = (stdout: string, run: RunRecord, summary: string) => {
         const lines = stdout.split('\n')
         const at = lines.indexOf(`  ⚠  Warning: ${message}`)
@@ -287,20 +303,20 @@ evaluate('stays unprivileged', async (c) => {
           {
             kind: 'root',
             level: 'eval',
-            where: 'evaluate("installs deps")',
-            file: 'evals/root.eval.ts',
+            where: 'evals/installs-deps.eval.ts',
+            file: 'evals/installs-deps.eval.ts',
             message,
           },
         ])
         assert.match(
           summary,
-          /^> \*\*Warning:\*\* running as root in the sandbox: evaluate\("installs deps"\)/m,
+          /^> \*\*Warning:\*\* running as root in the sandbox: evals\/installs-deps\.eval\.ts/m,
         )
       }
 
       const r = await runCli(
         p.dir,
-        ['run', '--ui', 'plain', '--output-logs', 'full', 'evals/root.eval.ts'],
+        ['run', '--ui', 'plain', '--output-logs', 'full', 'evals/installs-deps.eval.ts'],
         slow,
       )
       assert.equal(r.code, 0, r.stdout + r.stderr)
@@ -326,12 +342,16 @@ evaluate('stays unprivileged', async (c) => {
     async () => {
       const p = await project('docker-install-fail', {
         'reeval.config.ts': config('{}'),
-        'evals/d.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+        'evals/d.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
-evaluate('broken', { environments: defineEnvironment('broken', { sandbox: docker({ install: ['echo one', 'exit 9', 'echo never'] }) }) }, async (c) => {
+export default defineEval({
+  environment: defineEnvironment('broken', { sandbox: docker({ install: ['echo one', 'exit 9', 'echo never'] }) }),
+  async task(c) {
+
   await c.send('x')
-})
-`,
+
+  },
+})`,
       })
       const r = await runCli(p.dir, ['run', '--ui', 'plain'], slow)
       assert.equal(r.code, 3, r.stdout + r.stderr)
@@ -352,12 +372,26 @@ evaluate('broken', { environments: defineEnvironment('broken', { sandbox: docker
     async () => {
       const p = await project('docker-install-causes', {
         'reeval.config.ts': config('{}'),
-        'evals/d.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+        'evals/disk.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
-const body = async (c) => { await c.exec('true') }
-evaluate('disk', { environments: defineEnvironment('disk', { sandbox: docker({ install: ['echo filling && dd if=/dev/zero of=/dev/shm/fill bs=1M count=200'] }) }) }, body)
-evaluate('oom', { environments: defineEnvironment('oom', { sandbox: docker({ install: ['echo dying && kill -9 $$'] }) }) }, body)
-evaluate('plain', { environments: defineEnvironment('plain', { sandbox: docker({ install: ['echo plain && exit 4'] }) }) }, body)
+export default defineEval({
+  environment: defineEnvironment('disk', { sandbox: docker({ install: ['echo filling && dd if=/dev/zero of=/dev/shm/fill bs=1M count=200'] }) }),
+  async task(c) { await c.exec('true') },
+})
+`,
+        'evals/oom.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
+import { docker } from 'reeval/sandbox'
+export default defineEval({
+  environment: defineEnvironment('oom', { sandbox: docker({ install: ['echo dying && kill -9 $$'] }) }),
+  async task(c) { await c.exec('true') },
+})
+`,
+        'evals/plain.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
+import { docker } from 'reeval/sandbox'
+export default defineEval({
+  environment: defineEnvironment('plain', { sandbox: docker({ install: ['echo plain && exit 4'] }) }),
+  async task(c) { await c.exec('true') },
+})
 `,
       })
       const r = await runCli(p.dir, ['run', '--ui', 'plain'], slow)
@@ -382,14 +416,26 @@ evaluate('plain', { environments: defineEnvironment('plain', { sandbox: docker({
     'a Dockerfile syntax error, and a from that is not Debian, say so first',
     docker,
     async () => {
+      ensureImage('busybox:1.37')
       const p = await project('docker-bad-images', {
         'reeval.config.ts': config('{}'),
         'evals/bad.Dockerfile': 'FROM debian:bookworm-slim\nCOPYY a b\n',
-        'evals/d.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+        'evals/syntax.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
-evaluate('syntax', { environments: defineEnvironment('syntax', { sandbox: docker({ dockerfile: './bad.Dockerfile' }) }) }, async (c) => { await c.exec('true') })
-evaluate('alpine', { environments: defineEnvironment('alpine', { sandbox: docker({ from: 'alpine:3.20' }) }) }, async (c) => { await c.exec('true') })
-`,
+export default defineEval({
+  environment: defineEnvironment('syntax', { sandbox: docker({ dockerfile: './bad.Dockerfile' }) }),
+  async task(c) {
+ await c.exec('true') 
+  },
+})`,
+        'evals/alpine.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
+import { docker } from 'reeval/sandbox'
+export default defineEval({
+  environment: defineEnvironment('alpine', { sandbox: docker({ from: 'busybox:1.37' }) }),
+  async task(c) {
+ await c.exec('true') 
+  },
+})`,
       })
       const r = await runCli(p.dir, ['run', '--ui', 'plain'], { timeoutMs: 600_000 })
       assert.equal(r.code, 3, r.stdout + r.stderr)
@@ -402,7 +448,7 @@ evaluate('alpine', { environments: defineEnvironment('alpine', { sandbox: docker
       )
       assert.match(
         message('alpine').split('\n')[0] ?? '',
-        /^Building the toolchain layer FROM alpine:3\.20 failed: reeval needs a Debian or Ubuntu based image/,
+        /^Building the toolchain layer FROM busybox:1\.37 failed: reeval needs a Debian or Ubuntu based image/,
       )
       // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escapes.
       assert.doesNotMatch(r.stdout, /\x1b\[/, 'no raw ANSI from BuildKit warnings')
@@ -416,14 +462,22 @@ evaluate('alpine', { environments: defineEnvironment('alpine', { sandbox: docker
       const p = await project('docker-retry', {
         'reeval.config.ts': config('{}'),
         'evals/run.Dockerfile': 'FROM debian:bookworm-slim\nRUN echo broken && exit 42\n',
-        'evals/net.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+        'evals/net.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
-evaluate('net', { environments: defineEnvironment('net', { sandbox: docker({ from: 'registry.invalid.example:5000/reeval/none:1' }) }) }, async (c) => { await c.exec('true') })
-`,
-        'evals/run.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+export default defineEval({
+  environment: defineEnvironment('net', { sandbox: docker({ from: 'registry.invalid.example:5000/reeval/none:1' }) }),
+  async task(c) {
+ await c.exec('true') 
+  },
+})`,
+        'evals/run.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
-evaluate('run', { environments: defineEnvironment('run', { sandbox: docker({ dockerfile: './run.Dockerfile' }) }) }, async (c) => { await c.exec('true') })
-`,
+export default defineEval({
+  environment: defineEnvironment('run', { sandbox: docker({ dockerfile: './run.Dockerfile' }) }),
+  async task(c) {
+ await c.exec('true') 
+  },
+})`,
       })
       const counter = countBuilds(p.dir)
       const net = await runCli(p.dir, ['run', 'net'], { env: counter.env, ...slow })
@@ -487,21 +541,35 @@ evaluate('run', { environments: defineEnvironment('run', { sandbox: docker({ doc
     'an eval-level image that fails fails only its cells, each once, built once, annotated once; everything else runs',
     docker,
     async () => {
-      const broken = `import { defineEnvironment, evaluate, group } from 'reeval'
-import { docker } from 'reeval/sandbox'
-group('broken tools', { environments: defineEnvironment('broken-tools', { sandbox: docker({ install: ['echo nope && exit 5'] }) }) }, () => {
-  evaluate('a', { runs: 2 }, async (c) => { await c.exec('true') })
-  evaluate('b', async (c) => { await c.exec('true') })
-})
-`
       const p = await project('docker-prepare-scoped', {
         'reeval.config.ts': config('{}'),
-        'evals/ok.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('ok', async (c) => {
+        'evals/ok.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
   expect((await c.exec('echo fine')).stdout).toBe('fine\\n')
+  },
+})`,
+        'evals/broken-tools-env.ts': `import { defineEnvironment } from 'reeval'
+import { docker } from 'reeval/sandbox'
+export const brokenTools = defineEnvironment('broken-tools', {
+  sandbox: docker({ install: ['echo nope && exit 5'] }),
 })
 `,
-        'evals/broken.eval.ts': broken,
+        'evals/a.eval.ts': `import { defineEval } from 'reeval'
+import { brokenTools } from './broken-tools-env'
+export default defineEval({
+  environment: brokenTools,
+  runs: 2,
+  async task(c) { await c.exec('true') },
+})
+`,
+        'evals/b.eval.ts': `import { defineEval } from 'reeval'
+import { brokenTools } from './broken-tools-env'
+export default defineEval({
+  environment: brokenTools,
+  async task(c) { await c.exec('true') },
+})
+`,
       })
       const counter = countBuilds(p.dir, 'reeval-install')
       const r = await runCli(p.dir, ['run', '--ui', 'plain', '--concurrency', '4'], {
@@ -528,11 +596,11 @@ evaluate('ok', async (c) => {
           a.error?.prepare?.log ?? '',
           /^\.reeval\/cache\/images\/reeval-install-.+\.log$/,
         )
-        assert.deepEqual(a.error?.prepare?.setBy, ['group("broken tools")'])
+        assert.deepEqual(a.error?.prepare?.setBy, ['evals/a.eval.ts', 'evals/b.eval.ts'])
       }
       const lines = r.stdout.split('\n')
       const failedAt = lines.findIndex((l) =>
-        /✗ {2}docker\+[0-9a-f]+ \+ install failed to prepare \(set by group\("broken tools"\)/.test(
+        /✗ {2}docker\+[0-9a-f]+ \+ install failed to prepare \(set by evals\/a\.eval\.ts, evals\/b\.eval\.ts/.test(
           l,
         ),
       )
@@ -548,7 +616,7 @@ evaluate('ok', async (c) => {
         1,
       )
       assert.equal(
-        lines.filter((l) => l.startsWith('::error file=evals/broken.eval.ts')).length,
+        lines.filter((l) => l.startsWith('::error file=evals/a.eval.ts')).length,
         0,
         'no annotation per attempt',
       )
@@ -564,7 +632,10 @@ evaluate('ok', async (c) => {
       )
 
       // Canary: with the install fixed, nothing fails to prepare, so the checks above would fail.
-      writeFileSync(join(p.dir, 'evals/broken.eval.ts'), broken.replace('exit 5', 'true'))
+      writeFileSync(
+        join(p.dir, 'evals/broken-tools-env.ts'),
+        readFileSync(join(p.dir, 'evals/broken-tools-env.ts'), 'utf8').replace('exit 5', 'true'),
+      )
       const fixed = await runCli(p.dir, ['run', '--ui', 'plain'], slow)
       assert.equal(fixed.code, 0, fixed.stdout + fixed.stderr)
       assert.doesNotMatch(fixed.stdout, /failed to prepare/)
@@ -577,19 +648,27 @@ evaluate('ok', async (c) => {
     async () => {
       const p = await project('docker-prepare-config', {
         'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 import { fakeJudge } from 'reeval/judge'
 export default defineConfig({
-  harnesses: fakeHarness({}),
+  agents: fakeAgent({}),
   environments: defineEnvironment('broken', { sandbox: docker({ install: ['echo config && exit 6'] }) }),
   judge: { model: fakeJudge() },
 })
 `,
-        'evals/a.eval.ts': `import { evaluate } from 'reeval'
-evaluate('a', async (c) => { await c.exec('true') })
-evaluate('b', async (c) => { await c.exec('true') })
-`,
+        'evals/a.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+ await c.exec('true') 
+  },
+})`,
+        'evals/b.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+ await c.exec('true') 
+  },
+})`,
       })
       const r = await runCli(p.dir, ['run', '--ui', 'plain'], slow)
       assert.equal(r.code, 3, r.stdout + r.stderr)
@@ -606,11 +685,11 @@ evaluate('b', async (c) => { await c.exec('true') })
       writeFileSync(
         join(p.dir, 'reeval.config.ts'),
         `import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 import { fakeJudge } from 'reeval/judge'
 export default defineConfig({
-  harnesses: fakeHarness({}),
+  agents: fakeAgent({}),
   environments: defineEnvironment('broken', { sandbox: docker({ image: 'reeval-missing-image:nope' }) }),
   judge: { model: fakeJudge() },
 })
@@ -630,14 +709,25 @@ export default defineConfig({
     'two sandboxes on one failing from build it once: the failure is cached for the run',
     docker,
     async () => {
+      ensureImage('busybox:1.37')
+      const sharedEnv = `import { defineEnvironment } from 'reeval'
+import { docker } from 'reeval/sandbox'
+export const alpineBad = defineEnvironment('alpine-bad', { sandbox: docker({ from: 'busybox:1.37' }) })
+`
+      const evalOnAlpine = () => `import { defineEval } from 'reeval'
+import { alpineBad } from './shared-alpine-env'
+export default defineEval({
+  environment: alpineBad,
+  async task(c) {
+ await c.exec('true') 
+  },
+})`
       const p = await project('docker-prepare-cache', {
         'reeval.config.ts': config('{}'),
-        'evals/a.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
-import { docker } from 'reeval/sandbox'
-evaluate('one', { environments: defineEnvironment('one', { sandbox: docker({ from: 'alpine:3.20', install: ['echo one'] }) }) }, async (c) => { await c.exec('true') })
-evaluate('two', { environments: defineEnvironment('two', { sandbox: docker({ from: 'alpine:3.20', install: ['echo two'] }) }) }, async (c) => { await c.exec('true') })
-evaluate('plain', { environments: defineEnvironment('plain', { sandbox: docker({ from: 'alpine:3.20' }) }) }, async (c) => { await c.exec('true') })
-`,
+        'evals/shared-alpine-env.ts': sharedEnv,
+        'evals/one.eval.ts': evalOnAlpine(),
+        'evals/two.eval.ts': evalOnAlpine(),
+        'evals/plain.eval.ts': evalOnAlpine(),
       })
       const counter = countBuilds(p.dir, '-base')
       const r = await runCli(p.dir, ['run', '--ui', 'plain'], { env: counter.env, ...slow })
@@ -662,12 +752,29 @@ evaluate('plain', { environments: defineEnvironment('plain', { sandbox: docker({
       const p = await project('docker-image-build-all', {
         'reeval.config.ts': config('{}'),
         'evals/bad.Dockerfile': 'FROM debian:bookworm-slim\nRUN echo broken && exit 42\n',
-        'evals/a.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+        'evals/plain.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
-evaluate('plain', async (c) => { await c.exec('true') })
-evaluate('bad', { environments: defineEnvironment('bad', { sandbox: docker({ dockerfile: './bad.Dockerfile' }) }) }, async (c) => { await c.exec('true') })
-evaluate('nope', { environments: defineEnvironment('nope', { sandbox: docker({ from: 'nonexistent-reeval-image-${process.pid}:1' }) }) }, async (c) => { await c.exec('true') })
-`,
+export default defineEval({
+  async task(c) {
+ await c.exec('true') 
+  },
+})`,
+        'evals/bad.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
+import { docker } from 'reeval/sandbox'
+export default defineEval({
+  environment: defineEnvironment('bad', { sandbox: docker({ dockerfile: './bad.Dockerfile' }) }),
+  async task(c) {
+ await c.exec('true') 
+  },
+})`,
+        'evals/nope.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
+import { docker } from 'reeval/sandbox'
+export default defineEval({
+  environment: defineEnvironment('nope', { sandbox: docker({ from: 'nonexistent-reeval-image-${process.pid}:1' }) }),
+  async task(c) {
+ await c.exec('true') 
+  },
+})`,
       })
       const dry = await runCli(p.dir, ['image', 'build', '--dry-run'])
       assert.equal(dry.code, 0, dry.stdout + dry.stderr)
@@ -731,12 +838,16 @@ evaluate('nope', { environments: defineEnvironment('nope', { sandbox: docker({ f
       push('v1')
       const p = await project('docker-from-moves', {
         'reeval.config.ts': config('{}'),
-        'evals/a.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+        'evals/a.eval.ts': `import { defineEval, defineEnvironment, expect } from 'reeval'
 import { docker } from 'reeval/sandbox'
-evaluate('base', { environments: defineEnvironment('base', { sandbox: docker({ from: '${tag}' }) }) }, async (c) => {
+export default defineEval({
+  environment: defineEnvironment('base', { sandbox: docker({ from: '${tag}' }) }),
+  async task(c) {
+
   expect((await c.exec('cat /etc/reeval-version')).stdout).toBe('v1\\n')
-})
-`,
+
+  },
+})`,
       })
       const first = await runCli(p.dir, ['run'], { timeoutMs: 600_000 })
       assert.equal(first.code, 0, first.stdout + first.stderr)
@@ -791,13 +902,17 @@ evaluate('base', { environments: defineEnvironment('base', { sandbox: docker({ f
       const nonce = `${Date.now()}-${process.pid}`
       const p = await project('docker-registry', {
         'reeval.config.ts': config('{}'),
-        'evals/a.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+        'evals/a.eval.ts': `import { defineEval, defineEnvironment, expect } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const box = defineEnvironment('box', { sandbox: docker({ install: ['echo ${nonce} > /opt/reeval-registry'] }) })
-evaluate('pulled', { environments: box }, async (c) => {
+export default defineEval({
+  environment: box,
+  async task(c) {
+
   expect((await c.exec('cat /opt/reeval-registry')).stdout.trim()).toBe('${nonce}')
-})
-`,
+
+  },
+})`,
       })
       let layer = ''
       try {
@@ -859,11 +974,15 @@ export const fresh = docker({
   install: ['echo ${nonce} > /opt/reeval-nonce && date +%s%N > /opt/reeval-built'],
 })
 `
-    const file = (name: string) => `import { defineEnvironment, evaluate } from 'reeval'
+    const file = (name: string) => `import { defineEnvironment, defineEval } from 'reeval'
 import { fresh } from './env.ts'
-evaluate('${name}', { environments: defineEnvironment('${name}', { sandbox: fresh }), runs: 2 }, async (c) => {
+export default defineEval({
+  environment: defineEnvironment('${name}', { sandbox: fresh }),
+  runs: 2,
+  async task(c) {
   await c.send('x')
   await c.exec('cat /opt/reeval-built')
+  },
 })
 `
     const p = await project('docker-dedupe', {
@@ -918,22 +1037,33 @@ evaluate('${name}', { environments: defineEnvironment('${name}', { sandbox: fres
       'evals/tools/greeting.txt': 'hello\n',
       'evals/tools/.dockerignore': 'scratch\n',
       'evals/deb.Dockerfile': `FROM debian:bookworm-slim\nRUN echo ${nonce} > /opt/deb\n`,
-      'evals/d.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/tools.eval.ts': `import { defineEval, defineEnvironment, expect } from 'reeval'
 import { docker } from 'reeval/sandbox'
-evaluate('tools', { environments: defineEnvironment('tools', { sandbox: docker({ dockerfile: './tools/Dockerfile' }) }) }, async (c) => {
+export default defineEval({
+  environment: defineEnvironment('tools', { sandbox: docker({ dockerfile: './tools/Dockerfile' }) }),
+  async task(c) {
+
   await c.send('x')
   const greeting = (await c.exec('cat /opt/greeting.txt')).stdout
   expect(greeting).toMatch(/^(hello|bonjour)\\n$/)
   expect((await c.exec('cat /opt/nonce')).stdout).toBe('${nonce}\\n')
   expect((await c.exec('pwd')).stdout).toBe('/reeval/workspace\\n')
-})
-evaluate('deb', { environments: defineEnvironment('deb', { sandbox: docker({ dockerfile: './deb.Dockerfile' }) }) }, async (c) => {
+
+  },
+})`,
+      'evals/deb.eval.ts': `import { defineEval, defineEnvironment, expect } from 'reeval'
+import { docker } from 'reeval/sandbox'
+export default defineEval({
+  environment: defineEnvironment('deb', { sandbox: docker({ dockerfile: './deb.Dockerfile' }) }),
+  async task(c) {
+
   await c.send('x')
   expect((await c.exec('cat /opt/deb')).stdout).toBe('${nonce}\\n')
   expect((await c.exec('grep -c bookworm /etc/os-release')).exitCode).toBe(0)
   expect((await c.exec('node --version && git --version')).exitCode).toBe(0)
-})
-`,
+
+  },
+})`,
     })
     const refs = new Set<string>()
     try {
@@ -999,21 +1129,33 @@ evaluate('deb', { environments: defineEnvironment('deb', { sandbox: docker({ doc
       'reeval.config.ts': config(
         `{ script: [[{ exec: 'node -e "process.stdout.write(process.version)"' }]] }`,
       ),
-      'evals/f.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/bakes.eval.ts': `import { defineEval, defineEnvironment, expect } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const bookworm = defineEnvironment('bookworm', { sandbox: docker({ from: 'debian:bookworm-slim' }) })
-evaluate('bakes', { environments: bookworm }, async (c) => {
+export default defineEval({
+  environment: bookworm,
+  async task(c) {
+
   const turn = await c.send('x')
   const shell = turn.transcript.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : []))
   expect(shell.join('')).toMatch(/^v26\\./)
   expect((await c.exec('grep -c bookworm /etc/os-release')).exitCode).toBe(0)
   expect((await c.exec('git --version && curl --version && pnpm --version')).exitCode).toBe(0)
   expect((await c.exec('pwd')).stdout).toBe('/reeval/workspace\\n')
-})
-evaluate('canary', { environments: bookworm }, async (c) => {
+
+  },
+})`,
+      'evals/canary.eval.ts': `import { defineEval, defineEnvironment, expect } from 'reeval'
+import { docker } from 'reeval/sandbox'
+const bookworm = defineEnvironment('bookworm', { sandbox: docker({ from: 'debian:bookworm-slim' }) })
+export default defineEval({
+  environment: bookworm,
+  async task(c) {
+
   expect((await c.exec('grep -c trixie /etc/os-release')).stdout).toBe('1\\n')
-})
-`,
+
+  },
+})`,
     })
     let ref = ''
     try {
@@ -1056,17 +1198,24 @@ evaluate('canary', { environments: bookworm }, async (c) => {
     const p = await project('docker-dockerfile-claude', {
       'reeval.config.ts': `
 import { defineConfig } from 'reeval'
-import { claudeCode } from 'reeval/harness'
+import { claudeCode } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({ harnesses: claudeCode({ model: 'claude-sonnet-5' }) })
+export default defineConfig({ agents: claudeCode({ model: 'claude-sonnet-5' }) })
 `,
       'evals/tools/Dockerfile': `ARG REEVAL_BASE\nFROM \${REEVAL_BASE}\nRUN echo ${nonce} > /opt/nonce\n`,
       'evals/deb.Dockerfile': `FROM debian:bookworm-slim\nRUN echo ${nonce} > /opt/deb\n`,
-      'evals/d.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/tools.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
-evaluate('tools', { environments: defineEnvironment('tools', { sandbox: docker({ dockerfile: './tools/Dockerfile' }) }) }, async () => {})
-evaluate('deb', { environments: defineEnvironment('deb', { sandbox: docker({ dockerfile: './deb.Dockerfile' }) }) }, async () => {})
-`,
+export default defineEval({
+  environment: defineEnvironment('tools', { sandbox: docker({ dockerfile: './tools/Dockerfile' }) }),
+  async task(c) {},
+})`,
+      'evals/deb.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
+import { docker } from 'reeval/sandbox'
+export default defineEval({
+  environment: defineEnvironment('deb', { sandbox: docker({ dockerfile: './deb.Dockerfile' }) }),
+  async task(c) {},
+})`,
     })
     const refs = new Set<string>()
     const claudeCli = (ref: string) =>
@@ -1129,9 +1278,13 @@ evaluate('deb', { environments: defineEnvironment('deb', { sandbox: docker({ doc
   test('a timeout removes the container', docker, async () => {
     const p = await project('docker-timeout', {
       'reeval.config.ts': config('{ delayMs: 60_000 }'),
-      'evals/d.eval.ts': `import { evaluate } from 'reeval'
-evaluate('slow', { timeout: '3s' }, async (c) => { await c.send('wait') })
-`,
+      'evals/d.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  timeout: '3s',
+  async task(c) {
+ await c.send('wait') 
+  },
+})`,
     })
     const r = await runCli(p.dir, ['run'], slow)
     assert.equal(r.code, 1)
@@ -1146,9 +1299,13 @@ evaluate('slow', { timeout: '3s' }, async (c) => { await c.send('wait') })
     async () => {
       const p = await project('docker-sigterm', {
         'reeval.config.ts': config('{ delayMs: 60_000 }'),
-        'evals/d.eval.ts': `import { evaluate } from 'reeval'
-evaluate('slow', { runs: 2 }, async (c) => { await c.send('wait') })
-`,
+        'evals/d.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  runs: 2,
+  async task(c) {
+ await c.send('wait') 
+  },
+})`,
       })
       let started = 0
       const r = await runCli(p.dir, ['run', '--concurrency', '2', '--output-logs', 'full'], {
@@ -1177,12 +1334,17 @@ evaluate('slow', { runs: 2 }, async (c) => { await c.send('wait') })
   }, async () => {
     const p = await project('docker-sigkill', {
       'reeval.config.ts': config('{ delayMs: 60_000 }'),
-      'evals/d.eval.ts': `import { evaluate } from 'reeval'
-evaluate('slow', { runs: 2 }, async (c) => { await c.send('wait') })
-`,
-      'evals/quick.eval.ts': `import { evaluate } from 'reeval'
-evaluate('quick', async () => {})
-`,
+      'evals/d.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  runs: 2,
+  async task(c) {
+ await c.send('wait') 
+  },
+})`,
+      'evals/quick.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {},
+})`,
     })
     let started = 0
     const r = await runCli(
@@ -1251,15 +1413,19 @@ http.createServer((req, res) => {
 `
     const p = await project('docker-capture-sigint', {
       'reeval.config.ts': config('{}'),
-      'evals/d.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+      'evals/d.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const box = defineEnvironment('box', { sandbox: docker(), files: { 'server.mjs': ${JSON.stringify(server)} } })
-evaluate('stuck', { environments: box, timeout: '10m' }, async (c) => {
+export default defineEval({
+  environment: box, timeout: '10m',
+  async task(c) {
+
   const server = await c.serve('node server.mjs')
   console.log('capturing now')
   await c.capture(server, { timeout: '5m' })
-})
-`,
+
+  },
+})`,
     })
     let sent = 0
     const r = await runCli(p.dir, ['run', '--output-logs', 'full'], {
@@ -1284,17 +1450,20 @@ evaluate('stuck', { environments: box, timeout: '10m' }, async (c) => {
     async () => {
       const cursorConfig = (sandbox: string) => `
 import { defineConfig, defineEnvironment } from 'reeval'
-import { cursor } from 'reeval/harness'
+import { cursor } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 export default defineConfig({
-  harnesses: cursor({ model: 'composer-2.5' }),
+  agents: cursor({ model: 'composer-2.5' }),
   environments: defineEnvironment('box', { sandbox: ${sandbox} }),
   timeout: '60s',
 })
 `
-      const eval_ = `import { evaluate } from 'reeval'
-evaluate('hi', async (c) => { await c.send('hi') })
-`
+      const eval_ = `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+ await c.send('hi') 
+  },
+})`
       const warning = /CURSOR_API_KEY is passed into the sandbox container/
       // A made-up key: the sandbox and the gateway start, then the Cursor API refuses the key.
       const env = { CURSOR_API_KEY: 'crsr_not_a_real_key_0000000000000000' }
@@ -1349,18 +1518,22 @@ evaluate('hi', async (c) => { await c.send('hi') })
     'a brokered user secret on an image without the gateway fails closed, naming it',
     docker,
     async () => {
-      execFileSync('docker', ['pull', '-q', 'busybox:1.37'], { stdio: 'ignore' })
+      ensureImage('busybox:1.37')
       const value = 'reeval-docker-user-secret-5e4d3c2b1a'
       const p = await project('docker-secret-no-broker', {
         'reeval.config.ts': config('{}'),
-        'evals/d.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+        'evals/d.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const keys = defineEnvironment('keys', ({ secret }) => ({
   sandbox: docker({ image: 'busybox:1.37', root: true }),
   env: { GEMINI_API_KEY: secret.fromEnv('REEVAL_DOCKER_SECRET', { hosts: secret.hosts.gemini }) },
 }))
-evaluate('hi', { environments: keys }, async (c) => { await c.exec('true') })
-`,
+export default defineEval({
+  environment: keys,
+  async task(c) {
+ await c.exec('true') 
+  },
+})`,
       })
       const r = await runCli(p.dir, ['run'], { env: { REEVAL_DOCKER_SECRET: value } })
       assert.equal(r.code, 3, r.stdout + r.stderr)
@@ -1384,15 +1557,27 @@ evaluate('hi', { environments: keys }, async (c) => { await c.exec('true') })
     "egress 'proxy' on an image without the gateway fails closed; allow-all starts without it",
     docker,
     async () => {
-      execFileSync('docker', ['pull', '-q', 'busybox:1.37'], { stdio: 'ignore' })
+      ensureImage('busybox:1.37')
       const p = await project('docker-proxy-no-gateway', {
         'reeval.config.ts': config('{}'),
-        'evals/d.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+        'evals/proxied.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const bare = defineEnvironment('bare', { sandbox: docker({ image: 'busybox:1.37', root: true }) })
-evaluate('proxied', { environments: bare }, async (c) => { await c.exec('true') })
-evaluate('direct', { environments: bare, egress: 'allow-all' }, async (c) => { await c.exec('true') })
-`,
+export default defineEval({
+  environment: bare,
+  async task(c) {
+ await c.exec('true') 
+  },
+})`,
+        'evals/direct.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
+import { docker } from 'reeval/sandbox'
+const bare = defineEnvironment('bare', { sandbox: docker({ image: 'busybox:1.37', root: true }) })
+export default defineEval({
+  environment: bare, egress: 'allow-all',
+  async task(c) {
+ await c.exec('true') 
+  },
+})`,
       })
       const r = await runCli(p.dir, ['run'], { env: {} })
       assert.equal(r.code, 3, r.stdout + r.stderr)
@@ -1415,12 +1600,16 @@ evaluate('direct', { environments: bare, egress: 'allow-all' }, async (c) => { a
     async () => {
       const p = await project('docker-context', {
         'reeval.config.ts': config(`{ script: [[{ reply: 'done' }]] }`),
-        'evals/d.eval.ts': `import { defineEnvironment, evaluate } from 'reeval'
+        'evals/d.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 const house = defineEnvironment('house', ({ skill }) => ({
   skills: [skill.inline({ name: 'house', description: 'House style', content: process.env.REEVAL_TEST_SKILL ?? 'v1' })],
 }))
-evaluate('context', { environments: house }, async (c) => { await c.send('go') })
-`,
+export default defineEval({
+  environment: house,
+  async task(c) {
+ await c.send('go') 
+  },
+})`,
       })
       const run = async (env: NodeJS.ProcessEnv = {}) => {
         const r = await runCli(p.dir, ['run'], { ...slow, env })
@@ -1469,15 +1658,19 @@ evaluate('context', { environments: house }, async (c) => { await c.send('go') }
     const { version } = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8'))
     const p = await project('docker-npm-tarball', {
       'reeval.config.ts': config('{}'),
-      'evals/d.eval.ts': `import { defineEnvironment, evaluate, expect } from 'reeval'
+      'evals/d.eval.ts': `import { defineEval, defineEnvironment, expect } from 'reeval'
 const tarballEnv = defineEnvironment('reeval-tarball', ({ file }) => ({
   files: { 'reeval.tgz': file(${JSON.stringify(join(out, tarball))}) },
 }))
-evaluate('installs', { environments: tarballEnv, timeout: '6m' }, async (c) => {
+export default defineEval({
+  environment: tarballEnv, timeout: '6m',
+  async task(c) {
+
   await expect(c.exec('npm install --no-audit --no-fund ./reeval.tgz')).toSucceed()
   expect((await c.exec('npx --no-install reeval --version')).stdout.trim()).toBe('${version}')
-})
-`,
+
+  },
+})`,
     })
     const r = await runCli(p.dir, ['run'], { timeoutMs: 450_000 })
     assert.equal(r.code, 0, r.stdout + r.stderr)
@@ -1497,18 +1690,21 @@ evaluate('installs', { environments: tarballEnv, timeout: '6m' }, async (c) => {
       ].join('; ')
       const p = await project('docker-expected-blocked', {
         'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 export default defineConfig({
-  harnesses: fakeHarness({ layout: 'antigravity', script: [[{ exec: ${JSON.stringify(curl)} }]] }),
+  agents: fakeAgent({ layout: 'antigravity', script: [[{ exec: ${JSON.stringify(curl)} }]] }),
   egress: 'deny-all',
 })
 `,
-        'evals/d.eval.ts': `import { evaluate } from 'reeval'
-evaluate('calls home', async (c) => {
+        'evals/d.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+
   await c.send('call home')
-})
-`,
+
+  },
+})`,
       })
       const v = await runCli(p.dir, ['run', '-v'], slow)
       assert.equal(v.code, 0, v.stdout + v.stderr)
@@ -1546,28 +1742,31 @@ evaluate('calls home', async (c) => {
       ].join('; ')
       const p = await project('docker-verbose', {
         'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 import { fakeJudge } from 'reeval/judge'
 export default defineConfig(({ secret }) => ({
-  harnesses: fakeHarness({ script: [[{ exec: ${JSON.stringify(curl)} }]] }),
+  agents: fakeAgent({ script: [[{ exec: ${JSON.stringify(curl)} }]] }),
   egress: { allow: ['example.com'] },
   env: { API_KEY: secret.fromEnv('REEVAL_DOCKER_TOKEN', { hosts: ['example.com'] }) },
   judge: { model: fakeJudge() },
 }))
 `,
-        'evals/d.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('calls out', async (c) => {
+        'evals/d.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+
   await c.send('call the api')
   await expect(c.exec('true')).toSucceed()
-})
-`,
+
+  },
+})`,
       })
       const env = { REEVAL_DOCKER_TOKEN: TOKEN }
       const v = await runCli(p.dir, ['run', '-v'], { env, ...slow })
       assert.equal(v.code, 0, v.stdout + v.stderr)
       const line = (phase: string, text: string) =>
-        new RegExp(`^\\[calls#1 fake\\]\\s+\\d{2}:\\d{2}:\\d{2} ${phase.padEnd(9)} ${text}`, 'm')
+        new RegExp(`^\\[d#1 fake\\]\\s+\\d{2}:\\d{2}:\\d{2} ${phase.padEnd(9)} ${text}`, 'm')
       for (const [phase, text] of [
         [
           'image',
@@ -1615,7 +1814,7 @@ evaluate('calls out', async (c) => {
       const vv = await runCli(p.dir, ['run', '-vv'], { env, ...slow })
       assert.equal(vv.code, 0, vv.stdout + vv.stderr)
       const traced = (text: string) =>
-        new RegExp(`^\\[calls#1 fake\\]\\s+\\d{2}:\\d{2}:\\d{2}\\.\\d{3} ${text}`, 'm')
+        new RegExp(`^\\[d#1 fake\\]\\s+\\d{2}:\\d{2}:\\d{2}\\.\\d{3} ${text}`, 'm')
       for (const text of [
         'docker {4}\\$ docker image inspect ',
         'docker {4}\\$ docker run --detach --rm --init .* → exit 0 · \\d+ms$',
@@ -1646,13 +1845,16 @@ evaluate('calls out', async (c) => {
     async () => {
       const p = await project('docker-goose-endpoints', {
         'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { goose } from 'reeval/harness'
+import { goose } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({ harnesses: goose({ model: 'google/gemini-3.8-flash' }), timeout: '90s' })
+export default defineConfig({ agents: goose({ model: 'google/gemini-3.8-flash' }), timeout: '90s' })
 `,
-        'evals/d.eval.ts': `import { evaluate } from 'reeval'
-evaluate('hi', async (c) => { await c.send('Reply with the word hi.') })
-`,
+        'evals/d.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+ await c.send('Reply with the word hi.') 
+  },
+})`,
       })
       // A made-up key: Goose lists the models, then Gemini refuses the key on the model call.
       const env = {
@@ -1705,10 +1907,10 @@ evaluate('hi', async (c) => { await c.send('Reply with the word hi.') })
         const p = await project('docker-goose-vertex', {
           'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
 import { vertex } from 'reeval/gateway'
-import { goose } from 'reeval/harness'
+import { goose } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 export default defineConfig({
-  harnesses: goose({ model: 'google/gemini-3.8-flash' }),
+  agents: goose({ model: 'google/gemini-3.8-flash' }),
   gateway: [vertex({ project: 'reeval-test-project', location: 'global' })],
   environments: defineEnvironment('box', {
     sandbox: docker(),
@@ -1718,8 +1920,9 @@ export default defineConfig({
   timeout: '90s',
 })
 `,
-          'evals/d.eval.ts': String.raw`import { evaluate, expect } from 'reeval'
-evaluate('hi', async (c) => {
+          'evals/hi.eval.ts': String.raw`import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
   // The refused token makes the attempt an infra error; the checks below still run, caught.
   await c.send('Reply with the word hi.').catch(() => {})
   // Goose's own environment, read from /proc while its session is open.
@@ -1733,6 +1936,7 @@ evaluate('hi', async (c) => {
     'GOOGLE_APPLICATION_CREDENTIALS=/reeval/google-adc.json',
   ])
   expect((await c.exec('printenv GCP_PROJECT_ID')).stdout.trim()).toBe('eval-project')
+  },
 })
 `,
         })
@@ -1784,13 +1988,16 @@ evaluate('hi', async (c) => {
       async () => {
         const p = await project(`docker-${factory}-refused-key`, {
           'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { ${factory} } from 'reeval/harness'
+import { ${factory} } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({ harnesses: ${factory}({ model: '${model}' }), timeout: '90s' })
+export default defineConfig({ agents: ${factory}({ model: '${model}' }), timeout: '90s' })
 `,
-          'evals/d.eval.ts': `import { evaluate } from 'reeval'
-evaluate('hi', async (c) => { await c.send('Reply with the word hi.') })
-`,
+          'evals/d.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+ await c.send('Reply with the word hi.') 
+  },
+})`,
         })
         const env = { GOOGLE_GENERATIVE_AI_API_KEY: 'AIzaSy-not_a_real_key_0000000000000000' }
         const r = await runCli(p.dir, ['run', '--ui', 'plain', '--output-logs', 'full'], {
@@ -1815,19 +2022,22 @@ evaluate('hi', async (c) => { await c.send('Reply with the word hi.') })
     async () => {
       const p = await project('docker-codex-refused-key', {
         'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { codex } from 'reeval/harness'
+import { codex } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({ harnesses: codex({ model: 'gpt-5.4-mini' }), timeout: '3m' })
+export default defineConfig({ agents: codex({ model: 'gpt-5.4-mini' }), timeout: '3m' })
 `,
-        'evals/d.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('hi', async (c) => {
+        'evals/d.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+
   await c.send('Reply with the word hi.').catch(() => {})
   // Each turn is its own codex process, gone by now: the files it left are what can hold the key.
   const found = await c.exec('grep -rl not_a_real_key "$HOME" /reeval /tmp 2>/dev/null; true')
   expect(found.stdout).toBe('')
   expect(await c.exec('cat ~/.codex/config.toml').then((r) => r.stdout)).toContain('openai-http')
-})
-`,
+
+  },
+})`,
       })
       const env = { OPENAI_API_KEY: 'sk-not_a_real_key_0000000000000000', REEVAL_DEBUG: '1' }
       const r = await runCli(p.dir, ['run', '--ui', 'plain', '--output-logs', 'full'], {
@@ -1877,23 +2087,26 @@ evaluate('hi', async (c) => {
         const p = await project('docker-codex-gateway-base-url', {
           'reeval.config.ts': `import { defineConfig } from 'reeval'
 import { vercel } from 'reeval/gateway'
-import { codex } from 'reeval/harness'
+import { codex } from 'reeval/agent'
 export default defineConfig({
-  harnesses: codex({ model: 'gpt-5.4-mini' }),
+  agents: codex({ model: 'gpt-5.4-mini' }),
   gateway: [vercel()],
   egress: 'deny-all',
   timeout: '3m',
 })
 `,
-          'evals/d.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('hi', async (c) => {
+          'evals/d.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+
   await c.send('Reply with the word hi.').catch(() => {})
   const found = await c.exec('grep -rl run-token-not-real "$HOME" /reeval /tmp 2>/dev/null; true')
   expect(found.stdout).toBe('')
   const config = await c.exec('cat ~/.codex/config.toml').then((r) => r.stdout)
   expect(config).toContain('"https://${ip}:${port}/proxy/v1"')
-})
-`,
+
+  },
+})`,
         })
         const token = 'run-token-not-real-0000000000000000'
         const env = {
@@ -1935,12 +2148,14 @@ evaluate('hi', async (c) => {
     async () => {
       const p = await project('docker-grok-build-refused-key', {
         'reeval.config.ts': `import { defineConfig } from 'reeval'
-import { grokBuild } from 'reeval/harness'
+import { grokBuild } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({ harnesses: grokBuild({ model: 'grok-4.6' }), timeout: '3m' })
+export default defineConfig({ agents: grokBuild({ model: 'grok-4.6' }), timeout: '3m' })
 `,
-        'evals/d.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('hi', async (c) => {
+        'evals/d.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+
   await c.send('Reply with the word hi.').catch(() => {})
   const found = await c.exec('grep -rl not_a_real_key "$HOME" /reeval /tmp 2>/dev/null; true')
   expect(found.stdout).toBe('')
@@ -1951,8 +2166,9 @@ evaluate('hi', async (c) => {
   )
   expect(config.stdout).toContain('session_summary = "grok-4.6"')
   expect(config.stdout).toContain('telemetry = false')
-})
-`,
+
+  },
+})`,
       })
       // A made-up key: Grok lists the models and checks the key as it starts, and xAI refuses it.
       const env = { XAI_API_KEY: 'xai-not_a_real_key_0000000000000000', REEVAL_DEBUG: '1' }
@@ -1984,16 +2200,18 @@ evaluate('hi', async (c) => {
     async () => {
       const claudeConfig = (sandbox: string) => `
 import { defineConfig, defineEnvironment } from 'reeval'
-import { claudeCode } from 'reeval/harness'
+import { claudeCode } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 export default defineConfig({
-  harnesses: claudeCode({ model: 'claude-sonnet-5' }),
+  agents: claudeCode({ model: 'claude-sonnet-5' }),
   environments: defineEnvironment('box', { sandbox: ${sandbox} }),
   timeout: '90s',
 })
 `
-      const eval_ = `import { evaluate, expect } from 'reeval'
-evaluate('hi', async (c) => {
+      const eval_ = `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+
   // The rejected key makes the attempt an infra error; the checks below still run, caught.
   await c.send('Reply with the word hi.').catch(() => {})
   const environ = await c.exec('env; cat /proc/[0-9]*/environ | tr "\\\\0" "\\\\n"')
@@ -2010,8 +2228,9 @@ evaluate('hi', async (c) => {
     ),
   ).toBe(true)
   expect(environ.stdout).not.toContain('not_a_real_key')
-})
-`
+
+  },
+})`
       // A made-up key, and a host AI Gateway key the adapter must ignore: the sandbox, the
       // gateway and the CLI start, the gateway swaps the key in, and Anthropic refuses it (401).
       const env = {
@@ -2079,18 +2298,21 @@ evaluate('hi', async (c) => {
       const p = await project('docker-install-fails', {
         'reeval.config.ts': `
 import { defineConfig, defineEnvironment } from 'reeval'
-import { claudeCode } from 'reeval/harness'
+import { claudeCode } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 export default defineConfig({
-  harnesses: claudeCode({ model: 'claude-sonnet-5' }),
+  agents: claudeCode({ model: 'claude-sonnet-5' }),
   environments: defineEnvironment('box', { sandbox: docker({ image: '${DEFAULT_IMAGE}' }) }),
   egress: 'deny-all',
   timeout: '120s',
 })
 `,
-        'evals/d.eval.ts': `import { evaluate } from 'reeval'
-evaluate('hi', async (c) => { await c.send('Reply with the word hi.') })
-`,
+        'evals/d.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+ await c.send('Reply with the word hi.') 
+  },
+})`,
       })
       const r = await runCli(p.dir, ['run'], { env: { ANTHROPIC_API_KEY: 'not_a_real_key' } })
       assert.equal(r.code, 3, r.stdout + r.stderr)
@@ -2110,16 +2332,18 @@ evaluate('hi', async (c) => { await c.send('Reply with the word hi.') })
       const p = await project('docker-claude-oauth', {
         'reeval.config.ts': `
 import { defineConfig, defineEnvironment } from 'reeval'
-import { claudeCode } from 'reeval/harness'
+import { claudeCode } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 export default defineConfig({
-  harnesses: claudeCode({ model: 'claude-sonnet-5' }),
+  agents: claudeCode({ model: 'claude-sonnet-5' }),
   environments: defineEnvironment('box', { sandbox: docker() }),
   timeout: '90s',
 })
 `,
-        'evals/d.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('hi', async (c) => {
+        'evals/d.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+
   await c.send('Reply with the word hi.').catch(() => {})
   const environ = await c.exec('env; cat /proc/[0-9]*/environ | tr "\\\\0" "\\\\n"')
   const tokenLines = environ.stdout
@@ -2131,8 +2355,9 @@ evaluate('hi', async (c) => {
     ),
   ).toBe(true)
   expect(environ.stdout).not.toContain('not_a_real_token')
-})
-`,
+
+  },
+})`,
       })
       const r = await runCli(p.dir, ['run', '--ui', 'plain', '--output-logs', 'full'], {
         env: {

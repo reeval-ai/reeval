@@ -17,7 +17,7 @@
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/types.d.ts"},"ok":true,"durationMs":33}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/evaluate.d.ts"},"ok":true,"durationMs":76}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"es\\.config|defineConfig|fakeHarness|fakeSandbox|fakeJudge"},"ok":true,"durationMs":77}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"es\\.config|defineConfig|fakeAgent|fakeSandbox|fakeJudge"},"ok":true,"durationMs":77}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/harness.d.ts"},"ok":true,"durationMs":84}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/sandbox.d.ts"},"ok":true,"durationMs":36}
@@ -25,7 +25,7 @@
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar/dist","pattern":"toHaveFile|evaluate\\("},"ok":true,"durationMs":84}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/engine/runtime.d.ts"},"ok":true,"durationMs":3}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"hello|toHaveFile|fakeHarness|fakeSandbox|fakeJudge"},"ok":true,"durationMs":45}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"node_modules/@invertase/foobar","pattern":"hello|toHaveFile|fakeAgent|fakeSandbox|fakeJudge"},"ok":true,"durationMs":45}
 {"turn":0,"type":"tool","tool":"glob","input":{"pattern":"**/*"},"ok":true,"durationMs":875}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"node_modules/@invertase/foobar/dist/matchers.js"},"ok":true,"durationMs":42}
@@ -58,5 +58,5 @@
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"bash","input":{"command":"cd . && npx es run 2>&1"},"ok":true,"durationMs":1431}
 {"turn":0,"type":"reasoning"}
-{"turn":0,"type":"text","text":"ES is set up and `npx es run` passes.\n\n### `es.config.ts`\nUses the fake stack (no Docker, no API keys):\n- **`fakeHarness…"}
+{"turn":0,"type":"text","text":"ES is set up and `npx es run` passes.\n\n### `es.config.ts`\nUses the fake stack (no Docker, no API keys):\n- **`fakeAgent…"}
 {"turn":0,"type":"turn-end"}

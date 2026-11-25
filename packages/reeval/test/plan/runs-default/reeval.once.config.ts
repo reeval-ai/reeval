@@ -1,5 +1,5 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
 // A config-level runs is explicit, so a compare under it runs once too.
-export default defineConfig({ harnesses: fakeHarness({ id: 'a' }), runs: 1 })
+export default defineConfig({ agents: fakeAgent({ id: 'a' }), runs: 1 })

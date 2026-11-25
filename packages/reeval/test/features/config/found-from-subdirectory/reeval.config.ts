@@ -1,5 +1,5 @@
 import { defineConfig, defineEnvironment } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
 // REEVAL_FIXTURE_SANDBOX picks the tier: the fake sandbox (F) by default, or docker (D).
@@ -11,7 +11,7 @@ const sandbox =
     : fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) })
 
 export default defineConfig(({ file }) => ({
-  harnesses: fakeHarness({}),
+  agents: fakeAgent({}),
   environments: defineEnvironment('found', {
     sandbox,
     files: { 'marker.txt': file('marker.txt') },

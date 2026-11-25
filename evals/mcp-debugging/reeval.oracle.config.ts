@@ -3,22 +3,22 @@
 // reeval mcp from the variant (filter to `with-mcp`: the control has no server to call).
 import { join } from 'node:path'
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 
 const oracle = `node ${JSON.stringify(join(import.meta.dirname, 'scripts/oracle.mjs'))}`
 
 export default defineConfig({
   include: ['*.eval.ts'],
-  harnesses: fakeHarness({ script: [[{ exec: oracle }]], text: 'Fixed it.' }),
+  agents: fakeAgent({ script: [[{ exec: oracle }]], text: 'Fixed it.' }),
   sandbox: fakeSandbox(),
   profiles: {
     canary: {
-      defaults: { harnesses: fakeHarness({ script: [[{ exec: `${oracle} --cheat` }]] }) },
+      defaults: { agents: fakeAgent({ script: [[{ exec: `${oracle} --cheat` }]] }) },
     },
     mcp: {
       defaults: {
-        harnesses: fakeHarness({
+        agents: fakeAgent({
           script: [[{ mcp: 'reeval/failures' }, { exec: oracle }]],
         }),
       },

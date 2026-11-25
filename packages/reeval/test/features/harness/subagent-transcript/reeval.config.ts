@@ -1,5 +1,5 @@
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 
 const usage = (input: number, output: number) => ({
   input,
@@ -13,7 +13,7 @@ const usage = (input: number, output: number) => ({
 // The agent's own calls are 100 in and 10 out; it hands one file to a subagent whose events
 // stream (40 in, 4 out) and another to one whose events don't (20 in, 2 out).
 export default defineConfig({
-  harnesses: fakeHarness({
+  agents: fakeAgent({
     usage: usage(100, 10),
     subagents: [
       {

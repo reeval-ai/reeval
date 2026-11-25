@@ -121,11 +121,11 @@ const hostCache = () => mkdtempSync(join(tmpdir(), 'reeval-vm-cache-'))
 const files = (provider: string, imports: string) => ({
   'reeval.config.ts': `
 import { defineConfig } from 'reeval'
-import { fakeHarness } from 'reeval/harness'
+import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 ${imports}
 export default defineConfig({
-  harnesses: fakeHarness({ script: [[{ exec: 'true' }]] }),
+  agents: fakeAgent({ script: [[{ exec: 'true' }]] }),
   sandbox: docker({ dockerfile: './image/Dockerfile' }),
   provider: ${provider},
   egress: 'allow-all',
@@ -133,9 +133,11 @@ export default defineConfig({
 `,
   'image/Dockerfile': 'ARG BASE=debian:12\nFROM $BASE\nRUN true\n',
   'evals/a.eval.ts': `
-import { evaluate } from 'reeval'
-evaluate('a', async (c) => {
-  await c.exec('true')
+import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.exec('true')
+  },
 })
 `,
 })

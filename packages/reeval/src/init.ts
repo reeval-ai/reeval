@@ -76,7 +76,7 @@ const posix = (path: string) => path.split(sep).join('/')
 
 function harnessOf(choice: InitChoice) {
   const h = INIT_HARNESSES.find((h) => h.kind === choice)
-  if (!h) throw new UsageError(`--harness must be one of ${CHOICES.join(', ')} (got ${choice})`)
+  if (!h) throw new UsageError(`--agent must be one of ${CHOICES.join(', ')} (got ${choice})`)
   return h
 }
 
@@ -87,11 +87,11 @@ export function configSource(
 ): string {
   const h = harnessOf(choice)
   return `import { defineConfig } from '${pkg}'
-import { ${h.factory} } from '${pkg}/harness'
+import { ${h.factory} } from '${pkg}/agent'
 
 export default defineConfig({
   include: ['evals/**/*.eval.ts'],
-  harnesses: ${h.factory}({ model: '${h.model}' }), // needs ${keyOf(h)}
+  agents: ${h.factory}({ model: '${h.model}' }), // needs ${keyOf(h)}
   timeout: '15m',
   // For c.judge, add a judge, e.g. judge: { model: '${RECOMMENDED_ANALYSIS_MODEL}' }.
   // reeval analyze explains a run, with ${analysisKeyOf(analysisModel)}.
@@ -125,20 +125,23 @@ export const greeter = defineEnvironment('greeter', {
 }
 
 export function evalSource(pkg: string): string {
-  return `import { evaluate, expect } from '${pkg}'
+  return `import { defineEval, expect } from '${pkg}'
 import { greeter } from './environments.ts'
 
 const greetsAda = \`node -e "import('./greet.js').then((m) =>
   process.exit(m.greet('Ada') === 'Hello, Ada!' ? 0 : 1))"\`
 
-evaluate('creates greet.js', { environments: greeter }, async (c) => {
-  const turn = await c.send(
-    'Create greet.js, an ES module exporting greet(name) that returns ' +
-      '"Hello, <name>!". No dependencies.',
-  )
+export default defineEval({
+  environment: greeter,
+  async task(c) {
+    const turn = await c.send(
+      'Create greet.js, an ES module exporting greet(name) that returns ' +
+        '"Hello, <name>!". No dependencies.',
+    )
 
-  await expect(turn).toHaveFile('greet.js', /greet/)
-  await expect(c.exec(greetsAda)).toSucceed()
+    await expect(turn).toHaveFile('greet.js', /greet/)
+    await expect(c.exec(greetsAda)).toSucceed()
+  },
 })
 `
 }
@@ -436,7 +439,7 @@ export function planInit(options: {
     config(
       dir,
       configSource(pkg, choice),
-      `harness ${cellOf(h)}; analysis ${RECOMMENDED_ANALYSIS_MODEL}; profiles pr, nightly`,
+      `agent ${cellOf(h)}; analysis ${RECOMMENDED_ANALYSIS_MODEL}; profiles pr, nightly`,
       force,
       conflicts,
     ),
@@ -462,7 +465,7 @@ export async function askHarness(input: Readable, output: Writable): Promise<Ini
       output.write(`Agent [1]: `)
       const next = await answers.next()
       if (next.done)
-        throw new UsageError('reeval init got no answer. Pass --harness <name> or --yes.')
+        throw new UsageError('reeval init got no answer. Pass --agent <name> or --yes.')
       const answer = String(next.value).trim().toLowerCase()
       if (!answer) return DEFAULT_CHOICE
       const byNumber = CHOICES[Number(answer) - 1]
@@ -533,10 +536,10 @@ export async function initCommand(flags: Flags, args: string[], io: InitIO): Pro
   const where = posix(relative(io.cwd, dir)) || '.'
   const force = !!flags.force
   let named: InitChoice | undefined
-  if (flags.harness !== undefined) {
-    named = flags.harness.toLowerCase() as InitChoice
+  if (flags.agent !== undefined) {
+    named = flags.agent.toLowerCase() as InitChoice
     if (!CHOICES.includes(named)) {
-      throw new UsageError(`--harness must be one of ${CHOICES.join(', ')} (got ${flags.harness})`)
+      throw new UsageError(`--agent must be one of ${CHOICES.join(', ')} (got ${flags.agent})`)
     }
   }
   const setUp = setUpAlready(dir, { pkg: manifest.name, force, choice: named })
@@ -550,7 +553,7 @@ export async function initCommand(flags: Flags, args: string[], io: InitIO): Pro
   else if (io.input.isTTY) choice = await askHarness(io.input, io.output)
   else {
     throw new UsageError(
-      'reeval init asks which agent to configure, and there is no terminal to ask in. Pass --harness <name> or --yes.',
+      'reeval init asks which agent to configure, and there is no terminal to ask in. Pass --agent <name> or --yes.',
     )
   }
   const plan = planInit({

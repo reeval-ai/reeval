@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 /**
- * Two recorded runs of `evals/cost.eval.ts › greets` on Cursor in `evals/.history`: three counted
+ * Two recorded runs of `greets` on Cursor in `evals/.history`: three counted
  * attempts with usage and one judge call each, one of them with a reported cost, plus an infra
  * error that must not count.
  */
@@ -11,7 +11,7 @@ export function writePastCostRuns(root: string): void {
   mkdirSync(dir, { recursive: true })
   const cell = 'cursor:composer-2.5/-/docker'
   const attempt = (n: number, cacheRead: number, outcome = 'pass', usd?: number) => ({
-    key: `evals/cost.eval.ts › greets # ${cell}#${n}`,
+    key: `greets # ${cell}#${n}`,
     cell,
     outcome,
     usage: { input: 40_000, cacheRead, cacheWrite: 0, output: 8_000, reasoning: null },
@@ -33,7 +33,7 @@ export function writePastCostRuns(root: string): void {
       status: 'complete',
       evals: [
         {
-          id: 'evals/cost.eval.ts › greets',
+          id: 'greets',
           cells: [{ key: cell, harness: 'cursor:composer-2.5', model: 'composer-2.5' }],
           attempts,
         },

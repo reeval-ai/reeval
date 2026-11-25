@@ -1,6 +1,9 @@
-import { evaluate } from 'reeval'
+import { defineEval } from 'reeval'
 import { plain } from './env.ts'
 
-evaluate('lands', { environments: plain }, async (c) => {
-  await c.capture(9, { name: 'x' })
+export default defineEval({
+  environment: plain,
+  task: async (c) => {
+    await c.capture(9, { name: 'x' })
+  },
 })

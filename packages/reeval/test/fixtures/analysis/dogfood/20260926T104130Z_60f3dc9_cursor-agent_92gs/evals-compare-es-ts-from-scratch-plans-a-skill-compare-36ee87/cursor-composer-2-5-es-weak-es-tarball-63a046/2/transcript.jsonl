@@ -23,7 +23,7 @@
 {"turn":0,"type":"tool","tool":"glob","input":{"pattern":"**/*.es.ts"},"ok":true,"durationMs":86}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"/tmp/package/dist","pattern":"baseline|repeat|environments"},"ok":true,"durationMs":86}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/package/dist/types.d.ts"},"ok":true,"durationMs":99}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"/root/.ai-sdk-harness/.harness-bootstrap/cursor/implementation/home/.cursor/projects/es-workspace/agent-transcripts","pattern":"greet|house-style|fakeHarness"},"ok":true,"durationMs":86}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"/root/.ai-sdk-harness/.harness-bootstrap/cursor/implementation/home/.cursor/projects/es-workspace/agent-transcripts","pattern":"greet|house-style|fakeAgent"},"ok":true,"durationMs":86}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/package/dist/types.d.ts"},"ok":true,"durationMs":65}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/package/dist/environment.js"},"ok":true,"durationMs":62}
@@ -33,7 +33,7 @@
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/package/dist/types.d.ts"},"ok":true,"durationMs":26}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/package/dist/cli.js"},"ok":true,"durationMs":27}
 {"turn":0,"type":"reasoning"}
-{"turn":0,"type":"tool","tool":"bash","input":{"command":"rg -l \"compare|fakeHarness|fakeSandbox|fakeJudge|defineEnvironment\" /tmp/package/dist --glob \"*.js\" | head -20"},"ok":true,"durationMs":57}
+{"turn":0,"type":"tool","tool":"bash","input":{"command":"rg -l \"compare|fakeAgent|fakeSandbox|fakeJudge|defineEnvironment\" /tmp/package/dist --glob \"*.js\" | head -20"},"ok":true,"durationMs":57}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/package/dist/plan.js"},"ok":true,"durationMs":10}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/package/dist/engine/runtime.js"},"ok":true,"durationMs":56}
 {"turn":0,"type":"reasoning"}
@@ -53,7 +53,7 @@
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/package/dist/options.js"},"ok":true,"durationMs":101}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/package/dist/judge/index.js"},"ok":true,"durationMs":105}
 {"turn":0,"type":"reasoning"}
-{"turn":0,"type":"tool","tool":"grep","input":{"path":"/root/.ai-sdk-harness","pattern":"greet\\.es\\.ts|house-style|fakeHarness"},"ok":true,"durationMs":28}
+{"turn":0,"type":"tool","tool":"grep","input":{"path":"/root/.ai-sdk-harness","pattern":"greet\\.es\\.ts|house-style|fakeAgent"},"ok":true,"durationMs":28}
 {"turn":0,"type":"tool","tool":"grep","input":{"path":"/root/.ai-sdk-harness","pattern":"es\\.config"},"ok":true,"durationMs":75}
 {"turn":0,"type":"reasoning"}
 {"turn":0,"type":"tool","tool":"read","input":{"path":"/tmp/package/dist/preflight.js"},"ok":true,"durationMs":27}

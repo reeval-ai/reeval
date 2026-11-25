@@ -15,7 +15,7 @@ const iso = (ms: number) => new Date(T0 + ms).toISOString()
 /** An attempt that started `at` ms into the run; only the fields the trace reads. */
 function attempt(id: string, at: number | null, durationMs: number, extra: object = {}) {
   return {
-    key: `evals/a.eval.ts › a # ${id}`,
+    key: `a # fake/default/fake#${id}`,
     id,
     seq: null,
     startedAt: at === null ? null : iso(at),
@@ -185,10 +185,12 @@ describe('reeval show --trace', () => {
   test('writes the trace of a run, by default under .reeval/traces', async () => {
     const p = await project('show-trace', {
       'reeval.config.ts': fakeConfig({ harness: `{ files: { 'hello.txt': 'hi\\n' } }` }),
-      'evals/a.eval.ts': `import { evaluate, expect } from 'reeval'
-evaluate('a', async (c) => {
-  await c.send('write hello.txt')
-  await expect(c.exec('cat hello.txt')).toSucceed()
+      'evals/a.eval.ts': `import { defineEval, expect } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('write hello.txt')
+    await expect(c.exec('cat hello.txt')).toSucceed()
+  },
 })
 `,
     })

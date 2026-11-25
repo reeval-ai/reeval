@@ -1,5 +1,6 @@
 {
-  "eval": "plan/observe/evals/observe.eval.ts",
+  "eval": "plan/observe/evals",
+  "treeRoot": "plan/observe",
   "plan": "plan/observe/expected/observe.txt",
   "args": []
 }

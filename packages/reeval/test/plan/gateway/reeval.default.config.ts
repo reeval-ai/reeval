@@ -1,10 +1,10 @@
 import { defineConfig } from 'reeval'
+import { fakeAgent } from 'reeval/agent'
 import { direct } from 'reeval/gateway'
-import { fakeHarness } from 'reeval/harness'
 import { fakeSandbox } from 'reeval/sandbox'
 
 export default defineConfig({
-  harnesses: fakeHarness({ id: 'a' }),
+  agents: fakeAgent({ id: 'a' }),
   sandbox: fakeSandbox(),
   profiles: { listed: { gateway: [direct()] } },
 })
