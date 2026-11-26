@@ -26,6 +26,7 @@ import type {
   SuiteResult,
 } from '../view/suite.ts'
 import { canceledOf, countedOf } from '../view/suite.ts'
+import { standing, targetNumber } from '../view/target.ts'
 import { type Colors, colors, type Paint } from './colors.ts'
 import { remarkLines } from './remarks.ts'
 import {
@@ -36,9 +37,7 @@ import {
   MARK,
   notRunCases,
   rowPercent,
-  standing,
   tallyParts,
-  targetNumber,
 } from './target.ts'
 
 export type Layout = {

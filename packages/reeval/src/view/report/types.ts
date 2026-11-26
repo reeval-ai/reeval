@@ -44,7 +44,7 @@ export type MeasureCells = Record<MeasureKey, Spread | null>
 export type EvalShape = 'task' | 'ab' | 'discoverability' | 'regression'
 
 export type RunReport = {
-  reportVersion: 2
+  reportVersion: 3
   runId: string
   /** `evals.length === 1`: the eval is the `#` title and every block moves up one level. */
   single: boolean
@@ -253,6 +253,16 @@ export type HeadlinePrimary =
       fixed: number
       /** First gated worse/fixed change, else first change row. */
       lead: ChangeRow | null
+    }
+  | {
+      /** A graded eval against its target, as `reeval run` words it. */
+      kind: 'target'
+      /** What it's judged on: `67% < 80%`, `2/3 cases hit 100% (pass@2)`, `infra error`. */
+      result: string
+      /** The target as written: `metric(0.8)`. */
+      target: string
+      /** `pass` and `fail` only for a target that blocks; `report` for one that only reports. */
+      standing: 'pass' | 'fail' | 'report' | 'infra' | 'skipped'
     }
 
 export type CheckCell = {

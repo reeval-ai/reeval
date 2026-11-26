@@ -137,6 +137,10 @@ function headlineBold(primary: HeadlinePrimary): string {
       if (!primary.lead) return `**${counts}**`
       return `**${counts}: ${primary.lead.signal}, ${primary.lead.prior} to ${primary.lead.current}**`
     }
+    case 'target':
+      return primary.standing === 'skipped'
+        ? `**${primary.result}**`
+        : `**${primary.result}** · ${primary.target}`
   }
 }
 

@@ -233,6 +233,12 @@ export const headlinePrimarySchema: z.ZodType<HeadlinePrimary> = z.discriminated
     fixed: z.number().int().nonnegative(),
     lead: changeRowSchema.nullable(),
   }),
+  z.strictObject({
+    kind: z.literal('target'),
+    result: z.string(),
+    target: z.string(),
+    standing: z.enum(['pass', 'fail', 'report', 'infra', 'skipped']),
+  }),
 ])
 
 const fairnessSchema = z.enum(['clear', 'within-noise', 'too-few-runs'])
@@ -722,7 +728,7 @@ const attemptIndexRowSchema: z.ZodType<AttemptIndexRow> = z.strictObject({
 })
 
 export const runReportSchema: z.ZodType<RunReport> = z.strictObject({
-  reportVersion: z.literal(2),
+  reportVersion: z.literal(3),
   runId: z.string(),
   single: z.boolean(),
   header: runHeaderSchema,

@@ -43,6 +43,7 @@ import type {
   QuestionResult,
   SuiteResult,
 } from '../view/suite.ts'
+import { standing, targetNumber } from '../view/target.ts'
 import { colors } from './colors.ts'
 import { armLines, labeler as cellLabeler, checkLabel, upstreamTexts } from './layout.ts'
 import { shownRemarks } from './remarks.ts'
@@ -53,9 +54,7 @@ import {
   location,
   notRunCases,
   rowPercent,
-  standing,
   tallyParts,
-  targetNumber,
 } from './target.ts'
 
 /** `failing`: still running, with a run that already failed; its outcome isn't decided yet. */

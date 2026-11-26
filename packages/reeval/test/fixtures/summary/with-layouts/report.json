@@ -1,5 +1,5 @@
 {
-  "reportVersion": 2,
+  "reportVersion": 3,
   "runId": "20261020T205330Z_da3d797_cursor-agent_1k52",
   "single": false,
   "header": {
@@ -567,7 +567,7 @@
         "anchor": "reads-the-fixture-repo",
         "shapes": ["task"],
         "design": "1 coding harness, 1 attempt",
-        "primary": "Median tokens: not reported",
+        "primary": "0/1 run at 100% · regression(1)",
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -579,7 +579,7 @@
         "anchor": "starts-its-sandbox",
         "shapes": ["task"],
         "design": "1 coding harness, 1 attempt",
-        "primary": "Median tokens: not reported",
+        "primary": "infra error · regression(1)",
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -591,7 +591,7 @@
         "anchor": "greets-in-welsh",
         "shapes": ["task"],
         "design": "1 coding harness, 0 attempts",
-        "primary": "Median tokens: not reported",
+        "primary": "skipped",
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -603,7 +603,7 @@
         "anchor": "greets-in-klingon",
         "shapes": ["task"],
         "design": "1 coding harness, 0 attempts",
-        "primary": "Median tokens: not reported",
+        "primary": "todo",
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -6338,28 +6338,14 @@
       "headline": {
         "task": "reads the fixture repo",
         "kicker": null,
-        "fairness": "too-few-runs",
+        "fairness": "clear",
         "primary": {
-          "kind": "measure",
-          "label": "tokens",
-          "unit": "tokens",
-          "spread": {
-            "n": 0,
-            "median": {
-              "value": null,
-              "text": "not reported"
-            },
-            "q1": {
-              "value": null,
-              "text": "not reported"
-            },
-            "q3": {
-              "value": null,
-              "text": "not reported"
-            }
-          }
+          "kind": "target",
+          "result": "0/1 run at 100%",
+          "target": "regression(1)",
+          "standing": "fail"
         },
-        "foot": "No attempt reported usage."
+        "foot": "Below target. 1 counted attempt, 1 coding harness."
       },
       "insights": [],
       "primary": null,
@@ -6416,28 +6402,14 @@
       "headline": {
         "task": "starts its sandbox",
         "kicker": null,
-        "fairness": "too-few-runs",
+        "fairness": "clear",
         "primary": {
-          "kind": "measure",
-          "label": "tokens",
-          "unit": "tokens",
-          "spread": {
-            "n": 0,
-            "median": {
-              "value": null,
-              "text": "not reported"
-            },
-            "q1": {
-              "value": null,
-              "text": "not reported"
-            },
-            "q3": {
-              "value": null,
-              "text": "not reported"
-            }
-          }
+          "kind": "target",
+          "result": "infra error",
+          "target": "regression(1)",
+          "standing": "infra"
         },
-        "foot": "No attempt reported usage."
+        "foot": "No attempt counted: each ended in an infra error."
       },
       "insights": [],
       "primary": null,
@@ -6494,28 +6466,14 @@
       "headline": {
         "task": "greets in Welsh",
         "kicker": null,
-        "fairness": "too-few-runs",
+        "fairness": "clear",
         "primary": {
-          "kind": "measure",
-          "label": "tokens",
-          "unit": "tokens",
-          "spread": {
-            "n": 0,
-            "median": {
-              "value": null,
-              "text": "not reported"
-            },
-            "q1": {
-              "value": null,
-              "text": "not reported"
-            },
-            "q3": {
-              "value": null,
-              "text": "not reported"
-            }
-          }
+          "kind": "target",
+          "result": "skipped",
+          "target": "regression(1)",
+          "standing": "skipped"
         },
-        "foot": "No attempt reported usage."
+        "foot": "Not run."
       },
       "insights": [],
       "primary": null,
@@ -6551,28 +6509,14 @@
       "headline": {
         "task": "greets in Klingon",
         "kicker": null,
-        "fairness": "too-few-runs",
+        "fairness": "clear",
         "primary": {
-          "kind": "measure",
-          "label": "tokens",
-          "unit": "tokens",
-          "spread": {
-            "n": 0,
-            "median": {
-              "value": null,
-              "text": "not reported"
-            },
-            "q1": {
-              "value": null,
-              "text": "not reported"
-            },
-            "q3": {
-              "value": null,
-              "text": "not reported"
-            }
-          }
+          "kind": "target",
+          "result": "todo",
+          "target": "regression(1)",
+          "standing": "skipped"
         },
-        "foot": "No attempt reported usage."
+        "foot": "Not run."
       },
       "insights": [],
       "primary": null,

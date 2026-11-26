@@ -1627,6 +1627,30 @@
             }
           },
           "required": ["fixed", "kind", "lead", "worse"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "description": "A graded eval against its target, as `reeval run` words it.",
+              "type": "string",
+              "const": "target"
+            },
+            "result": {
+              "description": "What it's judged on: `67% < 80%`, `2/3 cases hit 100% (pass@2)`, `infra error`.",
+              "type": "string"
+            },
+            "standing": {
+              "description": "`pass` and `fail` only for a target that blocks; `report` for one that only reports.",
+              "type": "string",
+              "enum": ["pass", "fail", "report", "infra", "skipped"]
+            },
+            "target": {
+              "description": "The target as written: `metric(0.8)`.",
+              "type": "string"
+            }
+          },
+          "required": ["kind", "result", "standing", "target"]
         }
       ]
     },
@@ -2449,7 +2473,7 @@
         },
         "reportVersion": {
           "type": "number",
-          "const": 2
+          "const": 3
         },
         "rollup": {
           "anyOf": [
@@ -2680,5 +2704,5 @@
       ]
     }
   },
-  "x-schemaVersion": 2
+  "x-schemaVersion": 3
 }
