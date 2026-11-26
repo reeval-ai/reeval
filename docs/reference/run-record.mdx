@@ -896,6 +896,10 @@ Each input of a cell fingerprint, hashed on its own, so a change can be named.
 
 <Property name="judgeInput" type="FileRef" optional></Property>
 
+<Property name="atif" type="FileRef" optional>
+  The transcript as a Harbor ATIF trajectory, with the config's `exports: ['atif']`.
+</Property>
+
 <Property name="artifacts" type="ArtifactRef[]" optional>
   PNGs from `c.capture()`, under the `artifacts/<name>.png` path, then the page as each of its instructions ended, `artifacts/<name>.step-<n>.png`, kept when the capture fails too.
 </Property>

@@ -2826,6 +2826,12 @@
             "$ref": "#/$defs/Environment"
           }
         },
+        "exports": {
+          "type": "array",
+          "items": {
+            "const": "atif"
+          }
+        },
         "file": {
           "description": "The config file as typed from the current directory, or `reeval.config.ts` without one.",
           "type": "string"
@@ -3079,6 +3085,7 @@
         "defaultProfile",
         "env",
         "environments",
+        "exports",
         "file",
         "gate",
         "gateway",

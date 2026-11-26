@@ -194,6 +194,7 @@ export const reevalConfigDataSchema = z.strictObject({
   snapshot: snapshotOptionSchema.optional(),
   concurrency: count().optional(),
   record: recordMode.optional(),
+  exports: z.array(z.enum(['atif'])).optional(),
   history: historyConfigDataSchema.optional(),
   budget: budgetSchema.optional(),
   profiles: z.record(z.string(), profileDataSchema).optional(),

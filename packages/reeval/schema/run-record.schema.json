@@ -253,6 +253,10 @@
             "$ref": "#/$defs/ArtifactRef"
           }
         },
+        "atif": {
+          "description": "The transcript as a Harbor ATIF trajectory, with the config's `exports: ['atif']`.",
+          "$ref": "#/$defs/FileRef"
+        },
         "diff": {
           "$ref": "#/$defs/FileRef"
         },

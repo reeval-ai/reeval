@@ -2783,6 +2783,14 @@
             }
           ]
         },
+        "exports": {
+          "description": "Formats each attempt with a transcript is also written in as its run ends, beside its transcript: `'atif'` writes `atif.json`, a Harbor ATIF trajectory. `reeval export --format` writes the same files for a run afterwards.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["atif"]
+          }
+        },
         "gate": {
           "description": "How each cell's attempts decide its outcome; default `'all'`.",
           "$ref": "#/$defs/GatePolicy"

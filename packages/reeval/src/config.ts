@@ -21,6 +21,7 @@ import {
 } from './environment.ts'
 import { UsageError } from './errors.ts'
 import { evalRoot } from './eval-id.ts'
+import { EXPORTERS } from './exporters.ts'
 import { gatewayScope, modelGatewayOrNone } from './gateway/models.ts'
 import { DEFAULT_GATEWAYS, gatewayHelper } from './gateway/resolve.ts'
 import { VERTEX_PROJECT_ENV } from './gateway/vertex.ts'
@@ -31,6 +32,7 @@ import {
   harnessCredentials,
   isAgentKind,
 } from './harness/agents.ts'
+import type { ExportFormat } from './history/types.ts'
 import { fromCwd } from './ids.ts'
 import { reevalJiti } from './jiti.ts'
 import {
@@ -86,6 +88,7 @@ const CONFIG_KEYS = [
   'snapshot',
   'concurrency',
   'record',
+  'exports',
   'history',
   'budget',
   'profiles',
@@ -734,6 +737,7 @@ export function resolveConfig(
         ? undefined
         : checkConcurrency(user.concurrency, `concurrency in ${file}`),
     record,
+    exports: checkExports(user.exports, file),
     history,
     profileHistory,
     secrets: checkSecrets(user.secrets, file),
@@ -846,6 +850,17 @@ function checkDebug(debug: ReevalConfig['debug'], file: string): ResolvedConfig[
     )
   }
   return { keep, traceBufferBytes: Math.round(traceBufferMb * 2 ** 20) }
+}
+
+function checkExports(value: unknown, file: string): ExportFormat[] {
+  if (value === undefined) return []
+  const formats = Object.keys(EXPORTERS)
+  if (!Array.isArray(value) || value.some((f) => !formats.includes(f))) {
+    throw new UsageError(
+      `exports in ${file} is a list of ${oneOf(formats)}, e.g. exports: ['atif'] (got ${JSON.stringify(value)})`,
+    )
+  }
+  return [...new Set(value as ExportFormat[])]
 }
 
 function checkSecrets(secrets: ReevalConfig['secrets'], file: string): ResolvedConfig['secrets'] {
