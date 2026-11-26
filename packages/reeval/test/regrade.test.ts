@@ -573,7 +573,7 @@ export default defineEval({ graders: [inDiff('out.txt', { required: ${a} }), has
       ['says', 'recomputed'],
       ['key', 'recomputed'],
     ])
-    assert.match(await cli(p.dir, ['show']), /says scored 0\.00/)
+    assert.match(await cli(p.dir, ['show']), /^ {4}#1 {2}0% {2}says 0%$/m)
     const grades = JSON.parse(await cli(p.dir, ['show', '--json'])).evals[0].attempts[0].grades
     const says = grades.find((g: { grader: string }) => g.grader === 'says')
     assert.deepEqual([says?.grade, says?.score], [false, 0])
