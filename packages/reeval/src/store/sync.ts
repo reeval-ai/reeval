@@ -7,8 +7,8 @@ import { dirname, join } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { debugRoot } from '../debug/files.ts'
 import { UsageError } from '../errors.ts'
-import { filesUnder, recordFile, replaceable, runDir } from '../history/files.ts'
-import type { RunDebug, RunRecord } from '../history/types.ts'
+import { pathsUnder, recordFile, replaceable, runDir } from '../history/files.ts'
+import { type FileRef, type RunDebug, type RunRecord, WORKSPACE_ARCHIVE } from '../history/types.ts'
 import { randomSuffix, sha256 } from '../ids.ts'
 import type { HistoryStore, ResolvedHistory, S3StoreDescriptor, StoredRun } from '../types.ts'
 import { S3_ENV_DEFAULTS, unsafePath } from './resolve.ts'
@@ -144,11 +144,23 @@ type Upload = { how: Uploaded; version: string }
 export async function uploadRun(history: RemoteHistory, runId: string): Promise<Upload> {
   const store = storeOf(history)
   const record = await readFile(recordFile(history.dir, runId))
-  const run = { runId, record, files: new Map(await filesUnder(runDir(history.dir, runId))) }
+  const dir = runDir(history.dir, runId)
+  const run = { runId, record, files: new Map<string, Uint8Array>() }
+  // Kept workspaces stream up apart from the run, so a pull never downloads them.
+  const workspaces: string[] = []
+  for (const path of await pathsUnder(dir)) {
+    if (path === WORKSPACE_ARCHIVE || path.endsWith(`/${WORKSPACE_ARCHIVE}`)) workspaces.push(path)
+    else run.files.set(path, await readFile(join(dir, ...path.split('/'))))
+  }
   const debug = await stagedDebug(history, runId, record)
   try {
     for (const [path, bytes] of debug) {
       await tries(() => store.addFile(runId, `debug/${path}`, bytes))
+    }
+    for (const path of workspaces) {
+      const file = join(dir, ...path.split('/'))
+      const { size } = await stat(file)
+      await tries(() => store.addFile(runId, `workspaces/${path}`, { file, bytes: size }))
     }
     return await tries(async () => {
       const created = await store.writeRun(run, {})
@@ -170,6 +182,26 @@ export async function uploadRun(history: RemoteHistory, runId: string): Promise<
   } catch (error) {
     if (error instanceof UsageError || error instanceof StoreError) throw error
     throw new StoreError(`couldn't upload ${runId} to ${store.name}: ${reason(error, history)}`)
+  }
+}
+
+/**
+ * What fetches one of `runId`'s kept workspaces, which a pull leaves in the store, into `file`:
+ * `readKeptFiles`'s `fetch` for a run in the store's copy. The reader checks its hash.
+ */
+export function fetchWorkspace(history: RemoteHistory, runId: string) {
+  return async (ref: FileRef, file: string): Promise<void> => {
+    const store = storeOf(history)
+    let found: boolean
+    try {
+      found = await tries(() => store.saveFile(runId, `workspaces/${ref.path}`, file))
+    } catch (error) {
+      if (error instanceof UsageError) throw error
+      throw new StoreError(
+        `couldn't download ${runId}'s workspaces/${ref.path} from ${store.name}: ${reason(error, history)}`,
+      )
+    }
+    if (!found) throw new StoreError(`${store.name} has no workspaces/${ref.path} for ${runId}`)
   }
 }
 
