@@ -1,12 +1,13 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { pageStatus } from 'reeval/graders'
 import { ui } from './env.ts'
 
+// `/old` redirects to `/login`, which answers 404.
 export default defineEval({
   environment: ui,
+  graders: [pageStatus('old', 200)],
   task: async (c) => {
     const server = await c.serve('node server.mjs')
-    const shot = await c.capture(server, { name: 'old', path: '/old' })
-    // `/old` redirects to `/login`, which answers 404.
-    expect(shot).toHaveStatus(200)
+    await c.capture(server, { name: 'old', path: '/old' })
   },
 })

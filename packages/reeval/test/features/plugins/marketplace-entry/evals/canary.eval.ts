@@ -1,12 +1,14 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { listed, plugins } from './env.ts'
 
 // Must fail: the marketplace's other entry, lint, isn't placed.
 export default defineEval({
   environment: listed,
+  graders: [
+    observed<string>('lint.md', (text) => text.includes('Lint the tree for the house style.')),
+  ],
   task: async (c) => {
-    expect((await c.exec(`cat ${plugins}/lint/commands/lint.md`)).stdout).toContain(
-      'Lint the tree for the house style.',
-    )
+    c.observe('lint.md', (await c.exec(`cat ${plugins}/lint/commands/lint.md`)).stdout)
   },
 })

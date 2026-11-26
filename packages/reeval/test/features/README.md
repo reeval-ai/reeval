@@ -50,10 +50,16 @@ outside.
 - The canary makes the same check with one deliberate mistake, so it fails with an assertion.
   That proves the check can fail. The oracle matches its message, so it also fails for the right
   reason. Comment the current mistake, not what used to fail.
+- The check is a grader. The task records what it saw with `c.observe(name, value)` and an
+  `observed(name, predicate)` grader judges it; a `reeval/graders` built-in (`hasFile`,
+  `succeeded` on a `c.exec(…, { label })`, `pageStatus`, …) or a `defineGrader` replaces the pair
+  where one fits. Keep `expect` for fixtures whose subject is `expect` itself.
 - Then add a row to `features` in `features.test.ts`:
   - `dir` and `tiers`;
   - `env`: the environment's name, since attempt ids are `fake/<env>/<sandbox>#1`;
-  - `canary`: a regex for the canary's failure message;
+  - `canary`: a regex for the canary's failure message; `zeroBy(grader)` is a grader canary's;
+  - `canarySaw`: what the canary's failed attempt observed (`canaryGraded`: what its graders
+    returned), so a grader canary proves it saw the wrong value rather than nothing;
   - optionally `prepare` (for example, making a git repo) and `record`, a host-side cross-check
     of the run record.
 - The table test fails if a directory here is missing from the table, or lacks either eval.

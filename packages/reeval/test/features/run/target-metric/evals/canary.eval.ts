@@ -1,9 +1,10 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 
-// Must fail: the same body under the config's regression() fails on its expect.
+// Must fail: the same grader under the config's regression() fails the attempt.
 export default defineEval({
+  graders: [observed('pick', (pick) => pick === 'postgres')],
   task: async (c) => {
     c.observe('pick', await c.readFile('pick.txt'))
-    expect(await c.readFile('pick.txt'), 'picks postgres').toBe('postgres')
   },
 })

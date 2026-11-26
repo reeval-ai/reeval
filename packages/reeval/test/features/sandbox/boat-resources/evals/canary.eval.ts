@@ -1,10 +1,12 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { BURN, vm } from './env.ts'
 
 // Must fail: the burn prints the VM's CPU count, which is never 0.
 export default defineEval({
   environment: vm,
+  graders: [observed('cpus', (cpus) => cpus === 0)],
   task: async (c) => {
-    expect(Number((await c.exec(BURN)).stdout)).toBe(0)
+    c.observe('cpus', Number((await c.exec(BURN)).stdout))
   },
 })

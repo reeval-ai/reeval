@@ -1,10 +1,12 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { succeeded } from 'reeval/graders'
 import { HOG, small } from './env.ts'
 
 // The kernel kills the hog at docker({ memory }): the attempt is an infra error, not a failed check.
 export default defineEval({
   environment: small,
+  graders: [succeeded('hog')],
   task: async (c) => {
-    await expect(c.exec(HOG)).toSucceed()
+    await c.exec(HOG, { label: 'hog' })
   },
 })

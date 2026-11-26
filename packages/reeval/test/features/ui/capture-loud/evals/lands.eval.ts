@@ -1,14 +1,20 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { noPageErrors, observed, pageStatus } from 'reeval/graders'
 import { ui } from './env.ts'
 
 export default defineEval({
   environment: ui,
+  graders: [
+    pageStatus('loud', 200),
+    noPageErrors('loud'),
+    observed<{ console: number; dropped: number }>(
+      'loud',
+      (shot) => shot.console === 100 && shot.dropped === 1201,
+    ),
+  ],
   task: async (c) => {
     const server = await c.serve('node server.mjs')
     const shot = await c.capture(server, { name: 'loud', wait: { ms: 1000 }, timeout: '40s' })
-    expect(shot).toHaveStatus(200)
-    expect(shot).toHaveNoPageErrors()
-    expect(shot.console).toHaveLength(100)
-    expect(shot.dropped).toBe(1201)
+    c.observe('loud', { console: shot.console.length, dropped: shot.dropped })
   },
 })

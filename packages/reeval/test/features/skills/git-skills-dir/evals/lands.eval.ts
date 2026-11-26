@@ -1,10 +1,14 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { greeting, staged } from './env.ts'
 
 // skill.git without a path stages the skills under the repository's skills/ directory.
 export default defineEval({
   environment: greeting,
+  graders: [
+    observed<string>('SKILL.md', (text) => text.includes('Greet people with "Ahoy, <name>!".')),
+  ],
   task: async (c) => {
-    expect(await c.readFile(staged)).toContain('Greet people with "Ahoy, <name>!".')
+    c.observe('SKILL.md', await c.readFile(staged))
   },
 })

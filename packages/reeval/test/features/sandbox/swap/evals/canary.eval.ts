@@ -1,10 +1,12 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { doubled, SWAP } from './env.ts'
 
 // Must fail: without swap, docker({ memory: '512m' }) gets 512 MiB of swap, not 256.
 export default defineEval({
   environment: doubled,
+  graders: [observed('swap', (out) => out === '268435456\n')],
   task: async (c) => {
-    expect((await c.exec(SWAP)).stdout).toBe('268435456\n')
+    c.observe('swap', (await c.exec(SWAP)).stdout)
   },
 })

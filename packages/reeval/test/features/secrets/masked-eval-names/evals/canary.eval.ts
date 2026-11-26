@@ -1,11 +1,14 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { KEY, plain } from './env.ts'
 
+// The mistake: only the name is masked, so the body gets the key itself, not [REDACTED].
 export default defineEval({
-  environment: plain,
   cases: [{ key: KEY }],
-  task: async (_c, { key: id }) => {
-    // The mistake: only the name is masked, so the body gets the key itself, not [REDACTED].
-    expect(id, 'gets the case masked').toBe('[REDACTED]')
+  environment: plain,
+  graders: [observed('gets-the-case-masked')],
+  task: async (c, { key: id }) => {
+    c.observe('gets-the-key', id === KEY)
+    c.observe('gets-the-case-masked', id === '[REDACTED]')
   },
 })

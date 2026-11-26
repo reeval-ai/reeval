@@ -1,10 +1,12 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { patched } from './env.ts'
 
 // files are written after the repository is copied in, so they win.
 export default defineEval({
   environment: patched,
+  graders: [observed<string>('greet.js', (text) => text.includes('Howdy'))],
   task: async (c) => {
-    expect(await c.readFile('greet.js')).toContain('Howdy')
+    c.observe('greet.js', await c.readFile('greet.js'))
   },
 })

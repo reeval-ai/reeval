@@ -1,10 +1,12 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { app } from './env.ts'
 
 // The workspace is app/'s contents at the v1 tag, not at the branch head.
 export default defineEval({
   environment: app,
+  graders: [observed<string>('greet.js', (text) => text.includes("'Hello'"))],
   task: async (c) => {
-    expect(await c.readFile('greet.js')).toContain("'Hello'")
+    c.observe('greet.js', await c.readFile('greet.js'))
   },
 })

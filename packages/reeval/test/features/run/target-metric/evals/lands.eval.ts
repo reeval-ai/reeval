@@ -1,10 +1,11 @@
-import { defineEval, expect, metric } from 'reeval'
+import { defineEval, metric } from 'reeval'
+import { observed } from 'reeval/graders'
 
-// target: metric() records the pick and gates nothing: its failed expect leaves it `ran`, not failed.
+// target: metric() records the pick and gates nothing: its grader's 0 leaves it `ran`, not failed.
 export default defineEval({
   target: metric(),
+  graders: [observed('pick', (pick) => pick === 'postgres')],
   task: async (c) => {
     c.observe('pick', await c.readFile('pick.txt'))
-    expect(await c.readFile('pick.txt'), 'picks postgres').toBe('postgres')
   },
 })

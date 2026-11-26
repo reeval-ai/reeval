@@ -1,12 +1,14 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { leaked } from './env.ts'
 
 // Must fail: its environment writes the trait's value to a file, which the grep finds.
 export default defineEval({
   environment: leaked,
+  graders: [observed('trait-found', (found) => found === '0')],
   task: async (c) => {
     await c.send('Look around.')
     const found = await c.exec('grep -rl trait-zx81 . ; env | grep -c trait-zx81 || true')
-    expect(found.stdout.trim(), 'the trait is hidden').toBe('0')
+    c.observe('trait-found', found.stdout.trim())
   },
 })
