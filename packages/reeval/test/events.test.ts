@@ -1404,8 +1404,9 @@ describe('reeval run --events and reeval attach', () => {
           return true
         },
       })
-      assert.equal(await exited, 0)
+      // Before awaiting the run: an attach that never printed it never let the run end.
       assert.equal(attached.code, 0, attached.stderr)
+      assert.equal(await exited, 0)
       assert.equal(attached.stdout, ran)
       assert.match(attached.stdout, /✓ waits/)
     } finally {
