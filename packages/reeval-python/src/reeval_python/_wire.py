@@ -102,9 +102,9 @@ class AttemptCallSend(TypedDict):
     prompt: str
 
 
-# `c.exec(command, { background?, env?, retries?, interval? })`: a command in the sandbox.
-# Replies with its exit code and output (the last try, with `retries`), or with a handle when it
-# runs in the background.
+# `c.exec(command, { background?, env?, label?, retries?, interval? })`: a command in the
+# sandbox. Replies with its exit code and output (the last try, with `retries`), or with a
+# handle when it runs in the background.
 class AttemptCallExec(TypedDict):
     # Leave it running and reply with its handle, not its output.
     background: NotRequired[bool]
@@ -113,6 +113,8 @@ class AttemptCallExec(TypedDict):
     env: NotRequired[ExecEnv]
     # Milliseconds to wait before each extra try. Default 1000.
     interval: NotRequired[float]
+    # A name kept with its result, for a grader to find it by.
+    label: NotRequired[str]
     op: Literal["exec"]
     # Extra tries after a non-zero exit, a whole number from 0. Default 0.
     retries: NotRequired[int]
@@ -176,7 +178,7 @@ class AttemptCallObserve(TypedDict):
     # What the value is of, e.g. `installed`.
     name: str
     op: Literal["observe"]
-    # Any JSON, at most 4 KB once serialized.
+    # Any JSON, nested at most 64 levels deep.
     value: JSONValue
 
 

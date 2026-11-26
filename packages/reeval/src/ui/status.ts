@@ -852,7 +852,12 @@ export function evalRow(
   const cases = e.cases ?? []
   const failedEval = iconOf(e) === 'fail'
   const notes = ran
-    ? [...retriedLines(decide), ...pageErrorNotes(decide), ...upstreamTexts(cells)]
+    ? [
+        ...retriedLines(decide),
+        ...pageErrorNotes(decide),
+        ...new Set(cells.flatMap((c) => c.workspaceNotes ?? [])),
+        ...upstreamTexts(cells),
+      ]
     : []
   const caseOf = new Map(cases.flatMap((k) => k.cells.map((c) => [c, k.label] as const)))
   const answers = [

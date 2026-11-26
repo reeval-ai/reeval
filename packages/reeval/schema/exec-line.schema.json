@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Generated from ExecLine in src/history/types.ts by `pnpm schema:update`; don't edit. One line of an attempt's execs.jsonl, each c.exec's result, in its run's directory.",
+  "title": "ExecLine",
+  "$ref": "#/$defs/ExecLine",
+  "$defs": {
+    "ExecLine": {
+      "description": "A line of an attempt's `execs.jsonl`: one foreground `c.exec`, its output masked.",
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string"
+        },
+        "durationMs": {
+          "description": "Over all its tries.",
+          "type": "number"
+        },
+        "exitCode": {
+          "description": "Its last try's exit code.",
+          "type": "number"
+        },
+        "label": {
+          "description": "The `label` it was given.",
+          "type": "string"
+        },
+        "retries": {
+          "description": "The `retries` it was given, when more than 0.",
+          "type": "number"
+        },
+        "stderr": {
+          "type": "string"
+        },
+        "stdout": {
+          "description": "Its last try's output, its head and tail kept past 128 KiB.",
+          "type": "string"
+        },
+        "tries": {
+          "description": "Every try's exit code and duration, in order, when it was given `retries`.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExecTry"
+          }
+        },
+        "turn": {
+          "description": "How many `c.send` turns had ended when it ran; absent on records older than it.",
+          "type": "number"
+        }
+      },
+      "required": ["command", "durationMs", "exitCode", "stderr", "stdout"]
+    },
+    "ExecTry": {
+      "description": "One run of a `c.exec` command that had `retries`.",
+      "type": "object",
+      "properties": {
+        "durationMs": {
+          "type": "number"
+        },
+        "exitCode": {
+          "type": "number"
+        }
+      },
+      "required": ["durationMs", "exitCode"]
+    }
+  }
+}

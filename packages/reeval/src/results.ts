@@ -38,7 +38,7 @@ export async function writeScratchRun(
   input: AssembleInput,
   landed?: () => void,
 ): Promise<WrittenRun & { record: RunRecord; remarks: RunRemarks | null }> {
-  const { record, artifacts, moves } = await assembleRun(input)
+  const { record, artifacts, moves, copies } = await assembleRun(input)
   const remarks = input.interrupted
     ? null
     : await runRemarks(input.ctx.config, record, (input.ctx.verbosity ?? 0) > 0)
@@ -46,7 +46,7 @@ export async function writeScratchRun(
   const facts = keptFacts(record, artifacts)
   for (const [name, bytes] of summaryFiles(record, { remarks, facts })) artifacts.set(name, bytes)
   const scratch = scratchDir(input.ctx.config.root)
-  const written = await writeRun(scratch, record, artifacts, moves)
+  const written = await writeRun(scratch, record, artifacts, moves, copies)
   landed?.()
   await rm(input.ctx.stagingDir, { recursive: true, force: true })
   return { ...written, record, remarks }

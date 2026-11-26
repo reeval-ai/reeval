@@ -215,9 +215,12 @@ export {
 export {
   extractTar,
   readTar,
+  readTarStream,
   readTree,
   safeTarPath,
+  TAR_END,
   type TarEntry,
+  tarEntry,
   writeTar,
 } from './tarball.ts'
 export { type DockerCommand, OPAQUE_OUTPUT, onDockerCommand, traceDocker } from './trace.ts'

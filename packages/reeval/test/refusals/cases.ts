@@ -3324,6 +3324,13 @@ environments:
     ['c.exec with an interval over 596h', execOptions({ retries: 1, interval: 2 ** 31 })],
     ['c.exec with a retry typo', execOptions({ retry: 2 })],
     ['c.exec with retries in the background', execOptions({ background: true, retries: 1 })],
+    ['c.exec with a label in the background', execOptions({ background: true, label: 'server' })],
+    ['c.exec with an empty label', execOptions({ label: '' })],
+    [
+      'exec with a label in the background',
+      request({ op: 'exec', command: 'npm start', background: true, label: 'server' }),
+    ],
+    ['good: c.exec with a label', execOptions({ label: 'tests', retries: 1 })],
     ['good: c.exec with retries', execOptions({ retries: 3, interval: 250 })],
     ['good: c.exec in the background', execOptions({ background: true })],
     ['c.exec with an env name that is not a variable', execOptions({ env: { 'NODE-ENV': 'x' } })],

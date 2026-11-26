@@ -19,6 +19,7 @@ import type {
   ExecTry,
   FileChange,
   JudgeArtifactRef,
+  KeptWorkspace,
   McpStartup,
   Observation,
   Outcome,
@@ -191,6 +192,67 @@ export type AttemptFiles = {
    * instructions ended, `artifacts/<name>.step-<n>.png`, kept when the capture fails too.
    */
   artifacts?: ArtifactRef[]
+  /** `execs.jsonl`: each foreground `c.exec`'s result, one `ExecLine` per call in call order. */
+  execs?: FileRef
+  /** `workspace.tar.gz`: the final workspace, gzipped (see `AttemptRecord.workspace`). */
+  workspace?: FileRef
+  /** `workspace.json`: the `WorkspaceManifest` of `workspace`. */
+  workspaceManifest?: FileRef
+}
+
+/** A line of an attempt's `execs.jsonl`: one foreground `c.exec`, its output masked. */
+export type ExecLine = {
+  command: string
+  /** The `label` it was given. */
+  label?: string
+  /** Its last try's exit code. */
+  exitCode: number
+  /** Its last try's output, its head and tail kept past 128 KiB. */
+  stdout: string
+  stderr: string
+  /** Over all its tries. */
+  durationMs: number
+  /** How many `c.send` turns had ended when it ran; absent on records older than it. */
+  turn?: number
+  /** The `retries` it was given, when more than 0. */
+  retries?: number
+  /** Every try's exit code and duration, in order, when it was given `retries`. */
+  tries?: ExecTry[]
+}
+
+/** An attempt's kept workspace and its manifest, in its directory. */
+export const WORKSPACE_ARCHIVE = 'workspace.tar.gz'
+export const WORKSPACE_MANIFEST = 'workspace.json'
+/**
+ * The most an attempt keeps beside its record: its kept workspace, compressed, and its observed
+ * values too large to stay in the record.
+ */
+export const WORKSPACE_LIMIT = 100 * 2 ** 20
+/** The most a kept workspace may be uncompressed, the snapshots' cap. */
+export const WORKSPACE_RAW_LIMIT = 200 * 2 ** 20
+/** The most an observed value's masked JSON may be and stay in the record; a larger one is a file. */
+export const OBSERVATION_INLINE = 4096
+/** The most a run's kept workspaces may add up to; an attempt past it keeps none. */
+export const RUN_WORKSPACE_LIMIT = 5 * 2 ** 30
+
+/** An attempt's `workspace.json`: each entry of its `workspace.tar.gz`, as kept. */
+export type WorkspaceManifest = {
+  schemaVersion: 1
+  /** Regular files and symbolic links, sorted by path. */
+  files: WorkspaceFile[]
+}
+
+export type WorkspaceFile = {
+  /** Relative to the workspace, with `/` separators. */
+  path: string
+  /** sha256 of its content as kept (masked); of a symbolic link's target. */
+  sha256: string
+  /** Its content's size; a symbolic link's target's length. */
+  bytes: number
+  /** Set on a file anyone may execute. */
+  executable?: true
+  /** A symbolic link's target. */
+  target?: string
 }
 
 export type ContextFile = { path: string; sha256: string }
@@ -488,6 +550,14 @@ export type AttemptRecord = {
    */
   snapshots?: Snapshot[]
   /**
+   * The workspace as the attempt left it, after its checks: every file git doesn't ignore, but
+   * those under a directory left out by name, in `files.workspace` with its manifest in
+   * `files.workspaceManifest`, secret-looking values masked. Its file count and compressed size,
+   * the directories left out, the files masked and those left out for holding a secret, or why it
+   * wasn't kept. Absent when the attempt started no sandbox or was cut short first.
+   */
+  workspace?: KeptWorkspace
+  /**
    * Each `c.serve` call that listened, in call order: `{ command, port, portEnv, detected,
    * address, readyMs }`. `port` is where it listens; `detected` is true when that isn't the
    * `PORT` it was given (`portEnv`), so reeval took the one port that started listening after
@@ -500,8 +570,12 @@ export type AttemptRecord = {
    */
   checks: Array<{
     command: string
+    /** The `label` it was given. */
+    label?: string
     exitCode: number
     durationMs: number
+    /** How many `c.send` turns had ended when it ran; absent on records older than it. */
+    turn?: number
     log?: FileRef
     /** The `retries` it was given, when more than 0: it could run `retries + 1` times. */
     retries?: number

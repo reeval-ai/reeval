@@ -250,6 +250,12 @@ export type CellResult = {
    * lists them (`.reeval/runs/<run>/…/artifacts/<name>.capture.json`); absent when none had any.
    */
   pageErrors?: Array<{ capture: string; errors: number; file: string }>
+  /**
+   * Why an attempt's final workspace wasn't kept (over its size cap, or an error), or which files
+   * it was kept without because the secret scan found something in them; absent when every
+   * attempt kept it whole or none kept one.
+   */
+  workspaceNotes?: string[]
 }
 
 /** Summed per provider, in first-seen order. */
@@ -652,6 +658,21 @@ function cellsOf(
           : [],
       ),
     )
+    const workspaceNotes = [
+      ...new Set(
+        ran.flatMap(({ workspace: w }) =>
+          !w
+            ? []
+            : w.skipped
+              ? [`workspace not kept: ${w.skipped.message}`]
+              : w.dropped.length
+                ? [
+                    `workspace kept without ${w.dropped.length === 1 ? 'a file' : `${w.dropped.length} files`} the secret scan found something in: ${w.dropped.join(', ')}`,
+                  ]
+                : [],
+        ),
+      ),
+    ]
     return {
       path,
       key: cell.key,
@@ -691,6 +712,7 @@ function cellsOf(
       ...(upstreams.length ? { upstreams } : {}),
       ...(judgeUpstreams.length ? { judgeUpstreams } : {}),
       ...(pageErrors.length ? { pageErrors } : {}),
+      ...(workspaceNotes.length ? { workspaceNotes } : {}),
     }
   })
 }

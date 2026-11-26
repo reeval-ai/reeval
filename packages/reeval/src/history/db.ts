@@ -101,11 +101,12 @@ CREATE TABLE attempt_answers_m (
   model TEXT, resolved_model TEXT, input_path TEXT, case_key TEXT
 );
 -- Every c.observe(name, value) an attempt made, its last value per name: the JSON as text, its
--- kind, and the value again as num when it's a number and as text when it's a string.
+-- kind, and the value again as num when it's a number and as text when it's a string. A value
+-- over 4 KiB is kind 'file', with no value and its JSON's file_path in the run's folder.
 CREATE TABLE attempt_values_m (
   run_id TEXT NOT NULL, eval_key TEXT NOT NULL, cell_key TEXT NOT NULL, attempt_key TEXT NOT NULL,
   attempt_id TEXT, outcome TEXT, name TEXT NOT NULL, value TEXT, kind TEXT, num REAL, text TEXT,
-  turn INTEGER, case_key TEXT
+  turn INTEGER, file_path TEXT, case_key TEXT
 );
 -- Each key of the meta an EvalError the task threw carried, as attempt_values_m holds a value:
 -- the JSON as text, its kind, num for a number and text for a string.
@@ -963,7 +964,7 @@ function insertRun(
       }
       for (const o of a.observations ?? []) {
         run(
-          `INSERT INTO attempt_values_m VALUES (${Array(13).fill('?').join(', ')})`,
+          `INSERT INTO attempt_values_m VALUES (${Array(14).fill('?').join(', ')})`,
           record.runId,
           e.key,
           a.cell,
@@ -971,11 +972,12 @@ function insertRun(
           a.id,
           a.outcome,
           o.name,
-          JSON.stringify(o.value),
-          valueKind(o.value),
+          o.file ? null : JSON.stringify(o.value),
+          o.file ? 'file' : valueKind(o.value),
           typeof o.value === 'number' ? o.value : null,
           typeof o.value === 'string' ? o.value : null,
           o.turn,
+          o.file?.path ?? null,
           a.case ?? null,
         )
       }

@@ -442,6 +442,35 @@ describe('run archives', () => {
     }
   })
 
+  test('a file given by its path streams in stored, and reads back checked', async () => {
+    const workspace = join(dir, 'workspace.tar.gz')
+    const bytes = randomBytes(3 * 2 ** 20 + 17)
+    writeFileSync(workspace, bytes)
+    const file = join(dir, 'by-path.zip')
+    const manifest = await writeArchive(file, {
+      contents: 'run',
+      runId: RUN,
+      files: [...runFiles(), { path: `${RUN}/e/c/1/workspace.tar.gz`, file: workspace }],
+    })
+    const kept = manifest.files.find((f) => f.path.endsWith('workspace.tar.gz'))
+    assert.deepEqual(kept, {
+      path: `${RUN}/e/c/1/workspace.tar.gz`,
+      sha256: sha256(bytes),
+      bytes: bytes.length,
+    })
+    const source = await fileSource(file)
+    const zipped = await readZip(source)
+    assert.equal(zipped.entries.find((e) => e.path === kept?.path)?.method, 'store')
+    await source.close()
+    const archive = await openArchive(file)
+    try {
+      assert.ok(Buffer.from(await archive.read(kept?.path ?? '')).equals(bytes))
+      await archive.verify()
+    } finally {
+      await archive.close()
+    }
+  })
+
   test('the same files and creation time give the same archive', async () => {
     const write = async (name: string) => {
       const file = join(dir, name)

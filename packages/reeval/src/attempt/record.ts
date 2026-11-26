@@ -9,10 +9,11 @@ import { isTimeout } from '../errors.ts'
 import { isEvalError } from '../eval-error.ts'
 import { expectedBlockedFor } from '../harness/agents.ts'
 import { ProviderStopError } from '../harness/provider-stop.ts'
-import { attemptKey, recordFileName } from '../ids.ts'
+import { OBSERVATION_INLINE } from '../history/types.ts'
+import { attemptKey, recordFileName, sha256 } from '../ids.ts'
 import { modelCallEvents } from '../model-calls.ts'
 import { sandboxProvider } from '../options.ts'
-import { redactJson, redactSecrets, redactSplitSecrets } from '../redact.ts'
+import { redactJson, redactJsonText, redactSecrets, redactSplitSecrets } from '../redact.ts'
 import { InfraError, RunStopped, type Sandbox } from '../sandbox/index.ts'
 import { PrepareError } from '../sandbox/provider.ts'
 import { capMiddle, clip } from '../text.ts'
@@ -30,7 +31,7 @@ import { inferDurations, sumSplits, timeSplit } from '../view/timeline.ts'
 import { turnErrorKind } from '../view/turn-error.ts'
 import { checkFailure } from './assertions.ts'
 import { writeCaptureSidecars } from './capture.ts'
-import { MAX_OBSERVED_BYTES, maskedJson } from './observe.ts'
+import { maskedJson } from './observe.ts'
 import type { Attempt } from './state.ts'
 
 /**
@@ -229,11 +230,11 @@ function chainedStack(error: Error): string | undefined {
   return stack
 }
 
-/** An `EvalError`'s meta, masked; past `MAX_OBSERVED_BYTES` of JSON, a marker saying how big it was. */
+/** An `EvalError`'s meta, masked; past `OBSERVATION_INLINE` of JSON, a marker saying how big it was. */
 function cappedMeta(meta: { [key: string]: JSONValue }): { [key: string]: JSONValue } {
   const masked = maskedJson(meta) as { [key: string]: JSONValue }
   const bytes = Buffer.byteLength(JSON.stringify(masked))
-  return bytes > MAX_OBSERVED_BYTES ? { truncated: true, bytes } : masked
+  return bytes > OBSERVATION_INLINE ? { truncated: true, bytes } : masked
 }
 
 /** JavaScript's own `EvalError` given reeval's options: it stringifies them. */
@@ -394,6 +395,32 @@ export function stagedRecordJson(record: EvalRecord): string {
   return redactJson({ ...record, turns }, 2)
 }
 
+/**
+ * The record with each observed value over `OBSERVATION_INLINE` written to `dir` as its masked
+ * JSON and named by `file` (relative to `dir`) in its place, so the record stays small.
+ */
+async function stageObservations(record: EvalRecord, dir: string): Promise<EvalRecord> {
+  if (!record.observations?.length) return record
+  const observations = []
+  for (const [i, o] of record.observations.entries()) {
+    const json = JSON.stringify(o.value)
+    if (Buffer.byteLength(json) <= OBSERVATION_INLINE) {
+      observations.push(o)
+      continue
+    }
+    const bytes = Buffer.from(redactJsonText(json))
+    const path = `${i + 1}.json`
+    await mkdir(dir, { recursive: true })
+    await writeFile(join(dir, path), bytes)
+    observations.push({
+      ...o,
+      value: null,
+      file: { path, sha256: sha256(bytes), bytes: bytes.length },
+    })
+  }
+  return { ...record, observations }
+}
+
 /** Writes the attempt's record, redacted, and returns what the runner reports. */
 export async function writeRecord(a: Attempt, stagingDir: string, id: string): Promise<EvalMeta> {
   const { record, spec } = a
@@ -409,9 +436,10 @@ export async function writeRecord(a: Attempt, stagingDir: string, id: string): P
     new Map([...a.artifactBlobs, ...a.stepBlobs]),
     a.capturePages,
   )
+  const staged = await stageObservations(record, recordPath.replace(/\.json$/, '.observations'))
   // Replaced whole: reeval studio reads it while the run goes on.
   const tmp = `${recordPath}.${process.pid}.tmp`
-  await writeFile(tmp, stagedRecordJson(record))
+  await writeFile(tmp, stagedRecordJson(staged))
   await rename(tmp, recordPath)
   return {
     outcome: record.outcome,

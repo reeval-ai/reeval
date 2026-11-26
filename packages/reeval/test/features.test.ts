@@ -42,7 +42,9 @@ import {
 import { openArchive } from '../src/archive/index.ts'
 import { pngSize, stubPng } from '../src/capture/stub.ts'
 import { fakeBrokering } from '../src/harness/agents.ts'
+import { readTrajectory } from '../src/history/trajectory.ts'
 import type { RunRecord } from '../src/history/types.ts'
+import { sha256 } from '../src/ids.ts'
 import { runLabels, runPrefix } from '../src/sandbox/boat.ts'
 import { installId } from '../src/sandbox/id-part.ts'
 import { vmPrefix } from '../src/sandbox/tart.ts'
@@ -3907,13 +3909,115 @@ export const features: Feature[] = [
         { name: 'orm', value: 'drizzle', turn: 1 },
         { name: 'deps', value: ['drizzle-orm', 'pg'], turn: 1 },
         { name: 'dep-count', value: 2, turn: 1 },
-      ]
+      ].map((o) => ({ ...o, sha256: sha256(JSON.stringify(o.value)) }))
       assert.deepEqual(observed('lands'), want, 'the last value per name, in first-call order')
       assert.deepEqual(observed('canary'), want, 'a failed attempt keeps what it observed')
       assert.match(
         stdout,
         /Observed:\n[│ ]+orm +drizzle 1\n[│ ]+deps +drizzle-orm 1 · pg 1 · 1 attempt$/m,
       )
+    },
+  },
+  {
+    dir: 'history/observe-whole',
+    tiers: ['fake', 'docker'],
+    env: 'plain',
+    canary: /logs every step: expected \[.*\] to have a length of 5 but got 4001/s,
+    record: async ({ run, runDir }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      const [log] = attempt?.observations ?? []
+      const value = 'compiled\n'.repeat(4000)
+      const json = JSON.stringify(value)
+      assert.match(log?.file?.path ?? '', /^lands-\w+\/[^/]+\/1\/observations\/1\.json$/)
+      assert.deepEqual(
+        log,
+        {
+          name: 'build-log',
+          value: null,
+          turn: 1,
+          sha256: sha256(json),
+          file: { path: log?.file?.path, sha256: sha256(json), bytes: json.length },
+        },
+        'past 4 KiB, the value is in a file beside the record',
+      )
+      assert.equal(readFileSync(join(runDir, log?.file?.path ?? ''), 'utf8'), json)
+      const t = attempt && (await readTrajectory(runDir, attempt))
+      assert.equal(t?.observations[0]?.value, value)
+    },
+  },
+  {
+    dir: 'history/execs',
+    tiers: ['fake', 'docker'],
+    env: 'plain',
+    canary: /reads the build: expected 'warn\\n' to match/,
+    record: ({ run, runDir }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      assert.deepEqual(
+        attempt?.checks.map((c) => [c.command.split(';')[0], c.label, c.exitCode, c.turn]),
+        [
+          ['test -f out.txt', 'before', 1, 0],
+          ['cat out.txt', 'after', 0, 1],
+        ],
+      )
+      const ref = attempt?.files.execs
+      assert.ok(ref, 'files.execs')
+      const lines = readFileSync(join(runDir, ref.path), 'utf8')
+        .trim()
+        .split('\n')
+        .map((l) => JSON.parse(l))
+      assert.deepEqual(
+        lines.map((l) => [l.label, l.exitCode, l.turn, l.stderr]),
+        [
+          ['before', 1, 0, ''],
+          ['after', 0, 1, 'warn\n'],
+        ],
+      )
+      const out: string = lines[1].stdout
+      assert.match(out, /^built\na{1000}/)
+      assert.match(out, /\[reeval: truncated \d+ of 200007 characters, sha256 [0-9a-f]{64}\]/)
+      assert.ok(out.length < 132 * 1024, `capped at 128 KiB, got ${out.length}`)
+    },
+  },
+  {
+    dir: 'history/kept-workspace',
+    tiers: ['fake', 'docker'],
+    env: 'plain',
+    canary: /writes the app: expected file lib\/app\.js to exist/,
+    record: ({ run, runDir, stdout }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      const { workspace, workspaceManifest } = attempt?.files ?? {}
+      assert.ok(workspace && workspaceManifest, 'files.workspace and files.workspaceManifest')
+      const archive = readFileSync(join(runDir, workspace.path))
+      assert.equal(sha256(archive), workspace.sha256)
+      assert.deepEqual(attempt?.workspace, {
+        files: 4,
+        bytes: archive.length,
+        excluded: ['node_modules/'],
+        masked: ['.env'],
+        dropped: ['blob.bin'],
+        skipped: null,
+      })
+      assert.match(
+        stdout,
+        /workspace kept without a file the secret scan found something in: blob\.bin/,
+      )
+      const manifest = JSON.parse(readFileSync(join(runDir, workspaceManifest.path), 'utf8'))
+      assert.deepEqual(
+        manifest.files.map((f: { path: string; executable?: true }) => [f.path, !!f.executable]),
+        [
+          ['.env', false],
+          ['.gitignore', false],
+          ['bin/run.sh', true],
+          ['src/app.js', false],
+        ],
+        "dist/ is the workspace's own ignore, and node_modules/ is left out by name",
+      )
+      const app = readTar(gunzipSync(archive)).find((e) => e.path === 'src/app.js')
+      assert.equal(app?.type === 'file' && app.data.toString(), 'export const answer = 42\n')
+      const env = readTar(gunzipSync(archive)).find((e) => e.path === '.env')
+      assert.ok(env?.type === 'file' && !env.data.toString().includes('ghp_'), 'masked')
+      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      assert.equal(canary?.workspace?.files, 4, 'a failed attempt keeps its workspace too')
     },
   },
   {

@@ -61,6 +61,66 @@ function paxRecords(data: Buffer): Record<string, string> {
   return out
 }
 
+/** What a tar's headers carry over to the entry after them: long names and pax records. */
+type Pending = { longName?: string; longLink?: string; pax: Record<string, string> }
+
+/** A header's data size, or null where the archive ends or can't be read on. */
+function sizeOf(h: Buffer, pending: Pending): number | null {
+  if (h.every((byte) => byte === 0)) return null
+  const size = pending.pax.size !== undefined ? Number(pending.pax.size) : octal(h, 124, 12)
+  return Number.isSafeInteger(size) && size >= 0 ? size : null
+}
+
+/**
+ * The entry header `h` with its `data` makes, or a hard link's target path, or null for a header
+ * that only carries over to the next one, a type kept out, or an unsafe path (pushed to `unsafe`).
+ */
+function entryOf(
+  h: Buffer,
+  data: Buffer,
+  pending: Pending,
+  unsafe?: string[],
+): TarEntry | { link: string; path: string; mode: number; mtime: number } | null {
+  const type = String.fromCharCode(h[156] ?? 0)
+  if (type === 'L') {
+    pending.longName = text(data, 0, data.length)
+    return null
+  }
+  if (type === 'K') {
+    pending.longLink = text(data, 0, data.length)
+    return null
+  }
+  if (type === 'x') {
+    pending.pax = { ...pending.pax, ...paxRecords(data) }
+    return null
+  }
+  if (type === 'g') return null
+  const { pax } = pending
+  const prefix = text(h, 257, 6).startsWith('ustar') ? text(h, 345, 155) : ''
+  const name = text(h, 0, 100)
+  const raw = pax.path ?? pending.longName ?? (prefix ? `${prefix}/${name}` : name)
+  const link = pax.linkpath ?? pending.longLink ?? text(h, 157, 100)
+  const mtime = pax.mtime !== undefined ? Math.floor(Number(pax.mtime)) : octal(h, 136, 12)
+  pending.longName = pending.longLink = undefined
+  pending.pax = {}
+  const path = safeTarPath(raw)
+  if (!path) {
+    if (raw.split('/').some((p) => p !== '' && p !== '.')) unsafe?.push(raw)
+    return null
+  }
+  const mode = octal(h, 100, 8) & 0o7777
+  if (type === '0' || type === '\0' || type === '7') {
+    return { type: 'file', path, mode, mtime, data: Buffer.from(data) }
+  }
+  if (type === '1') {
+    const target = safeTarPath(link)
+    return target ? { link: target, path, mode, mtime } : null
+  }
+  if (type === '2') return { type: 'symlink', path, mode, mtime, target: link }
+  if (type === '5') return { type: 'dir', path, mode, mtime }
+  return null
+}
+
 /**
  * The entries of an uncompressed tar, hard links resolved to copies of what they link to. Each
  * path it leaves out for being absolute or climbing out (not the archive's own `./`) goes in
@@ -69,59 +129,69 @@ function paxRecords(data: Buffer): Record<string, string> {
 export function readTar(tar: Buffer, unsafe?: string[]): TarEntry[] {
   const out: TarEntry[] = []
   const files = new Map<string, Buffer>()
-  let longName: string | undefined
-  let longLink: string | undefined
-  let pax: Record<string, string> = {}
+  const pending: Pending = { pax: {} }
   let at = 0
   while (at + BLOCK <= tar.length) {
     const h = tar.subarray(at, at + BLOCK)
-    if (h.every((byte) => byte === 0)) break
-    const type = String.fromCharCode(h[156] ?? 0)
-    const size = pax.size !== undefined ? Number(pax.size) : octal(h, 124, 12)
-    if (!Number.isSafeInteger(size) || size < 0) break
+    const size = sizeOf(h, pending)
+    if (size === null) break
     const data = tar.subarray(at + BLOCK, at + BLOCK + size)
     at += BLOCK + Math.ceil(size / BLOCK) * BLOCK
-    if (type === 'L') {
-      longName = text(data, 0, data.length)
+    const e = entryOf(h, data, pending, unsafe)
+    if (!e) continue
+    if ('link' in e) {
+      const linked = files.get(e.link)
+      if (linked)
+        out.push({ type: 'file', path: e.path, mode: e.mode, mtime: e.mtime, data: linked })
       continue
     }
-    if (type === 'K') {
-      longLink = text(data, 0, data.length)
-      continue
-    }
-    if (type === 'x') {
-      pax = { ...pax, ...paxRecords(data) }
-      continue
-    }
-    if (type === 'g') continue
-    const prefix = text(h, 257, 6).startsWith('ustar') ? text(h, 345, 155) : ''
-    const name = text(h, 0, 100)
-    const raw = pax.path ?? longName ?? (prefix ? `${prefix}/${name}` : name)
-    const link = pax.linkpath ?? longLink ?? text(h, 157, 100)
-    const mtime = pax.mtime !== undefined ? Math.floor(Number(pax.mtime)) : octal(h, 136, 12)
-    longName = longLink = undefined
-    pax = {}
-    const path = safeTarPath(raw)
-    if (!path) {
-      if (raw.split('/').some((p) => p !== '' && p !== '.')) unsafe?.push(raw)
-      continue
-    }
-    const mode = octal(h, 100, 8) & 0o7777
-    if (type === '0' || type === '\0' || type === '7') {
-      const copy = Buffer.from(data)
-      files.set(path, copy)
-      out.push({ type: 'file', path, mode, mtime, data: copy })
-    } else if (type === '1') {
-      const target = safeTarPath(link)
-      const linked = target ? files.get(target) : undefined
-      if (linked) out.push({ type: 'file', path, mode, mtime, data: linked })
-    } else if (type === '2') {
-      out.push({ type: 'symlink', path, mode, mtime, target: link })
-    } else if (type === '5') {
-      out.push({ type: 'dir', path, mode, mtime })
-    }
+    if (e.type === 'file') files.set(e.path, e.data)
+    out.push(e)
   }
   return out
+}
+
+/**
+ * The entries of an uncompressed tar as it streams in, holding one entry's data at a time, as
+ * `readTar` reads them but for hard links, which it leaves out: what one links to has gone by.
+ */
+export async function* readTarStream(
+  source: AsyncIterable<Uint8Array>,
+  unsafe?: string[],
+): AsyncGenerator<TarEntry> {
+  const it = source[Symbol.asyncIterator]()
+  const chunks: Buffer[] = []
+  let have = 0
+  const take = async (n: number): Promise<Buffer | null> => {
+    while (have < n) {
+      const next = await it.next()
+      if (next.done) return null
+      const chunk = Buffer.from(next.value)
+      chunks.push(chunk)
+      have += chunk.length
+    }
+    const all = chunks.length === 1 ? (chunks[0] as Buffer) : Buffer.concat(chunks, have)
+    chunks.length = 0
+    const rest = all.subarray(n)
+    if (rest.length) chunks.push(rest)
+    have = rest.length
+    return all.subarray(0, n)
+  }
+  const pending: Pending = { pax: {} }
+  try {
+    for (;;) {
+      const h = await take(BLOCK)
+      if (!h) return
+      const size = sizeOf(h, pending)
+      if (size === null) return
+      const body = await take(Math.ceil(size / BLOCK) * BLOCK)
+      if (!body) return
+      const e = entryOf(Buffer.from(h), body.subarray(0, size), pending, unsafe)
+      if (e && !('link' in e)) yield e
+    }
+  } finally {
+    await it.return?.()
+  }
 }
 
 function paxEntry(fields: Record<string, string>): Buffer {
@@ -175,26 +245,31 @@ function header(
 
 const fits = (s: string) => Buffer.byteLength(s) <= 100 && /^[\x20-\x7e]*$/.test(s)
 
+/** One entry of a tar as `writeTar` writes it: a pax header first where it needs one. */
+export function tarEntry(e: TarEntry): Buffer {
+  const parts: Buffer[] = []
+  const name = e.type === 'dir' ? `${e.path}/` : e.path
+  const link = e.type === 'symlink' ? e.target : ''
+  const long: Record<string, string> = {}
+  if (!fits(name)) long.path = name
+  if (!fits(link)) long.linkpath = link
+  if (Object.keys(long).length) parts.push(paxEntry(long))
+  const shortName = fits(name) ? name : 'long-name'
+  const shortLink = fits(link) ? link : 'long-link'
+  if (e.type === 'file') {
+    parts.push(header(shortName, e.mode, e.data.length, e.mtime, '0', ''), pad(e.data))
+  } else {
+    parts.push(header(shortName, e.mode, 0, e.mtime, e.type === 'dir' ? '5' : '2', shortLink))
+  }
+  return Buffer.concat(parts)
+}
+
+/** The two zero blocks a tar ends with, after its last `tarEntry`. */
+export const TAR_END = Buffer.alloc(BLOCK * 2)
+
 /** An uncompressed tar of `entries`, with a pax header for a path or link target ustar can't hold. */
 export function writeTar(entries: TarEntry[]): Buffer {
-  const parts: Buffer[] = []
-  for (const e of entries) {
-    const name = e.type === 'dir' ? `${e.path}/` : e.path
-    const link = e.type === 'symlink' ? e.target : ''
-    const long: Record<string, string> = {}
-    if (!fits(name)) long.path = name
-    if (!fits(link)) long.linkpath = link
-    if (Object.keys(long).length) parts.push(paxEntry(long))
-    const shortName = fits(name) ? name : 'long-name'
-    const shortLink = fits(link) ? link : 'long-link'
-    if (e.type === 'file') {
-      parts.push(header(shortName, e.mode, e.data.length, e.mtime, '0', ''), pad(e.data))
-    } else {
-      parts.push(header(shortName, e.mode, 0, e.mtime, e.type === 'dir' ? '5' : '2', shortLink))
-    }
-  }
-  parts.push(Buffer.alloc(BLOCK * 2))
-  return Buffer.concat(parts)
+  return Buffer.concat([...entries.map(tarEntry), TAR_END])
 }
 
 /**

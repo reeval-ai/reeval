@@ -729,6 +729,12 @@ export function pageErrorLines(c: Colors, cells: CellResult[], indent: number): 
   return [`${' '.repeat(indent)}${c.yellow(head)} ${c.dim(`→ ${first.file}${more}`)}`]
 }
 
+/** Each attempt's workspace that wasn't kept, or was kept without a file, once per reason. */
+export const workspaceLines = (c: Colors, cells: CellResult[], indent: number): string[] =>
+  [...new Set(cells.flatMap((cell) => cell.workspaceNotes ?? []))].map(
+    (text) => `${' '.repeat(indent)}${c.yellow(text)}`,
+  )
+
 /** One eval's block, laid out as `layout()` says for its shape. */
 export function evalBlock(c: Colors, e: EvalResult, verbose = false): string[] {
   const shape = layout(e.across, e.family, false)
@@ -738,6 +744,7 @@ export function evalBlock(c: Colors, e: EvalResult, verbose = false): string[] {
       ...familyBlock(c, e, shape.kind, verbose),
       ...upstreamLines(c, all, 2),
       ...pageErrorLines(c, all, 2),
+      ...workspaceLines(c, all, 2),
     ]
   }
   const v = verdict(c, e)
@@ -752,6 +759,7 @@ export function evalBlock(c: Colors, e: EvalResult, verbose = false): string[] {
     ...body,
     ...upstreamLines(c, cells, 2),
     ...pageErrorLines(c, cells, 2),
+    ...workspaceLines(c, cells, 2),
     ...questionLines(c, e.questions, 2),
     ...observedLines(c, e.observations, cells, 2),
   ]

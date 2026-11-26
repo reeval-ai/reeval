@@ -5,9 +5,14 @@
 //   <prefix>/runs/<YYYY-MM>/<runId>/<path>           every file beside it
 //   <prefix>/debug/<YYYY-MM>/<runId>/<path>          its debug data (`history.debug`), apart so a
 //                                                    pull never lists or downloads it
+//   <prefix>/workspaces/<YYYY-MM>/<runId>/<path>     its kept workspaces, apart the same way
 //
 // Every key is under its run id, so concurrent writers never touch one object. The record is
 // created with `If-None-Match: *` and replaced with `If-Match: <etag>`, so a run lands whole once.
+import { createReadStream, createWriteStream } from 'node:fs'
+import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
+import type { ReadableStream } from 'node:stream/web'
 import { S3Client, S3Errors } from '@bradenmacdonald/s3-lite-client'
 import { UsageError } from '../errors.ts'
 import { RUN_ID } from '../ids.ts'
@@ -65,6 +70,9 @@ export function s3Settings(descriptor: S3StoreDescriptor, env: Env = process.env
 const statusOf = (error: unknown) =>
   error instanceof S3Errors.ServerError ? error.statusCode : undefined
 
+/** How much of a file one request of a multipart upload sends, and so holds in memory. */
+const PART_SIZE = 8 * 2 ** 20
+
 const unquote = (etag: string) => etag.replace(/^W\//, '').replace(/^"|"$/g, '')
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -96,12 +104,15 @@ export function s3Store(descriptor: S3StoreDescriptor, env: Env = process.env): 
     if (!RUN_ID.test(runId)) throw new UsageError(`${runId} isn't a run id`)
     return `${base}runs/${month(runId)}/${runId}`
   }
-  /** A file beside the run, or under `debug/` its debug data, which is kept apart from `runs/`. */
+  /**
+   * A file beside the run, or under `debug/` or `workspaces/` its debug data or kept workspaces,
+   * which are kept apart from `runs/`.
+   */
   const fileKey = (runId: string, path: string) => {
     const key = runKey(runId)
-    const debug = /^debug\/(.+)$/.exec(path)?.[1]
-    return debug
-      ? `${base}debug/${key.slice(base.length + 'runs/'.length)}/${debug}`
+    const apart = /^(debug|workspaces)\/(.+)$/.exec(path)
+    return apart
+      ? `${base}${apart[1]}/${key.slice(base.length + 'runs/'.length)}/${apart[2]}`
       : `${key}/${path}`
   }
   const put = async (key: string, bytes: Uint8Array | string, condition?: [string, string]) => {
@@ -213,11 +224,34 @@ export function s3Store(descriptor: S3StoreDescriptor, env: Env = process.env): 
       }
       return { ok: true, version }
     },
-    async addFile(runId, path, bytes) {
-      await put(fileKey(runId, path), bytes)
+    async addFile(runId, path, data) {
+      const key = fileKey(runId, path)
+      if (data instanceof Uint8Array) {
+        await put(key, data)
+        return
+      }
+      await s3().putObject(
+        key,
+        Readable.toWeb(
+          createReadStream(data.file),
+        ) as unknown as globalThis.ReadableStream<Uint8Array>,
+        { size: data.bytes, partSize: PART_SIZE, metadata: { 'Content-Type': contentType(key) } },
+      )
     },
     async readFile(runId, path) {
       return (await get(fileKey(runId, path)))?.bytes ?? null
+    },
+    async saveFile(runId, path, file) {
+      let response: Response
+      try {
+        response = await s3().getObject(fileKey(runId, path))
+      } catch (error) {
+        if (statusOf(error) === 404) return false
+        throw error
+      }
+      if (!response.body) throw new Error(`${fileKey(runId, path)} came back with no body`)
+      await pipeline(Readable.fromWeb(response.body as ReadableStream), createWriteStream(file))
+      return true
     },
     check: mark,
   }

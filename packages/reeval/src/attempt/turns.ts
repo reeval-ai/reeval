@@ -6,15 +6,7 @@ import { ProviderStopError } from '../harness/provider-stop.ts'
 import { redactSecrets } from '../redact.ts'
 import { InfraError, type Sandbox } from '../sandbox/index.ts'
 import { clip, formatDuration, plural } from '../text.ts'
-import type {
-  ExecEnv,
-  ExecResult,
-  ExecRetry,
-  Turn,
-  TurnData,
-  TurnRecord,
-  TurnStatus,
-} from '../types.ts'
+import type { ExecOptions, ExecResult, Turn, TurnData, TurnRecord, TurnStatus } from '../types.ts'
 import {
   type McpStartupLog,
   mcpStartupOf,
@@ -109,7 +101,7 @@ function watchMcpStartup(log: McpStartupLog) {
 }
 
 type Checks = {
-  exec: (command: string, options?: ExecRetry & { env?: ExecEnv }) => Promise<ExecResult>
+  exec: (command: string, options?: ExecOptions) => Promise<ExecResult>
   readFile: (path: string) => Promise<string | null>
 }
 

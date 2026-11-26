@@ -295,6 +295,10 @@
         "diff": {
           "$ref": "#/$defs/FileRef"
         },
+        "execs": {
+          "description": "`execs.jsonl`: each foreground `c.exec`'s result, one `ExecLine` per call in call order.",
+          "$ref": "#/$defs/FileRef"
+        },
         "judgeInput": {
           "$ref": "#/$defs/FileRef"
         },
@@ -307,6 +311,14 @@
           "$ref": "#/$defs/FileRef"
         },
         "transcript": {
+          "$ref": "#/$defs/FileRef"
+        },
+        "workspace": {
+          "description": "`workspace.tar.gz`: the final workspace, gzipped (see `AttemptRecord.workspace`).",
+          "$ref": "#/$defs/FileRef"
+        },
+        "workspaceManifest": {
+          "description": "`workspace.json`: the `WorkspaceManifest` of `workspace`.",
           "$ref": "#/$defs/FileRef"
         }
       },
@@ -474,6 +486,10 @@
               "exitCode": {
                 "type": "number"
               },
+              "label": {
+                "description": "The `label` it was given.",
+                "type": "string"
+              },
               "log": {
                 "$ref": "#/$defs/FileRef"
               },
@@ -487,6 +503,10 @@
                 "items": {
                   "$ref": "#/$defs/ExecTry"
                 }
+              },
+              "turn": {
+                "description": "How many `c.send` turns had ended when it ran; absent on records older than it.",
+                "type": "number"
               }
             },
             "required": ["command", "durationMs", "exitCode"]
@@ -897,6 +917,10 @@
         "vmImage": {
           "description": "The image a `tart()` attempt's VM was cloned from, with the digest Tart had for it. Absent in other sandboxes, and in attempts that didn't reach their sandbox.",
           "$ref": "#/$defs/VmImage"
+        },
+        "workspace": {
+          "description": "The workspace as the attempt left it, after its checks: every file git doesn't ignore, but those under a directory left out by name, in `files.workspace` with its manifest in `files.workspaceManifest`, secret-looking values masked. Its file count and compressed size, the directories left out, the files masked and those left out for holding a secret, or why it wasn't kept. Absent when the attempt started no sandbox or was cut short first.",
+          "$ref": "#/$defs/KeptWorkspace"
         }
       },
       "required": [
@@ -2908,6 +2932,62 @@
       },
       "required": ["key", "model", "question", "score", "threshold", "verdict"]
     },
+    "KeptWorkspace": {
+      "description": "The workspace as the attempt left it, kept whole in its directory as `workspace.tar.gz`, with `workspace.json` listing each file's hash, or why it wasn't.",
+      "type": "object",
+      "properties": {
+        "bytes": {
+          "description": "The compressed archive's size; 0 when it wasn't kept.",
+          "type": "number"
+        },
+        "dropped": {
+          "description": "Files left out because the secret scan found a value masking can't reach (in a binary or UTF-16 file, or in the path), at most 50.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excluded": {
+          "description": "Directories left out by name, such as `node_modules/` and `.git/`, at most 50.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "files": {
+          "description": "Regular files and symbolic links kept.",
+          "type": "number"
+        },
+        "masked": {
+          "description": "Text files whose secret-looking values were masked, at most 50.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "skipped": {
+          "description": "Why it wasn't kept: `size` when it was over 200 MiB uncompressed, or with the attempt's large observed values over 100 MiB compressed, or the run's kept workspaces passed 5 GiB; `error` when the sandbox couldn't archive it; null when it was.",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "cause": {
+                  "enum": ["error", "size"]
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": ["cause", "message"]
+            }
+          ]
+        }
+      },
+      "required": ["bytes", "dropped", "excluded", "files", "masked", "skipped"]
+    },
     "Lift": {
       "description": "A variant cell's pass@1 against the control's, on the same harness and sandbox.",
       "type": "object",
@@ -3001,7 +3081,15 @@
       "description": "A `c.observe(name, value)` call: the last value given for the name.",
       "type": "object",
       "properties": {
+        "file": {
+          "description": "`observations/<n>.json` in the attempt's directory: the value's masked JSON, where it's over 4 KiB. It counts toward the attempt's 100 MiB beside its record.",
+          "$ref": "#/$defs/FileRef"
+        },
         "name": {
+          "type": "string"
+        },
+        "sha256": {
+          "description": "sha256 of `value`'s JSON as recorded, masked. Absent on older records.",
           "type": "string"
         },
         "turn": {
@@ -3009,7 +3097,7 @@
           "type": "number"
         },
         "value": {
-          "description": "Masked like the rest of the record.",
+          "description": "Masked like the rest of the record; null where its masked JSON is over 4 KiB and kept in `file` instead.",
           "$ref": "#/$defs/JSONValue"
         }
       },

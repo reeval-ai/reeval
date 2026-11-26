@@ -34,7 +34,7 @@ const VIEW_ROWS: Record<string, string> = {
   attempt_answers:
     'answer to a question asked of one attempt on its own (no across): the attempt, its outcome, the choice picked, the text, and the error when the call failed',
   attempt_values:
-    'value an attempt recorded with c.observe(name, value), its last per name: the attempt, its outcome, the JSON value with its kind, num for a number and text for a string',
+    'value an attempt recorded with c.observe(name, value), its last per name: the attempt, its outcome, the JSON value with its kind, num for a number and text for a string, and file_path for a value over 4 KiB (kind file)',
   failure_meta:
     'key of the meta an EvalError an attempt threw carried: the attempt, its outcome and reason, the turn it threw after, the JSON value with its kind, num for a number and text for a string',
   factor_effects:

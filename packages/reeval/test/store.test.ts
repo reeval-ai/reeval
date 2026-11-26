@@ -14,10 +14,11 @@ import { join } from 'node:path'
 import { after, before, describe, test } from 'node:test'
 import { UsageError } from '../src/errors.ts'
 import { encodeRecord } from '../src/history/files.ts'
+import { readKeptFiles } from '../src/history/trajectory.ts'
 import type { RunRecord } from '../src/history/types.ts'
 import { resolveHistory } from '../src/store/resolve.ts'
 import { s3Settings, s3Store } from '../src/store/s3.ts'
-import { transient } from '../src/store/sync.ts'
+import { fetchWorkspace, isRemote, transient } from '../src/store/sync.ts'
 import type { RunEventLine } from '../src/view/events.ts'
 import { fakeConfig, noSignals, project, runCli, tempDir } from './helpers.ts'
 import { type FakeS3, fakeS3 } from './support/fake-s3.ts'
@@ -866,4 +867,79 @@ export default defineEval({
       assert.ok(![...s3.objects.keys()].some((k) => k.startsWith('runs/')))
     })
   }
+})
+
+describe('kept workspaces in s3()', () => {
+  let s3: FakeS3
+  let dir: string
+  const env = () => ({ ...keyEnv(s3), CI: 'false', GITHUB_ACTIONS: 'false' })
+  const descriptor = () => ({
+    kind: 's3' as const,
+    bucket: s3.bucket,
+    endpoint: s3.url,
+    prefix: 'ws',
+  })
+  before(async () => {
+    s3 = await fakeS3()
+    const p = await project('store-workspace', {
+      'reeval.config.ts': fakeConfig({
+        harness: "{ script: [[{ write: { 'src/app.js': 'export {}\\n' } }]] }",
+        extra: `record: 'manual',
+  history: { store: ${JSON.stringify(descriptor())} },`,
+      }),
+      'evals/a.eval.ts':
+        "import { defineEval } from 'reeval'\nexport default defineEval({ async task(c) { await c.send('go') } })\n",
+    })
+    dir = p.dir
+  })
+  after(() => s3.close())
+
+  test('streams up apart from the run, a pull leaves it, and the reader fetches it', async () => {
+    const r = await runCli(dir, ['run'], { env: env() })
+    assert.equal(r.code, 0, r.stdout + r.stderr)
+    const runId = (
+      readdirSync(join(dir, '.reeval/runs')).find((f) => f.endsWith('.json')) ?? ''
+    ).replace(/\.json$/, '')
+    const recorded = await runCli(dir, ['record', runId], { env: env() })
+    assert.equal(recorded.code, 0, recorded.stdout + recorded.stderr)
+    const month = `${runId.slice(0, 4)}-${runId.slice(4, 6)}`
+    const keys = [...s3.objects.keys()]
+    const kept = keys.filter((k) => k.startsWith(`ws/workspaces/${month}/${runId}/`))
+    assert.equal(kept.length, 1, keys.join('\n'))
+    assert.match(kept[0] as string, /\/workspace\.tar\.gz$/)
+    assert.ok(
+      !keys.some((k) => k.startsWith('ws/runs/') && k.endsWith('.tar.gz')),
+      'nothing of it is under runs/, which a pull lists',
+    )
+    const history = resolveHistory(
+      { store: descriptor() },
+      'history',
+      'reeval.config.ts',
+      dir,
+      'evals/.history',
+    )
+    assert.ok(isRemote(history))
+    const record = JSON.parse(readFileSync(join(history.dir, `${runId}.json`), 'utf8')) as RunRecord
+    const attempt = record.evals[0]?.attempts[0]
+    assert.ok(attempt?.files.workspace)
+    const archive = join(history.dir, runId, ...attempt.files.workspace.path.split('/'))
+    rmSync(archive)
+    const runDir = join(history.dir, runId)
+    assert.equal(
+      await (await readKeptFiles(runDir, attempt))?.readFile('src/app.js').catch(() => 'missing'),
+      'missing',
+    )
+    const saved = { ...process.env }
+    Object.assign(process.env, keyEnv(s3))
+    try {
+      const files = await readKeptFiles(runDir, attempt, { fetch: fetchWorkspace(history, runId) })
+      assert.equal((await files?.readFile('src/app.js'))?.toString(), 'export {}\n')
+    } finally {
+      for (const name of Object.keys(keyEnv(s3))) {
+        if (saved[name] === undefined) delete process.env[name]
+        else process.env[name] = saved[name]
+      }
+    }
+    assert.ok(existsSync(archive), 'kept in the copy for the next read')
+  })
 })

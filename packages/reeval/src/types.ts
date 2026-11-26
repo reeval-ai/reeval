@@ -49,6 +49,13 @@ export type ExecRetry = {
   interval?: number
 }
 
+/** `c.exec`'s options for a command it waits for. */
+export type ExecOptions = ExecRetry & {
+  env?: ExecEnv
+  /** A name kept with the command's result in the record, for a grader to find it by. */
+  label?: string
+}
+
 /**
  * Variables `c.exec` sets for one command, over the environment's own. A value whose name looks
  * like a secret's (`KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `CREDENTIAL`) is masked in everything
@@ -303,7 +310,7 @@ export type TurnData = {
 
 export type Turn = TurnData & {
   /** Runs in the eval's sandbox. Same as `c.exec`. */
-  exec(command: string, options?: ExecRetry & { env?: ExecEnv }): Promise<ExecResult>
+  exec(command: string, options?: ExecOptions): Promise<ExecResult>
   readFile(path: string): Promise<string | null>
 }
 
@@ -520,16 +527,13 @@ export type AttemptContext = {
   /**
    * Runs `command` in the sandbox. With `retries`, a non-zero exit runs it again, up to that
    * many extra times, `interval` ms apart; it resolves with the last try. `env` adds variables
-   * for this command only.
+   * for this command only. `label` names the result the record keeps.
    */
-  exec(
-    command: string,
-    options?: ExecRetry & { env?: ExecEnv; background?: false },
-  ): Promise<ExecResult>
+  exec(command: string, options?: ExecOptions & { background?: false }): Promise<ExecResult>
   exec(command: string, options: { background: true; env?: ExecEnv }): Promise<BackgroundHandle>
   exec(
     command: string,
-    options?: ExecRetry & { env?: ExecEnv; background?: boolean },
+    options?: ExecOptions & { background?: boolean },
   ): Promise<ExecResult | BackgroundHandle>
   /**
    * Starts `command` in the background with `PORT` set to `port`, or to a port reeval allocates,
@@ -554,8 +558,8 @@ export type AttemptContext = {
   writeFile(path: string, contents: string | Uint8Array): Promise<void>
   /**
    * Records a fact about the attempt under `name`, such as what the agent installed. It never
-   * affects the outcome. Calling it again with a name replaces its value. The value is JSON, at
-   * most 4 KB, and is masked like the rest of the record.
+   * affects the outcome. Calling it again with a name replaces its value. The value is JSON, and
+   * is masked like the rest of the record.
    */
   observe(name: string, value: JSONValue): void
   /** Every turn so far, oldest first. */
@@ -2505,16 +2509,26 @@ export type HistoryStore = {
     options: { replaces?: string },
   ): Promise<{ ok: true; version: string } | { ok: false }>
   /**
-   * Adds or replaces one file beside a stored run: a saved analysis, the run's remarks, or with
+   * Adds or replaces one file beside a stored run: a saved analysis, the run's remarks, with
    * `history.debug` its debug data, under `debug/` (`debug/<eval>/<cell>/<n>/requests.ndjson`),
-   * before the record. `readRun` needn't return debug files: no reader asks for them.
+   * or its kept workspaces, under `workspaces/`, both before the record. A file on disk streams
+   * up, never held whole. `readRun` needn't return either: they're read one at a time on demand.
    */
-  addFile(runId: string, path: string, bytes: Uint8Array): Promise<void>
+  addFile(
+    runId: string,
+    path: string,
+    data: Uint8Array | { file: string; bytes: number },
+  ): Promise<void>
   /**
    * One file `addFile` wrote, by the same path; null when the store doesn't have it. `reeval sync
    * --debug` reads a run's debug data back with it.
    */
   readFile(runId: string, path: string): Promise<Uint8Array | null>
+  /**
+   * `readFile`, streamed into `file` rather than read into memory; false when the store doesn't
+   * have it. A kept workspace is read back with it.
+   */
+  saveFile(runId: string, path: string, file: string): Promise<boolean>
   /** Checks the store answers and is reeval's, without listing it: `reeval sync --push-only`. */
   check(): Promise<void>
 }
@@ -3573,10 +3587,20 @@ export type AssertionRecord = {
 /** A `c.observe(name, value)` call: the last value given for the name. */
 export type Observation = {
   name: string
-  /** Masked like the rest of the record. */
+  /**
+   * Masked like the rest of the record; null where its masked JSON is over 4 KiB and kept in
+   * `file` instead.
+   */
   value: JSONValue
   /** How many turns the attempt had sent when the value was given: 0 before the first. */
   turn: number
+  /** sha256 of `value`'s JSON as recorded, masked. Absent on older records. */
+  sha256?: string
+  /**
+   * `observations/<n>.json` in the attempt's directory: the value's masked JSON, where it's over
+   * 4 KiB. It counts toward the attempt's 100 MiB beside its record.
+   */
+  file?: FileRef
 }
 
 /** Full per-attempt payload, written to disk by the worker. */
@@ -3598,6 +3622,10 @@ export type EvalRecord = {
   /** Each foreground `c.exec`: its last try's output, and `durationMs` over all its tries. */
   checks: Array<
     { command: string; durationMs: number } & ExecResult & {
+        /** See `AttemptRecord.checks`. */
+        label?: string
+        /** See `AttemptRecord.checks`. */
+        turn?: number
         /** The `retries` it was given, when more than 0. */
         retries?: number
         /** Every try, in order, when it was given `retries`. */
@@ -3678,6 +3706,37 @@ export type EvalRecord = {
   captureUse?: CaptureUseSpend
   /** See `AttemptRecord.snapshots`. */
   snapshots?: Snapshot[]
+  /**
+   * See `AttemptRecord.workspace`. Its archive and manifest wait in a sidecar next to this JSON
+   * (`<stem>.workspace/`), and `sha256` is the archive's.
+   */
+  workspace?: KeptWorkspace & { sha256?: string }
+}
+
+/**
+ * The workspace as the attempt left it, kept whole in its directory as `workspace.tar.gz`, with
+ * `workspace.json` listing each file's hash, or why it wasn't.
+ */
+export type KeptWorkspace = {
+  /** Regular files and symbolic links kept. */
+  files: number
+  /** The compressed archive's size; 0 when it wasn't kept. */
+  bytes: number
+  /** Directories left out by name, such as `node_modules/` and `.git/`, at most 50. */
+  excluded: string[]
+  /** Text files whose secret-looking values were masked, at most 50. */
+  masked: string[]
+  /**
+   * Files left out because the secret scan found a value masking can't reach (in a binary or
+   * UTF-16 file, or in the path), at most 50.
+   */
+  dropped: string[]
+  /**
+   * Why it wasn't kept: `size` when it was over 200 MiB uncompressed, or with the attempt's large
+   * observed values over 100 MiB compressed, or the run's kept workspaces passed 5 GiB; `error`
+   * when the sandbox couldn't archive it; null when it was.
+   */
+  skipped: { cause: 'size' | 'error'; message: string } | null
 }
 
 /**

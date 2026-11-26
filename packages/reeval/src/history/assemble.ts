@@ -55,6 +55,8 @@ import type {
   FamilyMeta,
   FileChange,
   HarnessDescriptor,
+  KeptWorkspace,
+  Observation,
   Outcome,
   QuestionCall,
   QuestionInput,
@@ -66,6 +68,7 @@ import type {
   WebEventType,
 } from '../types.ts'
 import { promptTokens, sumUsage } from '../usage.ts'
+import { formatBytes } from '../view/debug.ts'
 import { cellOutcome, gatePart, passRateOf, worstOutcome } from '../view/gate.ts'
 import { checkTries } from '../view/judgments.ts'
 import { parseTranscript } from '../view/model.ts'
@@ -85,18 +88,22 @@ import {
   type ContextFile,
   type Cost,
   type EvalEntry,
+  type ExecLine,
   type ExportFormat,
   type FileRef,
   type FingerprintParts,
   type GitInfo,
   type JudgmentRecord,
   type Lift,
+  RUN_WORKSPACE_LIMIT,
   type RunInvocation,
   type RunnerInfo,
   type RunRecord,
   SCHEMA_VERSION,
   type Stack,
   type SubagentRecord,
+  WORKSPACE_ARCHIVE,
+  WORKSPACE_MANIFEST,
 } from './types.ts'
 
 /** Final messages are cut at this size in the record; `transcript.jsonl` keeps them whole. */
@@ -192,8 +199,13 @@ export type AssembledRun = {
   record: RunRecord
   /** Artifact files keyed by path inside the run's artifact directory. */
   artifacts: Map<string, Uint8Array>
-  /** Snapshots to move into the run's artifact directory, by their path there, from where they wait. */
+  /**
+   * Snapshots and kept workspaces to move into the run's artifact directory, by their path there,
+   * from where they wait.
+   */
   moves: Map<string, string>
+  /** Kept workspaces a resume keeps, copied in by path from the run's previous directory. */
+  copies: Map<string, string>
 }
 
 /** Keeps evidence readable without letting one `cat` of a lockfile dominate the record. */
@@ -250,9 +262,13 @@ export const judgmentKey = (index: number, question: string) =>
 const JSON_FILE = /\.(?:json|jsonl|ndjson)$/
 
 /** Collects artifact files, redacting before anything is hashed. */
-class Artifacts {
+export class Artifacts {
   readonly files = new Map<string, Uint8Array>()
   readonly moves = new Map<string, string>()
+  /** Files copied in by path, never read into memory: a kept workspace a resume keeps. */
+  readonly copies = new Map<string, string>()
+  /** The kept workspaces' bytes so far, held to `RUN_WORKSPACE_LIMIT`. */
+  workspaceBytes = 0
 
   /**
    * A snapshot at `source` placed at `path`, or null when it isn't there: its name and size are
@@ -501,6 +517,98 @@ function checkLog(c: EvalRecord['checks'][number]): string {
   return `${head}, ${checkTries(c) ?? `passed on try 1 of ${of}`}\n${tries.join('')}`
 }
 
+/** A `c.exec` as its line of `execs.jsonl`, its output capped. */
+function execLine(c: EvalRecord['checks'][number]): string {
+  const line: ExecLine = {
+    command: c.command,
+    ...(c.label !== undefined ? { label: c.label } : {}),
+    exitCode: c.exitCode,
+    stdout: capText(c.stdout),
+    stderr: capText(c.stderr),
+    durationMs: c.durationMs,
+    ...(c.turn !== undefined ? { turn: c.turn } : {}),
+    ...(c.retries && c.tries
+      ? {
+          retries: c.retries,
+          tries: c.tries.map((t) => ({ exitCode: t.exitCode, durationMs: t.durationMs })),
+        }
+      : {}),
+  }
+  return `${JSON.stringify(line)}\n`
+}
+
+/**
+ * The attempt's kept workspace, its archive moved from its staging sidecar and its manifest added
+ * to `files`; none past the run's cap, or when the sidecar is gone.
+ */
+export async function placeWorkspace(
+  { sha256: archiveSha256, ...kept }: NonNullable<EvalRecord['workspace']>,
+  dir: string,
+  out: Artifacts,
+  stagingRecord: string | undefined,
+  files: AttemptFiles,
+  runLimit = RUN_WORKSPACE_LIMIT,
+): Promise<KeptWorkspace> {
+  if (kept.skipped) return kept
+  const notKept = (cause: 'size' | 'error', message: string): KeptWorkspace => ({
+    ...kept,
+    files: 0,
+    bytes: 0,
+    masked: [],
+    dropped: [],
+    skipped: { cause, message },
+  })
+  const sidecar = stagingRecord?.replace(/\.json$/, '.workspace')
+  const manifest =
+    sidecar && archiveSha256
+      ? await readFile(join(sidecar, WORKSPACE_MANIFEST), 'utf8').catch(() => null)
+      : null
+  const archive = sidecar && join(sidecar, WORKSPACE_ARCHIVE)
+  if (manifest === null || !archive || !(await stat(archive).catch(() => null))) {
+    return notKept('error', "its archive was gone from the run's staging folder")
+  }
+  if (out.workspaceBytes + kept.bytes > runLimit) {
+    return notKept('size', `the run's kept workspaces passed ${formatBytes(runLimit)}`)
+  }
+  const path = `${dir}/${WORKSPACE_ARCHIVE}`
+  out.moves.set(path, archive)
+  out.workspaceBytes += kept.bytes
+  files.workspace = { path, sha256: archiveSha256 as string, bytes: kept.bytes }
+  files.workspaceManifest = out.add(`${dir}/${WORKSPACE_MANIFEST}`, manifest)
+  return kept
+}
+
+/**
+ * The attempt's observations as recorded: each value's sha256 of its JSON as finally masked, and
+ * a large one's file moved from its staging sidecar to `observations/<n>.json`.
+ */
+async function placeObservations(
+  observations: Observation[],
+  dir: string,
+  out: Artifacts,
+  stagingRecord: string | undefined,
+): Promise<Observation[]> {
+  const placed: Observation[] = []
+  for (const o of observations) {
+    if (!o.file) {
+      placed.push({ ...o, sha256: sha256(JSON.stringify(o.value)) })
+      continue
+    }
+    const sidecar = stagingRecord?.replace(/\.json$/, '.observations')
+    const json = sidecar
+      ? await readFile(join(sidecar, o.file.path), 'utf8').catch(() => null)
+      : null
+    const { file: _staged, sha256: _, ...rest } = o
+    if (json === null) {
+      placed.push(rest)
+      continue
+    }
+    const file = out.add(`${dir}/observations/${o.file.path}`, json)
+    placed.push({ ...rest, sha256: file.sha256, file })
+  }
+  return placed
+}
+
 /** Dependency and binary noise dropped, and each remaining file's diff capped. */
 function historyPatch(patch: string): string {
   return patchForJudge(patch)
@@ -746,7 +854,13 @@ async function copyRef(
   out: Artifacts,
 ): Promise<FileRef> {
   if (!from) return ref
-  const bytes = await readFile(join(from, ...ref.path.split('/'))).catch(() => null)
+  const source = join(from, ...ref.path.split('/'))
+  if (ref.path.endsWith('.gz')) {
+    if (!(await stat(source).catch(() => null))) return ref
+    out.copies.set(ref.path, source)
+    return ref
+  }
+  const bytes = await readFile(source).catch(() => null)
   if (!bytes) return ref
   return out.add(ref.path, Buffer.from(bytes).toString('utf8'))
 }
@@ -859,6 +973,11 @@ async function addPreviousAttempt(
   for (const q of kept.answers ?? []) {
     answers.push(q.input ? { ...q, input: await copyRef(q.input, previousArtifacts, out) } : q)
   }
+  const observations = []
+  for (const o of kept.observations ?? []) {
+    observations.push(o.file ? { ...o, file: await copyRef(o.file, previousArtifacts, out) } : o)
+  }
+  out.workspaceBytes += files.workspace?.bytes ?? 0
   const { snapshots: keptSnapshots, ...rest } = kept
   const snapshots = keptSnapshots
     ? await placeSnapshots(
@@ -876,6 +995,7 @@ async function addPreviousAttempt(
     files,
     checks,
     ...(answers.length ? { answers } : {}),
+    ...(observations.length ? { observations } : {}),
     ...(snapshots.length ? { snapshots } : {}),
   })
   if (measured.has(cellRecord)) return
@@ -1088,6 +1208,7 @@ async function attemptEvidence(
     | 'startRetries'
     | 'setupProcesses'
     | 'snapshots'
+    | 'workspace'
     | 'serves'
     | 'checks'
     | 'changedFiles'
@@ -1151,6 +1272,15 @@ async function attemptEvidence(
         }),
         out,
       )
+    : []
+  if (record?.checks.length) {
+    files.execs = out.add(`${dir}/execs.jsonl`, record.checks.map(execLine).join(''))
+  }
+  const workspace = record?.workspace
+    ? await placeWorkspace(record.workspace, dir, out, stagingRecord, files)
+    : undefined
+  const observations = record?.observations?.length
+    ? await placeObservations(record.observations, dir, out, stagingRecord)
     : []
   const judgments: JudgmentRecord[] = (record?.judgements ?? []).map(({ call, ...j }, i) => ({
     ...j,
@@ -1219,14 +1349,17 @@ async function attemptEvidence(
     ...(record?.startRetries?.length ? { startRetries: record.startRetries } : {}),
     ...(record?.setupProcesses?.length ? { setupProcesses: record.setupProcesses } : {}),
     ...(snapshots.length ? { snapshots } : {}),
+    ...(workspace ? { workspace } : {}),
     ...(record?.serves?.length ? { serves: record.serves } : {}),
     ...(record?.assertions?.length ? { assertions: record.assertions } : {}),
-    ...(record?.observations?.length ? { observations: record.observations } : {}),
+    ...(observations.length ? { observations } : {}),
     ...(record?.failure ? { failure: record.failure } : {}),
     checks: (record?.checks ?? []).map((c, i) => ({
       command: c.command,
+      ...(c.label !== undefined ? { label: c.label } : {}),
       exitCode: c.exitCode,
       durationMs: c.durationMs,
+      ...(c.turn !== undefined ? { turn: c.turn } : {}),
       log: out.add(`${dir}/checks/${i + 1}.log`, checkLog(c)),
       ...(c.retries && c.tries
         ? {
@@ -1717,7 +1850,7 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
   }
   const final = await withCosts(foldCases(record))
   writeExports(final, config.exports, out)
-  return { record: final, artifacts: out.files, moves: out.moves }
+  return { record: final, artifacts: out.files, moves: out.moves, copies: out.copies }
 }
 
 /** Each attempt's transcript in the config's `exports` formats, beside it. */

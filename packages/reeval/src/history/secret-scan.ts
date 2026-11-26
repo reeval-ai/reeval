@@ -76,6 +76,40 @@ export function scanText(path: string, text: string): Finding[] {
   })
 }
 
+const utf8 = new TextDecoder('utf-8', { fatal: true })
+
+/** `bytes` as UTF-8 text, or null where they read as binary: a NUL early on, or not UTF-8. */
+export function asText(bytes: Uint8Array): string | null {
+  if (bytes.subarray(0, 8192).includes(0)) return null
+  try {
+    return utf8.decode(bytes)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * `scanText` over a file's bytes: as UTF-8 text where they are, else as UTF-16 of either byte
+ * order and byte by byte, so a secret in a UTF-16 file (a Windows-made `.env`) or among binary
+ * data is found too. A file inside a compressed one isn't looked into.
+ */
+export function scanBytes(path: string, bytes: Uint8Array): Finding[] {
+  const text = asText(bytes)
+  if (text !== null) return scanText(path, text)
+  const b = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  const even = b.subarray(0, b.length - (b.length % 2))
+  const decodings = [
+    () => even.toString('utf16le'),
+    () => Buffer.from(even).swap16().toString('utf16le'),
+    () => b.toString('latin1'),
+  ]
+  for (const decode of decodings) {
+    const found = scanText('', decode())
+    if (found.length) return found
+  }
+  return []
+}
+
 const place = (f: Finding) =>
   [f.file, f.line === null ? null : `line ${f.line}`].filter(Boolean).join(' ')
 

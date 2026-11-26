@@ -49,6 +49,10 @@ const verify = await c.exec('node verify.mjs', { env: { EXPECTED: '42' } })
   Milliseconds before each extra try (default `1000`). Not with `background: true`.
 </Property>
 
+<Property name="options.label" type="string" optional>
+  A name kept with the command's result in the attempt's `execs.jsonl`. Not with `background: true`.
+</Property>
+
 The `ExecResult` has these fields:
 
 <Property name="exitCode" type="number" required>
@@ -338,7 +342,7 @@ c.observe('deps', Object.keys(JSON.parse(pkg).dependencies))
 </Property>
 
 <Property name="value" type="JSONValue" required>
-  Any JSON, at most 4 KB and nested at most 64 levels deep, masked like the rest of the record.
+  Any JSON, nested at most 64 levels deep, masked like the rest of the record.
 </Property>
 
 ## `c.turns`

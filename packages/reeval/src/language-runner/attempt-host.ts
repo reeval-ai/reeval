@@ -104,9 +104,10 @@ async function perform(
         handles.set(handleId, handle)
         return { result: { handle: handleId } }
       }
-      const { retries, interval } = call
+      const { retries, interval, label } = call
       const result = await c.exec(call.command, {
         ...env,
+        ...(label === undefined ? {} : { label }),
         ...(retries === undefined ? {} : { retries }),
         ...(interval === undefined ? {} : { interval }),
       })

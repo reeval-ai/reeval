@@ -114,12 +114,7 @@ export class ZipWriter {
    * smaller, as for data that's compressed already; the entry's method says which it got.
    */
   async add(path: string, data: Uint8Array, method: ZipMethod = 'deflate'): Promise<ZipMethod> {
-    if (this.#finished) throw new ZipError(`can't add ${path}: the zip is finished`)
-    if (safeZipPath(path) !== path) throw new ZipError(`${path} isn't a relative path in the zip`)
-    if (this.#paths.has(path)) throw new ZipError(`${path} is in the zip already`)
-    const name = Buffer.from(path, 'utf8')
-    if (name.length > U16) throw new ZipError(`${path.slice(0, 40)}… is too long for a zip path`)
-    this.#paths.add(path)
+    const name = this.#claim(path)
     let body: Uint8Array = data
     let used: ZipMethod = 'store'
     if (method === 'deflate') {
@@ -137,24 +132,68 @@ export class ZipWriter {
       size: data.length,
       offset: this.#offset,
     }
+    await this.#write(this.#localHeader(entry))
+    await this.#write(body)
+    this.#entries.push(entry)
+    return used
+  }
+
+  /**
+   * Adds a file stored as it is, written as `chunks` arrive, so it's never held whole: `size`
+   * bytes with CRC-32 `crc`, which a first read of it gives.
+   */
+  async addStored(
+    path: string,
+    size: number,
+    crc: number,
+    chunks: AsyncIterable<Uint8Array>,
+  ): Promise<void> {
+    const name = this.#claim(path)
+    const entry: Written = {
+      name,
+      method: 'store',
+      crc,
+      compressedSize: size,
+      size,
+      offset: this.#offset,
+    }
+    await this.#write(this.#localHeader(entry))
+    let written = 0
+    for await (const chunk of chunks) {
+      written += chunk.length
+      if (written > size) break
+      await this.#write(chunk)
+    }
+    if (written !== size) throw new ZipError(`${path} changed while it was added to the zip`)
+    this.#entries.push(entry)
+  }
+
+  #claim(path: string): Buffer {
+    if (this.#finished) throw new ZipError(`can't add ${path}: the zip is finished`)
+    if (safeZipPath(path) !== path) throw new ZipError(`${path} isn't a relative path in the zip`)
+    if (this.#paths.has(path)) throw new ZipError(`${path} is in the zip already`)
+    const name = Buffer.from(path, 'utf8')
+    if (name.length > U16) throw new ZipError(`${path.slice(0, 40)}… is too long for a zip path`)
+    this.#paths.add(path)
+    return name
+  }
+
+  #localHeader(entry: Written): Buffer {
     const zip64 = this.#always || entry.size >= U32 || entry.compressedSize >= U32
     const extra = zip64 ? zip64Extra([entry.size, entry.compressedSize]) : Buffer.alloc(0)
     const header = Buffer.alloc(LOCAL_SIZE)
     header.writeUInt32LE(LOCAL, 0)
-    header.writeUInt16LE(versionNeeded(used, zip64), 4)
+    header.writeUInt16LE(versionNeeded(entry.method, zip64), 4)
     header.writeUInt16LE(UTF8, 6)
-    header.writeUInt16LE(METHOD_CODE[used], 8)
+    header.writeUInt16LE(METHOD_CODE[entry.method], 8)
     header.writeUInt16LE(this.#time.time, 10)
     header.writeUInt16LE(this.#time.date, 12)
     header.writeUInt32LE(entry.crc, 14)
     header.writeUInt32LE(zip64 ? U32 : entry.compressedSize, 18)
     header.writeUInt32LE(zip64 ? U32 : entry.size, 22)
-    header.writeUInt16LE(name.length, 26)
+    header.writeUInt16LE(entry.name.length, 26)
     header.writeUInt16LE(extra.length, 28)
-    await this.#write(Buffer.concat([header, name, extra]))
-    await this.#write(body)
-    this.#entries.push(entry)
-    return used
+    return Buffer.concat([header, entry.name, extra])
   }
 
   /** Writes the central directory and the end records; returns the zip's size in bytes. */

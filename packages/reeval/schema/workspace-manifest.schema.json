@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Generated from WorkspaceManifest in src/history/types.ts by `pnpm schema:update`; don't edit. An attempt's workspace.json, the files of its kept workspace.tar.gz, in its run's directory.",
+  "title": "WorkspaceManifest",
+  "$ref": "#/$defs/WorkspaceManifest",
+  "$defs": {
+    "WorkspaceFile": {
+      "type": "object",
+      "properties": {
+        "bytes": {
+          "description": "Its content's size; a symbolic link's target's length.",
+          "type": "number"
+        },
+        "executable": {
+          "description": "Set on a file anyone may execute.",
+          "const": true
+        },
+        "path": {
+          "description": "Relative to the workspace, with `/` separators.",
+          "type": "string"
+        },
+        "sha256": {
+          "description": "sha256 of its content as kept (masked); of a symbolic link's target.",
+          "type": "string"
+        },
+        "target": {
+          "description": "A symbolic link's target.",
+          "type": "string"
+        }
+      },
+      "required": ["bytes", "path", "sha256"]
+    },
+    "WorkspaceManifest": {
+      "description": "An attempt's `workspace.json`: each entry of its `workspace.tar.gz`, as kept.",
+      "type": "object",
+      "properties": {
+        "files": {
+          "description": "Regular files and symbolic links, sorted by path.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/WorkspaceFile"
+          }
+        },
+        "schemaVersion": {
+          "const": 1
+        }
+      },
+      "required": ["files", "schemaVersion"]
+    }
+  },
+  "x-schemaVersion": 1
+}

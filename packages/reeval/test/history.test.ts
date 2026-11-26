@@ -299,7 +299,12 @@ describe('recording runs into evals/.history', () => {
       'evidence default keeps a passing attempt diff in the archive',
     )
     assert.ok(archived.includes(`${runId}/spans.jsonl`), "archive keeps the run's trace")
-    assert.equal(archived.length, 5)
+    assert.ok(
+      archived.some((p) => p.endsWith('/workspace.tar.gz')) &&
+        archived.some((p) => p.endsWith('/workspace.json')),
+      'evidence default keeps a passing attempt kept workspace in the archive',
+    )
+    assert.equal(archived.length, 7)
     assert.equal(
       sh(p.dir, 'check-attr', 'binary', '--', `${HISTORY}/${runId}.zip`),
       `${HISTORY}/${runId}.zip: binary: set`,

@@ -8,7 +8,7 @@ import { UsageError } from '../errors.ts'
 import { MIN_FRAGMENT, redactSecrets, registerExecEnv } from '../redact.ts'
 import type { Sandbox } from '../sandbox/index.ts'
 import { clip, formatDuration } from '../text.ts'
-import type { BackgroundHandle, ExecEnv, ExecResult, ExecRetry } from '../types.ts'
+import type { BackgroundHandle, ExecEnv, ExecOptions, ExecResult } from '../types.ts'
 import type { Attempt } from './state.ts'
 
 /** Runs a check or setup step with the checks' brokered secrets swapped in (see brokerPhases). */
@@ -52,8 +52,9 @@ export function execEnv(a: Attempt, env: ExecEnv | undefined): Record<string, st
 
 /**
  * `c.exec` runs with the checks' variables and secrets and its own `env` over them, each run
- * recorded and timed, and runs again on a non-zero exit while it has `retries` left; `c.readFile`
- * reads the sandbox as is; `c.writeFile` places a file the diff leaves out.
+ * recorded and timed with its `label` and the turn it came after, and runs again on a non-zero
+ * exit while it has `retries` left; `c.readFile` reads the sandbox as is; `c.writeFile` places a
+ * file the diff leaves out.
  */
 export function createChecks(a: Attempt) {
   const execForeground = async (
@@ -61,7 +62,9 @@ export function createChecks(a: Attempt) {
     retries: number,
     interval: number,
     own: ExecEnv | undefined,
+    label: string | undefined,
   ) => {
+    const turn = a.turns.length
     const box = await sandboxFor(a, 'c.exec()')
     const env = { ...a.env?.checkVars, ...execEnv(a, own) }
     const start = performance.now()
@@ -82,7 +85,14 @@ export function createChecks(a: Attempt) {
     })
     const durationMs = Math.round(performance.now() - start)
     const retried = retries > 0 ? { retries, tries } : {}
-    a.record.checks.push({ command, ...r, durationMs, ...retried })
+    a.record.checks.push({
+      command,
+      ...(label === undefined ? {} : { label }),
+      ...r,
+      durationMs,
+      turn,
+      ...retried,
+    })
     const of = retries > 0 ? ` on try ${tries.length} of ${retries + 1}` : ''
     debugLog(
       'check',
@@ -104,7 +114,7 @@ export function createChecks(a: Attempt) {
     // Names its command in `expect(await c.exec(…)).toSucceed()`'s default label.
     return Object.defineProperty(r, SUBJECT, { value: command })
   }
-  type Options = ExecRetry & { env?: ExecEnv }
+  type Options = ExecOptions
   function exec(command: string, options?: Options & { background?: false }): Promise<ExecResult>
   function exec(
     command: string,
@@ -131,6 +141,7 @@ export function createChecks(a: Attempt) {
       options?.retries ?? 0,
       options?.interval ?? 1000,
       options?.env,
+      options?.label,
     )
     // Names its command in `expect(c.exec(…)).toSucceed()`'s default label.
     return Object.defineProperty(run, SUBJECT, { value: command })

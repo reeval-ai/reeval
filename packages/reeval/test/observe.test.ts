@@ -4,10 +4,12 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { describe, test } from 'node:test'
 import { validate } from '../scripts/schema/validate.ts'
-import { observer } from '../src/attempt/observe.ts'
+import { observedFileBytes, observer } from '../src/attempt/observe.ts'
 import type { Attempt } from '../src/attempt/state.ts'
 import { attemptInput } from '../src/compare/questions.ts'
 import { resolveQuestionState } from '../src/compare/state.ts'
+import type { AttemptRecord, FileRef } from '../src/history/types.ts'
+import { sha256 } from '../src/ids.ts'
 import type { EvalRecord } from '../src/types.ts'
 import { observedLine, observedTallies } from '../src/view/observations.ts'
 import { fakeConfig, project, readRun, runCli } from './helpers.ts'
@@ -30,6 +32,36 @@ describe('c.observe', () => {
     ])
   })
 
+  test('keeps a large value whole, masked, and counts it toward the attempt', () => {
+    const { a, observe } = attempt()
+    const big = { log: 'x'.repeat(1_000_000), token: `ghp_${'a'.repeat(36)}` }
+    observe('big', big)
+    const [kept] = a.record.observations ?? []
+    assert.deepEqual(kept?.value, { log: big.log, token: '[REDACTED]' })
+    assert.equal(observedFileBytes(a as unknown as Attempt), JSON.stringify(kept?.value).length)
+    observe('small', 1)
+    observe('big', 'short now')
+    assert.equal(
+      observedFileBytes(a as unknown as Attempt),
+      0,
+      'only the last value per name counts',
+    )
+  })
+
+  test("refuses large values past the attempt's 100 MiB", () => {
+    const { a, observe } = attempt()
+    const half = 'x'.repeat(51 * 2 ** 20)
+    observe('one', half)
+    assert.throws(
+      () => observe('two', half),
+      /c\.observe\("two"\) would keep 102\.0 MB of large observed values, over the attempt's 100\.0 MB: observe less, or a summary of it/,
+    )
+    assert.deepEqual(
+      a.record.observations?.map((o) => o.name),
+      ['one'],
+    )
+  })
+
   test('masks a secret-looking value', () => {
     const { a, observe } = attempt()
     observe('env', { token: `ghp_${'a'.repeat(36)}` })
@@ -49,10 +81,13 @@ describe('c.observe', () => {
           e.message,
         ) && !e.message.includes('ghp_'),
     )
-    assert.deepEqual(a.record.observations, [
-      { name: '[REDACTED]', value: 2, turn: 0 },
-      { name: 'count_[REDACTED]', value: 3, turn: 0 },
-    ])
+    assert.deepEqual(
+      a.record.observations?.map(({ sha256: _, ...o }) => o),
+      [
+        { name: '[REDACTED]', value: 2, turn: 0 },
+        { name: 'count_[REDACTED]', value: 3, turn: 0 },
+      ],
+    )
   })
 
   test('masks a number that is a secret', () => {
@@ -73,7 +108,6 @@ describe('c.observe', () => {
       ['n', Number.NaN, /takes JSON: NaN isn't a finite number/],
       ['n', { a: [1, undefined] }, /takes JSON: a undefined at a\[1\] isn't JSON/],
       ['n', new Date(0), /takes JSON: a Date isn't plain JSON/],
-      ['n', 'x'.repeat(5000), /takes at most 4096 bytes of JSON \(got 5002\)/],
     ]
     for (const [name, value, message] of refused) {
       assert.throws(() => observe(name, value as never), message)
@@ -135,6 +169,24 @@ describe('observed tallies', () => {
         ['deps', 'a', 'pg 1 · drizzle-orm 1 · 1 attempt'],
         ['n', 'a', 'median 4 · range 1–10 · 3 attempts'],
         ['cfg', 'a', '1 value in reeval query attempt_values · 1 attempt'],
+      ],
+    )
+  })
+
+  test('counts a value kept in a file with the untallied ones, not as null', () => {
+    const file = { path: 'evals/a/observations/1.json', sha256: 'x', bytes: 5000 }
+    const tallies = observedTallies([
+      { cell: 'a', observations: [{ name: 'log', value: null, file, turn: 1 }] },
+      { cell: 'a', observations: [{ name: 'log', value: 'short', turn: 1 }] },
+    ])
+    assert.deepEqual(
+      tallies.map((t) => [t.counts, t.others, observedLine(t)]),
+      [
+        [
+          [{ value: 'short', n: 1 }],
+          1,
+          'short 1 · 1 value in reeval query attempt_values · 2 attempts',
+        ],
       ],
     )
   })
@@ -291,6 +343,61 @@ export default defineEval({
   })
 })
 
+describe('a large observation in a run', () => {
+  let ran: Promise<{ dir: string; attempt: AttemptRecord; file: FileRef }> | undefined
+  const large = () =>
+    (ran ??= (async () => {
+      const p = await project('observe-large', {
+        'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
+import { fakeAgent } from 'reeval/agent'
+import { fakeAnalysis } from 'reeval/judge'
+import { fakeSandbox } from 'reeval/sandbox'
+export default defineConfig({
+  agents: fakeAgent(),
+  environments: defineEnvironment('fake', { sandbox: fakeSandbox() }),
+  analysis: { model: fakeAnalysis({ answer: (q) => JSON.stringify(q.attempt.observations ?? null) }) },
+})
+`,
+        'evals/a.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  questions: [{ question: 'What did it log?', observations: ['log'] }],
+  async task(c) {
+    await c.send('x')
+    c.observe('log', 'line\\n'.repeat(1200))
+  },
+})
+`,
+      })
+      const r = await runCli(p.dir)
+      assert.equal(r.code, 0, r.stdout + r.stderr)
+      const attempt = readRun(p.dir).run.evals[0]?.attempts[0]
+      const file = attempt?.observations?.[0]?.file
+      assert.ok(attempt && file, 'kept in a file')
+      return { dir: p.dir, attempt, file }
+    })())
+
+  test('a question reads it whole', async () => {
+    const { attempt } = await large()
+    // The recorded answer is capped; its start shows the question had the value, not null.
+    const text = attempt.answers?.[0]?.text ?? ''
+    const shown = JSON.stringify([{ name: 'log', value: 'line\n'.repeat(1200) }])
+    assert.ok(text.length > 100 && shown.startsWith(text.replace(/…$/, '')), text.slice(0, 60))
+  })
+
+  test('attempt_values names its file, with no value', async () => {
+    const { dir, file } = await large()
+    const q = await runCli(dir, [
+      'query',
+      'SELECT name, value, kind, text, file_path FROM attempt_values',
+      '--json',
+    ])
+    assert.equal(q.code, 0, q.stderr)
+    assert.deepEqual(JSON.parse(q.stdout), [
+      { name: 'log', value: null, kind: 'file', text: null, file_path: file.path },
+    ])
+  })
+})
+
 describe('a secret-looking observation name in a run', () => {
   test('is masked in the record, the judge state and the question, and a judge or question names it as observed', async () => {
     const token = `ghp_${'q'.repeat(36)}`
@@ -330,7 +437,9 @@ describe('a secret-looking observation name in a run', () => {
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const { run } = readRun(p.dir)
     const attempt = run.evals[0]?.attempts[0]
-    assert.deepEqual(attempt?.observations, [{ name: '[REDACTED]', value: 'kept', turn: 1 }])
+    assert.deepEqual(attempt?.observations, [
+      { name: '[REDACTED]', value: 'kept', turn: 1, sha256: sha256('"kept"') },
+    ])
     assert.deepEqual(attempt?.answers?.[0]?.stateOptions.observations, ['[REDACTED]'])
     assert.equal(
       attempt?.answers?.[0]?.text,

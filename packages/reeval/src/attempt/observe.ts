@@ -1,11 +1,11 @@
 import { OBSERVE_NAME } from '../contract/attempt.ts'
 import { UsageError } from '../errors.ts'
+import { OBSERVATION_INLINE, WORKSPACE_LIMIT } from '../history/types.ts'
 import { REDACTED, redactSecrets, redactValue } from '../redact.ts'
 import type { AttemptContext, JSONValue } from '../types.ts'
+import { formatBytes } from '../view/debug.ts'
 import type { Attempt } from './state.ts'
 
-/** The most JSON one value may serialize to, masked. */
-export const MAX_OBSERVED_BYTES = 4096
 /** The most names one attempt may observe. */
 export const MAX_OBSERVATIONS = 50
 /** The deepest a value may nest arrays and objects, so a check of it can't run out of stack. */
@@ -78,10 +78,11 @@ export const observedHere = (a: Attempt, name: string): boolean =>
   givenNames.get(a)?.get(observedName(name)) === name
 
 /**
- * `c.observe`: keeps the last value per name, masked, with the turn it came after. Two names that
- * mask to the same name are refused rather than renamed: a name is the key that tallies, compare
- * and `attempt_values` group by across attempts, and a numbered stand-in would depend on the
- * order of each attempt's calls, joining values that don't belong together.
+ * `c.observe`: keeps the last value per name, masked, with the turn it came after; the large ones
+ * together at most the attempt's 100 MiB beside its record. Two names that mask to the same name are refused rather than renamed: a name is
+ * the key that tallies, compare and `attempt_values` group by across attempts, and a numbered
+ * stand-in would depend on the order of each attempt's calls, joining values that don't belong
+ * together.
  */
 export function observer(a: Attempt): AttemptContext['observe'] {
   const raw = new Map<string, string>()
@@ -106,12 +107,6 @@ export function observer(a: Attempt): AttemptContext['observe'] {
     const problem = notJson(value, '', new Set())
     if (problem) throw new UsageError(`c.observe("${name}") takes JSON: ${problem}`)
     const masked = maskedJson(value as JSONValue)
-    const bytes = Buffer.byteLength(JSON.stringify(masked))
-    if (bytes > MAX_OBSERVED_BYTES) {
-      throw new UsageError(
-        `c.observe("${name}") takes at most ${MAX_OBSERVED_BYTES} bytes of JSON (got ${bytes}): observe a count or a summary instead`,
-      )
-    }
     a.record.observations ??= []
     const list = a.record.observations
     const same = list.find((o) => o.name === name)
@@ -120,9 +115,36 @@ export function observer(a: Attempt): AttemptContext['observe'] {
         `c.observe("${name}") is one name too many: an attempt observes at most ${MAX_OBSERVATIONS}`,
       )
     }
+    let json: string
+    try {
+      json = JSON.stringify(masked)
+    } catch (error) {
+      if (!(error instanceof RangeError)) throw error
+      throw new UsageError(`c.observe("${name}")'s value is too large to record`)
+    }
+    const bytes = Buffer.byteLength(json)
+    const sizes = largeValues.get(a) ?? new Map<string, number>()
+    largeValues.set(a, sizes)
+    if (bytes > OBSERVATION_INLINE) {
+      let total = bytes
+      for (const [other, n] of sizes) if (other !== name) total += n
+      if (total > WORKSPACE_LIMIT) {
+        throw new UsageError(
+          `c.observe("${name}") would keep ${formatBytes(total)} of large observed values, over the attempt's ${formatBytes(WORKSPACE_LIMIT)}: observe less, or a summary of it`,
+        )
+      }
+      sizes.set(name, bytes)
+    } else sizes.delete(name)
     raw.set(name, given)
     const observation = { name, value: masked, turn: a.turns.length }
     if (same) Object.assign(same, observation)
     else list.push(observation)
   }
 }
+
+/** Each attempt's observed values over `OBSERVATION_INLINE`, by name: their masked JSON's size. */
+const largeValues = new WeakMap<Attempt, Map<string, number>>()
+
+/** How much of the attempt's 100 MiB beside its record its large observed values take. */
+export const observedFileBytes = (a: Attempt): number =>
+  [...(largeValues.get(a)?.values() ?? [])].reduce((n, b) => n + b, 0)
