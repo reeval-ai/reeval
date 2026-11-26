@@ -1,4 +1,5 @@
 import { setTimeout as sleep } from 'node:timers/promises'
+import { GatewayError } from '@ai-sdk/gateway'
 import { APICallError, RetryError } from 'ai'
 import type { JudgeRetry } from '../history/types.ts'
 
@@ -46,13 +47,13 @@ export function isTransient(error: unknown): boolean {
 }
 
 /**
- * The provider failed the call, so another attempt may get the answer: an API call the AI SDK
- * marks retryable (a 5xx, 408, 409, 429 or a network error), also inside its `RetryError`. Never a
- * refusal, a malformed answer or another 4xx.
+ * The provider failed the call, so another attempt may get the answer: an API call, or a Vercel AI
+ * Gateway call, the AI SDK marks retryable (a 5xx, 408, 409, 429 or a network error), also inside
+ * its `RetryError`. Never a refusal, a malformed answer or another 4xx.
  */
 export function isOutage(error: unknown): boolean {
   if (RetryError.isInstance(error)) return isOutage(error.lastError)
-  return APICallError.isInstance(error) && error.isRetryable
+  return (APICallError.isInstance(error) || GatewayError.isInstance(error)) && error.isRetryable
 }
 
 function retryAfterMs(error: unknown): number {

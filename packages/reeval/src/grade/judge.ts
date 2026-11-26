@@ -25,6 +25,7 @@ import { resolveStateOptions } from '../judge/state-options.ts'
 import { isObjectLike } from '../object.ts'
 import { redactSecrets, redactValue } from '../redact.ts'
 import { InfraError } from '../sandbox/types.ts'
+import { clip } from '../text.ts'
 import type {
   Case,
   GradeReads,
@@ -492,7 +493,7 @@ export async function runJudgeGrader(
   if (down >= 0) {
     const { reason } = settled[down] as PromiseRejectedResult
     throw new InfraError(
-      `The judge's provider failed ${who} on ${names[down]}: ${redactSecrets(reason.message)}`,
+      `The judge's provider failed ${who} on ${names[down]}: ${clip(redactSecrets(reason.message), 2000)}`,
       { transient: true },
     )
   }

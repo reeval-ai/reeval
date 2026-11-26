@@ -139,6 +139,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "4.0.95",
+    "@ai-sdk/gateway": "4.0.134",
     "@ai-sdk/google": "4.0.110",
     "@ai-sdk/google-vertex": "5.0.130",
     "@ai-sdk/harness": "1.0.172",

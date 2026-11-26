@@ -2,11 +2,14 @@
 // masking), their grades and scores over one or several models, and their fingerprints.
 import assert from 'node:assert/strict'
 import { mkdirSync, writeFileSync } from 'node:fs'
+import { createServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { join, relative, sep } from 'node:path'
 import { describe, test } from 'node:test'
 import { gzipSync } from 'node:zlib'
 import { writeTar } from '@reeval/sandbox-docker'
 import { APICallError, Experimental_DecisionRefusalError, RetryError } from 'ai'
+import { vercelDecisionModel } from '../src/gateway/vercel-models.ts'
 import type { GradeInputs } from '../src/grade/context.ts'
 import { defineGrader, type GraderDef, graderDef } from '../src/grade/define.ts'
 import { judge } from '../src/grade/judge-grader.ts'
@@ -277,6 +280,59 @@ describe("a judge grader's failed call", () => {
       )
     })
   }
+
+  test("is the attempt's infra error for Vercel AI Gateway's 5xx, and the grade's for its 400", async () => {
+    const server = createServer((req, res) => {
+      req.resume().on('end', () => {
+        const status = req.headers.authorization === 'Bearer bad-request' ? 400 : 503
+        res.writeHead(status, { 'content-type': 'application/json' })
+        res.end(
+          JSON.stringify({ error: { message: `status ${status}`, type: 'internal_server_error' } }),
+        )
+      })
+    })
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    const retryMs = process.env.REEVAL_TEST_JUDGE_RETRY_MS
+    process.env.REEVAL_TEST_JUDGE_RETRY_MS = '1'
+    const on = (apiKey: string) =>
+      vercelDecisionModel('typesafe-ai/jev-1.14.0', {
+        baseURL: `http://127.0.0.1:${(server.address() as AddressInfo).port}/v1/ai`,
+        apiKey,
+      }) as JudgeModel
+    try {
+      await assert.rejects(
+        grade(judge('Q?', { name: 'q', inputs: { output: true } }), attempt({}, on('down')).inputs),
+        (e: Error) =>
+          e instanceof InfraError &&
+          /^The judge's provider failed judge grader q on gateway\/typesafe-ai\/jev-1\.14\.0: /.test(
+            e.message,
+          ),
+      )
+      const r = await grade(
+        judge('Q?', { inputs: { output: true } }),
+        attempt({}, on('bad-request')).inputs,
+      )
+      assert.equal(r.score, 0)
+      assert.match(r.error ?? '', /status 400/)
+    } finally {
+      if (retryMs === undefined) delete process.env.REEVAL_TEST_JUDGE_RETRY_MS
+      else process.env.REEVAL_TEST_JUDGE_RETRY_MS = retryMs
+      server.close()
+    }
+  })
+
+  test('clips a long provider message, as a grade error is', async () => {
+    const long = new APICallError({
+      message: 'x'.repeat(10_000),
+      url,
+      requestBodyValues: {},
+      statusCode: 502,
+    })
+    await assert.rejects(
+      grade(judge('Q?', { name: 'q', inputs: { output: true } }), failing(long)),
+      (e: Error) => e instanceof InfraError && e.message.length < 2200,
+    )
+  })
 
   test("is the attempt's infra error when the judge times out", async () => {
     const { inputs } = attempt({}, 'openai/gpt-6')
