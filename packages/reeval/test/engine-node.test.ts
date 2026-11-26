@@ -146,12 +146,13 @@ describe('runEngine: collecting and the plan', () => {
   test('two eval files whose ids differ only in case are refused before collection', async () => {
     const root = tempDir('shared-ids')
     mkdirSync(join(root, 'evals'), { recursive: true })
+    // Two suffixes, so the files are two on a case-insensitive file system too.
     writeFileSync(join(root, 'evals/Foo.eval.ts'), '')
-    writeFileSync(join(root, 'evals/foo.eval.ts'), '')
+    writeFileSync(join(root, 'evals/foo.eval.mts'), '')
     const run = {
       config: {
         root,
-        include: ['evals/**/*.eval.ts'],
+        include: ['evals/**/*.eval.ts', 'evals/**/*.eval.mts'],
         history: { dir: join(root, 'evals/.history') },
       },
       stagingDir: join(root, '.reeval/staging/x'),
@@ -163,7 +164,7 @@ describe('runEngine: collecting and the plan', () => {
         assert.equal(e.name, 'UsageError')
         assert.match(
           e.message,
-          /evals\/Foo\.eval\.ts \(id Foo\) and evals\/foo\.eval\.ts \(id foo\) have one eval id when case is ignored/,
+          /evals\/Foo\.eval\.ts \(id Foo\) and evals\/foo\.eval\.mts \(id foo\) have one eval id when case is ignored/,
         )
         return true
       },
