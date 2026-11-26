@@ -3,17 +3,17 @@ title: "Query past runs"
 description: "Answer questions about recorded runs with read-only SQL."
 ---
 
-Use the `reeval history` and `reeval query` commands when you want to know how an evaluation did across recorded runs. The examples are two recorded runs of a Vercel AI SDK evaluation. For more information about recording a run, see [Recording](/evaluations/runs/recording).
+Use the `reeval history` and `reeval query` commands when you want to know how a task did across recorded runs. The examples are two recorded runs of a Vercel AI SDK task. For more information about recording a run, see [Recording](/evaluations/runs/recording).
 
 ## Browse history
 
-The `reeval history` command lists the recorded runs, oldest to newest. Each evaluation gets one strip. List the recorded runs:
+The `reeval history` command lists the recorded runs, oldest to newest. Each task gets one strip. List the recorded runs:
 
 ```bash
 npx reeval history
 ```
 
-Each mark in a strip is one run. The fraction is the runs the evaluation passed over the runs that counted:
+Each mark in a strip is one run. The fraction is the runs the task passed over the runs that counted:
 
 ```text
   ✓✓    2/2  evals/ai-sdk.eval.ts › streams model text with Vercel AI SDK
@@ -22,7 +22,7 @@ Each mark in a strip is one run. The fraction is the runs the evaluation passed 
 ✓ pass  ✗ fail  ! infra error  ↓ skipped  ○ ran  · not run  ¦ eval or stack changed
 ```
 
-To narrow the list, pass part of an evaluation's name as a filter, such as `npx reeval history stream`. The `--limit` flag sets how many runs the strips cover. The `--all` flag adds the runs in the `.reeval/runs` directory that you have not recorded.
+To narrow the list, pass part of a task's name as a filter, such as `npx reeval history stream`. The `--limit` flag sets how many runs the strips cover. The `--all` flag adds the runs in the `.reeval/runs` directory that you have not recorded.
 
 ## Run a view
 
@@ -36,7 +36,7 @@ Pass `--json` to print the rows as JSON. To list every view and table with its c
 
 ## Write SQL
 
-The `reeval query` command takes one `SELECT` statement in quotes. Count each evaluation's outcomes across runs from the `eval_trend` view:
+The `reeval query` command takes one `SELECT` statement in quotes. Count each task's outcomes across runs from the `eval_trend` view:
 
 ```bash
 npx reeval query "SELECT eval_key, outcome, COUNT(*) AS n
@@ -55,14 +55,14 @@ The database is read-only. The `reeval query` command runs one statement at a ti
 
 ## Read one run
 
-The `--run` flag binds a run id to the `:run` parameter in the statement. Pass `last` to bind the newest run. Read the last run's evaluations:
+The `--run` flag binds a run id to the `:run` parameter in the statement. Pass `last` to bind the newest run. Read the last run's tasks:
 
 ```bash
 npx reeval query "SELECT name, outcome FROM evals
   WHERE run_id = :run" --run last
 ```
 
-The statement prints one row for each evaluation in that run:
+The statement prints one row for each task in that run:
 
 ```text
 name                                        outcome
@@ -72,4 +72,4 @@ streams model text with Vercel AI SDK       pass
 
 With a view or table name instead of a statement, such as `npx reeval query evals --run last`, the `--run` flag keeps that run's rows only.
 
-For a runnable project, see [`with-query`](https://github.com/reeval-ai/reeval/tree/main/examples/with-query). For more information about every flag, see [`reeval history`](/reference/cli#reeval-history) and [`reeval query`](/reference/cli#reeval-query). For more information about following an evaluation's trend from a recording profile onward, see [Track results](/evaluations/recipes/track-past-runs).
+For a runnable project, see [`with-query`](https://github.com/reeval-ai/reeval/tree/main/examples/with-query). For more information about every flag, see [`reeval history`](/reference/cli#reeval-history) and [`reeval query`](/reference/cli#reeval-query). For more information about following a task's trend from a recording profile onward, see [Track results](/recipes/track-past-runs).

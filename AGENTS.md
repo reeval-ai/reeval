@@ -606,5 +606,5 @@ trajectories, the studio and the record) is in the user docs under [`docs/`](./d
 |---|---|
 | [Guide](./docs/overview.mdx) | Learning reeval in order, from a first eval to CI and analysis |
 | [Glossary](./docs/reference/glossary.mdx) | The words for a run and what a result reports |
-| [Recipes](./docs/evaluations/recipes) | Complete solutions to common tasks |
+| [Recipes](./docs/recipes) | Complete solutions to common tasks |
 | [Reference](./docs/reference) | Every option, helper, command, flag, exit code and file format |

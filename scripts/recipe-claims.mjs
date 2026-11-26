@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const FILE = 'docs/evaluations/recipes/compare-harnesses.mdx'
+const FILE = 'docs/recipes/compare-harnesses.mdx'
 
 /** The text outside code fences, with the frontmatter description kept as a sentence. */
 const prose = (text) =>
@@ -41,6 +41,6 @@ export function agentComparisonProblems(text, file = FILE) {
 
 export function recipeProblems(docsDir) {
   return agentComparisonProblems(
-    readFileSync(join(docsDir, 'evaluations/recipes/compare-harnesses.mdx'), 'utf8'),
+    readFileSync(join(docsDir, 'recipes/compare-harnesses.mdx'), 'utf8'),
   )
 }

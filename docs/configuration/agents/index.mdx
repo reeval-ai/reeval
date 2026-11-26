@@ -1,15 +1,15 @@
 ---
 title: "Choose an agent"
-description: "Choose the harness and model that each evaluation runs on."
+description: "Choose the agent harness and model that each task runs on."
 ---
 
-Set the `agents` option to a harness factory with a `model` to choose an agent. For the definition, see [Agent](/reference/glossary#agent) in the Glossary.
+Set the `agents` option to an agent harness factory with a `model` to choose an agent. For the definition, see [Agent](/reference/glossary#agent) in the Glossary.
 
 For more information about installing reeval, see [Quick start](/getting-started/quickstart).
 
 ## Choose an agent
 
-In the `reeval.config.ts` file, pass one factory from the `{{ pkg }}/agent` module. With no `agents` option, the default harness is Cursor. Each harness is its own cell.
+In the `reeval.config.ts` file, pass one factory from the `{{ pkg }}/agent` module. With no `agents` option, the default agent harness is Cursor. Each agent harness is its own cell.
 
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
@@ -20,7 +20,7 @@ export default defineConfig({
 })
 ```
 
-For more information about setting `model` and `effort`, see [Set the agent's model](/configuration/agents/model). For more information about running one evaluation on several harnesses, see [Compare harnesses](/evaluations/recipes/compare-harnesses).
+For more information about setting `model` and `effort`, see [Set the agent's model](/configuration/agents/model). For more information about running one task on several agent harnesses, see [Compare agent harnesses](/recipes/compare-harnesses).
 
 ## Set the harness options
 
@@ -45,7 +45,7 @@ export default defineConfig({
 
 For each option's type and default, see [Common agents options](/reference/options#common-harness-options).
 
-## Pick a harness
+## Pick an agent harness
 
 Each factory comes from the `{{ pkg }}/agent` module.
 
@@ -59,4 +59,4 @@ Each factory comes from the `{{ pkg }}/agent` module.
 - [fx](/configuration/agents/fx): `fx()`
 - [Grok Build](/configuration/agents/grok-build): `grokBuild()`
 
-For more information about each harness's keys, rules and skills paths, MCP servers, token usage, served models, and web events, see [Harness behavior](/reference/options#harness-behavior).
+For more information about each agent harness's keys, rules and skills paths, MCP servers, token usage, served models, and web events, see [Agent harness behavior](/reference/options#harness-behavior).

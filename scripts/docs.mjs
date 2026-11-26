@@ -437,13 +437,22 @@ async function blocks() {
 // ---- Files ---------------------------------------------------------------------------------
 
 function mdxFiles(dir = docsDir) {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-    e.isDirectory()
-      ? mdxFiles(join(dir, e.name))
-      : e.name.endsWith('.mdx')
-        ? [join(dir, e.name)]
-        : [],
-  )
+  // The local preview server does not follow a redirect. It resolves a tab root
+  // only when a file is there. These symlinks are that file, not a second page.
+  const previewAliases = new Set([
+    join(docsDir, 'index.mdx'),
+    join(docsDir, 'reference/index.mdx'),
+    join(docsDir, 'recipes/index.mdx'),
+  ])
+  return readdirSync(dir, { withFileTypes: true })
+    .flatMap((e) =>
+      e.isDirectory()
+        ? mdxFiles(join(dir, e.name))
+        : e.name.endsWith('.mdx')
+          ? [join(dir, e.name)]
+          : [],
+    )
+    .filter((file) => !previewAliases.has(file))
 }
 
 const generated = await blocks()
@@ -766,7 +775,7 @@ for (const { code } of exitCodes()) {
 // links it and still teaches all four steps is a second home for them.
 const CI_WORKFLOW_STEPS = [/\bprofile\b/, /\bsecrets?\b/, /\breeval run\b/, /\bcompare\b/i]
 for (const file of mdxFiles()) {
-  if (!relative(docsDir, file).startsWith('evaluations/recipes/')) continue
+  if (!relative(docsDir, file).startsWith('recipes/')) continue
   const prose = read(file).replace(/^---\n[\s\S]*?\n---\n/, '')
   if (
     /\]\(\/evaluations\/runs\/ci[)#]/.test(prose) &&
@@ -783,14 +792,14 @@ for (const file of mdxFiles()) {
 // passing or failing job is a second copy of the rule, on the recipe or beside CI's prose.
 const hasGateDecisionTable = (text) => /^\|[^\n]*`regressed`[^\n]*\|[^\n]*\bFails\b/m.test(text)
 {
-  const recipe = page('evaluations/recipes/gate-pull-requests')
+  const recipe = page('recipes/gate-pull-requests')
   const linksRule = /\]\(\/(evaluations\/runs\/ci|results\/compare\/past-runs)[)#]/.test(recipe)
   if (
     hasGateDecisionTable(recipe) &&
     (linksRule || hasGateDecisionTable(page('evaluations/runs/ci')))
   ) {
     problems.push(
-      'docs/evaluations/recipes/gate-pull-requests.mdx has the regression decision table and also links /evaluations/runs/ci or /results/compare/past-runs: link the rule instead of repeating it',
+      'docs/recipes/gate-pull-requests.mdx has the regression decision table and also links /evaluations/runs/ci or /results/compare/past-runs: link the rule instead of repeating it',
     )
   }
 }

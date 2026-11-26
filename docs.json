@@ -38,9 +38,30 @@
       "href": "https://www.npmjs.com/package/reeval"
     }
   ],
+  "tabs": [
+    {
+      "id": "documentation",
+      "title": "Documentation",
+      "href": "/overview"
+    },
+    {
+      "id": "recipes",
+      "title": "Recipes",
+      "href": "/recipes"
+    },
+    {
+      "id": "reference",
+      "title": "Reference",
+      "href": "/reference"
+    }
+  ],
   "redirects": {
     "/": "/overview",
     "/reference/matchers": "/evaluations/grading/assertions",
+    "/getting-started/the-space": "/overview",
+    "/getting-started/how-you-use-it": "/overview",
+    "/getting-started/works-with": "/configuration/agents",
+    "/competitors/harbor-and-hurdle": "/competitors/harbor",
     "/evals/evaluate": "/evaluations/evaluate",
     "/evals/turns": "/evaluations/task/turns",
     "/evals/checks": "/evaluations/grading/assertions",
@@ -113,24 +134,24 @@
     "/guide/secrets-and-egress": "/configuration/environments/secrets",
     "/guide/studio": "/results/inspection/studio",
     "/guide/writing-evals": "/evaluations/evaluate",
-    "/recipes": "/evaluations/recipes/measure-a-skill",
     "/recipes/agent-mcp": "/reference/history-mcp-server",
     "/recipes/capturing-ui": "/evaluations/task/apps",
-    "/recipes/case-study-dogfood": "/evaluations/recipes/measure-a-skill",
-    "/recipes/compare-agents": "/evaluations/recipes/compare-harnesses",
+    "/recipes/case-study-dogfood": "/recipes/measure-a-skill",
+    "/recipes/compare-agents": "/recipes/compare-harnesses",
     "/recipes/eval-each": "/evaluations/task/cases",
     "/recipes/eval-for": "/evaluations/task/cases",
     "/recipes/existing-codebase": "/configuration/environments/repositories",
     "/recipes/fake-harness": "/reference/options",
-    "/recipes/github-pr-gate": "/evaluations/recipes/gate-pull-requests",
-    "/recipes/mcp-server": "/evaluations/recipes/measure-mcp-servers",
+    "/recipes/github-pr-gate": "/recipes/gate-pull-requests",
+    "/recipes/mcp-server": "/recipes/measure-mcp-servers",
     "/recipes/nightly-pages": "/evaluations/runs/ci",
     "/recipes/offline": "/configuration/agents",
     "/recipes/pr-lift": "/results/compare/lift",
-    "/recipes/skill-lift": "/evaluations/recipes/measure-a-skill",
+    "/recipes/skill-lift": "/recipes/measure-a-skill",
     "/recipes/toolchains": "/configuration/environments/toolchains",
     "/recipes/vertex": "/configuration/gateways/vertex-ai",
-    "/reference": "/reference/authoring-api",
+    "/reference": "/reference/glossary",
+    "/recipes": "/recipes/measure-a-skill",
     "/reference/agent-skills": "/configuration/environments/skills",
     "/reference/cli/analyze": "/reference/cli",
     "/reference/cli/doctor": "/reference/cli",
@@ -179,16 +200,16 @@
     "/runs/profiles": "/evaluations/runs/profiles",
     "/runs/recording": "/evaluations/runs/recording",
     "/runs/ci": "/evaluations/runs/ci",
-    "/recipes/skill-comparison": "/evaluations/recipes/measure-a-skill",
-    "/recipes/docs-comparison": "/evaluations/recipes/measure-your-docs",
-    "/recipes/mcp-comparison": "/evaluations/recipes/measure-mcp-servers",
-    "/recipes/sdk": "/evaluations/recipes/test-an-sdk",
-    "/recipes/cli": "/evaluations/recipes/test-a-cli",
-    "/recipes/recommendation": "/evaluations/recipes/test-recommendations",
-    "/recipes/app-check": "/evaluations/recipes/judge-an-app",
-    "/recipes/agent-comparison": "/evaluations/recipes/compare-harnesses",
-    "/recipes/ci-gate": "/evaluations/recipes/gate-pull-requests",
-    "/recipes/results-over-time": "/evaluations/recipes/track-past-runs",
+    "/recipes/skill-comparison": "/recipes/measure-a-skill",
+    "/recipes/docs-comparison": "/recipes/measure-your-docs",
+    "/recipes/mcp-comparison": "/recipes/measure-mcp-servers",
+    "/recipes/sdk": "/recipes/test-an-sdk",
+    "/recipes/cli": "/recipes/test-a-cli",
+    "/recipes/recommendation": "/recipes/test-recommendations",
+    "/recipes/app-check": "/recipes/judge-an-app",
+    "/recipes/agent-comparison": "/recipes/compare-harnesses",
+    "/recipes/ci-gate": "/recipes/gate-pull-requests",
+    "/recipes/results-over-time": "/recipes/track-past-runs",
     "/agents/gateways": "/configuration/gateways",
     "/integrations/gateways/direct": "/configuration/gateways/direct",
     "/integrations/gateways/vercel": "/configuration/gateways/vercel-ai-gateway",
@@ -229,11 +250,28 @@
     "/reference/record": "/reference/run-record",
     "/reference/query": "/reference/query-views",
     "/reference/mcp-tools": "/reference/history-mcp-server",
-    "/results/compare/statistics": "/reference/statistics"
+    "/results/compare/statistics": "/reference/statistics",
+    "/guides": "/recipes/measure-a-skill",
+    "/guides/which-is-better": "/recipes/measure-a-skill",
+    "/guides/can-agents-do-this": "/recipes/test-an-sdk",
+    "/guides/do-agents-find-it": "/recipes/test-recommendations",
+    "/guides/did-it-get-worse": "/recipes/track-past-runs",
+    "/evaluations/recipes/measure-a-skill": "/recipes/measure-a-skill",
+    "/evaluations/recipes/measure-your-docs": "/recipes/measure-your-docs",
+    "/evaluations/recipes/measure-mcp-servers": "/recipes/measure-mcp-servers",
+    "/evaluations/recipes/test-an-sdk": "/recipes/test-an-sdk",
+    "/evaluations/recipes/test-a-cli": "/recipes/test-a-cli",
+    "/evaluations/recipes/test-recommendations": "/recipes/test-recommendations",
+    "/evaluations/recipes/judge-an-app": "/recipes/judge-an-app",
+    "/evaluations/recipes/compare-harnesses": "/recipes/compare-harnesses",
+    "/evaluations/recipes/gate-pull-requests": "/recipes/gate-pull-requests",
+    "/evaluations/recipes/track-past-runs": "/recipes/track-past-runs",
+    "/evaluations/recipes": "/recipes/measure-a-skill"
   },
   "sidebar": [
     {
       "group": "Getting started",
+      "tab": "documentation",
       "pages": [
         {
           "title": "Overview",
@@ -246,7 +284,54 @@
       ]
     },
     {
+      "group": "Recipes",
+      "tab": "recipes",
+      "pages": [
+        {
+          "title": "Measure a skill",
+          "href": "/recipes/measure-a-skill"
+        },
+        {
+          "title": "Measure your docs",
+          "href": "/recipes/measure-your-docs"
+        },
+        {
+          "title": "Measure MCP servers",
+          "href": "/recipes/measure-mcp-servers"
+        },
+        {
+          "title": "Test an SDK",
+          "href": "/recipes/test-an-sdk"
+        },
+        {
+          "title": "Test a CLI",
+          "href": "/recipes/test-a-cli"
+        },
+        {
+          "title": "Test recommendations",
+          "href": "/recipes/test-recommendations"
+        },
+        {
+          "title": "Judge an app",
+          "href": "/recipes/judge-an-app"
+        },
+        {
+          "title": "Compare harnesses",
+          "href": "/recipes/compare-harnesses"
+        },
+        {
+          "title": "Gate pull requests",
+          "href": "/recipes/gate-pull-requests"
+        },
+        {
+          "title": "Track past runs",
+          "href": "/recipes/track-past-runs"
+        }
+      ]
+    },
+    {
       "group": "Evaluations",
+      "tab": "documentation",
       "pages": [
         {
           "title": "Evaluate",
@@ -298,6 +383,10 @@
               "href": "/evaluations/runs/running"
             },
             {
+              "title": "Hosted",
+              "href": "/getting-started/cloud"
+            },
+            {
               "title": "Profiles",
               "href": "/evaluations/runs/profiles"
             },
@@ -310,83 +399,20 @@
               "href": "/evaluations/runs/ci"
             }
           ]
-        },
-        {
-          "group": "Recipes",
-          "pages": [
-            {
-              "title": "Measure a skill",
-              "href": "/evaluations/recipes/measure-a-skill"
-            },
-            {
-              "title": "Measure your docs",
-              "href": "/evaluations/recipes/measure-your-docs"
-            },
-            {
-              "title": "Measure MCP servers",
-              "href": "/evaluations/recipes/measure-mcp-servers"
-            },
-            {
-              "title": "Test an SDK",
-              "href": "/evaluations/recipes/test-an-sdk"
-            },
-            {
-              "title": "Test a CLI",
-              "href": "/evaluations/recipes/test-a-cli"
-            },
-            {
-              "title": "Test recommendations",
-              "href": "/evaluations/recipes/test-recommendations"
-            },
-            {
-              "title": "Judge an app",
-              "href": "/evaluations/recipes/judge-an-app"
-            },
-            {
-              "title": "Compare harnesses",
-              "href": "/evaluations/recipes/compare-harnesses"
-            },
-            {
-              "title": "Gate pull requests",
-              "href": "/evaluations/recipes/gate-pull-requests"
-            },
-            {
-              "title": "Track past runs",
-              "href": "/evaluations/recipes/track-past-runs"
-            }
-          ]
         }
       ]
     },
     {
       "group": "Configuration",
+      "tab": "documentation",
       "pages": [
         {
-          "group": "Gateways",
-          "href": "/configuration/gateways",
-          "pages": [
-            {
-              "title": "Direct",
-              "href": "/configuration/gateways/direct"
-            },
-            {
-              "title": "Vercel AI Gateway",
-              "href": "/configuration/gateways/vercel-ai-gateway"
-            },
-            {
-              "title": "OpenRouter",
-              "href": "/configuration/gateways/openrouter"
-            },
-            {
-              "title": "Vertex AI",
-              "href": "/configuration/gateways/vertex-ai"
-            }
-          ]
-        },
-        {
           "group": "Agents",
-          "href": "/configuration/agents",
           "pages": [
+            {
+              "title": "Overview",
+              "href": "/configuration/agents"
+            },
             {
               "title": "Model",
               "href": "/configuration/agents/model"
@@ -430,31 +456,12 @@
           ]
         },
         {
-          "group": "Sandboxes",
-          "href": "/configuration/sandboxes",
-          "pages": [
-            {
-              "title": "Docker",
-              "href": "/configuration/sandboxes/docker"
-            },
-            {
-              "title": "Podman",
-              "href": "/configuration/sandboxes/podman"
-            },
-            {
-              "title": "Tart",
-              "href": "/configuration/sandboxes/tart"
-            },
-            {
-              "title": "Boat",
-              "href": "/configuration/sandboxes/boat"
-            }
-          ]
-        },
-        {
           "group": "Environments",
-          "href": "/configuration/environments",
           "pages": [
+            {
+              "title": "Overview",
+              "href": "/configuration/environments"
+            },
             {
               "title": "Files",
               "href": "/configuration/environments/files"
@@ -492,11 +499,62 @@
               "href": "/configuration/environments/egress"
             }
           ]
+        },
+        {
+          "group": "Sandboxes",
+          "pages": [
+            {
+              "title": "Overview",
+              "href": "/configuration/sandboxes"
+            },
+            {
+              "title": "Docker",
+              "href": "/configuration/sandboxes/docker"
+            },
+            {
+              "title": "Podman",
+              "href": "/configuration/sandboxes/podman"
+            },
+            {
+              "title": "Tart",
+              "href": "/configuration/sandboxes/tart"
+            },
+            {
+              "title": "Boat",
+              "href": "/configuration/sandboxes/boat"
+            }
+          ]
+        },
+        {
+          "group": "Gateways",
+          "pages": [
+            {
+              "title": "Overview",
+              "href": "/configuration/gateways"
+            },
+            {
+              "title": "Direct",
+              "href": "/configuration/gateways/direct"
+            },
+            {
+              "title": "Vercel AI Gateway",
+              "href": "/configuration/gateways/vercel-ai-gateway"
+            },
+            {
+              "title": "OpenRouter",
+              "href": "/configuration/gateways/openrouter"
+            },
+            {
+              "title": "Vertex AI",
+              "href": "/configuration/gateways/vertex-ai"
+            }
+          ]
         }
       ]
     },
     {
       "group": "Results",
+      "tab": "documentation",
       "pages": [
         {
           "title": "Run output",
@@ -547,63 +605,78 @@
       ]
     },
     {
+      "tab": "documentation",
       "pages": [
         {
-          "group": "Reference",
+          "group": "Competitors",
           "pages": [
             {
-              "title": "Authoring API",
-              "href": "/reference/authoring-api"
+              "title": "Harbor",
+              "href": "/competitors/harbor"
             },
             {
-              "title": "Attempt context",
-              "href": "/reference/attempt-context"
-            },
-            {
-              "title": "Options",
-              "href": "/reference/options"
-            },
-            {
-              "title": "Environment helpers",
-              "href": "/reference/environment-helpers"
-            },
-            {
-              "title": "Configuration",
-              "href": "/reference/configuration"
-            },
-            {
-              "title": "Profiles",
-              "href": "/reference/profiles"
-            },
-            {
-              "title": "CLI",
-              "href": "/reference/cli"
-            },
-            {
-              "title": "Environment variables",
-              "href": "/reference/environment-variables"
-            },
-            {
-              "title": "Run record",
-              "href": "/reference/run-record"
-            },
-            {
-              "title": "Query views",
-              "href": "/reference/query-views"
-            },
-            {
-              "title": "History MCP server",
-              "href": "/reference/history-mcp-server"
-            },
-            {
-              "title": "Statistics",
-              "href": "/reference/statistics"
-            },
-            {
-              "title": "Glossary",
-              "href": "/reference/glossary"
+              "title": "Hurdle",
+              "href": "/competitors/hurdle"
             }
           ]
+        }
+      ]
+    },
+    {
+      "group": "Reference",
+      "tab": "reference",
+      "pages": [
+        {
+          "title": "Glossary",
+          "href": "/reference/glossary"
+        },
+        {
+          "title": "Authoring API",
+          "href": "/reference/authoring-api"
+        },
+        {
+          "title": "Attempt context",
+          "href": "/reference/attempt-context"
+        },
+        {
+          "title": "Options",
+          "href": "/reference/options"
+        },
+        {
+          "title": "Environment helpers",
+          "href": "/reference/environment-helpers"
+        },
+        {
+          "title": "Configuration",
+          "href": "/reference/configuration"
+        },
+        {
+          "title": "Profiles",
+          "href": "/reference/profiles"
+        },
+        {
+          "title": "CLI",
+          "href": "/reference/cli"
+        },
+        {
+          "title": "Environment variables",
+          "href": "/reference/environment-variables"
+        },
+        {
+          "title": "Run record",
+          "href": "/reference/run-record"
+        },
+        {
+          "title": "Query views",
+          "href": "/reference/query-views"
+        },
+        {
+          "title": "History MCP server",
+          "href": "/reference/history-mcp-server"
+        },
+        {
+          "title": "Statistics",
+          "href": "/reference/statistics"
         }
       ]
     }

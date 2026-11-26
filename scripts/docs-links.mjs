@@ -38,7 +38,17 @@ export const LEGACY_PATHS = [
  * Getting started group does not prefix it. Run output keeps its address while its
  * title is open to change.
  */
-export const TITLE_EXCEPTIONS = { Overview: '/overview', 'Run output': '/results/output' }
+export const TITLE_EXCEPTIONS = {
+  Overview: '/overview',
+  // Each primitive accordion's first page is the overview. The page keeps its configuration path.
+  'Configuration / Agents / Overview': '/configuration/agents',
+  'Configuration / Environments / Overview': '/configuration/environments',
+  'Configuration / Sandboxes / Overview': '/configuration/sandboxes',
+  'Configuration / Gateways / Overview': '/configuration/gateways',
+  'Run output': '/results/output',
+  // Runs lists this as Hosted. The command on the page is reeval run --cloud.
+  Hosted: '/getting-started/cloud',
+}
 
 const SKIPPED = /^(?:\.git|node_modules)\//
 
@@ -76,21 +86,30 @@ export function slug(title) {
  */
 export function titleProblems(config) {
   const problems = []
-  const walk = (items, chain) => {
+  const walk = (items, titles, slugs) => {
     for (const item of items) {
       const name = item.title ?? item.group
       if (item.href && name) {
-        const expected = TITLE_EXCEPTIONS[name] ?? `/${[...chain, slug(name)].join('/')}`
+        const qualified = [...titles, name].join(' / ')
+        const natural = `/${[...slugs, slug(name)].join('/')}`
+        // A chain-qualified key wins, so a nested "Overview" can keep its own path.
+        const expected = TITLE_EXCEPTIONS[qualified] ?? TITLE_EXCEPTIONS[name] ?? natural
         if (item.href !== expected) {
           problems.push(
             `docs.json: "${name}" is at ${item.href}, but its title makes it ${expected}: move the page, update its links and redirect the old path`,
           )
         }
       }
-      if (item.pages) walk(item.pages, item.group ? [...chain, slug(item.group)] : chain)
+      if (item.pages) {
+        walk(
+          item.pages,
+          item.group ? [...titles, item.group] : titles,
+          item.group ? [...slugs, slug(item.group)] : slugs,
+        )
+      }
     }
   }
-  walk(config.sidebar, [])
+  walk(config.sidebar, [], [])
   return problems
 }
 

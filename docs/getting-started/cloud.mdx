@@ -1,0 +1,42 @@
+---
+title: "Hosted"
+description: "Run the trials somewhere other than this machine, then read the result in the studio."
+---
+
+Hosted runs the trials somewhere other than this machine. Sign in, link the project, set the agent's key, then start a run:
+
+```bash
+npx reeval login
+npx reeval link
+npx reeval cloud secrets set CURSOR_API_KEY --host api2.cursor.sh --host cursor.sh --host '*.cursor.sh'
+npx reeval run --cloud
+```
+
+The org below shows units, what is running, and recent runs. Add `--download` to open the run in the [studio](/results/inspection/studio) on this machine.
+
+`reeval login` opens a page, you approve the code, and the token stays on this machine. The run uploads the project and the terminal follows it. A plan the platform can't run, `tart()` or files a bundle can't carry, stays on this machine: the command says so and runs it here. `reeval link` chooses which cloud project receives it. With no link, the run uses the platform's default project. The agent's key is not in `.env.local`. The secret command above is Cursor, the default agent harness. Its value comes from the hidden prompt, or from stdin, and `reeval cloud secrets` needs the project `reeval link` just wrote.
+
+The [quick start](/getting-started/quickstart) has Claude Code's command. Each other agent harness page has its own.
+
+A model grader, a question, or a `c.capture()` instruction during that run reads `reeval cloud provider`. `reeval analyze` on this machine reads its model key from `.env.local`.
+
+## The org overview
+
+[cloud.reeval.ai](https://cloud.reeval.ai) opens on the org. These are the panels on that page:
+
+| Panel | What it shows |
+|---|---|
+| Units this period | Units used in the current period, and how many are in flight. |
+| Running now | Trials running, against how many can run at once. |
+| Burn rate | Units a day this period, and where the last week's rate ends. |
+| Trial health | The share of trials that ended in an infra error. Units the platform's own faults left unbilled are listed apart. |
+| Recent runs | The org's latest runs, with status, who started them, duration, and result. |
+| Projects | Units this period by project. |
+
+The sidebar also lists Projects, Capacity, Studio, and Settings. On this machine, [`reeval studio`](/results/inspection/studio) reads the runs you downloaded. A cloud run appears there after `reeval run --cloud --download`.
+
+## Next
+
+<Card title="Studio" href="/results/inspection/studio">
+  Read the run: the pass counts, and the statistical lift when the eval has one.
+</Card>

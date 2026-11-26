@@ -1,0 +1,22 @@
+---
+title: "Hurdle"
+description: "How reeval differs from Hurdle."
+---
+
+[Hurdle](https://www.together.ai/blog/introducing-hurdle-run-agent-evals-on-your-api-skills-and-docs) runs Claude Code and Codex on tasks for an API, a skill, or docs. A local run starts the agent on your machine, as you, with your keys, and cannot see or block its requests. A sandboxed run uses a Together sandbox with no network of its own. A local proxy, Guardian, swaps the real key into the `Authorization` header.
+
+## Hurdle
+
+| | reeval | Hurdle |
+|---|---|---|
+| Agents | Claude Code, Codex, and Cursor, among the agent harnesses on [Agents](/configuration/agents) | Claude Code and Codex |
+| Where it runs | A fresh sandbox per trial. Docker is the default, and `boat()` or `daytona()` can host it. [`reeval run --cloud`](/getting-started/cloud) runs the trials on the reeval cloud. | On your machine, or in a Together sandbox |
+| Keys | On this machine the key is in `.env.local`. On the cloud it is `reeval cloud secrets`. The sandbox sees a stand-in. | A local run uses your real keys. Guardian swaps the real key into `Authorization` for a Together sandbox. |
+| A blocked call | [Egress](/configuration/environments/egress) can refuse a host. A blocked request never fails the trial on its own. The graders decide. | A guard fails the run when it blocks a call. A local run cannot block calls. |
+| What you read | Pass counts, and the [statistical lift](/reference/glossary#statistical-lift) between a baseline and a variant | Pass rate, average duration, and average cost, by task and condition |
+
+## Next
+
+<Card title="Harbor" href="/competitors/harbor">
+  How reeval differs from Harbor.
+</Card>
