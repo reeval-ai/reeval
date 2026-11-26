@@ -11,7 +11,10 @@ export default defineEval({
   tags: ['mcp'],
   task: async (c) => {
     const turn = await c.send(prompts.mcp)
-    assert.ok(((await c.readFile(MCP_LOG)) ?? '').includes('tools/call'))
+    assert.ok(
+      ((await c.readFile(MCP_LOG)) ?? '').includes('tools/call'),
+      'the MCP server logged a tools/call',
+    )
     assert.ok(toolNames(turn).includes('mcp__stamp__house_stamp'))
   },
 })

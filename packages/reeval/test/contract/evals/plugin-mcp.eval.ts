@@ -10,7 +10,10 @@ export default defineEval({
   tags: ['plugin'],
   task: async (c) => {
     const turn = await c.send(prompts.pluginMcp)
-    assert.ok(((await c.readFile(MCP_LOG)) ?? '').includes('tools/call'))
+    assert.ok(
+      ((await c.readFile(MCP_LOG)) ?? '').includes('tools/call'),
+      'the MCP server logged a tools/call',
+    )
     assert.notDeepEqual(
       toolNames(turn).filter((t) => /^mcp__.*stamp__house_stamp$/.test(t)),
       [],

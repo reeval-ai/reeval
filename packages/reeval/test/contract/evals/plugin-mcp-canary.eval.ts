@@ -11,6 +11,9 @@ export default defineEval({
   agents: withFakePlugin,
   tags: ['plugin'],
   task: async (c) => {
-    assert.ok(((await c.readFile(MCP_LOG)) ?? '').includes('tools/call'))
+    assert.ok(
+      ((await c.readFile(MCP_LOG)) ?? '').includes('tools/call'),
+      'the MCP server logged a tools/call',
+    )
   },
 })

@@ -294,7 +294,7 @@ export const behaviors: Behavior[] = [
         assert.equal(evalsNamed(ran.run, /^mcp/).length, 0, 'the MCP evals were left out')
         return 'refused at plan time'
       }
-      const a = checkAndCanary(ran, row, 'mcp', 'stamped', /includes\('tools\/call'\)/)
+      const a = checkAndCanary(ran, row, 'mcp', 'stamped', /the MCP server logged a tools\/call/)
       const env = ran.run.environments.find((e) => e.name === 'stamped')
       assert.deepEqual(env?.mcp, ['stamp'])
       // reeval's timer saw every start of the server answer initialize.
@@ -645,7 +645,13 @@ export const behaviors: Behavior[] = [
         readFileSync(join(testDir, 'contract/stamp.mjs'), 'utf8'),
         "the probe plugin's stamp.mjs is a copy of the contract's",
       )
-      const a = checkAndCanary(ran, row, 'plugin-mcp', 'plugged', /includes\('tools\/call'\)/)
+      const a = checkAndCanary(
+        ran,
+        row,
+        'plugin-mcp',
+        'plugged',
+        /the MCP server logged a tools\/call/,
+      )
       const env = ran.run.environments.find((e) => e.name === 'plugged')
       assert.deepEqual(env?.plugins?.[0]?.parts.mcp, ['stamp'])
       assert.ok(env?.mcp.includes('probe:stamp'), JSON.stringify(env?.mcp))
