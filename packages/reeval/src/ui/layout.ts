@@ -355,8 +355,8 @@ function effortTable(
       cells: [
         'effort',
         t('tools', c.dim),
-        ...(llmCalls ? [t('LLM calls', c.dim)] : []),
         t('time', c.dim),
+        ...(llmCalls ? [t('LLM calls', c.dim)] : []),
         ...(tokens ? [t('tokens', c.dim)] : []),
         ...(waiting ? [t('waiting', c.dim)] : []),
       ],
@@ -366,8 +366,8 @@ function effortTable(
       cells: [
         label(x),
         n(x.effort?.tools, formatCount),
-        ...(llmCalls ? [n(x.effort?.llmCalls, formatCount)] : []),
         n(x.effort?.agentMs, formatSeconds),
+        ...(llmCalls ? [n(x.effort?.llmCalls, formatCount)] : []),
         ...(tokens ? [n(x.effort?.tokens, formatTokens)] : []),
         ...(waiting ? [n(x.effort?.waitingMs, formatSeconds)] : []),
       ],

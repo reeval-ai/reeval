@@ -438,7 +438,7 @@ export function llmCalls(turns: EvalRecord['turns'], stepPerCall: boolean): numb
   if (calls.some((c) => c.stream)) return null
   if (calls.length) return calls.filter((c) => c.role !== 'side').length
   if (!stepPerCall) return null
-  const steps = turns.map((t) => Math.max(0, ...t.transcript.map((e) => e.step ?? 0)))
+  const steps = turns.map((t) => t.transcript.reduce((n, e) => Math.max(n, e.step ?? 0), 0))
   return steps.some((n) => n > 0) ? steps.reduce((n, s) => n + s, 0) : null
 }
 

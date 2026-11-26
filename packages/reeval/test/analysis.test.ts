@@ -537,7 +537,7 @@ describe('effort next to lift', () => {
     assert.deepEqual(c.variant.llmCalls, { median: 6, q1: 5.75, q3: 6.25 })
     assert.equal(
       effortLabel(c),
-      'tools 5 vs 45 (×0.11), LLM calls 6 vs 12 (×0.50), agent 20s vs 45s (×0.44): fewer tool calls (p = 0.029)',
+      'tools 5 vs 45 (×0.11), agent 20s vs 45s (×0.44), LLM calls 6 vs 12 (×0.50): fewer tool calls (p = 0.029)',
     )
     const uncounted = contrastEffort(
       [4, 5, 5, 6].map((tools) => ({ ...sample(tools), llmCalls: tools + 1 })),

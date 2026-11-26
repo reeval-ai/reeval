@@ -345,11 +345,7 @@ export function effortLabel(c: EffortContrast): string {
   const parts = [tools, time]
   if (c.variant.llmCalls && c.control.llmCalls) {
     const [vl, cl] = [c.variant.llmCalls.median, c.control.llmCalls.median]
-    parts.splice(
-      1,
-      0,
-      `LLM calls ${formatCount(vl)} vs ${formatCount(cl)} (${formatRatio(ratio(vl, cl))})`,
-    )
+    parts.push(`LLM calls ${formatCount(vl)} vs ${formatCount(cl)} (${formatRatio(ratio(vl, cl))})`)
   }
   if (c.tokensVerdict !== null && c.variant.tokens && c.control.tokens) {
     parts.push(
@@ -373,8 +369,8 @@ export const effortSummary = (
 ) =>
   [
     `tools ${formatCount(e.tools.median)}`,
-    ...(e.llmCalls ? [`LLM calls ${formatCount(e.llmCalls.median)}`] : []),
     `agent ${formatSeconds(e.agentMs.median)}`,
+    ...(e.llmCalls ? [`LLM calls ${formatCount(e.llmCalls.median)}`] : []),
     ...(e.tokens ? [`tokens ${formatTokens(e.tokens.median)}`] : []),
     ...(e.usd ? [`cost ${formatUsd(e.usd.median)}`] : []),
   ].join(' · ')
