@@ -8,6 +8,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  readlinkSync,
   statSync,
   truncateSync,
   writeFileSync,
@@ -1747,6 +1748,17 @@ export default defineEval({
     process.platform === 'linux' && spawnSync('script', ['--version']).status === 0
       ? false
       : "needs util-linux's script to give reeval attach a terminal"
+  /** Whether the terminal `script` gave its command is out of canonical mode, as Ink's key input puts it. */
+  const readsKeys = (script: number | undefined) => {
+    try {
+      const [child] = readFileSync(`/proc/${script}/task/${script}/children`, 'utf8').split(' ')
+      const tty = readlinkSync(`/proc/${child}/fd/0`)
+      const stty = spawnSync('stty', ['-a', '-F', tty], { encoding: 'utf8' })
+      return /(^|\s)-icanon(\s|$)/.test(stty.stdout)
+    } catch {
+      return false
+    }
+  }
   test('on a terminal, reeval run follows its run in the background, and Ctrl-D leaves it going', {
     skip: pty || noSignals,
   }, async () => {
@@ -1762,12 +1774,24 @@ export default defineEval({
     )
     let shown = ''
     viewer.stdout.on('data', (d) => (shown += d))
-    const viewed = new Promise<number | null>((resolve) => viewer.on('close', resolve))
+    let code: number | null | undefined
+    viewer.on('close', (c) => (code = c))
+    const waits = async (what: string, ready: () => boolean) => {
+      for (let i = 0; i < 400 && !ready(); i++) await sleep(25)
+      assert.ok(
+        ready(),
+        `timed out waiting until ${what}; the terminal showed:\n${stripAnsi(shown)}`,
+      )
+    }
     try {
-      for (let i = 0; i < 400 && !stripAnsi(shown).includes('ctrl-d detach'); i++) await sleep(25)
-      assert.match(stripAnsi(shown), /q cancel · ctrl-d detach/)
+      // Ink draws the list before it puts the terminal in raw mode, and a Ctrl-D the terminal
+      // reads before then is its end of file, which never reaches the list.
+      await waits('the list reads keys', () => {
+        return stripAnsi(shown).includes('q cancel · ctrl-d detach') && readsKeys(viewer.pid)
+      })
       viewer.stdin.write('\u0004')
-      assert.equal(await viewed, 0, stripAnsi(shown))
+      await waits('the viewer exits', () => code !== undefined)
+      assert.equal(code, 0, stripAnsi(shown))
       const id = /Detached from run (\S+); it goes on\./.exec(stripAnsi(shown))?.[1] ?? ''
       assert.ok(id, stripAnsi(shown))
       const attaching = runCli(p.dir, ['attach', id])
@@ -1779,6 +1803,7 @@ export default defineEval({
       assert.ok(existsSync(join(p.dir, '.reeval', 'events', `${id}.log`)), "a detached run's log")
     } finally {
       viewer.kill()
+      writeFileSync(join(p.dir, 'go'), '')
     }
   })
 
