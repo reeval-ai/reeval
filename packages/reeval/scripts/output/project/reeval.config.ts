@@ -1,6 +1,6 @@
-// The project behind the output goldens' `with-layouts` corpus entry: one file per layout (results,
-// measure a change, compare harnesses, both, a family and a family with a change), on the fake
-// harness and sandbox, so it records with no keys.
+// The project behind the output goldens' `with-targets` corpus entry: one file per layout (results
+// against each target, measure a change, compare harnesses, both, a family and a family with a
+// change), on the fake harness and sandbox, so it records with no keys.
 import { defineConfig } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'

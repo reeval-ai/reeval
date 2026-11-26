@@ -16,12 +16,14 @@ import type {
   UpstreamCount,
 } from '../history/types.ts'
 import { COMPARE_RUNS } from '../stats.ts'
-import type { AttemptFailure, ErrorKind, Outcome } from '../types.ts'
+import { blocks, DEFAULT_TARGET } from '../target.ts'
+import type { AttemptFailure, ErrorKind, Outcome, Target } from '../types.ts'
 import { cellEffort } from './effort.ts'
 import { caseLabel } from './family.ts'
+import { targetCells } from './gate.ts'
 import { checksByLabel, checkTries, labeledJudgments } from './judgments.ts'
 import { cellMeasures, familyMeasures, type Measure } from './measures.ts'
-import { attemptAnswerRows, isNotGatedPass, notRunYet, runOutcome } from './model.ts'
+import { attemptAnswerRows, notRunYet, runOutcome } from './model.ts'
 import { type ObservedTally, observedTallies } from './observations.ts'
 
 /**
@@ -70,19 +72,23 @@ export type SuiteResult = {
    */
   errors: string[]
   /**
-   * Outcomes counted per eval, an eval with `cases` once. `errors` counts the run's `errors`, and
-   * `notGated` the passes whose cells are all `gate: 'none'` (studies), which `pass` leaves out.
+   * Each eval against its target, an eval with `cases` once. `errors` counts the run's `errors`.
    */
   tally: SuiteTally
   /** Sorted by path. */
   files: ResultFile[]
 }
 
+/**
+ * `onTarget` and `below` count the evals whose target blocks, `reportOnly` those whose target
+ * doesn't; an eval that didn't count an attempt is an infra error, canceled or skipped instead.
+ */
 export type SuiteTally = {
   errors: number
-  pass: number
-  notGated: number
-  fail: number
+  evals: number
+  onTarget: number
+  below: number
+  reportOnly: number
   infraError: number
   canceled: number
   skipped: number
@@ -137,6 +143,48 @@ export type EvalResult = {
   questions: Array<QuestionResult | AttemptQuestionResult>
   /** Each name its attempts observed with `c.observe`, tallied per cell; with cases, over every case. */
   observations: ObservedTally[]
+  /** What decides `outcome`. */
+  target: Target
+  /** Whether a miss of its target fails the run. */
+  blocking: boolean
+  /**
+   * The mean score over its target's cells' counted attempts (with cases, the mean of the cases'),
+   * which a `metric` target is judged on; null when none counted.
+   */
+  meanScore: number | null
+  /** Its target's cells' attempts (the variants on a compare, else every cell), case by case. */
+  scored: ScoredAttempt[]
+}
+
+/** One attempt of an eval's target cells, with what cost it points. */
+export type ScoredAttempt = {
+  /** Its case's key; null on an eval without `cases`. */
+  case: string | null
+  cell: string
+  n: number
+  outcome: Outcome
+  /** In [0, 1]; null when it didn't count (an infra error, a cancel, skipped). */
+  score: number | null
+  /** Its scored graders that scored under 1 or errored, in the eval's order. */
+  lost: LostGrade[]
+  /** The checks it failed, each with its message and where its `expect` is. */
+  failedChecks: Array<{ label: string; message: string | null; at: string | null }>
+  /** What the task threw. */
+  failure: AttemptFailure | null
+  /**
+   * The error it ended on, when nothing else says why: a timeout, a cancel, an infra error, or a
+   * failure no check recorded. Null when the task threw (`failure`) or a check failed.
+   */
+  error: { kind: ErrorKind; message: string } | null
+}
+
+export type LostGrade = {
+  grader: string
+  kind: 'code' | 'judge' | 'builtin'
+  /** In [0, 1]; 0 when it errored. */
+  score: number
+  required: boolean
+  error: string | null
 }
 
 /** A pairwise question: each side's wins over the pairs the model decided. Never gates. */
@@ -735,20 +783,69 @@ function worst(outcomes: ResultOutcome[]): ResultOutcome {
 export const isStudy = (cells: readonly Pick<CellResult, 'gated'>[]): boolean =>
   cells.length > 0 && cells.every((c) => !c.gated)
 
-/**
- * A study's pass: every cell `gate: 'none'`, or on a family every case's with no pooled `minLift`
- * or `passRate` gating it, so it reads `ran`, never `pass`.
- */
-export const isNotGatedResult = (
-  e: Pick<EvalResult, 'outcome' | 'cells' | 'cases' | 'pooled' | 'rates'>,
-): boolean =>
-  e.outcome === 'pass' &&
-  (e.cases
-    ? e.cases.length > 0 &&
-      e.cases.every((k) => isStudy(k.cells)) &&
-      (e.pooled ?? []).every((p) => p.minLift === null) &&
-      !e.rates?.length
-    : isStudy(e.cells ?? []))
+/** The scored graders an attempt lost points on: a score under 1, or an error. */
+function lostOf(a: AttemptRecord): LostGrade[] {
+  return (a.grades ?? []).flatMap((g) =>
+    g.weight > 0 && (g.error !== undefined || (g.score !== null && g.score < 1))
+      ? [
+          {
+            grader: g.grader,
+            kind: g.kind,
+            score: g.score ?? 0,
+            required: g.required,
+            error: g.error ?? null,
+          },
+        ]
+      : [],
+  )
+}
+
+/** The eval's target and its target cells' attempts, from its folded entry. */
+function targetOf(
+  e: EvalEntry | undefined,
+): Pick<EvalResult, 'target' | 'blocking' | 'meanScore' | 'scored'> {
+  const target = e?.target ?? DEFAULT_TARGET
+  const cells = new Set(targetCells(e?.cells ?? []).map((c) => c.key))
+  const order = new Map((e?.cases ?? []).map((k, i) => [k.key, i]))
+  const scored = (e?.attempts ?? [])
+    .filter((a) => cells.has(a.cell) && a.outcome !== 'skipped')
+    .map((a): ScoredAttempt => {
+      const failedChecks = (a.assertions ?? [])
+        .filter((x) => x.status === 'fail' || x.status === 'error')
+        .map((x) => ({
+          label: x.label,
+          message:
+            x.message ?? (a.error?.message.startsWith(`${x.label}: `) ? a.error.message : null),
+          at: x.at ?? null,
+        }))
+      const shown =
+        a.error &&
+        !a.failure &&
+        (!failedChecks.length || (a.error.kind !== 'assertion' && a.error.kind !== 'judge'))
+      return {
+        case: a.case ?? null,
+        cell: a.cell,
+        n: a.n,
+        outcome: a.outcome,
+        score:
+          counted(a) && a.error?.kind !== 'aborted'
+            ? (a.score ?? (a.outcome === 'pass' ? 1 : 0))
+            : null,
+        lost: lostOf(a),
+        failedChecks,
+        failure: a.failure ?? null,
+        error:
+          shown && a.error ? { kind: a.error.kind, message: messageLine(a.error.message) } : null,
+      }
+    })
+    .sort((x, y) => (order.get(x.case ?? '') ?? 0) - (order.get(y.case ?? '') ?? 0))
+  return {
+    target,
+    blocking: blocks(target),
+    meanScore: e?.scores?.meanScore ?? null,
+    scored,
+  }
+}
 
 /** The record's outcome, or `canceled` when every gated attempt that failed was canceled. */
 function outcomeOf(e: EvalEntry): ResultOutcome {
@@ -813,6 +910,7 @@ function familyResult(
   family: FamilyRecord,
   cases: EvalEntry[],
   order: number,
+  folded: EvalEntry | undefined,
 ): EvalResult {
   const path = factSegment(family.id)
   const sorted = [...cases].sort((a, b) => (a.family?.case ?? 0) - (b.family?.case ?? 0))
@@ -871,6 +969,7 @@ function familyResult(
     ),
     questions: familyQuestions(sorted),
     observations: observedTallies(sorted.flatMap((k) => k.attempts)),
+    ...targetOf(folded),
   }
 }
 
@@ -894,7 +993,18 @@ function evalResult(record: RunRecord, e: EvalEntry, order: number): EvalResult 
     rates: null,
     questions: questionsOf(e),
     observations: observedTallies(e.attempts),
+    ...targetOf(e),
   }
+}
+
+/** Where an eval counts in the tally. */
+export function tallyKey(
+  e: Pick<EvalResult, 'outcome' | 'blocking'>,
+): Exclude<keyof SuiteTally, 'errors' | 'evals'> {
+  if (e.outcome === 'infra_error') return 'infraError'
+  if (e.outcome === 'canceled' || e.outcome === 'skipped') return e.outcome
+  if (!e.blocking) return 'reportOnly'
+  return e.outcome === 'pass' ? 'onTarget' : 'below'
 }
 
 /** The facts of a run, from its record. Pure: the same record always gives the same result. */
@@ -906,18 +1016,18 @@ export function suiteResult(folded: RunRecord): SuiteResult {
   const errors = record.errors ?? []
   const tally: SuiteTally = {
     errors: errors.length,
-    pass: 0,
-    notGated: 0,
-    fail: 0,
+    evals: 0,
+    onTarget: 0,
+    below: 0,
+    reportOnly: 0,
     infraError: 0,
     canceled: 0,
     skipped: 0,
   }
+  const byId = new Map(folded.evals.map((e) => [e.id, e]))
   const count = (result: EvalResult) => {
-    const o = result.outcome
-    if (o === 'infra_error') tally.infraError++
-    else if (o === 'pass' && isNotGatedResult(result)) tally.notGated++
-    else tally[o]++
+    tally[tallyKey(result)]++
+    tally.evals++
   }
   for (const e of record.evals) {
     const evals = byFile.get(e.file) ?? []
@@ -932,7 +1042,7 @@ export function suiteResult(folded: RunRecord): SuiteResult {
     if (seen.has(family.id)) continue
     seen.add(family.id)
     const cases = record.evals.filter((x) => x.family?.id === family.id)
-    const result = familyResult(record, family, cases, evals.length)
+    const result = familyResult(record, family, cases, evals.length, byId.get(family.id))
     count(result)
     evals.push(result)
   }

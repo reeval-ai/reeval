@@ -6,9 +6,10 @@
     "errors": [],
     "tally": {
       "errors": 0,
-      "pass": 1,
-      "notGated": 0,
-      "fail": 0,
+      "evals": 1,
+      "onTarget": 1,
+      "below": 0,
+      "reportOnly": 0,
       "infraError": 0,
       "canceled": 0,
       "skipped": 0
@@ -238,7 +239,92 @@
             "pooled": null,
             "rates": null,
             "questions": [],
-            "observations": []
+            "observations": [],
+            "target": {
+              "kind": "regression",
+              "threshold": 1
+            },
+            "blocking": true,
+            "meanScore": 1,
+            "scored": [
+              {
+                "case": null,
+                "cell": "cursor:composer-2.5/-/docker",
+                "n": 1,
+                "outcome": "pass",
+                "score": 1,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": null
+              },
+              {
+                "case": null,
+                "cell": "claude-code:claude-sonnet-5/-/docker",
+                "n": 1,
+                "outcome": "pass",
+                "score": 1,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": null
+              },
+              {
+                "case": null,
+                "cell": "antigravity:gemini-3.8-flash-medium/-/docker",
+                "n": 1,
+                "outcome": "pass",
+                "score": 1,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": null
+              },
+              {
+                "case": null,
+                "cell": "opencode:gemini-3.8-flash/-/docker",
+                "n": 1,
+                "outcome": "pass",
+                "score": 1,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": null
+              },
+              {
+                "case": null,
+                "cell": "goose:gemini-3.8-flash/-/docker",
+                "n": 1,
+                "outcome": "pass",
+                "score": 1,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": null
+              },
+              {
+                "case": null,
+                "cell": "pi:gemini-3.8-flash/-/docker",
+                "n": 1,
+                "outcome": "pass",
+                "score": 1,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": null
+              },
+              {
+                "case": null,
+                "cell": "codex:gpt-5.4-mini/-/docker",
+                "n": 1,
+                "outcome": "pass",
+                "score": 1,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": null
+              }
+            ]
           }
         ]
       }

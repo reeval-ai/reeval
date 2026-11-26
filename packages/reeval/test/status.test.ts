@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { evalRow } from '../src/ui/status.ts'
+import { scorePercent } from '../src/view/report/format.ts'
 import { suiteResult } from '../src/view/suite.ts'
 import { fakeConfig, project, readRun, runCli } from './helpers.ts'
 import { copyOut } from './support/examples.ts'
@@ -75,45 +76,39 @@ const listOf = (stdout: string) => {
 }
 
 const PLAIN = `evals/colors.eval.ts
-└─ ✗ colors  1 of 3 runs passed · 3 cases
-     Failed on red, blue; 1 of 3 cases passed.
-       case   fake
-     ✗ red    0 of 1
-     ✓ green  1 of 1
-     ✗ blue   0 of 1
-     ✗ is green  failed on red, blue
+└─ ✗ colors  1/3 runs at 100%, worst 0%  regression(1)
+     #red   0%  "is green" failed
        expected 'red' to be 'green' // Object.is equality · evals/colors.eval.ts:6
+     #blue  0%  "is green" failed
+       expected 'blue' to be 'green' // Object.is equality · evals/colors.eval.ts:6
 
 evals/compares.eval.ts
-└─ ✓ compares  1 of 1 variant run passed
-     The marked variant helped.
-     arm              passed  verdict
-     plain (control)  0 of 1
+└─ ✓ compares  1/1 run at 100%  regression(1)
+     arm              pass
+     plain            0 of 1
      marked           1 of 1  helped
-     ✗ uses the marker  failed on the control · expected
-       expected false to be true // Object.is equality · evals/compares.eval.ts:8
+     check            plain   marked
+     uses the marker  0 of 1  1 of 1
+       expected false to be true // Object.is equality
      Worth knowing: 1 run per side; set runs: 4 at evals/compares.eval.ts to confirm this difference.
 
 evals/passes.eval.ts
-└─ ✓ passes  1 of 1 run passed
+└─ ✓ passes  1/1 run at 100%  regression(1)
 
 evals/throws.eval.ts
-└─ ✗ throws  0 of 1 run passed
-     Failed on fake.
-     ✗ 1 run failed
-       the fixture is missing
-         after turn 1
-         at task (evals/throws.eval.ts:5:11)
+└─ ✗ throws  0/1 run at 100%  regression(1)
+     #1  0%  the fixture is missing
+       after turn 1
+       at task (evals/throws.eval.ts:5:11)
 
 evals/two-checks-fail.eval.ts
-└─ ✗ two-checks-fail  0 of 2 runs passed
-     Failed on fake every time.
-     ✗ first check   failed 1 of 1 run
+└─ ✗ two-checks-fail  0% < 50%  metric(0.5)
+     #1  0%  "first check" failed
        expected 1 to be 2 // Object.is equality · evals/two-checks-fail.eval.ts:7
-     ✗ second check  failed 1 of 1 run
+     #2  0%  "second check" failed
        expected 'a' to be 'b' // Object.is equality · evals/two-checks-fail.eval.ts:8
 
-Done in <time> · 3 failed · 2 passed`
+Done in <time> · 5 evals · 2 on target · 3 below`
 
 test('the status list: one line a pass, and a sentence for each way an eval went', async () => {
   const p = await project('status-list', {
@@ -165,8 +160,18 @@ test('a compare whose effort holds prints its comparison, which every reader sha
   const list = listOf(run.stdout)
   assert.match(
     list,
-    /^ {5}arm {14}passed {2}verdict {2}vs control\n {5}plain \(control\) {2}4 of 4\n {5}marked {11}4 of 4 {2}same {5}[4-6](\.\d)?× faster$/m,
+    /^ {5}arm +pass +vs control\n {5}plain +4 of 4\n {5}marked +4 of 4 {2}same {2}[4-6](\.\d)?× faster\n {5}effort +tools +time\n {5}plain +0 +([\d.]+)s\n {5}marked +0 +([\d.]+)s$/m,
   )
+  const [, slow = '0', fast = '0'] =
+    /plain +0 +([\d.]+)s\n {5}marked +0 +([\d.]+)s$/m.exec(list) ?? []
+  assert.ok(Number(fast) * 3 < Number(slow), list)
+  const show = await runCli(p.dir, ['show', /Run: +(\S+)/.exec(run.stdout)?.[1] ?? ''])
+  assert.equal(show.code, 0, show.stderr)
+  const arms = list
+    .split('\n')
+    .filter((l) => l.startsWith('     '))
+    .map((l) => l.trim())
+  assert.ok(arms.length > 0 && arms.every((l) => show.stdout.includes(l)), show.stdout)
   assert.doesNotMatch(list, /Worth knowing|can't tell them apart|looks different/)
   const rows = await runCli(p.dir, ['query', 'measure_effects', '--json'])
   assert.equal(rows.code, 0, rows.stderr)
@@ -258,11 +263,11 @@ test('with-effort at runs: 3, too few for a rank test, still names its speedup',
     /^ {5}Worth knowing: 3 runs per side; set runs: \d+ at with-effort\.eval\.ts(?::\d+)? to rule out a difference\. So far, \S+ (.+ and )?runs [\d.]+× faster\.$/m,
   )
   const verbose = await runCli(dir, ['run', '--ui', 'plain', '-v'], { timeoutMs: 300_000 })
-  assert.match(verbose.stdout, /^ {5}\S+ +3 of 3 {2}same +(.+ · )?[\d.]+× faster \(leans\)/m)
+  assert.match(verbose.stdout, /^ {5}\S+ +3 of 3 {2}same {2}(.+ · )?[\d.]+× faster \(leans\)/m)
   assert.doesNotMatch(verbose.stdout, /\blooks [\d.]+×/, 'a lean is marked after it, not before')
 })
 
-test("a compare's control line names the harnesses when they disagree, with or without variants", async () => {
+test("a compare on two harnesses reads each harness's arms, so a disagreement shows, with or without variants", async () => {
   const p = await project('status-control-disagrees', {
     'reeval.config.ts': `import { defineConfig } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
@@ -292,12 +297,12 @@ export default defineEval({
   const text = (row: { detail: { text: string }[] }) => row.detail.map((d) => d.text).join('\n')
   assert.match(
     text(evalRow(run, e, [])),
-    /^plain \(control\) {2}1 of 2 \(left 1 of 1, right 0 of 1\)$/m,
+    /^left\n {2}arm +pass\n {2}plain +1 of 1\n {2}marked +1 of 1 {2}same\nright\n {2}arm +pass\n {2}plain +0 of 1\n {2}marked +0 of 1 {2}same$/m,
   )
   const alone = { ...e, cells: e.cells.filter((c) => c.variant === null) }
   assert.match(
     text(evalRow(run, alone, [])),
-    /^Control plain passed 1 of 2 \(left 1 of 1, right 0 of 1\)\.$/m,
+    /^left\n {2}arm +pass\n {2}plain +1 of 1\nright\n {2}arm +pass\n {2}plain +0 of 1$/m,
   )
 })
 
@@ -344,4 +349,70 @@ export default defineEval({
     variant ?? '',
     /helped +judge "tidy" \+0\.97 \(leans\) · "builds" \+100 pts \(leans\)$/,
   )
+})
+
+const AT = (target: string) => `import { capability, defineEval, metric, regression } from 'reeval'
+import { near } from './graders.ts'
+export default defineEval({
+  cases: [{ key: 'a' }, { key: 'b' }],
+  runs: 2,
+  target: ${target},
+  graders: [near],
+  task: async (c) => void (await c.send('go')),
+})
+`
+
+const NEAR_LIST = `evals/capability.eval.ts
+└─ ✗ capability  0/2 cases hit ≥ 80% (pass@2)  capability(0.8, { blocking: true })
+     #a  79%  near 79%
+     #b  79%  near 79%
+
+evals/floor.eval.ts
+└─ ✗ floor  0% < 0%  metric(0.001)
+     #1  0%  zero 0%
+
+evals/metric.eval.ts
+└─ ✗ metric  79% < 80%  metric(0.8)
+     #a  79%  near 79%
+     #b  79%  near 79%
+
+evals/regression.eval.ts
+└─ ✗ regression  0/4 runs ≥ 80%, worst 79%  regression(0.8)
+     #a  79%  near 79%
+     #b  79%  near 79%
+
+Done in <time> · 4 evals · 4 below`
+
+test('a score just under its target never reads as reaching it, on a row, a grader or the worst run, nor below 0%', async () => {
+  assert.equal(scorePercent(0.799, 0.8), '79%')
+  assert.equal(scorePercent(0.799), '80%', 'canary: without the threshold it rounds up')
+  assert.equal(scorePercent(0, 0.001), '0%')
+  const p = await project('status-near-target', {
+    'reeval.config.ts': fakeConfig(),
+    'evals/graders.ts': `import { defineGrader } from 'reeval'
+export const near = defineGrader('near', { grade: () => 1, score: () => 0.799 })
+export const zero = defineGrader('zero', { grade: () => 1, score: () => 0 })
+`,
+    'evals/regression.eval.ts': AT('regression(0.8)'),
+    'evals/capability.eval.ts': AT('capability(0.8, { blocking: true })'),
+    'evals/metric.eval.ts': AT('metric(0.8)'),
+    'evals/floor.eval.ts': `import { defineEval, metric } from 'reeval'
+import { zero } from './graders.ts'
+export default defineEval({
+  target: metric(0.001),
+  graders: [zero],
+  task: async (c) => void (await c.send('go')),
+})
+`,
+  })
+  const run = await runCli(p.dir, ['run', '--ui', 'plain'])
+  assert.equal(run.code, 1, run.stdout + run.stderr)
+  assert.equal(listOf(run.stdout), NEAR_LIST)
+  const show = await runCli(p.dir, ['show'])
+  assert.doesNotMatch(show.stdout, /^ {4}#.*\b80%|-1%/m, show.stdout)
+  assert.equal(show.stdout.match(/^ {4}#[ab] {2}79% {2}near 79%$/gm)?.length, 6, show.stdout)
+  assert.match(show.stdout, /^✗ regression +0\/4 runs ≥ 80%, worst 79% +regression\(0\.8\)$/m)
+  // With no earlier run every eval is new, counted against its target as the run counts it.
+  const compare = await runCli(p.dir, ['compare'])
+  assert.match(compare.stdout, /^4 new evals \(4 below\)$/m, compare.stdout)
 })

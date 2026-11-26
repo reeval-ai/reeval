@@ -1,24 +1,11 @@
-                 greets %s in the house style
-  pass  Ada
-    arm            pass
-    plain          0 of 1
-    with-skill     1 of 1
-  pass  Grace
-    arm            pass
-    plain          0 of 1
-    with-skill     1 of 1
-  pass  Linus
-    arm            pass
-    plain          0 of 1
-    with-skill     1 of 1
-  pass  Edsger
-    arm            pass
-    plain          0 of 1
-    with-skill     1 of 1
-  pass  all cases
-    arm            pass
-    plain          0 of 4
-    with-skill     4 of 4  helped
-      with-skill: 4 paired cases, 95% interval +31…+100
+· greets-in-the-house-style-2  4/4 cases hit 100% (pass@1)  capability(1)
+    #Ada     100%
+    #Grace   100%
+    #Linus   100%
+    #Edsger  100%
+  arm              pass            vs control
+  plain            0 of 4
+  with-skill       4 of 4  helped  "house greeting" +100 pts
+    paired over 4 cases, 95% interval +31…+100 points
 
-4 pass
+1 eval · 1 report only

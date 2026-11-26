@@ -1099,7 +1099,7 @@ export default defineEval({ skip: true, async task() {} })
     const left = readRun(p.dir).run
     assert.equal(left.status, 'interrupted')
     const shown = await runCli(p.dir, ['show', left.runId])
-    assert.match(shown.stdout, /^not run +b\/sk$/m, shown.stdout)
+    assert.match(shown.stdout, /^– b\/sk +not run$/m, shown.stdout)
   })
 
   test('a filtered resume of a quit keeps what its progress file planned, and exits on what it ran', async () => {

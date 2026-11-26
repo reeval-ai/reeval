@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    {
+      "path": "docs/house-style.md",
+      "sha256": "866e8fa28dc2f7d5c13df77b31c9a4a0318ec1fb0607a74e4bfe85458ca72f3d",
+      "bytes": 39
+    },
+    {
+      "path": "greet.js",
+      "sha256": "726e10691a0b1afceab889a2f0a3bdfcce38c19cc53558d841633529e7ecb58e",
+      "bytes": 47
+    }
+  ]
+}

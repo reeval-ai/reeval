@@ -286,14 +286,14 @@ export default defineEval({
       first.out,
       /^No earlier recorded run to compare \S+ with, so every eval is new\.$/m,
     )
-    assert.match(first.out, /^pass {13}flips$/m)
-    assert.match(first.out, /^1 new eval \(1 pass\)$/m)
+    assert.match(first.out, /^✓ flips {2}1\/1 run at 100% {2}regression\(1\)$/m)
+    assert.match(first.out, /^1 new eval \(1 on target\)$/m)
     assert.equal((await compareCode('--fail-on-regression')).code, 0)
     assert.equal(JSON.parse((await compareCode('--json')).out).base, null)
     assert.equal((await runCli(p.dir, ['run'], broken)).code, 1)
     const newFailing = await compareCode('--fail-on-regression')
     assert.equal(newFailing.code, 1, newFailing.out)
-    assert.match(newFailing.out, /^1 new eval \(1 fail\)$/m)
+    assert.match(newFailing.out, /^1 new eval \(1 below\)$/m)
     assert.match(
       (await compareCode('--md')).out,
       /^# flips\n[\s\S]*\*\*0% passed\*\*/m,
@@ -401,7 +401,7 @@ export default defineEval({
     assert.equal((await runCli(p.dir)).code, 0)
     const fresh = await compareCode('--fail-on-regression')
     assert.equal(fresh.code, 0, fresh.out)
-    assert.match(fresh.out, /^1 new eval \(1 pass\)$/m)
+    assert.match(fresh.out, /^1 new eval \(1 on target\)$/m)
     assert.equal((await runCli(p.dir, ['run', '--record'])).code, 0)
 
     assert.equal((await runCli(p.dir, ['run'], baseOk)).code, 1, 'the family gate fails the run')
@@ -964,7 +964,7 @@ export default defineEval({ async task() { expect('this config').toBe('never run
     // Twin: the parent's config, found from its own tree or named with --config, runs its eval.
     const parent = await runCli(join(p.dir, 'evals'))
     assert.equal(parent.code, 1, parent.stdout + parent.stderr)
-    assert.match(parent.stdout, /^└─ ✗ parent {2}0 of 1 run passed$/m)
+    assert.match(parent.stdout, /^└─ ✗ parent {2}0\/1 run at 100% {2}regression\(1\)$/m)
     const named = await runCli(lib, ['run', '--config', '../../../../reeval.config.ts'])
     assert.equal(named.code, 1, named.stdout + named.stderr)
     assert.deepEqual(

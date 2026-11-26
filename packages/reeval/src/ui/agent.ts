@@ -84,7 +84,8 @@ export class AgentRenderer implements Renderer {
           verbose,
           ...(e.notRun ? { notRun: e.notRun } : {}),
         })
-        // An agent can't press → for the rest, and the snapshot and excerpt are what it acts on.
+        // An agent can't press → for the rest, and the snapshot and excerpt are what it acts on;
+        // past eight case rows it gets their count, and `-v` for every row.
         const pointer = pointerLine(e.summaryPath)
         for (const line of listLines(list, this.#c, false, pointer, verbose, true)) {
           this.#write(line)

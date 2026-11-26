@@ -333,14 +333,16 @@ reeval analyze           reeval studio          reeval image build      reeval d
 | 2 | A usage or config error, including a filter that matches nothing |
 | 3 | An infra error, such as a sandbox that failed to start, a harness key the API rejected or a turn the provider stopped |
 
-`reeval run` ends with a status list: each eval file, a line per eval under it with its icon and
-`N of M runs passed`, and for a failure, a compare or an eval with remarks, a sentence for each
-way it went (the agents, a variant's effect as `helped`, `made it worse` or `same`, the failed
-checks with their messages and lines; for an agent, also the rest of each message, the snapshot
-and each remark's whole sentence); `-v` expands every eval. Then the tally
-(`Done in 12s · 1 failed · 2 passed`; an `error:` outside any eval, such as a stray rejection in an eval file, is
-`1 run error` and fails the run; an eval with the default `target: metric()` is `1 ran`, never a pass,
-so read its arm rows for what passed). `Worth knowing:` under an eval names what about it needs work
+`reeval run` ends with a status list: each eval file, a line per eval under it with its icon, the
+number it's judged on and its target (`✓`/`✗` only for a target that blocks, `·` for one that
+reports), and for a miss, a throw, a compare or an eval with remarks, the lines under it (a row
+per run or case that cost points, with the graders and failed checks that cost it, an
+`EvalError`'s reason, meta and turn, each check's message and line, a variant's effect as `helped`,
+`made it worse` or `same`; for an agent, also the rest of each message, the snapshot and each
+remark's whole sentence); `-v` expands every eval. Then the tally
+(`Done in 12s · 3 evals · 1 on target · 1 below · 1 report only`; an `error:` outside any eval, such as a stray rejection in an eval file, is
+`1 run error` and fails the run; an eval with the default `target: metric()` is `report only`, never on
+target or below, so read its mean and rows for how it went). `Worth knowing:` under an eval names what about it needs work
 (a flaky check, too few tries, a slow MCP server), with the line to fix, from fixed rules with no
 model; they never change a verdict or the exit code, and go in `remarks.json` beside the run. The
 eval rubric ([../eval-rubric/SKILL.md](../eval-rubric/SKILL.md)) explains each kind. `summary.md`

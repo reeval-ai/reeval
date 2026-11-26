@@ -34,9 +34,22 @@ export function countFigure(value: number | null | undefined, missing = 'not rep
   return figure(value, String(value))
 }
 
-/** A share from 0 to 1 as a whole percent, `75%`; `n/a` for none. */
-export function shareFigure(value: number | null): Figure {
-  return value === null ? figure(null, 'n/a') : figure(value, `${Math.round(value * 100)}%`)
+/**
+ * A score from 0 to 1 as a whole percent, rounded (`67%` for 2/3), but under `threshold` and
+ * under 100% it stays below them: `79%` for 0.796 against 0.8, `99%` for 0.996. Never below `0%`,
+ * even against a threshold under 0.5%.
+ */
+export function scorePercent(x: number, threshold?: number): string {
+  let n = Math.round(x * 100)
+  for (const t of [1, threshold]) {
+    if (t !== undefined && x < t) n = Math.min(n, Math.round(t * 100) - 1)
+  }
+  return `${Math.max(0, n)}%`
+}
+
+/** A share from 0 to 1 as a whole percent, `75%` (see `scorePercent`); `n/a` for none. */
+export function shareFigure(value: number | null, threshold?: number): Figure {
+  return value === null ? figure(null, 'n/a') : figure(value, scorePercent(value, threshold))
 }
 
 /** `<k> of <n>`. */

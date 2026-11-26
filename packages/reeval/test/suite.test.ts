@@ -73,14 +73,12 @@ describe('suiteResult over the record corpus', () => {
           assert.equal((e.cells === null) !== (e.cases === null), true, 'cells or cases, not both')
           assert.equal(e.family, e.cases !== null)
         }
-        // Each eval in the record is one, and a family whose pooled gate failed one more.
+        // Each eval counts once, where its target puts it.
         const t = s.tally
-        const gates = (record.families ?? []).filter((f) =>
-          f.lifts.some((l) => l.outcome === 'fail'),
-        ).length
+        assert.equal(t.evals, evals.length)
         assert.equal(
-          t.pass + t.notGated + t.fail + t.infraError + t.canceled + t.skipped,
-          record.evals.length + gates,
+          t.onTarget + t.below + t.reportOnly + t.infraError + t.canceled + t.skipped,
+          t.evals,
         )
         assert.equal(t.errors, record.errors?.length ?? 0)
         assert.deepEqual(
@@ -308,11 +306,11 @@ describe('outcomes the record alone has', () => {
     const s = suiteResult(interrupted())
     assert.equal(evalOf(s, 'writes greet.js')?.outcome, 'canceled')
     assert.equal(s.tally.canceled, 1)
-    assert.equal(s.tally.fail, before.fail, 'canary: the real fails still count as fails')
-    assert.equal(s.tally.pass, before.pass - 1)
+    assert.equal(s.tally.below, before.below, 'canary: the real misses still count as misses')
+    assert.equal(s.tally.onTarget + s.tally.reportOnly, before.onTarget + before.reportOnly - 1)
     assert.equal(s.outcome, 'skipped', 'an interrupted run, as its exit code 130 has it')
-    assert.match(text(s), /^canceled {9}writes greet\.js$/m)
-    assert.match(text(s), new RegExp(`^${before.fail} fail · .* · 1 canceled · \\d+ skipped$`, 'm'))
+    assert.match(text(s), /^○ writes greet\.js +canceled$/m)
+    assert.match(text(s), /^\d+ evals · .* · 1 canceled · \d+ skipped$/m)
   })
 
   test('a real failure beside a canceled attempt is still a fail', () => {
@@ -339,7 +337,7 @@ describe('outcomes the record alone has', () => {
     assert.equal(s.tally.errors, 1)
     const lines = render(s, null, { color: false, verbose: false })
     assert.equal(lines[0], 'error: evals/a.eval.ts: Cannot find module ./missing.ts')
-    assert.match(lines.at(-1) ?? '', /^1 run error · \d+ fail · /)
+    assert.match(lines.at(-1) ?? '', /^1 run error · \d+ evals · /)
   })
 
   const family = 'greets %s in the house style'
@@ -381,10 +379,10 @@ describe('outcomes the record alone has', () => {
     for (const a of first.attempts) Object.assign(a, { outcome: 'skipped', error: null })
     const [k, other] = evalOf(suiteResult(record), family)?.cases ?? []
     assert.deepEqual([k?.notRun, other?.notRun], [true, false])
-    assert.match(text(suiteResult(record)), /^ {2}not run +Ada$/m)
+    assert.match(text(suiteResult(record)), /^ {4}#Ada +not run$/m)
     first.skip = true
     assert.equal(evalOf(suiteResult(record), family)?.cases?.[0]?.notRun, false)
-    assert.doesNotMatch(text(suiteResult(record)), /not run +Ada/)
+    assert.doesNotMatch(text(suiteResult(record)), /#Ada +not run/)
   })
 
   test("a family's pooled arm and columns come from any case, not only the first", () => {
@@ -407,7 +405,7 @@ describe('outcomes the record alone has', () => {
       text(s)
         .split('\n\n')
         .find((b) => b.includes(family)) ?? ''
-    assert.match(block, /^ {4}with-skill +3 of 3 {2}helped$/m, 'the pooled row has the variant')
+    assert.match(block, /^ {2}with-skill +3 of 3 {2}helped$/m, 'the pooled row has the variant')
   })
 
   test("a family's questions are every case's, summed over the cases that answered them", () => {
@@ -477,9 +475,10 @@ export default defineEval({
     assert.equal(s.outcome, 'fail')
     assert.deepEqual(s.tally, {
       errors: 0,
-      pass: 0,
-      notGated: 0,
-      fail: 1,
+      evals: 1,
+      onTarget: 0,
+      below: 1,
+      reportOnly: 0,
       infraError: 0,
       canceled: 0,
       skipped: 0,

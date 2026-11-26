@@ -1,11 +1,11 @@
-import { defineEval, expect } from 'reeval'
-import { fakeAgent } from 'reeval/agent'
+// Results: one eval per outcome against its target: a pass, an EvalError with its meta, a mean
+// score under its threshold with a judge grader, a throw on a target that doesn't block, an infra
+// error, and two skipped evals (one `skip: 'todo'`).
+import { defineEval, regression } from 'reeval'
+import { writesGreet } from './graders.ts'
 
-// Results: a pass, a failed check with one that never ran after it, a check that fails one try
-// of two, a throw no check explains, an infra error, and a skipped and a todo eval.
 export default defineEval({
-  task: async (c) => {
-    await c.send('Write greet.js.')
-    await expect(c, 'writes greet.js').toHaveFile('greet.js')
-  },
+  target: regression(),
+  graders: [writesGreet],
+  task: async (c) => void (await c.send('Write greet.js.')),
 })

@@ -2102,10 +2102,14 @@ describe('contrasts: each pair of arms, variant against variant too', () => {
     const run = await runCli(p.dir)
     assert.equal(run.code, 0, run.stdout + run.stderr)
     // Every attempt misses MFA, so pass can't tell the arms apart; the check matrix does.
-    const matrix =
-      /^ {2}check {14}no-skill {2}current-skill {2}new-skill\n {2}Social OAuth {7}3 of 3 {4}0 of 3 {9}3 of 3$/m
-    assert.match(run.stdout, /^ +✗ Social OAuth +failed on current-skill 3 of 3$/m)
-    assert.match((await runCli(p.dir, ['show'])).stdout, matrix)
+    const matrix = (indent: number) =>
+      new RegExp(
+        `^ {${indent}}check {14}no-skill {2}current-skill {2}new-skill\n {${indent}}Social OAuth {7}3 of 3 {4}0 of 3 {9}3 of 3$`,
+        'm',
+      )
+    // The run prints show's matrix under its tree: the check failed on current-skill only.
+    assert.match(run.stdout, matrix(5))
+    assert.match((await runCli(p.dir, ['show'])).stdout, matrix(2))
     const summary = readRun(p.dir).read('summary.md')
     assert.match(
       summary,

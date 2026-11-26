@@ -1,12 +1,15 @@
-// The result blocks every surface prints (the terminal, summary.md, `reeval show`): one block per
-// eval, a pooled family being one, laid out by what the eval's cells compare, then the tally.
-// Pure and deterministic: the same SuiteResult and remarks always print the same lines. Counts
-// read `N of M` and effects are words; statistics print only with `verbose`.
+// The result blocks every surface prints (the terminal, summary.md, `reeval show`): one line per
+// eval against its target (`target.ts`), its cases under it on a miss, a compare's arms, then the
+// tally. Pure and deterministic: the same SuiteResult and remarks always print the same lines.
+// Scores read as percentages, arm counts `N of M` and effects words; statistics print only with
+// `verbose`.
 
 import type { Interval } from '../stats.ts'
+import { targetLabel } from '../target.ts'
 import { clip, plural } from '../text.ts'
 import { formatTokens } from '../usage.ts'
 import { formatCount, formatSeconds } from '../view/effort.ts'
+import type { Measure } from '../view/measures.ts'
 import { type ObservedTally, observedLine } from '../view/observations.ts'
 import type { RunRemarks } from '../view/remarks.ts'
 import type {
@@ -19,14 +22,24 @@ import type {
   Effect,
   EvalResult,
   PooledArm,
-  PooledRate,
   QuestionResult,
-  ResultOutcome,
   SuiteResult,
 } from '../view/suite.ts'
-import { canceledOf, countedOf, isNotGatedResult, isStudy } from '../view/suite.ts'
+import { canceledOf, countedOf } from '../view/suite.ts'
 import { type Colors, colors, type Paint } from './colors.ts'
 import { remarkLines } from './remarks.ts'
+import {
+  caseRows,
+  expands,
+  failureFacts,
+  location,
+  MARK,
+  notRunCases,
+  rowPercent,
+  standing,
+  tallyParts,
+  targetNumber,
+} from './target.ts'
 
 export type Layout = {
   kind: 'results' | 'measure' | 'agents' | 'both' | 'regressions'
@@ -65,14 +78,6 @@ const CHECK_LABEL_MAX = 48
 
 /** A check's label on one line: an expected value can carry line breaks. */
 export const checkLabel = (label: string) => clip(label.replace(/\s*\n\s*/g, ' '), CHECK_LABEL_MAX)
-
-const VERDICT: Record<ResultOutcome, string> = {
-  pass: 'pass',
-  fail: 'fail',
-  infra_error: 'infra error',
-  canceled: 'canceled',
-  skipped: 'skipped',
-}
 
 const EFFECT: Record<Effect, string> = {
   better: 'helped',
@@ -121,22 +126,6 @@ export function table(items: Item[], width = LABEL): string[] {
     })
     return `${pad}${out.join('  ')}`.trimEnd()
   })
-}
-
-const paintOutcome = (c: Colors, o: ResultOutcome): Paint =>
-  o === 'pass'
-    ? c.green
-    : o === 'fail'
-      ? c.red
-      : o === 'infra_error' || o === 'canceled'
-        ? c.yellow
-        : c.dim
-
-function verdict(c: Colors, e: Pick<EvalResult, 'outcome' | 'todo' | 'notRun' | 'cells'>): Text {
-  if (e.todo) return t('todo', c.dim)
-  if (e.notRun) return t('not run', c.dim)
-  if (e.outcome === 'pass' && isStudy(e.cells ?? [])) return t('ran', c.dim)
-  return t(VERDICT[e.outcome], paintOutcome(c, e.outcome))
 }
 
 /**
@@ -196,14 +185,6 @@ export function assertionOf(k: CheckResult): string {
 /** Where the eval made the check's first failure, `evals/a.eval.ts:7`. */
 export const atOf = (k: CheckResult) => (k.outcome.status === 'ran' ? (k.outcome.at ?? '') : '')
 
-/** A cell passed outright: every counted attempt, every check, nothing errored. */
-const clean = (cell: CellResult) =>
-  cell.outcome === 'pass' &&
-  cell.failed === 0 &&
-  cell.infraError === 0 &&
-  cell.errors.length === 0 &&
-  !cell.checks.some(failing)
-
 /** An error no check explains, by kind: a throw in the eval's body reads `error`. */
 const ERROR_KIND: Record<CellError['kind'], string> = {
   assertion: 'error',
@@ -217,48 +198,7 @@ const ERROR_KIND: Record<CellError['kind'], string> = {
 export const errorKind = (err: CellError) => ERROR_KIND[err.kind]
 
 export const errorText = (err: CellError) =>
-  `${clip(err.message, ASSERTION_MAX)}${err.attempts > 1 ? ` (${plural(err.attempts, 'try', 'tries')})` : ''}`
-
-/** The evidence under a failing cell: its failed and not-run checks, its errors, `+N more passed`. */
-function evidence(c: Colors, cell: CellResult, indent: number, more = true): Item[] {
-  const single = cell.passed + cell.failed + cell.infraError <= 1
-  const items: Item[] = []
-  for (const k of cell.checks.filter(failing)) {
-    const count = checkCount(k, single)
-    const at = atOf(k)
-    items.push({
-      indent,
-      cells: [
-        checkLabel(k.label),
-        count === 'not run' ? t(count, c.dim) : t(count, c.red),
-        ...(at ? [t(at, c.dim)] : []),
-      ],
-    })
-    const assertion = assertionOf(k)
-    if (assertion) items.push({ indent: indent + 2, free: t(assertion, c.dim) })
-    if (k.retried) items.push({ indent: indent + 2, free: t(k.retried, c.dim) })
-  }
-  for (const err of cell.errors) {
-    items.push({ indent, cells: [errorKind(err), t(errorText(err), c.dim)] })
-  }
-  items.push(...retriedItems(c, cell, indent))
-  const [snapshot, ...others] = cell.snapshots ?? []
-  if (snapshot && items.length) {
-    const more = others.length ? ` (+${others.length} more in summary.md)` : ''
-    items.push({ indent, cells: ['snapshot', t(`${snapshot}${more}`, c.dim)], loose: true })
-  }
-  const passed = cell.checks.filter((k) => !failing(k) && !k.retried).length
-  if (more && passed && items.length) {
-    items.push({ indent, free: t(`+${passed} more passed`, c.dim) })
-  }
-  return items
-}
-
-/** Passing checks that needed their `c.exec` retries: `npm test  passed on try 2 of 3`. */
-const retriedItems = (c: Colors, cell: CellResult, indent: number): Item[] =>
-  cell.checks
-    .filter((k) => !failing(k) && k.retried)
-    .map((k) => ({ indent, cells: [checkLabel(k.label), t(k.retried ?? '', c.dim)] }))
+  `${clip(err.message, ASSERTION_MAX)}${err.attempts > 1 ? ` (${plural(err.attempts, 'run')})` : ''}`
 
 /** A control with no environment of its own is the baseline the variants change. */
 const armOf = (cell: CellResult) =>
@@ -377,49 +317,77 @@ function effortTable(
 }
 
 /**
- * `failed`: the eval or case didn't pass, so its effort prints, and a family case's check matrix.
- * `effects`: the arms carry effect words and the check matrix, which a family's cases leave to
- * its pooled row unless they failed.
+ * `failed`: the eval didn't pass, so its effort prints. `explained`: the cells whose errors the
+ * case rows above already show.
  */
-type BodyOptions = { failed: boolean; verbose: boolean; effects: boolean }
+type BodyOptions = { failed: boolean; verbose: boolean; explained: Set<string> }
+
+/**
+ * A variant's comparison with its control beyond pass rate: `5× faster · judge "tidy" +0.12`. Only
+ * the measures that hold; `verbose` adds the ones that only lean, each `(leans)`. A judged check
+ * reads as its judge's score, not again as its pass rate.
+ */
+function versus(measures: readonly Measure[] | null, verbose: boolean): string {
+  const shown = (measures ?? []).filter(
+    (m) =>
+      m.measure !== 'pass' &&
+      (m.verdict === 'better' || m.verdict === 'worse' || (verbose && m.verdict === 'leans')),
+  )
+  const judged = new Set(shown.filter((m) => m.measure === 'judge').map((m) => m.label))
+  return shown
+    .filter((m) => m.measure !== 'check' || !judged.has(m.label))
+    .map((m) => (m.verdict === 'leans' ? `${m.text} (leans)` : m.text))
+    .join(' · ')
+}
+
+type Arm = { label: string; count: string; effect: Text; vs: string }
+
+/** An arms table's header and a row per arm, with a `vs control` column when some arm has one. */
+function armItems(c: Colors, indent: number, head: string, arms: Arm[]): Row[] {
+  const column = arms.some((a) => a.vs)
+  return [
+    { indent, cells: [head, t('pass', c.dim), ...(column ? ['', t('vs control', c.dim)] : [])] },
+    ...arms.map((a) => ({
+      indent,
+      cells: [a.label, a.count, ...(column ? [a.effect, a.vs] : a.effect.text ? [a.effect] : [])],
+    })),
+  ]
+}
 
 /** Measure a change: a row per arm with its effect, the check matrix and the effort table. */
 function measureBody(c: Colors, cells: CellResult[], indent: number, o: BodyOptions): string[] {
   const label = labeler(cells, ['arm', 'sandbox'])
-  const arms: Item[] = [{ indent, cells: ['arm', t('pass', c.dim)] }]
-  for (const cell of cells) {
-    const effect = o.effects ? gatedEffect(c, cell) : t('')
-    arms.push({ indent, cells: [label(cell), cellCount(cell), ...(effect.text ? [effect] : [])] })
-    const stats = o.verbose && o.effects ? statsLine(cell, cells) : null
+  const [head, ...rows] = armItems(
+    c,
+    indent,
+    'arm',
+    cells.map((cell) => ({
+      label: label(cell),
+      count: cellCount(cell),
+      effect: gatedEffect(c, cell),
+      vs: versus(cell.measures, o.verbose),
+    })),
+  )
+  const arms: Item[] = head ? [head] : []
+  for (const [i, cell] of cells.entries()) {
+    const row = rows[i]
+    if (row) arms.push(row)
+    const stats = o.verbose ? statsLine(cell, cells) : null
     if (stats) arms.push({ indent: indent + 2, free: t(stats, c.dim) })
-    for (const err of cell.errors) {
+    for (const err of o.explained.has(cell.key) ? [] : cell.errors) {
       arms.push({ indent: indent + 2, free: t(`${errorKind(err)}  ${errorText(err)}`, c.dim) })
     }
   }
-  const matrix = o.failed || o.effects
   const labels = [
     ...cells.map(label),
-    ...(matrix
-      ? cells.flatMap((x) => x.checks.filter(failing).map((k) => checkLabel(k.label)))
-      : []),
+    ...cells.flatMap((x) => x.checks.filter(failing).map((k) => checkLabel(k.label))),
   ]
   const width = Math.max(LABEL, ...labels.map((l) => indent + l.length))
   return [
     ...table(arms, width),
-    ...(matrix ? checkMatrix(c, cells, label, indent, width) : []),
+    ...checkMatrix(c, cells, label, indent, width),
     ...effortTable(c, cells, label, indent, o.failed, width),
   ]
-}
-
-/** A row per cell (harness, or sandbox), the ones that didn't pass outright with their evidence. */
-function cellRows(c: Colors, cells: CellResult[], heading: string, indent: number): string[] {
-  const label = labeler(cells, heading === 'harness' ? ['harness', 'sandbox'] : ['sandbox'])
-  const items: Item[] = [{ indent, cells: [heading, t('pass', c.dim)] }]
-  for (const cell of cells) {
-    items.push({ indent, cells: [label(cell), cellCount(cell)] })
-    if (!clean(cell)) items.push(...evidence(c, cell, indent + 2))
-  }
-  return table(items)
 }
 
 /** Compare harnesses with arms: a heading per harness, its arms as Measure a change under it. */
@@ -432,30 +400,6 @@ function bothBody(c: Colors, cells: CellResult[], indent: number, o: BodyOptions
     `${' '.repeat(indent)}${harness}`,
     ...measureBody(c, group, indent + 2, o),
   ])
-}
-
-/** The rows under an eval's head (or a family case's), by what its cells compare. */
-function cellsBody(
-  c: Colors,
-  kind: Layout['kind'],
-  cells: CellResult[],
-  indent: number,
-  o: BodyOptions,
-): string[] {
-  if (kind === 'measure') return measureBody(c, cells, indent, o)
-  if (kind === 'agents') return cellRows(c, cells, 'harness', indent)
-  if (kind === 'both') return bothBody(c, cells, indent, o)
-  if (cells.length > 1) return cellRows(c, cells, 'sandbox', indent)
-  return resultsBody(c, cells[0] as CellResult, indent)
-}
-
-/** A single eval with one cell: its tries, and on anything but a clean pass, the evidence. */
-function resultsBody(c: Colors, cell: CellResult, indent: number): string[] {
-  if (clean(cell)) return table(retriedItems(c, cell, indent))
-  const items: Item[] = []
-  const tries = cell.attempts - (cell.notNeeded ?? 0)
-  if (tries > 1) items.push({ indent, cells: [plural(tries, 'try', 'tries'), cellCount(cell)] })
-  return table([...items, ...evidence(c, cell, indent)])
 }
 
 /** Free-text answers shown per question; the rest are in the record. */
@@ -580,106 +524,51 @@ function gatedEffect(
   return t(effect.text ? `${effect.text}, ${short}` : short, c.red)
 }
 
-/** `pass@1 67%, passRate 0.6`: a cell's rate over the cases, red when below its gate. */
-function rateText(c: Colors, r: PooledRate): Text {
-  const text = `pass@1 ${Math.round(r.rate * 100)}%, ${r.outcome === 'fail' ? 'below ' : ''}passRate ${r.passRate}`
-  return t(text, r.outcome === 'fail' ? c.red : c.dim)
-}
-
 /** `-v`: a variant's paired lift over the cases and its interval. */
-export const pairedStats = (p: PooledArm) =>
+const pairedStats = (p: PooledArm) =>
   `paired over ${plural(p.pairs, 'case')}, 95% interval ${signedPoints(p.interval.low)}…${signedPoints(p.interval.high)} points`
 
-function pooledStats(p: PooledArm, label: string) {
-  return `${label}: ${p.pairs} paired cases, 95% interval ${signedPoints(p.interval.low)}…${signedPoints(p.interval.high)}`
-}
-
 /**
- * A family: its template, then a row per case. With one cell a case is a row with its count;
- * with more, the case is outer and its cells inner, laid out as a single eval's are. A pooled
- * `all cases` row sums each cell's counts with its variant's pooled effect and, under
- * a `{ passRate }` gate, its rate over the cases, which gates it.
+ * A family's variants pooled over its cases: a row per cell with its passes summed over the cases
+ * and its variant's pooled effect.
  */
-function familyBlock(c: Colors, e: EvalResult, kind: Layout['kind'], verbose: boolean): string[] {
+function pooledBody(
+  c: Colors,
+  e: EvalResult,
+  kind: Layout['kind'],
+  verbose: boolean,
+  indent: number,
+): string[] {
   const cases = e.cases ?? []
+  const pooled = e.pooled ?? []
+  if (!pooled.length) return []
   const columns = [
     ...new Map(cases.flatMap((k) => k.cells).map((cell) => [cell.key, cell])).values(),
   ]
-  const pooled = e.pooled ?? []
-  const rates = new Map((e.rates ?? []).map((r) => [r.key, r]))
-  const pooledOutcome: ResultOutcome = [...pooled, ...rates.values()].some(
-    (p) => p.outcome === 'fail',
-  )
-    ? 'fail'
-    : 'pass'
-  // A case whose gated cells are all gated on their rate over the cases has no verdict of its own.
-  const byRate = (k: CaseResult) =>
-    (k.outcome === 'pass' || k.outcome === 'fail') &&
-    k.cells.some((cell) => rates.has(cell.key)) &&
-    k.cells.every((cell) => !cell.gated || rates.has(cell.key))
-  const caseWord = (k: CaseResult) =>
-    byRate(k)
-      ? t('')
-      : verdict(c, { outcome: k.outcome, todo: false, notRun: k.notRun, cells: k.cells })
-  const pooledWord = isNotGatedResult(e)
-    ? t('ran', c.dim)
-    : t(VERDICT[pooledOutcome], paintOutcome(c, pooledOutcome))
-  const hasPooled = pooled.length > 0 || rates.size > 0
-  const words = [...cases.map(caseWord), ...(hasPooled ? [pooledWord] : [])]
-  const wordWidth = Math.max(...words.map((w) => w.text.length))
-  const lead = (word: Text, name: string): Text => ({
-    text: `${word.text.padEnd(wordWidth)}  ${name}`,
-    paint: (s) => `${show(word)}${s.slice(word.text.length)}`,
-  })
-  const head = `${' '.repeat(HEAD)}${e.template ?? e.name}`
-  const questions = questionLines(c, e.questions, 2)
-  if (columns.length <= 1) {
-    const items: Item[] = []
-    for (const k of cases) {
-      const cell = k.cells[0]
-      items.push({ indent: 2, cells: [lead(caseWord(k), k.label), cell ? cellCount(cell) : ''] })
-      if (cell && !clean(cell)) items.push(...evidence(c, cell, 4))
-    }
-    const only = columns[0]
-    const rate = only && rates.get(only.key)
-    if (only && rate) {
-      items.push({
-        indent: 2,
-        cells: [lead(pooledWord, 'all cases'), pooledCount(cases, only.key), rateText(c, rate)],
-      })
-    }
-    return [head, ...table(items), ...questions]
-  }
-  const out = [head]
-  for (const k of cases) {
-    out.push(`  ${show(lead(caseWord(k), k.label))}`)
-    const failed = k.outcome !== 'pass'
-    out.push(...cellsBody(c, kind, k.cells, 4, { failed, verbose, effects: false }))
-  }
-  if (hasPooled) {
-    const label = labeler(columns, ['harness', 'arm', 'sandbox'])
-    const byKey = new Map(pooled.map((p) => [p.key, p]))
-    const items: Item[] = [
-      { indent: 4, cells: [kind === 'agents' ? 'agent' : 'arm', t('pass', c.dim)] },
-    ]
-    for (const col of columns) {
+  const label = labeler(columns, ['harness', 'arm', 'sandbox'])
+  const byKey = new Map(pooled.map((p) => [p.key, p]))
+  const [head, ...rows] = armItems(
+    c,
+    indent,
+    kind === 'agents' ? 'agent' : 'arm',
+    columns.map((col) => {
       const p = byKey.get(col.key)
-      const effect = p ? gatedEffect(c, p) : t('')
-      const rate = rates.get(col.key)
-      items.push({
-        indent: 4,
-        cells: [
-          label(col),
-          pooledCount(cases, col.key),
-          ...(effect.text ? [effect] : []),
-          ...(rate ? [rateText(c, rate)] : []),
-        ],
-      })
-      if (p && verbose) items.push({ indent: 6, free: t(pooledStats(p, label(col)), c.dim) })
-    }
-    out.push(`  ${show(lead(pooledWord, 'all cases'))}`, ...table(items))
+      return {
+        label: label(col),
+        count: pooledCount(cases, col.key),
+        effect: p ? gatedEffect(c, p) : t(''),
+        vs: versus(p?.measures ?? null, verbose),
+      }
+    }),
+  )
+  const items: Item[] = head ? [head] : []
+  for (const [i, col] of columns.entries()) {
+    const p = byKey.get(col.key)
+    const row = rows[i]
+    if (row) items.push(row)
+    if (p && verbose) items.push({ indent: indent + 2, free: t(pairedStats(p), c.dim) })
   }
-  return [...out, ...questions]
+  return table(items)
 }
 
 type Upstreams = NonNullable<CellResult['upstreams']>
@@ -735,64 +624,155 @@ export const workspaceLines = (c: Colors, cells: CellResult[], indent: number): 
     (text) => `${' '.repeat(indent)}${c.yellow(text)}`,
   )
 
-/** One eval's block, laid out as `layout()` says for its shape. */
-export function evalBlock(c: Colors, e: EvalResult, verbose = false): string[] {
-  const shape = layout(e.across, e.family, false)
-  if (shape.family) {
-    const all = (e.cases ?? []).flatMap((k) => k.cells)
-    return [
-      ...familyBlock(c, e, shape.kind, verbose),
-      ...upstreamLines(c, all, 2),
-      ...pageErrorLines(c, all, 2),
-      ...workspaceLines(c, all, 2),
-    ]
+const nameOf = (e: Pick<EvalResult, 'group' | 'name' | 'template'>) =>
+  [...e.group, e.template ?? e.name].join(' › ')
+
+/** The eval's head: `✓`, `✗` or `·`, its name, the number its target judges, and the target. */
+function headCells(c: Colors, e: EvalResult): Array<string | Text> {
+  const s = standing(e)
+  const number = t(targetNumber(e), s === 'infra' ? c.yellow : s === 'skipped' ? c.dim : undefined)
+  return s === 'skipped'
+    ? [nameOf(e), number]
+    : [nameOf(e), number, t(targetLabel(e.target), c.dim)]
+}
+
+/** The eval's mark, as the run list's: `○` for one the run's interrupt canceled. */
+const markOf = (c: Colors, e: EvalResult) => {
+  if (e.outcome === 'canceled' && !e.todo && !e.notRun) return show(t('○', c.yellow))
+  const s = standing(e)
+  return show(t(MARK[s], s === 'pass' ? c.green : s === 'fail' ? c.red : c.dim))
+}
+
+/** Each eval's head line, the columns aligned across them. */
+const heads = (c: Colors, evals: EvalResult[]) =>
+  table(
+    evals.map((e) => ({ indent: 0, cells: headCells(c, e) })),
+    0,
+  ).map((line, i) => {
+    const e = evals[i]
+    return e ? `${markOf(c, e)} ${line}` : line
+  })
+
+/**
+ * A row per case that cost the eval points (every case with `-v`): its score and why, with what
+ * the task threw under it (its meta, the turn, and its stack's own frames for an error that isn't
+ * an `EvalError`, or with `-v`) and a failed check's message.
+ */
+function caseLines(c: Colors, e: EvalResult, cells: CellResult[], verbose: boolean): string[] {
+  const byKey = new Map(cells.map((cell) => [cell.key, cell]))
+  const target = cells.filter((cell) => e.scored.some((a) => a.cell === cell.key))
+  const label = labeler(target, ['harness', 'arm', 'sandbox'])
+  const cellLabel = (key: string) => {
+    const cell = byKey.get(key)
+    return cell ? label(cell) : key
   }
-  const v = verdict(c, e)
-  const name = `${e.group.length ? `${e.group.join(' › ')} › ` : ''}${e.name}`
-  const head = `${show(v)}${' '.repeat(Math.max(2, HEAD - v.text.length))}${name}`
-  const cells = e.cells ?? []
-  if (e.todo || e.outcome === 'skipped' || !cells.length) return [head]
-  const failed = e.outcome !== 'pass'
-  const body = cellsBody(c, shape.kind, cells, 2, { failed, verbose, effects: true })
-  return [
-    head,
-    ...body,
-    ...upstreamLines(c, cells, 2),
-    ...pageErrorLines(c, cells, 2),
-    ...workspaceLines(c, cells, 2),
-    ...questionLines(c, e.questions, 2),
-    ...observedLines(c, e.observations, cells, 2),
-  ]
+  const items: Item[] = notRunCases(e).map((label) => ({
+    indent: 4,
+    cells: [label, t('not run', c.dim)],
+  }))
+  for (const row of caseRows(e, cellLabel, verbose)) {
+    const score = row.score === null ? t(row.status, c.yellow) : t(rowPercent(e, row.score))
+    items.push({ indent: 4, cells: [row.label, score, ...(row.text ? [row.text] : [])] })
+    if (row.failure) {
+      const f = failureFacts(row.failure)
+      const frames = verbose || row.failure.name ? f.frames : []
+      for (const text of [...f.meta, f.turn, ...frames]) {
+        items.push({ indent: 6, free: t(clip(text, ASSERTION_MAX), c.dim) })
+      }
+    }
+    for (const k of row.checks) {
+      const message = k.message.trim().split('\n')[0]?.trim()
+      if (!message) continue
+      const said = clip(k.label ? `"${k.label}": ${message}` : message, ASSERTION_MAX)
+      const shown = [said, k.at && location(k.at)].filter(Boolean).join(' · ')
+      items.push({ indent: 6, free: t(shown, c.dim) })
+    }
+  }
+  return table(items, 0)
 }
 
 /**
- * `5 fail · 2 pass · 1 ran · 1 canceled`: errors outside any eval and fails first, every
- * case counting one, zeros left out.
+ * A compare's arms, their failed checks and effort, pooled over the cases on a family; none for
+ * an eval that compares nothing. Each arm lists the errors of its cells not in `explained`, which
+ * the case rows above it already show.
  */
-export function tallyLine(c: Colors, tally: SuiteResult['tally']): string {
-  const parts = [
-    tally.errors ? c.red(plural(tally.errors, 'run error')) : '',
-    tally.fail ? c.red(`${tally.fail} fail`) : '',
-    tally.pass ? c.green(`${tally.pass} pass`) : '',
-    tally.notGated ? c.dim(`${tally.notGated} ran`) : '',
-    tally.infraError ? c.yellow(plural(tally.infraError, 'infra error')) : '',
-    tally.canceled ? c.yellow(`${tally.canceled} canceled`) : '',
-    tally.skipped ? c.dim(`${tally.skipped} skipped`) : '',
-  ].filter(Boolean)
-  return parts.length ? parts.join(c.dim(' · ')) : 'no evals ran'
+export function armLines(
+  c: Colors,
+  e: EvalResult,
+  verbose: boolean,
+  explained: Set<string>,
+  indent: number,
+): string[] {
+  const shape = layout(e.across, e.family, false)
+  const all = e.cells ?? (e.cases ?? []).flatMap((k) => k.cells)
+  const cells = [...new Map(all.map((cell) => [cell.key, cell])).values()]
+  const o = { failed: e.outcome !== 'pass', verbose, explained }
+  if (e.family) return pooledBody(c, e, shape.kind, verbose, indent)
+  if (shape.kind === 'measure') return measureBody(c, cells, indent, o)
+  if (shape.kind === 'both') return bothBody(c, cells, indent, o)
+  return []
 }
 
-/** Every eval's block in file-path order, then source order; a blank line around each longer one. */
+/**
+ * The lines under an eval's head: its cases on a miss (`expands`), a compare's arms (pooled over
+ * the cases on a family), then what else it recorded. `loose` when it has more than case rows,
+ * so a blank line sets it apart.
+ */
+function evalBody(c: Colors, e: EvalResult, verbose: boolean): { lines: string[]; loose: boolean } {
+  if (e.todo || e.notRun || e.outcome === 'skipped') return { lines: [], loose: false }
+  const all = e.cells ?? (e.cases ?? []).flatMap((k) => k.cells)
+  const cells = [...new Map(all.map((cell) => [cell.key, cell])).values()]
+  const rows = expands(e, verbose) || notRunCases(e).length ? caseLines(c, e, cells, verbose) : []
+  const explained = new Set(rows.length ? e.scored.map((a) => a.cell) : [])
+  const arms = armLines(c, e, verbose, explained, 2)
+  const extras = [
+    ...questionLines(c, e.questions, 2),
+    ...(e.family ? [] : observedLines(c, e.observations, cells, 2)),
+  ]
+  return {
+    lines: [
+      ...rows,
+      ...arms,
+      ...upstreamLines(c, all, 2),
+      ...pageErrorLines(c, all, 2),
+      ...workspaceLines(c, all, 2),
+      ...extras,
+    ],
+    loose: arms.length + extras.length > 0,
+  }
+}
+
+/** One eval's block: its head, then the lines under it. */
+export function evalBlock(c: Colors, e: EvalResult, verbose = false): string[] {
+  return [heads(c, [e])[0] ?? '', ...evalBody(c, e, verbose).lines]
+}
+
+/**
+ * `3 evals · 1 on target · 1 below · 1 report only`: the run's errors outside any eval first,
+ * then the evals that didn't count, zeros left out.
+ */
+export function tallyLine(c: Colors, tally: SuiteResult['tally']): string {
+  if (!tally.evals && !tally.errors) return 'no evals ran'
+  const paint = { red: c.red, green: c.green, yellow: c.yellow, dim: c.dim }
+  return tallyParts(tally)
+    .map((p) => (p.tone ? paint[p.tone](p.text) : p.text))
+    .join(c.dim(' · '))
+}
+
+/**
+ * Every eval's block in file-path order, then source order, their heads in one aligned table; a
+ * blank line around each with more than case rows under it.
+ */
 export function renderBlocks(suite: SuiteResult, opts: RenderOptions): string[] {
   const c = colors(opts.color)
-  const blocks = suite.files.flatMap((f) =>
-    [...f.evals].sort((a, b) => a.order - b.order).map((e) => evalBlock(c, e, opts.verbose)),
-  )
+  const evals = suite.files.flatMap((f) => [...f.evals].sort((a, b) => a.order - b.order))
+  const lines = heads(c, evals)
+  const blocks = evals.map((e, i) => ({ head: lines[i] ?? '', ...evalBody(c, e, opts.verbose) }))
   const out: string[] = []
   blocks.forEach((block, i) => {
     const prev = blocks[i - 1]
-    if (prev && (prev.length > 1 || block.length > 1)) out.push('')
-    out.push(...block)
+    if (prev && (prev.loose || block.loose)) out.push('')
+    out.push(block.head, ...block.lines)
   })
   return out
 }

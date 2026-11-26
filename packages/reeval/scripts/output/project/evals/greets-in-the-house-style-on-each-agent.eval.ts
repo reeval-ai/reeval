@@ -1,4 +1,4 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval, expect, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 
 const greet = "export const greet = (name) => 'Hello, ' + name + '!'\n"
@@ -20,6 +20,7 @@ const withSkill = defineEnvironment('with-skill', ({ skill }) => ({
 // Compare agents: the terse agent never greets in the house style. With a change too, the
 // harness is outer and the arms inner: the learner needs the skill, the terse one ignores it.
 export default defineEval({
+  target: regression(),
   agents: [skilled, terse],
   task: async (c) => {
     await c.send('Write greet.js that greets in our house style.')

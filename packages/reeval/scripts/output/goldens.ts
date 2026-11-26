@@ -10,7 +10,7 @@ import { render } from '../../src/ui/layout.ts'
 import { compare, newRows, stackChanges } from '../../src/view/compare.ts'
 import { runHeader } from '../../src/view/header.ts'
 import { readableRecord } from '../../src/view/record.ts'
-import { type EvalResult, isStudy, type SuiteResult, suiteResult } from '../../src/view/suite.ts'
+import { type EvalResult, type SuiteResult, suiteResult, tallyKey } from '../../src/view/suite.ts'
 import { CORPUS_DIR, corpusEntries } from '../schema/corpus.ts'
 
 export type Golden = {
@@ -24,60 +24,59 @@ export type Golden = {
   verbose?: boolean
 }
 
-const layouts = (...ids: string[]) => ids.map((id) => `evals/${id}`)
+const RESULTS = [
+  'writes-greet-js',
+  'greets-in-french',
+  'explains-why-greet-js-fails',
+  'reads-the-fixture-repo',
+  'starts-its-sandbox',
+  'greets-in-welsh',
+  'greets-in-klingon',
+]
+const MEASURE = ['greets-in-the-house-style', 'keeps-the-plain-greeting', 'greets-once']
 
-/** One per layout, from the with-layouts entry (scripts/output/project) and real harness runs. */
+/** One per layout, from the with-targets entry (scripts/output/project) and real harness runs. */
 export const GOLDENS: Golden[] = [
-  { name: 'results', entry: 'with-layouts', evals: layouts('results.eval.ts') },
+  { name: 'results', entry: 'with-targets', evals: RESULTS },
+  { name: 'results-verbose', entry: 'with-targets', evals: RESULTS, verbose: true },
   { name: 'results-real', entry: 'real-contract' },
-  { name: 'measure-a-change', entry: 'with-layouts', evals: layouts('measure.eval.ts') },
-  {
-    name: 'measure-a-change-verbose',
-    entry: 'with-layouts',
-    evals: layouts('measure.eval.ts'),
-    verbose: true,
-  },
+  { name: 'measure-a-change', entry: 'with-targets', evals: MEASURE },
+  { name: 'measure-a-change-verbose', entry: 'with-targets', evals: MEASURE, verbose: true },
   {
     name: 'compare-harnesses',
-    entry: 'with-layouts',
-    evals: layouts('harnesses.eval.ts › greets in the house style on each agent'),
+    entry: 'with-targets',
+    evals: ['greets-in-the-house-style-on-each-agent'],
   },
   { name: 'compare-harnesses-real', entry: 'real-harnesses' },
-  {
-    name: 'both',
-    entry: 'with-layouts',
-    evals: layouts('harnesses.eval.ts › learns the house style from the skill'),
-  },
-  {
-    name: 'family',
-    entry: 'with-layouts',
-    evals: ['evals/family.eval.ts › adds a button that builds'],
-  },
-  {
-    name: 'family-with-change',
-    entry: 'with-layouts',
-    evals: ['evals/family.eval.ts › greets in the house style'],
-  },
+  { name: 'both', entry: 'with-targets', evals: ['learns-the-house-style-from-the-skill'] },
+  { name: 'family', entry: 'with-targets', evals: ['adds-a-button-that-builds', 'choose'] },
+  { name: 'family-with-change', entry: 'with-targets', evals: ['greets-in-the-house-style-2'] },
   {
     name: 'family-with-change-verbose',
-    entry: 'with-layouts',
-    evals: ['evals/family.eval.ts › greets in the house style'],
+    entry: 'with-targets',
+    evals: ['greets-in-the-house-style-2'],
     verbose: true,
   },
-  { name: 'suite', entry: 'with-layouts' },
+  { name: 'suite', entry: 'with-targets' },
 ]
 
 export const OUTPUT_DIR = join(CORPUS_DIR, '..', 'output')
 
 function tallyOf(evals: EvalResult[], errors: number): SuiteResult['tally'] {
-  const tally = { errors, pass: 0, notGated: 0, fail: 0, infraError: 0, canceled: 0, skipped: 0 }
-  const units = evals.flatMap((e) => e.cases ?? [e])
-  for (const { outcome: o, cells } of units) {
-    if (o === 'infra_error') tally.infraError++
-    else if (o === 'pass' && isStudy(cells ?? [])) tally.notGated++
-    else tally[o]++
+  const tally: SuiteResult['tally'] = {
+    errors,
+    evals: 0,
+    onTarget: 0,
+    below: 0,
+    reportOnly: 0,
+    infraError: 0,
+    canceled: 0,
+    skipped: 0,
   }
-  tally.fail += evals.filter((e) => e.pooled?.some((p) => p.outcome === 'fail')).length
+  for (const e of evals) {
+    tally[tallyKey(e)]++
+    tally.evals++
+  }
   return tally
 }
 

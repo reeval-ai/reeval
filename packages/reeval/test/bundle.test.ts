@@ -327,7 +327,7 @@ describe('reeval bundle', () => {
     })
     assert.equal(r.code, 0, r.stderr + r.stdout)
     assert.match(r.stdout, /installing from package-lock\.json: npm ci/)
-    assert.match(r.stdout, /1 passed/)
+    assert.match(r.stdout, /^Done in \S+ · 1 eval · 1 on target$/m)
   })
 
   test("runs a uv package project's Python evals from a bundle without the package's sources", async () => {
@@ -342,7 +342,7 @@ describe('reeval bundle', () => {
     syncPythonFixtureProject(dir)
     const r = await runPythonBundle(dir)
     assert.equal(r.code, 0, r.stderr + r.stdout)
-    assert.match(r.stdout, /1 passed/)
+    assert.match(r.stdout, /^Done in \S+ · 1 eval · 1 on target$/m)
   })
 
   test("runs a uv workspace member's Python evals from a bundle, with the member's dependencies", async () => {
@@ -376,7 +376,7 @@ describe('reeval bundle', () => {
     git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init')
     const r = await runPythonBundle(member)
     assert.equal(r.code, 0, r.stderr + r.stdout)
-    assert.match(r.stdout, /1 passed/)
+    assert.match(r.stdout, /^Done in \S+ · 1 eval · 1 on target$/m)
   })
 
   test("a run from it records the bundled project's commit, branch, changes and author", async () => {

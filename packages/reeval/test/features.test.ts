@@ -4555,13 +4555,7 @@ export const features: Feature[] = [
         ['is the second', 11],
         ['gate', 13],
       ])
-        assert.match(
-          entry,
-          new RegExp(
-            `^ +✗ ${label} +failed 1 of 1 run\\n +.+ · evals/lands\\.eval\\.ts:${line}$`,
-            'm',
-          ),
-        )
+        assert.match(entry, new RegExp(`^ +"${label}": .+ · evals/lands\\.eval\\.ts:${line}$`, 'm'))
     },
   },
   {
@@ -5541,12 +5535,12 @@ export const features: Feature[] = [
         )
       assert.match(
         stdout,
-        /^Done in \S+ · 1 failed · 1 passed$/m,
+        /^Done in \S+ · 2 evals · 1 on target · 1 below$/m,
         'the tally counts each eval with cases once',
       )
       assert.match(
         stdout,
-        /✗ canary {2}2 of 3 runs passed · 3 cases\n +Failed on c; 2 of 3 cases passed\.\n +Pass rate over the cases: 67%, below passRate 0\.7\.\n +case {2}fake\n +✓ a {5}1 of 1\n +✓ b {5}1 of 1\n +✗ c {5}0 of 1\n/,
+        /✗ canary {2}67% < 70% {2}metric\(0\.7\)\n +#c {2}0% {2}"passes its case" failed\n/,
       )
       assert.deepEqual(rates('lands'), [[0.667, 0.6, 'pass']], 'the rate over the cases clears 0.6')
       assert.deepEqual(rates('canary'), [[0.667, 0.7, 'fail']], 'and is below 0.7')
@@ -5663,8 +5657,8 @@ export const features: Feature[] = [
         [{ kind: 'metric' }, ['none']],
         'target: metric() records its cells ungated',
       )
-      assert.match(stdout, /^└─ ● lands {2}0 of 1 run passed$/m)
-      assert.match(stdout, /^Done in \S+ · 1 failed · 1 ran$/m)
+      assert.match(stdout, /^└─ · lands {2}0% {2}metric\(\)$/m)
+      assert.match(stdout, /^Done in \S+ · 2 evals · 1 below · 1 report only$/m)
     },
   },
   {
@@ -5871,8 +5865,14 @@ export const features: Feature[] = [
         assert.equal(cell.bestOf, 3)
         assert.deepEqual(cell.gate, { passRate: 0.5 })
       }
-      assert.match(entryOf(stdout, 'canary'), /✗ canary {2}0 of 2 runs passed$/m)
-      assert.match(entryOf(stdout, 'lands'), /✓ lands {2}2 of 3 runs passed$/)
+      assert.match(
+        entryOf(stdout, 'canary'),
+        /✗ canary {2}0\/2 runs at 100% \(best of 3\) {2}regression\(1\)$/m,
+      )
+      assert.match(
+        entryOf(stdout, 'lands'),
+        /✓ lands {2}2\/3 runs at 100% \(best of 3\) {2}regression\(1\)$/m,
+      )
     },
   },
   {
@@ -5881,17 +5881,16 @@ export const features: Feature[] = [
     env: '-',
     canary: /second try: expected 1 to be 2/,
     record: ({ stdout }) => {
-      assert.equal(entryOf(stdout, 'lands').trim(), '✓ lands  1 of 1 run passed')
+      assert.equal(entryOf(stdout, 'lands').trim(), '✓ lands  1/1 run at 100%  regression(1)')
       assert.equal(
         entryOf(stdout, 'canary'),
         [
-          '✗ canary  0 of 1 run passed',
-          '  Failed on fake.',
-          '  ✗ second try  failed 1 of 1 run',
+          '✗ canary  0/1 run at 100%  regression(1)',
+          '  #1  0%  "second try" failed',
           '    expected 1 to be 2 // Object.is equality · evals/canary.eval.ts:6',
         ].join('\n'),
       )
-      assert.match(stdout, /\nDone in \S+ · 1 failed · 1 passed\n/)
+      assert.match(stdout, /\nDone in \S+ · 2 evals · 1 on target · 1 below\n/)
     },
   },
   {
@@ -5930,8 +5929,12 @@ export const features: Feature[] = [
     async record({ project, runDir, stdout }) {
       const suite = JSON.parse(stdout) as SuiteResult
       assert.deepEqual(
-        { pass: suite.tally.pass, notGated: suite.tally.notGated, fail: suite.tally.fail },
-        { pass: 0, notGated: 1, fail: 1 },
+        {
+          onTarget: suite.tally.onTarget,
+          reportOnly: suite.tally.reportOnly,
+          below: suite.tally.below,
+        },
+        { onTarget: 0, reportOnly: 1, below: 1 },
       )
       const summary = readFileSync(join(runDir, 'summary.md'), 'utf8')
       assert.match(summary, /\| \[lands\]\(#lands\) \| ab;[\s\S]*marked vs plain/)
@@ -5941,7 +5944,7 @@ export const features: Feature[] = [
       const recorded = await runCli(project, ['record'])
       assert.equal(recorded.code, 0, recorded.stdout + recorded.stderr)
       const compared = await runCli(project, ['compare'])
-      assert.match(compared.stdout, /^2 new evals \(1 fail · 1 ran\)$/m)
+      assert.match(compared.stdout, /^2 new evals \(1 below · 1 report only\)$/m)
       const history = await runCli(project, ['history'])
       assert.match(history.stdout, /^ {2}○ +– {2}lands$/m)
     },
@@ -5957,14 +5960,18 @@ export const features: Feature[] = [
     record: ({ stdout }) => {
       assert.match(
         entryOf(stdout, 'lands'),
-        /✓ lands {2}1 of 1 variant run passed\n +The marked variant helped\.\n +arm +passed {2}verdict\n +plain \(control\) {2}0 of 1\n +marked +1 of 1 {2}helped\n +✗ has the marker {2}failed on the control · expected\n/,
+        /✓ lands {2}1\/1 run at 100% {2}regression\(1\)\n +arm +pass\n +plain +0 of 1\n +marked +1 of 1 {2}helped\n +check +plain +marked\n +has the marker +0 of 1 +1 of 1\n/,
       )
       assert.match(
         entryOf(stdout, 'lands'),
         /\n +Worth knowing: 1 run per side; set runs: 4 at evals\/lands\.eval\.ts to confirm this difference\.$/,
       )
       assert.match(entryOf(stdout, 'canary'), /^ +marked +0 of 1 {2}same$/m)
-      assert.doesNotMatch(stdout, /%|pass@1/)
+      assert.doesNotMatch(
+        stdout.replaceAll(' at 100%', '').replace(/^ +#\S+ {2}\d+% /gm, ''),
+        /%|pass@1/,
+        'only a case row reads a score',
+      )
     },
   },
   {
@@ -5982,10 +5989,10 @@ export const features: Feature[] = [
       },
     },
     record: ({ stdout }) => {
-      assert.equal(entryOf(stdout, 'lands').trim(), '✓ lands  2 of 2 runs passed')
+      assert.equal(entryOf(stdout, 'lands').trim(), '✓ lands  2/2 runs at 100%  regression(1)')
       assert.match(
         entryOf(stdout, 'canary'),
-        /✗ canary {2}1 of 2 runs passed\n +writer passed 1 of 1, idler 0 of 1\.\n +✗ writes out\.txt {2}failed 1 of 2 runs, on idler\n +expected file out\.txt to exist · evals\/canary\.eval\.ts:9$/,
+        /✗ canary {2}1\/2 runs at 100%, worst 0% {2}regression\(1\)\n +idler {2}0% {2}"writes out\.txt" failed\n +expected file out\.txt to exist · evals\/canary\.eval\.ts:9$/,
       )
     },
   },
@@ -6021,9 +6028,13 @@ export const features: Feature[] = [
       const lands = entryOf(stdout, 'lands')
       assert.match(
         lands,
-        /✓ lands {2}2 of 2 variant runs passed\n +The marked variant helped\.\n +arm +passed {2}verdict\n +plain \(control\) {2}0 of 2\n +marked +2 of 2 {2}helped\n/,
+        /✓ lands {2}2\/2 runs at 100% {2}regression\(1\)\n {2}writer\n +arm +pass\n +plain +0 of 1\n +marked +1 of 1 {2}helped\n/,
       )
-      assert.match(lands, /^ +✗ has the marker {2}failed on the control · expected$/m)
+      assert.match(
+        lands,
+        /\n {2}copier\n +arm +pass\n +plain +0 of 1\n +marked +1 of 1 {2}helped\n/,
+      )
+      assert.match(lands, /^ +has the marker +0 of 1 +1 of 1$/m)
       assert.match(
         lands,
         /\n +Worth knowing: 1 run per side; set runs: 4 at evals\/lands\.eval\.ts to confirm these differences\.$/,
@@ -6045,12 +6056,12 @@ export const features: Feature[] = [
       },
     },
     record: ({ stdout }) => {
-      assert.match(stdout, /✓ lands {2}2 of 2 runs passed · 2 cases\n\n/)
+      assert.match(stdout, /✓ lands {2}2\/2 runs at 100% {2}regression\(1\)\n\n/)
       assert.match(
         stdout,
-        /✗ canary {2}1 of 2 runs passed · 2 cases\n +Failed on green; 1 of 2 cases passed\.\n +case {3}fake\n +✓ red {4}1 of 1\n +✗ green {2}0 of 1\n +✗ is red {2}failed on green\n +expected 'green' to be 'red'/,
+        /✗ canary {2}1\/2 runs at 100%, worst 0% {2}regression\(1\)\n +#green {2}0% {2}"is red" failed\n +expected 'green' to be 'red'/,
       )
-      assert.match(stdout, /\nDone in \S+ · 1 failed · 1 passed\n/)
+      assert.match(stdout, /\nDone in \S+ · 2 evals · 1 on target · 1 below\n/)
     },
   },
   {
@@ -6068,7 +6079,7 @@ export const features: Feature[] = [
         /"reached"/,
         "a check the baseline never reached didn't fail",
       )
-      assert.match(entryOf(stdout, 'canary'), /^ +✗ reached +failed 1 of 1 run$/m)
+      assert.match(entryOf(stdout, 'canary'), /^ +#1 +0% +"reached" failed/m)
     },
   },
   {
@@ -6084,9 +6095,9 @@ export const features: Feature[] = [
     record: ({ stdout }) => {
       assert.match(
         entryOf(stdout, 'lands'),
-        /✗ lands {2}0 of 1 run passed\n +No run finished\.\n +✗ 1 run hit an infrastructure error\n +setup step 1\/1 "touch ran"/,
+        /· lands {2}infra error {2}regression\(1\)\n +#1 {2}infra error {2}setup step 1\/1 "touch ran"/,
       )
-      assert.match(stdout, /\nDone in \S+ · 1 failed · 1 infra error\n/)
+      assert.match(stdout, /\nDone in \S+ · 2 evals · 1 below · 1 infra error\n/)
     },
   },
   {

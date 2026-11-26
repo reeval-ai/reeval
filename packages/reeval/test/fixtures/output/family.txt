@@ -1,9 +1,8 @@
-                 adds a $name button that builds
-  pass  reset      1 of 1
-  fail  double     0 of 1
-    build          failed
-      expected command to succeed, exit code 1
-    +1 more passed
-  pass  clear      1 of 1
+· adds-a-button-that-builds  2/3 cases hit 100% (pass@1)  capability(1)
+    #double  0%  the build fails
+      button: double
+      exitCode: 1
+      after turn 1
+✓ choose                     83% ≥ 80%                    metric(0.8)
 
-1 fail · 2 pass
+2 evals · 1 on target · 1 report only

@@ -1715,7 +1715,10 @@ function buildEvalSection(ctx: Ctx, e: EvalEntry, displayName: string): EvalSect
     ...(e.scores
       ? {
           scores: {
-            meanScore: shareFigure(e.scores.meanScore),
+            meanScore: shareFigure(
+              e.scores.meanScore,
+              e.target?.kind === 'metric' ? e.target.threshold : undefined,
+            ),
             passAtK: shareFigure(e.scores.passAtK),
             passHatK: shareFigure(e.scores.passHatK),
           },

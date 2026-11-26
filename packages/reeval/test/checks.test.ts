@@ -45,12 +45,16 @@ describe('named check results', () => {
     const p = await compareProject('checks-compare')
     const r = await runCli(p.dir)
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    // The eval list names the failed check and the arm it failed on; a passing compare stays open.
+    // The eval list's check matrix counts the failed check's passes on each arm, as reeval show does.
     assert.match(
       r.stdout,
-      /^ {5}✗ house style {2}failed on the control 2 of 2 · expected\n {7}expected file styled\.txt to exist · evals\/s\.eval\.ts:14$/m,
+      /^ {5}house style +0 of 2 +2 of 2\n {7}expected file styled\.txt to exist$/m,
     )
-    assert.doesNotMatch(r.stdout, /toSucceed/, 'a check that never ran did not fail')
+    assert.match(
+      r.stdout,
+      /^ {5}toSucceed test -f ok\.txt +not run +2 of 2$/m,
+      'a check that never ran reads not run, not failed',
+    )
     // Assertions by arm: house style fails on the control; toSucceed is n/a there (never reached).
     const matrix =
       /## Assertions by arm[\s\S]*\| house style \| toHaveFile \| 0 of 2 \| 2 of 2 \|[\s\S]*\| toSucceed test -f ok\.txt \| toSucceed \| n\/a \| 2 of 2 \|/
@@ -127,10 +131,10 @@ describe('named check results', () => {
     ])
 
     const agent = await runCli(p.dir, ['run'], { env: { REEVAL_UI: 'agent' } })
-    assert.match(agent.stdout, /^ {4}✗ house style {2}failed on the control 2 of 2 · expected$/m)
+    assert.match(agent.stdout, /^ {4}house style +0 of 2 +2 of 2$/m)
   })
 
-  test('a check both arms fail names the variant, then the ungated control as such', async () => {
+  test("a check both arms fail is the gated variant's case row, and a column per arm", async () => {
     const p = await project('checks-both-fail', {
       'reeval.config.ts': fakeConfig(),
       'evals/s.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
@@ -151,7 +155,7 @@ export default defineEval({
     assert.equal(r.code, 1, r.stdout + r.stderr)
     assert.match(
       r.stdout,
-      /✗ writes ok\.txt {2}failed on styled 2 of 2 · the control 2 of 2 too, which isn't gated$/m,
+      /^ {5}#1–2 {2}0% {2}"writes ok\.txt" failed\n[\s\S]*^ {5}check +plain +styled\n {5}writes ok\.txt +0 of 2 +0 of 2$/m,
     )
   })
 
