@@ -1,0 +1,45 @@
+{
+  "children": [
+    {
+      "type": "eval",
+      "name": "builtins",
+      "mode": "run",
+      "options": {},
+      "body": "b1",
+      "source": {
+        "body": "eb3e3dcbc03908fdd57fbad9d733b8407d9d149f40ff08f3357926f885cf47d6"
+      },
+      "graders": [
+        {
+          "builtin": "has-file",
+          "args": [
+            "src/retry.ts",
+            {
+              "regexp": "export function retry",
+              "flags": "m"
+            }
+          ]
+        },
+        {
+          "builtin": "succeeded",
+          "args": ["node --test"],
+          "name": "tests-pass",
+          "required": true
+        },
+        {
+          "builtin": "used-skill",
+          "args": ["http-retries"],
+          "weight": 2
+        },
+        {
+          "builtin": "not-in-diff",
+          "args": ["test/**"],
+          "weight": 0
+        },
+        {
+          "builtin": "turns"
+        }
+      ]
+    }
+  ]
+}

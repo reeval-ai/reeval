@@ -10,6 +10,7 @@ from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import Any, Generic, Literal, Required, TypedDict, TypeVar
 
+from reeval_python._wire import BuiltinGraderData as BuiltinGrader
 from reeval_python.environment import (
     DockerSandbox,
     Environment,
@@ -52,6 +53,10 @@ class EvalOptions(TypedDict, total=False):
     """One environment, or a list, each its own cell beside each harness; `{"add": …}` and
     `{"only": [names]}` edit the inherited list."""
     agents: Harness | Sequence[Harness] | Mapping[str, Any]
+    graders: Sequence[BuiltinGrader]
+    """Built-in graders as data, each `{"builtin": kind, "args": […]}` with `name`, `weight` or
+    `required`, e.g. `{"builtin": "used-skill", "args": ["http-retries"], "weight": 2}`; a
+    regular expression argument is `{"regexp": …, "flags": …}`. Per eval only."""
     judge: JudgeDefaults
     pin: Sequence[str]
     question: Mapping[str, Any]

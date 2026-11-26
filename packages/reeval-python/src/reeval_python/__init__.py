@@ -21,6 +21,7 @@ from reeval_python.environment import (
 from reeval_python.errors import EvalError, ReevalCallError
 from reeval_python.options import (
     BestOf,
+    BuiltinGrader,
     Case,
     CaseOptions,
     EvalOptions,
@@ -44,6 +45,7 @@ __all__ = [
     "Decision",
     "DecisionUsage",
     "BestOf",
+    "BuiltinGrader",
     "Diff",
     "DockerSandbox",
     "Environment",

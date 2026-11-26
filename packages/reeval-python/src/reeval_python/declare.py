@@ -48,6 +48,7 @@ class DeclaredEval:
     body: str
     source: w.DeclaredSource
     family: DeclaredFamily | None = None
+    graders: list[w.BuiltinGraderData] | None = None
 
     def as_json(self) -> w.DeclaredEval:
         out: w.DeclaredEval = {
@@ -60,6 +61,8 @@ class DeclaredEval:
         }
         if self.family is not None:
             out["family"] = self.family.as_json()
+        if self.graders is not None:
+            out["graders"] = self.graders
         return out
 
 
@@ -186,6 +189,10 @@ def group(
         opts, fn = dict[str, Any](cast(dict[str, Any], arg)), arg2
     else:
         raise TypeError("group(name, options, fn) or group(name, fn)")
+    if "graders" in opts:
+        raise TypeError(
+            f"group({name!r}) sets graders, which are per eval: give each eval inside it its own"
+        )
 
     node = DeclaredGroup(name=name, mode=mode, options=_wire_options(opts), children=[])
     _declare(node)
@@ -583,6 +590,8 @@ def _register_eval(
         )
     if family is None and key in _families:
         raise _named_like_family(path, _families[key])
+    options = dict(options)
+    graders = _graders(options.pop("graders", None), where)
     _names[key] = (path, family is not None)
     body = _next_body(fn)
     _declare(
@@ -593,8 +602,25 @@ def _register_eval(
             body=body,
             source=source,
             family=family,
+            graders=graders,
         )
     )
+
+
+def _graders(value: object, where: str) -> list[w.BuiltinGraderData] | None:
+    """An eval's built-in graders as data, which reeval checks when it plans the run."""
+    if value is None:
+        return None
+    if not isinstance(value, list | tuple) or not all(
+        isinstance(g, Mapping) and isinstance(cast(Mapping[str, Any], g).get("builtin"), str)
+        for g in cast(Sequence[object], value)
+    ):
+        raise TypeError(
+            f"graders in {where} must be a list of built-in graders as data, e.g. "
+            '[{"builtin": "used-skill", "args": ["http-retries"]}] '
+            f"(got {cast(object, value)!r})"
+        )
+    return [cast(w.BuiltinGraderData, dict(g)) for g in cast(Sequence[Mapping[str, Any]], value)]
 
 
 def _collect_suite_sync(suite: _Suite) -> None:

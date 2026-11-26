@@ -33,7 +33,12 @@ import { declarationProblem } from '../src/contract/declaration.ts'
 import type { DeclarationTree, DeclaredNode } from '../src/declaration.ts'
 import { collect, collectingFile, registerGroup, registerTest } from '../src/engine/collector.ts'
 import { useEngine } from '../src/engine/runtime.ts'
-import { declaredBody, declaredTree, resetDeclarationCollector } from '../src/evaluate.ts'
+import {
+  declareDefault,
+  declaredBody,
+  declaredTree,
+  resetDeclarationCollector,
+} from '../src/evaluate.ts'
 import { jitiTransform } from '../src/jiti.ts'
 import type { RunContext } from '../src/types.ts'
 import { project, readRun, runCli } from './helpers.ts'
@@ -96,6 +101,7 @@ const virtualModules = {
   'reeval/sandbox': await import('../src/sandbox.ts'),
   'reeval/judge': await import('../src/judge.ts'),
   'reeval/gateway': await import('../src/gateway.ts'),
+  'reeval/graders': await import('../src/graders.ts'),
 }
 
 /** Body ids count up across the files this process collects; a worker's start at b1. */
@@ -213,7 +219,10 @@ async function treeOf(c: DeclareCase): Promise<DeclarationTree> {
   while (declaredBody(`b${before + 1}`)) before++
   const children: DeclaredNode[] = []
   for (const file of sources) {
-    await collect(file, () => jiti.import(file))
+    await collect(file, async () => {
+      const loaded = await jiti.import(file)
+      if (file !== declareMirror(c.name)) declareDefault(file, loaded)
+    })
     const tree = declaredTree(file)
     assert.ok(tree, `${relative(testDir, file)} declared nothing`)
     children.push(...tree.children)

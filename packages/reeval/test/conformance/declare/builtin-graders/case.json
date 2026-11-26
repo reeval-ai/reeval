@@ -1,0 +1,6 @@
+{
+  "eval": "plan/builtin-graders/evals",
+  "treeRoot": "plan/builtin-graders",
+  "plan": "plan/builtin-graders/expected/builtin-graders.txt",
+  "args": []
+}
