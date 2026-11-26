@@ -637,6 +637,23 @@
       "required": ["apiKey", "kind", "prefix"],
       "additionalProperties": false
     },
+    "DecideConfig": {
+      "description": "`c.decide()`'s config: the model a call that names none asks, and how long one may take.",
+      "type": "object",
+      "properties": {
+        "model": {
+          "description": "The decision model's `'provider/model'`, e.g. `'typesafe-ai/jev'`, which resolves through the config's `gateway` list as `<provider>.decisionModel(<id>)`. Unset, `c.decide()` asks `analysis.model`. An AI SDK decision model object goes on the call.",
+          "type": "string",
+          "format": "includes",
+          "pattern": "\\/"
+        },
+        "timeout": {
+          "description": "How long one call may take, its AI SDK retries included. Unset, no limit but the eval's.",
+          "$ref": "#/$defs/Duration"
+        }
+      },
+      "additionalProperties": false
+    },
     "DeclaredSandbox": {
       "description": "A sandbox an eval, environment, profile or config sets.",
       "anyOf": [
@@ -2806,6 +2823,10 @@
             }
           },
           "additionalProperties": false
+        },
+        "decide": {
+          "description": "The decision model `c.decide()` calls when the call names none.",
+          "$ref": "#/$defs/DecideConfig"
         },
         "defaultProfile": {
           "description": "The profile when neither `--profile` nor `REEVAL_PROFILE` names one: `cloud` for a run `--cloud` or the config's `cloud` sends to the cloud, else `ci` when `CI` is set, else `local`.",

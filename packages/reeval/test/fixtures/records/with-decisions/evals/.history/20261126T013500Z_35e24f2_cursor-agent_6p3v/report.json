@@ -1,0 +1,362 @@
+{
+  "reportVersion": 1,
+  "runId": "20261126T013500Z_35e24f2_cursor-agent_6p3v",
+  "single": false,
+  "header": {
+    "title": "Run 20261126T013500Z_35e24f2_cursor-agent_6p3v",
+    "status": "complete",
+    "startedAt": "2026-11-26T01:35:00.798Z",
+    "author": "cursor-agent",
+    "reeval": "0.31.0",
+    "profile": null,
+    "scope": {
+      "profile": null,
+      "subset": false,
+      "configKey": "20046482a8869074cc92a287684012ae8d185e05d93e7449c6a3b749b96aa926"
+    },
+    "runsPerCell": 1,
+    "wall": {
+      "value": 1286,
+      "text": "1s"
+    },
+    "tally": {
+      "counted": 1,
+      "passed": 1,
+      "failed": 0,
+      "ungated": {
+        "passed": 0,
+        "failed": 0
+      },
+      "infraError": 1,
+      "reclassified": 0,
+      "skipped": 0
+    },
+    "tokens": null,
+    "cost": null,
+    "git": {
+      "sha": "35e24f2978fba26f1072f52ec50b38b0ff663de6",
+      "branch": "master",
+      "dirty": false,
+      "repo": null
+    }
+  },
+  "integrity": [
+    {
+      "kind": "unreported-usage",
+      "severity": "warn",
+      "text": "1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "decide",
+      "cites": [
+        {
+          "id": "A2",
+          "key": "decide # fake/fake/fake#1",
+          "href": "./decide-5589aa/fake-fake-fake-dc13e2/1/transcript.jsonl"
+        }
+      ]
+    }
+  ],
+  "rollup": {
+    "lead": null,
+    "rows": [
+      {
+        "evalId": "decide",
+        "name": "decide",
+        "anchor": "decide",
+        "shapes": [
+          "task"
+        ],
+        "design": "1 coding harness, 1 attempt",
+        "primary": "Median tokens: not reported",
+        "medianTokens": {
+          "value": null,
+          "text": "not reported"
+        }
+      },
+      {
+        "evalId": "outage",
+        "name": "outage",
+        "anchor": "outage",
+        "shapes": [
+          "task"
+        ],
+        "design": "1 coding harness, 1 attempt",
+        "primary": "Median tokens: not reported",
+        "medianTokens": {
+          "value": null,
+          "text": "not reported"
+        }
+      }
+    ],
+    "findings": []
+  },
+  "roster": [],
+  "evals": [
+    {
+      "id": "decide",
+      "anchor": "decide",
+      "name": "decide",
+      "file": "evals/decide.eval.ts",
+      "shapes": [
+        "task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "headline": {
+        "task": "decide",
+        "kicker": null,
+        "fairness": "too-few-runs",
+        "primary": {
+          "kind": "measure",
+          "label": "tokens",
+          "unit": "tokens",
+          "spread": {
+            "n": 0,
+            "median": {
+              "value": null,
+              "text": "not reported"
+            },
+            "q1": {
+              "value": null,
+              "text": "not reported"
+            },
+            "q3": {
+              "value": null,
+              "text": "not reported"
+            }
+          }
+        },
+        "foot": "No attempt reported usage."
+      },
+      "insights": [],
+      "primary": null,
+      "choices": [],
+      "discovery": [],
+      "judgments": null,
+      "qualitative": [],
+      "captures": null,
+      "failures": null
+    },
+    {
+      "id": "outage",
+      "anchor": "outage",
+      "name": "outage",
+      "file": "evals/outage.eval.ts",
+      "shapes": [
+        "task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "headline": {
+        "task": "outage",
+        "kicker": null,
+        "fairness": "too-few-runs",
+        "primary": {
+          "kind": "measure",
+          "label": "tokens",
+          "unit": "tokens",
+          "spread": {
+            "n": 0,
+            "median": {
+              "value": null,
+              "text": "not reported"
+            },
+            "q1": {
+              "value": null,
+              "text": "not reported"
+            },
+            "q3": {
+              "value": null,
+              "text": "not reported"
+            }
+          }
+        },
+        "foot": "No attempt reported usage."
+      },
+      "insights": [],
+      "primary": null,
+      "choices": [],
+      "discovery": [],
+      "judgments": null,
+      "qualitative": [],
+      "captures": null,
+      "failures": {
+        "clusters": [
+          {
+            "kind": "infra-error",
+            "label": "c.decide() with fake/fake-decision failed: overloaded. Set decide.model in reeval.config.ts to a decision model that answers, or pass { model } to the call.",
+            "at": null,
+            "count": {
+              "k": 1,
+              "n": 1,
+              "text": "1 of 1"
+            },
+            "attempts": [
+              {
+                "id": "A1",
+                "key": "outage # fake/fake/fake#1",
+                "href": "./outage-4398c2/fake-fake-fake-dc13e2/1/transcript.jsonl"
+              }
+            ]
+          }
+        ],
+        "remarks": []
+      }
+    }
+  ],
+  "actions": [],
+  "provenance": {
+    "rows": [
+      {
+        "field": "Executed at",
+        "value": "35e24f2978fb on master, clean (the commit that adds this record is later)"
+      },
+      {
+        "field": "Lockfiles",
+        "value": "none found"
+      },
+      {
+        "field": "Images",
+        "value": "none (fake sandbox)"
+      },
+      {
+        "field": "Agents",
+        "value": "fake"
+      },
+      {
+        "field": "Environments",
+        "value": "fake eca09e8f139f"
+      },
+      {
+        "field": "Judge",
+        "value": "none by default · threshold 0.8 · version 1f259248a52c"
+      },
+      {
+        "field": "Packages",
+        "value": "@vitest/expect 5.1.0 · jiti 2.7.0 · @reeval/harness-antigravity 0.1.17 · @reeval/harness-opencode 0.2.16 · @reeval/harness-goose 0.1.17 · @reeval/harness-pi 0.2.10 · @reeval/harness-cursor-sdk 0.1.9 · @ai-sdk/harness-claude-code 1.0.176-patch.423f52e6 · @reeval/harness-codex 0.1.14 · @reeval/harness-fx 0.1.14 · @reeval/harness-grok-build 0.1.13 · ai 7.0.161 · @ai-sdk/harness 1.0.172 · @ai-sdk/anthropic 4.0.95 · @ai-sdk/google 4.0.110 · @ai-sdk/openai 4.0.107 · @ai-sdk/typesafe-ai 3.0.32"
+      },
+      {
+        "field": "reeval",
+        "value": "0.31.0 · node 26.13.0 · typescript evals · linux/x64"
+      },
+      {
+        "field": "Runner",
+        "value": "local · cursor-agent"
+      }
+    ],
+    "context": {
+      "count": 0,
+      "files": []
+    },
+    "artifacts": "all",
+    "record": "../20261126T013500Z_35e24f2_cursor-agent_6p3v.json",
+    "warnings": []
+  },
+  "attempts": [
+    {
+      "id": "A1",
+      "key": "outage # fake/fake/fake#1",
+      "evalId": "outage",
+      "harness": "fake",
+      "arm": "fake",
+      "case": null,
+      "outcome": "infra_error",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentMs": {
+        "value": 1,
+        "text": "1ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "facts": {
+        "toolCalls": 0,
+        "byClass": {
+          "context": 0,
+          "dependency": 0,
+          "web": 0,
+          "verify": 0,
+          "workspace": 0
+        },
+        "skills": [],
+        "contextFiles": []
+      },
+      "diff": {
+        "files": 1,
+        "added": 1,
+        "removed": 0,
+        "text": "1 files, +1 / -0"
+      },
+      "links": {
+        "transcript": "./outage-4398c2/fake-fake-fake-dc13e2/1/transcript.jsonl",
+        "diff": "./outage-4398c2/fake-fake-fake-dc13e2/1/diff.patch",
+        "captures": [],
+        "questions": []
+      },
+      "href": "./outage-4398c2/fake-fake-fake-dc13e2/1/transcript.jsonl"
+    },
+    {
+      "id": "A2",
+      "key": "decide # fake/fake/fake#1",
+      "evalId": "decide",
+      "harness": "fake",
+      "arm": "fake",
+      "case": null,
+      "outcome": "pass",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentMs": {
+        "value": 2,
+        "text": "2ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "facts": {
+        "toolCalls": 0,
+        "byClass": {
+          "context": 0,
+          "dependency": 0,
+          "web": 0,
+          "verify": 0,
+          "workspace": 0
+        },
+        "skills": [],
+        "contextFiles": []
+      },
+      "score": 1,
+      "grades": [
+        {
+          "grader": "decided",
+          "kind": "code",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        }
+      ],
+      "diff": {
+        "files": 2,
+        "added": 2,
+        "removed": 0,
+        "text": "2 files, +2 / -0"
+      },
+      "links": {
+        "transcript": "./decide-5589aa/fake-fake-fake-dc13e2/1/transcript.jsonl",
+        "diff": "./decide-5589aa/fake-fake-fake-dc13e2/1/diff.patch",
+        "captures": [],
+        "questions": []
+      },
+      "href": "./decide-5589aa/fake-fake-fake-dc13e2/1/transcript.jsonl"
+    }
+  ]
+}

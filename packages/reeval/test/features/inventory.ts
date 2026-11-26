@@ -1994,6 +1994,25 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/engine.test.ts', 'reeval/test/resume.test.ts'],
   },
   {
+    id: 'judge.decide',
+    area: 'Judges and matchers',
+    name: "`c.decide({ model, state, questions })`: the AI SDK's `experimental_decide` on the call's model, else `decide.model`, else `analysis.model`, through the config's `gateway` list, with the attempt's signal and `decide.timeout`; `c.state()` builds the judge's inputs as a masked JSON part and `c.part()` a capture's image part; the state and questions are masked before they're sent and the answers before they're kept, each call is a line of the attempt's decisions.jsonl, kept with its other evidence, and a `decision` line in transcript.jsonl before the next turn's prompt, left out of an ATIF export; `decide.model`'s key is checked before the run, its tokens and cost are the attempt's `decisionUse`, never the agent's, and graders read them as `c.decisions`; `reeval/testing`'s `fakeDecisionModel` answers without a provider; the attempt protocol's `decide` op",
+    fixtures: ['judge/decide'],
+    unit: [
+      'reeval/test/attempt-host.test.ts',
+      'reeval/test/refusals.test.ts',
+      'reeval/test/decide.test.ts',
+      'reeval/test/atif.test.ts',
+    ],
+  },
+  {
+    id: 'judge.decide-outage',
+    area: 'Judges and matchers',
+    name: "`c.decide()` the provider never answered, after the AI SDK's retries, or that ran past `decide.timeout`, makes the attempt an infra error naming the model and `decide.model`, even when the task catches it, and its `decision` line records the error; one the attempt's own timeout cuts off records it too",
+    fixtures: ['judge/decide-outage'],
+    unit: ['reeval/test/decide.test.ts'],
+  },
+  {
     id: 'judge.providers',
     area: 'Judges and matchers',
     name: "Model routing for reeval's own calls (judge, analysis, compare questions): `anthropic/*`, `google/*`, `openai/*` and `typesafe-ai/*` call their provider directly when its key is set, which wins over the AI Gateway; any other prefix goes through the Gateway; a missing or malformed key names the model, its prefix and every key that works, at plan time, in `reeval doctor` and at call time",

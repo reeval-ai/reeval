@@ -100,6 +100,12 @@ export const SHAPES: PersistedShape[] = [
     where: "One line of an attempt's execs.jsonl, each c.exec's result, in its run's directory",
   },
   {
+    name: 'decision-line',
+    file: 'src/types.ts',
+    type: 'DecisionRecord',
+    where: "One line of an attempt's decisions.jsonl, each c.decide call, in its run's directory",
+  },
+  {
     name: 'workspace-manifest',
     file: 'src/history/types.ts',
     type: 'WorkspaceManifest',

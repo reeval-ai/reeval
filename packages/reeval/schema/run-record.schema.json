@@ -292,6 +292,10 @@
           "description": "The transcript as a Harbor ATIF trajectory, with the config's `exports: ['atif']`.",
           "$ref": "#/$defs/FileRef"
         },
+        "decisions": {
+          "description": "`decisions.jsonl`: each `c.decide` call, one `DecisionRecord` per call in call order.",
+          "$ref": "#/$defs/FileRef"
+        },
         "diff": {
           "$ref": "#/$defs/FileRef"
         },
@@ -522,6 +526,10 @@
         "cost": {
           "description": "The gateway's billed `reportedCostUsd`, else the turns' costs added up; unset when a turn with tokens has none.",
           "$ref": "#/$defs/CostUsd"
+        },
+        "decisionUse": {
+          "description": "What the attempt's `c.decide()` calls used, apart from the agent's `usage` and `cost`. The calls are `files.decisions`, and each is a `decision` line in transcript.jsonl too.",
+          "$ref": "#/$defs/DecisionUseSpend"
         },
         "durationMs": {
           "type": "number"
@@ -1712,6 +1720,30 @@
         }
       },
       "required": ["basis", "source", "usd"]
+    },
+    "DecisionUseSpend": {
+      "description": "What an attempt's `c.decide()` calls used: never the agent's `usage` or cost.",
+      "type": "object",
+      "properties": {
+        "calls": {
+          "type": "number"
+        },
+        "costUsd": {
+          "description": "The calls' cost the gateways named, in US dollars; unset when none named one.",
+          "type": "number"
+        },
+        "usage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TokenUsage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": ["calls", "usage"]
     },
     "EgressPolicy": {
       "description": "Where the sandbox may connect: any host over HTTP(S) through the egress gateway (`'proxy'`, the default), anywhere including raw TCP and UDP around the gateway (`'allow-all'`), nowhere (`'deny-all'`), or only the listed hosts (`'*.example.com'` matches subdomains). Under a restricted policy the harness's own hosts, brokered secrets' `hosts` and MCP servers' hosts are allowed too; any other request gets a refusal, and the attempt goes on.",

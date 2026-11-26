@@ -60,6 +60,7 @@ function inputs(files: Record<string, string> = {}): GradeInputs {
         { name: 'home', path: 'home.png', sha256: sha256(png), bytes: 3, mediaType: 'image/png' },
       ],
       readArtifact: async (name) => (name === 'home' ? png : null),
+      decisions: [],
       workspace: entries.length ? keptFiles(manifest, archiveFile(archive)) : null,
       changedFiles: [],
     },

@@ -42,6 +42,7 @@ import {
   DEFAULT_THRESHOLD,
   judgeCredentials,
   modelKeyOptions,
+  RECOMMENDED_JUDGE_MODEL,
 } from './judge/index.ts'
 import { defaultIncludeGlobs } from './language-runner/adapter.ts'
 import { isObjectLike } from './object.ts'
@@ -56,6 +57,7 @@ import type {
   Budget,
   BuiltinGraderData,
   ConfigHelpers,
+  Duration,
   EnvVars,
   FakeAnalysisModel,
   FakeJudgeModel,
@@ -88,6 +90,7 @@ const CONFIG_KEYS = [
   'judge',
   'capture',
   'question',
+  'decide',
   'timeout',
   'snapshot',
   'concurrency',
@@ -744,6 +747,7 @@ export function resolveConfig(
     judge: resolveJudge(user.judge, file),
     capture: user.capture ?? {},
     question: user.question ?? {},
+    decide: checkDecide(user.decide, file),
     timeoutMs: parseDuration(user.timeout ?? '15m'),
     snapshot: mergeSnapshot({ when: true, compress: false }, user.snapshot),
     ...(graders.length ? { graders } : {}),
@@ -819,6 +823,38 @@ export const ANALYSIS_DEFAULTS = {
   maxInputTokens: 20_000,
   maxOutputTokens: 32_000,
 } as const
+
+function decideTimeout(timeout: Duration, file: string): number {
+  try {
+    return parseDuration(timeout)
+  } catch (error) {
+    throw new UsageError(`decide.timeout in ${file}: ${(error as Error).message}`)
+  }
+}
+
+function checkDecide(decide: ReevalConfig['decide'], file: string): ResolvedConfig['decide'] {
+  if (decide === undefined) return {}
+  if (!isObjectLike(decide)) {
+    throw new UsageError(
+      `decide in ${file} must be an object like { model: '${RECOMMENDED_JUDGE_MODEL}' } (got ${JSON.stringify(decide)})`,
+    )
+  }
+  unknownKey(decide, ['model', 'timeout'], 'decide', file)
+  const { model, timeout } = decide
+  if (model !== undefined && typeof model !== 'string') {
+    throw new UsageError(
+      `decide.model in ${file} must be a 'provider/model' string, e.g. '${RECOMMENDED_JUDGE_MODEL}' (got ${JSON.stringify(model) ?? typeof model}). An AI SDK decision model goes on the call: c.decide({ model, … }).`,
+    )
+  }
+  if (model !== undefined) {
+    const problem = checkModelString(model, `decide.model in ${file}`, [RECOMMENDED_JUDGE_MODEL])
+    if (problem) throw new UsageError(problem)
+  }
+  return {
+    ...(model !== undefined ? { model } : {}),
+    ...(timeout !== undefined ? { timeoutMs: decideTimeout(timeout, file) } : {}),
+  }
+}
 
 function checkAnalysis(
   analysis: ReevalConfig['analysis'],
@@ -1040,7 +1076,7 @@ type CredentialOptions = {
 /**
  * Names the environment variables the run's providers need but don't have: the harnesses it
  * plans (default: the config's), the run's judge and the judges its attempts resolve, the models
- * that answer questions, and required config and profile secrets.
+ * that answer questions, `decide.model`, and required config and profile secrets.
  */
 export function missingCredentials(
   config: ResolvedConfig,
@@ -1091,6 +1127,15 @@ export function neededCredentials(
       gateway: runModelGateway(config, options.profile, model),
       what: 'questions',
     })),
+    ...(config.decide.model !== undefined
+      ? [
+          {
+            model: config.decide.model,
+            gateway: runModelGateway(config, options.profile, config.decide.model),
+            what: 'decide.model',
+          },
+        ]
+      : []),
   ]
   const named = new Set<string>()
   for (const { model, gateway, what } of models) {
@@ -1117,7 +1162,7 @@ export function neededCredentials(
 
 /**
  * Keys the run sends in request headers (the agents' credentials, the run's and attempts' judges'
- * and the questions' models') whose value has whitespace or a control character in it, with where
+ * the questions' models' and `decide.model`'s) whose value has whitespace or a control character in it, with where
  * the first one is: a key pasted from a wrapped terminal line picks up a line break, and the agent
  * then hangs on a request it can't send rather than failing to authenticate.
  */
@@ -1142,7 +1187,7 @@ export function malformedCredentials(
   for (const { model, gateway } of options.judges ?? []) {
     names.push(...judgeCredentials(model, gateway))
   }
-  for (const model of options.questionModels ?? []) {
+  for (const model of [...(options.questionModels ?? []), config.decide.model ?? []].flat()) {
     names.push(...judgeCredentials(model, runModelGateway(config, options.profile, model)))
   }
   return [...new Set(names)].flatMap((name) => {

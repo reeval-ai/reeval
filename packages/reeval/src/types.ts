@@ -12,6 +12,13 @@ import type {
   VertexPublisher,
   WebEventType,
 } from '@reeval/agents'
+import type {
+  Experimental_DecisionModel,
+  Experimental_DecisionQuestion,
+  Experimental_DecisionResult,
+  Experimental_DecisionState,
+  Experimental_DecisionStatePart,
+} from 'ai'
 import type { Grader, GraderList } from './grade/types.ts'
 import type {
   ArtifactLevel,
@@ -563,6 +570,23 @@ export type AttemptContext = {
    * is masked like the rest of the record.
    */
   observe(name: string, value: JSONValue): void
+  /**
+   * Asks a decision model the `questions` about `state`, for the task to act on: the AI SDK's
+   * `experimental_decide` on the call's `model`, else `decide.model`, else `analysis.model`, with
+   * the attempt's signal. State and questions are masked first, and the call is recorded in the
+   * transcript; it's never graded, and its tokens never count as the agent's. A provider failure,
+   * after the AI SDK's retries, fails the attempt as an infrastructure error.
+   */
+  decide<const QUESTIONS extends Record<string, Experimental_DecisionQuestion>>(
+    call: DecideCall<QUESTIONS>,
+  ): Promise<DecideResult<QUESTIONS>>
+  /**
+   * The judge's inputs as decision state: one JSON part with the keys a judge sees, masked as
+   * the judge's are. `output`, `diff` and `transcript` read the latest turn, or `on`.
+   */
+  state(inputs: StateInputs): Promise<Experimental_DecisionStatePart[]>
+  /** A capture as an image file part of decision state: a `c.capture()` result or its name. */
+  part(capture: Capture | string): Experimental_DecisionStatePart
   /** Every turn so far, oldest first. */
   readonly turns: readonly Turn[]
   /** Aborted on timeout or Ctrl-C. */
@@ -571,6 +595,33 @@ export type AttemptContext = {
   readonly attempt: { id: string; cell: Cell; n: number }
 }
 export type EvalFn = (c: AttemptContext) => Promise<void>
+
+/** `c.decide()`'s call: `experimental_decide`'s options, with reeval's model and state. */
+export type DecideCall<QUESTIONS extends Record<string, Experimental_DecisionQuestion>> = {
+  /** The decision model; default `decide.model`, then `analysis.model`. */
+  model?: DecideModel
+  /** What the model decides about: a string, a JSON object or parts (`c.state()`, `c.part()`). */
+  state: Experimental_DecisionState | PromiseLike<Experimental_DecisionState>
+  /** The questions, by id. */
+  questions: QUESTIONS
+  /** Passed to the provider as it is. */
+  providerOptions?: Record<string, Record<string, JSONValue>>
+}
+
+/** What `c.decide()` returns: `experimental_decide`'s result. */
+export type DecideResult<QUESTIONS extends Record<string, Experimental_DecisionQuestion>> = Pick<
+  Experimental_DecisionResult<QUESTIONS>,
+  'answers' | 'usage' | 'warnings' | 'providerMetadata' | 'response'
+>
+
+/** What `c.state()` shows: the judge's inputs of the same names. */
+export type StateInputs = Pick<
+  JudgeInputs,
+  'output' | 'diff' | 'contents' | 'observations' | 'transcript'
+> & {
+  /** The turn `output`, `diff` and `transcript` read instead of the latest. */
+  on?: Turn
+}
 
 /**
  * One case of an eval with `cases`: an object whose `key` names it in the output and the record,
@@ -2785,6 +2836,8 @@ export type ReevalConfig = {
   capture?: CaptureOptions
   /** Defaults for every question: the model that answers it and what it's shown of each attempt. Merged down the cascade. */
   question?: QuestionOptions
+  /** The decision model `c.decide()` calls when the call names none. */
+  decide?: DecideConfig
   /**
    * When each attempt's workspace is copied into its directory in `.reeval/runs`: `true` after
    * the checks, `'turns'` after each `c.send` too, `false` never. Default `true`.
@@ -2836,6 +2889,21 @@ export type ReevalConfig = {
    * sandbox's image on each. This machine when unset. A profile's `provider` replaces it.
    */
   provider?: ProviderDescriptor
+}
+
+/** `'provider/model'` (e.g. `'typesafe-ai/jev'`), or an AI SDK decision model object. */
+export type DecideModel = Experimental_DecisionModel
+
+/** `c.decide()`'s config: the model a call that names none asks, and how long one may take. */
+export type DecideConfig = {
+  /**
+   * The decision model's `'provider/model'`, e.g. `'typesafe-ai/jev'`, which resolves through the
+   * config's `gateway` list as `<provider>.decisionModel(<id>)`. Unset, `c.decide()` asks
+   * `analysis.model`. An AI SDK decision model object goes on the call.
+   */
+  model?: string
+  /** How long one call may take, its AI SDK retries included. Unset, no limit but the eval's. */
+  timeout?: Duration
 }
 
 /** `fakeJudge()` as data: the score every call gets. */
@@ -3013,6 +3081,7 @@ export type ResolvedConfig = {
   timeoutMs: number
   capture: CaptureOptions
   question: QuestionOptions
+  decide: { model?: string; timeoutMs?: number }
   snapshot: ResolvedSnapshot
   /** The config's `graders` as data; unset when it sets none. */
   graders?: BuiltinGraderData[]
@@ -3836,6 +3905,11 @@ export type EvalRecord = {
    * `usage`, effort, compare or lift.
    */
   captureUse?: CaptureUseSpend
+  /**
+   * Every `c.decide()` call, in call order: written to decisions.jsonl and as transcript.jsonl's
+   * `decision` lines, never into the history record.
+   */
+  decisions?: DecisionRecord[]
   /** See `AttemptRecord.snapshots`. */
   snapshots?: Snapshot[]
   /**
@@ -3965,6 +4039,74 @@ export type CaptureUseSpend = {
   model: string
   moves: number
   usage: TokenUsage | null
+}
+
+/**
+ * A file part of a decision's state as it's recorded: its bytes' hash and size instead of the
+ * bytes, and the capture it is, when it's one of the attempt's.
+ */
+export type DecisionFileRecord = {
+  type: 'file'
+  mediaType: string
+  filename?: string
+  sha256?: string
+  bytes?: number
+  /** A URL the provider was sent instead of bytes, masked. */
+  url?: string
+  /** The `c.capture()` name whose PNG this is. */
+  capture?: string
+}
+
+/** One part of a decision's state as it's recorded. */
+export type DecisionStateRecord =
+  | { type: 'text'; text: string }
+  | { type: 'json'; value: JSONValue }
+  | DecisionFileRecord
+
+/** One question's answer, as the AI SDK returns it. */
+export type DecisionAnswerRecord =
+  | { type: 'boolean'; probability: number }
+  | { type: 'choice'; choice: string; probabilities?: Record<string, number> }
+  | { type: 'score'; score: number; probabilities?: Record<string, number> }
+  | { type: 'box'; box: { top: number; bottom: number; left: number; right: number } }
+
+/**
+ * One `c.decide()` call, masked as it was sent: a step of the task, never graded and never part
+ * of the agent's usage or cost.
+ */
+export type DecisionRecord = {
+  /** `'provider/model'`, or a model object's `provider/modelId`. */
+  model: string
+  /** The model id the provider says answered, when it reports one. */
+  resolvedModel?: string
+  /** The gateway from the config's `gateway` list the call went through; unset for a model object. */
+  gateway?: GatewayName
+  /** How many turns the attempt had sent when it was asked: 0 before the first. */
+  turn: number
+  startedAt: string
+  durationMs: number
+  /** What the model was shown: a string, a JSON object, or parts. */
+  state: string | { [key: string]: JSONValue } | DecisionStateRecord[]
+  /** The questions, by id, as the AI SDK takes them. */
+  questions: { [id: string]: JSONValue }
+  /** Each question's answer, by id; empty when the call failed. */
+  answers: Record<string, DecisionAnswerRecord>
+  /** Null when the provider reported none, or the call failed. */
+  usage: TokenUsage | null
+  warnings?: JSONValue[]
+  providerMetadata?: { [provider: string]: JSONValue }
+  /** What the gateway says the call cost, in US dollars; unset when it names none. */
+  costUsd?: number
+  /** Why the call failed, after the AI SDK's retries. */
+  error?: string
+}
+
+/** What an attempt's `c.decide()` calls used: never the agent's `usage` or cost. */
+export type DecisionUseSpend = {
+  calls: number
+  usage: TokenUsage | null
+  /** The calls' cost the gateways named, in US dollars; unset when none named one. */
+  costUsd?: number
 }
 
 /** Which environment ran as the control, so the studio can show it. */

@@ -2863,6 +2863,18 @@
           },
           "required": ["keep", "traceBufferBytes"]
         },
+        "decide": {
+          "type": "object",
+          "properties": {
+            "model": {
+              "type": "string"
+            },
+            "timeoutMs": {
+              "type": "number"
+            }
+          },
+          "required": []
+        },
         "defaultProfile": {
           "type": "object",
           "properties": {
@@ -3173,6 +3185,7 @@
         "cloud",
         "concurrency",
         "debug",
+        "decide",
         "defaultProfile",
         "env",
         "environments",

@@ -48,6 +48,8 @@ import type {
   AttemptQuestionInput,
   Cell,
   CellGate,
+  DecisionRecord,
+  DecisionUseSpend,
   EnvironmentRecord,
   EvalRecord,
   ExcludedPair,
@@ -359,10 +361,29 @@ function longText(value: unknown): string | undefined {
   return raw !== undefined && raw.length > OUTPUT_CAP ? raw : undefined
 }
 
-/** One JSON object per line: each turn's prompt, its events, then a `turn-end`. */
+/**
+ * One JSON object per line: each turn's prompt, its events, then a `turn-end`, with each
+ * `c.decide()` call before the prompt of the turn it came before, or last.
+ */
 export function transcriptLines(record: EvalRecord): string {
   const lines: string[] = []
+  const decisions = record.decisions ?? []
+  const decided = (before: (turn: number) => boolean) => {
+    for (const decision of decisions) {
+      if (!before(decision.turn)) continue
+      lines.push(
+        JSON.stringify({
+          ts: decision.startedAt,
+          atMs: 0,
+          turn: decision.turn,
+          type: 'decision',
+          decision,
+        }),
+      )
+    }
+  }
   record.turns.forEach((turn, index) => {
+    decided((t) => t === index)
     lines.push(
       JSON.stringify({
         ts: turn.startedAt,
@@ -406,7 +427,18 @@ export function transcriptLines(record: EvalRecord): string {
       }),
     )
   })
+  decided((t) => t >= record.turns.length)
   return `${lines.join('\n')}\n`
+}
+
+/** What the attempt's `c.decide()` calls used, apart from the agent's usage and cost. */
+function decisionUse(decisions: readonly DecisionRecord[]): DecisionUseSpend {
+  const costs = decisions.flatMap((d) => (d.costUsd === undefined ? [] : [d.costUsd]))
+  return {
+    calls: decisions.length,
+    usage: sumUsage(decisions.map((d) => d.usage)),
+    ...(costs.length ? { costUsd: costs.reduce((a, b) => a + b, 0) } : {}),
+  }
 }
 
 /** Every stream part the harness sent, for debugging the normalizer (`REEVAL_RAW_TRANSCRIPT=1`). */
@@ -1233,7 +1265,7 @@ async function attemptEvidence(
       .join('\n')
     files.setupLog = out.add(`${dir}/setup.log`, log)
   }
-  if (record && record.turns.length > 0) {
+  if (record && (record.turns.length > 0 || record.decisions?.length)) {
     files.transcript = out.add(`${dir}/transcript.jsonl`, transcriptLines(record))
     const raw = rawLines(record)
     if (raw) files.rawTranscript = out.add(`${dir}/transcript.raw.jsonl`, raw)
@@ -1283,6 +1315,12 @@ async function attemptEvidence(
     : []
   if (record?.checks.length) {
     files.execs = out.add(`${dir}/execs.jsonl`, record.checks.map(execLine).join(''))
+  }
+  if (record?.decisions?.length) {
+    files.decisions = out.add(
+      `${dir}/decisions.jsonl`,
+      record.decisions.map((d) => `${JSON.stringify(d)}\n`).join(''),
+    )
   }
   const workspace = record?.workspace
     ? await placeWorkspace(record.workspace, dir, out, stagingRecord, files)
@@ -1340,6 +1378,7 @@ async function attemptEvidence(
       : {}),
     ...(record?.timeSplit ? { timeSplit: record.timeSplit } : {}),
     ...(record?.captureUse ? { captureUse: record.captureUse } : {}),
+    ...(record?.decisions?.length ? { decisionUse: decisionUse(record.decisions) } : {}),
     timings: record?.timings ?? { setupMs: 0, agentMs: 0, diffMs: 0, checksMs: 0, judgeMs: 0 },
     activity: record
       ? activity(record, stepPerCall)

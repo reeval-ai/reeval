@@ -22,6 +22,7 @@ description: "Options set how evaluations run. Each key is accepted in set place
 | [`judge`](#judge) | ✓ | ✓ | ✓ |  |
 | [`capture`](#capture) | ✓ | ✓ | ✓ |  |
 | [`question`](#question) | ✓ | ✓ | ✓ |  |
+| [`decide`](#decide) | ✓ |  |  |  |
 | [`timeout`](#timeout) | ✓ | ✓ | ✓ |  |
 | [`snapshot`](#snapshot) | ✓ | ✓ | ✓ |  |
 | [`concurrency`](#concurrency) | ✓ |  |  |  |
@@ -767,6 +768,20 @@ For more information about screenshots, see [Check an app](/evaluations/task/app
 
 <Property name="question.model" type="string" optional>
   A `'provider/model'` string, below a question's own `model` and above `analysis.model`, then a judge language model. reeval refuses an evaluation model.
+</Property>
+
+## `decide`
+
+<Property name="decide" type="DecideConfig" optional>
+  What a `c.decide()` call that names no model asks.
+</Property>
+
+<Property name="decide.model" type="string" optional>
+  A decision model's `'provider/model'`, through the `gateway` list as `<provider>.decisionModel(<id>)`. Unset, `analysis.model`. An AI SDK decision model object goes on the call.
+</Property>
+
+<Property name="decide.timeout" type="Duration" optional>
+  How long one call may take, its retries included.
 </Property>
 
 ## `timeout`

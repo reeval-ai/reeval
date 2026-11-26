@@ -1,5 +1,10 @@
 // Answers attempt-protocol calls from a language runner on the real AttemptContext.
 
+import type {
+  Experimental_DecisionQuestion,
+  Experimental_DecisionState,
+  Experimental_DecisionStatePart,
+} from 'ai'
 import { TURN_STATUS } from '../assert.ts'
 import { type ExpectCall, expectCall, recordCall } from '../attempt/match.ts'
 import {
@@ -7,6 +12,7 @@ import {
   type AttemptReply,
   type AttemptRequest,
   attemptRequestProblem,
+  type DecideCallData,
   type JudgeOn,
 } from '../contract/attempt.ts'
 import type { RawAssertion } from '../engine/runtime.ts'
@@ -15,6 +21,7 @@ import { registerExecEnv } from '../redact.ts'
 import type {
   AttemptContext,
   BackgroundHandle,
+  DecideCall,
   JudgeCallFields,
   JudgeCallOptions,
   Turn,
@@ -53,6 +60,29 @@ function judgeTarget(c: AttemptContext, on: JudgeOn): JudgeCallFields['on'] {
     )
   }
   return turn
+}
+
+/** A wire decision state, its `capture` and `inputs` parts made as `c.part` and `c.state` make them. */
+async function decideState(
+  c: AttemptContext,
+  state: DecideCallData['state'],
+): Promise<Experimental_DecisionState> {
+  if (!Array.isArray(state)) return state as Experimental_DecisionState
+  const parts: Experimental_DecisionStatePart[] = []
+  for (const part of state) {
+    if (part.type === 'capture') parts.push(c.part(part.name))
+    else if (part.type === 'inputs') {
+      const { type: _type, on, ...inputs } = part
+      const turn = on === undefined ? undefined : c.turns[on.turn]
+      if (on !== undefined && !turn) {
+        throw new UsageError(
+          `c.state()'s on is turn ${on.turn}, but the attempt has ${c.turns.length} turns`,
+        )
+      }
+      parts.push(...(await c.state({ ...inputs, ...(turn ? { on: turn } : {}) })))
+    } else parts.push(part as Experimental_DecisionStatePart)
+  }
+  return parts
 }
 
 export async function replyToAttempt(
@@ -139,6 +169,23 @@ async function perform(
         ...(on === undefined ? {} : { on: judgeTarget(c, on) }),
       } as JudgeCallOptions)
       return { verdict }
+    }
+    case 'decide': {
+      const { op: _op, state, ...rest } = call
+      const result = await c.decide({
+        ...rest,
+        state: await decideState(c, state),
+      } as DecideCall<Record<string, Experimental_DecisionQuestion>>)
+      const { answers, usage, warnings, providerMetadata, response } = result
+      return {
+        result: {
+          answers,
+          usage,
+          warnings,
+          ...(providerMetadata ? { providerMetadata } : {}),
+          response: { modelId: response.modelId, timestamp: response.timestamp.toISOString() },
+        },
+      }
     }
     default:
       throw new Error(`The language runner called ${call.op}, which this reeval doesn't handle yet`)

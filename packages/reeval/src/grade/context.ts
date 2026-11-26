@@ -125,7 +125,7 @@ export function graderContext(
       files.set(path, { path, sha256: entry.sha256 ?? sha256(bytes) })
       return bytes.toString('utf8')
     },
-    decisions: [],
+    decisions: trajectory.decisions,
     data,
     signal,
   }

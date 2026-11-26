@@ -495,6 +495,68 @@ export const judgeCallDataSchema = z
     "`c.judge()`'s options as data: the judge options, with the model by name or a fake judge's numeric score, the inputs it shows the judge (at least one turned on) and `on`.",
   )
 
+const jsonObjectSchema = z.record(z.string(), jsonValueSchema)
+
+export const decideStatePartSchema = z
+  .discriminatedUnion('type', [
+    z.strictObject({ type: z.literal('text'), text: z.string() }),
+    z.strictObject({ type: z.literal('json'), value: jsonValueSchema }),
+    z
+      .strictObject({ type: z.literal('capture'), name: nonEmpty })
+      .describe("A capture's PNG as an image file part, as `c.part(capture)` gives it."),
+    z
+      .strictObject({
+        type: z.literal('inputs'),
+        output: sharedInputFields.output,
+        diff: sharedInputFields.diff,
+        contents: z.array(nonEmpty).optional(),
+        observations: sharedInputFields.observations,
+        transcript: sharedInputFields.transcript,
+        on: z
+          .strictObject({ turn: turnIndex })
+          .optional()
+          .describe('The turn `output`, `diff` and `transcript` read instead of the latest.'),
+      })
+      .describe(
+        "The judge's inputs as one JSON part, masked as a judge's are, as `c.state(inputs)` gives them.",
+      ),
+  ])
+  .describe('One part of the state a decision model is shown.')
+
+export const decideCallDataSchema = z
+  .strictObject({
+    model: judgeModelNameSchema
+      .optional()
+      .describe("`'provider/model'`. Default `decide.model`, then `analysis.model`."),
+    state: z
+      .union([z.string(), jsonObjectSchema, z.array(decideStatePartSchema).min(1)])
+      .describe('What the model decides about: a string, a JSON object or parts.'),
+    questions: z
+      .record(nonEmpty, jsonValueSchema)
+      .describe("The questions by id, as the AI SDK's `experimental_decide` takes them."),
+    providerOptions: z.record(z.string(), jsonObjectSchema).optional(),
+  })
+  .describe("`c.decide()`'s call as data: the model by name, the state and the questions.")
+
+export const decideResultSchema = z
+  .strictObject({
+    answers: z
+      .record(z.string(), jsonValueSchema)
+      .describe("Each question's answer, by id, as `experimental_decide` returns it."),
+    usage: z.strictObject({
+      inputTokens: z.number().optional(),
+      outputTokens: z.number().optional(),
+      totalTokens: z.number().optional(),
+    }),
+    warnings: z.array(jsonValueSchema),
+    providerMetadata: z.record(z.string(), jsonObjectSchema).optional(),
+    response: z.strictObject({
+      modelId: z.string(),
+      timestamp: z.string().describe('ISO 8601.'),
+    }),
+  })
+  .describe("`c.decide()`'s result, its response's id, headers and body left out.")
+
 /** An observation's name: one a query, a tally line and a judge's input can carry as it is. */
 export const OBSERVE_NAME = /^[A-Za-z0-9_.:/-]{1,64}$/
 
@@ -681,6 +743,11 @@ export const attemptCallSchema = z
       .describe(
         '`c.judge(question, options)`. Replies with its verdict, or a judge failure when the provider failed.',
       ),
+    z
+      .strictObject({ op: z.literal('decide'), ...decideCallDataSchema.shape })
+      .describe(
+        '`c.decide(call)`. Replies with its result. A provider failure fails the call and the attempt, as an infrastructure error.',
+      ),
   ])
   .describe(
     "One call an eval's body makes on its attempt. The sandbox and the agent session start on the first call that needs them; there's no call to start them.",
@@ -759,6 +826,12 @@ export const attemptReplySchema = z
         op: z.literal('judge'),
         verdict: z.union([verdictSchema, judgeFailureSchema]),
       }),
+      z.strictObject({
+        id,
+        ok: z.literal(true),
+        op: z.literal('decide'),
+        result: decideResultSchema,
+      }),
     ]),
     z.strictObject({
       id,
@@ -785,6 +858,7 @@ export const attemptReplySchema = z
         'serve',
         'kill',
         'capture',
+        'decide',
       ]),
       error: attemptErrorSchema,
     }),
@@ -867,6 +941,9 @@ const OTHER_KEYS = [
   ...Object.keys(judgeCallDataSchema.shape),
   ...Object.keys(captureSchema.shape),
   ...Object.keys(captureCallDataSchema.shape),
+  'name',
+  'text',
+  'type',
   'port',
   'handle',
   'exec',
@@ -896,6 +973,7 @@ export const attemptDoneProblem = (value: unknown): string | undefined =>
   dataProblem(attemptDoneSchema, value, 'The attempt done', () => LIFECYCLE_KEYS)
 
 export type AttemptCall = z.infer<typeof attemptCallSchema>
+export type DecideCallData = z.infer<typeof decideCallDataSchema>
 /** `c.judge()`'s `on` as data: a turn by its index, or a value graded as the output. */
 export type JudgeOn = z.infer<typeof judgeOnSchema>
 export type AttemptStart = z.infer<typeof attemptStartSchema>
@@ -942,6 +1020,9 @@ export const ATTEMPT_SCHEMAS: Record<string, z.ZodType> = {
   CaptureCallData: captureCallDataSchema,
   CaptureInstruction: captureInstructionSchema,
   CaptureWait: captureWaitSchema,
+  DecideCallData: decideCallDataSchema,
+  DecideStatePart: decideStatePartSchema,
+  DecideResult: decideResultSchema,
   Wait: waitSchema,
   Duration: durationSchema,
 }

@@ -85,10 +85,11 @@ export type Attempt = {
   /** The eval's body has returned and teardown has begun. */
   readonly ended: boolean
   /**
-   * The start's failure, or an MCP server's that never answered `initialize`, which fails the
-   * attempt whatever the eval's body made of it.
+   * The start's failure, an MCP server's that never answered `initialize`, or a `c.decide()`
+   * call's (its provider's, or a model the run has no key for), which fails the attempt whatever
+   * the eval's body made of it.
    */
-  startFailure?: { error: unknown }
+  infraFailure?: { error: unknown }
   /** The MCP timer's log, once the session starts with a stdio MCP server. */
   mcpStartup?: McpStartupLog
   /**
@@ -171,7 +172,7 @@ export function createAttempt(
         return Promise.reject(new Error(`${who} came after the eval's body returned`))
       }
       starting ??= start(a, who).catch((error: unknown) => {
-        a.startFailure = { error }
+        a.infraFailure = { error }
         throw error
       })
       return starting

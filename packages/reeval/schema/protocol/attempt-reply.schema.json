@@ -351,6 +351,29 @@
               },
               "required": ["id", "ok", "op", "verdict"],
               "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "description": "Pairs a reply with its request.",
+                  "type": "string",
+                  "pattern": "\\S"
+                },
+                "ok": {
+                  "type": "boolean",
+                  "const": true
+                },
+                "op": {
+                  "type": "string",
+                  "const": "decide"
+                },
+                "result": {
+                  "$ref": "#/$defs/DecideResult"
+                }
+              },
+              "required": ["id", "ok", "op", "result"],
+              "additionalProperties": false
             }
           ]
         },
@@ -415,7 +438,8 @@
                 "judge",
                 "serve",
                 "kill",
-                "capture"
+                "capture",
+                "decide"
               ]
             }
           },
@@ -568,6 +592,74 @@
       "required": ["height", "width"],
       "additionalProperties": false
     },
+    "DecideResult": {
+      "description": "`c.decide()`'s result, its response's id, headers and body left out.",
+      "type": "object",
+      "properties": {
+        "answers": {
+          "description": "Each question's answer, by id, as `experimental_decide` returns it.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        },
+        "providerMetadata": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/JSONValue"
+            }
+          }
+        },
+        "response": {
+          "type": "object",
+          "properties": {
+            "modelId": {
+              "type": "string"
+            },
+            "timestamp": {
+              "description": "ISO 8601.",
+              "type": "string"
+            }
+          },
+          "required": ["modelId", "timestamp"],
+          "additionalProperties": false
+        },
+        "usage": {
+          "type": "object",
+          "properties": {
+            "inputTokens": {
+              "type": "number"
+            },
+            "outputTokens": {
+              "type": "number"
+            },
+            "totalTokens": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        }
+      },
+      "required": ["answers", "response", "usage", "warnings"],
+      "additionalProperties": false
+    },
     "Diff": {
       "type": "object",
       "properties": {
@@ -615,6 +707,38 @@
       },
       "required": ["path", "status"],
       "additionalProperties": false
+    },
+    "JSONValue": {
+      "description": "Any JSON value.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        }
+      ]
     },
     "JudgeArtifactRef": {
       "description": "A capture this judge call sent as a file part. Bytes live in the `artifacts/<name>.png` file.",

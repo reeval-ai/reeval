@@ -8,7 +8,7 @@ import type {
   RunRecord,
 } from '../history/types.ts'
 import { plural } from '../text.ts'
-import type { Outcome, TokenUsage, TranscriptEvent, TurnStatus } from '../types.ts'
+import type { DecisionRecord, Outcome, TokenUsage, TranscriptEvent, TurnStatus } from '../types.ts'
 import { formatTokens, promptTokens } from '../usage.ts'
 import {
   type CompareCell,
@@ -626,6 +626,8 @@ export type TranscriptLine =
       status: TurnStatus
       durationMs: number
     }
+  /** A `c.decide()` call, before the prompt of the turn it came before (`turn`). */
+  | { turn: number; ts: string; atMs: number; type: 'decision'; decision: DecisionRecord }
 
 export type TranscriptItem =
   | { kind: 'turn'; turn: number; prompt: string; ts: string }

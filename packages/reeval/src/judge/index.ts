@@ -11,13 +11,14 @@ import {
   vercelBaseUrlProblem,
   vercelCredentialProblem,
 } from '../gateway/vercel.ts'
-import { vertexSettings } from '../gateway/vertex.ts'
+import { type VertexSettings, vertexSettings } from '../gateway/vertex.ts'
 import type { JudgeRetry } from '../history/types.ts'
 import { badCharacterAt, isPlaceholder, redactSecrets } from '../redact.ts'
 import { heldFetch, heldSecret, hostEnv, LOOPBACK } from '../secrets-file.ts'
 import { startEnv } from '../startup.ts'
 import type {
   FakeJudgeModel,
+  GatewayDescriptor,
   GatewayName,
   JudgeModel,
   JudgeOptions,
@@ -292,6 +293,22 @@ export type JudgeResult = {
   usage: TokenUsage | null
 }
 
+/** A model call's gateway by name, with the list entry's OpenRouter fallbacks and Vertex settings. */
+export function gatewaySettings(entry: GatewayName | GatewayDescriptor | undefined): {
+  gateway: GatewayName | undefined
+  fallbacks: boolean
+  vertex: VertexSettings | undefined
+} {
+  const gateway = typeof entry === 'object' ? entry.kind : entry
+  const fallbacks =
+    typeof entry === 'object' && entry.kind === 'openrouter' && entry.fallbacks === true
+  const vertex =
+    gateway === 'vertex'
+      ? vertexSettings(typeof entry === 'object' && entry.kind === 'vertex' ? entry : {})
+      : undefined
+  return { gateway, fallbacks, vertex }
+}
+
 /** Transient provider errors (429, 5xx, "high demand") are retried with backoff and recorded. */
 export async function runJudge(
   question: string,
@@ -301,19 +318,7 @@ export async function runJudge(
   retry: RetryPolicy = JUDGE_RETRY,
 ): Promise<JudgeResult> {
   const { model, threshold } = options
-  const gateway = typeof options.gateway === 'object' ? options.gateway.kind : options.gateway
-  const fallbacks =
-    typeof options.gateway === 'object' &&
-    options.gateway.kind === 'openrouter' &&
-    options.gateway.fallbacks === true
-  const vertex =
-    gateway === 'vertex'
-      ? vertexSettings(
-          typeof options.gateway === 'object' && options.gateway.kind === 'vertex'
-            ? options.gateway
-            : {},
-        )
-      : undefined
+  const { gateway, fallbacks, vertex } = gatewaySettings(options.gateway)
   let score: number
   let resolvedModel: string | undefined
   let billing: { upstream?: string; costUsd?: number } = {}

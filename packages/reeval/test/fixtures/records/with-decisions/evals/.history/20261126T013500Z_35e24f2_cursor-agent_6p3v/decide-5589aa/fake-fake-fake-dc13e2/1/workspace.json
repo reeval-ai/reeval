@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    {
+      "path": "NOTES.md",
+      "sha256": "77c2ca150b61c7330da139378ffd3940d093f1bd74a1294689345d27e15b5124",
+      "bytes": 8
+    },
+    {
+      "path": "src/app.js",
+      "sha256": "5d2eb782fe3a645dbf5bdf2d765a254438962649c9c892811408cb50e04a5be4",
+      "bytes": 25
+    }
+  ]
+}
