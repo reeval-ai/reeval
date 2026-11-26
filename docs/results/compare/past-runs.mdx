@@ -94,7 +94,7 @@ To make the diff a gate, add `--fail-on-regression`:
 npx reeval compare --fail-on-regression
 ```
 
-`reeval compare` exits with code 1 when an evaluation `regressed`, or when a `new` or `can't compare` evaluation fails, since no earlier run provides a passing result for comparison. Otherwise it exits with code 0, whatever else changed. Add `--md` to write the diff into a [CI](/evaluations/runs/ci) job summary.
+`reeval compare` exits with code 1 when an evaluation `regressed`, or when a `new` or `can't compare` evaluation fails, since no earlier run vouches for it, for evaluations whose target blocks. Otherwise it exits with code 0. Add `--md` to write the diff into a [CI](/evaluations/runs/ci) job summary.
 
 ## Reference
 
