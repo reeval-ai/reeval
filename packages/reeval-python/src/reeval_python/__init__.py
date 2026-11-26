@@ -28,6 +28,7 @@ from reeval_python.options import (
     JudgeDefaults,
     JudgeOptions,
 )
+from reeval_python.target import Target, capability, metric, regression
 from reeval_python.types import (
     BackgroundHandle,
     Decision,
@@ -65,6 +66,7 @@ __all__ = [
     "ReevalAssertionError",
     "ReevalCallError",
     "SyncAttemptContext",
+    "Target",
     "TartSandbox",
     "Turn",
     "Verdict",
@@ -73,9 +75,12 @@ __all__ = [
     "evaluate",
     "expect",
     "fake_harness",
+    "capability",
     "fake_judge",
     "group",
+    "metric",
     "plugin",
+    "regression",
     "tart",
     "todo",
 ]

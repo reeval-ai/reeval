@@ -1523,31 +1523,6 @@
       "required": ["kind", "model"],
       "additionalProperties": false
     },
-    "GatePolicy": {
-      "description": "How a cell's attempts decide its outcome: `'all'` (the default) passes only when every attempt passes (pass^k); `{ passRate }` passes when its pass@1 (passes over passes and fails) is at least that share; `'observe'` gates nothing, so the eval's attempts run and are recorded, and only run and infra errors fail it.",
-      "anyOf": [
-        {
-          "type": "string",
-          "const": "all"
-        },
-        {
-          "type": "object",
-          "properties": {
-            "passRate": {
-              "type": "number",
-              "exclusiveMinimum": 0,
-              "maximum": 1
-            }
-          },
-          "required": ["passRate"],
-          "additionalProperties": false
-        },
-        {
-          "type": "string",
-          "const": "observe"
-        }
-      ]
-    },
     "GatewayDescriptor": {
       "description": "One entry of the config's `gateway` list.",
       "oneOf": [
@@ -2606,10 +2581,6 @@
             }
           ]
         },
-        "gate": {
-          "description": "How each cell's attempts decide its outcome.",
-          "$ref": "#/$defs/GatePolicy"
-        },
         "graders": {
           "description": "`reeval/graders`' built-ins as data, merged by name over the config's.",
           "type": "array",
@@ -2686,6 +2657,10 @@
               "additionalProperties": false
             }
           ]
+        },
+        "target": {
+          "description": "Whether each eval passes and can fail the run, over its attempts' scores.",
+          "$ref": "#/$defs/Target"
         },
         "timeout": {
           "description": "Per attempt.",
@@ -2875,10 +2850,6 @@
             "enum": ["atif"]
           }
         },
-        "gate": {
-          "description": "How each cell's attempts decide its outcome; default `'all'`.",
-          "$ref": "#/$defs/GatePolicy"
-        },
         "gateway": {
           "description": "The gateways model calls may go through, in the order you prefer them: each harness takes the first that can serve it. `direct`, each provider's own key, ends the list unless it's listed in another place or turned off with `{ direct: { enabled: false } }`. Default `[direct]`.",
           "minItems": 1,
@@ -3011,6 +2982,10 @@
               "additionalProperties": false
             }
           ]
+        },
+        "target": {
+          "description": "Whether each eval passes and can fail the run, over its attempts' scores; default `metric()`, which only reports.",
+          "$ref": "#/$defs/Target"
         },
         "timeout": {
           "description": "Per attempt; default `'15m'`.",
@@ -3396,6 +3371,66 @@
       "description": "`header` values, the `query` string, or the request `body`.",
       "type": "string",
       "enum": ["header", "query", "body"]
+    },
+    "Target": {
+      "description": "The eval's rule over its attempts' scores: whether it passes, and whether it can fail the run. `metric` passes when the mean score is at least `threshold`, and with none only reports; `regression` when every attempt scores at least `threshold` (pass^k); `capability` when one does (pass@k), and fails the run only with `blocking`. Made by `metric()`, `regression()` and `capability()`; an attempt passes when its score is at least the threshold, 1 without one.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "metric"
+            },
+            "threshold": {
+              "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "regression"
+            },
+            "threshold": {
+              "description": "The score, from 0 to 1, every attempt must reach.",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": ["kind", "threshold"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "blocking": {
+              "description": "Whether a miss fails the run.",
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "capability"
+            },
+            "threshold": {
+              "description": "The score, from 0 to 1, one attempt must reach.",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": ["blocking", "kind", "threshold"],
+          "additionalProperties": false
+        }
+      ]
     },
     "TartHost": {
       "description": "A Mac that runs `tart()`'s VMs over SSH: an SSH destination, or its parts.",

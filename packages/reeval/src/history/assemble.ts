@@ -42,6 +42,7 @@ import {
   readRetries,
 } from '../resume.ts'
 import { containsZero, liftInterval, round3 } from '../stats.ts'
+import { targetOfGates, thresholdOf } from '../target.ts'
 import { formatDuration } from '../text.ts'
 import type {
   AttemptAnswer,
@@ -66,12 +67,21 @@ import type {
   ResolvedGateway,
   RunContext,
   Snapshot,
+  Target,
   TranscriptEvent,
   WebEventType,
 } from '../types.ts'
 import { promptTokens, sumUsage } from '../usage.ts'
 import { formatBytes } from '../view/debug.ts'
-import { cellOutcome, gatePart, passRateOf, worstOutcome } from '../view/gate.ts'
+import {
+  cellOutcome,
+  gatePart,
+  meanScores,
+  passRateOf,
+  scoresOf,
+  targetCells,
+  worstOutcome,
+} from '../view/gate.ts'
 import { checkTries } from '../view/judgments.ts'
 import { parseTranscript } from '../view/model.ts'
 import { isLockfile, splitPatch } from '../view/patch.ts'
@@ -250,6 +260,17 @@ export const harnessPart = (harness: HarnessDescriptor | undefined) => {
 
 /** A cell fingerprint: the hash of its parts, so each part can be compared on its own. */
 export const fingerprintOf = (parts: FingerprintParts) => sha256(JSON.stringify(parts))
+
+/**
+ * The score a `regression()` or `capability()` attempt passes at, as a fingerprint part: it decides
+ * each attempt's outcome, which no gate re-scores. None at 1, so such a cell keeps its fingerprint;
+ * `metric()`'s threshold is its gate's.
+ */
+export const thresholdPart = (target: Target | undefined): Pick<FingerprintParts, 'threshold'> => {
+  if (!target || target.kind === 'metric') return {}
+  const threshold = thresholdOf(target)
+  return threshold === 1 ? {} : { threshold: String(threshold) }
+}
 
 /** The gateway's part of a fingerprint: none on `direct`, so a cell without a gateway keeps its fingerprint. */
 export const gatewayPart = (
@@ -795,6 +816,7 @@ class Seen {
         outcome: 'skipped',
         todo: e.todo === true,
         ...(e.skip ? { skip: true as const } : {}),
+        ...(e.attempt?.target ? { target: e.attempt.target } : {}),
         passRate: null,
         cells: [],
         attempts: [],
@@ -950,6 +972,7 @@ async function addPreviousAttempt(
   const entry = seen.entry(stub, sources, { source, revision })
   // Unplanned this time, the case keeps the pairs `where` left it out of.
   if (!e.attempt && !entry.excluded && before?.excluded) entry.excluded = before.excluded
+  if (!entry.target && before?.target) entry.target = before.target
   const created = !entry.cells.some((c) => c.key === cell.key)
   const cellRecord = cellOf(
     entry,
@@ -1056,6 +1079,7 @@ async function addPreviousAttempt(
       context: sha256(JSON.stringify(kept.context)),
       ...gatewayPart(e.attempt?.gateway),
       ...gatePart(cellRecord.gate),
+      ...thresholdPart(entry.target),
     }
     cellRecord.fingerprintParts = parts
     cellRecord.fingerprint = fingerprintOf(parts)
@@ -1148,6 +1172,7 @@ async function addAttempt(
       context: sha256(JSON.stringify(context)),
       ...gatewayPart(e.attempt?.gateway),
       ...gatePart(cellRecord.gate),
+      ...thresholdPart(e.attempt?.target),
     }
     cellRecord.fingerprintParts = parts
     cellRecord.fingerprint = fingerprintOf(parts)
@@ -1429,9 +1454,10 @@ function liftOf(control: CellRecord, variant: CellRecord, pooled: boolean): Lift
   const minLift = pooled ? undefined : minLifts.get(variant)
   const c = { pass: control.pass, counted: control.pass + control.fail }
   const v = { pass: variant.pass, counted: variant.pass + variant.fail }
+  const scored = (cell: CellRecord, n: number) => (cell.scores?.meanScore ?? 0) * n
   const { points, low, high } = liftInterval(
-    { pass: v.pass, n: v.counted },
-    { pass: c.pass, n: c.counted },
+    { pass: scored(variant, v.counted), n: v.counted },
+    { pass: scored(control, c.counted), n: c.counted },
   )
   return {
     vs: control.key,
@@ -1471,14 +1497,20 @@ function rollUp(evals: EvalEntry[]): void {
   for (const entry of evals) {
     for (const c of entry.cells) {
       markBestOf(c, entry.attempts)
-      const outcomes = entry.attempts.filter((a) => a.cell === c.key).map((a) => a.outcome)
+      const attempts = entry.attempts.filter((a) => a.cell === c.key)
+      const outcomes = attempts.map((a) => a.outcome)
       c.runs = outcomes.length
       c.pass = outcomes.filter((o) => o === 'pass').length
       c.fail = outcomes.filter((o) => o === 'fail').length
       c.infraError = outcomes.filter((o) => o === 'infra_error').length
       c.skipped = outcomes.filter((o) => o === 'skipped').length
       c.passRate = passRateOf(outcomes)
-      c.outcome = cellOutcome(outcomes, c.gate)
+      c.scores = scoresOf(attempts)
+      c.outcome = cellOutcome(
+        outcomes,
+        c.gate,
+        c.bestOf === undefined ? c.scores.meanScore : undefined,
+      )
     }
     checkTallies(entry)
     for (const c of entry.cells) {
@@ -1505,6 +1537,8 @@ function rollUp(evals: EvalEntry[]): void {
     entry.passRate = passRateOf(
       entry.attempts.filter((a) => gated.has(a.cell)).map((a) => a.outcome),
     )
+    entry.scores = meanScores(targetCells(entry.cells).map((c) => c.scores))
+    entry.target ??= targetOfGates(entry.cells.map((c) => c.gate))
     entry.fingerprint = sha256(
       JSON.stringify(entry.cells.map((c) => [c.key, c.fingerprint]).sort()),
     )

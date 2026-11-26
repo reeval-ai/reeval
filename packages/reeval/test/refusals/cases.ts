@@ -68,6 +68,7 @@ import { PrepareError } from '../../src/sandbox/provider.ts'
 import { missingImagesMessage, pullSpaceMessage } from '../../src/sandbox/tart-images.ts'
 import { docker, fakeSandbox, podman, tart } from '../../src/sandbox.ts'
 import { readSecretsFile } from '../../src/secrets-file.ts'
+import { capability, metric, regression } from '../../src/target.ts'
 import { checkTraitKeys, traitFilters, traitFlags } from '../../src/traits.ts'
 import type {
   EnvironmentHelpers,
@@ -78,6 +79,7 @@ import type {
   ResolvedProfile,
   RunContext,
   SandboxDescriptor,
+  Target,
 } from '../../src/types.ts'
 
 /** A case's run takes its name; `skip`, when set, is why this machine can't run it. */
@@ -422,8 +424,9 @@ const declaresIn = (rel: string, declare: (file: string) => void) => {
 /** What defineEval() refuses of its cases, in an eval file of its own. */
 const withCases = (options: object, task: (...args: never[]) => unknown = async () => {}) =>
   defines({ ...options, task })
-/** What an ungated defineEval() refuses, in an eval file of its own. */
-const ungated = (options: object) => defines({ gate: 'observe', ...options, task: async () => {} })
+/** What defineEval() refuses under `target`, in an eval file of its own. */
+const targeted = (target: Target, options: object) =>
+  defines({ target, ...options, task: async () => {} })
 const plainEnv = defineEnvironment('plain', {})
 const passes = defineGrader('passes', { grade: () => true })
 const also = defineGrader('also', { grade: () => true })
@@ -1256,8 +1259,7 @@ export const CASES: Record<string, Case[]> = {
     ['a baseline', options({ compare: { baseline: e1, variants: [e2] } })],
     ['a list as the control', options({ compare: { control: [e1, e2], variants: [e2] } })],
     ['an unknown key', options({ compare: { control: e1, variants: [e2], arms: [] } })],
-    ['gate unknown', options({ compare: { control: e1, variants: [e2], gate: 'some' } })],
-    ["gate 'none'", options({ compare: { control: e1, variants: [e2], gate: 'none' } })],
+    ['a gate', options({ compare: { control: e1, variants: [e2], gate: 'all' } })],
     ['minLift above 1', options({ compare: { control: e1, variants: [e2], minLift: 2 } })],
     ['minLift a string', options({ compare: { control: e1, variants: [e2], minLift: '0.1' } })],
     ['harness not a list', options({ compare: { control: e1, variants: [e2], agents: 'cursor' } })],
@@ -1294,7 +1296,6 @@ export const CASES: Record<string, Case[]> = {
         compare: {
           control: e1,
           variants: [e2],
-          gate: 'all',
           minLift: 0.1,
           agents: ['fake'],
         },
@@ -1434,14 +1435,18 @@ export const CASES: Record<string, Case[]> = {
     ['config: question with an input', config({ question: { diff: true } })],
   ],
   plain: [
-    ['gate a number', options({ gate: 0.8 })],
-    ['gate an unknown word', options({ gate: 'some' })],
-    ["gate 'none'", options({ gate: 'none' })],
-    ["gate 'observe'", options({ gate: 'observe' })],
-    ['gate passRate 0', options({ gate: { passRate: 0 } })],
-    ['gate passRate above 1', options({ gate: { passRate: 1.2 } })],
-    ['gate with an extra key', options({ gate: { passRate: 0.5, min: 1 } })],
-    ['gate good', options({ gate: { passRate: 0.8 } })],
+    ['target a number', options({ target: 0.8 })],
+    ['target a word', options({ target: 'regression' })],
+    ['target an unknown kind', options({ target: { kind: 'gate', threshold: 1 } })],
+    ['target threshold above 1', options({ target: regression(1.2) })],
+    ['target threshold below 0', options({ target: metric(-0.1) })],
+    ['target with an extra key', options({ target: { kind: 'metric', passRate: 0.5 } })],
+    [
+      'target capability without blocking',
+      options({ target: { kind: 'capability', threshold: 1 } }),
+    ],
+    ['a gate', options({ gate: 'all' })],
+    ['target good', options({ target: capability(0.5, { blocking: true }) })],
     ['revision a fraction', options({ revision: 1.5 })],
     ['revision empty', options({ revision: ' ' })],
     ['revision a boolean', options({ revision: true })],
@@ -2562,7 +2567,7 @@ agents:
   - { kind: cursor, model: composer-2.5 }
 sandbox: { kind: fake }
 runs: 2
-gate: { passRate: 0.5 }
+target: { kind: metric, threshold: 0.5 }
 timeout: 90s
 env:
   TOKEN: { kind: secret, from: HOST_TOKEN, hosts: [api.example.com] }
@@ -3059,17 +3064,27 @@ environments:
   ],
   declaration: [
     [
-      "gate 'observe': accepted with cases and a compare",
-      ungated({
+      'target metric(): accepted with cases and a compare',
+      targeted(metric(), {
         cases: [{ key: 'a' }, { key: 'b' }],
         compare: { control: plainEnv, variants: [skillEnv] },
       }),
     ],
     [
-      "gate 'observe' with minLift",
-      ungated({ compare: { control: plainEnv, variants: [skillEnv], minLift: 0.2 } }),
+      'target metric() with minLift',
+      targeted(metric(), { compare: { control: plainEnv, variants: [skillEnv], minLift: 0.2 } }),
     ],
-    ["gate 'observe' with best-of runs", ungated({ runs: { bestOf: 3 } })],
+    [
+      'target capability() with minLift',
+      targeted(capability(), {
+        compare: { control: plainEnv, variants: [skillEnv], minLift: 0.2 },
+      }),
+    ],
+    [
+      'target metric(0.5) with minLift: accepted',
+      targeted(metric(0.5), { compare: { control: plainEnv, variants: [skillEnv], minLift: 0.2 } }),
+    ],
+    ['target metric() with best-of runs: accepted', targeted(metric(), { runs: { bestOf: 3 } })],
     ['cases: not a list', withCases({ cases: 'abc' })],
     ['cases: an empty list', withCases({ cases: [] })],
     ['cases: a string case', withCases({ cases: ['a'] })],

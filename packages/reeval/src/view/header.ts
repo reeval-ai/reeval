@@ -56,6 +56,8 @@ export function runHeader(record: RunRecord, recorded: boolean): HistoryEntry {
       ...(e.revision !== undefined ? { revision: e.revision } : {}),
       outcome: e.outcome,
       passRate: e.passRate,
+      ...(e.target ? { target: e.target } : {}),
+      ...(e.scores ? { scores: e.scores } : {}),
       cells: e.cells.map((c) => historyCell(e.attempts, c)),
       ...(e.cases
         ? {
@@ -92,7 +94,7 @@ export function runHeader(record: RunRecord, recorded: boolean): HistoryEntry {
   }
 }
 
-/** The cells' rates over the cases that a `gate: { passRate }` gates, when there are any. */
+/** The cells' rates over the cases that a `{ passRate }` gate gates, when there are any. */
 function gatedRates(cells: readonly CellRecord[]) {
   const gated = cells.flatMap(({ key, rate }) =>
     rate?.passRate !== undefined && rate.outcome !== undefined
@@ -120,7 +122,9 @@ function historyCell(attempts: readonly AttemptRecord[], c: CellRecord): History
     infraError: c.infraError,
     skipped: c.skipped,
     passRate: c.passRate,
+    ...(c.scores ? { scores: c.scores } : {}),
     outcome: c.outcome,
+    ...(c.bestOf !== undefined ? { bestOf: c.bestOf } : {}),
     effort: cellEffort({ attempts: [...attempts] }, c.key),
     ...canceledIn(attempts, c.key),
     ...(c.lift

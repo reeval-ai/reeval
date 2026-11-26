@@ -175,10 +175,10 @@ const binCli =
   (args, env, cwd = app) =>
     spawnAsync(join(app, 'node_modules/.bin/reeval'), args, cwd, env)
 
-const BOAT_CONFIG = (pkg: string) => `import { defineConfig } from '${pkg}'
+const BOAT_CONFIG = (pkg: string) => `import { defineConfig, regression } from '${pkg}'
 import { fakeAgent } from '${pkg}/agent'
 import { boat } from '${pkg}/provider/boat'
-export default defineConfig({ agents: fakeAgent(), provider: boat(), egress: 'allow-all' })
+export default defineConfig({ target: regression(), agents: fakeAgent(), provider: boat(), egress: 'allow-all' })
 `
 
 /**
@@ -209,13 +209,13 @@ const STORE_CONFIG = (
   pkg: string,
   url: string,
   bucket: string,
-) => `import { defineConfig } from '${pkg}'
+) => `import { defineConfig, regression } from '${pkg}'
 import { fakeAgent } from '${pkg}/agent'
 import { fakeJudge } from '${pkg}/judge'
 import { fakeSandbox } from '${pkg}/sandbox'
 import { local } from '${pkg}/store/local'
 import { s3 } from '${pkg}/store/s3'
-export default defineConfig({
+export default defineConfig({ target: regression(),
   agents: fakeAgent(),
   sandbox: fakeSandbox(),
   judge: { model: fakeJudge({ score: 0.9 }) },
@@ -621,10 +621,10 @@ test('the packed package installs into a clean project and runs reeval', {
     // `reeval image build` builds Cursor's image from the docker/ directory in the installed package.
     await writeFile(
       join(app, 'reeval.cursor.config.ts'),
-      `import { defineConfig } from '${pkg}'
+      `import { defineConfig, regression } from '${pkg}'
 import { cursor } from '${pkg}/agent'
 import { docker } from '${pkg}/sandbox'
-export default defineConfig({ agents: cursor({ model: 'composer-2.5' }) })
+export default defineConfig({ target: regression(), agents: cursor({ model: 'composer-2.5' }) })
 `,
     )
     const built = sh(

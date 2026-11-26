@@ -1,8 +1,9 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { opencode } from 'reeval/agent'
 
 // Real OpenCode only (O), with GOOGLE_GENERATIVE_AI_API_KEY: the agent searches the web with its
 // websearch tool, which the adapter points at Exa's hosted MCP server, keyless.
 export default defineConfig({
+  target: regression(),
   agents: opencode({ model: process.env.REEVAL_REAL_MODEL ?? 'google/gemini-3.8-flash' }),
 })

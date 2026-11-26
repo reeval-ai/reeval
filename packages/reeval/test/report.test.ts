@@ -249,6 +249,7 @@ describe('reeval report: the bundle', () => {
       'judge',
       'profiles',
       'sandbox',
+      'target',
     ])
     assert.deepEqual(bundle.config?.harnesses, ['fake'])
     assert.deepEqual(bundle.config?.profiles, [

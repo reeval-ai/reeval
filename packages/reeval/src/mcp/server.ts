@@ -51,7 +51,7 @@ const VIEW_ROWS: Record<string, string> = {
   attempt_resources:
     'attempt whose sandbox gave readings: its machine (provider, size, vCPUs, memory) and what it used there (CPU seconds, average, 95th percentile and peak cores, peak memory, a container’s cgroup memory peak and CPU throttling, a VM’s disk bytes, and the shares of what it was given)',
   eval_trend:
-    'eval per run (an eval with cases is one, with how many): outcome, pass@1, branch, PR and fingerprint',
+    'eval per run (an eval with cases is one, with how many): outcome, target, pass@1, mean score, pass@k and pass^k, branch, PR and fingerprint',
   verdict_flips: 'judge question per cell whose pass rate changed from its previous run',
   check_discrimination:
     'check (expect label) per variant cell per run: its passes, failures and not-run on both sides, and whether it discriminates (both-pass and both-fail checks measure nothing)',

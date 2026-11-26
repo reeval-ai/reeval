@@ -1,4 +1,4 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { daytona } from 'reeval/provider/daytona'
 
@@ -8,6 +8,7 @@ import { daytona } from 'reeval/provider/daytona'
 // says whether it ran in the image, before the install, or in the attempt, after it. As the agent:
 // who it is, what the install left, which node it finds, and where the bootstrap ran.
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({
     bootstrap:
       'if [ -f /etc/reeval-install-proof ]; then echo attempt; else echo image; fi > ~/bootstrapped',

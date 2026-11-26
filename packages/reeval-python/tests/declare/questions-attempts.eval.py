@@ -1,4 +1,4 @@
-from reeval_python import define_environment, evaluate
+from reeval_python import define_environment, evaluate, metric
 
 base = define_environment("base", {"env": {"MODE": "base"}})
 skilled = base.extend("skilled", {"env": {"MODE": "skilled"}})
@@ -15,7 +15,7 @@ async def asked_of_each_attempt(c): ...
     "with choices",
     {
         "runs": 2,
-        "gate": {"pass_rate": 0.5},
+        "target": metric(0.5),
         "questions": [
             {
                 "question": "Did the agent run the tests first?",

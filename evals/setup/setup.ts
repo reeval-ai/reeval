@@ -50,4 +50,4 @@ export function asksFirst(turn: { text: string }, created: string) {
 export const evalList = async (c: AttemptContext) => (await c.exec(evalFiles)).stdout.trim()
 export const names = (text: string) => text.split('\n').filter(Boolean)
 
-export const target = (t: Target) => ({ compare: { ...arms(t), gate: 'observe' as const } })
+export const target = (t: Target) => ({ compare: arms(t) })

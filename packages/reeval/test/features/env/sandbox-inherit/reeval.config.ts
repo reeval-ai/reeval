@@ -1,4 +1,4 @@
-import { defineConfig, defineEnvironment } from 'reeval'
+import { defineConfig, defineEnvironment, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
@@ -14,6 +14,7 @@ const unused =
     : fakeSandbox({ dir: new URL('./sandboxes', import.meta.url), id: 'from-config-env' })
 
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({}),
   // One attempt a cell, where a compare would otherwise run 4 a side.
   runs: 1,

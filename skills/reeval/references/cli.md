@@ -68,7 +68,7 @@ reeval doctor            Docker, keys and images, with fixes (--json, --online)
 command checks: not high if any check failed, low if a claim was dropped or a command rejected.
 Anomalies are number-checked, and a cited judge score that disagrees is dropped.
 
-When every cell is ungated (`gate: 'observe'`), it reads the run as a study: how the arms differ, check by
+When every cell is ungated (the default `target: metric()`), it reads the run as a study: how the arms differ, check by
 check, so label your expects. `analysis.instructions` is the question it answers.
 
 `analysis.model` is the model `reeval analyze` uses (else the judge's, when it's a language
@@ -156,7 +156,7 @@ A check head never reached reads `not run`, not a failure. `can't compare` names
 under head's gate, so a flip the gate alone explains is `gate changed`, not a regression, and
 one base would still have passed under the new gate is `regressed`. An eval Ctrl-C
 canceled is `can't compare` with that side `canceled`. An eval with `cases` is one row
-with its cases' rows inside it (`cases` in `--json`); its pooled `minLift` or `passRate` gate
+with its cases' rows inside it (`cases` in `--json`); its pooled `minLift` or `metric(threshold)` target
 decides the row, so it can regress while every case passes. `--fail-on-regression` exits 1 on a
 regressed eval, or on a new or can't-compare one that fails, unless head was canceled. `-v` adds each cell's
 lift and effort, base → head.

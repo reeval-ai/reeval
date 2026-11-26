@@ -352,6 +352,14 @@ The tokens the run used, as the harnesses count them, and what they cost.
   A placeholder (Python's `evaluate.todo` or `group.todo`): it never runs, and its outcome is `skipped`.
 </Property>
 
+<Property name="target" type="Target" optional>
+  What decides `outcome`; in records from before targets, read from the cells' gates (`all` is `regression()`, `{ passRate }` is `metric(passRate)`, none is `metric()`).
+</Property>
+
+<Property name="scores" type="ScoreSummary" optional>
+  Over the target's cells; filled from `pass` and `fail` in records from before it.
+</Property>
+
 <Property name="skip" type="true" optional>
   Declared not to run: `skip` on its `defineEval`, or in Python `evaluate.skip`, inside a `group.skip`, or left out by an `.only` in its file. Its outcome is `skipped`. Unset otherwise, so in a run that isn't `complete` a skipped eval with neither `todo` nor `skip` hasn't run yet. Unset on records from before it.
 </Property>
@@ -419,7 +427,7 @@ Also has every field of `Cell`.
 </Property>
 
 <Property name="gate" type="CellGate">
-  How the attempts decide the cell's outcome; `'none'` when it doesn't fail the evaluation.
+  How the attempts decide the cell's outcome; `'none'` when they don't fail the run.
 </Property>
 
 <Property name="overrides" type="string[]">
@@ -448,8 +456,12 @@ Also has every field of `Cell`.
   pass@1: pass / (pass + fail); infra errors and skips excluded.
 </Property>
 
+<Property name="scores" type="ScoreSummary" optional>
+  Filled from `pass` and `fail` in records from before it.
+</Property>
+
 <Property name="outcome" type="Outcome">
-  By `gate`. `'all'` (pass^k: every counted attempt passes) matches `{ passRate: 1 }`; `{ passRate }` is a pass@1 threshold. Infra only when nothing counted; `'none'` reports the worst outcome. A variant below its `minLift` fails too.
+  By `gate`. `'all'` (pass^k: every counted attempt passes) matches `{ passRate: 1 }`, `'any'` is pass@k, and `{ passRate }` a mean score threshold (a pass@1 one under `bestOf`). Infra only when nothing counted; `'none'` reports the worst outcome. A variant below its `minLift` fails too.
 </Property>
 
 <Property name="lift" type="Lift" optional>
@@ -457,7 +469,7 @@ Also has every field of `Cell`.
 </Property>
 
 <Property name="rate" type="CellRate" optional>
-  On an eval with several `cases`: the cell's pass@1 over them. A `gate: { passRate }` gates `rate.rate`, the mean of the cases' pass@1, and sets `rate.outcome`.
+  On an eval with several `cases`: the cell's mean score over them. A `{ passRate }` gate gates `rate.rate`, the mean of the cases' mean scores, and sets `rate.outcome`.
 </Property>
 
 <Property name="checks" type="CellCheck[]" optional>
@@ -470,7 +482,7 @@ Also has every field of `Cell`.
 
 ### `Lift`
 
-A variant cell's pass@1 against the control's, on the same harness and sandbox.
+A variant cell's mean score against the control's, on the same harness and sandbox.
 
 <Property name="vs" type="string">
   The control cell's key.
@@ -483,7 +495,7 @@ A variant cell's pass@1 against the control's, on the same harness and sandbox.
 <Property name="variant" type="{pass: number; counted: number}"></Property>
 
 <Property name="points" type="number">
-  Variant pass@1 minus control pass@1, from -1 to 1.
+  The variant's mean score minus the control's, from -1 to 1.
 </Property>
 
 <Property name="interval" type="{lo: number; hi: number; level: 0.95; method: 'newcombe-wilson'}">
@@ -535,12 +547,12 @@ In records from before an eval with `cases` was one entry: the eval over its cas
 </Property>
 
 <Property name="outcome" type="'pass' | 'fail'">
-  `fail` when a lift is below its `minLift` or a rate below its `passRate`. A case still fails on its own under `gate: 'all'`.
+  `fail` when a lift is below its `minLift` or a rate below its `passRate`. A case still fails on its own under an `all` gate.
 </Property>
 
 ### `FamilyRate`
 
-One cell's pass@1 over an eval's cases.
+One cell's mean score over an eval's cases.
 
 <Property name="cell" type="string">
   The cell's key, the same in every case.
@@ -557,13 +569,13 @@ One cell's pass@1 over an eval's cases.
 <Property name="counted" type="number"></Property>
 
 <Property name="rate" type="number">
-  The mean of the cases' pass@1; at one attempt a case, `pass / counted`.
+  The mean of the cases' mean scores; at one pass/fail attempt a case, `pass / counted`.
 </Property>
 
 <Property name="interval" type="FamilyInterval"></Property>
 
 <Property name="passRate" type="number" optional>
-  The cell's `gate: { passRate }`: with cases it gates `rate`, not each case's pass@1.
+  The cell's `{ passRate }` gate: with cases it gates `rate`, not each case's score.
 </Property>
 
 <Property name="outcome" type="'pass' | 'fail'" optional>
@@ -587,7 +599,7 @@ A variant cell against its control over an eval's cases, paired by case.
 </Property>
 
 <Property name="variantRate" type="number">
-  Mean pass@1 over the paired cases on each side.
+  The mean of the paired cases' mean scores on each side.
 </Property>
 
 <Property name="controlRate" type="number"></Property>
@@ -633,7 +645,7 @@ A 95% interval on a pooled rate or difference.
 <Property name="level" type="0.95"></Property>
 
 <Property name="method" type="'wilson' | 'newcombe-paired' | 't-cases'">
-  `wilson` or `newcombe-paired`: one counted attempt a case and side, so each case is one Bernoulli trial (or pair). `t-cases`: several, so a t interval over the cases' pass@1, with attempts within a case never counted as independent.
+  `wilson` or `newcombe-paired`: one counted attempt a case and side, so each case is one Bernoulli trial (or pair). `t-cases`: several, so a t interval over the cases' mean scores, with attempts within a case never counted as independent.
 </Property>
 
 ### `FamilyEffort`
@@ -702,6 +714,10 @@ Each input of a cell fingerprint, hashed on its own, so a change can be named.
 
 <Property name="gate" type="string" optional>
   The cell's gate (`none`, `passRate 0.5`); unset on the default `all`. Compare reads a change in it as a policy change, not a reason the runs can't be compared.
+</Property>
+
+<Property name="threshold" type="string" optional>
+  The score each attempt passes at under a `regression()` or `capability()` target; unset at 1 and under `metric()`, whose threshold is its gate's.
 </Property>
 
 ### `AttemptRecord`
@@ -893,7 +909,7 @@ Each input of a cell fingerprint, hashed on its own, so a change can be named.
 </Property>
 
 <Property name="score" type="number" optional>
-  In [0, 1]: the scored grades' mean, weighted by `weight`; 0 when the task threw, an `expect` failed or a required grader scored under 1; 1 when the task returned and nothing scored. `outcome` is `pass` only at 1. Unset on a timeout, a cancel or an infra error.
+  In [0, 1]: the scored grades' mean, weighted by `weight`; 0 when the task threw, an `expect` failed or a required grader scored under 1; 1 when the task returned and nothing scored. `outcome` is `pass` when it reaches the eval's target's threshold (1 without one). Unset on a timeout, a cancel or an infra error. Records from before it read 1 for a pass, 0 for a fail.
 </Property>
 
 ### `AttemptFiles`

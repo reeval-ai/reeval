@@ -894,6 +894,21 @@
           }
         ],
         "remarks": []
+      },
+      "target": "regression(1)",
+      "scores": {
+        "meanScore": {
+          "value": 0.6666666666666666,
+          "text": "67%"
+        },
+        "passAtK": {
+          "value": 0.6666666666666666,
+          "text": "67%"
+        },
+        "passHatK": {
+          "value": 0.6666666666666666,
+          "text": "67%"
+        }
       }
     },
     {
@@ -1591,6 +1606,21 @@
           }
         ],
         "remarks": []
+      },
+      "target": "regression(1)",
+      "scores": {
+        "meanScore": {
+          "value": 1,
+          "text": "100%"
+        },
+        "passAtK": {
+          "value": 1,
+          "text": "100%"
+        },
+        "passHatK": {
+          "value": 1,
+          "text": "100%"
+        }
       }
     },
     {
@@ -2018,6 +2048,21 @@
           }
         ],
         "remarks": []
+      },
+      "target": "regression(1)",
+      "scores": {
+        "meanScore": {
+          "value": 0.5,
+          "text": "50%"
+        },
+        "passAtK": {
+          "value": 0.5,
+          "text": "50%"
+        },
+        "passHatK": {
+          "value": 0.5,
+          "text": "50%"
+        }
       }
     },
     {
@@ -3037,6 +3082,21 @@
           }
         ],
         "remarks": []
+      },
+      "target": "regression(1)",
+      "scores": {
+        "meanScore": {
+          "value": 0.5,
+          "text": "50%"
+        },
+        "passAtK": {
+          "value": 0.5,
+          "text": "50%"
+        },
+        "passHatK": {
+          "value": 0.5,
+          "text": "50%"
+        }
       }
     },
     {
@@ -4227,6 +4287,21 @@
           }
         ],
         "remarks": []
+      },
+      "target": "regression(1)",
+      "scores": {
+        "meanScore": {
+          "value": 0.5,
+          "text": "50%"
+        },
+        "passAtK": {
+          "value": 0.5,
+          "text": "50%"
+        },
+        "passHatK": {
+          "value": 0.5,
+          "text": "50%"
+        }
       }
     },
     {
@@ -4924,6 +4999,21 @@
           }
         ],
         "remarks": []
+      },
+      "target": "regression(1)",
+      "scores": {
+        "meanScore": {
+          "value": 0,
+          "text": "0%"
+        },
+        "passAtK": {
+          "value": 0,
+          "text": "0%"
+        },
+        "passHatK": {
+          "value": 0,
+          "text": "0%"
+        }
       }
     },
     {
@@ -5591,6 +5681,21 @@
           }
         ],
         "remarks": []
+      },
+      "target": "regression(1)",
+      "scores": {
+        "meanScore": {
+          "value": 1,
+          "text": "100%"
+        },
+        "passAtK": {
+          "value": 1,
+          "text": "100%"
+        },
+        "passHatK": {
+          "value": 1,
+          "text": "100%"
+        }
       }
     },
     {
@@ -5744,7 +5849,22 @@
       "judgments": null,
       "qualitative": [],
       "captures": null,
-      "failures": null
+      "failures": null,
+      "target": "regression(1)",
+      "scores": {
+        "meanScore": {
+          "value": 1,
+          "text": "100%"
+        },
+        "passAtK": {
+          "value": 1,
+          "text": "100%"
+        },
+        "passHatK": {
+          "value": 1,
+          "text": "100%"
+        }
+      }
     },
     {
       "id": "evals/results.eval.ts › greets in French",
@@ -5960,6 +6080,21 @@
           }
         ],
         "remarks": []
+      },
+      "target": "regression(1)",
+      "scores": {
+        "meanScore": {
+          "value": 0,
+          "text": "0%"
+        },
+        "passAtK": {
+          "value": 0,
+          "text": "0%"
+        },
+        "passHatK": {
+          "value": 0,
+          "text": "0%"
+        }
       }
     },
     {
@@ -6176,6 +6311,21 @@
           }
         ],
         "remarks": []
+      },
+      "target": "regression(1)",
+      "scores": {
+        "meanScore": {
+          "value": 0.5,
+          "text": "50%"
+        },
+        "passAtK": {
+          "value": 1,
+          "text": "100%"
+        },
+        "passHatK": {
+          "value": 0,
+          "text": "0%"
+        }
       }
     },
     {
@@ -6239,6 +6389,21 @@
           }
         ],
         "remarks": []
+      },
+      "target": "regression(1)",
+      "scores": {
+        "meanScore": {
+          "value": 0,
+          "text": "0%"
+        },
+        "passAtK": {
+          "value": 0,
+          "text": "0%"
+        },
+        "passHatK": {
+          "value": 0,
+          "text": "0%"
+        }
       }
     },
     {
@@ -6302,6 +6467,21 @@
           }
         ],
         "remarks": []
+      },
+      "target": "regression(1)",
+      "scores": {
+        "meanScore": {
+          "value": null,
+          "text": "n/a"
+        },
+        "passAtK": {
+          "value": null,
+          "text": "n/a"
+        },
+        "passHatK": {
+          "value": null,
+          "text": "n/a"
+        }
       }
     },
     {
@@ -6344,7 +6524,22 @@
       "judgments": null,
       "qualitative": [],
       "captures": null,
-      "failures": null
+      "failures": null,
+      "target": "regression(1)",
+      "scores": {
+        "meanScore": {
+          "value": null,
+          "text": "n/a"
+        },
+        "passAtK": {
+          "value": null,
+          "text": "n/a"
+        },
+        "passHatK": {
+          "value": null,
+          "text": "n/a"
+        }
+      }
     },
     {
       "id": "evals/results.eval.ts › greets in Klingon",
@@ -6386,7 +6581,22 @@
       "judgments": null,
       "qualitative": [],
       "captures": null,
-      "failures": null
+      "failures": null,
+      "target": "regression(1)",
+      "scores": {
+        "meanScore": {
+          "value": null,
+          "text": "n/a"
+        },
+        "passAtK": {
+          "value": null,
+          "text": "n/a"
+        },
+        "passHatK": {
+          "value": null,
+          "text": "n/a"
+        }
+      }
     }
   ],
   "actions": [],
@@ -6464,6 +6674,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -6504,6 +6715,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -6544,6 +6756,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -6584,6 +6797,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -6624,6 +6838,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -6664,6 +6879,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -6704,6 +6920,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -6744,6 +6961,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -6784,6 +7002,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -6824,6 +7043,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -6864,6 +7084,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -6904,6 +7125,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -6944,6 +7166,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -6984,6 +7207,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -7024,6 +7248,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -7064,6 +7289,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -7104,6 +7330,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -7144,6 +7371,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -7184,6 +7412,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -7224,6 +7453,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -7264,6 +7494,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -7304,6 +7535,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -7344,6 +7576,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -7384,6 +7617,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -7424,6 +7658,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -7464,6 +7699,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -7504,6 +7740,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -7544,6 +7781,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -7619,6 +7857,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -7659,6 +7898,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -7699,6 +7939,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -7739,6 +7980,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -7779,6 +8021,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -7819,6 +8062,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -7859,6 +8103,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -7899,6 +8144,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -7939,6 +8185,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -7979,6 +8226,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -8019,6 +8267,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -8059,6 +8308,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -8099,6 +8349,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -8139,6 +8390,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -8179,6 +8431,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -8219,6 +8472,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -8259,6 +8513,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -8299,6 +8554,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -8339,6 +8595,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -8379,6 +8636,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -8419,6 +8677,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -8459,6 +8718,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -8499,6 +8759,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -8539,6 +8800,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -8579,6 +8841,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -8619,6 +8882,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,
@@ -8659,6 +8923,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 1,
       "diff": {
         "files": 1,
         "added": null,
@@ -8699,6 +8964,7 @@
         "value": null,
         "text": "not reported"
       },
+      "score": 0,
       "diff": {
         "files": 1,
         "added": null,

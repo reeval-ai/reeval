@@ -34,6 +34,11 @@ export function countFigure(value: number | null | undefined, missing = 'not rep
   return figure(value, String(value))
 }
 
+/** A share from 0 to 1 as a whole percent, `75%`; `n/a` for none. */
+export function shareFigure(value: number | null): Figure {
+  return value === null ? figure(null, 'n/a') : figure(value, `${Math.round(value * 100)}%`)
+}
+
 /** `<k> of <n>`. */
 export function countOf(k: number, n: number): Count {
   return { k, n, text: `${k} of ${n}` }

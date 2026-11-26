@@ -111,13 +111,13 @@ export const withSkill = page.extendEnvironment(
 Create the evaluation:
 
 ```ts title="evals/brand.eval.ts"
-import { defineEval, expect } from '{{ pkg }}'
+import { defineEval, expect, metric } from '{{ pkg }}'
 import { page, withSkill } from './environments.ts'
 
 export default defineEval({
   compare: { control: page, variants: [withSkill] },
   runs: 4,
-  gate: { passRate: 0.75 },
+  target: metric(0.75),
   task: async (c) => {
     await c.send(
       "Give index.html Anthropic's look: write styles.css with Anthropic's " +

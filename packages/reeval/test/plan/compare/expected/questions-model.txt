@@ -1,24 +1,23 @@
 no profile · 4 evals · 16 cells · 64 attempts
-hint: 4 evals run more than once with the default gate, so every attempt must pass (pass^k); set gate: { passRate: 0.8 } to gate on pass@1 instead
 questions-model/entry-model  a/base/docker     control          ungated  ×4  runs 4 (compare default)
-                             a/skilled/docker  variant skilled  gated    ×4
+                             a/skilled/docker  variant skilled  ungated  ×4
                              b/base/docker     control          ungated  ×4
-                             b/skilled/docker  variant skilled  gated    ×4
+                             b/skilled/docker  variant skilled  ungated  ×4
                              question: Which is safer? · shows diff · environment · 8 pairs · anthropic/claude-sonnet-5
 questions-model/eval-model   a/base/docker     control          ungated  ×4  runs 4 (compare default)
-                             a/skilled/docker  variant skilled  gated    ×4
+                             a/skilled/docker  variant skilled  ungated  ×4
                              b/base/docker     control          ungated  ×4
-                             b/skilled/docker  variant skilled  gated    ×4
+                             b/skilled/docker  variant skilled  ungated  ×4
                              question: Which is cleaner? · shows diff · environment · 8 pairs · google/gemini-3.8-flash
 questions-model/no-model     a/base/docker     control          ungated  ×4  runs 4 (compare default)
-                             a/skilled/docker  variant skilled  gated    ×4
+                             a/skilled/docker  variant skilled  ungated  ×4
                              b/base/docker     control          ungated  ×4
-                             b/skilled/docker  variant skilled  gated    ×4
+                             b/skilled/docker  variant skilled  ungated  ×4
                              question: Which is clearer? · shows diff · environment · 8 pairs · no language model
 questions-model/other-model  a/base/docker     control          ungated  ×4  runs 4 (compare default)
-                             a/skilled/docker  variant skilled  gated    ×4
+                             a/skilled/docker  variant skilled  ungated  ×4
                              b/base/docker     control          ungated  ×4
-                             b/skilled/docker  variant skilled  gated    ×4
+                             b/skilled/docker  variant skilled  ungated  ×4
                              question: Which is shorter? · shows diff · environment · 8 pairs · openai/gpt-5.5
 excluded: —
 image docker · cursor · 4 evals

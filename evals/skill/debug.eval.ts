@@ -12,7 +12,7 @@ const task =
 const failing = project('slug', 'debug', ['./node_modules/.bin/reeval run --ui plain || true'])
 
 export default defineEval({
-  compare: { ...channels(failing), gate: 'observe' },
+  compare: channels(failing),
   task: async (c) => {
     const turn = await c.send(task)
     await expect(c.exec(runsOnFake), 'passes on the fake config').toSucceed()

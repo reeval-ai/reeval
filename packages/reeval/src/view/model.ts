@@ -7,6 +7,7 @@ import type {
   HistoryEntry,
   RunRecord,
 } from '../history/types.ts'
+import { blocks } from '../target.ts'
 import { plural } from '../text.ts'
 import type { DecisionRecord, Outcome, TokenUsage, TranscriptEvent, TurnStatus } from '../types.ts'
 import { formatTokens, promptTokens } from '../usage.ts'
@@ -100,19 +101,22 @@ export function activityLabel(
 
 /**
  * A run's outcome, which `reeval run`'s exit code is read from: an error outside any attempt, a
- * failed gated cell or a budget stop fails the run, while failures in ungated cells (controls, by
- * default) don't. An interrupted run is `skipped`, whatever ran; a resume its filters left
+ * failed eval whose target blocks or a budget stop fails the run, while a compare's controls and
+ * an eval whose target doesn't block (`metric()`, the default) don't. An interrupted run is `skipped`, whatever ran; a resume its filters left
  * `interrupted` exits on its outcome as if it were complete.
  */
 export function runOutcome(run: {
   status: RunRecord['status']
-  evals: ReadonlyArray<Pick<EvalEntry, 'outcome'>>
+  evals: ReadonlyArray<Pick<EvalEntry, 'outcome' | 'target'>>
   errors?: readonly string[]
 }): Outcome {
   if (run.status === 'interrupted') return 'skipped'
   if (run.errors?.length) return 'fail'
+  const failed = run.evals.some(
+    (e) => e.outcome === 'fail' && (e.target === undefined || blocks(e.target)),
+  )
   const outcomes = run.evals.map((e) => e.outcome)
-  if (outcomes.includes('fail') || run.status === 'budget') return 'fail'
+  if (failed || run.status === 'budget') return 'fail'
   if (outcomes.includes('infra_error')) return 'infra_error'
   return 'pass'
 }
@@ -533,8 +537,7 @@ export const COMPARE_ORDER: CompareStatus[] = [
 ]
 
 /**
- * Whether some of an eval's cells aren't gated (`gate: 'none'`, e.g. controls under
- * `compare.gate: 'variants'`). Its pass@1 then covers fewer attempts than its pass count, so
+ * Whether some of an eval's cells aren't gated (`gate: 'none'`, e.g. a compare's controls). Its pass@1 then covers fewer attempts than its pass count, so
  * the eval line labels it `gated`: `2/4 · pass@1 100% gated`.
  */
 export const hasUngatedCells = (cells: readonly Pick<HistoryCell, 'gate'>[]) =>

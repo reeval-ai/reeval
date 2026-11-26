@@ -1,4 +1,4 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
@@ -9,6 +9,7 @@ const sandbox =
     : fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) })
 
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({}),
   sandbox,
 })

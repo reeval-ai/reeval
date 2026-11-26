@@ -128,7 +128,7 @@ type Cell = {
   model: string | null
   environment: string
   sandbox: string
-  gate: 'all' | 'none' | 'passRate'
+  gate: 'all' | 'any' | 'none' | 'passRate'
   gate_pass_rate: number | null
   fingerprint: string
   comparable: string
@@ -174,6 +174,7 @@ export const PART_COLUMNS = {
   context: ['context', 'fp_context'],
   gateway: ['gateway', 'fp_gateway'],
   gate: ['gate', 'fp_gate'],
+  threshold: ['threshold', 'fp_threshold'],
 } as const satisfies Record<keyof FingerprintParts, readonly [string, `fp_${string}`]>
 const PARTS = Object.values(PART_COLUMNS)
 

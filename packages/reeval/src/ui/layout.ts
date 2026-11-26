@@ -598,7 +598,7 @@ function pooledStats(p: PooledArm, label: string) {
  * A family: its template, then a row per case. With one cell a case is a row with its count;
  * with more, the case is outer and its cells inner, laid out as a single eval's are. A pooled
  * `all cases` row sums each cell's counts with its variant's pooled effect and, under
- * `gate: { passRate }`, its rate over the cases, which gates it.
+ * a `{ passRate }` gate, its rate over the cases, which gates it.
  */
 function familyBlock(c: Colors, e: EvalResult, kind: Layout['kind'], verbose: boolean): string[] {
   const cases = e.cases ?? []

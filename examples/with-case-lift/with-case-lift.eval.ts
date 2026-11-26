@@ -1,4 +1,4 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval, expect, regression } from 'reeval'
 
 const math = defineEnvironment('math', ({ directory }) => ({ files: directory('./project') }))
 const withJsdoc = math.extendEnvironment('jsdoc', ({ skill }) => ({
@@ -12,6 +12,7 @@ const functions = ['subtract', 'multiply', 'divide', 'power', 'max', 'min'].map(
 export default defineEval({
   cases: functions,
   compare: { control: math, variants: [withJsdoc], minLift: 0.2 },
+  target: regression(),
   task: async (c, { key: name }) => {
     await c.send(`Add a ${name}(a, b) function to src/math.js.`)
 

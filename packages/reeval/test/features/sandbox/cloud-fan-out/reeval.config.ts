@@ -1,4 +1,4 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 
@@ -6,6 +6,7 @@ import { docker } from 'reeval/sandbox'
 // container on a VM of its own from the fake VM service, whose VMs have the host's Docker. As
 // the agent: who runs the shell.
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({ script: [[{ exec: 'id -un' }]] }),
   sandbox: docker({ root: true }),
   egress: 'allow-all',

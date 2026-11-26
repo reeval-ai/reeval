@@ -1,4 +1,4 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { openrouter, vercel, vertex } from 'reeval/gateway'
 import { boat } from 'reeval/provider/boat'
 import { docker } from 'reeval/sandbox'
@@ -10,6 +10,8 @@ import { contractHarness } from './harness.ts'
 // REEVAL_CONTRACT_GATEWAY) from its table.
 export default defineConfig({
   agents: contractHarness(),
+  // Every check gates, so a broken behavior fails its eval and the run.
+  target: regression(),
   ...(process.env.REEVAL_CONTRACT_SANDBOX === 'boat' ? { provider: boat() } : {}),
   ...(process.env.REEVAL_CONTRACT_SANDBOX === 'boat-image'
     ? { provider: boat(), sandbox: docker({ from: 'debian:bookworm-slim', id: 'boat-image' }) }

@@ -52,11 +52,12 @@ function pythonEvals(dir: string): void {
   writeFileSync(
     join(dir, 'reeval.config.ts'),
     [
-      "import { defineConfig } from 'reeval'",
+      "import { defineConfig, regression } from 'reeval'",
       "import { fakeAgent } from 'reeval/agent'",
       "import { fakeSandbox } from 'reeval/sandbox'",
       '',
       'export default defineConfig({',
+      '  target: regression(),',
       "  include: ['evals/**/*.eval.py'],",
       "  agents: fakeAgent({ script: [[{ write: { 'greet.py': 'hi' } }, { reply: 'done' }]] }),",
       "  sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }),",

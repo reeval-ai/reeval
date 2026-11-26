@@ -32,13 +32,13 @@ For more information about other skill sources, see [Give the agent skills](/con
 Assert on what the skill teaches, so the control fails without it. The prompt doesn't mention the changelog, so only a harness that follows the skill writes the entry. In the `evals/changelog.eval.ts` file, name the control and the variant in `compare`:
 
 ```ts title="evals/changelog.eval.ts"
-import { defineEval, expect } from '{{ pkg }}'
+import { defineEval, expect, metric } from '{{ pkg }}'
 import { math, withSkill } from './environments.ts'
 
 export default defineEval({
   compare: { control: math, variants: [withSkill] },
     runs: 4,
-    gate: { passRate: 0.75 },
+    target: metric(0.75),
   task: async (c) => {
     await c.send('Add a multiply(a, b) function to src/math.js.')
 

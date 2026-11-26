@@ -60,7 +60,7 @@ Each block and the tally use these words:
 | `infra error` | One side ended in an infrastructure error, so it has no outcome to compare. |
 | `new` | Only the head has the evaluation. |
 | `removed` | Only the base has the evaluation. |
-| `now fails`, `now passes` | A case of an evaluation whose `passRate` gates its rate over the cases flipped. The evaluation's own row is the verdict. |
+| `now fails`, `now passes` | A case of an evaluation whose `metric(threshold)` target gates its rate over the cases flipped. The evaluation's own row is the verdict. |
 
 When two runs differ only in which cells ran, `reeval compare` compares the cells both have and names the cells only one has. When the runs share no cell, or a shared cell changed, the evaluation reads `can't compare`. It also prints `can't compare` for an outcome change when one side's only failures are attempts an interrupt canceled, or when the served judge model changed. Add `-v` to print every evaluation with each cell's lift, effort and stack changes.
 
@@ -84,7 +84,7 @@ can't compare    answers a stack question
   +2 same
 ```
 
-`--json` lists them in the row's `caseScope`. A failing case only the head ran makes the evaluation `can't compare`, as above. Under a `passRate` gate or a `minLift`, runs of different cases always read `can't compare`.
+`--json` lists them in the row's `caseScope`. A failing case only the head ran makes the evaluation `can't compare`, as above. Under a `metric(threshold)` target or a `minLift`, runs of different cases always read `can't compare`.
 
 ## Fail on a regression
 

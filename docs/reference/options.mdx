@@ -16,7 +16,7 @@ description: "Options set how evaluations run. Each key is accepted in set place
 | [`sandbox`](#sandbox) | ✓ | ✓ | ✓ |  |
 | [`environments`](#environments) | ✓ | ✓ | ✓ |  |
 | [`runs`](#runs) | ✓ | ✓ | ✓ | ✓ |
-| [`gate`](#gate) | ✓ | ✓ | ✓ |  |
+| [`target`](#target) | ✓ | ✓ | ✓ |  |
 | [`env`](#env) | ✓ | ✓ | ✓ |  |
 | [`egress`](#egress) | ✓ | ✓ | ✓ |  |
 | [`judge`](#judge) | ✓ | ✓ | ✓ |  |
@@ -661,17 +661,17 @@ For more information about environments, see [Define an environment](/configurat
 `runs` is the number of attempts in each cell.
 
 <Property name="runs" type="number | { bestOf: number }" optional>
-  A whole number of at least 1, or `{ bestOf: n }` with `n` odd and at least 3, which stops each cell once pass or fail has a majority of `n` and gates on that majority. `bestOf` is refused on an evaluation with `compare`. `--runs` replaces it after a profile `limit`, pinned or not.
+  A whole number of at least 1, or `{ bestOf: n }` with `n` odd and at least 3, which stops each cell once attempts that reach the target's threshold, or those that don't, have a majority of `n` and gates on that majority. `bestOf` is refused on an evaluation with `compare`. `--runs` replaces it after a profile `limit`, pinned or not.
 
   Unset at every level, an evaluation with `compare` variants runs 4 a cell, the fewest a side a lift verdict needs, and the plan notes `runs 4 (compare default)`. Anything else runs once. That includes an evaluation with two or more `cases` and a `compare`, whose lift pairs cases rather than runs, so more cases add power; the plan notes `runs 1 a case (compare with cases: the lift pairs cases)`.
 </Property>
 
-## `gate`
+## `target`
 
-`gate` is how a cell's attempts decide its outcome.
+`target` is what passes an evaluation, and whether a miss fails the run.
 
-<Property name="gate" type="'all' | { passRate: number } | 'observe'" optional>
-  `'all'` (the default) passes when every counted outcome is `pass`. `{ passRate }` passes when at least that share of `pass` and `fail` outcomes passes, above 0 and at most 1. When no outcome counts, the cell takes its worst attempt outcome. With `cases`, `{ passRate }` gates each cell's rate over its cases, the mean of each case's pass@1, rather than each case: a case keeps its own outcome, with `verdict: 'family'`, and the evaluation's pooled outcome sets the exit code. `'observe'` gates no cell: the attempts run and are recorded, the result prints `ran`, and only run and infra errors fail the run. The record writes such a cell's gate as `'none'`. reeval refuses any other value, naming the three forms.
+<Property name="target" type="Target" optional>
+  `metric()` (the default) gates no cell: the attempts run and are recorded, the result prints `ran`, and only run and infra errors fail the run. `metric(threshold)` passes a cell when its attempts' mean score is at least `threshold`. `regression(threshold = 1)` passes when every counted attempt scores at least `threshold` (pass^k), and `capability(threshold = 1)` when one does (pass@k), failing the run on a miss only with `{ blocking: true }`. An attempt passes when its score reaches the threshold, 1 without one; thresholds are from 0 to 1. When no outcome counts, the cell takes its worst attempt outcome. Under `compare`, the target gates the variant cells only. With `cases`, `metric(threshold)` gates each cell's mean over its cases rather than each case: a case keeps its own outcome, with `verdict: 'family'`, and the evaluation's pooled outcome sets the exit code. The record writes each cell's gate as `all`, `any`, `{ passRate }`, or `none`.
 </Property>
 
 ## `env`
@@ -920,19 +920,15 @@ For more information about analysis, see [Analyze a run](/results/analyze#set-an
   A non-empty list. reeval refuses two variants with one name, or one named like the control.
 </Property>
 
-<Property name="compare.gate" type="'variants' | 'all' | 'observe'" optional>
-  `'variants'` (the default) gates the variants only, `'all'` every cell, and `'observe'` no cell.
-</Property>
-
 <Property name="compare.minLift" type="number" optional>
-  Lift from -1 to 1. A variant cell fails when its lift interval's lower end is below it. An evaluation with `cases` is gated on its pooled lift instead, and fails when the pooled interval's lower end is below it.
+  Lift from -1 to 1. A variant cell fails when its lift interval's lower end is below it. reeval refuses it beside a target that can't fail the run. An evaluation with `cases` is gated on its pooled lift instead, and fails when the pooled interval's lower end is below it.
 </Property>
 
 <Property name="compare.agents" type="Array<string | HarnessDescriptor>" optional>
   The agents to compare on; the others run the control only. reeval refuses an id the evaluation does not run.
 </Property>
 
-An evaluation with `cases` reports one `all cases` row that sums each cell's counts, with a lift paired by case. A paired outcome is `insufficient` below six discordant pairs or cases, so six cases with one attempt a side can read `helped` only when all six are discordant. Under `gate: 'all'`, a case fails on its own assertions, and a failed case fails the evaluation. Under `{ passRate }`, the `all cases` row's rate decides instead. The [`case_lift`](/reference/query-views#caselift) view lists each evaluation's pooled lift.
+An evaluation with `cases` reports one `all cases` row that sums each cell's counts, with a lift paired by case. A paired outcome is `insufficient` below six discordant pairs or cases, so six cases with one attempt a side can read `helped` only when all six are discordant. Under `regression()`, a case fails on its own assertions, and a failed case fails the evaluation. Under `metric(threshold)`, the `all cases` row's rate decides instead. The [`case_lift`](/reference/query-views#caselift) view lists each evaluation's pooled lift.
 
 For more information about comparisons, see [Measure lift against a control](/results/compare/lift).
 

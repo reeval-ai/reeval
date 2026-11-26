@@ -1,4 +1,4 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { layout, ownSkills } from './layout.ts'
 
@@ -7,6 +7,7 @@ import { layout, ownSkills } from './layout.ts'
 // the plugin's skill where it was copied, look for it among the harness's own skills, then read
 // the MCP config the harness starts the plugin's server from.
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({
     layout,
     script: [

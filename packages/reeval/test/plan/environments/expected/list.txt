@@ -1,19 +1,18 @@
 no profile · 7 evals · 14 cells · 20 attempts
-hint: 1 eval runs more than once with the default gate, so every attempt must pass (pass^k); set gate: { passRate: 0.8 } to gate on pass@1 instead
-a-grid                             one/nextjs/docker:node:24-bookworm   control         gated    ×1
-                                   one/python/docker:node:24-bookworm   control         gated    ×1
-                                   two/nextjs/docker:node:24-bookworm   control         gated    ×1
-                                   two/python/docker:node:24-bookworm   control         gated    ×1
-add-as-a-function                  fake/node22/docker:node:22-bookworm  control         gated    ×1
-                                   fake/nextjs/docker:node:24-bookworm  control         gated    ×1
-add-as-data                        fake/node22/docker:node:22-bookworm  control         gated    ×1
-                                   fake/nextjs/docker:node:24-bookworm  control         gated    ×1
+a-grid                             one/nextjs/docker:node:24-bookworm   control         ungated  ×1
+                                   one/python/docker:node:24-bookworm   control         ungated  ×1
+                                   two/nextjs/docker:node:24-bookworm   control         ungated  ×1
+                                   two/python/docker:node:24-bookworm   control         ungated  ×1
+add-as-a-function                  fake/node22/docker:node:22-bookworm  control         ungated  ×1
+                                   fake/nextjs/docker:node:24-bookworm  control         ungated  ×1
+add-as-data                        fake/node22/docker:node:22-bookworm  control         ungated  ×1
+                                   fake/nextjs/docker:node:24-bookworm  control         ungated  ×1
 both-stacks-a-compare-replaces-it  fake/plain/docker:node:24-bookworm   control         ungated  ×4  runs 4 (compare default)
-                                   fake/nextjs/docker:node:24-bookworm  variant nextjs  gated    ×4
-both-stacks-inherits-the-list      fake/nextjs/docker:node:24-bookworm  control         gated    ×1
-                                   fake/python/docker:node:24-bookworm  control         gated    ×1
-both-stacks-only-as-a-function     fake/nextjs/docker:node:24-bookworm  control         gated    ×1
-both-stacks-only-as-data           fake/python/docker:node:24-bookworm  control         gated    ×1
+                                   fake/nextjs/docker:node:24-bookworm  variant nextjs  ungated  ×4
+both-stacks-inherits-the-list      fake/nextjs/docker:node:24-bookworm  control         ungated  ×1
+                                   fake/python/docker:node:24-bookworm  control         ungated  ×1
+both-stacks-only-as-a-function     fake/nextjs/docker:node:24-bookworm  control         ungated  ×1
+both-stacks-only-as-data           fake/python/docker:node:24-bookworm  control         ungated  ×1
 excluded: —
 image docker:node:24-bookworm · cursor · 7 evals
   from node:24-bookworm  reeval-sandbox:cursor-0.1.9-node-24-bookworm-f9dde9d9  (Node, git and the harness bootstrap on top; reeval image build refreshes a moved tag)

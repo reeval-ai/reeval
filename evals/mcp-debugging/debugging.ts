@@ -89,7 +89,7 @@ export const named = (value: unknown, names: string[]) => {
 // A study, not a gate: the numbers are each side's pass rate, the lift and the effort.
 export const study = (fixture: string, history?: { base: string }) => {
   const { control, variant } = brokenProject(fixture, history)
-  return { compare: { control: control, variants: [variant], gate: 'observe' as const } }
+  return { compare: { control: control, variants: [variant] } }
 }
 
 /** A fixture that fails for one known reason: the agent finds it and fixes the project. */
@@ -121,7 +121,7 @@ export function debugsARun(fixture: (typeof fixtures)[number]['fixture']): EvalS
 }
 
 /** What weakens an eval file's checks. */
-export const WEAKENED = /\bskip:|gate:|passRate/g
+export const WEAKENED = /\bskip:|target:|metric\(|capability\(/g
 
 /** The prompt's lead for the projects with a git history and a recorded run per commit. */
 export const history = `${intro} Every commit's run is recorded in its history, in evals/.history.`

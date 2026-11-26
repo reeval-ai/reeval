@@ -1,8 +1,8 @@
 no profile · 4 evals · 4 cells · 4 attempts
-install-on-22         fake/tools/docker:node:22-bookworm+eba71b58  control  gated  ×1
-node-22               fake/node22/docker:node:22-bookworm          control  gated  ×1
-node-24               fake/node24/docker:node:24-bookworm          control  gated  ×1
-same-image-other-env  fake/also22/docker:node:22-bookworm          control  gated  ×1
+install-on-22         fake/tools/docker:node:22-bookworm+eba71b58  control  ungated  ×1
+node-22               fake/node22/docker:node:22-bookworm          control  ungated  ×1
+node-24               fake/node24/docker:node:24-bookworm          control  ungated  ×1
+same-image-other-env  fake/also22/docker:node:22-bookworm          control  ungated  ×1
 excluded: —
 image docker:node:22-bookworm+eba71b58 · cursor + install · 1 evals
   from node:22-bookworm  reeval-sandbox:cursor-0.1.9-node-22-bookworm-5a0b0fc6  (Node, git and the harness bootstrap on top; reeval image build refreshes a moved tag)

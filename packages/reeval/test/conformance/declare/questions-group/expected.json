@@ -70,8 +70,9 @@
           "mode": "run",
           "options": {
             "runs": 2,
-            "gate": {
-              "passRate": 0.5
+            "target": {
+              "kind": "metric",
+              "threshold": 0.5
             }
           },
           "body": "b2",

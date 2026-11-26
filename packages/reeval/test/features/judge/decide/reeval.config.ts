@@ -1,10 +1,11 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 
 const SECRET = `ghp_${'a1B2'.repeat(9)}`
 
 // REEVAL_FIXTURE_SANDBOX picks the tier: the fake sandbox (F) by default, or docker (D).
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({
     script: [
       [

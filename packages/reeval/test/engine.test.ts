@@ -238,11 +238,12 @@ export default defineConfig({
 
   test('.env.local wins over .env, the shell wins over both, and evals see them, past a byte-order mark', async () => {
     const p = await project('dotenv', {
-      'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
+      'reeval.config.ts': `import { defineConfig, defineEnvironment, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 const id = (name: string) => process.env[name] ?? 'unset'
 export default defineConfig({
+  target: regression(),
   agents: [fakeAgent({ id: id('REEVAL_T_BOTH') }), fakeAgent({ id: id('REEVAL_T_ENV') }), fakeAgent({ id: id('REEVAL_T_SHELL') })],
   environments: defineEnvironment('fake', { sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }) }),
 })
@@ -2080,10 +2081,11 @@ export default defineEval({
   },
 })
 `,
-      'evals/studied.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/studied.eval.ts': `import { defineEval, expect, metric } from 'reeval'
 import { plain, skilled } from './compare-env.ts'
 export default defineEval({
-  compare: { control: plain, variants: [skilled], gate: 'observe' },
+  compare: { control: plain, variants: [skilled] },
+  target: metric(),
   runs: 2,
   async task(c) {
     await c.send('go')

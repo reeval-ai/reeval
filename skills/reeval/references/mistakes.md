@@ -14,7 +14,7 @@ Each row is a mistake, what reeval says and the fix.
 | `evaluate.each(cases)(name, fn)` | `evaluate.each is not a function` | `defineEval({ cases, task: async (c, item) => … })` |
 | `cases` for items that should each pass or fail alone | One failing case fails the whole eval | One `*.eval.ts` file per item |
 | `where` without `cases` | `… sets where without cases` | Put `where` beside `cases` on `defineEval` |
-| `survey(…)`, or `gate: 'none'` | `survey is not a function` / `gate in … is 'all' …, { passRate } … or 'observe'` | `defineEval({ gate: 'observe', task })` |
+| `survey(…)`, or `gate: 'observe'` | `survey is not a function` / `Unknown option "gate"` | `defineEval({ task })`: the default `target: metric()` only reports |
 | `compare: false` on an eval | `compare: false can't be set` | Use a profile's `limit.compare: false` |
 | A question and no language model | `questions "…" (…) needs a language model` (exit 2) | Set `analysis.model`, give the question its own `model`, or set `question: { model }` |
 | `import { baseline }` | `reeval has no baseline` | Name the control in `compare: { control }`; it isn't an export |

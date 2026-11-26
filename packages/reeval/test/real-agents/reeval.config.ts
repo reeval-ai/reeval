@@ -2,13 +2,15 @@
 // scripts/real-smoke.sh, and `--profile questions` under reeval.analysis.config.ts from
 // test/questions-real.test.ts. `--profile ci` is where scripts/record-real-runs.sh records the
 // real-agent runs, every contract leg's included.
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { s3 } from 'reeval/store/s3'
 import { composer } from './evals/agents.ts'
 
 export default defineConfig({
   include: ['evals/**/*.eval.ts'],
   agents: composer,
+  // A miss fails the run, so the weekly smoke can fail.
+  target: regression(),
   timeout: '15m',
   profiles: {
     // The judge-free evals tagged smoke, once, on the cheap model.

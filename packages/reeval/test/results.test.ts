@@ -50,7 +50,7 @@ import { runnerInfo } from '../src/history/provenance.ts'
 import type { EvalEntry, FamilyLift, FingerprintParts } from '../src/history/types.ts'
 import { sha256 } from '../src/ids.ts'
 import { patchForJudge } from '../src/judge/patch.ts'
-import { checkGate } from '../src/options.ts'
+import { checkTarget } from '../src/options.ts'
 import {
   containsZero,
   familySmallSample,
@@ -65,9 +65,10 @@ import {
   t975,
   wilson,
 } from '../src/stats.ts'
+import { blocks, capability, metric, regression, targetGate, targetOfGates } from '../src/target.ts'
 import type { BlindPair, EvalRecord, FakeAnalysisModel, Outcome } from '../src/types.ts'
 import { EFFORT_MIN_RUNS, effortVerdict } from '../src/view/effort.ts'
-import { cellOutcome } from '../src/view/gate.ts'
+import { cellOutcome, rescore, scoresOf } from '../src/view/gate.ts'
 import {
   E2E_ARMS,
   e2ePairSides,
@@ -496,7 +497,7 @@ describe('mergeOutcome and abort classification', () => {
   })
 })
 
-describe('gate policies', () => {
+describe('targets', () => {
   const runs = (spec: string): Outcome[] =>
     [...spec].map((c) => ({ p: 'pass', f: 'fail', i: 'infra_error', s: 'skipped' })[c] as Outcome)
   const cases: Array<[string, Parameters<typeof cellOutcome>[1], Outcome]> = [
@@ -514,6 +515,10 @@ describe('gate policies', () => {
     ['sssss', { passRate: 0.5 }, 'skipped'],
     ['ppppf', 'none', 'fail'],
     ['ppppi', 'none', 'infra_error'],
+    ['ffffp', 'any', 'pass'],
+    ['fffff', 'any', 'fail'],
+    ['ffffi', 'any', 'fail'],
+    ['iiiii', 'any', 'infra_error'],
   ]
   for (const [spec, gate, outcome] of cases) {
     test(`${spec} under ${JSON.stringify(gate)} is ${outcome}`, () => {
@@ -536,14 +541,113 @@ describe('gate policies', () => {
     }
   })
 
-  test("the option takes all, { passRate } in (0, 1] or 'observe'", () => {
-    checkGate('all', 'e')
-    checkGate({ passRate: 1 }, 'e')
-    checkGate('observe', 'e')
-    for (const bad of ['any', 'none', { passRate: 0 }, { passRate: 1.2 }, { rate: 0.8 }, {}, 0.8]) {
+  test('a rate gate reads the mean score where the cell has one', () => {
+    assert.equal(cellOutcome(runs('ppppp'), { passRate: 0.8 }, 0.7), 'fail', 'every attempt passed')
+    assert.equal(cellOutcome(runs('pfff'), { passRate: 0.5 }, 0.6), 'pass', 'partial scores')
+    assert.equal(cellOutcome(runs('ppppf'), 'all', 0.5), 'fail', "'all' counts attempts")
+  })
+
+  test("a record from before targets reads its target from its cells' gates", () => {
+    assert.deepEqual(targetOfGates(['all', 'all']), regression())
+    assert.deepEqual(targetOfGates(['none', { passRate: 0.7 }]), metric(0.7))
+    assert.deepEqual(targetOfGates(['any']), capability(1, { blocking: true }))
+    assert.deepEqual(targetOfGates(['none', 'none']), metric())
+    assert.deepEqual(targetOfGates([]), metric())
+    assert.equal(blocks(targetOfGates(['none'])), false, 'an ungated record only reported')
+  })
+
+  test("each target's cell gate, and a best-of cell's hit share", () => {
+    assert.equal(targetGate(metric(), false), 'none')
+    assert.equal(targetGate(metric(), true), 'none', 'report-only stays report-only')
+    assert.deepEqual(targetGate(metric(0.8), false), { passRate: 0.8 })
+    assert.equal(targetGate(regression(0.7), false), 'all')
+    assert.equal(targetGate(capability(), false), 'any')
+    assert.deepEqual(targetGate(regression(), true), { passRate: 0.5 })
+    assert.equal(blocks(capability()), false)
+    assert.equal(blocks(capability(1, { blocking: true })), true)
+  })
+
+  test('scores: the mean, pass@k and pass^k over the counted attempts', () => {
+    const at = (outcome: Outcome, score?: number) => ({
+      outcome,
+      ...(score !== undefined ? { score } : {}),
+    })
+    assert.deepEqual(
+      scoresOf([at('pass', 0.9), at('fail', 0.3), at('infra_error'), at('skipped')]),
+      {
+        meanScore: 0.6,
+        passAtK: 1,
+        passHatK: 0,
+      },
+    )
+    assert.deepEqual(scoresOf([at('pass'), at('pass')]), { meanScore: 1, passAtK: 1, passHatK: 1 })
+    assert.deepEqual(scoresOf([at('infra_error')]), {
+      meanScore: null,
+      passAtK: null,
+      passHatK: null,
+    })
+  })
+
+  test('re-scoring a cell under another gate reads its scores as the run did', () => {
+    const cell = (c: Partial<Parameters<typeof rescore>[0]>): Parameters<typeof rescore>[0] => ({
+      gate: 'all',
+      outcome: 'fail',
+      pass: 0,
+      fail: 0,
+      infraError: 0,
+      skipped: 0,
+      ...c,
+    })
+    const scores = (meanScore: number) => ({ meanScore, passAtK: 1, passHatK: 0 })
+    // Three passes at 0.6 and one canceled fail at 0: 0.45 counted, 0.6 without the cancel.
+    const canceled = cell({
+      gate: { passRate: 0.9 },
+      pass: 3,
+      fail: 1,
+      canceled: 1,
+      scores: scores(0.45),
+    })
+    assert.equal(
+      rescore(canceled, { passRate: 0.6 }),
+      'pass',
+      'the canceled fail is out of the mean',
+    )
+    assert.equal(rescore(canceled, { passRate: 0.7 }), 'fail')
+    // A best-of cell's rate is its hit share, as the run gates it, not its mean score.
+    const bestOf = cell({
+      gate: { passRate: 0.5 },
+      outcome: 'pass',
+      pass: 1,
+      fail: 1,
+      bestOf: 2,
+      scores: scores(0.3),
+    })
+    assert.equal(rescore(bestOf, { passRate: 0.5 }), 'pass')
+    assert.equal(
+      rescore({ ...bestOf, bestOf: undefined, outcome: 'fail' }, { passRate: 0.5 }),
+      'fail',
+    )
+  })
+
+  test('the option takes metric(), regression() or capability(), each threshold in [0, 1]', () => {
+    checkTarget(metric(), 'e')
+    checkTarget(metric(0.8), 'e')
+    checkTarget(regression(), 'e')
+    checkTarget(capability(0.5, { blocking: true }), 'e')
+    for (const bad of [
+      'all',
+      'observe',
+      { passRate: 0.8 },
+      { kind: 'metric', threshold: 1.2 },
+      { kind: 'regression', threshold: -0.1 },
+      { kind: 'capability', threshold: 1 },
+      { kind: 'gate' },
+      0.8,
+    ]) {
       assert.throws(
-        () => checkGate(bad, 'e'),
-        /gate in e is 'all' .*, \{ passRate \} .*, or 'observe' \(nothing gates\)/,
+        () => checkTarget(bad, 'e'),
+        /target in e is metric\(\), regression\(\) or capability\(\) from 'reeval'/,
+        JSON.stringify(bad),
       )
     }
   })
@@ -583,9 +687,9 @@ describe("an eval's source", () => {
     assert.equal(canonicalJson({ env }), '{"env":{"environment":"skilled"}}')
   })
 
-  test('the options hash leaves out tags, runs, timeout, revision and gate, and reads harnesses and sandboxes by id', () => {
+  test('the options hash leaves out tags, runs, timeout, revision and target, and reads harnesses and sandboxes by id', () => {
     const base = optionsHash([{ pin: ['agents'] }])
-    const unhashed = { tags: ['slow'], runs: 5, timeout: '2m', revision: 3, gate: 'all' } as const
+    const unhashed = { tags: ['slow'], runs: 5, timeout: '2m', revision: 3, target: regression() }
     assert.equal(optionsHash([{ pin: ['agents'], ...unhashed }]), base)
     assert.equal(optionsHash([{}, { pin: ['agents'] }]), base, 'an option-less group adds nothing')
     assert.equal(optionsHash([{ runs: 2 }, { pin: ['agents'] }]), base, "a group's runs too")

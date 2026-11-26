@@ -1,11 +1,10 @@
 import { defineEval, expect } from 'reeval'
-import { empty, variant } from './env.ts'
+import { empty } from './env.ts'
 
-// Must fail: the empty control doesn't get the variant's files. gate: 'all' gates the control.
+// Must fail: the empty environment doesn't get the variant's files.
 export default defineEval({
-  compare: { control: empty, variants: [variant], gate: 'all' },
+  environment: empty,
   task: async (c) => {
-    if (c.attempt.cell.role !== 'control') return
     expect(await c.readFile('from-variant.txt')).toBe('variant-only')
   },
 })

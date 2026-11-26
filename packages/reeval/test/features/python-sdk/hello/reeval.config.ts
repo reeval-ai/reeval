@@ -1,4 +1,4 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { cursor, fakeAgent } from 'reeval/agent'
 import { fakeJudge } from 'reeval/judge'
 import { docker, fakeSandbox } from 'reeval/sandbox'
@@ -10,6 +10,7 @@ const sandbox =
     : fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) })
 
 export default defineConfig({
+  target: regression(),
   include: ['evals/**/*.eval.py'],
   agents:
     process.env.REEVAL_FIXTURE_HARNESS === 'cursor'

@@ -15,6 +15,7 @@ import { keptFiles, type Trajectory } from '../history/trajectory.ts'
 import { WORKSPACE_ARCHIVE, WORKSPACE_MANIFEST } from '../history/types.ts'
 import { loadPrices } from '../prices.ts'
 import { redactValue } from '../redact.ts'
+import { thresholdOf } from '../target.ts'
 import type { Case } from '../types.ts'
 import { readableWorkspaceManifest } from '../view/record.ts'
 import type { Attempt } from './state.ts'
@@ -87,8 +88,8 @@ async function graderTurns(a: Attempt): Promise<GraderTurn[]> {
 
 /**
  * Runs the graders and records their grades and the attempt's score. Returns the error to fail
- * the attempt with when it scored under 1; undefined when the run was canceled while they ran,
- * which records none.
+ * the attempt with when it scored under its target's threshold; undefined when the run was
+ * canceled while they ran, which records none.
  */
 export async function gradeAttempt(
   a: Attempt,
@@ -118,5 +119,6 @@ export async function gradeAttempt(
   }
   a.record.grades = grades
   a.record.score = score
-  return score < 1 ? new Error(scoreFailure(score, grades)) : undefined
+  const threshold = thresholdOf(a.spec.target)
+  return score < threshold ? new Error(scoreFailure(score, threshold, grades)) : undefined
 }

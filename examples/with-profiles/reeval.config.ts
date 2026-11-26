@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { defineConfig } from 'reeval'
+import { defineConfig, metric } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 import { profiles } from '../profiles.ts'
@@ -20,7 +20,7 @@ export default defineConfig({
   }),
   sandbox: fakeSandbox(),
   runs: 2,
-  gate: { passRate: 0.75 },
+  target: metric(0.75),
   // `pr` is picked whenever CI is set; `nightly` only with --profile nightly.
   defaultProfile: { ci: 'pr' },
   // The real agents: `--profile claude-code`, or any other in ../profiles.ts. An example's own

@@ -1,6 +1,6 @@
 profile off (--profile) · 1 evals · 2 cells · 2 attempts
-control  a/base/docker  control  gated  ×1  compare off (profile off)
-         b/base/docker  control  gated  ×1
+control  a/base/docker  control  ungated  ×1  compare off (profile off)
+         b/base/docker  control  ungated  ×1
 excluded: —
 image docker · cursor · 1 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

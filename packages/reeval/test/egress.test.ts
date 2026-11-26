@@ -48,7 +48,7 @@ describe('the egress cascade', () => {
       environments: [defineEnvironment('closed', { egress: 'deny-all' })],
       compare: undefined,
       runs: 1,
-      gate: undefined,
+      target: undefined,
       env: {},
       egress: { inherited: { allow: ['config.example.com'] } },
       judge: {},

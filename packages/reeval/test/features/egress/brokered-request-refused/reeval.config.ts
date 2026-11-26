@@ -1,8 +1,9 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 
 // Docker only: the fake sandbox has no gateway to broker the key.
 export default defineConfig({
+  target: regression(),
   // As the agent: send Codex's brokered key to a path on its API that reeval doesn't broker it
   // for. The gateway answers the refusal itself: nothing goes upstream, only the host's name is
   // resolved.

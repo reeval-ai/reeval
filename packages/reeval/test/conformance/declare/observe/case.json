@@ -1,6 +1,0 @@
-{
-  "eval": "plan/observe/evals",
-  "treeRoot": "plan/observe",
-  "plan": "plan/observe/expected/observe.txt",
-  "args": []
-}

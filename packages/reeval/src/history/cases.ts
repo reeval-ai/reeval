@@ -9,7 +9,7 @@ import { evalSlug } from '../slug.ts'
 import type { Outcome } from '../types.ts'
 import { checkVerdict } from '../view/contrasts.ts'
 import { caseLabel, templateName } from '../view/family.ts'
-import { passRateOf, worstOutcome } from '../view/gate.ts'
+import { meanScores, passRateOf, targetCells, worstOutcome } from '../view/gate.ts'
 import type {
   CaseRecord,
   CellRecord,
@@ -116,6 +116,7 @@ function mergeCell(
     infraError: sum((c) => c.infraError),
     skipped: sum((c) => c.skipped),
     passRate: pass + fail ? pass / (pass + fail) : null,
+    scores: meanScores(cells.map((c) => c.scores)),
     outcome,
     ...(rate ? { rate: cellRate } : {}),
   }
@@ -243,6 +244,7 @@ function foldOne(
     ),
     todo: sorted.every((m) => m.todo),
     passRate: passRateOf(attempts.filter((a) => gated.has(a.cell)).map((a) => a.outcome)),
+    scores: meanScores(targetCells(cells).map((c) => c.scores)),
     cells,
     attempts,
     ...(excluded.length ? { excluded } : {}),
@@ -323,6 +325,7 @@ export function caseEntries(e: EvalEntry): EvalEntry[] {
       outcome: c.outcome,
       ...(c.verdict ? { verdict: c.verdict } : {}),
       passRate: c.passRate,
+      scores: meanScores(targetCells(c.cells).map((x) => x.scores)),
       fingerprint: c.fingerprint,
       cells: c.cells,
       attempts: e.attempts

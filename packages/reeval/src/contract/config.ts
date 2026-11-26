@@ -28,7 +28,7 @@ import { gatewayEntryDataSchema } from './gateway.ts'
 import { builtinGraderDataSchema } from './graders.ts'
 import { harnessDescriptorSchema } from './harness.ts'
 import { configJudgeDataSchema } from './judge.ts'
-import { egressSchema, envVarsSchema, gatePolicySchema, snapshotOptionSchema } from './plain.ts'
+import { egressSchema, envVarsSchema, snapshotOptionSchema, targetSchema } from './plain.ts'
 import { questionOptionsSchema } from './questions.ts'
 import {
   type Assert,
@@ -123,7 +123,7 @@ export const profileDefaultsDataSchema = z.strictObject({
   sandbox: declaredSandboxSchema.optional(),
   environments: environmentList.optional(),
   runs: runs().optional(),
-  gate: gatePolicySchema.optional(),
+  target: targetSchema.optional(),
   env: envVarsSchema.optional(),
   egress: egressSchema.optional(),
   judge: configJudgeDataSchema.optional(),
@@ -192,7 +192,7 @@ export const reevalConfigDataSchema = z.strictObject({
   sandbox: declaredSandboxSchema.optional(),
   environments: environmentList.optional(),
   runs: runs().optional(),
-  gate: gatePolicySchema.optional(),
+  target: targetSchema.optional(),
   env: envVarsSchema.optional(),
   egress: egressSchema.optional(),
   judge: configJudgeDataSchema.optional(),

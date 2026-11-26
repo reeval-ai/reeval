@@ -2024,8 +2024,6 @@ export type EnvironmentsOption =
   | EnvironmentsData<Environment>
   | ((inherited: Environment[]) => Environment | Environment[])
 
-export type CompareGate = 'variants' | 'all' | 'observe'
-
 /**
  * The control and each variant run as their own environments, with the same prompt and checks.
  * `compare` does not layer them. Share setup first with `environment.extend` / `extendEnvironment`.
@@ -2039,9 +2037,10 @@ export type CompareOptions<E = Environment> = {
   control: E
   /** Other environments, each planned and run as itself. */
   variants: E[]
-  /** Which cells decide pass/fail: `variants` (default), `all`, or `observe` (none of them). */
-  gate?: CompareGate
-  /** Lift in points from -1 to 1; a variant cell below it fails. */
+  /**
+   * Lift in points from -1 to 1, over the mean score; a variant cell below it fails. Needs a
+   * blocking `target`.
+   */
   minLift?: number
   /** Agents (ids or descriptors) to compare on; the others run the control only. */
   agents?: Array<string | HarnessDescriptor>
@@ -2283,18 +2282,38 @@ export type AttemptQuestionInput = {
 export type PinnableKey = 'agents' | 'runs' | 'compare'
 
 /**
- * How a cell's attempts decide its outcome: `'all'` (the default) passes only when every attempt
- * passes (pass^k); `{ passRate }` passes when its pass@1 (passes over passes and fails) is at
- * least that share; `'observe'` gates nothing, so the eval's attempts run and are recorded, and
- * only run and infra errors fail it.
+ * The eval's rule over its attempts' scores: whether it passes, and whether it can fail the run.
+ * `metric` passes when the mean score is at least `threshold`, and with none only reports;
+ * `regression` when every attempt scores at least `threshold` (pass^k); `capability` when one
+ * does (pass@k), and fails the run only with `blocking`. Made by `metric()`, `regression()` and
+ * `capability()`; an attempt passes when its score is at least the threshold, 1 without one.
  */
-export type GatePolicy = 'all' | 'observe' | { passRate: number }
+export type Target =
+  | {
+      kind: 'metric'
+      /** The mean score, from 0 to 1, the attempts must reach; unset only reports. */
+      threshold?: number
+    }
+  | {
+      kind: 'regression'
+      /** The score, from 0 to 1, every attempt must reach. */
+      threshold: number
+    }
+  | {
+      kind: 'capability'
+      /** The score, from 0 to 1, one attempt must reach. */
+      threshold: number
+      /** Whether a miss fails the run. */
+      blocking: boolean
+    }
 
 /**
- * A cell's gate: its policy, or `'none'` when its failures don't fail the eval (a control's, or
- * any cell under `gate: 'observe'`).
+ * A cell's gate: `'all'` when every counted attempt must pass, `'any'` when one must,
+ * `{ passRate }` when its mean score must reach that share (its pass share in a
+ * `runs: { bestOf }` cell), or `'none'` when its failures don't fail the run (a compare's
+ * control, or an eval whose target doesn't block).
  */
-export type CellGate = Exclude<GatePolicy, 'observe'> | 'none'
+export type CellGate = 'all' | 'any' | 'none' | { passRate: number }
 
 /** A compare object: `control` and `variants`. Same as `CompareOptions`. */
 export type CompareSpec<E = Environment> = CompareOptions<E>
@@ -2335,8 +2354,12 @@ type EvalOptionFields<N extends number = number> = {
    * a verdict, and anything else runs once, a case of an eval with `cases` included.
    */
   runs?: Runs<N>
-  /** How each cell's attempts decide its outcome; default `'all'`. */
-  gate?: GatePolicy
+  /**
+   * Whether the eval passes and can fail the run, over its attempts' scores: `metric()`,
+   * `regression()` or `capability()`; default `metric()`, which only reports. On a compare it
+   * applies to the variants, and the control only reports.
+   */
+  target?: Target
   /** Variables and secrets for the sandbox, merged by name down the cascade. */
   env?: EnvVars
   /**
@@ -2381,7 +2404,7 @@ export type Revision = number | string
 
 /**
  * An eval's own source as hashes: its body and case data as declared, and its options and its
- * enclosing groups' in canonical form (`tags`, `revision` and `gate` aside).
+ * enclosing groups' in canonical form (`tags`, `revision` and `target` aside).
  */
 export type EvalSource = {
   /** sha256 of the body function's source text. */
@@ -2646,8 +2669,8 @@ export type ProfileDefaults = {
   environments?: Environment | Environment[]
   /** Attempts per cell: a number, or `{ bestOf: n }` (odd, 3 or more). */
   runs?: Runs
-  /** How each cell's attempts decide its outcome. */
-  gate?: GatePolicy
+  /** Whether each eval passes and can fail the run, over its attempts' scores. */
+  target?: Target
   /** Variables and secrets for the sandbox, merged by name over the config's. */
   env?: EnvVars
   /** Where the sandbox may connect; replaces the config's policy, per phase. */
@@ -2814,8 +2837,11 @@ export type ReevalConfig = {
    * variants runs 4 a side and anything else once.
    */
   runs?: Runs
-  /** How each cell's attempts decide its outcome; default `'all'`. */
-  gate?: GatePolicy
+  /**
+   * Whether each eval passes and can fail the run, over its attempts' scores; default
+   * `metric()`, which only reports.
+   */
+  target?: Target
   /** Variables and secrets for the sandbox, merged by name down the cascade. */
   env?: EnvVars
   /** Where the sandbox may connect; default `'proxy'` in both phases. */
@@ -3073,8 +3099,8 @@ export type ResolvedConfig = {
   environments: Environment[]
   /** Unset leaves each eval its default: 4 for a compare with variants, otherwise 1. */
   runs: Runs | undefined
-  /** Unset means `'all'`; kept unset so the plan can hint when `runs > 1`. */
-  gate: GatePolicy | undefined
+  /** Unset means `metric()`. */
+  target: Target | undefined
   env: EnvVars
   egress?: Egress
   judge: ConfigJudgeOptions & { threshold: number }
@@ -4133,8 +4159,10 @@ export type EvalPlan = {
   runs: number
   /** Set by `runs: { bestOf }`: each cell stops once a majority of this many attempts agree. */
   bestOf?: number
-  /** The eval's gate policy, or undefined when it was left at the default (`'all'`). */
-  gate?: GatePolicy
+  /** The eval's target, the default `metric()` included; unset in records from before targets. */
+  target?: Target
+  /** In records from before targets, the eval's gate when it set one. Never written now. */
+  gate?: 'all' | 'observe' | { passRate: number }
   attempts: number
   /** The case and environment pairs `where` left out of this case; unset when none. */
   excluded?: ExcludedPair[]
@@ -4225,6 +4253,11 @@ export type AttemptMeta = {
   setBy: { sandbox: string; harness: string; pluginBuilds?: string }
   /** How its cell's attempts decide the cell's outcome; `'none'` when they don't fail the run. */
   gate: CellGate
+  /**
+   * The eval's target, which its attempts pass at the threshold of; unset in records from before
+   * targets.
+   */
+  target?: Target
   /** Set on variant attempts whose compare has a `minLift`. */
   minLift?: number
   /**

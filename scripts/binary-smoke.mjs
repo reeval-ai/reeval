@@ -186,10 +186,11 @@ function bunInstall() {
       'apps/evals/package.json': json({ name: 'evals', version: '1.0.0', private: true }),
       '.gitignore': 'node_modules\n.reeval\nsandboxes\n',
       'apps/evals/reeval.config.ts': [
-        "import { defineConfig } from 'reeval'",
+        "import { defineConfig, regression } from 'reeval'",
         "import { fakeAgent } from 'reeval/agent'",
         "import { fakeSandbox } from 'reeval/sandbox'",
         'export default defineConfig({',
+        '  target: regression(),',
         "  agents: fakeAgent({ script: [[{ reply: 'hi' }]] }),",
         "  sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }),",
         '})',

@@ -63,7 +63,7 @@ The billing evaluation spreads `billing` and keeps `shared`'s `plain` environmen
 
 ## Override an option in one evaluation
 
-An `environment`, `timeout`, `runs`, `gate`, or `sandbox` on one `defineEval` call replaces the spread value for that evaluation. The other evaluations keep the shared value. In the `evals/shoehorn/build-only-fields.eval.ts` file, give one evaluation a longer timeout:
+An `environment`, `timeout`, `runs`, `target`, or `sandbox` on one `defineEval` call replaces the spread value for that evaluation. The other evaluations keep the shared value. In the `evals/shoehorn/build-only-fields.eval.ts` file, give one evaluation a longer timeout:
 
 ```ts title="evals/shoehorn/build-only-fields.eval.ts"
 export default defineEval({

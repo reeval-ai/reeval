@@ -1,10 +1,11 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 
 // Docker only: login shells read the image's /etc/profile. The Dockerfile layers on reeval's own
 // image and puts /opt/reeval-fixture/bin on PATH. As the agent, a login shell looks the tool up:
 // `sh -lc` as Cursor runs one, `bash -lc` as others do.
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({
     script: [
       [

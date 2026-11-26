@@ -1,3 +1,3 @@
 no profile · 1 evals · 1 cells · 1 attempts
-fake  fake/-/fake  control  gated  ×1  sandbox: fake runs on this machine; boat() takes docker() sandboxes · egress "allow-all"
+fake  fake/-/fake  control  ungated  ×1  sandbox: fake runs on this machine; boat() takes docker() sandboxes · egress "allow-all"
 excluded: —

@@ -1,4 +1,7 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 
-export default defineConfig({ agents: fakeAgent({ script: [[{ reply: 'done' }]] }) })
+export default defineConfig({
+  target: regression(),
+  agents: fakeAgent({ script: [[{ reply: 'done' }]] }),
+})

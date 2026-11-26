@@ -1,4 +1,4 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { createBoat } from 'reeval/provider/boat'
 
@@ -6,6 +6,7 @@ import { createBoat } from 'reeval/provider/boat'
 // agent: whether the attempt before left a file in its home or /tmp, or a process running, then
 // leave all three for the next.
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({
     script: [
       [

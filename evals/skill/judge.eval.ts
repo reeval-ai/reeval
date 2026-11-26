@@ -10,7 +10,7 @@ const task =
   'check `explains usage`. It must typecheck with `npx tsc -p .` and pass with `npx reeval run`.'
 
 export default defineEval({
-  compare: { ...channels(project('cli', 'judge')), gate: 'observe' },
+  compare: channels(project('cli', 'judge')),
   task: async (c) => {
     await c.send(task)
     const source = (await c.readFile('evals/readme.eval.ts')) ?? ''

@@ -1362,10 +1362,10 @@ describe('heartbeats', () => {
 })
 
 const config = `
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
-export default defineConfig({ agents: fakeAgent({}), sandbox: fakeSandbox() })
+export default defineConfig({ agents: fakeAgent({}), sandbox: fakeSandbox(), target: regression() })
 `
 
 /** One eval that waits for `go` beside the config, so a test can attach while it runs. */
@@ -1557,8 +1557,8 @@ export default defineEval({
   test("run-end names the record, files and archive --record wrote; an unrecorded run's names none", async () => {
     const p = await project('events-recorded', {
       'reeval.config.ts': config.replace(
-        'sandbox: fakeSandbox() }',
-        'sandbox: fakeSandbox(), history: { archive: true } }',
+        'sandbox: fakeSandbox(),',
+        'sandbox: fakeSandbox(), history: { archive: true },',
       ),
       'evals/passes.eval.ts': `import { defineEval, expect } from 'reeval'
 export default defineEval({

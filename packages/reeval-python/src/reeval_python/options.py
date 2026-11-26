@@ -17,6 +17,7 @@ from reeval_python.environment import (
     FakeJudge,
     TartSandbox,
 )
+from reeval_python.target import Target
 
 Harness = str | FakeHarness | Mapping[str, Any]
 T = TypeVar("T")
@@ -92,9 +93,6 @@ class EvalOptions(TypedDict, total=False):
     environments: Environment | Sequence[Environment] | Mapping[str, Any]
     """One environment, or a list, each its own cell beside each harness; `{"add": …}` and
     `{"only": [names]}` edit the inherited list."""
-    gate: Literal["all", "observe"] | Mapping[str, float]
-    """`"all"` (every attempt passes), `{"pass_rate": 0.8}`, or `"observe"` (nothing gates: the
-    attempts run and are recorded, and only run and infra errors fail the eval)."""
     agents: Harness | Sequence[Harness] | Mapping[str, Any]
     judge: JudgeDefaults
     pin: Sequence[str]
@@ -111,9 +109,13 @@ class EvalOptions(TypedDict, total=False):
     """The eval's version, in its fingerprint: bump it when a helper, a constant outside the body
     or a fixture changes what it measures. A group's applies to evals inside that set none."""
     runs: int | BestOf
-    """Attempts per cell, or `{"best_of": n}`, which gates each cell on its majority. Not on a
-    compared eval."""
+    """Attempts per cell, or `{"best_of": n}`, which stops each cell once a majority of its
+    attempts agree. Not on a compared eval."""
     tags: Sequence[str]
+    target: Target
+    """Whether the eval passes and can fail the run, over its attempts' scores: `metric(…)`,
+    `regression(…)` or `capability(…)`; default `metric()`, which only reports. On a compare it
+    applies to the variants."""
     timeout: timedelta | float
     """Per attempt, in seconds or as a timedelta."""
 

@@ -1,4 +1,4 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval, expect, metric } from 'reeval'
 
 // The page in ./project is the control; the variant adds Anthropic's published brand-guidelines
 // skill, fetched from its repository at a pinned commit.
@@ -16,7 +16,7 @@ const withSkill = page.extendEnvironment('brand-guidelines', ({ skill }) => ({
 export default defineEval({
   compare: { control: page, variants: [withSkill] },
   runs: 4,
-  gate: { passRate: 0.75 },
+  target: metric(0.75),
   task: async (c) => {
     await c.send(
       "Give index.html Anthropic's look: write styles.css with Anthropic's brand colors and " +

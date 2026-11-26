@@ -25,11 +25,12 @@ type Json = Record<string, unknown>
 type Tool = { structuredContent?: unknown; content: unknown; isError?: boolean }
 
 const config = `
-import { defineConfig, defineEnvironment } from 'reeval'
+import { defineConfig, defineEnvironment, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 import { fakeAnalysis, fakeJudge } from 'reeval/judge'
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({ files: process.env.BREAK ? {} : { 'ok.txt': 'y' } }),
   environments: defineEnvironment('fake', { sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }) }),
   judge: { model: fakeJudge({ score: 0.9 }) },

@@ -1,7 +1,7 @@
 # with-skip
 
 **Shows:** three evals, one file each, sharing the options in `reeval.config.ts` (`timeout`,
-`runs` and `gate`) and the environment in `environments.ts`. `adds-subtract` overrides `runs` and
+`runs` and `target`) and the environment in `environments.ts`. `adds-subtract` overrides `runs` and
 adds a tag of its own, and `adds-divide` sets `skip` with a reason, so it stays declared but
 unrun.
 
@@ -35,8 +35,8 @@ adds-multiply  1          —         2     2
 adds-subtract  1          —         1     1
 ```
 
-`gate: { passRate: 0.5 }` passes a cell when one of its two runs does; without it, the default
-gate needs both, and the plan prints a hint saying so. Every eval is tagged `math`, so
+`target: metric(0.5)` passes a cell when one of its two runs does; `regression()` would need
+both. Every eval is tagged `math`, so
 `pnpm reeval run --tag smoke --dry-run` plans only `adds-subtract`, and `--tag math` plans all three.
 The run's status list ends:
 

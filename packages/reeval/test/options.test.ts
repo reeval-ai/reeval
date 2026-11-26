@@ -17,12 +17,13 @@ import { fakeConfig, project, readRun, recordedRuns, runCli, tempDir } from './h
 import { fixture } from './support/fixture.ts'
 
 const config = (extra: string, harness = 'fakeAgent({})') => `
-import { defineConfig, defineEnvironment } from 'reeval'
+import { defineConfig, defineEnvironment, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 import { fakeJudge } from 'reeval/judge'
 const sandbox = fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) })
 export default defineConfig({
+  target: regression(),
   agents: ${harness},
   environments: defineEnvironment('fake', { sandbox }),
   judge: { model: fakeJudge({ score: 0.9 }) },
@@ -75,10 +76,10 @@ export default defineEval({
     assert.match(r.stdout, /^Done in \S+ · 1 failed$/m)
     const thirds = await project('matrix-thirds', {
       'reeval.config.ts': config('', `fakeAgent({ id: 'one' })`),
-      'evals/two-of-three.eval.ts': `import { defineEval } from 'reeval'
+      'evals/two-of-three.eval.ts': `import { defineEval, metric } from 'reeval'
 export default defineEval({
   runs: 3,
-  gate: { passRate: 0.5 },
+  target: metric(0.5),
   async task(c) {
     await c.send('go')
     if (c.attempt.n === 2) throw new Error('the second attempt fails')
@@ -524,7 +525,7 @@ export default defineEval({
     )
   })
 
-  test("gate 'all' gates the control, and minLift fails a variant cell below it", async () => {
+  test('a target gates the variants only, and minLift fails a variant cell below it', async () => {
     const p = await project('compare-gates', {
       'reeval.config.ts': config('', SKILLED),
       'skills/house-greeting/SKILL.md': SKILL,
@@ -532,7 +533,7 @@ export default defineEval({
       'evals/all-gated.eval.ts': `import { defineEval, expect } from 'reeval'
 import { base, skilled } from './envs.ts'
 export default defineEval({
-  runs: 1, compare: { control: base, variants: [skilled], gate: 'all' },
+  runs: 1, compare: { control: base, variants: [skilled] },
   async task(c) {
 
   await c.send('go')
@@ -545,7 +546,7 @@ export default defineEval({
 import { base, skilled } from './envs.ts'
 export default defineEval({
   runs: 2,
-  compare: { control: base, variants: [skilled], minLift: 0.5, gate: 'variants' },
+  compare: { control: base, variants: [skilled], minLift: 0.5 },
   async task(c) {
     await c.send('go')
     if (c.attempt.cell.role === 'control') await c.exec('touch ok.txt')
@@ -558,13 +559,12 @@ export default defineEval({
     const r = await runCli(p.dir)
     assert.equal(r.code, 1, r.stdout + r.stderr)
     const [all, noWorse] = readRun(p.dir).evals
-    assert.equal(all?.outcome, 'fail', 'a gated control fails the eval')
-    assert.equal(all?.cells[0]?.gate, 'all')
+    assert.equal(all?.outcome, 'pass', 'the control reports only, under any target')
+    assert.equal(all?.cells[0]?.gate, 'none')
     assert.equal(noWorse?.cells[1]?.outcome, 'fail')
     assert.equal(noWorse?.outcome, 'fail', 'minLift fails the variant cell')
-    assert.match(r.stdout, /✗ all-gated.*failed on the control/s)
     assert.match(r.stdout, /✗ no-worse.*not by minLift/s)
-    assert.match(r.stdout, /^Done in \S+ · 2 failed$/m)
+    assert.match(r.stdout, /^Done in \S+ · 1 failed · 1 passed$/m)
   })
 
   test('compare.harness scopes variants; other harnesses run the control only', async () => {
@@ -593,70 +593,112 @@ export default defineEval({
 
 // Which evals, cells and attempts a profile plans is pinned by the plan snapshots in
 // plan.test.ts (test/plan/profiles); these check what a run does with that plan.
-describe('gate policies', () => {
+describe('targets', () => {
   const flakyTask = `async task(c) {
     if (c.attempt.n === 3) throw new Error('the third attempt fails')
   }`
-  const flakyFile = (gate: string) => `import { defineEval } from 'reeval'
+  const flakyFile = (
+    target: string,
+  ) => `import { capability, defineEval, metric, regression } from 'reeval'
 export default defineEval({
-  runs: 5${gate},
+  runs: 5${target},
   ${flakyTask},
 })
 `
 
-  test("'all' by default, { passRate } per eval or group, with a hint when runs > 1 and no gate", async () => {
-    const p = await project('gates', {
+  test('each target gates the mean score, pass^k or pass@k', async () => {
+    const p = await project('targets', {
       'reeval.config.ts': fakeConfig(),
       'evals/default.eval.ts': flakyFile(''),
-      'evals/at-08.eval.ts': flakyFile(', gate: { passRate: 0.8 }'),
-      'evals/at-09.eval.ts': flakyFile(', gate: { passRate: 0.9 }'),
-      'evals/inherits-06.eval.ts': flakyFile(', gate: { passRate: 0.6 }'),
-      'evals/back-to-all.eval.ts': flakyFile(", gate: 'all'"),
+      'evals/at-08.eval.ts': flakyFile(', target: metric(0.8)'),
+      'evals/at-09.eval.ts': flakyFile(', target: metric(0.9)'),
+      'evals/reports.eval.ts': flakyFile(', target: metric()'),
+      'evals/any-one.eval.ts': flakyFile(', target: capability(1, { blocking: true })'),
+      'evals/every-one.eval.ts': flakyFile(', target: regression()'),
     })
     const r = await runCli(p.dir)
     assert.equal(r.code, 1, r.stdout + r.stderr)
-    assert.match(
-      r.stdout,
-      /^ {2}ℹ {2}Hint: {4}1 eval runs more than once with the default gate, so every attempt must pass \(pass\^k\); set gate: \{ passRate: 0\.8 \} to gate on pass@1 instead$/m,
-    )
-    const cells = readRun(p.dir).evals.map((e) => [
+    const { evals } = readRun(p.dir)
+    const cells = evals.map((e) => [
       e.name,
+      e.target,
       e.cells[0]?.gate,
-      e.cells[0]?.passRate,
+      e.cells[0]?.scores,
       e.cells[0]?.outcome,
       e.outcome,
     ])
     const order = (a: string, b: string) => a.localeCompare(b)
+    const scores = { meanScore: 0.8, passAtK: 1, passHatK: 0 }
     assert.deepEqual(
       cells.sort((a, b) => order(String(a[0]), String(b[0]))),
       [
-        ['at-08', { passRate: 0.8 }, 0.8, 'pass', 'pass'],
-        ['at-09', { passRate: 0.9 }, 0.8, 'fail', 'fail'],
-        ['back-to-all', 'all', 0.8, 'fail', 'fail'],
-        ['default', 'all', 0.8, 'fail', 'fail'],
-        ['inherits-06', { passRate: 0.6 }, 0.8, 'pass', 'pass'],
+        [
+          'any-one',
+          { kind: 'capability', threshold: 1, blocking: true },
+          'any',
+          scores,
+          'pass',
+          'pass',
+        ],
+        ['at-08', { kind: 'metric', threshold: 0.8 }, { passRate: 0.8 }, scores, 'pass', 'pass'],
+        ['at-09', { kind: 'metric', threshold: 0.9 }, { passRate: 0.9 }, scores, 'fail', 'fail'],
+        ['default', { kind: 'regression', threshold: 1 }, 'all', scores, 'fail', 'fail'],
+        ['every-one', { kind: 'regression', threshold: 1 }, 'all', scores, 'fail', 'fail'],
+        ['reports', { kind: 'metric' }, 'none', scores, 'fail', 'pass'],
       ],
     )
-    assert.match(
-      r.stdout,
-      /✗ default +4 of 5 runs passed\n[│ ]+Passed 4 of 5 on fake\.\n(?:[│ ]+.+\n)*?[│ ]+the third attempt fails\n/,
-    )
+    assert.deepEqual(evals[0]?.scores, scores, "the eval's scores are its target cells'")
     assert.match(r.stdout, /✓ at-08 +4 of 5 runs passed$/m)
-    assert.match(r.stdout, /^Done in \S+ · 3 failed · 2 passed$/m)
-
-    const quiet = await runCli(p.dir, ['run', 'at-08'])
-    assert.equal(quiet.code, 0, quiet.stdout + quiet.stderr)
-    assert.doesNotMatch(quiet.stdout, /^hint:/m, 'no hint when every eval that repeats has a gate')
+    assert.match(r.stdout, /^Done in \S+ · 3 failed · 2 passed · 1 ran$/m)
   })
 
-  test('a config-level gate applies to every eval', async () => {
-    const p = await project('config-gate', {
-      'reeval.config.ts': fakeConfig({ extra: 'gate: { passRate: 0.8 },' }),
+  test('a config-level target applies to every eval', async () => {
+    const p = await project('config-target', {
+      'reeval.config.ts': fakeConfig({ extra: 'target: metric(0.8),' }),
       'evals/steady.eval.ts': flakyFile(''),
     })
     const r = await runCli(p.dir)
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.deepEqual(readRun(p.dir).evals[0]?.cells[0]?.gate, { passRate: 0.8 })
+  })
+
+  test("a capability target that doesn't block reads fail without failing the run", async () => {
+    const p = await project('capability-target', {
+      'reeval.config.ts': fakeConfig({ extra: 'target: capability(),' }),
+      'evals/never.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  runs: 2,
+  async task() {
+    throw new Error('never lands')
+  },
+})
+`,
+    })
+    const r = await runCli(p.dir)
+    assert.equal(r.code, 0, r.stdout + r.stderr)
+    assert.equal(readRun(p.dir).evals[0]?.outcome, 'fail')
+    // Canary: the same target set to block fails the run.
+    writeFileSync(
+      join(p.dir, 'reeval.config.ts'),
+      fakeConfig({ extra: 'target: capability(1, { blocking: true }),' }),
+    )
+    assert.equal((await runCli(p.dir)).code, 1)
+  })
+
+  test("in CI, the plan names the evals whose target can't fail it", async () => {
+    const p = await project('ci-target', {
+      'reeval.config.ts': fakeConfig({ extra: 'target: metric(),' }),
+      'evals/reports.eval.ts': flakyFile(''),
+      'evals/blocks.eval.ts': flakyFile(', target: regression(0.8)'),
+    })
+    const hint =
+      /Hint: +1 eval can't fail CI \([^)]+\): its target only reports; set target: regression\(\) \(or metric\(0\.8\), capability\(1, \{ blocking: true \}\)\) in the eval or the config to fail on a miss$/m
+    const ci = await runCli(p.dir, ['run', '--dry-run'], { env: { CI: 'true' } })
+    assert.equal(ci.code, 0, ci.stdout + ci.stderr)
+    assert.match(ci.stdout, hint)
+    assert.match(ci.stdout, /regression\(0\.8\)/, '--dry-run shows each target')
+    const local = await runCli(p.dir, ['run', '--dry-run'])
+    assert.doesNotMatch(local.stdout, /can't fail CI/, 'no hint outside CI')
   })
 })
 
@@ -669,7 +711,7 @@ describe('profiles', () => {
       r.stdout,
       /^ {2}➜ {2}Profile: +pr \(auto: CI is set\)\n(.*\n)* {2}➜ {2}Scope: +3 eval files · 3 evals \(1 skipped\) · 4 cells · 6 attempts \(budget: 5 ✗\)$/m,
     )
-    assert.match(r.stdout, /^eval +agents +variants +runs +attempts +notes$/m)
+    assert.match(r.stdout, /^eval +agents +variants +runs +attempts +target +notes$/m)
     assert.equal(existsSync(join(p.dir, '.reeval/runs')), false, 'a dry run writes no run')
 
     const over = await runCli(p.dir, ['run'], { env: { CI: 'true' } })
@@ -1210,9 +1252,9 @@ describe('common mistakes', { concurrency: 4 }, () => {
         /runs in evals\/m\d+\.eval\.ts must be a whole number of at least 1 \(got 0\)/,
       ],
       [
-        'passRate instead of gate',
-        () => ({ passRate: 0.8, task: async () => {} }) as never,
-        /Unknown option "passRate" in evals\/m\d+\.eval\.ts\. Did you mean "gate"\?/,
+        'threshold instead of target',
+        () => ({ threshold: 0.8, task: async () => {} }) as never,
+        /Unknown option "threshold" in evals\/m\d+\.eval\.ts\. Did you mean "target"\?/,
       ],
       [
         'no harness',

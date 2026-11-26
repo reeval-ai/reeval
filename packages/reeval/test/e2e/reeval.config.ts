@@ -1,4 +1,4 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import {
   antigravity,
   claudeCode,
@@ -44,6 +44,7 @@ const harness = () => {
 
 export default defineConfig({
   agents: harness(),
+  target: regression(),
   runs: 1,
   timeout: '4m',
   budget: { attempts: 1 },

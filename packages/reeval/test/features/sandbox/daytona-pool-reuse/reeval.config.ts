@@ -1,4 +1,4 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { createDaytona } from 'reeval/provider/daytona'
 
@@ -6,6 +6,7 @@ import { createDaytona } from 'reeval/provider/daytona'
 // agent: whether the attempt before left a file in its home or /tmp, or a process running, then
 // leave all three for the next.
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({
     script: [
       [

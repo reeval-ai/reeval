@@ -1,4 +1,4 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { daytona } from 'reeval/provider/daytona'
 
@@ -6,6 +6,7 @@ import { daytona } from 'reeval/provider/daytona'
 // command over SSH, which applies no image `ENV`. The Dockerfile puts a tool on PATH and sets a
 // variable. As the agent: where the tool is, in its shell and a login shell, and the variable.
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({
     script: [
       [

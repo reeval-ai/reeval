@@ -374,11 +374,11 @@ describe('canaries: the verdicts flip when the data does', () => {
     assert.deepEqual(observed(await query(same.dir, 'factor_effects')), [])
   })
 
-  test('a config gate change is drift on the gate: a policy change, not noise or an effect', async () => {
+  test('a config target change is drift on the gate: a policy change, not noise or an effect', async () => {
     type C = { fingerprint: string; fingerprintParts: FingerprintParts }
-    const config = (gate: string) => fakeConfig({ extra: `runs: 2, gate: ${gate},` })
+    const config = (target: string) => fakeConfig({ extra: `runs: 2, target: ${target},` })
     const p = await project('canary-gate', {
-      'reeval.config.ts': config('{ passRate: 0.5 }'),
+      'reeval.config.ts': config('metric(0.5)'),
       'evals/g.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
@@ -403,7 +403,7 @@ export default defineEval({
       'a record from before the gate was a part, with the same gate, is no drift either',
     )
 
-    writeFileSync(join(p.dir, 'reeval.config.ts'), config("'all'"))
+    writeFileSync(join(p.dir, 'reeval.config.ts'), config('regression()'))
     assert.equal((await runCli(p.dir)).code, 1)
     const drift = await query(p.dir, 'SELECT changed, noise, real_changed FROM drift')
     assert.deepEqual(drift, [{ changed: 'gate', noise: 0, real_changed: 'gate' }])
@@ -425,9 +425,9 @@ export default defineEval({
   test('mixed outcomes over enough comparable attempts are flaky, caused by the agent', async () => {
     const p = await project('canary-flaky', {
       'reeval.config.ts': fakeConfig(),
-      'evals/f.eval.ts': `import { defineEval } from 'reeval'
+      'evals/f.eval.ts': `import { defineEval, metric } from 'reeval'
 export default defineEval({
-  runs: 6, gate: { passRate: 0.5 },
+  runs: 6, target: metric(0.5),
   async task(c) {
     await c.send('go')
     if (c.attempt.n % 2 === 0) throw new Error('every other attempt fails')
@@ -443,9 +443,9 @@ export default defineEval({
   test('mixed outcomes one attempt short of the minimum are mixed, not flaky', async () => {
     const p = await project('canary-mixed', {
       'reeval.config.ts': fakeConfig(),
-      'evals/f.eval.ts': `import { defineEval } from 'reeval'
+      'evals/f.eval.ts': `import { defineEval, metric } from 'reeval'
 export default defineEval({
-  runs: 5, gate: { passRate: 0.4 },
+  runs: 5, target: metric(0.4),
   async task(c) {
     await c.send('go')
     if (c.attempt.n % 2 === 0) throw new Error('every other attempt fails')
@@ -461,9 +461,9 @@ export default defineEval({
   test('the same change passing and failing its check is caused by the check', async () => {
     const flips = (harness: string) => ({
       'reeval.config.ts': fakeConfig({ harness }),
-      'evals/f.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/f.eval.ts': `import { defineEval, expect, metric } from 'reeval'
 export default defineEval({
-  runs: 6, gate: { passRate: 0.5 },
+  runs: 6, target: metric(0.5),
   async task(c) {
     await c.send('go')
     expect(c.attempt.n % 2, 'a racy check').toBe(1)
@@ -1442,9 +1442,9 @@ export default defineEval({
       prompt: string,
       runs: number,
       failFrom: number,
-    ) => `import { defineEval } from 'reeval'
+    ) => `import { defineEval, metric } from 'reeval'
 export default defineEval({
-  runs: ${runs}, gate: { passRate: 0.5 },
+  runs: ${runs}, target: metric(0.5),
   async task(c) {
     await c.send(${JSON.stringify(prompt)})
     if (c.attempt.n >= ${failFrom}) throw new Error('counted miss')
@@ -1513,7 +1513,7 @@ export default defineEval({
     assert.equal((await runCli(p.dir)).code, 0)
     writeFileSync(
       join(p.dir, 'evals/c.eval.ts'),
-      `import { defineEval } from 'reeval'
+      `import { defineEval, metric } from 'reeval'
 export default defineEval({
   runs: 1,
   async task(c) {
@@ -1936,13 +1936,13 @@ export default defineEval({
 async function studyDigest(name: string, options: StudyOptions = {}) {
   const p = await project(name, studyFiles(options))
   const run = await runCli(p.dir)
-  assert.equal(run.code, options.gate === 'observe' ? 0 : 1, run.stdout + run.stderr)
+  assert.equal(run.code, options.gated ? 1 : 0, run.stdout + run.stderr)
   return { p, run, ...(await digestOf(p.dir, ['--vs', 'none'])) }
 }
 
 describe('a study: several arms, every cell ungated', () => {
   test('labels and names: judges and checks go by their expect label, and the control by its environment', async () => {
-    const files = studyFiles({ gate: 'observe' })
+    const files = studyFiles()
     const script =
       "node -e \"\\n  const fs = require('fs')\\n  process.exit(fs.statSync('src/App.tsx').size ? 0 : 1)\\n\""
     files['evals/auth.eval.ts'] = (files['evals/auth.eval.ts'] as string).replace(
@@ -1989,7 +1989,6 @@ describe('a study: several arms, every cell ungated', () => {
 
   test('the digest frames it as a study: criteria say what differs, never-met labels once, evidence for every arm', async () => {
     const { p, digest, text } = await studyDigest('study-digest', {
-      gate: 'observe',
       instructions: 'Compare both skills against no skill and against each other.',
       output: `(d) => {
         const criteria = d.facts.find((f) => f.kind === 'criteria')
@@ -2078,7 +2077,7 @@ describe('a study: several arms, every cell ungated', () => {
   })
 
   test('canary: the same arms with gated variants are not a study', async () => {
-    const { digest, text } = await studyDigest('study-gated', { gate: 'variants' })
+    const { digest, text } = await studyDigest('study-gated', { gated: true })
     assert.equal((digest as Digest & { frame: string }).frame, 'gate')
     assert.doesNotMatch(text, /This run is a study/)
     assert.equal(
@@ -2099,7 +2098,7 @@ test('the prompt and rules say a study compares arms, and a label no arm meets e
 
 describe('contrasts: each pair of arms, variant against variant too', () => {
   test('show and summary.md set every arm side by side, the run names the arm a check failed on, and reeval query contrasts and the digest every pair', async () => {
-    const p = await project('study-contrasts', studyFiles({ gate: 'observe' }))
+    const p = await project('study-contrasts', studyFiles())
     const run = await runCli(p.dir)
     assert.equal(run.code, 0, run.stdout + run.stderr)
     // Every attempt misses MFA, so pass can't tell the arms apart; the check matrix does.
@@ -2157,7 +2156,7 @@ describe('contrasts: each pair of arms, variant against variant too', () => {
   })
 
   test('canary: with one variant there is no variant-against-variant row', async () => {
-    const p = await project('study-one-variant', studyFiles({ gate: 'observe', oneVariant: true }))
+    const p = await project('study-one-variant', studyFiles({ oneVariant: true }))
     const run = await runCli(p.dir)
     assert.equal(run.code, 0, run.stdout + run.stderr)
     assert.doesNotMatch(run.stdout, /contrasts \(each pair/)

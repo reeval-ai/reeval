@@ -49,10 +49,10 @@ const liveContainers = (runId: string) =>
   }).trim()
 
 const config = (harness: string) => `
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeJudge } from 'reeval/judge'
-export default defineConfig({
+export default defineConfig({ target: regression(),
   agents: fakeAgent(${harness}),
   judge: { model: fakeJudge() },
 })
@@ -647,11 +647,11 @@ export default defineEval({
     docker,
     async () => {
       const p = await project('docker-prepare-config', {
-        'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
+        'reeval.config.ts': `import { defineConfig, defineEnvironment, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 import { fakeJudge } from 'reeval/judge'
-export default defineConfig({
+export default defineConfig({ target: regression(),
   agents: fakeAgent({}),
   environments: defineEnvironment('broken', { sandbox: docker({ install: ['echo config && exit 6'] }) }),
   judge: { model: fakeJudge() },
@@ -684,11 +684,11 @@ export default defineEval({
 
       writeFileSync(
         join(p.dir, 'reeval.config.ts'),
-        `import { defineConfig, defineEnvironment } from 'reeval'
+        `import { defineConfig, defineEnvironment, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 import { fakeJudge } from 'reeval/judge'
-export default defineConfig({
+export default defineConfig({ target: regression(),
   agents: fakeAgent({}),
   environments: defineEnvironment('broken', { sandbox: docker({ image: 'reeval-missing-image:nope' }) }),
   judge: { model: fakeJudge() },
@@ -1197,10 +1197,10 @@ export default defineEval({
     const nonce = `${Date.now()}-${process.pid}`
     const p = await project('docker-dockerfile-claude', {
       'reeval.config.ts': `
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { claudeCode } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({ agents: claudeCode({ model: 'claude-sonnet-5' }) })
+export default defineConfig({ target: regression(), agents: claudeCode({ model: 'claude-sonnet-5' }) })
 `,
       'evals/tools/Dockerfile': `ARG REEVAL_BASE\nFROM \${REEVAL_BASE}\nRUN echo ${nonce} > /opt/nonce\n`,
       'evals/deb.Dockerfile': `FROM debian:bookworm-slim\nRUN echo ${nonce} > /opt/deb\n`,
@@ -1449,10 +1449,10 @@ export default defineEval({
     docker,
     async () => {
       const cursorConfig = (sandbox: string) => `
-import { defineConfig, defineEnvironment } from 'reeval'
+import { defineConfig, defineEnvironment, regression } from 'reeval'
 import { cursor } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({
+export default defineConfig({ target: regression(),
   agents: cursor({ model: 'composer-2.5' }),
   environments: defineEnvironment('box', { sandbox: ${sandbox} }),
   timeout: '60s',
@@ -1689,10 +1689,10 @@ export default defineEval({
         'true',
       ].join('; ')
       const p = await project('docker-expected-blocked', {
-        'reeval.config.ts': `import { defineConfig } from 'reeval'
+        'reeval.config.ts': `import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({
+export default defineConfig({ target: regression(),
   agents: fakeAgent({ layout: 'antigravity', script: [[{ exec: ${JSON.stringify(curl)} }]] }),
   egress: 'deny-all',
 })
@@ -1741,11 +1741,11 @@ export default defineEval({
         'curl -s -o /dev/null -w "%{http_code}" http://blocked.invalid/',
       ].join('; ')
       const p = await project('docker-verbose', {
-        'reeval.config.ts': `import { defineConfig } from 'reeval'
+        'reeval.config.ts': `import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 import { fakeJudge } from 'reeval/judge'
-export default defineConfig(({ secret }) => ({
+export default defineConfig(({ secret }) => ({ target: regression(),
   agents: fakeAgent({ script: [[{ exec: ${JSON.stringify(curl)} }]] }),
   egress: { allow: ['example.com'] },
   env: { API_KEY: secret.fromEnv('REEVAL_DOCKER_TOKEN', { hosts: ['example.com'] }) },
@@ -1844,10 +1844,10 @@ export default defineEval({
     gooseImage,
     async () => {
       const p = await project('docker-goose-endpoints', {
-        'reeval.config.ts': `import { defineConfig } from 'reeval'
+        'reeval.config.ts': `import { defineConfig, regression } from 'reeval'
 import { goose } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({ agents: goose({ model: 'google/gemini-3.8-flash' }), timeout: '90s' })
+export default defineConfig({ target: regression(), agents: goose({ model: 'google/gemini-3.8-flash' }), timeout: '90s' })
 `,
         'evals/d.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
@@ -1905,11 +1905,11 @@ export default defineEval({
       try {
         const { port } = metadata.address() as AddressInfo
         const p = await project('docker-goose-vertex', {
-          'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
+          'reeval.config.ts': `import { defineConfig, defineEnvironment, regression } from 'reeval'
 import { vertex } from 'reeval/gateway'
 import { goose } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({
+export default defineConfig({ target: regression(),
   agents: goose({ model: 'google/gemini-3.8-flash' }),
   gateway: [vertex({ project: 'reeval-test-project', location: 'global' })],
   environments: defineEnvironment('box', {
@@ -1987,10 +1987,10 @@ export default defineEval({
       harnessImage(harness),
       async () => {
         const p = await project(`docker-${factory}-refused-key`, {
-          'reeval.config.ts': `import { defineConfig } from 'reeval'
+          'reeval.config.ts': `import { defineConfig, regression } from 'reeval'
 import { ${factory} } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({ agents: ${factory}({ model: '${model}' }), timeout: '90s' })
+export default defineConfig({ target: regression(), agents: ${factory}({ model: '${model}' }), timeout: '90s' })
 `,
           'evals/d.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
@@ -2021,10 +2021,10 @@ export default defineEval({
     harnessImage('codex'),
     async () => {
       const p = await project('docker-codex-refused-key', {
-        'reeval.config.ts': `import { defineConfig } from 'reeval'
+        'reeval.config.ts': `import { defineConfig, regression } from 'reeval'
 import { codex } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({ agents: codex({ model: 'gpt-5.4-mini' }), timeout: '3m' })
+export default defineConfig({ target: regression(), agents: codex({ model: 'gpt-5.4-mini' }), timeout: '3m' })
 `,
         'evals/d.eval.ts': `import { defineEval, expect } from 'reeval'
 export default defineEval({
@@ -2085,10 +2085,10 @@ export default defineEval({
       const { port } = server.address() as AddressInfo
       try {
         const p = await project('docker-codex-gateway-base-url', {
-          'reeval.config.ts': `import { defineConfig } from 'reeval'
+          'reeval.config.ts': `import { defineConfig, regression } from 'reeval'
 import { vercel } from 'reeval/gateway'
 import { codex } from 'reeval/agent'
-export default defineConfig({
+export default defineConfig({ target: regression(),
   agents: codex({ model: 'gpt-5.4-mini' }),
   gateway: [vercel()],
   egress: 'deny-all',
@@ -2147,10 +2147,10 @@ export default defineEval({
     harnessImage('grok-build'),
     async () => {
       const p = await project('docker-grok-build-refused-key', {
-        'reeval.config.ts': `import { defineConfig } from 'reeval'
+        'reeval.config.ts': `import { defineConfig, regression } from 'reeval'
 import { grokBuild } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({ agents: grokBuild({ model: 'grok-4.6' }), timeout: '3m' })
+export default defineConfig({ target: regression(), agents: grokBuild({ model: 'grok-4.6' }), timeout: '3m' })
 `,
         'evals/d.eval.ts': `import { defineEval, expect } from 'reeval'
 export default defineEval({
@@ -2199,10 +2199,10 @@ export default defineEval({
     claudeImage,
     async () => {
       const claudeConfig = (sandbox: string) => `
-import { defineConfig, defineEnvironment } from 'reeval'
+import { defineConfig, defineEnvironment, regression } from 'reeval'
 import { claudeCode } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({
+export default defineConfig({ target: regression(),
   agents: claudeCode({ model: 'claude-sonnet-5' }),
   environments: defineEnvironment('box', { sandbox: ${sandbox} }),
   timeout: '90s',
@@ -2297,10 +2297,10 @@ export default defineEval({
       // Cursor's image has no claude CLI, and deny-all leaves the install no way out.
       const p = await project('docker-install-fails', {
         'reeval.config.ts': `
-import { defineConfig, defineEnvironment } from 'reeval'
+import { defineConfig, defineEnvironment, regression } from 'reeval'
 import { claudeCode } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({
+export default defineConfig({ target: regression(),
   agents: claudeCode({ model: 'claude-sonnet-5' }),
   environments: defineEnvironment('box', { sandbox: docker({ image: '${DEFAULT_IMAGE}' }) }),
   egress: 'deny-all',
@@ -2331,10 +2331,10 @@ export default defineEval({
     async () => {
       const p = await project('docker-claude-oauth', {
         'reeval.config.ts': `
-import { defineConfig, defineEnvironment } from 'reeval'
+import { defineConfig, defineEnvironment, regression } from 'reeval'
 import { claudeCode } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({
+export default defineConfig({ target: regression(),
   agents: claudeCode({ model: 'claude-sonnet-5' }),
   environments: defineEnvironment('box', { sandbox: docker() }),
   timeout: '90s',

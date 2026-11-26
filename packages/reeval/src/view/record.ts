@@ -10,8 +10,10 @@ import type { ExecLine, RunRecord, WorkspaceManifest } from '../history/types.ts
 import { SCHEMA_VERSION } from '../history/types.ts'
 import type { CredentialsFile } from '../login/types.ts'
 import type { CliInvocation } from '../report/types.ts'
+import { targetOfGates } from '../target.ts'
 import type { CapturePageFile, DecisionRecord } from '../types.ts'
 import type { AnalysisDoc } from './analysis.ts'
+import { meanScores, scoresOf, targetCells } from './gate.ts'
 import type { TranscriptLine } from './model.ts'
 import type { RunRemarks } from './remarks.ts'
 
@@ -180,8 +182,39 @@ function upgrade<T>(shape: keyof typeof SCHEMA_VERSIONS, value: T, what: string)
  */
 export function readableRecord(record: RunRecord, what = `Run ${record.runId}`): RunRecord {
   return foldCases(
-    unmeasuredReasoning(fillDefaults('run-record', upgrade('run-record', record, what))),
+    scored(unmeasuredReasoning(fillDefaults('run-record', upgrade('run-record', record, what)))),
   )
+}
+
+/**
+ * An eval recorded before targets: each attempt scores 1 for a pass and 0 for a fail, its cells
+ * and the eval have their scores, and its target is read from the cells' gates.
+ */
+function scored(record: RunRecord): RunRecord {
+  for (const e of record.evals ?? []) {
+    if (e.target) continue
+    const attempts = e.attempts ?? []
+    for (const a of attempts) {
+      if (a.score === undefined && (a.outcome === 'pass' || a.outcome === 'fail')) {
+        a.score = a.outcome === 'pass' ? 1 : 0
+      }
+    }
+    const cells = e.cells ?? []
+    const fill = (c: (typeof cells)[number], of: typeof attempts) => {
+      c.scores ??= scoresOf(of.filter((a) => a.cell === c.key))
+    }
+    for (const c of cells) fill(c, attempts)
+    for (const k of e.cases ?? []) {
+      for (const c of k.cells ?? [])
+        fill(
+          c,
+          attempts.filter((a) => a.case === k.key),
+        )
+    }
+    e.scores ??= meanScores(targetCells(cells).map((c) => c.scores))
+    e.target = targetOfGates(cells.map((c) => c.gate))
+  }
+  return record
 }
 
 /**

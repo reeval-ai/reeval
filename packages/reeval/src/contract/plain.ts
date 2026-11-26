@@ -1,4 +1,4 @@
-// The plain-data descriptors an environment and the eval options carry: the gate, the egress
+// The plain-data descriptors an environment and the eval options carry: the target, the egress
 // policy, secrets, host files, skills, plugins, MCP servers and git workspaces. The helpers that
 // make them (`secret`, `skill`, `plugin`, `mcp`, `file`, `git`) check their own arguments in their own words; these
 // schemas check what arrives as data (from another language, or built by hand) and give the
@@ -10,7 +10,6 @@ import type {
   EgressPolicy,
   EnvValue,
   EnvVars,
-  GatePolicy,
   GitWorkspace,
   HostFile,
   McpServer,
@@ -24,6 +23,7 @@ import type {
   SkillSource,
   SnapshotOption,
   SubstituteIn,
+  Target,
 } from '../types.ts'
 import {
   type Assert,
@@ -95,10 +95,12 @@ const host = z.string().superRefine((value, ctx) => {
   if (bad) ctx.addIssue({ code: 'custom', message: bad })
 })
 
-export const gatePolicySchema = z.union([
-  z.literal('all'),
-  z.strictObject({ passRate: z.number().gt(0).max(1) }),
-  z.literal('observe'),
+const threshold = z.number().min(0).max(1)
+
+export const targetSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('metric'), threshold: threshold.optional() }),
+  z.strictObject({ kind: z.literal('regression'), threshold }),
+  z.strictObject({ kind: z.literal('capability'), threshold, blocking: z.boolean() }),
 ])
 
 const snapshotWhen = z.union([z.boolean(), z.literal('turns')])
@@ -297,7 +299,7 @@ export const gitWorkspaceSchema = z.strictObject({
 })
 
 export type _SameAsSchema = [
-  Assert<Same<z.infer<typeof gatePolicySchema>, GatePolicy>>,
+  Assert<Same<z.infer<typeof targetSchema>, Target>>,
   Assert<Same<z.infer<typeof snapshotOptionSchema>, SnapshotOption>>,
   Assert<Same<z.infer<typeof egressPolicySchema>, EgressPolicy>>,
   Assert<Same<z.infer<typeof phasedEgressSchema>, PhasedEgress>>,
@@ -356,12 +358,12 @@ export function descriptorProblem(
   })
 }
 
-const GATE_SHAPE =
-  "is 'all' (every attempt passes), { passRate } with a share above 0 and at most 1, e.g. gate: { passRate: 0.8 }, or 'observe' (nothing gates)"
+const TARGET_SHAPE =
+  "is metric(), regression() or capability() from 'reeval', each with an optional threshold from 0 to 1, e.g. target: regression(0.8)"
 
-/** reeval's sentence for a gate that isn't one, or undefined. */
-export const gateProblem = (value: unknown, where: string) =>
-  refusal(gatePolicySchema, value, () => `gate in ${where} ${GATE_SHAPE} (got ${got(value)})`)
+/** reeval's sentence for a target that isn't one, or undefined. */
+export const targetProblem = (value: unknown, where: string) =>
+  refusal(targetSchema, value, () => `target in ${where} ${TARGET_SHAPE} (got ${got(value)})`)
 
 const SNAPSHOT_SHAPE =
   "is true (after the checks), 'turns' (after each c.send too), false, or { when, compress }, e.g. snapshot: { compress: true }"

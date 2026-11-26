@@ -23,6 +23,7 @@ import { handshakeTimeoutLines, timeoutRun } from '../src/studio/command.ts'
 import { startStudio } from '../src/studio/index.ts'
 import { createStudioApi } from '../src/studio/server.ts'
 import { listHeaders, type StudioSource } from '../src/studio/source.ts'
+import { capability } from '../src/target.ts'
 import {
   activityLabel,
   answerRows,
@@ -145,9 +146,7 @@ const skilled = defineEnvironment('skilled', ({ skill }) => ({
   sandbox,
   skills: [skill.inline({ name: 'ok', description: 'Writes ok.txt', content: 'Write ok.txt.' })],
 }))
-const compare = process.env.REEVAL_TEST_GATE_ALL
-  ? { control: plain, variants: [skilled], gate: 'all' as const }
-  : { control: plain, variants: [skilled] }
+const compare = process.env.REEVAL_TEST_GATED ? undefined : { control: plain, variants: [skilled] }
 export default defineEval({
   runs: 1, compare,
   async task(c) {
@@ -183,8 +182,8 @@ export default defineEval({
       skipped: 0,
     })
 
-    // Twin: the same failure in a gated control fails the run, and reeval run exits 1.
-    const gated = await runCli(p.dir, ['run'], { env: { REEVAL_TEST_GATE_ALL: '1' } })
+    // Twin: the same failure with no compare is the target's, so it fails the run and exits 1.
+    const gated = await runCli(p.dir, ['run'], { env: { REEVAL_TEST_GATED: '1' } })
     assert.equal(gated.code, 1, gated.stdout + gated.stderr)
     const latest = (
       await listHeaders({ root: p.dir, historyDir: join(p.dir, 'evals/.history'), scratch: true })
@@ -192,7 +191,7 @@ export default defineEval({
     assert.ok(latest && latest.runId !== header.runId)
     assert.equal(runOutcome(latest), 'fail')
     assert.deepEqual(evalTree(recordOf(latest))[0]?.tally, {
-      pass: 1,
+      pass: 0,
       fail: 1,
       missed: 0,
       infra: 0,
@@ -205,6 +204,19 @@ export default defineEval({
     assert.equal(runOutcome({ status: 'complete', evals: pass }), 'pass')
     assert.equal(runOutcome({ status: 'budget', evals: pass }), 'fail')
     assert.equal(runOutcome({ status: 'interrupted', evals: pass }), 'skipped')
+    const missed = { outcome: 'fail' as const, target: capability() }
+    assert.equal(
+      runOutcome({ status: 'complete', evals: [missed] }),
+      'pass',
+      "a target that doesn't block",
+    )
+    assert.equal(
+      runOutcome({
+        status: 'complete',
+        evals: [{ ...missed, target: capability(1, { blocking: true }) }],
+      }),
+      'fail',
+    )
     assert.equal(
       runOutcome({ status: 'complete', evals: [...pass, { outcome: 'infra_error' }] }),
       'infra_error',

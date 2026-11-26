@@ -1,8 +1,8 @@
 # with-pass-rate
 
 **Shows:** a cell that passes on most tries, not all of them. The agent adds `multiply(a, b)` five
-times (`runs: 5`), and `gate: { passRate: 0.6 }` passes the cell when three or more tries pass:
-a pass@1 threshold. The default gate, `'all'`, needs all five (pass^k), which an agent that's
+times (`runs: 5`), and `target: metric(0.6)` passes the cell when the tries' mean score is 0.6 or
+more: three or more passing tries. `regression()` needs all five (pass^k), which an agent that's
 right four times in five manages only a third of the time.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
@@ -41,7 +41,7 @@ two runs).
 
 | File | What it is |
 |---|---|
-| [`with-pass-rate.eval.ts`](./with-pass-rate.eval.ts) | The eval: five runs, a pass-rate gate and two checks |
+| [`with-pass-rate.eval.ts`](./with-pass-rate.eval.ts) | The eval: five runs, a mean-score target and two checks |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The flaky fake agent, and the real agents from `../profiles.ts` |

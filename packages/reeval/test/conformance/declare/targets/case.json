@@ -1,0 +1,6 @@
+{
+  "eval": "plan/targets/evals",
+  "treeRoot": "plan/targets",
+  "plan": "plan/targets/expected/targets.txt",
+  "args": []
+}

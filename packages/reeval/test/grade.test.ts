@@ -124,7 +124,7 @@ describe('the attempt score', () => {
       record({ grader: 'd', score: 1 }),
     ]
     assert.equal(
-      scoreFailure(0.5, grades),
+      scoreFailure(0.5, 1, grades),
       'score 0.50 below 1: a scored 0.50; b errored: grade threw',
     )
   })

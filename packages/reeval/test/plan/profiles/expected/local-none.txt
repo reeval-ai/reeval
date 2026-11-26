@@ -1,11 +1,10 @@
 no profile · 5 evals · 7 cells · 17 attempts
-hint: 3 evals run more than once with the default gate, so every attempt must pass (pass^k); set gate: { passRate: 0.8 } to gate on pass@1 instead
 hint: 1 compare runs 2 times per cell; below 4 runs a side its lift shows only a direction and its effort can't be tested (runs: 4)
 compared             a/plain/fake    control          ungated  ×4  runs 4 (compare default)
-                     a/skilled/fake  variant skilled  gated    ×4
-own-agent            b/-/fake        control          gated    ×1
-plain                a/-/fake        control          gated    ×3
+                     a/skilled/fake  variant skilled  ungated  ×4
+own-agent            b/-/fake        control          ungated  ×1
+plain                a/-/fake        control          ungated  ×3
 regression           a/plain/fake    control          ungated  ×2
-                     a/skilled/fake  variant skilled  gated    ×2
-slow [nightly-only]  a/-/fake        control          gated    ×1
+                     a/skilled/fake  variant skilled  ungated  ×2
+slow [nightly-only]  a/-/fake        control          ungated  ×1
 excluded: —

@@ -526,6 +526,10 @@ const evalSectionSchema = z.strictObject({
   qualitative: z.array(qualitativeAnswersSchema),
   captures: captureGallerySchema.nullable(),
   failures: failureClustersSchema.nullable(),
+  target: z.string().optional(),
+  scores: z
+    .strictObject({ meanScore: figureSchema, passAtK: figureSchema, passHatK: figureSchema })
+    .optional(),
 }) as z.ZodType<EvalSection>
 
 const runTallySchema: z.ZodType<RunTally> = z.strictObject({

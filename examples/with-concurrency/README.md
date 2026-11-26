@@ -56,7 +56,7 @@ Done in 18s · 1 passed
 
 | File | What it is |
 |---|---|
-| [`with-concurrency.eval.ts`](./with-concurrency.eval.ts) | The eval: one prompt, two checks, eight runs and a pass-rate gate |
+| [`with-concurrency.eval.ts`](./with-concurrency.eval.ts) | The eval: one prompt, two checks, eight runs and a mean-score target |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The slow fake agent, `concurrency`, and the real agents from `../profiles.ts` |

@@ -1,6 +1,6 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { boat } from 'reeval/provider/boat'
 
 // Docker tier only: docker() on boat(), the fake Boat API, whose sshd containers have a VM's /proc and /sys.
-export default defineConfig({ agents: fakeAgent(), provider: boat() })
+export default defineConfig({ target: regression(), agents: fakeAgent(), provider: boat() })

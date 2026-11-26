@@ -1,4 +1,4 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 
 const target = `http://${process.env.REEVAL_EGRESS_TARGET}/`
@@ -7,6 +7,7 @@ const target = `http://${process.env.REEVAL_EGRESS_TARGET}/`
 // image in their Docker, the host's. As the agent: what the recipe baked, who runs the
 // shell, and the host's listener reached directly, around the proxy, then through it.
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({
     script: [
       [

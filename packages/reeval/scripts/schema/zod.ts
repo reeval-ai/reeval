@@ -265,7 +265,7 @@ export const ZOD_ONLY: Record<string, string> = {
   DeclaredSandbox: 'a union alias, which the type generator inlines',
   Duration: 'a union alias, which the type generator inlines',
   Egress: 'a union alias, which the type generator inlines',
-  GatePolicy: 'a union alias, which the type generator inlines',
+  Target: 'a union alias, which the type generator inlines',
 }
 
 /**

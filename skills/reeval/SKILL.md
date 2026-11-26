@@ -26,7 +26,7 @@ compare a skill, fix a config, read a failure. Read a reference file when the ta
 | Read | When the task involves |
 |---|---|
 | [references/config.md](references/config.md) | Harness factories and their keys, `effort`, judge models, `reeval.yaml`, path rules, where the sandbox comes from, imports, the options cascade |
-| [references/evals.md](references/evals.md) | `cases` and `where`, `gate: 'observe'`, `toStayWithin`, `c.serve`, `c.writeFile` hidden tests, the judge's inputs, the judge's input size, judge errors, every matcher |
+| [references/evals.md](references/evals.md) | `cases` and `where`, `target`, `toStayWithin`, `c.serve`, `c.writeFile` hidden tests, the judge's inputs, the judge's input size, judge errors, every matcher |
 | [references/capture.md](references/capture.md) | Web UIs: `c.capture()` screenshots, `instructions` journeys, `artifacts` on judges and questions |
 | [references/compare.md](references/compare.md) | `compare` beyond the example below: the control, gates, lift and effort, labeled checks, `questions`, `skill_files` |
 | [references/environments.md](references/environments.md) | Environments: skills, files, rules, MCP servers, `git()` workspaces, `directory()`, Docker sandboxes, secrets, egress |
@@ -36,7 +36,7 @@ compare a skill, fix a config, read a failure. Read a reference file when the ta
 
 Use reeval's terms in code and messages: eval (`defineEval`), attempt (one run of a cell;
 `runs: n`), harness (`cursor()`, …), cell (harness × environment × sandbox), control and variant,
-lift (variant pass@1 − control pass@1, 95% interval), gate, checks and judge, transcript, effort
+lift (variant mean score − control mean score, 95% interval), target, checks and judge, transcript, effort
 (measured tool calls, agent time, tokens). Not "trial", "baseline/treatment" or "grader";
 [references/vocabulary.md](references/vocabulary.md) maps other frameworks' words to these.
 
@@ -124,16 +124,16 @@ export default defineConfig({
   list ends with `direct()`, so a cell no listed gateway serves falls back to its own key (the
   plan's hint says so); `direct({ enabled: false })` refuses it instead.
 - Imports: `reeval` (`defineConfig`, `defineEnvironment`, `defineEval`,
-  `expect`, `DEFAULT_EGRESS_ALLOW`, `DEFAULT_SKILL_EXCLUDE`, types), `/agent`, `/sandbox`
+  `expect`, `metric`, `regression`, `capability`, `DEFAULT_EGRESS_ALLOW`, `DEFAULT_SKILL_EXCLUDE`, types), `/agent`, `/sandbox`
   (`docker`, `fakeSandbox`), `/judge` (`fakeJudge`, `RECOMMENDED_JUDGE_MODEL`,
   `DEFAULT_THRESHOLD`). There is no `test`, `describe`, `baseline`, `secret` or `skill` export.
 - `defineConfig` and each eval's `defineEval` take the same options (`agents`, `sandbox`,
-  `environment`, `env`, `judge`, `runs`, `gate`, `timeout`, `tags`, …); profile `defaults` apply
+  `environment`, `env`, `judge`, `runs`, `target`, `timeout`, `tags`, …); profile `defaults` apply
   first unless the eval sets `pin`. Options are plain objects, never functions. Unknown
   keys are errors with a hint (`repeat` → "Did you mean runs?"), and type errors in a
   `defineConfig` object.
-- `runs: { bestOf: 5 }` (odd, 3 or more) stops each cell once pass or fail has a majority (3 to 5
-  attempts) and gates on it, replacing `gate`. Use it to settle a flaky pass/fail for less than a
+- `runs: { bestOf: 5 }` (odd, 3 or more) stops each cell once attempts that reach the target's
+  threshold, or those that don't, have a majority (3 to 5 attempts) and gates on it. Use it to settle a flaky pass/fail for less than a
   fixed count; not on an eval with `compare` (refused: lift needs equal attempts), and a cell
   only reaches `flaky_cells`' 6-attempt `flaky` in one run from `bestOf: 7`.
 - An eval's fingerprint reads its own body, options, case and `revision`, not
@@ -191,8 +191,8 @@ export default defineEval({
 - One `*.eval.ts` file is one eval: `export default defineEval({ …options, task })`. `skip: true`
   or `skip: 'reason'` skips it (no `.only` or `.todo` in TypeScript). `{ cases: [...] }` runs one
   eval over a list, with `task: async (c, item) => …` (cases pool into one pass rate, see
-  [references/evals.md](references/evals.md)). `gate: 'observe'` gates nothing: the eval records
-  what agents do. The eval id is the file path under the eval root without `.eval.ts`; moving the
+  [references/evals.md](references/evals.md)). The default `target`, `metric()`, gates nothing: the eval
+  records what agents do; `regression()` fails the run on any miss. The eval id is the file path under the eval root without `.eval.ts`; moving the
   file restarts its history. Organize paths after the question they answer
   (`recommendation/genkit`, not `genkit-test-2`), so results and `reeval analyze` read clearly.
 - `await c.send(prompt)` runs one agent turn and returns a `Turn` (`text`, `status`, `diff`,
@@ -303,7 +303,7 @@ export default defineEval({
 - Each variant runs as that environment on its own; `compare` does not layer, inherit or
   extend. Share setup with `parent.extendEnvironment(name, spec)` before `compare`. `control` is
   required, and `environments` beside `compare` is an error: the control goes in `compare`.
-- Only variant cells gate by default; a control's misses don't fail the run. Below four tries a
+- Only variant cells gate; a control's misses don't fail the run. Below four tries a
   side each variant's effect is only a direction; from four, the block adds an effort table
   (median tools, time, tokens per arm), which often shows a skill's effect first. In a compare,
   keep independent requirements as labeled `expect`s, not `expect.require`, so each gets a verdict.
@@ -339,7 +339,7 @@ way it went (the agents, a variant's effect as `helped`, `made it worse` or `sam
 checks with their messages and lines; for an agent, also the rest of each message, the snapshot
 and each remark's whole sentence); `-v` expands every eval. Then the tally
 (`Done in 12s · 1 failed · 2 passed`; an `error:` outside any eval, such as a stray rejection in an eval file, is
-`1 run error` and fails the run; an eval with `gate: 'observe'` is `1 ran`, never a pass,
+`1 run error` and fails the run; an eval with the default `target: metric()` is `1 ran`, never a pass,
 so read its arm rows for what passed). `Worth knowing:` under an eval names what about it needs work
 (a flaky check, too few tries, a slow MCP server), with the line to fix, from fixed rules with no
 model; they never change a verdict or the exit code, and go in `remarks.json` beside the run. The

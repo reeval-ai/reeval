@@ -529,6 +529,54 @@
             "type": "string"
           }
         },
+        "target": {
+          "description": "The eval's target, which its attempts pass at the threshold of; unset in records from before targets.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "blocking": {
+                  "description": "Whether a miss fails the run.",
+                  "type": "boolean"
+                },
+                "kind": {
+                  "const": "capability"
+                },
+                "threshold": {
+                  "description": "The score, from 0 to 1, one attempt must reach.",
+                  "type": "number"
+                }
+              },
+              "required": ["blocking", "kind", "threshold"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "metric"
+                },
+                "threshold": {
+                  "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
+                  "type": "number"
+                }
+              },
+              "required": ["kind"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "regression"
+                },
+                "threshold": {
+                  "description": "The score, from 0 to 1, every attempt must reach.",
+                  "type": "number"
+                }
+              },
+              "required": ["kind", "threshold"]
+            }
+          ]
+        },
         "workspace": {
           "description": "The git repository its workspace starts as, which the CLI fetches before any attempt.",
           "$ref": "#/$defs/GitWorkspace"
@@ -888,7 +936,7 @@
           "$ref": "#/$defs/SandboxBase"
         },
         "score": {
-          "description": "In [0, 1]: the scored grades' mean, weighted by `weight`; 0 when the task threw, an `expect` failed or a required grader scored under 1; 1 when the task returned and nothing scored. `outcome` is `pass` only at 1. Unset on a timeout, a cancel or an infra error.",
+          "description": "In [0, 1]: the scored grades' mean, weighted by `weight`; 0 when the task threw, an `expect` failed or a required grader scored under 1; 1 when the task returned and nothing scored. `outcome` is `pass` when it reaches the eval's target's threshold (1 without one). Unset on a timeout, a cancel or an infra error. Records from before it read 1 for a pass, 0 for a fail.",
           "type": "number"
         },
         "secretWarnings": {
@@ -1536,7 +1584,7 @@
           "type": "string"
         },
         "outcome": {
-          "description": "What the case did, over its own cells by each cell's gate. Under a `gate: { passRate }`, the eval's cell gates on the mean over the cases, so `verdict` says this outcome decides nothing.",
+          "description": "What the case did, over its own cells by each cell's gate. Under a `{ passRate }` gate, the eval's cell gates on the mean over the cases, so `verdict` says this outcome decides nothing.",
           "$ref": "#/$defs/Outcome"
         },
         "passRate": {
@@ -1551,7 +1599,7 @@
           ]
         },
         "verdict": {
-          "description": "`family` when a cell's `gate: { passRate }` gates the mean over the cases, not this case.",
+          "description": "`family` when a cell's `{ passRate }` gate gates the mean over the cases, not this case.",
           "const": "family"
         }
       },
@@ -1640,10 +1688,10 @@
       "required": ["error", "fail", "label", "notApplicable", "notRun", "pass"]
     },
     "CellGate": {
-      "description": "A cell's gate: its policy, or `'none'` when its failures don't fail the eval (a control's, or any cell under `gate: 'observe'`).",
+      "description": "A cell's gate: `'all'` when every counted attempt must pass, `'any'` when one must, `{ passRate }` when its mean score must reach that share (its pass share in a `runs: { bestOf }` cell), or `'none'` when its failures don't fail the run (a compare's control, or an eval whose target doesn't block).",
       "anyOf": [
         {
-          "enum": ["all", "none"]
+          "enum": ["all", "any", "none"]
         },
         {
           "type": "object",
@@ -1657,7 +1705,7 @@
       ]
     },
     "CellRate": {
-      "description": "A cell's pass@1 over an eval's cases.",
+      "description": "A cell's mean score over an eval's cases.",
       "type": "object",
       "properties": {
         "cases": {
@@ -1679,11 +1727,11 @@
           "type": "number"
         },
         "passRate": {
-          "description": "The cell's `gate: { passRate }`: with cases it gates `rate`, not each case's pass@1.",
+          "description": "The cell's `{ passRate }` gate: with cases it gates `rate`, not each case's score.",
           "type": "number"
         },
         "rate": {
-          "description": "The mean of the cases' pass@1; at one attempt a case, `pass / counted`.",
+          "description": "The mean of the cases' mean scores; at one pass/fail attempt a case, `pass / counted`.",
           "type": "number"
         }
       },
@@ -1754,7 +1802,7 @@
           "$ref": "#/$defs/FingerprintParts"
         },
         "gate": {
-          "description": "How the attempts decide the cell's outcome; `'none'` when it doesn't fail the evaluation.",
+          "description": "How the attempts decide the cell's outcome; `'none'` when they don't fail the run.",
           "$ref": "#/$defs/CellGate"
         },
         "gateway": {
@@ -1791,7 +1839,7 @@
           ]
         },
         "outcome": {
-          "description": "By `gate`. `'all'` (pass^k: every counted attempt passes) matches `{ passRate: 1 }`; `{ passRate }` is a pass@1 threshold. Infra only when nothing counted; `'none'` reports the worst outcome. A variant below its `minLift` fails too.",
+          "description": "By `gate`. `'all'` (pass^k: every counted attempt passes) matches `{ passRate: 1 }`, `'any'` is pass@k, and `{ passRate }` a mean score threshold (a pass@1 one under `bestOf`). Infra only when nothing counted; `'none'` reports the worst outcome. A variant below its `minLift` fails too.",
           "$ref": "#/$defs/Outcome"
         },
         "overrides": {
@@ -1832,7 +1880,7 @@
           }
         },
         "rate": {
-          "description": "On an eval with several `cases`: the cell's pass@1 over them. A `gate: { passRate }` gates `rate.rate`, the mean of the cases' pass@1, and sets `rate.outcome`.",
+          "description": "On an eval with several `cases`: the cell's mean score over them. A `{ passRate }` gate gates `rate.rate`, the mean of the cases' mean scores, and sets `rate.outcome`.",
           "$ref": "#/$defs/CellRate"
         },
         "role": {
@@ -1845,6 +1893,10 @@
         "sandbox": {
           "description": "The sandbox id is `id` when set, or `fake` for the fake sandbox. A Docker sandbox starts with the engine (`docker` by default). It adds `:` and the sanitized final component of `image` or `from`, or for `dockerfile` the sanitized filename (the parent directory name when that filename is `Dockerfile` and a parent is present). Non-empty `install` steps append `+` and an eight-character hash.",
           "type": "string"
+        },
+        "scores": {
+          "description": "Filled from `pass` and `fail` in records from before it.",
+          "$ref": "#/$defs/ScoreSummary"
         },
         "skipped": {
           "type": "number"
@@ -3170,6 +3222,10 @@
             }
           ]
         },
+        "scores": {
+          "description": "Over the target's cells; filled from `pass` and `fail` in records from before it.",
+          "$ref": "#/$defs/ScoreSummary"
+        },
         "skip": {
           "description": "Declared not to run: `skip` on its `defineEval`, or in Python `evaluate.skip`, inside a `group.skip`, or left out by an `.only` in its file. Its outcome is `skipped`. Unset otherwise, so in a run that isn't `complete` a skipped eval with neither `todo` nor `skip` hasn't run yet. Unset on records from before it.",
           "const": true
@@ -3203,6 +3259,54 @@
           "items": {
             "type": "string"
           }
+        },
+        "target": {
+          "description": "What decides `outcome`; in records from before targets, read from the cells' gates (`all` is `regression()`, `{ passRate }` is `metric(passRate)`, none is `metric()`).",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "blocking": {
+                  "description": "Whether a miss fails the run.",
+                  "type": "boolean"
+                },
+                "kind": {
+                  "const": "capability"
+                },
+                "threshold": {
+                  "description": "The score, from 0 to 1, one attempt must reach.",
+                  "type": "number"
+                }
+              },
+              "required": ["blocking", "kind", "threshold"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "metric"
+                },
+                "threshold": {
+                  "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
+                  "type": "number"
+                }
+              },
+              "required": ["kind"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "regression"
+                },
+                "threshold": {
+                  "description": "The score, from 0 to 1, every attempt must reach.",
+                  "type": "number"
+                }
+              },
+              "required": ["kind", "threshold"]
+            }
+          ]
         },
         "todo": {
           "description": "A placeholder (Python's `evaluate.todo` or `group.todo`): it never runs, and its outcome is `skipped`.",
@@ -3397,7 +3501,7 @@
           }
         },
         "gate": {
-          "description": "The eval's gate policy, or undefined when it was left at the default (`'all'`).",
+          "description": "In records from before targets, the eval's gate when it set one. Never written now.",
           "anyOf": [
             {
               "enum": ["all", "observe"]
@@ -3450,6 +3554,54 @@
         "skip": {
           "description": "Why the eval doesn't run at all, e.g. a profile's harness limit left none.",
           "type": "string"
+        },
+        "target": {
+          "description": "The eval's target, the default `metric()` included; unset in records from before targets.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "blocking": {
+                  "description": "Whether a miss fails the run.",
+                  "type": "boolean"
+                },
+                "kind": {
+                  "const": "capability"
+                },
+                "threshold": {
+                  "description": "The score, from 0 to 1, one attempt must reach.",
+                  "type": "number"
+                }
+              },
+              "required": ["blocking", "kind", "threshold"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "metric"
+                },
+                "threshold": {
+                  "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
+                  "type": "number"
+                }
+              },
+              "required": ["kind"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "regression"
+                },
+                "threshold": {
+                  "description": "The score, from 0 to 1, every attempt must reach.",
+                  "type": "number"
+                }
+              },
+              "required": ["kind", "threshold"]
+            }
+          ]
         },
         "traitExcluded": {
           "description": "The environments `--trait` or a profile's `limit.traits` left out; unset when none.",
@@ -3581,7 +3733,7 @@
       ]
     },
     "EvalSource": {
-      "description": "An eval's own source as hashes: its body and case data as declared, and its options and its enclosing groups' in canonical form (`tags`, `revision` and `gate` aside).",
+      "description": "An eval's own source as hashes: its body and case data as declared, and its options and its enclosing groups' in canonical form (`tags`, `revision` and `target` aside).",
       "type": "object",
       "properties": {
         "body": {
@@ -4056,7 +4208,7 @@
           "type": "number"
         },
         "method": {
-          "description": "`wilson` or `newcombe-paired`: one counted attempt a case and side, so each case is one Bernoulli trial (or pair). `t-cases`: several, so a t interval over the cases' pass@1, with attempts within a case never counted as independent.",
+          "description": "`wilson` or `newcombe-paired`: one counted attempt a case and side, so each case is one Bernoulli trial (or pair). `t-cases`: several, so a t interval over the cases' mean scores, with attempts within a case never counted as independent.",
           "enum": ["newcombe-paired", "t-cases", "wilson"]
         }
       },
@@ -4120,7 +4272,7 @@
           "type": "string"
         },
         "variantRate": {
-          "description": "Mean pass@1 over the paired cases on each side.",
+          "description": "The mean of the paired cases' mean scores on each side.",
           "type": "number"
         },
         "verdict": {
@@ -4173,7 +4325,7 @@
       "required": ["case", "cases", "id", "name"]
     },
     "FamilyRate": {
-      "description": "One cell's pass@1 over an eval's cases.",
+      "description": "One cell's mean score over an eval's cases.",
       "type": "object",
       "properties": {
         "cases": {
@@ -4199,11 +4351,11 @@
           "type": "number"
         },
         "passRate": {
-          "description": "The cell's `gate: { passRate }`: with cases it gates `rate`, not each case's pass@1.",
+          "description": "The cell's `{ passRate }` gate: with cases it gates `rate`, not each case's score.",
           "type": "number"
         },
         "rate": {
-          "description": "The mean of the cases' pass@1; at one attempt a case, `pass / counted`.",
+          "description": "The mean of the cases' mean scores; at one pass/fail attempt a case, `pass / counted`.",
           "type": "number"
         }
       },
@@ -4249,7 +4401,7 @@
           "type": "string"
         },
         "outcome": {
-          "description": "`fail` when a lift is below its `minLift` or a rate below its `passRate`. A case still fails on its own under `gate: 'all'`.",
+          "description": "`fail` when a lift is below its `minLift` or a rate below its `passRate`. A case still fails on its own under an `all` gate.",
           "enum": ["fail", "pass"]
         },
         "ran": {
@@ -4343,6 +4495,10 @@
         },
         "sources": {
           "description": "Over `EvalEntry.source` and `EvalEntry.revision`; on records from before them, over `EvalEntry.sources`.",
+          "type": "string"
+        },
+        "threshold": {
+          "description": "The score each attempt passes at under a `regression()` or `capability()` target; unset at 1 and under `metric()`, whose threshold is its gate's.",
           "type": "string"
         }
       },
@@ -5094,7 +5250,7 @@
       "required": ["bytes", "dropped", "excluded", "files", "masked", "skipped"]
     },
     "Lift": {
-      "description": "A variant cell's pass@1 against the control's, on the same harness and sandbox.",
+      "description": "A variant cell's mean score against the control's, on the same harness and sandbox.",
       "type": "object",
       "properties": {
         "control": {
@@ -5134,7 +5290,7 @@
           "type": "number"
         },
         "points": {
-          "description": "Variant pass@1 minus control pass@1, from -1 to 1.",
+          "description": "The variant's mean score minus the control's, from -1 to 1.",
           "type": "number"
         },
         "variant": {
@@ -8215,6 +8371,46 @@
         }
       },
       "required": ["file", "kind", "level", "message", "where"]
+    },
+    "ScoreSummary": {
+      "description": "How a cell's or an eval's counted attempts scored, each null when none counted. With `cases`, a cell's are the means of its cases', and an eval's are the means of its target's cells' (the variants on a compare, else every cell).",
+      "type": "object",
+      "properties": {
+        "meanScore": {
+          "description": "The attempts' mean score.",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "passAtK": {
+          "description": "pass@k: 1 when an attempt passed, else 0.",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "passHatK": {
+          "description": "pass^k: 1 when every attempt passed, else 0.",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "required": ["meanScore", "passAtK", "passHatK"]
     },
     "SecretWarning": {
       "description": "A brokered secret's placeholder sent where its value isn't swapped in: to a host the secret isn't brokered to (`host_not_allowed`), or to one of its hosts over plain HTTP (`plain_http`). The request went on with the placeholder, never the value.",

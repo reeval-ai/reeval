@@ -175,11 +175,12 @@ export default defineEval({ runs: 1, compare, questions: [{ question: 'Which is 
   // two questions, gives a reason on a third, and always picks the side shown first on the last.
   test('with a language model the questions are answered after the run, and the outcome is the checks', async () => {
     const p = await project('questions-answered', {
-      'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
+      'reeval.config.ts': `import { defineConfig, defineEnvironment, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeAnalysis, fakeJudge } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
 export default defineConfig({
+  target: regression(),
   agents: ${OK},
   environments: defineEnvironment('fake', { sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }) }),
   judge: { model: fakeJudge({ score: 0.9 }) },
@@ -207,9 +208,9 @@ export default defineEval({ runs: 1, compare, questions: [{ question: 'Which is 
 import { body, compare } from './envs.ts'
 export default defineEval({ runs: 1, compare, questions: [{ question: 'Which reads better?', across: 'environment', task: true, diff: true }], task: body })
 `,
-      'evals/three-arms.eval.ts': `import { defineEval } from 'reeval'
+      'evals/three-arms.eval.ts': `import { defineEval, metric } from 'reeval'
 import { body, current, next, none } from './envs.ts'
-export default defineEval({ compare: { control: none, variants: [current, next], gate: 'observe' }, questions: [{ question: 'Which delivers a better user experience?', across: 'environment', task: true, diff: true }], runs: 3, task: body })
+export default defineEval({ target: metric(), compare: { control: none, variants: [current, next] }, questions: [{ question: 'Which delivers a better user experience?', across: 'environment', task: true, diff: true }], runs: 3, task: body })
 `,
     })
     const dry = await runCli(p.dir, ['run', '--dry-run'])
@@ -306,11 +307,12 @@ export default defineEval({ compare: { control: none, variants: [current, next],
   // code. The fake model answers a question asked of each attempt from its diff.
   test('one run on three harnesses: pairs, votes and answers per question', async () => {
     const p = await project('questions-three-harnesses', {
-      'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
+      'reeval.config.ts': `import { defineConfig, defineEnvironment, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeAnalysis, fakeJudge } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
 export default defineConfig({
+  target: regression(),
   agents: [
     fakeAgent({ id: 'one', files: { 'ok.txt': 'yes' } }),
     fakeAgent({ id: 'two', files: { 'ok.txt': 'yes', 'extra.txt': 'more' } }),

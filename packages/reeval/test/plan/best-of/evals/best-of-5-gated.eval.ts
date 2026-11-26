@@ -1,3 +1,3 @@
-import { defineEval } from 'reeval'
+import { defineEval, regression } from 'reeval'
 
-export default defineEval({ runs: { bestOf: 5 }, gate: 'all', task: async () => {} })
+export default defineEval({ runs: { bestOf: 5 }, target: regression(), task: async () => {} })

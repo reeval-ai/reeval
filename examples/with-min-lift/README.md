@@ -3,7 +3,7 @@
 **Shows:** failing a variant that doesn't clearly help. `minLift: 0.2` fails the variant cell
 unless the lower bound of its lift's 95% interval is above +20 points. The agent adds
 `multiply(a, b)`, with and without a `jsdoc` skill, and a check looks for its JSDoc block.
-`gate: { passRate: 0.75 }` lets each arm miss one of its four tries.
+`target: metric(0.75)` lets each arm miss one of its four tries.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
 first. A real agent needs its key in `.env.local` (`ANTHROPIC_API_KEY` for Claude Code), Docker,
@@ -58,12 +58,12 @@ fail             documents the new function
 1 fail
 ```
 
-`compare.gate` picks which cells gate: `'variants'` (the default), `'all'` to gate the control
-too, or `'observe'` to only report.
+The target gates the variant cells only; the control reports. `minLift` needs a target that can
+fail the run.
 
 | File | What it is |
 |---|---|
-| [`with-min-lift.eval.ts`](./with-min-lift.eval.ts) | The eval: the compare with `minLift`, four runs and a pass-rate gate |
+| [`with-min-lift.eval.ts`](./with-min-lift.eval.ts) | The eval: the compare with `minLift`, four runs and a mean-score target |
 | [`skills/jsdoc/SKILL.md`](./skills/jsdoc/SKILL.md) | The skill under test |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace, without and with the skill |

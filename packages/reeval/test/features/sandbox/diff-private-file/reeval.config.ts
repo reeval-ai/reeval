@@ -1,8 +1,9 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 
 // As the agent: a file and a directory only it can read, as `mktemp` and `umask 077` make them.
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({
     script: [
       [
