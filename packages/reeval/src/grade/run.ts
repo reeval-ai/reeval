@@ -201,6 +201,36 @@ function fingerprintOf(def: GraderDef, ran: Ran): GradeFingerprint {
   return { digest: sha256(canonicalJson(parts)), ...parts }
 }
 
+/**
+ * The fingerprint a grader's grade would record with these parts, which only running it reads
+ * otherwise: its `data` digest, its sandbox's `image` part, its judge `reference` digest and its
+ * judge models' names.
+ */
+export function expectedFingerprint(
+  def: GraderDef,
+  parts: Pick<Ran, 'data' | 'image' | 'reference' | 'models'>,
+): GradeFingerprint {
+  return fingerprintOf(def, { ...parts, reads: {}, durationMs: 0 })
+}
+
+/** A stored grade scored again by `def`: its grade kept, its score, weight and required `def`'s. */
+export function rescoredGrade(def: GraderDef, stored: GradeRecord): GradeRecord {
+  const ran: Ran =
+    stored.grade !== undefined
+      ? { grade: stored.grade, reads: {}, durationMs: 0 }
+      : { error: stored.error ?? 'no grade', reads: {}, durationMs: 0 }
+  const { score, error } = scoreOf(def, ran)
+  const { error: _error, scoreDigest: _scoreDigest, ...rest } = stored
+  return {
+    ...rest,
+    score,
+    weight: def.weight,
+    required: def.required,
+    ...(error !== undefined ? { error } : {}),
+    ...(def.scoreDigest ? { scoreDigest: def.scoreDigest } : {}),
+  }
+}
+
 /** A member's score of its run's grade, or why it has none. */
 function scoreOf(def: GraderDef, ran: Ran): { score: number | null; error?: string } {
   if (ran.error !== undefined || !('grade' in ran)) return { score: 0, error: ran.error }

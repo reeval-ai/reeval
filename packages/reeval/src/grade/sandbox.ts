@@ -76,7 +76,8 @@ export async function checkGraderImages(runs: readonly GradeRun[]): Promise<void
   }
 }
 
-async function graderImage(root: string, runId: string, sandbox: SandboxDescriptor) {
+/** The image preflight prepared for a grader's `sandbox` in run `runId`; undefined without images. */
+export async function graderImage(root: string, runId: string, sandbox: SandboxDescriptor) {
   const kind = sandboxKind(sandbox)
   if (!kind.capabilities.images) return undefined
   const { preparedFor } = await import('../sandbox/preflight.ts')

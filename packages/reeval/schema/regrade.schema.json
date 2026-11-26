@@ -1,0 +1,622 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Generated from RegradeRecord in src/history/types.ts by `pnpm schema:update`; don't edit. What one reeval regrade changed in a run: <run>/regrades/<id>.json in the history folder, which readers apply.",
+  "title": "RegradeRecord",
+  "$ref": "#/$defs/RegradeRecord",
+  "$defs": {
+    "AttemptError": {
+      "description": "Why an attempt failed; `prepare` when its sandbox couldn't be prepared, `resource` when it ran out of one, `provider` when the model provider stopped a turn.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ErrorKind"
+        },
+        "message": {
+          "type": "string"
+        },
+        "prepare": {
+          "$ref": "#/$defs/PrepareFailureRecord"
+        },
+        "provider": {
+          "$ref": "#/$defs/ProviderStopRecord"
+        },
+        "resource": {
+          "$ref": "#/$defs/ResourceFailureRecord"
+        },
+        "turn": {
+          "description": "Set when an unhandled mid-turn error was reclassified as infra: the turn index and whether it looked like a config refusal or a transport failure.",
+          "type": "object",
+          "properties": {
+            "index": {
+              "type": "number"
+            },
+            "kind": {
+              "enum": ["config", "transport"]
+            }
+          },
+          "required": ["index", "kind"]
+        }
+      },
+      "required": ["kind", "message"]
+    },
+    "CostUsd": {
+      "description": "A dollar figure and where it came from.",
+      "type": "object",
+      "properties": {
+        "basis": {
+          "description": "`reported`: what the harness (Claude Code, pi) or the gateway (OpenRouter) said it cost; `estimated`: the tokens at list prices, which leave out discounts, and long-prompt rates where a model call's own tokens, or the price's tiers, aren't known.",
+          "enum": ["estimated", "reported"]
+        },
+        "source": {
+          "description": "Who reported it (`claude-code`, `pi`, `openrouter`, `fake`), or the prices it was estimated at (`models.dev 2026-11-05`, a `REEVAL_PRICES` file); several, joined with `, `, in a sum.",
+          "type": "string"
+        },
+        "usd": {
+          "description": "US dollars.",
+          "type": "number"
+        }
+      },
+      "required": ["basis", "source", "usd"]
+    },
+    "ErrorKind": {
+      "enum": ["aborted", "assertion", "infra", "judge", "timeout"]
+    },
+    "GradeFingerprint": {
+      "description": "What makes two grades of the same attempt comparable: equal digests, the same grade.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "description": "sha256 of the grader's name, its `files` and its `grade` function, with the local modules of the file it's defined in; for a judge grader, of its name, question, answers, inputs and models.",
+          "type": "string"
+        },
+        "data": {
+          "description": "sha256 of the `data` files' content; unset without `data`.",
+          "type": "string"
+        },
+        "digest": {
+          "description": "sha256 over the other parts.",
+          "type": "string"
+        },
+        "image": {
+          "description": "sha256 of the `env` sandbox's recipe, its egress and the id of the image it ran; unset without `env`.",
+          "type": "string"
+        },
+        "reference": {
+          "description": "sha256 of a judge grader's reference, by each file's content; unset without one.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "The grader's `revision`, when set.",
+          "type": "number"
+        },
+        "version": {
+          "description": "A built-in's code version, which reeval bumps when what it grades changes.",
+          "type": "number"
+        }
+      },
+      "required": ["code", "digest"]
+    },
+    "GradeReads": {
+      "description": "The attempt's observations, captures and kept files a grader read, by content hash.",
+      "type": "object",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string"
+              }
+            },
+            "required": ["name", "sha256"]
+          }
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string"
+              }
+            },
+            "required": ["path", "sha256"]
+          }
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string"
+              }
+            },
+            "required": ["name", "sha256"]
+          }
+        }
+      },
+      "required": []
+    },
+    "GradeRecord": {
+      "description": "One grader's result on an attempt, from a grader in the eval's `graders`.",
+      "type": "object",
+      "properties": {
+        "durationMs": {
+          "type": "number"
+        },
+        "error": {
+          "description": "Why it has no grade: `grade` threw or timed out, or its grade or score wasn't valid.",
+          "type": "string"
+        },
+        "fingerprint": {
+          "$ref": "#/$defs/GradeFingerprint"
+        },
+        "grade": {
+          "description": "What `grade` returned, masked; unset when the grader errored.",
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/JSONValue"
+              }
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "object",
+              "properties": {},
+              "required": [],
+              "additionalProperties": {
+                "$ref": "#/$defs/JSONValue"
+              }
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "grader": {
+          "description": "The grader's name, unique in its eval: a built-in's is `<kind>:<main argument>` unless it's given one.",
+          "type": "string"
+        },
+        "group": {
+          "description": "Every name of the `defineGraders` group whose one `grade` call this came from.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "judge": {
+          "description": "A judge grader's call to each model, and its reference; unset for any other.",
+          "$ref": "#/$defs/JudgeGrade"
+        },
+        "kind": {
+          "description": "What the grader is: `code` runs its `grade` function on the host, `judge` asks its judge, `builtin` is one of `reeval/graders`' other graders.",
+          "enum": ["builtin", "code", "judge"]
+        },
+        "reads": {
+          "description": "What the grader read from the attempt, by content hash, in first-read order.",
+          "$ref": "#/$defs/GradeReads"
+        },
+        "required": {
+          "description": "Whether a score under 1 (or an error) makes the attempt's score 0.",
+          "type": "boolean"
+        },
+        "score": {
+          "description": "In [0, 1]: `score(grade)`, or 1 or 0 for a boolean grade, or 0 when the grader errored; null for a grade that has no score, which is recorded only.",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "scoreDigest": {
+          "description": "sha256 of the `score` function and the local modules of the file it's defined in; unset without one.",
+          "type": "string"
+        },
+        "weight": {
+          "description": "Its share of the attempt's score; 0 records only.",
+          "type": "number"
+        }
+      },
+      "required": [
+        "durationMs",
+        "fingerprint",
+        "grader",
+        "kind",
+        "reads",
+        "required",
+        "score",
+        "weight"
+      ]
+    },
+    "JSONValue": {
+      "description": "Any JSON value.",
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "JudgeGrade": {
+      "description": "What a judge grader asked: each model's answer, and the reference it showed.",
+      "type": "object",
+      "properties": {
+        "calls": {
+          "description": "One per model, in the grader's order; unset when it errored before asking.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JudgeGradeCall"
+          }
+        },
+        "dropped": {
+          "description": "What the judge's state leaves out and why, e.g. `dist/ (3 files): build output`.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reference": {
+          "description": "The reference shown, by content; unset without one.",
+          "type": "object",
+          "properties": {
+            "digest": {
+              "type": "string"
+            },
+            "files": {
+              "type": "number"
+            }
+          },
+          "required": ["digest", "files"]
+        }
+      },
+      "required": []
+    },
+    "JudgeGradeCall": {
+      "description": "One model's answer to a judge grader.",
+      "type": "object",
+      "properties": {
+        "answer": {
+          "description": "Yes or no, or the answer it chose.",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "cost": {
+          "description": "The call's cost: the gateway's, else its tokens at list prices; unset with neither.",
+          "$ref": "#/$defs/CostUsd"
+        },
+        "costUsd": {
+          "description": "What the gateway says the call cost, in US dollars; unset when it names none.",
+          "type": "number"
+        },
+        "gateway": {
+          "description": "The gateway from the config's `gateway` list the call went through; unset without one.",
+          "enum": ["direct", "openrouter", "vercel", "vertex"]
+        },
+        "model": {
+          "type": "string"
+        },
+        "probability": {
+          "description": "The model's probability of yes, or of the answer it chose, when it gives one.",
+          "type": "number"
+        },
+        "resolvedModel": {
+          "description": "The model id the provider says served the call, when it reports one.",
+          "type": "string"
+        },
+        "retries": {
+          "description": "Transient provider errors retried on the way to the answer.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JudgeRetry"
+          }
+        },
+        "usage": {
+          "description": "The call's tokens, when the provider reported them.",
+          "$ref": "#/$defs/TokenUsage"
+        }
+      },
+      "required": ["answer", "model"]
+    },
+    "JudgeRetry": {
+      "description": "One failed judge try that was retried, and the backoff before the next.",
+      "type": "object",
+      "properties": {
+        "delayMs": {
+          "type": "number"
+        },
+        "error": {
+          "type": "string"
+        }
+      },
+      "required": ["delayMs", "error"]
+    },
+    "PrepareFailureRecord": {
+      "description": "The sandbox an attempt needed that couldn't be prepared before the run, on each attempt that needed it: its provider's stage (Docker's `image`, `from`, `dockerfile`, `harness` or `install`, or `workspace` for a git workspace, whose `ref` is `repo#ref:path`), what was being made, the class (`config`, `transient` after the retries, or `resource`), a named cause (`enospc`, `oom`), the build log, and the levels that set it.",
+      "type": "object",
+      "properties": {
+        "cause": {
+          "anyOf": [
+            {
+              "enum": ["enospc", "oom"]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "class": {
+          "enum": ["config", "resource", "transient"]
+        },
+        "log": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "setBy": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "stage": {
+          "type": "string"
+        }
+      },
+      "required": ["cause", "class", "log", "ref", "setBy", "stage"]
+    },
+    "ProviderStopRecord": {
+      "description": "The model provider ended a turn, not the agent: out of credit, over its quota, rate limited or overloaded, with the HTTP status of the last model call the egress gateway brokered when that call failed (`null` when it didn't, as in a stream that failed inside an HTTP 200, or none was). The attempt is then an infra error, so `--retry-errors` runs it again.",
+      "type": "object",
+      "properties": {
+        "cause": {
+          "enum": ["credit", "overloaded", "quota", "rate_limit"]
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "required": ["cause", "status"]
+    },
+    "RegradeAction": {
+      "description": "What a regrade did with one grader on one attempt: `kept` it (unchanged, or not selected), `rescored` its stored grade (its score, weight or required changed), `recomputed` it (its fingerprint changed: `changed` names the parts), ran a `new` grader, left one the eval no longer has (`not-found`), kept one whose inputs the run didn't keep (`inputs-missing`, with `reason`) or kept one whose grade couldn't be had (`failed`: a judge that errored, a grader sandbox that didn't start, a timeout or an interrupt, with the error as `reason`). A code grader's own throw is `recomputed`, its grade holding the error and scoring 0 as a run's does.",
+      "type": "object",
+      "properties": {
+        "action": {
+          "enum": ["failed", "inputs-missing", "kept", "new", "not-found", "recomputed", "rescored"]
+        },
+        "changed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "grader": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": ["action", "grader"]
+    },
+    "RegradedAttempt": {
+      "description": "One attempt as a regrade left it.",
+      "type": "object",
+      "properties": {
+        "actions": {
+          "description": "What happened to each grader on it.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RegradeAction"
+          }
+        },
+        "error": {
+          "description": "Why it fails now: its score under the run's target; null when it passes.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttemptError"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "grades": {
+          "description": "Every grade it reads with now, in the eval's order, a grade not regraded as it was. A reader takes from it only the grades its `actions` rescored, recomputed or added, over what earlier regrades left, so two regrades of different graders both hold.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GradeRecord"
+          }
+        },
+        "key": {
+          "description": "The attempt's `key` in the run record.",
+          "type": "string"
+        },
+        "outcome": {
+          "enum": ["fail", "pass"]
+        },
+        "score": {
+          "type": "number"
+        }
+      },
+      "required": ["actions", "error", "grades", "key", "outcome", "score"]
+    },
+    "RegradeRecord": {
+      "description": "What one `reeval regrade` changed in one run: the attempts whose grades it changed, each with its new grades, score and outcome, which readers put in place of the recorded ones. The record itself is never rewritten.",
+      "type": "object",
+      "properties": {
+        "at": {
+          "type": "string"
+        },
+        "attempts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RegradedAttempt"
+          }
+        },
+        "git": {
+          "description": "The commit the graders were read at; null outside a git repository.",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "dirty": {
+                  "type": "boolean"
+                },
+                "sha": {
+                  "type": "string"
+                }
+              },
+              "required": ["dirty", "sha"]
+            }
+          ]
+        },
+        "graders": {
+          "description": "`--grader`: the only graders it ran; unset when it ran every grader that changed.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "description": "Also the file name in the run's `regrades/` folder: `<UTC time>_<random>`.",
+          "type": "string"
+        },
+        "kind": {
+          "const": "reeval-regrade"
+        },
+        "reeval": {
+          "description": "The reeval version that wrote it.",
+          "type": "string"
+        },
+        "regradeOf": {
+          "description": "The id of the run it regrades.",
+          "type": "string"
+        },
+        "schemaVersion": {
+          "const": 1
+        }
+      },
+      "required": ["at", "attempts", "git", "id", "kind", "reeval", "regradeOf", "schemaVersion"]
+    },
+    "ResourceFailureRecord": {
+      "description": "The sandbox ran out of a resource during the attempt: `oom` is the kernel killing `kills` processes at its memory limit. The attempt is then an infra error, whatever its checks said.",
+      "type": "object",
+      "properties": {
+        "cause": {
+          "const": "oom"
+        },
+        "kills": {
+          "type": "number"
+        }
+      },
+      "required": ["cause", "kills"]
+    },
+    "TokenUsage": {
+      "description": "The tokens one turn used, as its harness reported them. `input` excludes cache reads and writes (so the prompt was `input + cacheRead + cacheWrite`); `reasoning` is part of `output`.",
+      "type": "object",
+      "properties": {
+        "cacheRead": {
+          "type": "number"
+        },
+        "cacheWrite": {
+          "type": "number"
+        },
+        "input": {
+          "type": "number"
+        },
+        "output": {
+          "type": "number"
+        },
+        "reasoning": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "required": ["cacheRead", "cacheWrite", "input", "output", "reasoning"]
+    }
+  },
+  "x-schemaVersion": 1
+}

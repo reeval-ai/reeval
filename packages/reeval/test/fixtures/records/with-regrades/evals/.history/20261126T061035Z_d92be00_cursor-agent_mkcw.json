@@ -1,0 +1,446 @@
+{
+  "kind": "reeval-run",
+  "schemaVersion": 1,
+  "runId": "20261126T061035Z_d92be00_cursor-agent_mkcw",
+  "status": "complete",
+  "startedAt": "2026-11-26T06:10:35.490Z",
+  "endedAt": "2026-11-26T06:10:36.693Z",
+  "durationMs": 1203,
+  "author": "cursor-agent",
+  "git": {
+    "sha": "d92be005a58726bb177a21e05986edd90e0a7f11",
+    "branch": "main",
+    "dirty": false,
+    "diffHash": null,
+    "worktreePatch": null,
+    "worktreePatchNote": null,
+    "commitTime": "2026-11-26T06:10:34+00:00",
+    "shallow": false,
+    "remote": null
+  },
+  "spans": {
+    "path": "spans.jsonl",
+    "sha256": "a13832cd598df78069e8a3ca66c304779f73d0f6ad01376b6f1612b5fce8df11",
+    "bytes": 1717
+  },
+  "runner": {
+    "kind": "local",
+    "hostHash": "ba806126880f"
+  },
+  "dependencies": {
+    "lockfiles": []
+  },
+  "stack": {
+    "reeval": "0.31.0",
+    "node": "26.13.0",
+    "runtime": {
+      "name": "node",
+      "version": "26.13.0"
+    },
+    "language": {
+      "name": "typescript"
+    },
+    "os": "linux",
+    "arch": "x64",
+    "images": [],
+    "packages": {
+      "@vitest/expect": "5.1.0",
+      "jiti": "2.7.0",
+      "@reeval/harness-antigravity": "0.1.17",
+      "@reeval/harness-opencode": "0.2.16",
+      "@reeval/harness-goose": "0.1.17",
+      "@reeval/harness-pi": "0.2.10",
+      "@reeval/harness-cursor-sdk": "0.1.9",
+      "@ai-sdk/harness-claude-code": "1.0.176-patch.423f52e6",
+      "@reeval/harness-codex": "0.1.14",
+      "@reeval/harness-fx": "0.1.14",
+      "@reeval/harness-grok-build": "0.1.13",
+      "ai": "7.0.161",
+      "@ai-sdk/harness": "1.0.172",
+      "@ai-sdk/anthropic": "4.0.95",
+      "@ai-sdk/google": "4.0.110",
+      "@ai-sdk/openai": "4.0.107",
+      "@ai-sdk/typesafe-ai": "3.0.32"
+    },
+    "harnesses": [
+      {
+        "id": "fake",
+        "kind": "fake",
+        "model": null,
+        "effort": null,
+        "resolvedModels": [],
+        "resolvedEffort": []
+      }
+    ],
+    "judge": {
+      "model": "fake",
+      "resolvedModels": [],
+      "threshold": 0.8,
+      "version": "0899605ae6f9"
+    },
+    "context": [],
+    "fingerprintScope": [
+      "eval-source",
+      "harness",
+      "environment",
+      "agent-cli",
+      "image-id",
+      "judge",
+      "context"
+    ]
+  },
+  "environments": [
+    {
+      "name": "fake",
+      "parent": null,
+      "overrides": [],
+      "digest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+      "setup": [],
+      "skills": [],
+      "mcp": [],
+      "files": [],
+      "vars": [],
+      "secrets": [],
+      "brokered": [],
+      "unset": [],
+      "egress": "proxy"
+    }
+  ],
+  "profile": null,
+  "invocation": {
+    "filters": [],
+    "tags": []
+  },
+  "plan": {
+    "evals": 1,
+    "cells": 1,
+    "attempts": 1,
+    "estimateMs": 1000,
+    "sandboxWarnings": []
+  },
+  "budget": null,
+  "config": {
+    "sandbox": "fake",
+    "environment": "fake",
+    "runs": 1,
+    "judgeModel": "fake",
+    "threshold": 0.8,
+    "timeoutMs": 900000,
+    "concurrency": 4,
+    "configHash": "c4b30df60b7c1267a432e7a0966a75c1d37f5e3ca853edb5e083fd73bc864a2b"
+  },
+  "cost": {
+    "inputTokens": null,
+    "outputTokens": null,
+    "usage": null,
+    "source": "unreported"
+  },
+  "artifacts": "all",
+  "redaction": {
+    "version": 1
+  },
+  "summary": {
+    "evals": 1,
+    "attempts": 1,
+    "pass": 1,
+    "fail": 0,
+    "notGated": 0,
+    "infraError": 0,
+    "skipped": 0,
+    "counted": 0,
+    "gated": {
+      "pass": 0,
+      "fail": 0
+    },
+    "ungated": {
+      "pass": 1,
+      "fail": 0
+    },
+    "reclassified": 0
+  },
+  "evals": [
+    {
+      "id": "one",
+      "key": "one",
+      "slug": "one-7692c3",
+      "file": "evals/one.eval.ts",
+      "group": [],
+      "name": "one",
+      "tags": [],
+      "fingerprint": "08f6fe1a92e19f0d507176c9814cca6073686e794991c61e7b169903424b1f35",
+      "sources": [
+        {
+          "path": "evals/one.eval.ts",
+          "sha256": "f326a6e88be63b955891ce1b2347929d0cc08967a53d9da761e69c1be3728272"
+        }
+      ],
+      "source": {
+        "body": "17716ef7896f2f9bfeb3fa91a175b679fa843d4bae5a022c6427a05bd79d19bf",
+        "options": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "outcome": "pass",
+      "todo": false,
+      "target": {
+        "kind": "metric"
+      },
+      "passRate": null,
+      "cells": [
+        {
+          "key": "fake/fake/fake",
+          "harness": "fake",
+          "environment": "fake",
+          "sandbox": "fake",
+          "role": "control",
+          "fingerprint": "9397b641571b9efd4b26bf8745a6203c54645e18616863fcf9eb78c574c3b855",
+          "fingerprintParts": {
+            "sources": "d8fa6512da8244e71c739410728789c71130aca8ad8ffad12ea6f23a6f6a1d6f",
+            "harness": "b690cc68e1ca81b34d0668c3cfcd1bcee588ff85b034ebbb232c99b431bee1ca",
+            "environment": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+            "image": null,
+            "agentCli": null,
+            "judge": "c0db15617d75fda6c65ea1d16d8e3ecb4a5ae911ba24007aa076fe7c8303bd5d",
+            "context": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "gate": "none"
+          },
+          "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+          "harnessKind": "fake",
+          "model": null,
+          "effort": null,
+          "gate": "none",
+          "overrides": [],
+          "runs": 1,
+          "pass": 1,
+          "fail": 0,
+          "infraError": 0,
+          "skipped": 0,
+          "passRate": 1,
+          "outcome": "pass",
+          "scores": {
+            "meanScore": 1,
+            "passAtK": 1,
+            "passHatK": 1
+          },
+          "prompts": [
+            {
+              "sha256": "40ae721d03b271d074a93929c74829ec5e32e03ea66aee45e2f6fac4865a2e2b"
+            }
+          ]
+        }
+      ],
+      "attempts": [
+        {
+          "key": "one # fake/fake/fake#1",
+          "id": "fake/fake/fake#1",
+          "cell": "fake/fake/fake",
+          "n": 1,
+          "seq": 1,
+          "startedAt": "2026-11-26T06:10:36.564Z",
+          "imageId": null,
+          "env": {
+            "vars": [],
+            "secrets": [],
+            "brokered": []
+          },
+          "context": [],
+          "egress": {
+            "policy": "proxy",
+            "allowed": null,
+            "recorded": false,
+            "contacted": [],
+            "blocked": [],
+            "expectedBlocked": [],
+            "unresolved": []
+          },
+          "servedModels": null,
+          "effort": null,
+          "servedEffort": null,
+          "outcome": "pass",
+          "error": null,
+          "durationMs": 121,
+          "turns": [
+            {
+              "prompt": "write it",
+              "status": "completed",
+              "startedAt": "2026-11-26T06:10:36.593Z",
+              "durationMs": 2,
+              "usage": null,
+              "model": null,
+              "servedModel": null,
+              "servedEffort": null,
+              "unreported": [],
+              "error": null,
+              "timeSplit": {
+                "modelMs": null,
+                "toolMs": 1,
+                "waitingMs": 0,
+                "otherMs": 1
+              },
+              "text": "Wrote out.txt"
+            }
+          ],
+          "usage": null,
+          "timeSplit": {
+            "modelMs": null,
+            "toolMs": 1,
+            "waitingMs": 0,
+            "otherMs": 1
+          },
+          "timings": {
+            "setupMs": 22,
+            "agentMs": 1,
+            "diffMs": 13,
+            "checksMs": 0,
+            "judgeMs": 2
+          },
+          "activity": {
+            "tools": 0,
+            "llmCalls": null,
+            "fileEdits": 1,
+            "webSearches": 0,
+            "webFetches": 0,
+            "reasoningMs": 0,
+            "stalledTools": 0,
+            "maxToolMs": 1
+          },
+          "judgements": [],
+          "snapshots": [
+            {
+              "name": "final",
+              "form": "dir",
+              "path": "one-7692c3/fake-fake-fake-dc13e2/1/snapshots/final",
+              "bytes": 5,
+              "files": 1,
+              "excluded": [],
+              "masked": [],
+              "dropped": [],
+              "skipped": null
+            }
+          ],
+          "workspace": {
+            "files": 1,
+            "bytes": 101,
+            "excluded": [],
+            "masked": [],
+            "dropped": [],
+            "skipped": null
+          },
+          "grades": [
+            {
+              "grader": "says",
+              "kind": "code",
+              "grade": true,
+              "score": 1,
+              "weight": 1,
+              "required": false,
+              "fingerprint": {
+                "digest": "7f8d2e800a958c4d3aec163f95e66b738eedb422caf34ab6e4b60dcf33790adb",
+                "code": "572bf1def89e803bdb633ce0a731f218af79d60d6a82474b2864f0d90f30f9fe"
+              },
+              "reads": {
+                "files": [
+                  {
+                    "path": "out.txt",
+                    "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+                  }
+                ]
+              },
+              "durationMs": 9
+            },
+            {
+              "grader": "key",
+              "kind": "code",
+              "grade": "",
+              "score": null,
+              "weight": 0,
+              "required": false,
+              "fingerprint": {
+                "digest": "43238d2457c49ea515ee028055437c4cb80e0e205cef55e685455da60b0758fe",
+                "code": "a436862c0c3cd2797c5a1046891d395d1639b5d32e8dae2cd4e64f3370f6a720"
+              },
+              "reads": {},
+              "durationMs": 7
+            },
+            {
+              "grader": "quality",
+              "kind": "judge",
+              "grade": true,
+              "score": 1,
+              "weight": 1,
+              "required": false,
+              "fingerprint": {
+                "digest": "86210b72f3b9c1ecf07f0df2c9a2fdffa2317b4da56ebbc34d29b0c41a165017",
+                "code": "e49f24bb01e336170ae71a23373b38411351369cd894e9272529487b56ee88ae"
+              },
+              "scoreDigest": "7c9cf7338b52a96de81e0b083e21f4c381b7dce621951bd6558e3ca967a28526",
+              "reads": {},
+              "judge": {
+                "calls": [
+                  {
+                    "model": "fake",
+                    "answer": true,
+                    "probability": 0.9
+                  }
+                ]
+              },
+              "durationMs": 8
+            },
+            {
+              "grader": "in-diff:out.txt",
+              "kind": "builtin",
+              "grade": [
+                "out.txt"
+              ],
+              "score": 1,
+              "weight": 1,
+              "required": false,
+              "fingerprint": {
+                "digest": "6dbc501f8ac05598739d0f402a973c45186568d359a6ca9dbc9a5e96270d777b",
+                "code": "90f82a4007961be999021a706ba359aa21133da59f4db6e81b901a83bbc4ec0f",
+                "version": 1
+              },
+              "reads": {},
+              "durationMs": 7
+            }
+          ],
+          "score": 1,
+          "checks": [],
+          "changedFiles": [
+            {
+              "path": "out.txt",
+              "status": "added",
+              "added": 1,
+              "removed": 0
+            }
+          ],
+          "files": {
+            "transcript": {
+              "path": "one-7692c3/fake-fake-fake-dc13e2/1/transcript.jsonl",
+              "sha256": "b8c2d0d649ec2b06477efc542ec824098bca664b55861a950b38484c4a39d4c9",
+              "bytes": 661
+            },
+            "diff": {
+              "path": "one-7692c3/fake-fake-fake-dc13e2/1/diff.patch",
+              "sha256": "f30a650803cd995a879528159e6625fde784a6e58588be03bff9a18d93b0d9e8",
+              "bytes": 152
+            },
+            "workspace": {
+              "path": "one-7692c3/fake-fake-fake-dc13e2/1/workspace.tar.gz",
+              "sha256": "c928087bd0847b340fe21545dfb7ce0059031782210dff97743ed196c44fcf14",
+              "bytes": 101
+            },
+            "workspaceManifest": {
+              "path": "one-7692c3/fake-fake-fake-dc13e2/1/workspace.json",
+              "sha256": "8382ef78081e6b9db0b8aed6e9192e0c1cadfece23ed45b16af7edc9c53eefea",
+              "bytes": 181
+            }
+          }
+        }
+      ],
+      "scores": {
+        "meanScore": 1,
+        "passAtK": 1,
+        "passHatK": 1
+      }
+    }
+  ]
+}

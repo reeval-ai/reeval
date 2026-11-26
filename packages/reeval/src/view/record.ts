@@ -6,7 +6,7 @@
 import type { ArchiveManifest } from '../archive/types.ts'
 import type { BundleManifest } from '../bundle/types.ts'
 import { foldCases } from '../history/cases.ts'
-import type { ExecLine, RunRecord, WorkspaceManifest } from '../history/types.ts'
+import type { ExecLine, RegradeRecord, RunRecord, WorkspaceManifest } from '../history/types.ts'
 import { SCHEMA_VERSION } from '../history/types.ts'
 import type { CredentialsFile } from '../login/types.ts'
 import type { CliInvocation } from '../report/types.ts'
@@ -38,6 +38,7 @@ export type ShapeName =
   | 'exec-line'
   | 'decision-line'
   | 'workspace-manifest'
+  | 'regrade'
 
 /**
  * A field added after files were written without it, and what it reads as there. The path is
@@ -89,6 +90,7 @@ export const READ_DEFAULTS: Record<ShapeName, ReadDefault[]> = {
   'exec-line': [],
   'decision-line': [],
   'workspace-manifest': [],
+  regrade: [],
 }
 
 /**
@@ -113,6 +115,7 @@ export const SCHEMA_VERSIONS = {
   credentials: 1,
   'cloud-origin': 1,
   'workspace-manifest': 1,
+  regrade: 1,
 } as const
 
 /** A file from a newer reeval, whose version (`field`, `schemaVersion` by default) this reeval doesn't know. */
@@ -298,3 +301,7 @@ export const readableWorkspaceManifest = (
   what = 'This workspace manifest',
 ): WorkspaceManifest =>
   fillDefaults('workspace-manifest', upgrade('workspace-manifest', manifest, what))
+
+/** A run's `regrades/<id>.json` as every reader sees it; one from a newer reeval throws. */
+export const readableRegrade = (doc: RegradeRecord, what = 'This regrade'): RegradeRecord =>
+  fillDefaults('regrade', upgrade('regrade', doc, what))

@@ -9,7 +9,7 @@ import { type CloudAuth, cloudAuth, cloudUrl } from '../cloud-run.ts'
 import { allRuns, CommandError, lines, reachability } from '../commands.ts'
 import { UsageError } from '../errors.ts'
 import { openHistoryDb } from '../history/db.ts'
-import { parseRecord, readRecord, runDir, scratchDir } from '../history/files.ts'
+import { readRecord, runDir, scratchDir } from '../history/files.ts'
 import { author } from '../history/provenance.ts'
 import { readReportInputs } from '../history/report-inputs.ts'
 import { summaryFiles } from '../history/summary.ts'
@@ -61,8 +61,9 @@ type Ctx = {
 
 async function load(config: ResolvedConfig, entry: HistoryEntry): Promise<RunInput> {
   const dir = entry.recorded ? config.history.dir : scratchDir(config.root)
-  const bytes = await readFile(join(dir, `${entry.runId}.json`))
-  return { record: parseRecord(bytes, entry.runId), dir, bytes }
+  const path = join(dir, `${entry.runId}.json`)
+  const bytes = await readFile(path)
+  return { record: await readRecord(path), dir, bytes }
 }
 
 /** The model's input: the project's own instructions, which set the question, then the digest as JSON. */

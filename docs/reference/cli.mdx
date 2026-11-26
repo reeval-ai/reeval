@@ -233,6 +233,7 @@ Options:
   --limit <n>               Runs to show
   --all                     Include unrecorded runs
   --json                    Output as JSON
+  --original                Show grades as recorded, without regrades
   --offline                 Read the history store's local copy without pulling
   --all-branches            Include every branch's runs, not only HEAD's
   --profile <name>          Profile whose history store to use
@@ -256,6 +257,8 @@ Options:
   --json                    Output the record as JSON
   --trace                   Write a Perfetto trace of the run
   --out <file>              Trace output file (default: .reeval/traces/<run>.json)
+  --original                Show grades as recorded, without regrades
+  --regrades                List the run's regrades
   --offline                 Read the history store's local copy without pulling
   --all-branches            Include every branch's runs, not only HEAD's
   --profile <name>          Profile whose history store to use
@@ -309,12 +312,35 @@ Options:
   --json                    Output as JSON
   --fail-on-regression      Exit 1 on a regression
   -v, --verbose             Also show lift, effort and variant comparisons
+  --original                Compare grades as recorded, without regrades
   --offline                 Read the history store's local copy without pulling
   --all-branches            Include every branch's runs, not only HEAD's
   --profile <name>          Profile whose history store to use
 ```
 
 [//]: # (/generated:cli-help:compare)
+
+## `reeval regrade`
+
+[//]: # (generated:cli-help:regrade)
+
+```text
+Usage: reeval regrade [filter...] [options]
+
+Grade recorded attempts again with today's graders (default: each eval's latest run)
+
+Options:
+  --tag <tag>               Only evals with this tag; !tag excludes; repeatable
+  --grader <name>           Only this grader; repeatable
+  --since <duration>        Every recorded run in the last duration, e.g. 30d
+  --at <ref>                The runs at a git ref: a tag, a branch or a SHA
+  --dry-run                 Show the plan without regrading
+  -y, --yes                 Regrade without asking
+  --profile <name>          Profile whose graders and judge to use
+  --all-branches            Include every branch's runs, not only HEAD's
+```
+
+[//]: # (/generated:cli-help:regrade)
 
 ## `reeval checkout`
 

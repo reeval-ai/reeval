@@ -60,6 +60,8 @@ export function corpus(): {
   eventStreams: string[]
   /** History archives, `<runId>.zip` beside a run. */
   archives: string[]
+  /** Regrades in a run's `regrades/` folder. */
+  regrades: Array<{ file: string; value: Record<string, unknown> }>
 } {
   const records: Array<{ file: string; value: Record<string, unknown> }> = []
   const transcripts: string[] = []
@@ -69,6 +71,7 @@ export function corpus(): {
   const reports: Array<{ file: string; value: Record<string, unknown> }> = []
   const eventStreams: string[] = []
   const archives: string[] = []
+  const regrades: Array<{ file: string; value: Record<string, unknown> }> = []
   const walk = (dir: string) => {
     for (const e of readdirSync(dir, { withFileTypes: true })) {
       const path = join(dir, e.name)
@@ -83,6 +86,8 @@ export function corpus(): {
         capturePages.push({ file: path, value: JSON.parse(readFileSync(path, 'utf8')) })
       } else if (e.name.endsWith('.json') && basename(dir) === 'analysis') {
         analyses.push({ file: path, value: JSON.parse(readFileSync(path, 'utf8')) })
+      } else if (e.name.endsWith('.json') && basename(dir) === 'regrades') {
+        regrades.push({ file: path, value: JSON.parse(readFileSync(path, 'utf8')) })
       }
     }
   }
@@ -104,5 +109,6 @@ export function corpus(): {
     reports,
     eventStreams,
     archives,
+    regrades,
   }
 }

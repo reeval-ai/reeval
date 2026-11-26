@@ -13,6 +13,7 @@ import {
   readableAnalysis,
   readableCapturePage,
   readableRecord,
+  readableRegrade,
   readableRemarks,
   readableTranscriptLine,
 } from '../../src/view/record.ts'
@@ -170,8 +171,17 @@ export async function checkCorpus(current: Map<string, ShapeSchema>): Promise<st
           .join('\n')}`,
       )
   }
-  const { records, transcripts, analyses, remarks, capturePages, reports, eventStreams, archives } =
-    corpus()
+  const {
+    records,
+    transcripts,
+    analyses,
+    remarks,
+    capturePages,
+    reports,
+    eventStreams,
+    archives,
+    regrades,
+  } = corpus()
   const shape = (name: string) => current.get(name) as ShapeSchema
   for (const r of records) {
     report(r.file, validate(shape('run-record'), readableRecord(structuredClone(r.value) as never)))
@@ -196,6 +206,9 @@ export async function checkCorpus(current: Map<string, ShapeSchema>): Promise<st
   }
   for (const a of analyses) {
     report(a.file, validate(shape('analysis'), readableAnalysis(structuredClone(a.value) as never)))
+  }
+  for (const r of regrades) {
+    report(r.file, validate(shape('regrade'), readableRegrade(structuredClone(r.value) as never)))
   }
   for (const r of remarks) {
     report(r.file, validate(shape('remarks'), readableRemarks(structuredClone(r.value) as never)))

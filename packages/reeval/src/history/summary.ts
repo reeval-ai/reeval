@@ -64,6 +64,13 @@ export function stateRows(
       : 'none (fake sandbox)',
   ])
   rows.push(['Agents', env.harnesses.map(harnessLabel).join(', ') || 'none'])
+  if (run.regrades?.length) {
+    const evals = run.evals.filter((e) => e.attempts.some((a) => a.regraded)).map((e) => e.id)
+    rows.push([
+      'Regraded',
+      `↻ ${evals.join(', ')} by ${run.regrades.length} regrade${run.regrades.length === 1 ? '' : 's'}, last ${run.regrades.at(-1)?.at} (reeval show --regrades; --original for the recorded grades)`,
+    ])
+  }
   const resources = runResourcesLine(run.evals.flatMap((e) => e.attempts.map((a) => a.resources)))
   if (resources) rows.push(['Resources', resources])
   rows.push([

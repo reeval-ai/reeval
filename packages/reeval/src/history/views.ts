@@ -92,6 +92,8 @@ export type HistoryRow = {
   outcomes: Array<Outcome | 'not_gated' | null>
   /** Indexes into `outcomes` where the eval's fingerprint changed from the previous run. */
   drift: number[]
+  /** Indexes into `outcomes` where a regrade changed the eval's grades. */
+  regraded: number[]
   pass: number
   counted: number
 }
@@ -119,7 +121,14 @@ export function history(
   const rows: HistoryRow[] = ids
     .filter((id) => !needle || id.toLowerCase().includes(needle))
     .map((id) => {
-      const row: HistoryRow = { id, outcomes: [], drift: [], pass: 0, counted: 0 }
+      const row: HistoryRow = {
+        id,
+        outcomes: [],
+        drift: [],
+        regraded: [],
+        pass: 0,
+        counted: 0,
+      }
       const seen = new Map<string, string>()
       runs.forEach((run, i) => {
         const e = run.evals.find((x) => x.id === id)
@@ -127,6 +136,7 @@ export function history(
         row.outcomes.push(notGated ? 'not_gated' : (e?.outcome ?? null))
         if (!e) return
         if (cellsChanged(seen, id, e.cells)) row.drift.push(i)
+        if (e.regraded) row.regraded.push(i)
         if (notGated) return
         if (e.outcome === 'pass' || e.outcome === 'fail') row.counted++
         if (e.outcome === 'pass') row.pass++
@@ -137,6 +147,8 @@ export function history(
   return { runs, rows, orphaned }
 }
 
+const LEGEND = '✓ pass  ✗ fail  ! infra error  ↓ skipped  ○ ran  · not run  ¦ eval or stack changed'
+
 export function formatHistory({ runs, rows, orphaned }: ReturnType<typeof history>): string {
   if (runs.length === 0)
     return 'No recorded runs yet. Run reeval run --record, or reeval record latest.'
@@ -146,21 +158,21 @@ export function formatHistory({ runs, rows, orphaned }: ReturnType<typeof histor
     `${runs.length} run${runs.length === 1 ? '' : 's'}, oldest → newest: ${first.runId} (${shortSha(first)}) … ${last.runId} (${shortSha(last)})`,
     '',
   ]
-  const width = Math.max(...rows.map((r) => r.outcomes.length + r.drift.length), 0)
+  const width = Math.max(
+    ...rows.map((r) => r.outcomes.length + r.drift.length + r.regraded.length),
+    0,
+  )
   for (const row of rows) {
     const strip = row.outcomes
       .map(
         (o, i) =>
-          `${row.drift.includes(i) ? '¦' : ''}${o === 'not_gated' ? '○' : o ? OUTCOME_MARK[o] : '·'}`,
+          `${row.drift.includes(i) ? '¦' : ''}${o === 'not_gated' ? '○' : o ? OUTCOME_MARK[o] : '·'}${row.regraded.includes(i) ? '↻' : ''}`,
       )
       .join('')
     const rate = row.counted ? `${row.pass}/${row.counted}` : '–'
     lines.push(`  ${strip.padEnd(width)}  ${rate.padStart(5)}  ${row.id}`)
   }
-  lines.push(
-    '',
-    '✓ pass  ✗ fail  ! infra error  ↓ skipped  ○ ran  · not run  ¦ eval or stack changed',
-  )
+  lines.push('', `${LEGEND}${rows.some((r) => r.regraded.length) ? '  ↻ regraded' : ''}`)
   if (orphaned.length > 0) {
     lines.push(
       '',

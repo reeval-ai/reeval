@@ -131,7 +131,7 @@ async function archiveFiles(
   const scratch = scratchDir(config.root)
   if (existsSync(recordFile(scratch, runId))) {
     const recorded = entry.recorded
-      ? await readRecord(recordFile(config.history.dir, runId))
+      ? await readRecord(recordFile(config.history.dir, runId), true)
       : undefined
     const local = await leveledArchiveFiles(scratch, runId, level, {
       ...skip,

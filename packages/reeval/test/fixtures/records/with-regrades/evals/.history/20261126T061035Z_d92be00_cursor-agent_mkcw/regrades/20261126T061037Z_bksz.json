@@ -1,0 +1,148 @@
+{
+  "kind": "reeval-regrade",
+  "schemaVersion": 1,
+  "id": "20261126T061037Z_bksz",
+  "regradeOf": "20261126T061035Z_d92be00_cursor-agent_mkcw",
+  "at": "2026-11-26T06:10:37.233Z",
+  "reeval": "0.31.0",
+  "git": {
+    "sha": "42818af20c582b31df4dd06a27fe0c5a8d7c8b91",
+    "dirty": false
+  },
+  "attempts": [
+    {
+      "key": "one # fake/fake/fake#1",
+      "grades": [
+        {
+          "grader": "says",
+          "kind": "code",
+          "grade": false,
+          "score": 0,
+          "weight": 1,
+          "required": false,
+          "fingerprint": {
+            "digest": "76ec3b31413025b2ade86f0cde6965348506bef2d0ee6038a83afcaa3c54a3ee",
+            "code": "431bb05c8d0eb5dc8ba42e25dda3c910b3cbae5c92f420412cd84d1b3fbd8754"
+          },
+          "reads": {
+            "files": [
+              {
+                "path": "out.txt",
+                "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+              }
+            ]
+          },
+          "durationMs": 9
+        },
+        {
+          "grader": "quality",
+          "kind": "judge",
+          "grade": true,
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "fingerprint": {
+            "digest": "86210b72f3b9c1ecf07f0df2c9a2fdffa2317b4da56ebbc34d29b0c41a165017",
+            "code": "e49f24bb01e336170ae71a23373b38411351369cd894e9272529487b56ee88ae"
+          },
+          "reads": {},
+          "judge": {
+            "calls": [
+              {
+                "model": "fake",
+                "answer": true,
+                "probability": 0.9
+              }
+            ]
+          },
+          "durationMs": 8,
+          "scoreDigest": "1f01658e4de47937ef07ba974b33423615684164af8f558ee0b820da50db8ea6"
+        },
+        {
+          "grader": "in-diff:out.txt",
+          "kind": "builtin",
+          "grade": [
+            "out.txt"
+          ],
+          "score": 1,
+          "weight": 1,
+          "required": true,
+          "fingerprint": {
+            "digest": "6dbc501f8ac05598739d0f402a973c45186568d359a6ca9dbc9a5e96270d777b",
+            "code": "90f82a4007961be999021a706ba359aa21133da59f4db6e81b901a83bbc4ec0f",
+            "version": 1
+          },
+          "reads": {},
+          "durationMs": 7
+        },
+        {
+          "grader": "has-file:out.txt",
+          "kind": "builtin",
+          "grade": true,
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "fingerprint": {
+            "digest": "155784a490f31209ef5a103cc12935c98efe942e79bdb079d9ee7518974dd57f",
+            "code": "0eaaecd0f72793571394390ba462d6c38ee85fe7bef10295ebbb0492f1397f77",
+            "version": 1
+          },
+          "reads": {
+            "files": [
+              {
+                "path": "out.txt",
+                "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+              }
+            ]
+          },
+          "durationMs": 10
+        },
+        {
+          "grader": "key",
+          "kind": "code",
+          "grade": "",
+          "score": null,
+          "weight": 0,
+          "required": false,
+          "fingerprint": {
+            "digest": "43238d2457c49ea515ee028055437c4cb80e0e205cef55e685455da60b0758fe",
+            "code": "a436862c0c3cd2797c5a1046891d395d1639b5d32e8dae2cd4e64f3370f6a720"
+          },
+          "reads": {},
+          "durationMs": 7
+        }
+      ],
+      "score": 0.75,
+      "outcome": "fail",
+      "error": {
+        "kind": "assertion",
+        "message": "score 0.75 below 1: says scored 0.00"
+      },
+      "actions": [
+        {
+          "grader": "says",
+          "action": "recomputed",
+          "changed": [
+            "code"
+          ]
+        },
+        {
+          "grader": "quality",
+          "action": "rescored"
+        },
+        {
+          "grader": "in-diff:out.txt",
+          "action": "rescored"
+        },
+        {
+          "grader": "has-file:out.txt",
+          "action": "new"
+        },
+        {
+          "grader": "key",
+          "action": "not-found"
+        }
+      ]
+    }
+  ]
+}

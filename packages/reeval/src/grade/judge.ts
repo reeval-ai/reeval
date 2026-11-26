@@ -266,7 +266,8 @@ type ReadReference = {
   shown: { text: string } | { files: Record<string, string | null> }
 }
 
-async function readReference(
+/** The judge grader's reference for `item`, read from the host; undefined without one. */
+export async function readReference(
   run: JudgeRun,
   item: Case,
   who: string,

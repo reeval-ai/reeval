@@ -59,6 +59,8 @@ export function runHeader(record: RunRecord, recorded: boolean): HistoryEntry {
       ...(e.target ? { target: e.target } : {}),
       ...(e.scores ? { scores: e.scores } : {}),
       cells: e.cells.map((c) => historyCell(e.attempts, c)),
+      ...gradersOf(e.attempts),
+      ...(e.attempts.some((a) => a.regraded) ? { regraded: true as const } : {}),
       ...(e.cases
         ? {
             cases: e.cases.map((k) => {
@@ -92,6 +94,21 @@ export function runHeader(record: RunRecord, recorded: boolean): HistoryEntry {
     })),
     ...(record.errors?.length ? { errors: record.errors } : {}),
   }
+}
+
+function gradersOf(attempts: readonly AttemptRecord[]): { graders?: Record<string, string> } {
+  const graders: Record<string, string> = {}
+  for (const a of attempts) {
+    for (const g of a.grades ?? []) {
+      graders[g.grader] ??= [
+        g.fingerprint.digest,
+        g.scoreDigest ?? '',
+        g.weight,
+        g.required ? 'required' : '',
+      ].join(':')
+    }
+  }
+  return Object.keys(graders).length ? { graders } : {}
 }
 
 /** The cells' rates over the cases that a `{ passRate }` gate gates, when there are any. */

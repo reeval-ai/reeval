@@ -932,6 +932,10 @@
         "outcome": {
           "$ref": "#/$defs/Outcome"
         },
+        "regraded": {
+          "description": "The id of the newest `reeval regrade` that changed this attempt's grades, score or outcome, which the fields here read as; unset when none did. Readers set it; `reeval regrade` never rewrites the record.",
+          "type": "string"
+        },
         "reportedCostUsd": {
           "description": "What a gateway said the harness's own API calls cost, in US dollars, summed (OpenRouter's `usage.cost`, plus `cost_details.upstream_inference_cost` on a BYOK key, where `cost` is only OpenRouter's fee); absent when it names none.",
           "type": "number"
@@ -6850,6 +6854,26 @@
       },
       "required": ["files", "record"]
     },
+    "RegradeNote": {
+      "description": "A regrade a record was read with.",
+      "type": "object",
+      "properties": {
+        "at": {
+          "type": "string"
+        },
+        "attempts": {
+          "description": "The keys of the attempts it changed.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": ["at", "attempts", "id"]
+    },
     "Remark": {
       "description": "A remark about the eval's quality, not about the agent.",
       "type": "object",
@@ -8211,6 +8235,13 @@
             }
           },
           "required": ["version"]
+        },
+        "regrades": {
+          "description": "Each `reeval regrade` of the run, oldest first, which its attempts read as; unset when it has none, or when it's read with `--original`. Readers set it from the run's `regrades/` folder.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RegradeNote"
+          }
         },
         "retriedAt": {
           "description": "When each `reeval run --retry-errors` of the run started, oldest first; unset for a run never retried. A `--resume` of the run while it's `interrupted` finishes the last one.",

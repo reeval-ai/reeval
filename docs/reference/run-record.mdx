@@ -126,6 +126,10 @@ For more information about the keys on `stack.judge.state`, see [`c.judge()`](/r
   These are redacted errors outside any attempt: an evaluation file that didn't load, a rejection or throw no attempt awaited, or a worker that died. Any one fails the run. Unset when there were none.
 </Property>
 
+<Property name="regrades" type="RegradeNote[]" optional>
+  Each `reeval regrade` of the run, oldest first, which its attempts read as; unset when it has none, or when it's read with `--original`. Readers set it from the run's `regrades/` folder.
+</Property>
+
 ### `GitInfo`
 
 <Property name="sha" type="string">
@@ -906,6 +910,10 @@ Each input of a cell fingerprint, hashed on its own, so a change can be named.
 
 <Property name="grades" type="GradeRecord[]" optional>
   Each of the eval's `graders`, in the order the eval lists them; unset when it has none or none ran. They run once the task returns, never after a throw, a timeout, a cancel or an infra error.
+</Property>
+
+<Property name="regraded" type="string" optional>
+  The id of the newest `reeval regrade` that changed this attempt's grades, score or outcome, which the fields here read as; unset when none did. Readers set it; `reeval regrade` never rewrites the record.
 </Property>
 
 <Property name="score" type="number" optional>
