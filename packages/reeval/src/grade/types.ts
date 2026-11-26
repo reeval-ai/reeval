@@ -52,8 +52,8 @@ export type GraderSandbox = {
 }
 
 /**
- * What a grader reads: the attempt as it ended, from the attempt's record. It can't send a turn,
- * run a command or call `expect`.
+ * What a grader reads: the attempt as it ended, from the attempt's record. It can't send a turn
+ * or run a command.
  */
 export type GraderContext<C = unknown> = {
   /** The attempt's case; `{ key: '' }` for an eval without `cases`. */

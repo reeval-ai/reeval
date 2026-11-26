@@ -24,9 +24,9 @@ import type {
   JudgeOptions,
   JudgeState,
   TokenUsage,
-  Verdict,
 } from '../types.ts'
-import { JUDGE_RETRY, type RetryPolicy, withRetries } from './retry.ts'
+import { isApiError, isTransient, JUDGE_RETRY, type RetryPolicy, withRetries } from './retry.ts'
+import { overTokenLimit, withInputSize } from './size.ts'
 
 /** The judge the docs recommend, pinned so a model update never silently moves scores. */
 export const RECOMMENDED_JUDGE_MODEL = 'typesafe-ai/jev-1.14.0'
@@ -367,7 +367,9 @@ export async function askJudge(
       ),
     retry,
     signal,
-  )
+  ).catch((error: unknown) => {
+    throw sized(error, state, question)
+  })
   const { answer, probability, resolvedModel, usage, ...billing } = decided.value
   return {
     answer,
@@ -379,4 +381,13 @@ export async function askJudge(
     retries: decided.retries,
     usage,
   }
+}
+
+/** The input's size can explain a request the provider refused, never an outage. */
+function sized(error: unknown, judged: JudgeState, question: string): unknown {
+  const state = Array.isArray(judged) ? judged.find((part) => part.type === 'json')?.value : judged
+  if (!(error instanceof Error) || !isApiError(error) || !state) return error
+  if (isTransient(error) && !overTokenLimit(error.message, state, question)) return error
+  error.message = withInputSize(error.message, state, question)
+  return error
 }

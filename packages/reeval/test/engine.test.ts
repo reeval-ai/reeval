@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
@@ -24,10 +23,10 @@ const defaultIncludePattern = () =>
     .join(', ')
 
 const math = (value: number) => `
-import { defineEval, expect } from 'reeval'
+import { defineEval, EvalError } from 'reeval'
 export default defineEval({
   async task() {
-    expect(1).toBe(${value})
+    if (1 !== ${value}) throw new EvalError('expected 1 to be ${value}')
   },
 })
 `
@@ -79,7 +78,7 @@ describe('engine', () => {
     assert.equal(r.code, 1)
     assert.match(
       r.stdout,
-      /^└─ ✗ math {2}0\/1 run at 100% {2}regression\(1\)\n {5}#1 {2}0% {2}"toBe 2" failed\n {7}expected 1 to be 2 \/\/ Object\.is equality · evals\/math\.eval\.ts:5$/m,
+      /^└─ ✗ math {2}0\/1 run at 100% {2}regression\(1\)\n {5}#1 {2}0% {2}expected 1 to be 2\n {7}before the first turn$/m,
     )
     assert.doesNotMatch(r.stdout + r.stderr, /vitest/i)
     const [e] = readRun(p.dir).evals
@@ -250,11 +249,13 @@ export default defineConfig({
 `,
       '.env': 'REEVAL_T_BOTH=from-env\nREEVAL_T_ENV=only-env\nREEVAL_T_SHELL=from-env\n',
       '.env.local': '\uFEFFREEVAL_T_BOTH=from-local\nREEVAL_T_SHELL=from-local\n',
-      'evals/sees.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task() { expect(process.env.REEVAL_T_BOTH).toBe('from-local') } })
+      'evals/sees.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
+export default defineEval({ async task() { assert.equal(process.env.REEVAL_T_BOTH, 'from-local') } })
 `,
-      'evals/canary.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task() { expect(process.env.REEVAL_T_BOTH).toBe('from-env') } })
+      'evals/canary.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
+export default defineEval({ async task() { assert.equal(process.env.REEVAL_T_BOTH, 'from-env') } })
 `,
     })
     const env = { REEVAL_T_SHELL: 'from-shell' }
@@ -280,10 +281,7 @@ export default defineEval({ async task() { expect(process.env.REEVAL_T_BOTH).toB
     assert.equal(sees.code, 0, sees.stdout + sees.stderr)
     const canary = await runCli(p.dir, ['run', 'canary.eval.ts'], { env })
     assert.equal(canary.code, 1, canary.stdout + canary.stderr)
-    assert.match(
-      readRun(p.dir).evals[0]?.error?.message ?? '',
-      /expected 'from-local' to be 'from-env'/,
-    )
+    assert.match(readRun(p.dir).evals[0]?.error?.message ?? '', /\+ 'from-local'\n- 'from-env'/)
   })
 
   test('reeval that runs out of things to wait on, unfinished, exits 3 and says so, never 0', async () => {
@@ -361,7 +359,8 @@ export default defineEval({ async task() { expect(process.env.REEVAL_T_BOTH).toB
   test('eval files mix TypeScript, ESM, CommonJS and JSON, with extensionless, circular imports and top-level await', async () => {
     const p = await project('module-mix', {
       'reeval.config.ts': fakeConfig(),
-      'evals/mix.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/mix.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { a, fromB } from './circ-a'
 import cjs, { named } from './lib.cjs'
 import data from './data.json'
@@ -370,7 +369,7 @@ enum Color { Red = 1 }
 const waited = await new Promise<string>((r) => setTimeout(() => r('tla'), 5))
 export default defineEval({
   async task() {
-    expect({ a, b: fromB(), cjs: cjs.kind, named, data, m, color: Color.Red, waited }).toEqual({
+    assert.deepEqual({ a, b: fromB(), cjs: cjs.kind, named, data, m, color: Color.Red, waited }, {
       a: 'A', b: 'B sees A', cjs: 'cjs', named: 'N', data: { k: 1 }, m: 'mts', color: 1, waited: 'tla',
     })
   },
@@ -390,14 +389,15 @@ export default defineEval({
   })
 
   test('each eval file runs in a process of its own: module state and globals never cross files', async () => {
-    const body = (name: string) => `import { defineEval, expect } from 'reeval'
+    const body = (name: string) => `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { state } from './shared'
 state.n++
 ;(globalThis as Record<string, unknown>)['${name}'] = true
 export default defineEval({
   async task() {
-    expect(state.n).toBe(1)
-    expect(Object.keys(globalThis).filter((k) => k === 'a' || k === 'b')).toEqual(['${name}'])
+    assert.equal(state.n, 1)
+    assert.deepEqual(Object.keys(globalThis).filter((k) => k === 'a' || k === 'b'), ['${name}'])
   },
 })
 `
@@ -556,13 +556,13 @@ export default defineEval({ async task() {} })
   test('a sandbox start the body swallows, or that concurrent first calls share, is still the infra error', async () => {
     const p = await project('start-swallowed', {
       'reeval.config.ts': fakeConfig(),
-      'evals/swallowed.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+      'evals/swallowed.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 const broken = defineEnvironment('broken', { setup: ['exit 7'] })
 export default defineEval({
   environment: broken,
   async task(c) {
     await c.readFile('x').catch(() => null)
-    expect(await c.exec('true').catch(() => ({ exitCode: 1 }))).toBeTruthy()
+    await c.exec('true').catch(() => ({ exitCode: 1 }))
   },
 })
 `,
@@ -644,7 +644,8 @@ export default first
 
 describe('evaluate wrapper with the fake harness', () => {
   const agentEval = (body: string, options = '') => `
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval, EvalError } from 'reeval'
 import { fakeJudge } from 'reeval/judge'
 export default defineEval({
   ${options ? `${options},\n  ` : ''}async task(c) {
@@ -661,17 +662,14 @@ export default defineEval({
         harness: `{ files: { 'hello.txt': 'hi\\n', 'big.txt': '${big}' }, text: 'Wrote hello.txt' }`,
       }),
       'evals/agent.eval.ts': agentEval(`
-  await expect(turn).toHaveFile('hello.txt', /hi/)
-  await expect(c).toHaveFile('big.txt')
-  await expect(c.exec('cat hello.txt')).toSucceed()
-  expect(turn.diff.files).toEqual(expect.arrayContaining([{ path: 'hello.txt', status: 'added' }]))
-  expect(turn.text).toMatch(/hello/)
-  expect(await c.judge('Did it write hello.txt?', { task: true, diff: true })).toPass()
+  assert.match(await c.readFile('hello.txt'), /hi/)
+  assert.equal((await c.exec('cat hello.txt')).exitCode, 0)
+  assert.ok(turn.diff.files.some((f) => f.path === 'hello.txt' && f.status === 'added'))
+  assert.match(turn.text, /hello/)
 `),
     })
     const r = await runCli(p.dir, ['run', '--output-logs', 'full'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    assert.match(r.stdout, /judge {2}pass 0\.90 \(≥ 0\.8\) {2}Did it write hello\.txt\?/)
 
     const [e] = readRun(p.dir).evals
     assert.ok(e)
@@ -720,20 +718,7 @@ export default defineEval({
       e.read(e.trial.checks[0]?.log.path ?? ''),
       /^\$ cat hello\.txt\nexit 0\n--- stdout\nhi\n/,
     )
-    assert.deepEqual(e.trial.judgements, [
-      {
-        verdict: 'pass',
-        score: 0.9,
-        threshold: 0.8,
-        question: 'Did it write hello.txt?',
-        model: 'fake',
-        assertion: 'toPass Did it write hello.txt?',
-        key: `0:${createHash('sha256').update('Did it write hello.txt?').digest('hex').slice(0, 12)}`,
-      },
-    ])
-    const [input] = JSON.parse(e.read(e.trial.files.judgeInput?.path ?? ''))
-    assert.equal(input.question, 'Did it write hello.txt?')
-    assert.equal(input.state.task, 'write hello.txt')
+    assert.deepEqual(e.trial.judgements, [])
     assert.equal(e.trial.id, 'fake/fake/fake#1')
     assert.match(
       e.trial.files.diff?.path ?? '',
@@ -752,10 +737,10 @@ export default defineEval({
       'evals/agent.eval.ts': agentEval(`
   await c.exec('echo 1 > counter')
   const second = await c.send('again')
-  expect(second.prompt).toBe('again')
-  expect(c.turns).toEqual([turn, second])
-  expect(await c.readFile('counter')).toBe('1\\n')
-  expect(second.diff.files.map((f) => f.path).sort()).toEqual(['counter', 'n.txt'])
+  assert.equal(second.prompt, 'again')
+  assert.deepEqual(c.turns, [turn, second])
+  assert.equal(await c.readFile('counter'), '1\\n')
+  assert.deepEqual(second.diff.files.map((f) => f.path).sort(), ['counter', 'n.txt'])
 `),
     })
     const r = await runCli(p.dir)
@@ -768,100 +753,11 @@ export default defineEval({
     assert.deepEqual(liveSandboxes(p), [])
   })
 
-  test('judge options cascade from config to group, eval and call', async () => {
-    const p = await project('judge-cascade', {
-      'reeval.config.ts': fakeConfig({
-        extra: 'judge: { model: fakeJudge({ score: 0.9 }), threshold: 0.95 },',
-      }),
-      'evals/from-config.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({
-  async task(c) {
-    await c.send('x')
-    expect(await c.judge('from group', { diff: true })).toMatchObject({ verdict: 'fail', score: 0.9, threshold: 0.95 })
-  },
-})
-`,
-      'evals/eval-model.eval.ts': `import { defineEval, expect } from 'reeval'
-import { fakeJudge } from 'reeval/judge'
-export default defineEval({
-  judge: { model: fakeJudge({ score: 0.5 }) },
-  async task(c) {
-    await c.send('x')
-    expect(await c.judge('from eval', { diff: true })).toMatchObject({ verdict: 'fail', score: 0.5, threshold: 0.95 })
-    expect(await c.judge('from call', { threshold: 0.4, diff: true })).toMatchObject({ verdict: 'pass', score: 0.5 })
-  },
-})
-`,
-      'evals/j.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({
-  judge: { threshold: 0.8 },
-  async task(c) {
-    const first = await c.send('first')
-    await c.send('second')
-    expect(await c.judge('custom', { output: true, on: 'some output' })).toMatchObject({ verdict: 'pass' })
-    expect(await c.judge('earlier turn', { task: true, on: first })).toMatchObject({ verdict: 'pass' })
-  },
-})
-`,
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 0, r.stdout + r.stderr)
-    const j = readRun(p.dir).evals.find((e) => e.id === 'j')
-    assert.equal(j?.trial.judgements.length, 2)
-  })
-
-  test('c.judge on grades a turn it sent, and a turn-shaped JSON value as a value', async () => {
-    const p = await project('judge-on', {
-      'reeval.config.ts': fakeConfig({ harness: "{ text: 'done' }" }),
-      'evals/on.eval.ts': `import { defineEval } from 'reeval'
-const lookalike = { prompt: 'fake', text: 'fake', transcript: [], diff: { files: [], patch: '' } }
-export default defineEval({
-  async task(c) {
-    const first = await c.send('first')
-    await c.send('second')
-    await c.judge('turn?', { task: true, output: true, on: first })
-    await c.judge('value?', { task: true, output: true, on: lookalike })
-  },
-})
-`,
-      'evals/copy.eval.ts': `import { defineEval } from 'reeval'
-export default defineEval({
-  async task(c) {
-    const first = await c.send('first')
-    await c.judge('copy?', { task: true, output: true, on: { ...first } })
-  },
-})
-`,
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 1, r.stdout + r.stderr)
-    assert.match(r.stdout, /c\.judge\(\) on is a turn this attempt didn't send/)
-    const record = readRun(p.dir)
-    const on = record.evals.find((e) => e.id === 'on')
-    const copy = record.evals.find((e) => e.id === 'copy')
-    assert.equal(on?.error, null, r.stdout)
-    const inputs = JSON.parse(on?.read(on.trial.files.judgeInput?.path ?? '') ?? '[]')
-    assert.deepEqual(
-      inputs.map((i: { state: { task: string; output: unknown } }) => [
-        i.state.task,
-        i.state.output,
-      ]),
-      [
-        ['first', 'done'],
-        [
-          'second',
-          { prompt: 'fake', text: 'fake', transcript: [], diff: { files: [], patch: '' } },
-        ],
-      ],
-    )
-    assert.equal(copy?.trial.judgements.length, 0)
-  })
-
   test('plain output streams worker progress and console.log from inside the eval', async () => {
     const p = await project('plain-progress', {
       'reeval.config.ts': fakeConfig({ harness: "{ files: { 'hello.txt': 'hi' } }" }),
       'evals/agent.eval.ts': agentEval(`console.log('hello from', 'the eval')
-  await expect(c.exec('cat hello.txt')).toSucceed()`),
+  await c.exec('cat hello.txt')`),
     })
     const quiet = await runCli(p.dir)
     assert.equal(quiet.code, 0, quiet.stdout + quiet.stderr)
@@ -905,14 +801,14 @@ export default defineEval({
   },
 })
 `,
-      'evals/fails.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/fails.eval.ts': `import { defineEval, EvalError } from 'reeval'
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms))
 export default defineEval({
   async task(c) {
     await pause(200)
     await c.send('go')
     console.error('log from fails')
-    expect(1).toBe(2)
+    throw new EvalError('it fails')
   },
 })
 `,
@@ -979,8 +875,8 @@ export default defineEval({
 
   test('agent mode prints the plan and the eval list only, with no color', async () => {
     const p = await project('agent-mode', {
-      'reeval.config.ts': fakeConfig({ judge: '{ model: fakeJudge({ score: 0.3 }) }' }),
-      'evals/agent.eval.ts': agentEval(`expect(await c.judge('ok?', { diff: true })).toPass()`),
+      'reeval.config.ts': fakeConfig(),
+      'evals/agent.eval.ts': agentEval(`throw new EvalError('not ok')`),
       'evals/passes.eval.ts': `import { defineEval } from 'reeval'\nexport default defineEval({ async task() {} })\n`,
     })
     const r = await runCli(p.dir, ['run'], {
@@ -1000,8 +896,9 @@ export default defineEval({
         '',
         'evals/agent.eval.ts',
         '  ✗ agent  0/1 run at 100%  regression(1)',
-        '    #1  0%  "toPass ok?" failed',
-        '      judge score 0.30 is below 0.8 for "ok?" (fake) · evals/agent.eval.ts:7',
+        '    #1  0%  not ok',
+        '      after turn 1',
+        '      at task (evals/agent.eval.ts:8:11)',
         '    Snapshot: <path>',
         '',
         'evals/passes.eval.ts',
@@ -1016,32 +913,6 @@ export default defineEval({
     )
     assert.ok(existsSync(join(p.dir, (out.at(-1) ?? '').replace(/^.* · summary /, ''))))
     assert.ok(!r.stdout.includes('\x1b['))
-  })
-
-  test('a failing judge fails the eval as a judge error', async () => {
-    const p = await project('judge-fail', {
-      'reeval.config.ts': fakeConfig({ judge: '{ model: fakeJudge({ score: 0.3 }) }' }),
-      'evals/agent.eval.ts': agentEval(`expect(await c.judge('ok?', { diff: true })).toPass()`),
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 1)
-    assert.match(
-      r.stdout,
-      /^ {5}#1 {2}0% {2}"toPass ok\?" failed\n {7}judge score 0\.30 is below 0\.8 for "ok\?" \(fake\) · evals\/agent\.eval\.ts:7$/m,
-    )
-    const [e] = readRun(p.dir).evals
-    assert.equal(e?.trial.judgements[0]?.verdict, 'fail')
-    assert.equal(e?.error?.kind, 'judge')
-    const shown = await runCli(p.dir, ['show'])
-    assert.match(
-      shown.stdout,
-      /^ {4}#1 {2}0% {2}"toPass ok\?" failed\n {6}judge score 0\.30 is below 0\.8 for "ok\?" \(fake\) · evals\/agent\.eval\.ts:7$/m,
-    )
-    const summary = readRun(p.dir).read('summary.md')
-    assert.match(summary, /^## Judgments$/m)
-    assert.match(summary, /^\| ok \| ok\? \| 0\.8 \| .* \| 0\.30 \| 0 of 1 \|$/m)
-    assert.match(summary, /^## Failures and caveats$/m)
-    assert.match(summary, /^\| assertion \| toPass ok\? \|/m)
   })
 
   test('a model judge makes a real provider call: the request carries the question and transcript, the verdict the reply', async () => {
@@ -1077,23 +948,25 @@ export const model = gemini.evaluationModel('gemini-under-test')
       const p = await project('judge-model', {
         'reeval.config.ts': fakeConfig({ harness: `{ text: 'Hello, friend!' }` }),
         'evals/judge-model.ts': judgeModel,
-        'evals/friendly.eval.ts': `import { defineEval, expect } from 'reeval'
+        'evals/friendly.eval.ts': `import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 import { model } from './judge-model.ts'
 export default defineEval({
   judge: { model },
+  graders: [judge('Is the greeting friendly?', { inputs: { task: true, output: true } })],
   async task(c) {
     await c.send('greet me')
-    expect(await c.judge('Is the greeting friendly?', { task: true, output: true })).toPass()
   },
 })
 `,
-        'evals/canary.eval.ts': `import { defineEval, expect } from 'reeval'
+        'evals/canary.eval.ts': `import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 import { model } from './judge-model.ts'
 export default defineEval({
   judge: { model },
+  graders: [judge('Is the greeting in French?', { inputs: { task: true, output: true } })],
   async task(c) {
     await c.send('greet me')
-    expect(await c.judge('Is the greeting in French?', { task: true, output: true })).toPass()
   },
 })
 `,
@@ -1101,14 +974,13 @@ export default defineEval({
       const r = await runCli(p.dir)
       assert.equal(r.code, 1, r.stdout + r.stderr)
       const byName = Object.fromEntries(readRun(p.dir).evals.map((e) => [e.name, e]))
-      const friendly = byName.friendly?.trial.judgements[0]
+      const friendly = byName.friendly?.trial.grades?.[0]?.judge?.calls?.[0]
       assert.equal(byName.friendly?.outcome, 'pass', r.stdout)
-      assert.deepEqual([friendly?.verdict, friendly?.score], ['pass', 0.92])
+      assert.deepEqual([friendly?.answer, friendly?.probability], [true, 0.92])
       // @ai-sdk/google reports the model it asked for, not the reply's modelVersion.
       assert.equal(friendly?.resolvedModel, 'gemini-under-test')
       assert.equal(byName.canary?.outcome, 'fail')
-      assert.equal(byName.canary?.error?.kind, 'judge')
-      assert.equal(byName.canary?.trial.judgements[0]?.score, 0.12)
+      assert.equal(byName.canary?.trial.grades?.[0]?.score, 0)
 
       assert.equal(requests.length, 2, 'one call per judge, no retries')
       for (const req of requests) {
@@ -1119,358 +991,6 @@ export default defineEval({
     } finally {
       server.close()
     }
-  })
-
-  test('a judge that errors fails the eval as a judge error', async () => {
-    const p = await project('judge-error', {
-      'reeval.config.ts': fakeConfig(),
-      'evals/agent.eval.ts': agentEval(
-        `await c.judge('ok?', { model: 'no-provider', diff: true })`,
-      ),
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 1)
-    assert.match(r.stdout, /needs a provider prefix/)
-    assert.equal(readRun(p.dir).evals[0]?.error?.kind, 'judge')
-  })
-
-  const judgeInputs = (e: ReturnType<typeof readRun>['evals'][number] | undefined) =>
-    JSON.parse(e?.read(e.trial.files.judgeInput?.path ?? '') ?? '[]') as Array<{
-      question: string
-      state: Record<string, unknown>
-      dropped?: string[]
-      error?: string
-      retries?: unknown[]
-    }>
-
-  test('a judge call that fails is recorded, and the judges and checks after it still run', async () => {
-    const p = await project('judge-soft', {
-      'reeval.config.ts': fakeConfig(),
-      'evals/agent.eval.ts': agentEval(`
-  const failed = await c.judge('first?', { model: 'no-provider', diff: true })
-  expect(failed).toMatchObject({ verdict: 'error', score: null, question: 'first?' })
-  expect(failed, 'an errored judge fails .not.toPass() too').not.toPass()
-  expect(await c.judge('second?', { diff: true })).toPass()
-  await expect(c.exec('echo checked')).toSucceed()
-`),
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 1, r.stdout + r.stderr)
-    const [e] = readRun(p.dir).evals
-    assert.equal(e?.error?.kind, 'judge')
-    assert.match(
-      e?.error?.message ?? '',
-      /judge failed for "first\?" \(no-provider\): The judge model needs a provider prefix, .*\(got "no-provider"\)/,
-    )
-    assert.deepEqual(
-      e?.trial.judgements.map((j) => [j.question, j.verdict]),
-      [['second?', 'pass']],
-    )
-    assert.deepEqual(
-      e?.trial.checks.map((c) => c.command),
-      ['echo checked'],
-    )
-    const inputs = judgeInputs(e)
-    assert.deepEqual(
-      inputs.map((i) => i.question),
-      ['first?', 'second?'],
-    )
-    assert.match(inputs[0]?.error ?? '', /needs a provider prefix/)
-    assert.doesNotMatch(
-      inputs[0]?.error ?? '',
-      /judge's input was/,
-      'reeval’s own errors say no more',
-    )
-    assert.equal(inputs[1]?.error, undefined)
-  })
-
-  test("judgment keys and judge inputs follow the calls' order, whichever finishes first or fails", async () => {
-    const p = await project('judge-call-order', {
-      'reeval.config.ts': fakeConfig({ harness: `{ files: { 'a.txt': 'hi\\n' } }` }),
-      'evals/agent.eval.ts': agentEval(`
-  await c.judge('foreign?', { output: true, on: { exec() {} } as never }).catch(() => {})
-  await c.judge('failed?', { model: 'no-provider', diff: true })
-  const [style, greets] = await Promise.all([
-    c.judge('style?', { contents: ['a.txt'] }),
-    c.judge('greets?', { diff: true }),
-  ])
-  expect(style).toPass()
-  expect(greets).toPass()
-  await Promise.all([
-    c.judge('late?', { model: 'no-provider', contents: ['a.txt'] }),
-    c.judge('early?', { model: 'no-provider', diff: true }),
-  ])
-`),
-    })
-    await runCli(p.dir)
-    const [e] = readRun(p.dir).evals
-    assert.deepEqual(
-      e?.trial.judgements.map((j) => [j.question, j.key.split(':')[0]]),
-      [
-        ['style?', '2'],
-        ['greets?', '3'],
-      ],
-    )
-    assert.deepEqual(
-      judgeInputs(e).map((i) => i.question),
-      ['failed?', 'style?', 'greets?', 'late?', 'early?'],
-    )
-    assert.deepEqual(
-      [...(e?.error?.message ?? '').matchAll(/c\.judge\("(\w+\?)"\) failed/g)].map((m) => m[1]),
-      ['failed?', 'late?', 'early?'],
-      'the failures are listed in call order',
-    )
-    assert.equal(
-      'call' in (judgeInputs(e)[0] ?? {}),
-      false,
-      "the call's place stays out of the judge input",
-    )
-  })
-
-  test('a judge failure the eval never asserts on still fails the attempt, after its body', async () => {
-    const p = await project('judge-unasserted', {
-      'reeval.config.ts': fakeConfig(),
-      'evals/agent.eval.ts': agentEval(`
-  await c.judge('first?', { model: 'no-provider', diff: true })
-  await c.judge('again?', { model: 'no-provider', diff: true })
-  await c.exec('echo after')
-`),
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 1, r.stdout + r.stderr)
-    const [e] = readRun(p.dir).evals
-    assert.equal(e?.error?.kind, 'judge')
-    assert.match(e?.error?.message ?? '', /^2 judge calls failed:\nc\.judge\("first\?"\) failed: /)
-    assert.match(e?.error?.message ?? '', /\nc\.judge\("again\?"\) failed: /)
-    assert.deepEqual(
-      e?.trial.checks.map((c) => c.command),
-      ['echo after'],
-    )
-  })
-
-  test("a check that fails after a failing verdict the eval didn't assert is the check's error", async () => {
-    const p = await project('judge-informational', {
-      'reeval.config.ts': fakeConfig({ judge: '{ model: fakeJudge({ score: 0.2 }) }' }),
-      'evals/unasserted.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task(c) {
-  await c.send('go')
-  await c.judge('nice?', { diff: true })
-  await expect(c.exec('exit 3'), 'tests pass').toSucceed()
-} })
-`,
-      'evals/asserted-not.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task(c) {
-  await c.send('go')
-  expect(await c.judge('nice?', { diff: true })).not.toPass()
-  await expect(c.exec('exit 3'), 'tests pass').toSucceed()
-} })
-`,
-      'evals/judge-first.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task(c) {
-  await c.send('go')
-  expect(await c.judge('nice?', { diff: true })).toPass()
-  await expect(c.exec('exit 3'), 'tests pass').toSucceed()
-} })
-`,
-      'evals/canary.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task(c) {
-  await c.send('go')
-  await expect(c.exec('exit 0'), 'tests pass').toSucceed()
-  expect(await c.judge('nice?', { diff: true })).toPass()
-} })
-`,
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 1, r.stdout + r.stderr)
-    const run = readRun(p.dir)
-    const byName = Object.fromEntries(run.evals.map((e) => [e.name, e]))
-    for (const name of ['unasserted', 'asserted-not', 'judge-first']) {
-      const e = byName[name]
-      assert.equal(e?.trial.judgements[0]?.verdict, 'fail', name)
-      assert.equal(e?.error?.kind, 'assertion', name)
-      assert.match(e?.error?.message ?? '', /^tests pass: expected command to succeed/, name)
-    }
-    assert.equal(byName.canary?.error?.kind, 'judge', 'a failed toPass is the judge’s')
-    const summary = run.read('summary.md')
-    assert.match(summary, /^#{2,3} Failures and caveats$/m)
-    assert.equal(
-      summary.match(/\| assertion \| tests pass \|/g)?.length,
-      3,
-      'each check failure is shown',
-    )
-  })
-
-  test('a failed check fails the attempt as itself beside a failed toPass, in either order', async () => {
-    const p = await project('judge-beside-check', {
-      'reeval.config.ts': fakeConfig({ judge: '{ model: fakeJudge({ score: 0.2 }) }' }),
-      'evals/check-then-judge.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task(c) {
-  await c.send('go')
-  await expect(c.exec('exit 3'), 'tests pass').toSucceed()
-  expect(await c.judge('nice?', { diff: true })).toPass()
-} })
-`,
-      'evals/judge-then-erroring-check.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task(c) {
-  await c.send('go')
-  expect(await c.judge('nice?', { diff: true })).toPass()
-  await expect(42 as never, 'tests pass').toSucceed()
-} })
-`,
-      'evals/caught-check.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task(c) {
-  await c.send('go')
-  try {
-    await expect.require(c.exec('exit 3'), 'optional').toSucceed()
-  } catch {}
-  expect(await c.judge('nice?', { diff: true })).toPass()
-} })
-`,
-      'evals/caught-check-alone.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task(c) {
-  await c.send('go')
-  try {
-    await expect.require(c.exec('exit 3'), 'optional').toSucceed()
-  } catch {}
-} })
-`,
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 1, r.stdout + r.stderr)
-    const byName = Object.fromEntries(readRun(p.dir).evals.map((e) => [e.name, e]))
-    const alone = byName['caught-check-alone']
-    assert.equal(alone?.outcome, 'fail', 'a body that returns after a caught check fails')
-    assert.equal(alone?.error?.kind, 'assertion')
-    const check = byName['check-then-judge']?.error
-    assert.equal(check?.kind, 'assertion')
-    assert.match(check?.message ?? '', /^tests pass: expected command to succeed/)
-    const erroring = byName['judge-then-erroring-check']?.error
-    assert.equal(erroring?.kind, 'assertion', 'a check that errored didn’t hold either')
-    assert.match(erroring?.message ?? '', /toSucceed\(\) expects/)
-    const caught = byName['caught-check']?.error
-    assert.equal(caught?.kind, 'assertion', 'a caught check still fails the attempt, as itself')
-    assert.match(
-      caught?.message ?? '',
-      /^optional: expected command to succeed[\s\S]*\(the eval caught this failed check, which still fails the attempt; to wait or retry, use expect\.poll\)$/,
-    )
-    assert.match(
-      r.stdout,
-      /expected command to succeed, exit code 3 · evals\/check-then-judge\.eval\.ts:\d+/,
-    )
-  })
-
-  test("a caught expect.require of a chai matcher fails the attempt with chai's message and diff everywhere", async () => {
-    const p = await project('caught-chai-require', {
-      'reeval.config.ts': fakeConfig(),
-      'evals/caught.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task() {
-  try {
-    expect.require({ a: 1, b: 'seen' }, 'shape').toEqual({ a: 1, b: 'wanted' })
-  } catch {}
-} })
-`,
-      'evals/uncaught.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task() {
-  expect.require({ a: 1, b: 'seen' }, 'shape').toEqual({ a: 1, b: 'wanted' })
-} })
-`,
-    })
-    const message = "shape: expected { a: 1, b: 'seen' } to deeply equal { a: 1, b: 'wanted' }"
-    const hint =
-      ' (the eval caught this failed check, which still fails the attempt; to wait or retry, use expect.poll)'
-    const diff =
-      '- Expected\n+ Received\n\n  {\n    "a": 1,\n-   "b": "wanted",\n+   "b": "seen",\n  }'
-    const verbose = await runCli(p.dir, ['run', '-v', '--events', '--concurrency', '1'])
-    assert.equal(verbose.code, 1, verbose.stdout + verbose.stderr)
-    const agent = await runCli(p.dir, ['run'], { env: { REEVAL_UI: 'agent' } })
-    assert.equal(agent.code, 1, agent.stdout + agent.stderr)
-    for (const output of [verbose.stdout, verbose.stderr, agent.stdout, agent.stderr]) {
-      assert.doesNotMatch(output, /TypeError|only a getter/)
-    }
-    assert.ok(verbose.stdout.includes(`[caught#1 fake]`), verbose.stdout)
-    assert.ok(
-      verbose.stdout.includes(`outcome fail · assertion: ${message}${hint}`),
-      verbose.stdout,
-    )
-    assert.ok(agent.stdout.includes(message.replace('shape: ', '')), agent.stdout)
-    const { run, read } = readRun(p.dir, { back: 1 })
-    const byName = Object.fromEntries(run.evals.map((e) => [e.id, e.attempts[0]]))
-    assert.deepEqual(byName.caught?.error, { kind: 'assertion', message: `${message}${hint}` })
-    // Twin: the same check uncaught fails as chai's error, without the hint.
-    assert.deepEqual(byName.uncaught?.error, { kind: 'assertion', message })
-    assert.ok(read('summary.md').includes(`${message}${hint}`), read('summary.md'))
-    const events = readFileSync(join(p.dir, '.reeval', 'events', `${run.runId}.ndjson`), 'utf8')
-    const failed = events
-      .split('\n')
-      .filter(Boolean)
-      .map((line) => JSON.parse(line))
-      .flatMap((e) => (e.result?.formattedErrors ? [e.result] : []))
-    assert.equal(failed.length, 2, events)
-    for (const result of failed) {
-      assert.equal(result.errorName, 'AssertionError')
-      // biome-ignore lint/suspicious/noControlCharactersInRegex: the formatted error is colored
-      assert.ok(result.formattedErrors[0].replace(/\u001b\[\d+m/g, '').includes(diff))
-    }
-    const debug = join(p.dir, '.reeval', 'debug', run.runId)
-    const logs = readdirSync(debug, { recursive: true, encoding: 'utf8' }).filter((f) =>
-      f.endsWith('debug.log'),
-    )
-    const caughtLog = logs.find((f) => /caught/.test(f) && !/uncaught/.test(f))
-    assert.ok(caughtLog, logs.join(', '))
-    assert.ok(readFileSync(join(debug, caughtLog), 'utf8').includes(`${message}${hint}`))
-  })
-
-  test('each call shows only its own inputs, diff narrowed by its patterns; build output is dropped', async () => {
-    const p = await project('judge-scope', {
-      'reeval.config.ts': fakeConfig({
-        harness: `{ files: { 'src/app.ts': 'export const app = 1\\n', 'notes.md': 'notes\\n', 'dist/app.js': 'bundle\\n' } }`,
-      }),
-      'evals/scope.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
-import { fakeSandbox } from 'reeval/sandbox'
-const env = defineEnvironment('scoped', { sandbox: fakeSandbox(), files: { 'README.md': 'the readme\\n' } })
-export default defineEval({
-  environment: env,
-  async task(c) {
-    await c.send('go')
-    expect(await c.judge('narrowed', { files: true, diff: ['src/'] })).toPass()
-    expect(await c.judge('in full', { files: true, diff: true, contents: ['README.md', './src/app.ts'] })).toPass()
-    expect(await c.judge('a missing file', { contents: ['gone.txt'] })).toPass()
-  },
-})
-`,
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 0, r.stdout + r.stderr)
-    const [fromConfig, fromCall, missing] = judgeInputs(readRun(p.dir).evals[0])
-    assert.deepEqual(fromConfig?.state.files, ['added src/app.ts'])
-    assert.match(String(fromConfig?.state.diff), /\+export const app = 1/)
-    assert.doesNotMatch(String(fromConfig?.state.diff), /notes|dist/)
-    assert.deepEqual(fromConfig?.dropped, [
-      "dist/app.js: not in diff's patterns",
-      "notes.md: not in diff's patterns",
-    ])
-    assert.equal(fromConfig?.state.contents, undefined)
-
-    assert.deepEqual(fromCall?.state.files, [
-      'added notes.md',
-      'added src/app.ts',
-      'changed dist/ (1 file)',
-    ])
-    assert.match(
-      String(fromCall?.state.diff),
-      /\[reeval: dropped dist\/ \(1 file\): build output\]/,
-    )
-    assert.match(String(fromCall?.state.diff), /\+notes/)
-    assert.doesNotMatch(String(fromCall?.state.diff), /export const app/, 'shown once, in full')
-    assert.deepEqual(fromCall?.state.contents, {
-      'README.md': 'the readme\n',
-      'src/app.ts': 'export const app = 1\n',
-    })
-    assert.deepEqual(fromCall?.dropped, ['dist/ (1 file): build output'])
-
-    assert.deepEqual(missing?.state.contents, { 'gone.txt': null })
-    assert.equal(missing?.state.files, undefined, 'files is off unless the call turns it on')
-    assert.equal(missing?.state.diff, undefined)
   })
 
   test("a provider's error keeps its wording and names what filled the judge's input", async () => {
@@ -1487,26 +1007,25 @@ export default defineEval({
       ).href
       const p = await project('judge-provider-overflow', {
         'reeval.config.ts': fakeConfig({ harness: `{ files: { 'src/app.ts': 'export {}\\n' } }` }),
-        'evals/agent.eval.ts': `import { defineEval, expect } from 'reeval'
+        'evals/agent.eval.ts': `import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 import { createTypeSafeAi } from '${typesafe}'
 const jev = createTypeSafeAi({ baseURL: 'http://127.0.0.1:${port}/v1', apiKey: 'reeval-test-key' })
 export default defineEval({
+  graders: [judge('Is it done?', { model: jev.evaluationModel('jev-under-test'), inputs: { diff: true } })],
   async task(c) {
     await c.send('go')
-    expect(await c.judge('Is it done?', { model: jev.evaluationModel('jev-under-test'), diff: true })).toPass()
   },
 })
 `,
       })
       const r = await runCli(p.dir)
       assert.equal(r.code, 1, r.stdout + r.stderr)
-      const [e] = readRun(p.dir).evals
-      assert.equal(e?.error?.kind, 'judge')
+      const [grade] = readRun(p.dir).evals[0]?.trial.grades ?? []
       assert.match(
-        e?.error?.message ?? '',
-        /\{"error_type":"max_tokens_exceeded"\}\nThe judge's input was ~\d+ tokens \(estimated\): diff \d+\. Narrow diff\.$/,
+        grade?.error ?? '',
+        /^typesafe\.decision\/jev-under-test: \{"error_type":"max_tokens_exceeded"\}\nThe judge's input was ~\d+ tokens \(estimated\): diff \d+\. Narrow diff\.$/,
       )
-      assert.equal(judgeInputs(e)[0]?.retries, undefined, 'not retried')
     } finally {
       server.close()
     }
@@ -1539,11 +1058,12 @@ export default defineEval({
         seen.length = 0
         const p = await project('judge-direct', {
           'reeval.config.ts': fakeConfig(),
-          'evals/agent.eval.ts': `import { defineEval, expect } from 'reeval'
+          'evals/agent.eval.ts': `import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 export default defineEval({
+  graders: [judge('Is it done?', { model: '${model}', inputs: { diff: true } })],
   async task(c) {
     await c.send('go')
-    expect(await c.judge('Is it done?', { model: '${model}', diff: true })).toPass()
   },
 })
 `,
@@ -1552,7 +1072,11 @@ export default defineEval({
           env: { ...env, AI_GATEWAY_API_KEY: 'reeval-gateway-key' },
         })
         assert.equal(r.code, 1, r.stdout + r.stderr)
-        assert.equal(readRun(p.dir).evals[0]?.error?.kind, 'judge', model)
+        assert.match(
+          readRun(p.dir).evals[0]?.trial.grades?.[0]?.error ?? '',
+          /Unauthorized|test key/,
+          model,
+        )
         assert.equal(seen.length, 1, `${model} reached the provider's own endpoint once`)
         assert.match(String(seen[0]?.headers[header]), /reeval-direct-key/, model)
       }
@@ -1564,7 +1088,8 @@ export default defineEval({
   test('a judge call retries a transient provider error and records it', async () => {
     const p = await project('judge-retry', {
       'reeval.config.ts': fakeConfig(),
-      'evals/agent.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/agent.eval.ts': `import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 let calls = 0
 const flaky = {
   specificationVersion: 'v4',
@@ -1579,293 +1104,27 @@ const flaky = {
   },
 }
 export default defineEval({
+  graders: [judge('ok?', { model: flaky, inputs: { diff: true } })],
   async task(c) {
     await c.send('x')
-    expect(await c.judge('ok?', { model: flaky, diff: true })).toPass()
   },
 })
 `,
     })
     const r = await runCli(p.dir)
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    const [j] = readRun(p.dir).evals[0]?.trial.judgements ?? []
-    assert.equal(j?.verdict, 'pass')
+    const [j] = readRun(p.dir).evals[0]?.trial.grades?.[0]?.judge?.calls ?? []
+    assert.equal(j?.answer, true)
     assert.equal(j?.model, 'mock/flaky')
     assert.equal(j?.retries?.length, 1)
     assert.equal(j?.retries?.[0]?.error, 'The model is overloaded due to high demand')
-    const summary = readRun(p.dir).read('summary.md')
-    assert.match(summary, /^## Judgments$/m)
-    assert.match(summary, /^\| ok \| ok\? \| 0\.8 \| .* \| 0\.90 \| 1 of 1 \|$/m)
-    assert.match(summary, /\| Judge \| fake \(served flaky\) /)
-  })
-
-  const providerError = (status: number, message: string) =>
-    `fakeJudge({ score: () => { throw Object.assign(new Error('${message}'), { statusCode: ${status} }) } })`
-  const outage = providerError(429, 'rate limit exceeded')
-
-  test('a judge call the provider never answered is an infra error, asserted or not', async () => {
-    const p = await project('judge-outage', {
-      'reeval.config.ts': fakeConfig(),
-      'evals/outage-shared.ts': `import type { AttemptContext } from 'reeval'
-import { fakeJudge } from 'reeval/judge'
-const outage = ${outage}
-export const asked = (c: AttemptContext) => c.judge('Is it done?', { model: outage, diff: true })
-`,
-      'evals/asserted-pass.eval.ts': `import { defineEval, expect } from 'reeval'
-import { asked } from './outage-shared.ts'
-export default defineEval({ async task(c) { await c.send('go'); expect(await asked(c)).toPass() } })
-`,
-      'evals/labeled-pass.eval.ts': `import { defineEval, expect } from 'reeval'
-import { asked } from './outage-shared.ts'
-export default defineEval({ async task(c) { await c.send('go'); expect(await asked(c), 'done').toPass() } })
-`,
-      'evals/negated-pass.eval.ts': `import { defineEval, expect } from 'reeval'
-import { asked } from './outage-shared.ts'
-export default defineEval({ async task(c) { await c.send('go'); expect(await asked(c)).not.toPass() } })
-`,
-      'evals/unasserted.eval.ts': `import { defineEval } from 'reeval'
-import { asked } from './outage-shared.ts'
-export default defineEval({ async task(c) { await c.send('go'); await asked(c) } })
-`,
-      'evals/asserted-fail.eval.ts': `import { defineEval, expect } from 'reeval'
-import { asked } from './outage-shared.ts'
-export default defineEval({ async task(c) { await c.send('go'); await asked(c); expect(await asked(c)).toPass() } })
-`,
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 3, r.stdout + r.stderr)
-    const { run } = readRun(p.dir)
-    for (const e of run.evals) {
-      const [attempt] = e.attempts
-      assert.equal(attempt?.outcome, 'infra_error', e.name)
-      assert.equal(attempt?.error?.kind, 'infra', e.name)
-      assert.match(attempt?.error?.message ?? '', /rate limit exceeded/, e.name)
-      assert.doesNotMatch(attempt?.error?.message ?? '', /judge's input was/, e.name)
-    }
-  })
-
-  test("a judge call that fails for the eval's own reason, or beside another failure, stays a fail", async () => {
-    const p = await project('judge-outage-not', {
-      'reeval.config.ts': fakeConfig(),
-      'evals/outage-not-shared.ts': `import type { AttemptContext } from 'reeval'
-import { fakeJudge } from 'reeval/judge'
-export const outage = ${outage}
-export const refused = ${providerError(401, 'invalid x-api-key')}
-export const overLimit = ${providerError(429, 'Request too large for gpt-4o on tokens per min (TPM): Limit 30000, Requested 45000')}
-export const down = () => { throw Object.assign(new Error('rate limit exceeded'), { statusCode: 429 }) }
-export const no = fakeJudge({ score: 0.1 })
-export const yes = fakeJudge({ score: 0.9 })
-export const ask = (c: AttemptContext, model: unknown) => c.judge('Is it done?', { model: model as never, diff: true })
-`,
-      'evals/refused.eval.ts': `import { defineEval, expect } from 'reeval'
-import { ask, refused } from './outage-not-shared.ts'
-export default defineEval({ async task(c) { await c.send('go'); expect(await ask(c, refused)).toPass() } })
-`,
-      'evals/refused-and-down.eval.ts': `import { defineEval } from 'reeval'
-import { ask, outage, refused } from './outage-not-shared.ts'
-export default defineEval({ async task(c) { await c.send('go'); await ask(c, refused); await ask(c, outage) } })
-`,
-      'evals/answered-no.eval.ts': `import { defineEval, expect } from 'reeval'
-import { ask, no, outage } from './outage-not-shared.ts'
-export default defineEval({ async task(c) { await c.send('go'); await ask(c, outage); expect(await ask(c, no)).toPass() } })
-`,
-      'evals/negated-yes.eval.ts': `import { defineEval, expect } from 'reeval'
-import { ask, outage, yes } from './outage-not-shared.ts'
-export default defineEval({ async task(c) { await c.send('go'); await ask(c, outage); expect(await ask(c, yes)).not.toPass() } })
-`,
-      'evals/check-failed.eval.ts': `import { defineEval, expect } from 'reeval'
-import { ask, outage } from './outage-not-shared.ts'
-export default defineEval({ async task(c) { await c.send('go'); expect(await ask(c, outage)).toPass(); expect(1).toBe(2) } })
-`,
-      'evals/over-the-limit.eval.ts': `import { defineEval, expect } from 'reeval'
-import { ask, overLimit } from './outage-not-shared.ts'
-export default defineEval({ async task(c) { await c.send('go'); expect(await ask(c, overLimit)).toPass() } })
-`,
-      'evals/polled-no-then-down.eval.ts': `import { defineEval, expect } from 'reeval'
-import { fakeJudge } from 'reeval/judge'
-import { ask, down } from './outage-not-shared.ts'
-export default defineEval({
-  async task(c) {
-    await c.send('go')
-    let tries = 0
-    const noThenDown = fakeJudge({ score: () => (tries++ < 2 ? 0.1 : down()) })
-    await expect.poll(() => ask(c, noThenDown), { timeout: 400, interval: 100 }).toPass()
-  },
-})
-`,
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 1, r.stdout + r.stderr)
-    const kinds = Object.fromEntries(
-      readRun(p.dir).evals.map((e) => [
-        e.name,
-        [e.attempts[0]?.outcome, e.attempts[0]?.error?.kind],
-      ]),
-    )
-    assert.deepEqual(kinds, {
-      refused: ['fail', 'judge'],
-      'refused-and-down': ['fail', 'judge'],
-      'answered-no': ['fail', 'judge'],
-      'negated-yes': ['fail', 'judge'],
-      'check-failed': ['fail', 'assertion'],
-      'over-the-limit': ['fail', 'judge'],
-      'polled-no-then-down': ['fail', 'judge'],
-    })
-    const refusedError = readRun(p.dir).evals.find((e) => e.name === 'refused')?.error?.message
-    assert.match(refusedError ?? '', /invalid x-api-key\nThe judge's input was ~\d+ tokens/)
-    const overError = readRun(p.dir).evals.find((e) => e.name === 'over-the-limit')?.error?.message
-    assert.match(overError ?? '', /Requested 45000\nThe judge's input was ~\d+ tokens/)
-  })
-
-  test('c.judge before any turn is an assertion error', async () => {
-    const p = await project('judge-early', {
-      'reeval.config.ts': fakeConfig(),
-      'evals/j.eval.ts': `import { defineEval } from 'reeval'
-export default defineEval({ async task(c) { await c.judge('?', { diff: true }) } })
-`,
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 1)
-    assert.match(r.stdout, /c\.judge\(\) has no turn to grade/)
-  })
-
-  test('c.judge with an empty question or a threshold outside 0…1 fails without asking the judge', async () => {
-    const p = await project('judge-bad-call', {
-      'reeval.config.ts': fakeConfig(),
-      'evals/empty.eval.ts': `import { defineEval } from 'reeval'
-export default defineEval({ async task(c) { await c.send('go'); await c.judge('  ', { diff: true }) } })
-`,
-      'evals/over-one.eval.ts': `import { defineEval } from 'reeval'
-export default defineEval({ async task(c) { await c.send('go'); await c.judge('Is it ok?', { threshold: 2, diff: true }) } })
-`,
-      'evals/fine.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task(c) { await c.send('go'); expect(await c.judge('Is it ok?', { threshold: 0.5, diff: true })).toPass() } })
-`,
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 1, r.stdout + r.stderr)
-    assert.match(r.stdout, /c\.judge\(\) needs a question: a non-empty string \(got " {2}"\)/)
-    assert.match(r.stdout, /c\.judge\(\) threshold must be between 0 and 1 \(got 2\)/)
-    const judged = Object.fromEntries(
-      readRun(p.dir).evals.map((e) => [e.name, e.attempts[0]?.judgements.length]),
-    )
-    // The canary: a valid call is judged, so a count of 0 means the bad ones never reached it.
-    assert.deepEqual(judged, { empty: 0, 'over-one': 0, fine: 1 })
-  })
-
-  test("c.judge refuses an unknown option, no input, a command it hasn't run, on without output and artifacts with no captures", async () => {
-    const p = await project('judge-state-call', {
-      'reeval.config.ts': fakeConfig(),
-      'evals/unknown.eval.ts': `import { defineEval } from 'reeval'
-export default defineEval({ async task(c) { await c.send('go'); await c.judge('ok?', { dif: true } as never) } })
-`,
-      'evals/nothing.eval.ts': `import { defineEval } from 'reeval'
-export default defineEval({ async task(c) { await c.send('go'); await c.judge('ok?', { threshold: 0.5 } as never) } })
-`,
-      'evals/no-options.eval.ts': `import { defineEval } from 'reeval'
-export default defineEval({ async task(c) { await c.send('go'); await (c.judge as (q: string) => Promise<unknown>)('ok?') } })
-`,
-      'evals/no-captures.eval.ts': `import { defineEval } from 'reeval'
-export default defineEval({ async task(c) { await c.send('go'); await c.judge('ok?', { artifacts: true }) } })
-`,
-      'evals/not-run.eval.ts': `import { defineEval } from 'reeval'
-export default defineEval({ async task(c) { await c.send('go'); await c.judge('ok?', { checks: ['npm tset'] }) } })
-`,
-      'evals/on-off.eval.ts': `import { defineEval } from 'reeval'
-export default defineEval({ async task(c) { await c.send('go'); await c.judge('ok?', { on: 'x', diff: true }) } })
-`,
-      'evals/fine.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task(c) { await c.send('go'); expect(await c.judge('ok?', { output: true })).toPass() } })
-`,
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 1, r.stdout + r.stderr)
-    assert.match(r.stdout, /Unknown judge option "dif" in c\.judge\(\)\. Did you mean "diff"\?/)
-    assert.match(r.stdout, /c\.judge\(\) shows the judge nothing: turn on at least one input/)
-    assert.match(
-      r.stdout,
-      /c\.judge\(\) options must be an object such as \{ diff: true \} \(got undefined\)/,
-    )
-    assert.match(
-      r.stdout,
-      /c\.judge\(\) artifacts: true shows the judge nothing yet: this attempt has no captures/,
-    )
-    assert.match(
-      r.stdout,
-      /c\.judge\(\) checks names a command this attempt hasn't run: "npm tset"/,
-    )
-    assert.match(
-      r.stdout,
-      /c\.judge\(\) on gives a value to grade as the output, but output is off/,
-    )
-    const judged = Object.fromEntries(
-      readRun(p.dir).evals.map((e) => [e.name, e.attempts[0]?.judgements.length]),
-    )
-    // The canary: a valid call is judged, so a count of 0 means the bad ones never reached it.
-    assert.deepEqual(judged, {
-      unknown: 0,
-      nothing: 0,
-      'no-options': 0,
-      'no-captures': 0,
-      'not-run': 0,
-      'on-off': 0,
-      fine: 1,
-    })
-  })
-
-  test('the judge gets all of what its inputs select, however big', async () => {
-    const big = 'x'.repeat(400_000)
-    const p = await project('judge-big-input', {
-      'reeval.config.ts': fakeConfig({ harness: `{ files: { 'big.txt': '${big}' } }` }),
-      'evals/j.eval.ts': `import { defineEval, expect } from 'reeval'
-import { fakeJudge } from 'reeval/judge'
-export default defineEval({
-  async task(c) {
-    await c.send('x'.repeat(40_000))
-    let size = 0
-    const look = fakeJudge({ score: (s) => ((size = JSON.stringify(s).length), 1) })
-    expect(await c.judge('ok?', { model: look, task: true, contents: ['**'] })).toPass()
-    expect(size).toBeGreaterThan(440_000)
-  },
-})
-`,
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 0, r.stdout + r.stderr)
-    const [input] = judgeInputs(readRun(p.dir).evals[0])
-    assert.equal(input?.dropped, undefined)
-  })
-
-  test('c.judge artifacts must be a capture handle or name on this attempt', async () => {
-    const p = await project('judge-artifacts-call', {
-      'reeval.config.ts': fakeConfig(),
-      'evals/not-a-list.eval.ts': `import { defineEval } from 'reeval'
-export default defineEval({ async task(c) { await c.send('go'); await c.judge('ok?', { artifacts: 'form' as never }) } })
-`,
-      'evals/unknown-name.eval.ts': `import { defineEval } from 'reeval'
-export default defineEval({ async task(c) { await c.send('go'); await c.judge('ok?', { artifacts: ['missing'] }) } })
-`,
-      'evals/fine.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task(c) { await c.send('go'); expect(await c.judge('ok?', { diff: true })).toPass() } })
-`,
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 1, r.stdout + r.stderr)
-    assert.match(
-      r.stdout,
-      /c\.judge\(\) artifacts must be true or a list of capture handles or names/,
-    )
-    assert.match(r.stdout, /artifacts names a capture this attempt doesn't have: "missing"/)
-    const judged = Object.fromEntries(
-      readRun(p.dir).evals.map((e) => [e.name, e.attempts[0]?.judgements.length]),
-    )
-    assert.deepEqual(judged, { 'not-a-list': 0, 'unknown-name': 0, fine: 1 })
   })
 
   test('a failing check shows the tail of stderr', async () => {
     const p = await project('check-fail', {
       'reeval.config.ts': fakeConfig(),
-      'evals/agent.eval.ts': agentEval(`await expect(c.exec('echo boom >&2; exit 3')).toSucceed()`),
+      'evals/agent.eval.ts': agentEval(`const run = await c.exec('echo boom >&2; exit 3')
+  if (run.exitCode !== 0) throw new EvalError(\`exit code \${run.exitCode}\\n\${run.stderr}\`)`),
     })
     const r = await runCli(p.dir)
     assert.equal(r.code, 1)
@@ -1876,18 +1135,20 @@ export default defineEval({ async task(c) { await c.send('go'); expect(await c.j
   test('a failure with megabytes of output prints and records a bounded tail', async () => {
     const p = await project('huge-failure', {
       'reeval.config.ts': fakeConfig(),
-      'evals/noisy-check.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/noisy-check.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('go')
-    await expect(c.exec('head -c 3000000 /dev/zero | tr "\\\\0" b; echo boom >&2; exit 3')).toSucceed()
+    const run = await c.exec('head -c 3000000 /dev/zero | tr "\\\\0" b; echo boom >&2; exit 3')
+    throw new Error(\`exit code \${run.exitCode}\\n\${run.stderr}\${run.stdout}\`)
   },
 })
 `,
-      'evals/huge-assert.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/huge-assert.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task() {
-    expect('a'.repeat(3_000_000)).toBe('x')
+    assert.equal('a'.repeat(3_000_000), 'x')
   },
 })
 `,
@@ -1902,9 +1163,9 @@ export default defineEval({
       assert.ok(message.length <= 20_000, `${e.name}: a ${message.length}-character error`)
     }
     // The canary: what tells you why is still there, on screen and in the record.
-    assert.match(screen, /expected command to succeed, exit code 3/)
+    assert.match(screen, /exit code 3/)
     assert.match(screen, /boom/)
-    assert.match(screen, /to be 'x'/)
+    assert.match(screen, /Expected values to be strictly equal/)
     const noisy = run.evals.find((e) => e.name === 'noisy-check')?.attempts[0]?.error?.message
     assert.match(noisy ?? '', /exit code 3[\s\S]*boom[\s\S]*bbbb/)
   })
@@ -1913,7 +1174,7 @@ export default defineEval({
     const billing = 'The agent process exited with code 139: Segmentation fault'
     const p = await project('turn-error', {
       'reeval.config.ts': fakeConfig({ harness: `{ script: [[{ error: '${billing}' }]] }` }),
-      'evals/agent.eval.ts': agentEval(`expect(turn.status).toBe('completed')`),
+      'evals/agent.eval.ts': agentEval(`assert.equal(turn.status, 'completed')`),
     })
     const plain = await runCli(p.dir)
     assert.equal(plain.code, 1, plain.stdout + plain.stderr)
@@ -1970,83 +1231,6 @@ export default defineEval({
     assert.match(again.read('summary.md'), /\| Agents \| fake \|/)
   })
 
-  test('an unawaited toHaveFile or toSucceed fails its eval, and runs before teardown', async () => {
-    const p = await project('unawaited', {
-      'reeval.config.ts': fakeConfig(),
-      'evals/file.eval.ts': agentEval(`expect(turn).toHaveFile('missing.txt')`),
-      'evals/exec.eval.ts': agentEval(
-        `expect(c.exec('sleep 0.3; echo ran > late.txt')).toSucceed()`,
-      ),
-      'evals/awaited.eval.ts': agentEval(
-        `await expect(c.exec('exit 2')).not.toSucceed()\n  await expect(turn).not.toHaveFile('missing.txt')`,
-      ),
-    })
-    const r = await runCli(p.dir)
-    const out = r.stdout + r.stderr
-    assert.equal(r.code, 1, out)
-    const { run, evals } = readRun(p.dir)
-    const byName = Object.fromEntries(evals.map((e) => [e.name, e]))
-    assert.equal(byName.file?.trial.outcome, 'fail', out)
-    assert.equal(byName.file?.error?.kind, 'assertion')
-    assert.match(byName.file?.error?.message ?? '', /expected file missing\.txt to exist/)
-    assert.match(
-      byName.file?.error?.message ?? '',
-      /expect\(…\)\.toHaveFile\(\) at evals\/file\.eval\.ts:\d+ wasn't awaited\. Its check is async: write `await expect\(…\)\.toHaveFile\(\)`/,
-    )
-    // A check that would pass still fails its eval unawaited, and it finished before teardown.
-    assert.equal(byName.exec?.trial.outcome, 'fail', out)
-    assert.match(
-      byName.exec?.error?.message ?? '',
-      /toSucceed\(\) at evals\/exec\.eval\.ts:\d+ wasn't awaited/,
-    )
-    assert.equal(byName.exec?.trial.checks[0]?.exitCode, 0, 'the check completed')
-    assert.equal(byName.awaited?.trial.outcome, 'pass', out)
-    assert.equal(run.summary.fail, 2)
-    assert.doesNotMatch(
-      r.stdout.slice(r.stdout.search(/\n\n(pass|fail) /)),
-      /^error: /m,
-      'no stray error among the results',
-    )
-  })
-
-  test('a failed expect, expect.poll and expect.assertions work inside an attempt', async () => {
-    const p = await project('expect-extras', {
-      'reeval.config.ts': fakeConfig(),
-      'evals/soft.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task() { expect(1).toBe(2); expect(3).toBe(3) } })
-`,
-      'evals/counted.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task() { expect.assertions(2); expect(1).toBe(1) } })
-`,
-      'evals/polled.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({
-  async task() {
-    let n = 0
-    await expect.poll(() => ++n, { interval: 5 }).toBe(3)
-    expect(n).toBe(3)
-    expect.assertions(2)
-  },
-})
-`,
-      'evals/asserted-nothing.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task() { expect.hasAssertions() } })
-`,
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 1, r.stdout + r.stderr)
-    const byName = Object.fromEntries(readRun(p.dir).evals.map((e) => [e.name, e]))
-    assert.equal(byName.soft?.outcome, 'fail')
-    assert.match(byName.soft?.error?.message ?? '', /expected 1 to be 2/)
-    assert.equal(byName.counted?.outcome, 'fail')
-    assert.match(
-      byName.counted?.error?.message ?? '',
-      /expected number of assertions to be 2, but got 1/,
-    )
-    assert.equal(byName['asserted-nothing']?.outcome, 'fail')
-    // The canary: a poll that reaches its value, with the right count, passes.
-    assert.equal(byName.polled?.outcome, 'pass', r.stdout)
-  })
-
   test('an eval with not-gated cells labels its pass@1 gated; an all-gated one does not', async () => {
     const p = await project('gated-label', {
       'reeval.config.ts': fakeConfig({ harness: "{ withSkill: { files: { 'ok.txt': 'y' } } }" }),
@@ -2060,35 +1244,37 @@ export const skilled = defineEnvironment('skilled', ({ skill }) => ({
   skills: [skill.local('../skills/s')],
 }))
 `,
-      'evals/compared.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/compared.eval.ts': `import { defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
 import { plain, skilled } from './compare-env.ts'
 export default defineEval({
   compare: { control: plain, variants: [skilled] },
+  graders: [hasFile('ok.txt')],
   runs: 2,
   async task(c) {
     await c.send('go')
-    await expect(c).toHaveFile('ok.txt')
   },
 })
 `,
-      'evals/repeated.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/repeated.eval.ts': `import { defineEval, EvalError } from 'reeval'
 export default defineEval({
   runs: 4,
   async task(c) {
     await c.send('go')
-    expect(c.attempt.n % 4).not.toBe(0)
+    if (c.attempt.n % 4 === 0) throw new EvalError('every fourth fails')
   },
 })
 `,
-      'evals/studied.eval.ts': `import { defineEval, expect, metric } from 'reeval'
+      'evals/studied.eval.ts': `import { defineEval, metric } from 'reeval'
+import { hasFile } from 'reeval/graders'
 import { plain, skilled } from './compare-env.ts'
 export default defineEval({
   compare: { control: plain, variants: [skilled] },
   target: metric(),
+  graders: [hasFile('nope.txt')],
   runs: 2,
   async task(c) {
     await c.send('go')
-    await expect(c).toHaveFile('nope.txt')
   },
 })
 `,
@@ -2099,7 +1285,10 @@ export default defineEval({
       r.stdout,
       /evals\/compared\.eval\.ts\n└─ ✓ compared {2}2\/2 runs at 100% {2}regression\(1\)$/m,
     )
-    assert.match(r.stdout, /^ {5}arm +pass\n {5}plain +0 of 2\n {5}skilled +2 of 2 {2}helped$/m)
+    assert.match(
+      r.stdout,
+      /^ {5}arm +pass\n {5}plain +0 of 2\n {7}error {2}score 0\.00 below 1: has-file:ok\.txt scored 0\.00 \(2 runs\)\n {5}skilled +2 of 2 {2}helped$/m,
+    )
     assert.match(
       r.stdout,
       /evals\/repeated\.eval\.ts\n└─ ✗ repeated {2}3\/4 runs at 100%, worst 0% {2}regression\(1\)\n {5}#4 {2}0%/,
@@ -2108,7 +1297,7 @@ export default defineEval({
     assert.match(r.stdout, /evals\/studied\.eval\.ts\n└─ · studied {2}0% {2}metric\(\)$/m)
     assert.match(
       r.stdout,
-      /studied {2}0% {2}metric\(\)\n {5}arm +pass\n {5}plain +0 of 2\n {5}skilled +0 of 2 {2}same$/m,
+      /studied {2}0% {2}metric\(\)\n {5}arm +pass\n {5}plain +0 of 2\n {7}error .*\n {5}skilled +0 of 2 {2}same$/m,
     )
   })
 
@@ -2122,8 +1311,8 @@ export default defineEval({
   async task(c) { await c.send('go') },
 })
 `,
-      'evals/fine.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task() { expect(1).toBe(1) } })
+      'evals/fine.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({ async task() {} })
 `,
     })
     const started = Date.now()
@@ -2222,8 +1411,8 @@ export default defineEval({
   async task(c) { await c.send('go') },
 })
 `,
-      'evals/wrong-answer.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task() { expect(1).toBe(2) } })
+      'evals/wrong-answer.eval.ts': `import { defineEval, EvalError } from 'reeval'
+export default defineEval({ async task() { throw new EvalError('wrong answer') } })
 `,
       'evals/fine.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({ async task() {} })
