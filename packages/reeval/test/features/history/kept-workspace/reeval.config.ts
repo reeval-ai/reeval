@@ -19,6 +19,8 @@ export default defineConfig({
           },
         },
         { exec: 'chmod +x bin/run.sh' },
+        // Binary, so masking can't reach the token in it: the file is dropped.
+        { exec: `printf 'bin\\000${SECRET}\\n' > blob.bin` },
       ],
     ],
   }),

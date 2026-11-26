@@ -42,6 +42,7 @@ import {
 import { openArchive } from '../src/archive/index.ts'
 import { pngSize, stubPng } from '../src/capture/stub.ts'
 import { fakeBrokering } from '../src/harness/agents.ts'
+import { readTrajectory } from '../src/history/trajectory.ts'
 import type { RunRecord } from '../src/history/types.ts'
 import { sha256 } from '../src/ids.ts'
 import { runLabels, runPrefix } from '../src/sandbox/boat.ts'
@@ -3922,15 +3923,26 @@ export const features: Feature[] = [
     tiers: ['fake', 'docker'],
     env: 'plain',
     canary: /logs every step: expected \[.*\] to have a length of 5 but got 4001/s,
-    record: ({ run }) => {
-      const [log] = run.evals.find((e) => e.name === 'lands')?.attempts[0]?.observations ?? []
+    record: async ({ run, runDir }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      const [log] = attempt?.observations ?? []
       const value = 'compiled\n'.repeat(4000)
-      assert.deepEqual(log, {
-        name: 'build-log',
-        value,
-        turn: 1,
-        sha256: sha256(JSON.stringify(value)),
-      })
+      const json = JSON.stringify(value)
+      assert.match(log?.file?.path ?? '', /^lands-\w+\/[^/]+\/1\/observations\/1\.json$/)
+      assert.deepEqual(
+        log,
+        {
+          name: 'build-log',
+          value: null,
+          turn: 1,
+          sha256: sha256(json),
+          file: { path: log?.file?.path, sha256: sha256(json), bytes: json.length },
+        },
+        'past 4 KiB, the value is in a file beside the record',
+      )
+      assert.equal(readFileSync(join(runDir, log?.file?.path ?? ''), 'utf8'), json)
+      const t = attempt && (await readTrajectory(runDir, attempt))
+      assert.equal(t?.observations[0]?.value, value)
     },
   },
   {
@@ -3971,7 +3983,7 @@ export const features: Feature[] = [
     tiers: ['fake', 'docker'],
     env: 'plain',
     canary: /writes the app: expected file lib\/app\.js to exist/,
-    record: ({ run, runDir }) => {
+    record: ({ run, runDir, stdout }) => {
       const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
       const { workspace, workspaceManifest } = attempt?.files ?? {}
       assert.ok(workspace && workspaceManifest, 'files.workspace and files.workspaceManifest')
@@ -3982,9 +3994,13 @@ export const features: Feature[] = [
         bytes: archive.length,
         excluded: ['node_modules/'],
         masked: ['.env'],
-        dropped: [],
+        dropped: ['blob.bin'],
         skipped: null,
       })
+      assert.match(
+        stdout,
+        /workspace kept without a file the secret scan found something in: blob\.bin/,
+      )
       const manifest = JSON.parse(readFileSync(join(runDir, workspaceManifest.path), 'utf8'))
       assert.deepEqual(
         manifest.files.map((f: { path: string; executable?: true }) => [f.path, !!f.executable]),

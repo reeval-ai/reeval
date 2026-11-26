@@ -2886,7 +2886,7 @@
           "type": "number"
         },
         "dropped": {
-          "description": "Binary files left out because they held a secret-looking value, at most 50.",
+          "description": "Files left out because the secret scan found a value masking can't reach (in a binary or UTF-16 file, or in the path), at most 50.",
           "type": "array",
           "items": {
             "type": "string"
@@ -2911,7 +2911,7 @@
           }
         },
         "skipped": {
-          "description": "Why it wasn't kept: `size` when it was over 100 MiB compressed or the run's kept workspaces passed 5 GiB, `error` when the sandbox couldn't archive it; null when it was.",
+          "description": "Why it wasn't kept: `size` when it was over 200 MiB uncompressed, or with the attempt's large observed values over 100 MiB compressed, or the run's kept workspaces passed 5 GiB; `error` when the sandbox couldn't archive it; null when it was.",
           "anyOf": [
             {
               "type": "null"
@@ -3026,11 +3026,15 @@
       "description": "A `c.observe(name, value)` call: the last value given for the name.",
       "type": "object",
       "properties": {
+        "file": {
+          "description": "`observations/<n>.json` in the attempt's directory: the value's masked JSON, where it's over 4 KiB. It counts toward the attempt's 100 MiB beside its record.",
+          "$ref": "#/$defs/FileRef"
+        },
         "name": {
           "type": "string"
         },
         "sha256": {
-          "description": "sha256 of `value`'s JSON, masked. Absent on older records.",
+          "description": "sha256 of `value`'s JSON as recorded, masked. Absent on older records.",
           "type": "string"
         },
         "turn": {
@@ -3038,7 +3042,7 @@
           "type": "number"
         },
         "value": {
-          "description": "Masked like the rest of the record.",
+          "description": "Masked like the rest of the record; null where its masked JSON is over 4 KiB and kept in `file` instead.",
           "$ref": "#/$defs/JSONValue"
         }
       },

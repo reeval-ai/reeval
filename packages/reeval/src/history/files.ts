@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import {
+  copyFile,
   link,
   mkdir,
   readdir,
@@ -13,7 +14,10 @@ import {
 } from 'node:fs/promises'
 import { hostname } from 'node:os'
 import { dirname, join } from 'node:path'
+import { pipeline } from 'node:stream/promises'
 import { isDeepStrictEqual } from 'node:util'
+import { createGunzip } from 'node:zlib'
+import { readTarStream } from '@reeval/sandbox-docker'
 import { ArchiveError, openArchive, writeArchive } from '../archive/index.ts'
 import type { ArchiveManifest } from '../archive/types.ts'
 import { debugArchiveFile, debugRoot } from '../debug/files.ts'
@@ -32,7 +36,7 @@ import {
   type IgnoredRecorded,
   ignoredRecordedFiles,
 } from './ignore.ts'
-import { type Finding, findingLines, findingSummary, scanText } from './secret-scan.ts'
+import { type Finding, findingLines, findingSummary, scanBytes, scanText } from './secret-scan.ts'
 import { keptFacts, summaryFiles } from './summary.ts'
 import type {
   ArtifactLevel,
@@ -63,7 +67,7 @@ export const scratchDir = (root: string) => join(root, '.reeval', 'runs')
 const cacheFile = (root: string) => join(root, '.reeval', 'history-cache.json')
 const TEXT_FILE = /\.(json|jsonl|md|patch|log|txt)$/
 
-const isMissing = (error: unknown) => (error as NodeJS.ErrnoException).code === 'ENOENT'
+export const isMissing = (error: unknown) => (error as NodeJS.ErrnoException).code === 'ENOENT'
 
 /**
  * A file another process is writing, renaming or removing right now: Windows refuses to open or
@@ -347,8 +351,8 @@ const readIfThere = (path: string) =>
   })
 
 /**
- * Claims the run, then writes `<dir>/<runId>/` (artifacts, and the snapshots `moves` brings in
- * by renaming), then `<dir>/<runId>.json` (the record). The record lands last and create-only, so a reader never sees a half-written run, and
+ * Claims the run, then writes `<dir>/<runId>/` (artifacts, the snapshots `moves` brings in by
+ * renaming, and the files `copies` copies by path), then `<dir>/<runId>.json` (the record). The record lands last and create-only, so a reader never sees a half-written run, and
  * a run is never rewritten, except an interrupted or budget-stopped one by its resumed run, and a
  * finished one by its `--retry-errors`.
  */
@@ -357,9 +361,10 @@ export async function writeRun(
   record: RunRecord,
   artifacts: Map<string, Uint8Array>,
   moves: Map<string, string> = new Map(),
+  copies: Map<string, string> = new Map(),
 ): Promise<WrittenRun> {
   const recordPath = recordFile(dir, record.runId)
-  const artifactDir = artifacts.size > 0 ? runDir(dir, record.runId) : null
+  const artifactDir = artifacts.size + copies.size > 0 ? runDir(dir, record.runId) : null
   const bytes = encodeRecord(record)
   // A landed record is only ever removed by a writer replacing an unfinished one, so an equal
   // one needs no claim.
@@ -369,7 +374,7 @@ export async function writeRun(
   await mkdir(dir, { recursive: true })
   const release = await claimRun(dir, record.runId)
   try {
-    return await writeClaimed(dir, record.runId, bytes, artifacts, moves)
+    return await writeClaimed(dir, record.runId, bytes, artifacts, moves, copies)
   } finally {
     await release()
   }
@@ -401,9 +406,10 @@ async function writeClaimed(
   bytes: Buffer,
   artifacts: Map<string, Uint8Array>,
   moves: Map<string, string>,
+  copies: Map<string, string>,
 ): Promise<WrittenRun> {
   const recordPath = recordFile(dir, runId)
-  const artifactDir = artifacts.size > 0 ? runDir(dir, runId) : null
+  const artifactDir = artifacts.size + copies.size > 0 ? runDir(dir, runId) : null
   const existing = await readIfThere(recordPath)
   if (existing?.equals(bytes)) return { recordPath, artifactDir, created: false }
   if (existing && !replaceable(existing, recordPath, bytes)) {
@@ -423,6 +429,11 @@ async function writeClaimed(
         const target = join(staging, ...path.split('/'))
         await mkdir(dirname(target), { recursive: true })
         await rename(source, target)
+      }
+      for (const [path, source] of copies) {
+        const target = join(staging, ...path.split('/'))
+        await mkdir(dirname(target), { recursive: true })
+        await copyFile(source, target)
       }
     }
     if (existing) {
@@ -585,7 +596,7 @@ async function archiveDebug(root: string, runId: string): Promise<WrittenArchive
 }
 
 /** Every file under `dir`, by posix path, sorted. */
-async function pathsUnder(dir: string, at = ''): Promise<string[]> {
+export async function pathsUnder(dir: string, at = ''): Promise<string[]> {
   const entries = await readdir(join(dir, at), { withFileTypes: true }).catch(() => [])
   const out: string[] = []
   for (const entry of entries) {
@@ -596,7 +607,25 @@ async function pathsUnder(dir: string, at = ''): Promise<string[]> {
   return out.sort()
 }
 
-async function sha256File(file: string): Promise<string> {
+/** Each file in the gzipped tar at `file` the secret scan finds something in, read as it streams. */
+async function scanArchive(file: string): Promise<Array<[string, Finding[]]>> {
+  const found: Array<[string, Finding[]]> = []
+  const gunzip = createGunzip()
+  // Errors reach the loop through `gunzip`, which it closes at the archive's end.
+  pipeline(createReadStream(file), gunzip).catch(() => {})
+  try {
+    for await (const e of readTarStream(gunzip)) {
+      if (e.type !== 'file') continue
+      const findings = scanBytes(e.path, e.data)
+      if (findings.length) found.push([e.path, findings])
+    }
+  } finally {
+    gunzip.destroy()
+  }
+  return found
+}
+
+export async function sha256File(file: string): Promise<string> {
   const hash = createHash('sha256')
   for await (const chunk of createReadStream(file)) hash.update(chunk)
   return hash.digest('hex')
@@ -616,6 +645,7 @@ async function freshArchive(
     files: Array<
       | { path: string; data: Uint8Array }
       | { path: string; sha256: string; data: () => Promise<Uint8Array> }
+      | { path: string; sha256: string; file: string }
     >
   },
 ): Promise<WrittenArchive> {
@@ -656,11 +686,28 @@ async function archiveRun(
     return await freshArchive(archiveFile(dir, runId), {
       contents: 'run',
       runId,
-      files: await runArchiveFiles(dir, runId, landed),
+      files: await runArchiveInputs(dir, runId, landed),
     })
   } finally {
     await release()
   }
+}
+
+/** `runArchiveFiles`, with each gzipped file (a kept workspace) by its path, never read whole. */
+async function runArchiveInputs(dir: string, runId: string, record: Uint8Array) {
+  const root = runDir(dir, runId)
+  const files: Parameters<typeof freshArchive>[1]['files'] = [
+    { path: `${runId}.json`, data: record },
+  ]
+  for (const path of (await pathsUnder(root)).filter(archived)) {
+    const file = join(root, ...path.split('/'))
+    files.push(
+      path.endsWith('.gz')
+        ? { path: `${runId}/${path}`, sha256: await sha256File(file), file }
+        : { path: `${runId}/${path}`, data: await readFile(file) },
+    )
+  }
+  return files
 }
 
 /**
@@ -791,6 +838,8 @@ async function leveled(
 ): Promise<{
   record: RunRecord
   files: Map<string, Uint8Array>
+  /** Gzipped files kept by path, never read into memory: kept workspaces. */
+  copies: Map<string, string>
   droppedPatch: string[]
   /** `droppedPatch` with each finding's rule alone, never any part of the value. */
   droppedPatchRules: string[]
@@ -799,7 +848,20 @@ async function leveled(
   const record: RunRecord = structuredClone(run)
   record.artifacts = level
   const files = new Map<string, Uint8Array>()
-  const keep = async (ref: FileRef) => {
+  const copies = new Map<string, string>()
+  const keep = async (ref: FileRef): Promise<Uint8Array | null> => {
+    if (ref.path.endsWith('.gz')) {
+      const file = join(source, runId, ...ref.path.split('/'))
+      const hash = await sha256File(file).catch((error) => {
+        if (isMissing(error)) throw new HistoryError(`${runId}/${ref.path} is missing`)
+        throw error
+      })
+      if (hash !== ref.sha256) {
+        throw new HistoryError(`${runId}/${ref.path} changed since the run wrote it`)
+      }
+      copies.set(ref.path, file)
+      return null
+    }
     const bytes = await runFile(source, runId, ref.path)
     if (sha256(bytes) !== ref.sha256) {
       throw new HistoryError(`${runId}/${ref.path} changed since the run wrote it`)
@@ -817,7 +879,9 @@ async function leveled(
         delete q.input
         continue
       }
-      const input = JSON.parse(Buffer.from(await keep(q.input)).toString()) as QuestionInput
+      const input = JSON.parse(
+        Buffer.from((await keep(q.input)) as Uint8Array).toString(),
+      ) as QuestionInput
       for (const s of input.calls.flatMap((c) => c.screenshots ?? [])) {
         if ('path' in s && s.path) shown.add(s.path)
       }
@@ -826,6 +890,12 @@ async function leveled(
     // files, as the only evidence of it.
     const whole = failed(e) && !e.attempts.some(failed)
     for (const a of e.attempts) {
+      // Observed values go with the record at every level but `none`, the large ones in files.
+      for (const o of a.observations ?? []) {
+        if (!o.file) continue
+        if (level === 'none') delete o.file
+        else await keep(o.file)
+      }
       const cellFailed = e.attempts.some((b) => b.cell === a.cell && failed(b))
       const cell = e.cells.find((c) => c.key === a.cell)
       const all = whole || (cell !== undefined && failed(cell) && !cellFailed)
@@ -898,7 +968,7 @@ async function leveled(
     const facts = keptFacts(record, files)
     for (const [name, bytes] of summaryFiles(record, { remarks, facts })) files.set(name, bytes)
   }
-  return { record, files, droppedPatch, droppedPatchRules }
+  return { record, files, copies, droppedPatch, droppedPatchRules }
 }
 
 /**
@@ -936,7 +1006,8 @@ export async function leveledArchiveFiles(
       if (options.recorded && error instanceof HistoryError) return { mismatch: error.message }
       throw error
     }
-    const { record, files, droppedPatchRules } = made
+    const { record, files, copies, droppedPatchRules } = made
+    for (const [path, file] of copies) files.set(path, await readFile(file))
     return {
       files: [
         { path: `${runId}.json`, data: encodeRecord(record) },
@@ -967,7 +1038,7 @@ export async function recordRun(options: RecordOptions): Promise<RecordResult> {
       `Run ${runId} was ${scratch.status}; pass --allow-incomplete to record it`,
     )
   }
-  const { record, files, droppedPatch } = await leveled(source, scratch, level, options)
+  const { record, files, copies, droppedPatch } = await leveled(source, scratch, level, options)
   const debug = options.debug && (await stageDebug(options.root, runId, options.debug))
   if (debug) record.debug = debug
 
@@ -981,6 +1052,11 @@ export async function recordRun(options: RecordOptions): Promise<RecordResult> {
           scanText(path, Buffer.from(bytes).toString()),
         ]),
     ]
+    for (const [path, file] of copies) {
+      for (const [entry, findings] of await scanArchive(file)) {
+        scanned.push([`${runId}/${path}: ${entry}`, findings])
+      }
+    }
     const found = scanned.filter(([, findings]) => findings.length > 0)
     if (found.length > 0) {
       const lines = found.flatMap(([path, findings]) => findingLines(path, findings))
@@ -994,7 +1070,7 @@ export async function recordRun(options: RecordOptions): Promise<RecordResult> {
     await ensureHistoryGitignore(options.historyDir, options.archive ?? false)
     await ensureHistoryGitattributes(options.historyDir)
   }
-  const written = await writeRun(options.historyDir, record, files)
+  const written = await writeRun(options.historyDir, record, files, new Map(), copies)
   const zip =
     options.archive &&
     (await archiveRun(options.historyDir, runId, encodeRecord(record)).catch((error: unknown) => {
@@ -1010,11 +1086,13 @@ export async function recordRun(options: RecordOptions): Promise<RecordResult> {
       })
     }))
   const archive = { ...(zip ? { archive: zip } : {}), ...(debugArchive ? { debugArchive } : {}) }
-  const bytes = [...files.values()].reduce((n, b) => n + b.length, encodeRecord(record).length)
+  let bytes = [...files.values()].reduce((n, b) => n + b.length, encodeRecord(record).length)
+  for (const file of copies.values()) bytes += (await stat(file)).size
+  const count = files.size + copies.size
   if (!committed) {
     return {
       ...written,
-      files: files.size,
+      files: count,
       bytes,
       droppedPatch,
       ignored: [],
@@ -1028,15 +1106,15 @@ export async function recordRun(options: RecordOptions): Promise<RecordResult> {
   ]
   if (!written.created) {
     const ignored = await ignoredRecordedFiles(options.root, folderFiles)
-    return { ...written, files: files.size, bytes, droppedPatch, ignored, ...archive }
+    return { ...written, files: count, bytes, droppedPatch, ignored, ...archive }
   }
   const writtenPaths = [
     written.recordPath,
     ...folderFiles,
-    ...[...files.keys()].map((path) =>
+    ...[...files.keys(), ...copies.keys()].map((path) =>
       join(written.artifactDir ?? options.historyDir, ...path.split('/')),
     ),
   ]
   const ignored = await ignoredRecordedFiles(options.root, writtenPaths)
-  return { ...written, files: files.size, bytes, droppedPatch, ignored, ...archive }
+  return { ...written, files: count, bytes, droppedPatch, ignored, ...archive }
 }

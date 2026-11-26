@@ -52,8 +52,9 @@ export function execEnv(a: Attempt, env: ExecEnv | undefined): Record<string, st
 
 /**
  * `c.exec` runs with the checks' variables and secrets and its own `env` over them, each run
- * recorded and timed with its `label` and the turn it came after, and runs again on a non-zero exit while it has `retries` left; `c.readFile`
- * reads the sandbox as is; `c.writeFile` places a file the diff leaves out.
+ * recorded and timed with its `label` and the turn it came after, and runs again on a non-zero
+ * exit while it has `retries` left; `c.readFile` reads the sandbox as is; `c.writeFile` places a
+ * file the diff leaves out.
  */
 export function createChecks(a: Attempt) {
   const execForeground = async (

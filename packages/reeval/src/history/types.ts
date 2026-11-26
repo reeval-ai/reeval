@@ -219,10 +219,15 @@ export type ExecLine = {
 /** An attempt's kept workspace and its manifest, in its directory. */
 export const WORKSPACE_ARCHIVE = 'workspace.tar.gz'
 export const WORKSPACE_MANIFEST = 'workspace.json'
-/** The most an attempt's kept workspace may be compressed. */
+/**
+ * The most an attempt keeps beside its record: its kept workspace, compressed, and its observed
+ * values too large to stay in the record.
+ */
 export const WORKSPACE_LIMIT = 100 * 2 ** 20
-/** The most it may be uncompressed, which reeval holds in memory to mask it or read it back. */
-export const WORKSPACE_RAW_LIMIT = 512 * 2 ** 20
+/** The most a kept workspace may be uncompressed, the snapshots' cap. */
+export const WORKSPACE_RAW_LIMIT = 200 * 2 ** 20
+/** The most an observed value's masked JSON may be and stay in the record; a larger one is a file. */
+export const OBSERVATION_INLINE = 4096
 /** The most a run's kept workspaces may add up to; an attempt past it keeps none. */
 export const RUN_WORKSPACE_LIMIT = 5 * 2 ** 30
 

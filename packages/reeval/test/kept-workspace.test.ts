@@ -2,21 +2,30 @@
 // assembly, and reading it back with an attempt's other trajectory through `readTrajectory`.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { chmodSync, existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
-import { gunzipSync } from 'node:zlib'
-import { readTar } from '@reeval/sandbox-docker'
+import { gunzipSync, gzipSync } from 'node:zlib'
+import { readTar, writeTar } from '@reeval/sandbox-docker'
 import type { Attempt } from '../src/attempt/state.ts'
 import { keepWorkspace } from '../src/attempt/workspace.ts'
 import { snapshot } from '../src/diff.ts'
 import { Artifacts, placeWorkspace } from '../src/history/assemble.ts'
-import { readTrajectory } from '../src/history/trajectory.ts'
+import { readKeptFiles, readRef, readTrajectory } from '../src/history/trajectory.ts'
 import type { AttemptFiles, AttemptRecord, ExecLine } from '../src/history/types.ts'
 import { sha256 } from '../src/ids.ts'
 import type { Sandbox } from '../src/sandbox/index.ts'
 import type { EvalRecord } from '../src/types.ts'
-import { tempDir } from './helpers.ts'
+import { fakeConfig, project, runCli, tempDir } from './helpers.ts'
+import { dockerRunning } from './support/minio.ts'
 
 const SECRET = `ghp_${'a1B2'.repeat(9)}`
 
@@ -102,6 +111,31 @@ describe('keepWorkspace', {
     assert.ok(!existsSync(join(box.stateDir, 'kept.tar.gz')), 'nothing left in the sandbox')
   })
 
+  test('drops a file the scan finds a secret in that masking cannot reach, naming it', async () => {
+    const dir = tempDir('keep-workspace-secrets')
+    const box = hostBox(dir)
+    await snapshot(box)
+    write(box.workdir, 'notes-utf16.txt', Buffer.from(`token ${SECRET}\n`, 'utf16le'))
+    write(box.workdir, 'blob.bin', Buffer.concat([Buffer.from([0, 1, 2, 0]), Buffer.from(SECRET)]))
+    write(box.workdir, `${SECRET}.txt`, 'named\n')
+    write(box.workdir, 'ok.txt', 'fine\n')
+    const a = attemptFor()
+    await keepWorkspace(a, box, join(dir, 'kept'))
+    assert.deepEqual(
+      [...(a.record.workspace?.dropped ?? [])].sort(),
+      ['[REDACTED].txt', 'blob.bin', 'notes-utf16.txt'],
+      'the UTF-16 and binary files, and the file whose name is the token, its name masked',
+    )
+    const archive = readFileSync(join(dir, 'kept/workspace.tar.gz'))
+    const raw = gunzipSync(archive)
+    assert.deepEqual(
+      readTar(raw).map((e) => e.path),
+      ['ok.txt'],
+    )
+    assert.ok(!raw.includes(SECRET) && !raw.includes(Buffer.from(SECRET, 'utf16le')))
+    assert.ok(!JSON.stringify(a.record.workspace).includes(SECRET))
+  })
+
   test('keeps none over its cap, saying why', async () => {
     const dir = tempDir('keep-workspace-cap')
     const box = hostBox(dir)
@@ -120,7 +154,79 @@ describe('keepWorkspace', {
     assert.ok(!existsSync(join(dir, 'kept')))
     const raw = attemptFor()
     await keepWorkspace(raw, box, join(dir, 'kept'), { tar: 2 ** 20, raw: 16 * 1024 })
-    assert.match(raw.record.workspace?.skipped?.message ?? '', /over 16\.0 KB without .+, the most/)
+    assert.match(
+      raw.record.workspace?.skipped?.message ?? '',
+      /over 16\.0 KB uncompressed without .+, the most reeval masks$/,
+    )
+  })
+
+  test('keeps the workspace on an Alpine image, where every tool but git is BusyBox', async (t) => {
+    if (!(await dockerRunning())) {
+      if (process.env.REEVAL_TEST_REQUIRE_DOCKER === '1') throw new Error('Docker is not running')
+      t.skip('needs Docker')
+      return
+    }
+    const ctr = execFileSync(
+      'docker',
+      [
+        'run',
+        '-d',
+        '--rm',
+        'alpine:3',
+        'sh',
+        '-c',
+        'apk add --no-cache git >/dev/null && mkdir -p /work /state && touch /ready && sleep 600',
+      ],
+      { encoding: 'utf8' },
+    ).trim()
+    try {
+      const sh = (command: string, cwd = '/state') => {
+        try {
+          const stdout = execFileSync('docker', ['exec', '-w', cwd, ctr, 'sh', '-c', command], {
+            encoding: 'utf8',
+            maxBuffer: 1 << 26,
+          })
+          return { exitCode: 0, stdout, stderr: '' }
+        } catch (error) {
+          const e = error as { status?: number; stdout?: string; stderr?: string }
+          return { exitCode: e.status ?? 1, stdout: e.stdout ?? '', stderr: e.stderr ?? '' }
+        }
+      }
+      for (let i = 0; sh('test -f /ready', '/').exitCode !== 0; i++) {
+        if (i > 120) throw new Error('git never installed in the Alpine container')
+        await new Promise((r) => setTimeout(r, 500))
+      }
+      const box = {
+        workdir: '/work',
+        stateDir: '/state',
+        execOwn: async (command: string) => sh(command),
+      } as unknown as Sandbox
+      await snapshot(box)
+      sh(
+        "mkdir -p src node_modules/dep bin && echo 'export {}' > src/app.js && echo dep > node_modules/dep/index.js && printf '#!/bin/sh\\n' > bin/run.sh && chmod +x bin/run.sh && ln -s src/app.js app",
+        '/work',
+      )
+      const dir = tempDir('keep-workspace-alpine')
+      const a = attemptFor()
+      await keepWorkspace(a, box, join(dir, 'kept'))
+      assert.equal(a.record.workspace?.skipped, null, a.record.workspace?.skipped?.message)
+      assert.deepEqual(a.record.workspace?.excluded, ['node_modules/'])
+      const manifest = JSON.parse(readFileSync(join(dir, 'kept/workspace.json'), 'utf8'))
+      assert.deepEqual(
+        manifest.files.map((f: { path: string; executable?: true; target?: string }) => [
+          f.path,
+          f.executable ?? f.target ?? null,
+        ]),
+        [
+          ['app', 'src/app.js'],
+          ['bin/run.sh', true],
+          ['src/app.js', null],
+        ],
+      )
+      assert.equal(sh('test -e /state/kept.tar.gz').exitCode, 1, 'nothing left in the sandbox')
+    } finally {
+      execFileSync('docker', ['rm', '-f', ctr], { stdio: 'ignore' })
+    }
   })
 
   test('a workspace without the git index keeps none, saying so; a stopped attempt nothing', async () => {
@@ -154,6 +260,11 @@ describe('placeWorkspace', () => {
     }
     const out = new Artifacts()
     const files: AttemptFiles = {}
+    const gone = await placeWorkspace(kept, 'e/c/0', out, join(dir, 'evals/b.json'), {}, 10)
+    assert.deepEqual(gone.skipped, {
+      cause: 'error',
+      message: "its archive was gone from the run's staging folder",
+    })
     const placed = await placeWorkspace(kept, 'e/c/1', out, staged, files, 10)
     assert.equal(placed?.skipped, null)
     assert.deepEqual(files.workspace, {
@@ -232,5 +343,127 @@ describe('readTrajectory', () => {
     )
     const bare = await readTrajectory(run, { files: {} } as unknown as AttemptRecord)
     assert.deepEqual([bare.execs, bare.observations, bare.workspace], [[], [], null])
+  })
+
+  test('reads a large observed value from its file', async () => {
+    const run = tempDir('trajectory-observed')
+    const value = { rows: ['x'.repeat(5000)] }
+    const json = JSON.stringify(value)
+    write(run, '1/observations/1.json', json)
+    const file = { path: '1/observations/1.json', sha256: sha256(json), bytes: json.length }
+    const attempt = {
+      observations: [{ name: 'rows', value: null, turn: 1, sha256: file.sha256, file }],
+      files: {},
+    } as unknown as AttemptRecord
+    const t = await readTrajectory(run, attempt)
+    assert.deepEqual(t.observations[0]?.value, value)
+  })
+
+  test('refuses a ref that climbs out of the run or is absolute', async () => {
+    const run = tempDir('trajectory-refs')
+    for (const path of ['../outside.txt', '/etc/passwd', '1/../../x', 'a//b']) {
+      await assert.rejects(
+        readRef(run, { path, sha256: sha256(''), bytes: 0 }),
+        /isn't a path inside the run/,
+        path,
+      )
+    }
+  })
+
+  test('follows symbolic links inside the workspace only, and fetches a missing archive', async () => {
+    const box = hostBox(tempDir('trajectory-links-box'))
+    await snapshot(box)
+    write(box.workdir, 'src/app.js', 'export {}\n')
+    symlinkSync('src/app.js', join(box.workdir, 'app'))
+    symlinkSync('src', join(box.workdir, 'lib'))
+    symlinkSync('../outside', join(box.workdir, 'out'))
+    symlinkSync('/etc/passwd', join(box.workdir, 'abs'))
+    symlinkSync('loop', join(box.workdir, 'loop'))
+    const run = tempDir('trajectory-links')
+    const a = attemptFor()
+    await keepWorkspace(a, box, join(run, 'staged'))
+    const archive = readFileSync(join(run, 'staged/workspace.tar.gz'))
+    const manifest = readFileSync(join(run, 'staged/workspace.json'))
+    write(run, '1/workspace.json', manifest)
+    const workspace = { path: '1/workspace.tar.gz', sha256: sha256(archive), bytes: archive.length }
+    const attempt = {
+      files: {
+        workspace,
+        workspaceManifest: {
+          path: '1/workspace.json',
+          sha256: sha256(manifest),
+          bytes: manifest.length,
+        },
+      },
+    } as unknown as AttemptRecord
+    const fetched: string[] = []
+    const kept = await readKeptFiles(run, attempt, {
+      fetch: async (ref, file) => {
+        fetched.push(ref.path)
+        writeFileSync(file, archive)
+      },
+    })
+    assert.equal((await kept?.readFile('app'))?.toString(), 'export {}\n')
+    assert.equal((await kept?.readFile('lib/app.js'))?.toString(), 'export {}\n')
+    assert.deepEqual(fetched, ['1/workspace.tar.gz'], 'fetched once, then read from the run')
+    assert.ok(existsSync(join(run, '1/workspace.tar.gz')))
+    for (const path of ['out', 'abs', 'loop', 'src', 'lib']) {
+      assert.equal(await kept?.readFile(path), null, path)
+    }
+    const bad = await readKeptFiles(tempDir('trajectory-bad-fetch'), {
+      files: { ...attempt.files, workspaceManifest: attempt.files.workspaceManifest },
+    } as unknown as AttemptRecord).catch((error: Error) => error)
+    assert.ok(bad instanceof Error, 'no manifest in that run')
+    const wrong = tempDir('trajectory-wrong-fetch')
+    write(wrong, '1/workspace.json', manifest)
+    const refetched = await readKeptFiles(wrong, attempt, {
+      fetch: async (_ref, file) => writeFileSync(file, 'not it'),
+    })
+    await assert.rejects(
+      refetched?.readFile('app') ?? Promise.resolve(),
+      /changed since the run wrote it/,
+    )
+    assert.ok(!existsSync(join(wrong, '1/workspace.tar.gz')), 'a wrong download is not kept')
+  })
+})
+
+describe('recording a kept workspace', () => {
+  test('scans each file in the archive as it streams, and refuses a run with a secret in one', async () => {
+    const p = await project('record-kept-workspace', {
+      'reeval.config.ts': fakeConfig({
+        harness: "{ script: [[{ write: { 'src/app.js': 'export {}\\n' } }]] }",
+        extra: "record: 'manual',",
+      }),
+      'evals/a.eval.ts':
+        "import { defineEval } from 'reeval'\nexport default defineEval({ async task(c) { await c.send('go') } })\n",
+    })
+    const ran = await runCli(p.dir, ['run'])
+    assert.equal(ran.code, 0, ran.stdout + ran.stderr)
+    const runs = join(p.dir, '.reeval/runs')
+    const runId = (readdirSync(runs).find((f) => f.endsWith('.json')) ?? '').replace(/\.json$/, '')
+    const record = JSON.parse(readFileSync(join(runs, `${runId}.json`), 'utf8'))
+    const ref = record.evals[0].attempts[0].files.workspace
+    assert.ok(ref, 'the attempt kept its workspace')
+    const leak = gzipSync(
+      writeTar([
+        { type: 'file', path: 'leak.bin', mode: 0o644, mtime: 0, data: Buffer.from(`\0${SECRET}`) },
+      ]),
+    )
+    writeFileSync(join(runs, runId, ...ref.path.split('/')), leak)
+    Object.assign(ref, { sha256: sha256(leak), bytes: leak.length })
+    writeFileSync(join(runs, `${runId}.json`), JSON.stringify(record))
+    const refused = await runCli(p.dir, ['record', runId])
+    assert.equal(refused.code, 2, refused.stdout + refused.stderr)
+    assert.match(
+      refused.stderr + refused.stdout,
+      new RegExp(
+        `Refusing to record ${runId}: .*\\n.*${ref.path.replace(/[.]/g, '\\.')}: leak\\.bin`,
+      ),
+    )
+    assert.ok(!(refused.stderr + refused.stdout).includes(SECRET))
+    const skipped = await runCli(p.dir, ['record', '--skip-secret-scan', runId])
+    assert.equal(skipped.code, 0, skipped.stdout + skipped.stderr)
+    const history = join(p.dir, 'evals/.history', runId, ...ref.path.split('/'))
+    assert.equal(sha256(readFileSync(history)), sha256(leak), 'copied into the history by path')
   })
 })

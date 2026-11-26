@@ -2107,7 +2107,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'history.kept-workspace',
     area: 'Records and studio',
-    name: "The final workspace kept whole: every file git doesn't ignore, but dependency and cache directories, masked, as `workspace.tar.gz` with `workspace.json` listing each file's sha256, in the attempt's directory, the history and its archives, at most 100 MiB compressed per attempt and 5 GiB per run (an attempt past either keeps none, and `workspace.skipped` says why); `readTrajectory` reads it back with the attempt's execs, observations and captures",
+    name: "The final workspace kept whole: every file git doesn't ignore, but dependency and cache directories, masked, a file the secret scan still finds something in dropped and named, as `workspace.tar.gz` with `workspace.json` listing each file's sha256, in the attempt's directory, the history and its archives (an `s3()` store keeps it apart from the runs a pull downloads), streamed and never read whole, on reeval's image or BusyBox's tools, at most 200 MiB uncompressed and 100 MiB compressed per attempt and 5 GiB per run (an attempt past either keeps none, `workspace.skipped` says why and the run's output names it); `readTrajectory` reads it back with the attempt's execs, observations and captures",
     fixtures: ['history/kept-workspace'],
     unit: ['reeval/test/kept-workspace.test.ts'],
   },
