@@ -7,6 +7,7 @@ import { getRunContext, type TestHandle } from '../engine/runtime.ts'
 import { TimeoutError } from '../errors.ts'
 import { attemptId, attemptKey, evalId, evalSlug, relativeFile } from '../ids.ts'
 import { redactSecrets } from '../redact.ts'
+import { InfraError } from '../sandbox/types.ts'
 import { clip, formatDuration } from '../text.ts'
 import {
   type AgentAttempt,
@@ -255,7 +256,17 @@ async function attemptBody(
     if (record.error?.kind !== 'assertion') delete record.failure
     // Graders read what the task left, so none runs after it threw, timed out or was canceled.
     if (grading?.graders.length && record.outcome === 'pass' && !failure && !oom) {
-      const low = await gradeAttempt(a, grading, workspaceSidecar(stagingDir, key), testSignal)
+      const low = await gradeAttempt(
+        a,
+        grading,
+        workspaceSidecar(stagingDir, key),
+        testSignal,
+      ).catch(
+        (error: unknown) =>
+          new InfraError(
+            `Grading failed: ${error instanceof Error ? error.message : String(error)}`,
+          ),
+      )
       if (testSignal.aborted) {
         recordFailure(a, testSignal.reason, false, assertions())
         failure = { error: testSignal.reason }
