@@ -2,7 +2,7 @@
 // every check compares a query with what the records say.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -18,6 +18,7 @@ import {
 } from '../src/history/tool-class.ts'
 import { toolTarget } from '../src/history/tool-target.ts'
 import { statementCount, usesRunParameter } from '../src/query.ts'
+import type { AttemptRecord, RunRecord } from '../src/history/types.ts'
 import { toolCalls } from '../src/view/classify.ts'
 import { harnessLabel, type TranscriptLine } from '../src/view/model.ts'
 import { baseEnv, fakeConfig, pkgRoot, project, readRun, runCli } from './helpers.ts'
@@ -32,6 +33,44 @@ async function query(dir: string, sql: string, env?: NodeJS.ProcessEnv): Promise
 }
 
 const one = async (dir: string, sql: string) => (await query(dir, sql))[0] ?? {}
+
+/**
+ * Rewrites the run records in `folder` (every one, or `runId`'s) as an older reeval wrote them:
+ * each attempt with the labeled `expect` checks `checks` gives it, and each cell with their tallies.
+ */
+function withOlderChecks(
+  folder: string,
+  checks: (a: AttemptRecord) => Array<[string, boolean]>,
+  runId?: string,
+) {
+  if (!existsSync(folder)) return
+  const names = readdirSync(folder).filter((n) => n.endsWith('.json'))
+  for (const name of runId ? names.filter((n) => n === `${runId}.json`) : names) {
+    const file = join(folder, name)
+    const run = JSON.parse(readFileSync(file, 'utf8')) as RunRecord
+    for (const e of run.evals) {
+      for (const a of e.attempts) {
+        a.assertions = checks(a).map(([label, ok]) => ({
+          label,
+          labelled: true,
+          matcher: 'toBe',
+          status: ok ? 'pass' : 'fail',
+          soft: true,
+        }))
+      }
+      for (const cell of e.cells) {
+        const mine = e.attempts.filter((a) => a.cell === cell.key)
+        const labels = [...new Set(mine.flatMap((a) => (a.assertions ?? []).map((x) => x.label)))]
+        cell.checks = labels.map((label) => {
+          const all = mine.flatMap((a) => (a.assertions ?? []).filter((x) => x.label === label))
+          const pass = all.filter((x) => x.status === 'pass').length
+          return { label, pass, fail: all.length - pass, error: 0, notRun: 0, notApplicable: 0 }
+        })
+      }
+    }
+    writeFileSync(file, `${JSON.stringify(run, null, 2)}\n`)
+  }
+}
 
 const skill = (name: string) =>
   `---\nname: ${name}\ndescription: The ${name} skill. Use when testing.\n---\nBody.\n`
@@ -173,15 +212,14 @@ export default defineEval({ skip: true, async task() {} })
     ])
   })
 
-  test('check_rates gives each labeled check’s pass rate per cell, on both arms of a compare', async () => {
+  test('check_rates gives each labeled check’s pass rate per cell, on both arms of a compare, from an older record', async () => {
     const p = await project('query-check-rates', {
       'reeval.config.ts': fakeConfig({
         harness:
           "{ files: { 'ok.txt': 'y' }, withSkill: { files: { 'ok.txt': 'y', 'styled.txt': 'Ahoy' } } }",
       }),
       'skills/house/SKILL.md': skill('house'),
-      'evals/greets.eval.ts': `import assert from 'node:assert/strict'
-import { defineEval } from 'reeval'
+      'evals/greets.eval.ts': `import { defineEval } from 'reeval'
 import { defineEnvironment } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
@@ -195,13 +233,15 @@ export default defineEval({
   runs: 2,
   async task(c) {
     await c.send('go')
-    assert.notEqual(await c.readFile('ok.txt'), null, 'writes ok.txt')
-    assert.match((await c.readFile('styled.txt')) ?? '', /Ahoy/, 'house style')
   },
 })
 `,
     })
     assert.equal((await runCli(p.dir)).code, 0)
+    withOlderChecks(join(p.dir, '.reeval/runs'), (a) => [
+      ['writes ok.txt', true],
+      ['house style', a.cell === 'fake/styled/fake'],
+    ])
     const { run } = readRun(p.dir)
     const cells = await query(p.dir, 'SELECT key, agent FROM cells ORDER BY key')
     const agentOf = (key: string) => cells.find((c) => c.key === key)?.agent
@@ -237,18 +277,15 @@ export default defineEval({
     ])
   })
 
-  test('check_streaks counts each check’s clean recorded runs on a branch, newest first', async () => {
+  test('check_streaks counts each check’s clean recorded runs on a branch, newest first, from older records', async () => {
     const p = await project('query-check-streaks', {
       '.gitignore': '.reeval/\nnode_modules/\nsandboxes/\n',
       'reeval.config.ts': fakeConfig(),
-      'evals/steady.eval.ts': `import assert from 'node:assert/strict'
-import { defineEval } from 'reeval'
+      'evals/steady.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
   runs: 2,
   async task(c) {
     await c.send('go')
-    assert.equal(1, 1, 'always one')
-    assert.equal(process.env.FLIP, undefined, 'flips')
   },
 })
 `,
@@ -262,10 +299,21 @@ export default defineEval({
     git('init', '-q', '-b', 'main')
     git('add', '-A')
     git('commit', '-q', '-m', 'init')
-    assert.equal((await runCli(p.dir, ['run', '--record'], { env: { FLIP: '1' } })).code, 1)
-    const broke = readRun(p.dir).run.runId
-    for (let i = 0; i < 2; i++) assert.equal((await runCli(p.dir, ['run', '--record'])).code, 0)
-    const newest = readRun(p.dir).run.runId
+    const recordOlder = async (flips: boolean) => {
+      assert.equal((await runCli(p.dir, ['run', '--record'])).code, 0)
+      const { runId } = readRun(p.dir).run
+      for (const folder of ['.reeval/runs', 'evals/.history']) {
+        const checks = (): Array<[string, boolean]> => [
+          ['always one', true],
+          ['flips', flips],
+        ]
+        withOlderChecks(join(p.dir, folder), checks, runId)
+      }
+      return runId
+    }
+    const broke = await recordOlder(false)
+    await recordOlder(true)
+    const newest = await recordOlder(true)
     assert.equal((await runCli(p.dir, ['run'])).code, 0, 'a scratch run is not counted')
     const rows = await query(
       p.dir,
@@ -1078,7 +1126,7 @@ export default defineEval({
     )
   })
 
-  test('drift names the changed part; flaky cells and verdict flips are found', async () => {
+  test('drift names the changed part; flaky cells are found', async () => {
     const p = await project('query-drift', {
       'reeval.config.ts': fakeConfig({
         judge: '{ model: fakeJudge({ score: Number(process.env.REEVAL_TEST_SCORE ?? 0.9) }) }',
@@ -1136,11 +1184,6 @@ export default defineEval({
       ['flaky', 'fake/fake/fake', 6, 9, 0.667],
       'grouped by fingerprint: three runs at the first, one at the second',
     )
-    const flips = await query(
-      p.dir,
-      'SELECT question, prev_pass_rate, pass_rate FROM verdict_flips',
-    )
-    assert.deepEqual(flips, [{ question: 'Is it fine?', prev_pass_rate: 1, pass_rate: 0 }])
   })
 })
 

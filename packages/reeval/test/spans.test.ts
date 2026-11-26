@@ -324,7 +324,7 @@ export default defineEval({
       },
     })
     assert.equal(r.code, 1, r.stdout + r.stderr)
-    assert.match(r.stdout, /toBe/)
+    assert.match(r.stdout, /Expected values to be strictly equal/)
     assert.ok(collector.requests.length > 0)
     assertNowhere(p.dir, r, honeycomb)
     assertNowhere(p.dir, r, bearer)

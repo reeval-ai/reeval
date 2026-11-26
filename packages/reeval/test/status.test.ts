@@ -44,25 +44,25 @@ export default defineEval({
   },
 })
 `,
-  'evals/compares.eval.ts': `import assert from 'node:assert/strict'
-import { defineEval } from 'reeval'
+  'evals/compares.eval.ts': `import { defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
 import { marked, plain } from './envs.ts'
 export default defineEval({
   runs: 1,
   compare: { control: plain, variants: [marked] },
+  graders: [hasFile('marker.txt')],
   async task(c) {
     await c.send('go')
-    assert.equal(c.attempt.cell.role === 'variant', true, 'uses the marker')
   },
 })
 `,
-  'evals/colors.eval.ts': `import assert from 'node:assert/strict'
-import { defineEval } from 'reeval'
+  'evals/colors.eval.ts': `import { defineEval, defineGrader } from 'reeval'
+const green = defineGrader('is-green', { grade: (c) => c.case.key === 'green' })
 export default defineEval({
   cases: [{ key: 'red' }, { key: 'green' }, { key: 'blue' }],
-  async task(c, { key: id }) {
+  graders: [green],
+  async task(c) {
     await c.send('go')
-    assert.equal(id, 'green', 'is green')
   },
 })
 `,
@@ -81,19 +81,15 @@ const listOf = (stdout: string) => {
 
 const PLAIN = `evals/colors.eval.ts
 └─ ✗ colors  1/3 runs at 100%, worst 0%  regression(1)
-     #red   0%  "is green" failed
-       expected 'red' to be 'green' // Object.is equality · evals/colors.eval.ts:6
-     #blue  0%  "is green" failed
-       expected 'blue' to be 'green' // Object.is equality · evals/colors.eval.ts:6
+     #red   0%  is-green 0%
+     #blue  0%  is-green 0%
 
 evals/compares.eval.ts
 └─ ✓ compares  1/1 run at 100%  regression(1)
      arm              pass
      plain            0 of 1
+       error  score 0.00 below 1: has-file:marker.txt scored 0.00
      marked           1 of 1  helped
-     check            plain   marked
-     uses the marker  0 of 1  1 of 1
-       expected false to be true // Object.is equality
      Worth knowing: 1 run per side; set runs: 4 at evals/compares.eval.ts to confirm this difference.
 
 evals/passes.eval.ts
@@ -107,10 +103,12 @@ evals/throws.eval.ts
 
 evals/two-checks-fail.eval.ts
 └─ ✗ two-checks-fail  0% < 50%  metric(0.5)
-     #1  0%  "first check" failed
-       expected 1 to be 2 // Object.is equality · evals/two-checks-fail.eval.ts:7
-     #2  0%  "second check" failed
-       expected 'a' to be 'b' // Object.is equality · evals/two-checks-fail.eval.ts:8
+     #1  0%  first check 1 !== 2
+       after turn 1
+       at task (evals/two-checks-fail.eval.ts:8:44)
+     #2  0%  second check 'a' !== 'b'
+       after turn 1
+       at task (evals/two-checks-fail.eval.ts:9:21)
 
 Done in <time> · 5 evals · 2 on target · 3 below`
 
@@ -187,7 +185,6 @@ test('a compare whose effort holds prints its comparison, which every reader sha
       ['pass', 'same', 'marked', 'fake/plain/fake'],
       ['tools', 'same', 'marked', 'fake/plain/fake'],
       ['agentMs', 'better', 'marked', 'fake/plain/fake'],
-      ['check', 'same', 'marked', 'fake/plain/fake'],
     ],
   )
   const again = await runCli(p.dir, ['run', '--ui', 'plain'])
@@ -317,7 +314,7 @@ export default defineEval({
   const text = (row: { detail: { text: string }[] }) => row.detail.map((d) => d.text).join('\n')
   assert.match(
     text(evalRow(run, e, [])),
-    /^left\n {2}arm +pass\n {2}plain +1 of 1\n {2}marked +1 of 1 {2}same\nright\n {2}arm +pass\n {2}plain +0 of 1\n {2}marked +0 of 1 {2}same$/m,
+    /^left\n {2}arm +pass\n {2}plain +1 of 1\n {2}marked +1 of 1 {2}same\nright\n {2}arm +pass\n {2}plain +0 of 1\n {4}error {2}on left false !== true\n {2}marked +0 of 1 {2}same$/m,
   )
   const alone = { ...e, cells: e.cells.filter((c) => c.variant === null) }
   assert.match(
