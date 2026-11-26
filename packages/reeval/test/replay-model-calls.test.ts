@@ -8,7 +8,8 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
 import { MODEL_FIELD, onEndpoint, usageReader } from '@reeval/sandbox-docker'
-import { brokeringFor } from '../src/harness/agents.ts'
+import { AGENTS, brokeringFor, isAgentKind } from '../src/harness/agents.ts'
+import { llmCalls } from '../src/history/assemble.ts'
 import { callUsage, type ModelCall, modelCallEvents } from '../src/model-calls.ts'
 import type { HarnessDescriptor, TokenUsage } from '../src/types.ts'
 import { testDir } from './support/fixture.ts'
@@ -110,9 +111,64 @@ for (const capture of captures) {
         const want = attempt.calls.map((c) => `${c.atMs} ${c.request} ${c.expect.role}`)
         assert.deepEqual(got.sort(), want.sort())
       })
+
+      test(`${attempt.eval}: its LLM calls are its main model calls`, () => {
+        const turns = attempt.turns.map((t) => ({
+          transcript: modelCallEvents(calls, {
+            startedAt: t.startMs,
+            durationMs: t.durationMs,
+            model: t.model,
+            steps: t.steps,
+          }),
+        }))
+        const main = attempt.calls.filter((c) => c.expect.role === 'main').length
+        assert.equal(llmCalls(turns as never, false), main)
+      })
     }
   })
 }
+
+test('a harness whose catalog counts its steps as model calls reported one step per main call', () => {
+  for (const capture of captures) {
+    const kind = HARNESS[capture.harness]?.kind
+    for (const attempt of capture.attempts.filter((a) => a.eval !== 'aborted')) {
+      const steps = attempt.turns.reduce((n, t) => n + t.steps.length, 0)
+      const main = attempt.calls.filter((c) => c.expect.role === 'main').length
+      const perCall = isAgentKind(kind) && AGENTS[kind].stepPerCall === true
+      assert.equal(
+        steps === main,
+        perCall,
+        `${capture.harness}: ${steps} steps, ${main} main calls`,
+      )
+    }
+  }
+})
+
+describe('LLM calls without the gateway', () => {
+  const turn = (...steps: number[]) => ({
+    transcript: steps.map((step) => ({
+      type: 'text',
+      text: '',
+      durationMs: 0,
+      ts: '',
+      atMs: 0,
+      step,
+    })),
+  })
+  test("a harness whose steps are model calls counts each turn's last step", () => {
+    assert.equal(llmCalls([turn(1, 2, 2, 3), turn(1)] as never, true), 4)
+  })
+  test("twin: another harness's steps aren't model calls", () => {
+    assert.equal(llmCalls([turn(1, 2, 3)] as never, false), null)
+  })
+  test('twin: no steps is unknown, not 0', () => {
+    assert.equal(llmCalls([turn(), { transcript: [] }] as never, true), null)
+  })
+  test("a call that carries the whole turn (Cursor's stream) counts none", () => {
+    const stream = { type: 'model-call', role: 'main', stream: true, ts: '', atMs: 0 }
+    assert.equal(llmCalls([{ transcript: [stream] }] as never, true), null)
+  })
+})
 
 describe('the reader against what each API sends', () => {
   const tokens = (body: string) => callUsage(read(body, 7))

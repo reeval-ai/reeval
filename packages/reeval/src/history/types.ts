@@ -483,6 +483,13 @@ export type AttemptRecord = {
   activity: {
     tools: number
     /**
+     * The agent's model calls (LLM round-trips): the egress gateway's `main` model calls, else
+     * the turns' steps on a harness whose steps are model calls (Claude Code, Antigravity, pi).
+     * Null when neither counts them, such as on Cursor, which sends a whole turn over one stream,
+     * and in records from before reeval counted them.
+     */
+    llmCalls: number | null
+    /**
      * The transcript's `file-edit` events: calls to the agent's file-editing tools, a Claude Code
      * subagent's included. A file the agent changed from the shell, or through a subagent whose
      * calls its harness doesn't stream (Cursor's `task`, Codex's `spawn_agent`), isn't counted:

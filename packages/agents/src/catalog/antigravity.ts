@@ -21,6 +21,7 @@ export const antigravity = {
   factory: 'antigravity',
   keychainTrust: true,
   platforms: ['linux', 'darwin'],
+  stepPerCall: true,
   // agy's stream-json has only each step's `thinking_tokens`; the adapter reads the thought
   // summaries and their `thinking_duration` from agy's stored conversation after each turn.
   reasoning: 'recovered',

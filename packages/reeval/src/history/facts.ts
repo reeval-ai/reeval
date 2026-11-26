@@ -50,7 +50,8 @@ CREATE TABLE effort_m (
   verdict TEXT, time_verdict TEXT, tokens_verdict TEXT, tokens_note TEXT,
   context_calls_median REAL, dependency_calls_median REAL, web_calls_median REAL,
   verify_calls_median REAL, workspace_calls_median REAL,
-  model_s_median REAL, tool_s_median REAL, waiting_s_median REAL, other_s_median REAL
+  model_s_median REAL, tool_s_median REAL, waiting_s_median REAL, other_s_median REAL,
+  llm_calls_median REAL, control_llm_calls_median REAL
 );
 CREATE TABLE contrasts_m (
   run_id TEXT, eval_key TEXT, agent TEXT, sandbox TEXT, a_key TEXT, b_key TEXT,
@@ -159,6 +160,7 @@ type Attempt = {
   waiting_ms: number | null
   other_ms: number | null
   cost_usd: number | null
+  llm_calls: number | null
 }
 
 /** Each fingerprint part's name in `drift.changed` and its `cells` column; every part has one. */
@@ -335,7 +337,7 @@ export function deriveFacts(db: DatabaseSync): void {
     db.prepare(
       `SELECT run_id, eval_key, cell_key, key, outcome, error_kind, case_key, tools, agent_ms, file_edits, files_changed,
         input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, reasoning_tokens,
-        model_ms, tool_ms, waiting_ms, other_ms, cost_usd
+        model_ms, tool_ms, waiting_ms, other_ms, cost_usd, llm_calls
        FROM attempts ORDER BY run_id, rowid`,
     ),
   )
@@ -374,6 +376,7 @@ export function deriveFacts(db: DatabaseSync): void {
       ...(samples.get(id) ?? []),
       {
         tools: a.tools,
+        ...(a.llm_calls !== null ? { llmCalls: a.llm_calls } : {}),
         agentMs: a.agent_ms,
         fileEdits: a.file_edits,
         filesChanged: a.files_changed,
@@ -482,6 +485,8 @@ export function deriveFacts(db: DatabaseSync): void {
       tool_s_median: own?.split ? s1(own.split.toolMs) : null,
       waiting_s_median: own?.split ? s1(own.split.waitingMs) : null,
       other_s_median: own?.split ? s1(own.split.otherMs) : null,
+      llm_calls_median: own?.llmCalls?.median ?? null,
+      control_llm_calls_median: vs?.control.llmCalls?.median ?? null,
     }
   })
   insertAll(db, 'effort_m', effortRows)

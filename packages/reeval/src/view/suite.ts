@@ -334,6 +334,8 @@ type Interval = { low: number; high: number }
 /** A null counter is one the harness didn't record; a recorded zero stays zero. */
 export type EffortCounters = {
   tools: number | null
+  /** Median model calls; omitted when no attempt counted them (`activity.llmCalls`). */
+  llmCalls?: number
   agentMs: number | null
   tokens: number | null
   /** Median time waiting on background jobs; omitted when no attempt recorded where its time went. */
@@ -588,6 +590,7 @@ function effortOf(e: EvalEntry, cell: CellRecord): EffortCounters | null {
   if (!effort || effort.n < COMPARE_RUNS) return null
   return {
     tools: effort.tools.median,
+    ...(effort.llmCalls ? { llmCalls: effort.llmCalls.median } : {}),
     agentMs: effort.agentMs.median,
     tokens: effort.tokens?.median ?? null,
     ...(effort.split ? { waitingMs: effort.split.waitingMs } : {}),
