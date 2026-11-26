@@ -489,6 +489,12 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/cloud-push.test.ts', 'reeval/test/cli.test.ts'],
   },
   {
+    id: 'export',
+    area: 'Records and studio',
+    name: "`reeval export [run]`: the run as its history archive zip (default `<run>.zip`), or with `--format atif` each attempt's ATIF trajectory as `atif.json` in the attempt's folder (default under `<run>.atif/`); an unknown format is refused with exit 2",
+    unit: ['reeval/test/atif.test.ts'],
+  },
+  {
     id: 'cloud.push-analyses',
     area: 'Config and selection',
     name: "`reeval cloud push` and `reeval studio share` carry the run's saved analyses (`<run>/analysis/*.json`, which a history archive leaves out); one over 1 MiB, that isn't JSON, from a newer reeval, that doesn't fit the analysis schema or that analyzes another run is refused with exit 2, naming it, before anything is sent",

@@ -1,0 +1,75 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "20260929T034441Z_nogit_runner_dvee",
+  "trajectory_id": "evals/egress.eval.ts › egress # codex:gpt-5.4-mini/closed/docker#1",
+  "agent": {
+    "name": "codex",
+    "version": "codex-cli 0.157.1",
+    "model_name": "gpt-5.4-mini"
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-29T03:44:51.262Z",
+      "source": "user",
+      "message": "Run this exact shell command once, then stop: curl -sS -m 20 -o /dev/null -w '%{http_connect} %{http_code}' https://example.com/ > blocked.txt"
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-29T03:44:56.581Z",
+      "source": "agent",
+      "model_name": "gpt-5.4-mini-2026-03-17[effort=medium]",
+      "message": "I’m going to run the exact command once, capture the result into `blocked.txt`, and then stop there.",
+      "tool_calls": [
+        {
+          "tool_call_id": "item_1",
+          "function_name": "bash",
+          "arguments": {
+            "command": "/bin/bash -lc \"curl -sS -m 20 -o /dev/null -w '%{http_connect} %{http_code}' https://example.com/ > blocked.txt\""
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "item_1",
+            "content": "curl: (56) CONNECT tunnel failed, response 403\n",
+            "extra": {
+              "ok": false,
+              "durationMs": 1249
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-29T03:45:01.583Z",
+      "source": "agent",
+      "model_name": "gpt-5.4-mini-2026-03-17[effort=medium]",
+      "message": "Ran it once. It failed with `curl: (56) CONNECT tunnel failed, response 403`.",
+      "metrics": {
+        "prompt_tokens": 21273,
+        "completion_tokens": 233,
+        "cached_tokens": 10624,
+        "extra": {
+          "cache_creation_input_tokens": 0,
+          "reasoning_tokens": 103
+        }
+      }
+    }
+  ],
+  "final_metrics": {
+    "total_prompt_tokens": 21273,
+    "total_completion_tokens": 233,
+    "total_cached_tokens": 10624,
+    "extra": {
+      "cache_creation_input_tokens": 0,
+      "reasoning_tokens": 103
+    },
+    "total_steps": 3
+  },
+  "extra": {
+    "outcome": "pass"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "20260929T033347Z_nogit_runner_20sz",
+  "trajectory_id": "evals/key.eval.ts › key # cursor:composer-2.5/scanned/docker#1",
+  "agent": {
+    "name": "cursor",
+    "version": "@cursor/sdk 1.0.32",
+    "model_name": "composer-2.5"
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-29T03:34:15.908Z",
+      "source": "user",
+      "message": "Reply with the single word OK. Do not run any tools."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-29T03:34:21.162Z",
+      "source": "agent",
+      "model_name": "composer-2.5[fast=false]",
+      "message": "OK",
+      "reasoning_content": "The user requested a single-word \"OK\" response and explicitly forbade running any tools.",
+      "metrics": {
+        "prompt_tokens": 10689,
+        "completion_tokens": 28,
+        "cached_tokens": 2953,
+        "extra": {
+          "cache_creation_input_tokens": 0
+        }
+      }
+    }
+  ],
+  "final_metrics": {
+    "total_prompt_tokens": 10689,
+    "total_completion_tokens": 28,
+    "total_cached_tokens": 2953,
+    "extra": {
+      "cache_creation_input_tokens": 0
+    },
+    "total_steps": 2
+  },
+  "extra": {
+    "outcome": "pass"
+  }
+}

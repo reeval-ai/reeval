@@ -1,0 +1,77 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "20260929T033347Z_nogit_runner_20sz",
+  "trajectory_id": "evals/mcp.eval.ts › mcp # cursor:composer-2.5/stamped/docker#1",
+  "agent": {
+    "name": "cursor",
+    "version": "@cursor/sdk 1.0.32",
+    "model_name": "composer-2.5"
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-29T03:34:22.667Z",
+      "source": "user",
+      "message": "Call the house_stamp tool of the stamp MCP server once, then reply with what it returned."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-29T03:34:31.002Z",
+      "source": "agent",
+      "model_name": "composer-2.5[fast=false]",
+      "message": "Checking the `house_stamp` tool schema, then invoking it.\n",
+      "reasoning_content": "Calling the house_stamp tool on the stamp MCP server once and reporting its return value.\n\nFirst fetching the tool schema via GetDynamls, then calling it with CallDynamicTool.\n\nThe house_stamp tool requires no parameters.",
+      "tool_calls": [
+        {
+          "tool_call_id": "tool_53ddf791-30a9-4970-8758-736c54b445a",
+          "function_name": "mcp__stamp__house_stamp",
+          "arguments": {
+            "providerIdentifier": "stamp",
+            "toolName": "house_stamp",
+            "args": {}
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "tool_53ddf791-30a9-4970-8758-736c54b445a",
+            "content": "[{\"type\":\"text\",\"text\":\"STAMP-7Q\"}]",
+            "extra": {
+              "ok": true,
+              "durationMs": 369
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-29T03:34:34.497Z",
+      "source": "agent",
+      "model_name": "composer-2.5[fast=false]",
+      "message": "The **stamp** MCP `house_stamp` tool returned:\n\n**`STAMP-7Q`**",
+      "reasoning_content": "The house_stamp tool returned STAMP-7Q.",
+      "metrics": {
+        "prompt_tokens": 42725,
+        "completion_tokens": 191,
+        "cached_tokens": 19109,
+        "extra": {
+          "cache_creation_input_tokens": 0
+        }
+      }
+    }
+  ],
+  "final_metrics": {
+    "total_prompt_tokens": 42725,
+    "total_completion_tokens": 191,
+    "total_cached_tokens": 19109,
+    "extra": {
+      "cache_creation_input_tokens": 0
+    },
+    "total_steps": 3
+  },
+  "extra": {
+    "outcome": "pass"
+  }
+}

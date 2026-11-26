@@ -69,6 +69,7 @@ extend-exclude = [
   "packages/reeval/test/fixtures/records/",
   "packages/reeval/test/fixtures/schema/",
   "packages/reeval/test/fixtures/analysis/",
+  "packages/reeval/test/fixtures/atif/",
   # Captured agent output.
   "packages/reeval/test/replay/",
   "packages/reeval/test/fixtures/claude-code-bridge/",

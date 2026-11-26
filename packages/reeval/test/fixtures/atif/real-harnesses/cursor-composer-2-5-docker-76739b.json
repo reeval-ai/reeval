@@ -1,0 +1,95 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "20260927T161031Z_cc7e11c_cursor-agent_a3yh",
+  "trajectory_id": "evals/hello.es.ts › writes hello.txt # cursor:composer-2.5/-/docker#1",
+  "agent": {
+    "name": "cursor",
+    "version": "@cursor/sdk 1.0.32",
+    "model_name": "composer-2.5"
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-27T16:10:34.029Z",
+      "source": "user",
+      "message": "Run `ls -a` to look around, then create hello.txt containing exactly: hi"
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-27T16:10:38.429Z",
+      "source": "agent",
+      "model_name": "composer-2.5[fast=true]",
+      "message": "",
+      "reasoning_content": "Running `ls -a` to inspect the workspace. Then creating hello.txt with the content \"hi\".",
+      "tool_calls": [
+        {
+          "tool_call_id": "tool_b31e3b8f-7bb9-4ff7-87cd-d9be82abefe",
+          "function_name": "bash",
+          "arguments": {
+            "command": "ls -a .",
+            "timeout": 30000
+          }
+        },
+        {
+          "tool_call_id": "tool_51eb6006-6cdc-449d-9268-a5d879f6436",
+          "function_name": "file-edit",
+          "arguments": {
+            "path": "hello.txt"
+          },
+          "extra": {
+            "path": "hello.txt",
+            "kind": "create",
+            "added": 1,
+            "removed": 0
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "tool_b31e3b8f-7bb9-4ff7-87cd-d9be82abefe",
+            "content": ".\n..\n",
+            "extra": {
+              "ok": true,
+              "durationMs": 331
+            }
+          },
+          {
+            "source_call_id": "tool_51eb6006-6cdc-449d-9268-a5d879f6436",
+            "extra": {
+              "durationMs": 442
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-27T16:10:39.964Z",
+      "source": "agent",
+      "model_name": "composer-2.5[fast=true]",
+      "message": "**Workspace:** `/es/workspace` was empty aside from `.` and `..`.\n\n**Created:** `hello.txt` with exactly:\n\n```\nhi\n```",
+      "reasoning_content": "Both tasks completed successfully.\n\nThe workspace was empty. Created hello.txt with \"hi\".",
+      "metrics": {
+        "prompt_tokens": 22514,
+        "completion_tokens": 157,
+        "cached_tokens": 6912,
+        "extra": {
+          "cache_creation_input_tokens": 0
+        }
+      }
+    }
+  ],
+  "final_metrics": {
+    "total_prompt_tokens": 22514,
+    "total_completion_tokens": 157,
+    "total_cached_tokens": 6912,
+    "extra": {
+      "cache_creation_input_tokens": 0
+    },
+    "total_steps": 3
+  },
+  "extra": {
+    "outcome": "pass"
+  }
+}
