@@ -10,14 +10,13 @@ const advisor = fakeAgent({
 // names Genkit, and the Python case also wants it to be the only framework named, which it isn't.
 export default defineEval({
   cases: [
-    { task: 'a chat app', only: false },
-    { task: 'a RAG pipeline', only: false },
-    { task: 'a Python agent', only: true },
+    { key: 'a chat app', only: false },
+    { key: 'a RAG pipeline', only: false },
+    { key: 'a Python agent', only: true },
   ],
-  caseKey: (item) => item.task,
   agents: advisor,
   runs: 2,
-  task: async (c, { task, only }) => {
+  task: async (c, { key: task, only }) => {
     const turn = await c.send(`Which framework should I use to build ${task}? Pick one.`)
     expect(turn.text, 'names Genkit').toContain('Genkit')
     if (only) expect(turn.text, 'names no other framework').not.toContain('LangChain')

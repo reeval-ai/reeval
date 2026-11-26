@@ -2,7 +2,7 @@
 
 **Shows:** one task over a list of cases. `cases` runs the eval once per case: the agent adds one
 function to `src/math.js` (`subtract`, `multiply`, `power`), and the eval calls it with that case's
-numbers through [`checks/call.mjs`](./checks/call.mjs). `caseKey` names each case by its `fn`, and
+numbers through [`checks/call.mjs`](./checks/call.mjs). Each case is an object whose `key` names it, and
 the cases make one eval: a failing case fails it.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
@@ -51,8 +51,8 @@ fake/math/fake  3      1          0.439    1
 
 To have each case pass or fail on its own, loop over them and call `evaluate` once per case.
 
-A string or number case is its own key, and an object's `id` or `name` is its key without
-`caseKey`. `pnpm reeval run power` runs one case.
+Each case's `key` is its row's name and its attempt's (`with-cases#power`). `pnpm reeval run
+power` runs one case.
 
 | File | What it is |
 |---|---|

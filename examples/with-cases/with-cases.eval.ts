@@ -6,19 +6,18 @@ const math = defineEnvironment('math', ({ directory, file }) => ({
 }))
 
 const cases = [
-  { fn: 'subtract', a: 7, b: 3, want: '4' },
-  { fn: 'multiply', a: 2, b: 3, want: '6' },
-  { fn: 'power', a: 2, b: 5, want: '32' },
+  { key: 'subtract', a: 7, b: 3, want: '4' },
+  { key: 'multiply', a: 2, b: 3, want: '6' },
+  { key: 'power', a: 2, b: 5, want: '32' },
 ]
 
 export default defineEval({
   cases,
-  caseKey: (item) => item.fn,
   environment: math,
   task: async (c, item) => {
-    await c.send(`Add a ${item.fn}(a, b) function to src/math.js.`)
+    await c.send(`Add a ${item.key}(a, b) function to src/math.js.`)
 
-    const run = await c.exec(`node ~/checks/call.mjs ${item.fn} ${item.a} ${item.b}`)
+    const run = await c.exec(`node ~/checks/call.mjs ${item.key} ${item.a} ${item.b}`)
     expect(run).toSucceed()
     expect(run.stdout.trim()).toBe(item.want)
   },

@@ -27,7 +27,7 @@
 | `gate: 'observe'` and `compare.gate: 'observe'`: every cell ungated, a failed `expect` reads `ran` and fails nothing, and no pass^k hint | ✓ 1 | ✓ 1 | ● 2 | — | — | — |
 | `where`: which case and environment pairs of an eval with `cases` run, decided at plan time from environment `traits` (and the harness when it reads it), listed in `--dry-run` and the record's `excluded`; with `compare`, the control decides for every variant | ✓ 1 | ✓ 1 | ● 1 | — | — | — |
 | `defineEval` as the file default export: one eval per file, id from its path, case members as `#key`, `--cell` for cell selection | ✓ 3 | ✓ 3 | ● 1 | — | — | — |
-| `cases` and `caseKey`: one eval over a list of cases, counted and named once with its cases as rows inside it, pooled into a pass rate that `gate: { passRate }` gates and a paired lift that `minLift` gates; older records fold into the same shape, an `evaluate.each` family under its template without placeholders, so a port continues its history | ✓ 8 | ✓ 3 | ● 2 | — | — | — |
+| `cases`: one eval over a list of cases, each an object with its `key`, counted and named once with its cases as rows inside it, pooled into a pass rate that `gate: { passRate }` gates and a paired lift that `minLift` gates; older records fold into the same shape, an `evaluate.each` family under its template without placeholders, so a port continues its history | ✓ 8 | ✓ 3 | ● 2 | — | — | — |
 | `compare.harnesses` | ✓ 1 | ✓ 1 | — | — | — | — |
 | `compare.control`: the control cell, which replaces an inherited `environments` | ✓ 1 | ✓ 4 | ● 1 | ● 1 | — | — |
 | `questions` with `across`: pairwise questions in the plan, answered after the run with win rates | ✓ 4 | ✓ 5 | — | — | — | ◐ 1 (1 without a canary) |

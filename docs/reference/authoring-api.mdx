@@ -43,23 +43,27 @@ For more information about `EvalOptions` and the type of each key, see [Options 
 import { defineEval, expect } from '{{ pkg }}'
 import { plain, withShoehorn } from './shared.ts'
 
-const handlers = ['getUserId', 'getUserEmail', 'getUserRole']
+const handlers = [
+  { key: 'getUserId' },
+  { key: 'getUserEmail' },
+  { key: 'getUserRole' },
+]
 
 export default defineEval({
   cases: handlers,
   compare: { control: plain, variants: [withShoehorn] },
-  async task(c, handler) {
+  async task(c, { key: handler }) {
     // ...
   },
 })
 ```
 
-<Property name="cases" type="readonly T[]" required>
-  The inputs, each JSON data. The cases pool into one pass rate and, under `compare`, one lift paired by case and gated by `compare.minLift`. Each case's data is part of its fingerprint, recorded as a sha256 of its JSON with secrets in its strings masked, so a rotated secret leaves the case the same evaluation. A secret held as a number, or a value under 8 characters in a secret-named variable that no `secret()` reads, is hashed as written: anyone who reads the history could confirm a guess at it.
+<Property name="cases" type="readonly Case<T>[]" required>
+  The inputs, each a JSON object with a `key`; `Case<T>` is `{ key: string } & T`. The cases pool into one pass rate and, under `compare`, one lift paired by case and gated by `compare.minLift`. Each case's data is part of its fingerprint, recorded as a sha256 of its JSON with secrets in its strings masked, so a rotated secret leaves the case the same evaluation. A secret held as a number, or a value under 8 characters in a secret-named variable that no `secret()` reads, is hashed as written: anyone who reads the history could confirm a guess at it.
 </Property>
 
-<Property name="caseKey" type="(item: T) => string" optional>
-  Each case's key, 1 to 80 characters with no `#`, `/`, `›` or control characters. Without it, a string or a finite number is its own key, and an object uses its `id`, else its `name`.
+<Property name="cases[].key" type="string" required>
+  Each case's key, 1 to 80 characters with no surrounding whitespace, `#`, `›` or control characters; a `/` is fine.
 </Property>
 
 <Property name="where" type="Where<T>" optional>
@@ -67,10 +71,10 @@ export default defineEval({
 </Property>
 
 <Property name="task" type="CaseFn<T>" required>
-  The body, `(c: AttemptContext, item: T) => Promise<void>`, called once per attempt with its case.
+  The body, `(c: AttemptContext, item: Case<T>) => Promise<void>`, called once per attempt with its case.
 </Property>
 
-Results print the evaluation's id as a heading and a row per case key. reeval refuses, with exit code 2, a `cases` value that is not a non-empty list, a case with no key, two cases with one key, including two whose keys differ only in a masked secret, `caseKey` or `where` without `cases`, and `runs: { bestOf }` beside `cases`. `cases`, `caseKey` and `where` are options of `defineEval()` only, not of the config.
+Results print the evaluation's id as a heading and a row per case key. reeval refuses, with exit code 2, a `cases` value that is not a non-empty list, a case that is not an object with a valid `key`, two cases with one key, including two whose keys differ only in a masked secret, `where` without `cases`, and `runs: { bestOf }` beside `cases`. `cases` and `where` are options of `defineEval()` only, not of the config.
 
 For more information about the `all cases` row, see [`compare`](/reference/options#compare).
 

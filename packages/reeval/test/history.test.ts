@@ -688,9 +688,9 @@ export default defineEval({
     const p = await gitProject('record-cases-diff', {
       'evals/cased.eval.ts': `import { defineEval, expect } from 'reeval'
 export default defineEval({
-  cases: ['a', 'b'],
+  cases: [{ key: 'a' }, { key: 'b' }],
   runs: 2,
-  async task(c, k) {
+  async task(c, { key: k }) {
     await c.send(k)
     expect(k === 'a' && c.attempt.n === 1, 'first a fails').toBe(false)
   },

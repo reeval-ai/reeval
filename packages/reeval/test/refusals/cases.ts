@@ -402,7 +402,11 @@ const ungated = (options: object) => defines({ gate: 'observe', ...options, task
 const plainEnv = defineEnvironment('plain', {})
 const nextEnv = defineEnvironment('next-app', { traits: { stack: 'next' } })
 const viteEnv = defineEnvironment('vite-app', { traits: { stack: 'vite' } })
-type Pair = { case: string; environment: { traits: Record<string, unknown> }; harness: string }
+type Pair = {
+  case: { key: string }
+  environment: { traits: Record<string, unknown> }
+  harness: string
+}
 const skillEnv = defineEnvironment('skill', { rules: 'Use the house style.' })
 const group = (name: string, children: unknown[]) => ({
   type: 'group',
@@ -1430,8 +1434,7 @@ export const CASES: Record<string, Case[]> = {
       'yaml: snapshot in a profile',
       yaml('profiles:\n  pr:\n    defaults: { snapshot: { compress: true } }\n'),
     ],
-    ['cases in options', options({ cases: [1, 2] })],
-    ['caseKey in options', options({ caseKey: (c: string) => c })],
+    ['cases in options', options({ cases: [{ key: 'a' }] })],
     ['a bound body', () => bodyHash((async () => {}).bind(null), 'evaluate("e")')],
     ['a case that is not JSON data', () => caseJson({ want: /hi/ }, 'evaluate("e") case "a"')],
     ['egress a list', options({ egress: ['api.example.com'] })],
@@ -2972,7 +2975,10 @@ environments:
   declaration: [
     [
       "gate 'observe': accepted with cases and a compare",
-      ungated({ cases: ['a', 'b'], compare: { control: plainEnv, variants: [skillEnv] } }),
+      ungated({
+        cases: [{ key: 'a' }, { key: 'b' }],
+        compare: { control: plainEnv, variants: [skillEnv] },
+      }),
     ],
     [
       "gate 'observe' with minLift",
@@ -2981,35 +2987,40 @@ environments:
     ["gate 'observe' with best-of runs", ungated({ runs: { bestOf: 3 } })],
     ['cases: not a list', withCases({ cases: 'abc' })],
     ['cases: an empty list', withCases({ cases: [] })],
-    ['cases: caseKey without cases', withCases({ caseKey: (c: string) => c })],
-    ['cases: caseKey not a function', withCases({ cases: [1], caseKey: 'slug' })],
-    ['cases: a case with no key', withCases({ cases: [{ slug: 'a' }] })],
-    ['cases: caseKey returns a number', withCases({ cases: [1], caseKey: () => 1 })],
-    ['cases: a key with a hash', withCases({ cases: ['a#b'] })],
-    ['cases: a key with a slash is accepted', withCases({ cases: ['email/password'] })],
-    ['cases: a key that is too long', withCases({ cases: ['x'.repeat(81)] })],
-    ['cases: an empty key', withCases({ cases: ['a'], caseKey: () => ' ' })],
-    ['cases: two cases with one key', withCases({ cases: [{ id: 'a' }, { name: 'a' }] })],
-    ['cases: one key from caseKey', withCases({ cases: [1, 2], caseKey: () => 'k' })],
-    ['cases: with best-of runs', withCases({ cases: [1, 2], runs: { bestOf: 3 } })],
+    ['cases: a string case', withCases({ cases: ['a'] })],
+    ['cases: a number case', withCases({ cases: [1] })],
+    ['cases: a list case', withCases({ cases: [['a']] })],
+    ['cases: a case with no key', withCases({ cases: [{ id: 'a' }] })],
+    ['cases: a key that is not a string', withCases({ cases: [{ key: 1 }] })],
+    ['cases: caseKey is not an option', withCases({ cases: [{ key: 'a' }], caseKey: () => 'b' })],
+    ['cases: a key with a hash', withCases({ cases: [{ key: 'a#b' }] })],
+    ['cases: a key with a slash is accepted', withCases({ cases: [{ key: 'email/password' }] })],
+    ['cases: a key that is too long', withCases({ cases: [{ key: 'x'.repeat(81) }] })],
+    ['cases: an empty key', withCases({ cases: [{ key: '' }] })],
+    ['cases: a key with surrounding whitespace', withCases({ cases: [{ key: ' a ' }] })],
+    ['cases: two cases with one key', withCases({ cases: [{ key: 'a' }, { key: 'a', n: 2 }] })],
+    [
+      'cases: with best-of runs',
+      withCases({ cases: [{ key: 'a' }, { key: 'b' }], runs: { bestOf: 3 } }),
+    ],
     ['where: without cases', withCases({ where: () => true })],
-    ['where: not a function', withCases({ cases: ['a'], where: true })],
+    ['where: not a function', withCases({ cases: [{ key: 'a' }], where: true })],
     [
       'where: reads a trait no environment defines',
       withCases({
-        cases: ['a'],
+        cases: [{ key: 'a' }],
         environment: [nextEnv],
         where: ({ environment }: Pair) => environment.traits.stak === 'next',
       }),
     ],
     [
       'where: returns a string',
-      withCases({ cases: ['q001'], environment: [nextEnv], where: () => 'yes' }),
+      withCases({ cases: [{ key: 'q001' }], environment: [nextEnv], where: () => 'yes' }),
     ],
     [
       'where: throws',
       withCases({
-        cases: ['q001'],
+        cases: [{ key: 'q001' }],
         environment: [nextEnv],
         where: () => {
           throw new Error('no such stack')
@@ -3019,26 +3030,30 @@ environments:
     [
       'where: leaves a cell with no cases',
       withCases({
-        cases: ['a', 'b'],
+        cases: [{ key: 'a' }, { key: 'b' }],
         environment: [nextEnv, viteEnv],
         where: ({ environment }: Pair) => environment.traits.stack === 'next',
       }),
     ],
     [
       'where: excludes every pair',
-      withCases({ cases: ['a', 'b'], environment: [nextEnv, viteEnv], where: () => false }),
+      withCases({
+        cases: [{ key: 'a' }, { key: 'b' }],
+        environment: [nextEnv, viteEnv],
+        where: () => false,
+      }),
     ],
     [
       'where: accepted, a harness read',
       withCases({
-        cases: ['a', 'b'],
+        cases: [{ key: 'a' }, { key: 'b' }],
         environment: [nextEnv],
-        where: ({ case: c, harness }: Pair) => c === 'a' || harness === 'fake',
+        where: ({ case: c, harness }: Pair) => c.key === 'a' || harness === 'fake',
       }),
     ],
     [
-      'cases: keys from ids, names, strings and numbers',
-      withCases({ cases: ['s', 2, { id: 'i' }, { name: 'n' }] }),
+      'cases: keys accepted',
+      withCases({ cases: [{ key: 's' }, { key: '2', n: 2 }, { key: 'a/b' }] }),
     ],
     ['load: no default export', loads(() => ({ named: defineEval({ task: async () => {} }) }))],
     [

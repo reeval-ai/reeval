@@ -1,3 +1,7 @@
 import { defineEval } from 'reeval'
 
-export default defineEval({ cases: [1, 2], tags: ['slow'], task: async () => {} })
+export default defineEval({
+  cases: [{ key: '1' }, { key: '2' }],
+  tags: ['slow'],
+  task: async () => {},
+})

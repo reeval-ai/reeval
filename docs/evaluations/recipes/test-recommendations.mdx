@@ -34,9 +34,13 @@ Declare one open question and one question per rival in the `evals/choose.eval.t
 import { defineEval, expect } from '{{ pkg }}'
 
 export default defineEval({
-  cases: ['open', 'LangChain', 'LlamaIndex', 'the Vercel AI SDK'],
-  caseKey: (item) => (item === 'open' ? 'open' : item),
-  task: async (c, rival) => {
+  cases: [
+    { key: 'open' },
+    { key: 'LangChain' },
+    { key: 'LlamaIndex' },
+    { key: 'the Vercel AI SDK' },
+  ],
+  task: async (c, { key: rival }) => {
     if (rival === 'open') {
       await c.send(
         "I'm building a production AI feature that needs multi-step " +

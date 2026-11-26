@@ -11,13 +11,11 @@ import inspect
 import itertools
 import json
 import linecache
-import math
 import re
 import sys
 import textwrap
-from collections.abc import Callable, Coroutine, Sequence
+from collections.abc import Callable, Coroutine, Mapping, Sequence
 from dataclasses import dataclass, field
-from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast, overload
 
@@ -264,7 +262,7 @@ def evaluate(
         _register_eval(name, mode, {}, arg, None, None)
         return arg
     opts = dict[str, Any](cast(dict[str, Any], arg)) if isinstance(arg, dict) else {}
-    with_cases = "cases" in opts or "case_key" in opts
+    with_cases = "cases" in opts
     if callable(arg2):
         if with_cases:
             _register_cases(name, mode, opts, arg2)
@@ -286,74 +284,50 @@ _BAD_KEY = re.compile(r"[#›\x00-\x1f\x7f]")
 CASE_KEY_MAX = 80
 
 
-def _default_key(case: Any) -> str | None:
-    if isinstance(case, str):
-        return case
-    if isinstance(case, int | float) and not isinstance(case, bool) and math.isfinite(case):
-        return _js_number(case)
-    if isinstance(case, dict):
-        fields = cast(dict[str, Any], case)
-        for key in ("id", "name"):
-            if isinstance(fields.get(key), str):
-                return cast(str, fields[key])
-    for key in ("id", "name"):
-        value = getattr(cast(object, case), key, None)
-        if isinstance(value, str):
-            return value
-    return None
+def _key_of(case: Any) -> object:
+    """A case's `key`: a dict's `"key"` entry, or a dataclass's `key` field."""
+    if isinstance(case, Mapping):
+        return cast(Mapping[str, Any], case).get("key")
+    if dataclasses.is_dataclass(case) and not isinstance(case, type):
+        return getattr(case, "key", None)
+    return _NOT_A_CASE
 
 
-def _js_number(n: float) -> str:
-    """A number as JavaScript's `String(n)` writes it (`2.0` as `2`, `1e-07` as `1e-7`), so both
-    SDKs key it alike. `repr` has the same shortest round-trip digits; only the layout differs."""
-    x = float(n)
-    if x == 0:
-        return "0"
-    parts = Decimal(repr(abs(x))).normalize().as_tuple()
-    digits = "".join(map(str, parts.digits))
-    size = len(digits)
-    point = size + int(parts.exponent)
-    if size <= point <= 21:
-        body = digits + "0" * (point - size)
-    elif 0 < point <= 21:
-        body = f"{digits[:point]}.{digits[point:]}"
-    elif -6 < point <= 0:
-        body = f"0.{'0' * -point}{digits}"
-    else:
-        mantissa = digits[0] + (f".{digits[1:]}" if size > 1 else "")
-        body = f"{mantissa}e{'+' if point > 0 else '-'}{abs(point - 1)}"
-    return ("-" if x < 0 else "") + body
+_NOT_A_CASE = object()
 
 
-def case_keys(cases: Sequence[Any], case_key: Callable[[Any], Any] | None, where: str) -> list[str]:
-    """Each case's key, in list order: `case_key(case)` when given, else its default. Trimmed,
-    1–80 characters, with no `#`, `/`, `›` or control characters, and unique within the eval."""
+def case_keys(cases: Sequence[Any], where: str) -> list[str]:
+    """Each case's `key`, in list order. Every case is a dict or a dataclass whose key is 1–80
+    characters, with no surrounding whitespace, `#`, `›` or control characters, and unique within
+    the eval."""
     seen: dict[str, int] = {}
     out: list[str] = []
     for i, case in enumerate(cases):
-        raw = case_key(case) if case_key else _default_key(case)
-        if raw is None:
-            raise ValueError(
-                f"cases[{i}] in {where} has no key: a case is its own key when it's a string or "
-                "a number, or a dict's id or name. Give it an id, or pass "
-                '"case_key": lambda case: case["slug"].'
-            )
-        if not isinstance(raw, str):
+        key = _key_of(case)
+        if key is _NOT_A_CASE:
             raise TypeError(
-                f"case_key in {where} must return a string (got {raw!r} for cases[{i}])"
+                f"cases[{i}] in {where} is {case!r}: a case is a dict or a dataclass with a key, "
+                'e.g. {"key": "users", …}'
             )
-        key = raw.strip()
-        if not key or len(key) > CASE_KEY_MAX or _BAD_KEY.search(key):
+        if key is None:
             raise ValueError(
-                f"cases[{i}] in {where} has the key {raw!r}: a case key is 1–{CASE_KEY_MAX} "
-                "characters, with no #, › or control characters."
-                + ("" if case_key else " Pass case_key to give it another.")
+                f"cases[{i}] in {where} has no key: a case is a dict or a dataclass with a key, "
+                'e.g. {"key": "users", …}'
+            )
+        if not isinstance(key, str):
+            raise TypeError(
+                f"cases[{i}] in {where} has the key {key!r}: a case's key is a string, e.g. "
+                '{"key": "users", …}'
+            )
+        if not key or key != key.strip() or len(key) > CASE_KEY_MAX or _BAD_KEY.search(key):
+            raise ValueError(
+                f"cases[{i}] in {where} has the key {key!r}: a case key is 1–{CASE_KEY_MAX} "
+                "characters, with no surrounding whitespace, #, › or control characters."
             )
         if key in seen:
             raise ValueError(
                 f"cases[{seen[key]}] and cases[{i}] in {where} have the same key {key!r}. Each "
-                "case needs its own key"
-                + ("." if case_key else ": give them distinct ids or names, or pass case_key.")
+                "case needs its own key."
             )
         seen[key] = i
         out.append(key)
@@ -365,20 +339,14 @@ def _register_cases(name: str, mode: Mode, opts: dict[str, Any], fn: Callable[..
     record folds back into the eval."""
     where = f"evaluate({name!r})"
     cases = opts.pop("cases", None)
-    case_key = opts.pop("case_key", None)
     if not isinstance(cast(object, cases), list | tuple):
         raise TypeError(
-            f"case_key in {where} names each case, but there are no cases. Add cases, or drop "
-            "case_key."
-            if cases is None
-            else f"cases in {where} must be a list (got {type(cases).__name__}), e.g. "
-            '"cases": ["users", "posts"]'
+            f"cases in {where} must be a list (got {type(cases).__name__}), e.g. "
+            '"cases": [{"key": "users"}, {"key": "posts"}]'
         )
     cases = cast(Sequence[Any], cases)
     if not cases:
         raise ValueError(f"cases in {where} is an empty list. Give at least one case.")
-    if case_key is not None and not callable(case_key):
-        raise TypeError(f"case_key in {where} must be a function from a case to its key")
     if isinstance(opts.get("runs"), dict):
         raise ValueError(
             f"{where} has cases, so it can't take runs={{'best_of': …}}: best-of stops each cell "
@@ -393,7 +361,7 @@ def _register_cases(name: str, mode: Mode, opts: dict[str, Any], fn: Callable[..
         ) from None
     except ValueError:
         pass
-    keys = case_keys(cases, cast(Callable[[Any], Any] | None, case_key), where)
+    keys = case_keys(cases, where)
     body = body_hash(fn, where)
     path = (*(frame.name for frame in _group_stack), name)
     key = " › ".join(path)

@@ -26,7 +26,7 @@ compare a skill, fix a config, read a failure. Read a reference file when the ta
 | Read | When the task involves |
 |---|---|
 | [references/config.md](references/config.md) | Harness factories and their keys, `effort`, judge models, `reeval.yaml`, path rules, where the sandbox comes from, imports, the options cascade |
-| [references/evals.md](references/evals.md) | `cases`, `caseKey` and `where`, `gate: 'observe'`, `toStayWithin`, `c.serve`, `c.writeFile` hidden tests, the judge's inputs, the judge's input size, judge errors, every matcher |
+| [references/evals.md](references/evals.md) | `cases` and `where`, `gate: 'observe'`, `toStayWithin`, `c.serve`, `c.writeFile` hidden tests, the judge's inputs, the judge's input size, judge errors, every matcher |
 | [references/capture.md](references/capture.md) | Web UIs: `c.capture()` screenshots, `instructions` journeys, `artifacts` on judges and questions |
 | [references/compare.md](references/compare.md) | `compare` beyond the example below: the control, gates, lift and effort, labeled checks, `questions`, `skill_files` |
 | [references/environments.md](references/environments.md) | Environments: skills, files, rules, MCP servers, `git()` workspaces, `directory()`, Docker sandboxes, secrets, egress |

@@ -8,6 +8,7 @@ import json
 import shutil
 import subprocess
 import sys
+from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
@@ -132,20 +133,18 @@ def test_cases_must_be_a_list(cases: Any) -> None:
         ({"cases": []}, r"cases in evaluate\('e'\) is an empty list"),
         ({"cases": [{"n": 1}]}, r"cases\[0\] in evaluate\('e'\) has no key"),
         (
-            {"cases": ["a", "a"]},
+            {"cases": ["a"]},
+            r"cases\[0\] in evaluate\('e'\) is 'a': a case is a dict or a dataclass with a key",
+        ),
+        ({"cases": [{"key": 1}]}, r"has the key 1: a case's key is a string"),
+        (
+            {"cases": [{"key": "a"}, {"key": "a"}]},
             r"cases\[0\] and cases\[1\] in evaluate\('e'\) have the same key 'a'",
         ),
-        ({"cases": ["a#b"]}, r"has the key 'a#b': a case key is 1–80 characters"),
+        ({"cases": [{"key": "a#b"}]}, r"has the key 'a#b': a case key is 1–80 characters"),
+        ({"cases": [{"key": " a"}]}, r"has the key ' a': a case key is 1–80 characters"),
         (
-            {"cases": [1], "case_key": lambda c: 1},
-            r"case_key in evaluate\('e'\) must return a string",
-        ),
-        (
-            {"case_key": lambda c: c},
-            r"case_key in evaluate\('e'\) names each case, but there are no cases",
-        ),
-        (
-            {"cases": [1, 2], "runs": {"best_of": 3}},
+            {"cases": [{"key": "a"}, {"key": "b"}], "runs": {"best_of": 3}},
             r"evaluate\('e'\) has cases, so it can't take runs",
         ),
     ],
@@ -158,23 +157,26 @@ def test_bad_cases_are_refused_where_they_are_declared(opts: Any, message: str) 
         collect_module_tree_sync(load)
 
 
+@dataclass
+class Keyed:
+    key: str
+
+
 def test_cases_key_their_evals_and_name_their_eval() -> None:
     def load() -> None:
-        evaluate("e", {"cases": ["users", 2, {"id": "x"}, {"name": "y"}]})(lambda c, case: None)
-        evaluate("one", {"cases": [{"slug": "s"}], "case_key": lambda c: c["slug"]})(
-            lambda c, case: None
-        )
+        evaluate("e", {"cases": [{"key": "users"}, {"key": "2"}, Keyed("x")]})(lambda c, case: None)
+        evaluate("one", {"cases": [{"key": "s", "slug": "s"}]})(lambda c, case: None)
 
     tree = collect_module_tree_sync(load)
     names = [child["name"] for child in tree["children"]]
-    assert names == ["e [users]", "e [2]", "e [x]", "e [y]", "one [s]"]
-    assert tree["children"][1]["family"] == {"name": "e", "case": 1, "cases": 4}
-    assert tree["children"][4]["family"] == {"name": "one", "case": 0, "cases": 1}
+    assert names == ["e [users]", "e [2]", "e [x]", "one [s]"]
+    assert tree["children"][1]["family"] == {"name": "e", "case": 1, "cases": 3}
+    assert tree["children"][3]["family"] == {"name": "one", "case": 0, "cases": 1}
 
 
 def test_cases_refuse_a_body_without_the_case_where_it_is_declared() -> None:
     def load() -> None:
-        @evaluate("case", {"cases": [1, 2]})
+        @evaluate("case", {"cases": [{"key": "1"}, {"key": "2"}]})
         def _(c: Any) -> None: ...
 
     with pytest.raises(TypeError, match=r"the body takes the attempt and its case"):
@@ -243,10 +245,10 @@ def test_an_eval_declared_twice_is_refused_where_it_is_declared() -> None:
 
 def test_two_evals_with_cases_and_one_name_are_refused() -> None:
     def load() -> None:
-        @evaluate("case", {"cases": [1, 2]})
+        @evaluate("case", {"cases": [{"key": "1"}, {"key": "2"}]})
         def _(c: Any, case: Any) -> None: ...
 
-        @evaluate("case", {"cases": [3, 4, 5]})
+        @evaluate("case", {"cases": [{"key": "3"}, {"key": "4"}, {"key": "5"}]})
         def _(c: Any, case: Any) -> None: ...
 
     with pytest.raises(ValueError, match=r"evaluate\('case'\) with cases is declared twice"):
@@ -257,8 +259,8 @@ def test_one_name_with_cases_in_two_groups_is_accepted() -> None:
     def load() -> None:
         def body(c: Any, case: Any) -> None: ...
 
-        group("g", lambda: evaluate("c", {"cases": [1, 2]})(body))
-        group("h", lambda: evaluate("c", {"cases": [1, 2]})(body))
+        group("g", lambda: evaluate("c", {"cases": [{"key": "1"}, {"key": "2"}]})(body))
+        group("h", lambda: evaluate("c", {"cases": [{"key": "1"}, {"key": "2"}]})(body))
 
     tree = collect_module_tree_sync(load)
     assert len(tree["children"]) == 2
@@ -284,7 +286,7 @@ def test_an_eval_named_like_one_with_cases_is_refused(eval_first: bool) -> None:
 
         if eval_first:
             evaluate("case", body)
-        evaluate("case", {"cases": [1, 2]})(each)
+        evaluate("case", {"cases": [{"key": "1"}, {"key": "2"}]})(each)
         if not eval_first:
             evaluate("case", body)
 
@@ -301,7 +303,7 @@ def test_a_generator_body_is_refused_where_it_is_declared(kind: str) -> None:
     with pytest.raises(TypeError, match="an eval body can't yield"):
         collect_module_tree_sync(lambda: evaluate("g", space["body"]))
     with pytest.raises(TypeError, match="an eval body can't yield"):
-        collect_module_tree_sync(lambda: evaluate("g", {"cases": [1]})(space["body"]))
+        collect_module_tree_sync(lambda: evaluate("g", {"cases": [{"key": "1"}]})(space["body"]))
 
 
 USER_EVAL = """
@@ -349,23 +351,3 @@ def test_a_user_eval_type_checks_under_strict_pyright(tmp_path: Path) -> None:
         d["message"] for d in report["generalDiagnostics"] if d["severity"] == "information"
     ]
     assert "Coroutine" in revealed, revealed
-
-
-def test_case_keys_match_javascripts_string_of_a_number() -> None:
-    from reeval_python.declare import case_keys
-
-    assert case_keys([2.0, 0.5, 3], None, "evaluate('e')") == ["2", "0.5", "3"]
-    # Each as Node prints String(n).
-    js = {
-        -0.0: "0",
-        1e-7: "1e-7",
-        1e-6: "0.000001",
-        1e21: "1e+21",
-        1.2345678901234568e20: "123456789012345680000",
-        0.1 + 0.2: "0.30000000000000004",
-        -1.5e-10: "-1.5e-10",
-        5e-324: "5e-324",
-        1.7976931348623157e308: "1.7976931348623157e+308",
-        1e100: "1e+100",
-    }
-    assert case_keys(list(js), None, "evaluate('e')") == list(js.values())

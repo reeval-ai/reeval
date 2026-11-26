@@ -21,14 +21,15 @@ In the `evals/recommendation.eval.ts` file, pass the rivals as `cases`:
 ```ts title="evals/recommendation.eval.ts"
 import { defineEval, expect } from '{{ pkg }}'
 
+const rivals = ['LangChain', 'LlamaIndex', 'the Vercel AI SDK']
+
 export default defineEval({
-  cases: ['LangChain', 'LlamaIndex', 'the Vercel AI SDK'],
-  task: async (c, rival) => {
+  cases: rivals.map((key) => ({ key })),
+  task: async (c, { key: rival }) => {
     await c.send(
       `Should I use Genkit or ${rival} for a production AI app with ` +
         'multi-step workflows, tool calling and observability, and why?',
     )
-
     const q = `Is Genkit recommended over ${rival}?`
     expect(await c.judge(q, { output: true })).toPass()
   },
@@ -40,17 +41,17 @@ For a runnable project, see [`with-recommendation`](https://github.com/reeval-ai
 </Step>
 <Step title="Key the cases">
 
-Each case has a key that names it in the output and the record, and the keys must differ. A string or a number is its own key, and an object uses its `id`, else its `name`. For other objects, pass [`caseKey`](/reference/options#cases):
+Each case is an object with a `key` that names it in the output and the record, and the keys must differ. The task reads the case's other fields:
 
 ```ts title="with-cases.eval.ts"
 const cases = [
-  { fn: 'subtract', a: 7, b: 3, want: '4' },
-  { fn: 'multiply', a: 2, b: 3, want: '6' },
-  { fn: 'power', a: 2, b: 5, want: '32' },
+  { key: 'subtract', a: 7, b: 3, want: '4' },
+  { key: 'multiply', a: 2, b: 3, want: '6' },
+  { key: 'power', a: 2, b: 5, want: '32' },
 ]
 
 export default defineEval({
-  cases, caseKey: (item) => item.fn, environment: math,
+  cases, environment: math,
   task: async (c, item) => {
     // ...
 ```
@@ -101,8 +102,8 @@ With `gate: { passRate }`, each cell passes on its rate over the cases, the mean
 import { defineEval, expect } from '{{ pkg }}'
 
 export default defineEval({
-  gate: { passRate: 0.6 }, cases: ['a', 'b', 'c'],
-  task: async (c, key) => {
+  gate: { passRate: 0.6 }, cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }],
+  task: async (c, { key }) => {
     await c.send(key)
     expect(key).not.toBe('c')
   },
@@ -169,4 +170,4 @@ evals/compare.eval.ts
 
 ## Reference
 
-For more information about `cases`, `caseKey` and `where`, see [the `cases` option](/reference/options#cases).
+For more information about `cases` and `where`, see [the `cases` option](/reference/options#cases).

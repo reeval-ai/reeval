@@ -182,7 +182,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'cases',
     area: 'Config and selection',
-    name: '`cases` and `caseKey`: one eval over a list of cases, counted and named once with its cases as rows inside it, pooled into a pass rate that `gate: { passRate }` gates and a paired lift that `minLift` gates; older records fold into the same shape, an `evaluate.each` family under its template without placeholders, so a port continues its history',
+    name: '`cases`: one eval over a list of cases, each an object with its `key`, counted and named once with its cases as rows inside it, pooled into a pass rate that `gate: { passRate }` gates and a paired lift that `minLift` gates; older records fold into the same shape, an `evaluate.each` family under its template without placeholders, so a port continues its history',
     plan: ['compare/cases', 'compare/cases-filtered', 'selection/tags'],
     fixtures: ['run/cases', 'run/cases-rate'],
     unit: [

@@ -4,9 +4,9 @@ const next = defineEnvironment('next-app', { traits: { stack: 'next', auth: ['cl
 const vite = defineEnvironment('vite-app', { traits: { stack: 'vite' } })
 
 const questions = [
-  { id: 'q1', stacks: ['next', 'vite'] },
-  { id: 'q2', stacks: ['next'] },
-  { id: 'q3', stacks: ['vite'] },
+  { key: 'q1', stacks: ['next', 'vite'] },
+  { key: 'q2', stacks: ['next'] },
+  { key: 'q3', stacks: ['vite'] },
 ]
 const fits = ({
   case: q,

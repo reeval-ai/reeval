@@ -22,16 +22,16 @@ from reeval_python import evaluate
 
 @dataclass
 class Case:
-    name: str
+    key: str
 
 
-assert typing.get_type_hints(Case) == {"name": str}
+assert typing.get_type_hints(Case) == {"key": str}
 assert pickle.loads(pickle.dumps(Case("x"))) == Case("x")
 
 
 @evaluate("case", {"cases": [Case("a"), Case("b")]})
 def each(c, case: Case):
-    c.exec(case.name)
+    c.exec(case.key)
 
 
 @evaluate("sees its own module")

@@ -35,6 +35,7 @@ export type {
   CaptureUseScript,
   CaptureWait,
   CaptureWindow,
+  Case,
   CaseEvalSpec,
   CaseFn,
   CaseOptions,

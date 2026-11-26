@@ -16,5 +16,5 @@ group("slow things", {"tags": ["slow"]}, slow_things)
 def quick(c): ...
 
 
-@evaluate("case", {"cases": [1, 2], "tags": ["slow"]})
+@evaluate("case", {"cases": [{"key": "1"}, {"key": "2"}], "tags": ["slow"]})
 def case(c, case): ...

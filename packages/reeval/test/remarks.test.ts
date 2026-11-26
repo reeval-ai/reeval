@@ -52,7 +52,7 @@ import { defineEnvironment, defineEval, expect } from 'reeval'
 const plain = defineEnvironment('plain', {})
 const marked = defineEnvironment('marked', { files: { 'marker.txt': 'ok\\n' } })
 export default defineEval({
-  cases: ${JSON.stringify(Array.from({ length: cases }, (_, i) => ({ id: 'c' + i })))},
+  cases: ${JSON.stringify(Array.from({ length: cases }, (_, i) => ({ key: 'c' + i })))},
   runs: 1,
   compare: { control: plain, variants: [marked] },
   async task(c) {
@@ -69,7 +69,7 @@ const agreeingFamilyEval = (cases: number) =>
 /** An eval with cases where both sides pass the even cases and fail the odd ones. */
 const splitFamilyEval = (cases: number) =>
   familyEval(cases)
-    .replace('async task(c)', 'async task(c, { id })')
+    .replace('async task(c)', 'async task(c, { key: id })')
     .replace("c.attempt.cell.role === 'variant'", 'Number(id.slice(1)) % 2 === 0')
 
 /** An eval whose check fails on every try but the first. */
@@ -764,7 +764,7 @@ describe('remarks in reeval run', () => {
 const plain = defineEnvironment('plain', {})
 const marked = defineEnvironment('marked', { files: { 'marker.txt': 'ok\\n' } })
 export default defineEval({
-  cases: [{ id: 'a' }, { id: 'b' }],
+  cases: [{ key: 'a' }, { key: 'b' }],
   runs: 2,
   compare: { control: plain, variants: [marked] },
   async task(c) {
@@ -968,9 +968,9 @@ export default defineEval({
       'reeval.config.ts': fakeConfig(),
       'evals/coin.eval.ts': `import { defineEval, expect } from 'reeval'
 export default defineEval({
-  cases: ['heads', 'tails'],
+  cases: [{ key: 'heads' }, { key: 'tails' }],
   runs: 3,
-  async task(c, side) {
+  async task(c, { key: side }) {
     await c.send('go')
     expect(side === 'heads' || c.attempt.n === 1, 'lands').toBe(true)
   },
