@@ -726,6 +726,21 @@ export async function readRunArchiveFiles(
   }
 }
 
+/**
+ * Writes `file`, the run's archive as `runArchiveFiles` lists its files, under the run's claim,
+ * each gzipped file (a kept workspace) streamed in by its path; exit 2 while another process
+ * holds the claim.
+ */
+export async function exportRunArchive(dir: string, runId: string, file: string): Promise<void> {
+  const release = await claimRun(dir, runId)
+  try {
+    const inputs = await runArchiveInputs(dir, runId, await readFile(recordFile(dir, runId)))
+    await writeArchive(file, { contents: 'run', runId, files: inputs })
+  } finally {
+    await release()
+  }
+}
+
 /** What a run archive of `runId` holds: `record`, and the run's files in `dir` but `analysis/`. */
 export async function runArchiveFiles(
   dir: string,

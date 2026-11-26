@@ -1,9 +1,8 @@
 // `reeval export`: a run as its archive zip, or each attempt in an exporter's format.
 import { mkdir, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
-import { writeArchive } from './archive/index.ts'
 import { CommandError, pick } from './commands.ts'
-import { readRecord, readRunArchiveFiles, recordFile, scratchDir } from './history/files.ts'
+import { exportRunArchive, readRecord, recordFile, scratchDir } from './history/files.ts'
 import type { AttemptRecord, RunRecord } from './history/types.ts'
 import { fromCwd } from './ids.ts'
 import { transcriptLines } from './mcp/files.ts'
@@ -49,11 +48,7 @@ export async function exportCommand(ctx: Ctx, refs: string[]): Promise<number> {
       ? join(out, `${runId}.zip`)
       : out
     await mkdir(dirname(file), { recursive: true })
-    await writeArchive(file, {
-      contents: 'run',
-      runId,
-      files: await readRunArchiveFiles(dir, runId),
-    })
+    await exportRunArchive(dir, runId, file)
     ctx.out(`Wrote ${fromCwd(file)}`)
     return 0
   }
