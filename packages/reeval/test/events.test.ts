@@ -1396,12 +1396,17 @@ describe('reeval run --events and reeval attach', () => {
     try {
       // Until the run has started, attach finds nothing in progress.
       for (let i = 0; i < 200 && !ran.includes('Running'); i++) await sleep(50)
-      const attaching = runCli(p.dir, ['attach'])
-      await sleep(500)
-      writeFileSync(join(p.dir, 'go'), '')
-      const attached = await attaching
-      assert.equal(await exited, 0)
+      // The run only ends once attach has started printing it, however slowly attach starts.
+      const attached = await runCli(p.dir, ['attach'], {
+        onOutput: (out) => {
+          if (!out.includes('Running')) return false
+          writeFileSync(join(p.dir, 'go'), '')
+          return true
+        },
+      })
+      // Before awaiting the run: an attach that never printed it never let the run end.
       assert.equal(attached.code, 0, attached.stderr)
+      assert.equal(await exited, 0)
       assert.equal(attached.stdout, ran)
       assert.match(attached.stdout, /✓ waits/)
     } finally {
