@@ -341,6 +341,18 @@ type Named = { label?: string; skipReason?: string }
 /** An eval planned but not yet registered: `commit` registers its tests. */
 type Prepared = { planned: PlannedEval; commit: () => void }
 
+/** A grader's `env` runs on this machine, so a run that places its sandboxes elsewhere refuses it. */
+function refuseOffMachineGraders(grading: Grading | undefined, run: RunContext, where: string) {
+  const grader = grading?.graders.find((g) => g.run.env)
+  if (!grader) return
+  const provider = run.profile?.provider ?? run.config.provider
+  if (!provider && run.placement !== 'cloud') return
+  const elsewhere = provider ? `on ${provider.kind}()` : 'in the cloud'
+  throw new UsageError(
+    `defineGrader("${grader.name}") on ${where} has env, whose sandbox runs on this machine, and this run's sandboxes are ${elsewhere}. A grader's env doesn't run there yet: run it without ${provider ? 'provider' : 'the cloud'}, or drop env.`,
+  )
+}
+
 function prepare(
   mode: DeclaredMode,
   given: string,
@@ -385,6 +397,11 @@ function prepare(
   const run = getRunContext()
   const graders = withDefaultGraders(grading?.graders ?? [], run)
   const graded = graders.length ? { graders, item: grading?.item ?? { key: '' } } : undefined
+  refuseOffMachineGraders(
+    grading,
+    run,
+    named.label ?? `evaluate("${[...groups, name].join(' › ')}")`,
+  )
   const planned = planEval(
     {
       name,
@@ -425,6 +442,9 @@ function prepare(
     declarePlanned(planned.harnesses, planned.traits)
     if (!planned.tests) return
     const bestOfCells = new Map<string, ReturnType<typeof bestOfCell>>()
+    const graderSandboxes = [...new Set(grading?.graders.map((g) => g.run))].flatMap((run) =>
+      run.env ? [{ grader: run.names[0] as string, sandbox: run.env.sandbox }] : [],
+    )
     for (const { name: testName, spec, ...options } of planned.tests) {
       const { cell, n, bestOf } = options.attempt
       let hooks: Pick<TestOptions, 'ready' | 'settled'> = {}
@@ -442,6 +462,8 @@ function prepare(
         const warnings = [...new Set([...attempt.plan.warnings, ...found.warnings])]
         test.attempt = { ...attempt, plan: { ...attempt.plan, warnings }, inputs: found.inputs }
       }
+      if (spec && graderSandboxes.length)
+        test.attempt = { ...options.attempt, ...test.attempt, graderSandboxes }
       const readCap = spec && sandboxKind(spec.sandbox).attemptCap?.(spec.sandbox)
       if (spec && test.gate && readCap) {
         const gate = { ...test.gate, limits: { ...test.gate.limits } }

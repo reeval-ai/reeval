@@ -1402,6 +1402,74 @@ export default defineEval({
     assert.equal(liveContainers(runId), '', `${orphan} was removed`)
   })
 
+  test("SIGKILL during grading leaves a grader's container that the next run removes, on attempts off Docker", {
+    ...docker,
+    skip: docker.skip || (process.platform === 'win32' && 'needs POSIX signals'),
+  }, async () => {
+    const p = await project('docker-sigkill-grading', {
+      'reeval.config.ts': config('{}'),
+      'evals/g.eval.ts': `import { defineEval, defineGrader } from 'reeval'
+import { docker, fakeSandbox } from 'reeval/sandbox'
+const waits = defineGrader('waits', {
+  env: docker(),
+  timeout: '10m',
+  grade: async (c) => (await c.sandbox.exec('sleep ' + (process.env.GRADE_SLEEP ?? '120'))).exitCode === 0,
+})
+export default defineEval({ sandbox: fakeSandbox(), graders: [waits], async task(c) { await c.send('go') } })`,
+    })
+    const r = await runCli(p.dir, ['run', '-v'], {
+      ...slow,
+      onOutput: (stdout, pid) => {
+        if (!/created [0-9a-f]{12} from /.test(stdout)) return false
+        const workers = spawnSync('pgrep', ['-P', String(pid)], { encoding: 'utf8' })
+          .stdout.split(/\s+/)
+          .filter(Boolean)
+        for (const worker of workers) process.kill(Number(worker), 'SIGKILL')
+        process.kill(-pid, 'SIGKILL')
+        return true
+      },
+    })
+    assert.equal(r.code, null, r.stdout + r.stderr)
+    const [runId] = readdirSync(join(p.dir, '.reeval/staging'))
+    assert.ok(runId, 'the run has staging')
+    // The canary: the grader's container outlived the killed run.
+    assert.notEqual(liveContainers(runId), '')
+    const next = await runCli(p.dir, ['run'], { ...slow, env: { GRADE_SLEEP: '0' } })
+    assert.equal(next.code, 0, next.stdout + next.stderr)
+    assert.match(next.stderr, /reeval: removed 1 sandbox a killed reeval left running/)
+    assert.equal(liveContainers(runId), '')
+  })
+
+  test(
+    "a grader's image that fails to prepare fails only its evals' attempts, before their agent runs",
+    docker,
+    async () => {
+      const p = await project('docker-grader-image-fails', {
+        'reeval.config.ts': config('{}'),
+        'Bad.Dockerfile': 'ARG REEVAL_BASE\nFROM ${REEVAL_BASE}\nRUN exit 7\n',
+        'evals/graded.eval.ts': `import { defineEval, defineGrader } from 'reeval'
+import { docker, fakeSandbox } from 'reeval/sandbox'
+const bad = defineGrader('bad', {
+  env: docker({ dockerfile: new URL('../Bad.Dockerfile', import.meta.url).pathname }),
+  grade: () => true,
+})
+export default defineEval({ sandbox: fakeSandbox(), graders: [bad], async task(c) { await c.send('go') } })`,
+        'evals/plain.eval.ts': `import { defineEval } from 'reeval'
+import { fakeSandbox } from 'reeval/sandbox'
+export default defineEval({ sandbox: fakeSandbox(), async task(c) { await c.send('go') } })`,
+      })
+      const r = await runCli(p.dir, ['run', '--ui', 'plain'], slow)
+      assert.equal(r.code, 3, r.stdout + r.stderr)
+      assert.match(r.stdout + r.stderr, /set by defineGrader\("bad"\); only its attempts fail/)
+      const { run } = readRun(p.dir)
+      const graded = run.evals.find((e) => e.name === 'graded')?.attempts[0]
+      assert.equal(graded?.outcome, 'infra_error')
+      assert.match(graded?.error?.message ?? '', /set by defineGrader\("bad"\), failed to prepare/)
+      assert.deepEqual(graded?.turns, [], 'the agent never ran')
+      assert.equal(run.evals.find((e) => e.name === 'plain')?.attempts[0]?.outcome, 'pass')
+    },
+  )
+
   test('Ctrl-C mid-capture stops the browser and the run', docker, async () => {
     // The page's script never answers, so its load never fires within the capture's budget.
     const server = `import http from 'node:http'

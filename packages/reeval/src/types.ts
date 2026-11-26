@@ -3762,6 +3762,8 @@ export type GradeFingerprint = {
   code: string
   /** sha256 of the `data` files' content; unset without `data`. */
   data?: string
+  /** sha256 of the `env` sandbox's recipe, its egress and the id of the image it ran; unset without `env`. */
+  image?: string
   /** The grader's `revision`, when set. */
   revision?: number
   /** A built-in's code version, which reeval bumps when what it grades changes. */
@@ -4281,6 +4283,8 @@ export type AttemptMeta = {
   plugins?: string[]
   /** Its environment's plugins with a `build`, layered, which preflight builds into its image. */
   pluginBuilds?: PluginSource[]
+  /** The sandboxes its graders' `env` start once its task returns, whose images preflight prepares. */
+  graderSandboxes?: Array<{ grader: string; sandbox: SandboxDescriptor }>
   /**
    * The host files it reads, by absolute path: what its file's load read, then what its
    * environment and sandbox name. Set only when the run context asks for `inputs`.

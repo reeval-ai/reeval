@@ -2191,6 +2191,13 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/refusals.test.ts'],
   },
   {
+    id: 'grade.sandboxed',
+    area: 'Judges and matchers',
+    name: "A grader's `env` (`docker()`, `podman()` or `fakeSandbox()`): a fresh sandbox from an image preflight prepares, `egress` deny-all by default, its `files` copied in from the kept workspace, as `c.sandbox` (`exec`, `readFile`, `writeFile`), torn down after; it takes a slot of the run's concurrency, and one that doesn't start ends the attempt `infra_error`; its recipe and image id fingerprint the grade",
+    fixtures: ['grade/sandboxed'],
+    unit: ['reeval/test/grade.test.ts'],
+  },
+  {
     id: 'assert.named-checks',
     area: 'Judges and matchers',
     name: "Named check results: `expect(value, 'label')`, every `expect` and `expect.require` recorded per attempt, tallied per cell, and checks that don't discriminate in a compare",

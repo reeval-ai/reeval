@@ -2899,6 +2899,10 @@
           "description": "sha256 over the other parts.",
           "type": "string"
         },
+        "image": {
+          "description": "sha256 of the `env` sandbox's recipe, its egress and the id of the image it ran; unset without `env`.",
+          "type": "string"
+        },
         "revision": {
           "description": "The grader's `revision`, when set.",
           "type": "number"

@@ -1342,7 +1342,10 @@ export const plainEnvError = (e: PlainCredentialEnv, where: string, configFile: 
 export const levelFromSource = (source: string): SandboxWarning['level'] => {
   if (source.startsWith('group(')) return 'group'
   if (source.startsWith('profiles.')) return 'profile'
-  if (source.startsWith('evaluate(') || /\.eval\.[cm]?[jt]s(?:[?#]|$)/.test(source)) return 'eval'
+  // A grader's sandbox is set for the evals that use the grader.
+  if (/^(evaluate|defineGrader)\(/.test(source) || /\.eval\.[cm]?[jt]s(?:[?#]|$)/.test(source)) {
+    return 'eval'
+  }
   return 'config'
 }
 

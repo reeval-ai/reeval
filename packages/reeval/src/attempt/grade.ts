@@ -8,6 +8,7 @@ import { debugLog } from '../debug/attempt.ts'
 import type { GradeInputs } from '../grade/context.ts'
 import type { GraderDef } from '../grade/define.ts'
 import { attemptScore, runGraders, scoreFailure } from '../grade/run.ts'
+import { sandboxStarter } from '../grade/sandbox.ts'
 import type { GraderTurn } from '../grade/types.ts'
 import { changedFiles, execLineOf } from '../history/assemble.ts'
 import { turnCost, unpricedTurns } from '../history/cost.ts'
@@ -16,7 +17,7 @@ import { WORKSPACE_ARCHIVE, WORKSPACE_MANIFEST } from '../history/types.ts'
 import { loadPrices } from '../prices.ts'
 import { redactValue } from '../redact.ts'
 import { thresholdOf } from '../target.ts'
-import type { Case } from '../types.ts'
+import type { Case, GradeRecord } from '../types.ts'
 import { readableWorkspaceManifest } from '../view/record.ts'
 import type { Attempt } from './state.ts'
 
@@ -88,12 +89,14 @@ async function graderTurns(a: Attempt): Promise<GraderTurn[]> {
 
 /**
  * Runs the graders and records their grades and the attempt's score. Returns the error to fail
- * the attempt with when it scored under its target's threshold; undefined when the run was
- * canceled while they ran, which records none.
+ * the attempt with when it scored under its target's threshold, or a grader's sandbox's infra
+ * error, which records no grades; undefined when the run was canceled while they ran, which
+ * records none.
  */
 export async function gradeAttempt(
   a: Attempt,
   grading: Grading,
+  key: string,
   workspaceDir: string,
   signal: AbortSignal,
 ): Promise<Error | undefined> {
@@ -102,8 +105,18 @@ export async function gradeAttempt(
     turns: await graderTurns(a),
     trajectory: await liveTrajectory(a, workspaceDir),
     skills: a.env?.record.skills.map((s) => s.name) ?? [],
+    ...(grading.graders.some((g) => g.run.env) && {
+      sandboxes: sandboxStarter(key, a.spec.sandbox),
+    }),
   }
-  const grades = await runGraders(grading.graders, inputs, signal)
+  let grades: GradeRecord[]
+  try {
+    grades = await runGraders(grading.graders, inputs, signal)
+  } catch (error) {
+    if (signal.aborted) return undefined
+    debugLog('check', `grader sandbox: ${(error as Error).message}`)
+    return error as Error
+  }
   if (signal.aborted) return undefined
   const score = attemptScore(grades)
   for (const g of grades) {

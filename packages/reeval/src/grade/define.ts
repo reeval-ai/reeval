@@ -1,10 +1,19 @@
 import { existsSync } from 'node:fs'
 import { dirname } from 'node:path'
+import { policyProblem } from '../contract/plain.ts'
+import { got } from '../contract/shared.ts'
 import { parseDuration } from '../duration.ts'
+import { unenforceable } from '../egress.ts'
 import { callerFile, DefinitionError, helpersFor, isHostFile, toPath } from '../environment.ts'
 import { UsageError } from '../errors.ts'
 import { isObjectLike } from '../object.ts'
-import type { HostFile, JSONValue } from '../types.ts'
+import type {
+  EgressPolicy,
+  HostFile,
+  JSONValue,
+  PlannedEgress,
+  SandboxDescriptor,
+} from '../types.ts'
 import type { BuiltinDef } from './builtins.ts'
 import { functionDigest } from './digest.ts'
 import type { Grader, GraderContext, GraderGroupSpec, GraderHelpers, GraderSpec } from './types.ts'
@@ -12,8 +21,23 @@ import type { Grader, GraderContext, GraderGroupSpec, GraderHelpers, GraderSpec 
 export const GRADER = Symbol.for('reeval.grader')
 
 const NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/
-const KEYS = ['grade', 'score', 'weight', 'required', 'files', 'data', 'revision', 'timeout']
+const KEYS = [
+  'grade',
+  'score',
+  'weight',
+  'required',
+  'files',
+  'data',
+  'env',
+  'egress',
+  'revision',
+  'timeout',
+]
 const DEFAULT_TIMEOUT = '5m'
+const ENV_KINDS = ['docker', 'fake']
+
+/** A grader's `env`: the sandbox `grade` runs in, and its network. */
+export type GraderEnv = { sandbox: SandboxDescriptor; egress: PlannedEgress }
 
 /** One `grade` call per attempt, which a `defineGraders` group's members share. */
 export type GradeRun = {
@@ -22,6 +46,7 @@ export type GradeRun = {
   names: string[]
   files: string[]
   data: Record<string, HostFile | Record<string, HostFile>>
+  env?: GraderEnv
   revision?: number
   timeoutMs: number
   gradeDigest: string
@@ -106,15 +131,40 @@ function runOf(
   } catch (error) {
     throw new DefinitionError(`timeout in ${where}: ${(error as Error).message}`)
   }
+  const env = envOf(spec.env, spec.egress, where)
   return {
     grade: spec.grade as GradeRun['grade'],
     names,
     files: files as string[],
     data: dataOf(spec.data, where, base),
+    ...(env ? { env } : {}),
     ...(spec.revision !== undefined ? { revision: spec.revision as number } : {}),
     timeoutMs,
     gradeDigest: functionDigest(spec.grade as () => unknown, file, `grade in ${where}`),
   }
+}
+
+function envOf(env: unknown, egress: unknown, where: string): GraderEnv | undefined {
+  if (env === undefined) {
+    if (egress === undefined) return undefined
+    throw new DefinitionError(
+      `egress in ${where} is the network of its env sandbox, and it has no env. Give it env: docker(), or leave egress out.`,
+    )
+  }
+  const kind = isObjectLike(env) ? (env as { kind?: unknown }).kind : undefined
+  if (typeof kind !== 'string' || !ENV_KINDS.includes(kind)) {
+    throw new DefinitionError(
+      `env in ${where} must be docker(), podman() or fakeSandbox() from reeval/sandbox (got ${typeof kind === 'string' ? `the ${kind} sandbox` : got(env)})`,
+    )
+  }
+  const policy = egress ?? 'deny-all'
+  const problem = policyProblem(policy, where, 'egress')
+  if (problem) throw new DefinitionError(problem)
+  const sandbox = env as SandboxDescriptor
+  const planned = { policy: policy as EgressPolicy, auto: [] }
+  const refused = unenforceable(planned, sandbox, where)
+  if (refused) throw new DefinitionError(refused)
+  return { sandbox, egress: planned }
 }
 
 function dataOf(data: unknown, where: string, base: string): GradeRun['data'] {

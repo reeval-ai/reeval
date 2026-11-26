@@ -431,7 +431,7 @@ export function egressProblem(value: unknown, where: string): string | undefined
 const POLICY_SHAPE = `is 'proxy' (the default), 'allow-all', 'deny-all', or { allow: ['api.example.com', '*.example.org'] }`
 
 /** reeval's sentence for one policy that isn't one, or undefined. */
-function policyProblem(value: unknown, where: string, key: string): string | undefined {
+export function policyProblem(value: unknown, where: string, key: string): string | undefined {
   return refusal(egressPolicySchema, value, () => {
     const shape = key === 'egress' ? EGRESS_SHAPE : POLICY_SHAPE
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {

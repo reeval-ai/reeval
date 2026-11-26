@@ -25,7 +25,7 @@
         "scripts/**/*.ts"
       ],
       "project": ["src/**/*.ts", "test/**/*.{ts,mjs}", "scripts/**/*.ts"],
-      "ignore": ["test/fixtures/records/**"],
+      "ignore": ["test/fixtures/records/**", "test/features/grade/sandboxed/hidden/**"],
       "ignoreBinaries": ["uv", "podman", "go", "pwsh", "tart", "pgrep", "script"],
       "ignoreDependencies": [
         "@ai-sdk/harness-acp",

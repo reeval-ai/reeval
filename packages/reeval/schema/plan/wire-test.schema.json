@@ -83,6 +83,22 @@
           "description": "The gateway its harness resolved to; unset when no config, profile or pin names one.",
           "$ref": "#/$defs/ResolvedGateway"
         },
+        "graderSandboxes": {
+          "description": "The sandboxes its graders' `env` start once its task returns, whose images preflight prepares.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "grader": {
+                "type": "string"
+              },
+              "sandbox": {
+                "$ref": "#/$defs/SandboxDescriptor"
+              }
+            },
+            "required": ["grader", "sandbox"]
+          }
+        },
         "groups": {
           "type": "array",
           "items": {
