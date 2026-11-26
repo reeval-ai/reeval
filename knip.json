@@ -14,7 +14,7 @@
         "evals/*/*.{eval.ts,config.ts}",
         "evals/*/scripts/*.mjs"
       ],
-      "ignore": ["evals/*/fixtures/**", "evals/*/oracle/**"],
+      "ignore": ["evals/*/fixtures/**", "evals/*/oracle/**", "acme/**"],
       "ignoreBinaries": ["report", "vale"],
       "ignoreDependencies": ["jiti"]
     },
