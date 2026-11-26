@@ -1,9 +1,8 @@
 {
-  "target metric(): accepted with cases and a compare": null,
-  "target metric() with minLift": "UsageError: evals/target-metric-with-minlift.eval.ts has target: metric(), which can't fail the run, so its compare can't take minLift: 0.2. Set a target that can, e.g. target: regression(), or drop minLift.",
+  "target capability(): accepted with cases and a compare": null,
   "target capability() with minLift": "UsageError: evals/target-capability-with-minlift.eval.ts has target: capability(1), which can't fail the run, so its compare can't take minLift: 0.2. Set a target that can, e.g. target: regression(), or drop minLift.",
-  "target metric(0.5) with minLift: accepted": null,
-  "target metric() with best-of runs: accepted": null,
+  "target regression(0.5) with minLift: accepted": null,
+  "target capability() with best-of runs: accepted": null,
   "cases: not a list": "UsageError: cases in evals/cases-not-a-list.eval.ts must be a list (got string), e.g. cases: [{ key: 'users' }, { key: 'posts' }].",
   "cases: an empty list": "UsageError: cases in evals/cases-an-empty-list.eval.ts is an empty list. Give at least one case.",
   "cases: a string case": "UsageError: cases[0] in evals/cases-a-string-case.eval.ts is \"a\": a case is an object with a key, e.g. { key: 'users', … }.",

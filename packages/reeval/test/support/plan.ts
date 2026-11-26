@@ -106,7 +106,7 @@ export function renderPlan(
               : `gated passRate ${c.gate.passRate}`,
         c.bestOf === undefined ? `×${c.runs}` : `best of ${c.bestOf}`,
         [
-          i === 0 && target !== 'metric()' ? `target ${target}` : '',
+          i === 0 && target !== 'capability(1)' ? `target ${target}` : '',
           c.effort && !c.key.includes('[effort=') ? `effort ${c.effort}` : '',
           c.minLift === undefined ? '' : `minLift ${c.minLift}`,
           i === 0 && e.cases

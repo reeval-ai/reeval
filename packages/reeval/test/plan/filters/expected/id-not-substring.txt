@@ -1,6 +1,6 @@
 no profile · 1 evals · 2 cells · 2 attempts
-skill/add  left/-/docker   control  ungated  ×1
-           right/-/docker  control  ungated  ×1
+skill/add  left/-/docker   control  gated any  ×1
+           right/-/docker  control  gated any  ×1
 excluded: —
 image docker · cursor · 1 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

@@ -1,15 +1,15 @@
 no profile · 4 evals · 11 cells · 11 attempts
-both-agents         cursor:composer-2.5/-/docker                        control  ungated  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on pi:gemini-3.8-flash
-                    pi:gemini-3.8-flash/-/docker                        control  ungated  ×1  effort medium
-other-providers     pi:claude-haiku-4-5/-/docker                        control  ungated  ×1  effort medium · egress "deny-all" + api.anthropic.com
-                    pi:gpt-5.4-mini/-/docker                            control  ungated  ×1  effort medium · egress "deny-all" + api.openai.com
-                    pi:grok-4.6/-/docker                                control  ungated  ×1  effort medium · egress "deny-all" + api.x.ai
-                    pi:devstral-2/-/docker                              control  ungated  ×1  effort medium · egress "deny-all" + api.mistral.ai
-                    pi:Qwen3-Coder-480B-A35B-Instruct/-/docker          control  ungated  ×1  effort medium · egress "deny-all" + router.huggingface.co
-                    pi:google/-/docker                                  control  ungated  ×1  effort medium · egress "deny-all" + generativelanguage.googleapis.com
-own-id              pim/-/docker                                        control  ungated  ×1  effort medium
-toolchain-deny-all  cursor:composer-2.5/python/docker:python:3.12-slim  control  ungated  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on pi:gemini-3.8-flash · egress "deny-all" + api2.cursor.sh, *.cursor.sh
-                    pi:gemini-3.8-flash/python/docker:python:3.12-slim  control  ungated  ×1  effort medium · egress "deny-all" + generativelanguage.googleapis.com
+both-agents         cursor:composer-2.5/-/docker                        control  gated any  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on pi:gemini-3.8-flash
+                    pi:gemini-3.8-flash/-/docker                        control  gated any  ×1  effort medium
+other-providers     pi:claude-haiku-4-5/-/docker                        control  gated any  ×1  effort medium · egress "deny-all" + api.anthropic.com
+                    pi:gpt-5.4-mini/-/docker                            control  gated any  ×1  effort medium · egress "deny-all" + api.openai.com
+                    pi:grok-4.6/-/docker                                control  gated any  ×1  effort medium · egress "deny-all" + api.x.ai
+                    pi:devstral-2/-/docker                              control  gated any  ×1  effort medium · egress "deny-all" + api.mistral.ai
+                    pi:Qwen3-Coder-480B-A35B-Instruct/-/docker          control  gated any  ×1  effort medium · egress "deny-all" + router.huggingface.co
+                    pi:google/-/docker                                  control  gated any  ×1  effort medium · egress "deny-all" + generativelanguage.googleapis.com
+own-id              pim/-/docker                                        control  gated any  ×1  effort medium
+toolchain-deny-all  cursor:composer-2.5/python/docker:python:3.12-slim  control  gated any  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on pi:gemini-3.8-flash · egress "deny-all" + api2.cursor.sh, *.cursor.sh
+                    pi:gemini-3.8-flash/python/docker:python:3.12-slim  control  gated any  ×1  effort medium · egress "deny-all" + generativelanguage.googleapis.com
 excluded: —
 image docker · cursor · 1 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

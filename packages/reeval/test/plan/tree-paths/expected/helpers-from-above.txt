@@ -1,6 +1,6 @@
 no profile · 1 evals · 2 cells · 8 attempts
-a-compare  fake/built/docker:docker  control      ungated  ×4  runs 4 (compare default)
-           fake/own/docker:images    variant own  ungated  ×4
+a-compare  fake/built/docker:docker  control      ungated    ×4  runs 4 (compare default)
+           fake/own/docker:images    variant own  gated any  ×4
 excluded: —
 image docker:docker · cursor · 1 evals
   dockerfile docker/Dockerfile  reeval-dockerfile:docker-d4ceb9f7c18a402a  (docker build (layer cache), tagged by content hash)

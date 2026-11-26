@@ -1,4 +1,4 @@
 no profile · 2 evals · 2 cells · 2 attempts
-greets  a/-/fake  control  ungated  ×1  gateway: a → direct
-pinned  b/-/fake  control  ungated  ×1  gateway: b → direct
+greets  a/-/fake  control  gated any  ×1  gateway: a → direct
+pinned  b/-/fake  control  gated any  ×1  gateway: b → direct
 excluded: —

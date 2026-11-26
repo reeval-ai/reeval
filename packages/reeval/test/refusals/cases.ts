@@ -68,7 +68,7 @@ import { PrepareError } from '../../src/sandbox/provider.ts'
 import { missingImagesMessage, pullSpaceMessage } from '../../src/sandbox/tart-images.ts'
 import { docker, fakeSandbox, podman, tart } from '../../src/sandbox.ts'
 import { readSecretsFile } from '../../src/secrets-file.ts'
-import { capability, metric, regression } from '../../src/target.ts'
+import { capability, regression } from '../../src/target.ts'
 import { checkTraitKeys, traitFilters, traitFlags } from '../../src/traits.ts'
 import type {
   EnvironmentHelpers,
@@ -1536,8 +1536,9 @@ export const CASES: Record<string, Case[]> = {
     ['target a word', options({ target: 'regression' })],
     ['target an unknown kind', options({ target: { kind: 'gate', threshold: 1 } })],
     ['target threshold above 1', options({ target: regression(1.2) })],
-    ['target threshold below 0', options({ target: metric(-0.1) })],
-    ['target with an extra key', options({ target: { kind: 'metric', passRate: 0.5 } })],
+    ['target threshold below 0', options({ target: capability(-0.1) })],
+    ['target with an extra key', options({ target: { ...regression(), passRate: 0.5 } })],
+    ['target metric', options({ target: { kind: 'metric', threshold: 0.8 } })],
     [
       'target capability without blocking',
       options({ target: { kind: 'capability', threshold: 1 } }),
@@ -2668,7 +2669,7 @@ agents:
   - { kind: cursor, model: composer-2.5 }
 sandbox: { kind: fake }
 runs: 2
-target: { kind: metric, threshold: 0.5 }
+target: { kind: capability, threshold: 0.5, blocking: true }
 timeout: 90s
 env:
   TOKEN: { kind: secret, from: HOST_TOKEN, hosts: [api.example.com] }
@@ -3165,15 +3166,11 @@ environments:
   ],
   declaration: [
     [
-      'target metric(): accepted with cases and a compare',
-      targeted(metric(), {
+      'target capability(): accepted with cases and a compare',
+      targeted(capability(), {
         cases: [{ key: 'a' }, { key: 'b' }],
         compare: { control: plainEnv, variants: [skillEnv] },
       }),
-    ],
-    [
-      'target metric() with minLift',
-      targeted(metric(), { compare: { control: plainEnv, variants: [skillEnv], minLift: 0.2 } }),
     ],
     [
       'target capability() with minLift',
@@ -3182,10 +3179,13 @@ environments:
       }),
     ],
     [
-      'target metric(0.5) with minLift: accepted',
-      targeted(metric(0.5), { compare: { control: plainEnv, variants: [skillEnv], minLift: 0.2 } }),
+      'target regression(0.5) with minLift: accepted',
+      targeted(regression(0.5), { compare: { control: plainEnv, variants: [skillEnv], minLift: 0.2 } }),
     ],
-    ['target metric() with best-of runs: accepted', targeted(metric(), { runs: { bestOf: 3 } })],
+    [
+      'target capability() with best-of runs: accepted',
+      targeted(capability(), { runs: { bestOf: 3 } }),
+    ],
     ['cases: not a list', withCases({ cases: 'abc' })],
     ['cases: an empty list', withCases({ cases: [] })],
     ['cases: a string case', withCases({ cases: ['a'] })],

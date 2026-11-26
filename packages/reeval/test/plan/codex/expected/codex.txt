@@ -1,9 +1,9 @@
 no profile · 3 evals · 5 cells · 5 attempts
-both-agents         cursor:composer-2.5/-/docker                        control  ungated  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on codex:gpt-5.4-mini
-                    codex:gpt-5.4-mini/-/docker                         control  ungated  ×1  effort medium
-own-id              cx/-/docker                                         control  ungated  ×1  effort medium
-toolchain-deny-all  cursor:composer-2.5/python/docker:python:3.12-slim  control  ungated  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on codex:gpt-5.4-mini · egress "deny-all" + api2.cursor.sh, *.cursor.sh
-                    codex:gpt-5.4-mini/python/docker:python:3.12-slim   control  ungated  ×1  effort medium · egress "deny-all" + api.openai.com
+both-agents         cursor:composer-2.5/-/docker                        control  gated any  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on codex:gpt-5.4-mini
+                    codex:gpt-5.4-mini/-/docker                         control  gated any  ×1  effort medium
+own-id              cx/-/docker                                         control  gated any  ×1  effort medium
+toolchain-deny-all  cursor:composer-2.5/python/docker:python:3.12-slim  control  gated any  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on codex:gpt-5.4-mini · egress "deny-all" + api2.cursor.sh, *.cursor.sh
+                    codex:gpt-5.4-mini/python/docker:python:3.12-slim   control  gated any  ×1  effort medium · egress "deny-all" + api.openai.com
 excluded: —
 image docker · cursor · 1 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

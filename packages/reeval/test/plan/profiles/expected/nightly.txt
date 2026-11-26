@@ -1,17 +1,17 @@
 profile nightly (--profile) · 5 evals · 14 cells · 38 attempts
 hint: 2 compares run 2 or 3 times per cell; below 4 runs a side their lift shows only a direction and their effort can't be tested (runs: 4)
-compared             a/plain/fake    control          ungated  ×3
-                     a/skilled/fake  variant skilled  ungated  ×3
-                     b/plain/fake    control          ungated  ×3
-                     b/skilled/fake  variant skilled  ungated  ×3
-own-agent            a/-/fake        control          ungated  ×3  agents set by profile nightly
-                     b/-/fake        control          ungated  ×3
-plain                a/-/fake        control          ungated  ×3
-                     b/-/fake        control          ungated  ×3
-regression           a/plain/fake    control          ungated  ×2
-                     a/skilled/fake  variant skilled  ungated  ×2
-                     b/plain/fake    control          ungated  ×2
-                     b/skilled/fake  variant skilled  ungated  ×2
-slow [nightly-only]  a/-/fake        control          ungated  ×3
-                     b/-/fake        control          ungated  ×3
+compared             a/plain/fake    control          ungated    ×3
+                     a/skilled/fake  variant skilled  gated any  ×3
+                     b/plain/fake    control          ungated    ×3
+                     b/skilled/fake  variant skilled  gated any  ×3
+own-agent            a/-/fake        control          gated any  ×3  agents set by profile nightly
+                     b/-/fake        control          gated any  ×3
+plain                a/-/fake        control          gated any  ×3
+                     b/-/fake        control          gated any  ×3
+regression           a/plain/fake    control          ungated    ×2
+                     a/skilled/fake  variant skilled  gated any  ×2
+                     b/plain/fake    control          ungated    ×2
+                     b/skilled/fake  variant skilled  gated any  ×2
+slow [nightly-only]  a/-/fake        control          gated any  ×3
+                     b/-/fake        control          gated any  ×3
 excluded: —

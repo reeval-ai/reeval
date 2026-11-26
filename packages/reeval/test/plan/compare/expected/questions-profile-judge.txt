@@ -1,20 +1,20 @@
 profile judged (--profile) · 3 evals · 14 cells · 56 attempts
-questions/one     a/base/docker     control          ungated  ×4  runs 4 (compare default)
-                  a/skilled/docker  variant skilled  ungated  ×4
-                  b/base/docker     control          ungated  ×4
-                  b/skilled/docker  variant skilled  ungated  ×4
+questions/one     a/base/docker     control          ungated    ×4  runs 4 (compare default)
+                  a/skilled/docker  variant skilled  gated any  ×4
+                  b/base/docker     control          ungated    ×4
+                  b/skilled/docker  variant skilled  gated any  ×4
                   question: Which handles state more cleanly? · shows diff · environment · 8 pairs · google/gemini-3.8-flash
-questions/pinned  a/base/docker     control          ungated  ×4  runs 4 (compare default)
-                  a/skilled/docker  variant skilled  ungated  ×4
-                  b/base/docker     control          ungated  ×4
-                  b/skilled/docker  variant skilled  ungated  ×4
+questions/pinned  a/base/docker     control          ungated    ×4  runs 4 (compare default)
+                  a/skilled/docker  variant skilled  gated any  ×4
+                  b/base/docker     control          ungated    ×4
+                  b/skilled/docker  variant skilled  gated any  ×4
                   question: Which is shorter? · shows diff · environment · 8 pairs · google/gemini-3.8-flash
-questions/two     a/base/docker     control          ungated  ×4  runs 4 (compare default)
-                  a/skilled/docker  variant skilled  ungated  ×4
-                  a/terse/docker    variant terse    ungated  ×4
-                  b/base/docker     control          ungated  ×4
-                  b/skilled/docker  variant skilled  ungated  ×4
-                  b/terse/docker    variant terse    ungated  ×4
+questions/two     a/base/docker     control          ungated    ×4  runs 4 (compare default)
+                  a/skilled/docker  variant skilled  gated any  ×4
+                  a/terse/docker    variant terse    gated any  ×4
+                  b/base/docker     control          ungated    ×4
+                  b/skilled/docker  variant skilled  gated any  ×4
+                  b/terse/docker    variant terse    gated any  ×4
                   question: Which handles state more cleanly? · shows diff · environment, agent · 36 pairs · google/gemini-3.8-flash
                   question: Which follows the house style more closely? · shows diff · environment · 24 pairs · google/gemini-3.8-flash
 excluded: —

@@ -1,5 +1,5 @@
 no profile · 1 evals · 1 cells · 1 attempts
-builtins  fake/-/fake  control  ungated  ×1
+builtins  fake/-/fake  control  gated any  ×1
           grader has-file:src/retry.ts · builtin · weight 1
           grader tests-pass · builtin · weight 1 · required
           grader used-skill:http-retries · builtin · weight 2
