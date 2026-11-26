@@ -24,6 +24,7 @@ import { boatProviderSchema } from './boat.ts'
 import { daytonaProviderSchema } from './daytona.ts'
 import { declaredSandboxSchema, environmentDataSchema } from './environment.ts'
 import { gatewayEntryDataSchema } from './gateway.ts'
+import { builtinGraderDataSchema } from './graders.ts'
 import { harnessDescriptorSchema } from './harness.ts'
 import { configJudgeDataSchema } from './judge.ts'
 import { egressSchema, envVarsSchema, gatePolicySchema, snapshotOptionSchema } from './plain.ts'
@@ -129,6 +130,7 @@ export const profileDefaultsDataSchema = z.strictObject({
   capture: captureOptionsSchema.optional(),
   question: questionOptionsSchema.optional(),
   snapshot: snapshotOptionSchema.optional(),
+  graders: z.array(builtinGraderDataSchema).optional(),
 })
 
 export const profileLimitSchema = z.strictObject({
@@ -192,6 +194,7 @@ export const reevalConfigDataSchema = z.strictObject({
   capture: captureOptionsSchema.optional(),
   question: questionOptionsSchema.optional(),
   snapshot: snapshotOptionSchema.optional(),
+  graders: z.array(builtinGraderDataSchema).optional(),
   concurrency: count().optional(),
   record: recordMode.optional(),
   exports: z.array(z.enum(['atif'])).optional(),

@@ -10,7 +10,7 @@ import { createGunzip } from 'node:zlib'
 import { readTarStream } from '@reeval/sandbox-docker'
 import { safeZipPath } from '../archive/zip.ts'
 import { randomSuffix, sha256 } from '../ids.ts'
-import type { JSONValue, Observation } from '../types.ts'
+import type { FileChange, JSONValue, Observation } from '../types.ts'
 import { readableExecLine, readableWorkspaceManifest } from '../view/record.ts'
 import { HistoryError, isMissing, sha256File } from './files.ts'
 import {
@@ -56,6 +56,8 @@ export type Trajectory = {
   readArtifact(name: string): Promise<Buffer | null>
   /** The final workspace; null when the attempt didn't keep one. */
   workspace: KeptFiles | null
+  /** The final diff's files. */
+  changedFiles: FileChange[]
 }
 
 /** `ref`'s file in `runDir`, as a path; refused when it's absolute or climbs out. */
@@ -223,5 +225,6 @@ export async function readTrajectory(
       return ref ? readRef(runDir, ref) : null
     },
     workspace: await readKeptFiles(runDir, attempt, options),
+    changedFiles: (attempt.changedFiles ?? []).map(({ path, status }) => ({ path, status })),
   }
 }

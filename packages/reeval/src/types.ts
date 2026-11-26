@@ -12,7 +12,7 @@ import type {
   VertexPublisher,
   WebEventType,
 } from '@reeval/agents'
-import type { GraderList } from './grade/types.ts'
+import type { Grader, GraderList } from './grade/types.ts'
 import type {
   ArtifactLevel,
   ExportFormat,
@@ -2611,6 +2611,11 @@ export type ProfileDefaults = {
   question?: QuestionOptions
   /** When each attempt's workspace is copied; merged over the config's. */
   snapshot?: SnapshotOption
+  /**
+   * `reeval/graders`' built-ins every eval grades with, their options data: merged by name over
+   * the config's, and under each eval's own.
+   */
+  graders?: ReadonlyArray<Grader | BuiltinGraderData>
 }
 
 /** Over every eval, and it can only narrow; `pin` on a group or eval skips it. */
@@ -2769,6 +2774,11 @@ export type ReevalConfig = {
   /** Per attempt; default `'15m'`. */
   timeout?: Duration
   /**
+   * `reeval/graders`' built-ins every eval grades with, their options data, under each eval's
+   * own: an eval's grader of the same name replaces one.
+   */
+  graders?: ReadonlyArray<Grader | BuiltinGraderData>
+  /**
    * Screenshot defaults for `c.capture()`. `REEVAL_CAPTURE_BROWSER=0` refuses the host
    * binary when `c.capture()` runs; it does not change this object.
    */
@@ -2862,7 +2872,9 @@ export type AnalysisConfigData = Omit<AnalysisConfig, 'model'> & {
 }
 
 /** `ProfileDefaults` as data: the environment without `extend`, and the judge as data. */
-export type ProfileDefaultsData = Omit<ProfileDefaults, 'environments' | 'judge'> & {
+export type ProfileDefaultsData = Omit<ProfileDefaults, 'environments' | 'judge' | 'graders'> & {
+  /** `reeval/graders`' built-ins as data, merged by name over the config's. */
+  graders?: BuiltinGraderData[]
   /** What every eval runs in when it names no environment: one, or a list (a cell each). */
   environments?: EnvironmentData | EnvironmentData[]
   /** Defaults for `c.judge()`, merged field by field over the config's. */
@@ -2891,8 +2903,10 @@ export type ProfileData = Omit<Profile, 'defaults' | 'judge' | 'gateway' | 'hist
  */
 export type ReevalConfigData = Omit<
   ReevalConfig,
-  'environments' | 'judge' | 'profiles' | 'analysis' | 'gateway' | 'history'
+  'environments' | 'judge' | 'profiles' | 'analysis' | 'gateway' | 'history' | 'graders'
 > & {
+  /** `reeval/graders`' built-ins as data, which every eval grades with under its own. */
+  graders?: BuiltinGraderData[]
   /** Where recorded runs are kept, and which attempts keep their artifacts there. */
   history?: HistoryConfigData
   /**
@@ -3000,6 +3014,8 @@ export type ResolvedConfig = {
   capture: CaptureOptions
   question: QuestionOptions
   snapshot: ResolvedSnapshot
+  /** The config's `graders` as data; unset when it sets none. */
+  graders?: BuiltinGraderData[]
   /** The config's own `concurrency`; see `resolveConcurrency` for the run's. */
   concurrency: number | undefined
   record: RecordMode
@@ -3608,12 +3624,15 @@ export type Observation = {
   file?: FileRef
 }
 
-/** One grader's result on an attempt, from a `defineGrader` grader in the eval's `graders`. */
+/** One grader's result on an attempt, from a grader in the eval's `graders`. */
 export type GradeRecord = {
-  /** The grader's name, unique in its eval. */
+  /** The grader's name, unique in its eval: a built-in's is `<kind>:<main argument>` unless it's given one. */
   grader: string
-  /** What the grader is: `code` runs its `grade` function on the host. */
-  kind: 'code'
+  /**
+   * What the grader is: `code` runs its `grade` function on the host; `builtin` is one of
+   * `reeval/graders`' graders.
+   */
+  kind: 'code' | 'builtin'
   /** Every name of the `defineGraders` group whose one `grade` call this came from. */
   group?: string[]
   /** What `grade` returned, masked; unset when the grader errored. */
@@ -3650,6 +3669,59 @@ export type GradeFingerprint = {
   data?: string
   /** The grader's `revision`, when set. */
   revision?: number
+  /** A built-in's code version, which reeval bumps when what it grades changes. */
+  version?: number
+}
+
+/** A built-in grader of `reeval/graders`, by its kind in grader names. */
+export type BuiltinKind =
+  | 'used-skill'
+  | 'called-tool'
+  | 'called-mcp'
+  | 'ran'
+  | 'searched'
+  | 'fetched'
+  | 'wrote'
+  | 'in-diff'
+  | 'not-in-diff'
+  | 'has-file'
+  | 'succeeded'
+  | 'within-limits'
+  | 'turns'
+  | 'tokens'
+  | 'cost'
+  | 'duration'
+  | 'page-status'
+  | 'no-page-errors'
+  | 'observed'
+
+/**
+ * A built-in grader as data, as the config's `graders` and another language declare one: its
+ * kind, the arguments its factory takes before the options, and the options that are data.
+ */
+export type BuiltinGraderData = {
+  builtin: BuiltinKind
+  /**
+   * The factory's arguments before its options, e.g. `['http-retries']` for
+   * `usedSkill('http-retries')`: JSON, with a regular expression as `{ regexp, flags? }`.
+   */
+  args?: JSONValue[]
+  /** In place of `<kind>:<main argument>`, to tell two of one kind apart in one eval. */
+  name?: string
+  /** Its share of the attempt's score. Default 1; 0 records only. */
+  weight?: number
+  /** A failed natural pass (or an error) makes the attempt's score 0. Default false. */
+  required?: boolean
+}
+
+/** A grader as `--dry-run` lists it. */
+export type PlannedGrader = {
+  name: string
+  kind: GradeRecord['kind']
+  weight: number
+  required: boolean
+  /** A built-in whose grade has no score: it records the grade and counts for nothing. */
+  recordsOnly?: true
 }
 
 /** The attempt's observations, captures and kept files a grader read, by content hash. */
@@ -3946,6 +4018,8 @@ export type EvalPlan = {
   workspaces: string[]
   /** Resolved camera defaults when any field is set. */
   capture?: CaptureOptions
+  /** The eval's graders, the config's and profile's included; unset without any. */
+  graders?: PlannedGrader[]
 }
 
 /**

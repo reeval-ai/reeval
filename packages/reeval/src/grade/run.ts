@@ -80,10 +80,17 @@ async function runOnce(run: GradeRun, inputs: GradeInputs, signal: AbortSignal):
 }
 
 function fingerprintOf(def: GraderDef, data: string | undefined): GradeFingerprint {
-  const { run } = def
-  const code = sha256(canonicalJson({ name: def.name, files: run.files, grade: run.gradeDigest }))
+  const { run, builtin } = def
+  const code = sha256(
+    canonicalJson(
+      builtin
+        ? { name: def.name, builtin: builtin.kind, args: builtin.args }
+        : { name: def.name, files: run.files, grade: run.gradeDigest },
+    ),
+  )
   const parts = {
     code,
+    ...(builtin ? { version: builtin.version } : {}),
     ...(data ? { data } : {}),
     ...(run.revision !== undefined ? { revision: run.revision } : {}),
   }
@@ -135,7 +142,7 @@ export async function runGraders(
       const { score, error } = scoreOf(def, ran)
       return {
         grader: def.name,
-        kind: 'code',
+        kind: def.builtin ? 'builtin' : 'code',
         ...(def.run.names.length > 1 ? { group: def.run.names } : {}),
         ...('grade' in ran ? { grade: ran.grade } : {}),
         score,

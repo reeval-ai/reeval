@@ -70,6 +70,14 @@
       "types": "./dist/judge.d.ts",
       "default": "./dist/judge.js"
     },
+    "./graders": {
+      "types": "./dist/graders.d.ts",
+      "default": "./dist/graders.js"
+    },
+    "./graders/match": {
+      "types": "./dist/graders/match.d.ts",
+      "default": "./dist/graders/match.js"
+    },
     "./gateway": {
       "types": "./dist/gateway.d.ts",
       "default": "./dist/gateway.js"

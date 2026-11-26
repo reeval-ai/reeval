@@ -41,6 +41,9 @@ import {
 } from '@reeval/sandbox-docker'
 import { openArchive } from '../src/archive/index.ts'
 import { pngSize, stubPng } from '../src/capture/stub.ts'
+import { hasFile, inDiff, notInDiff } from '../src/grade/builtins.ts'
+import { type GraderDef, graderDef } from '../src/grade/define.ts'
+import { runGraders } from '../src/grade/run.ts'
 import { fakeBrokering } from '../src/harness/agents.ts'
 import { readTrajectory } from '../src/history/trajectory.ts'
 import type { RunRecord } from '../src/history/types.ts'
@@ -4113,6 +4116,157 @@ export const features: Feature[] = [
       assert.notEqual(builds?.scoreDigest, tests?.scoreDigest, 'each scores it its own way')
       const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
       assert.equal(canary?.score, 0)
+    },
+  },
+  {
+    dir: 'grade/builtin-transcript',
+    tiers: ['fake'],
+    env: 'skilled',
+    canary: /^score 0\.00 below 1: called-tool:Edit \(required\) scored 0\.00$/,
+    record: ({ run }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      assert.equal(attempt?.score, 1)
+      assert.deepEqual(
+        attempt?.grades?.map((g) => [g.grader, g.kind, g.grade, g.score]),
+        [
+          ['used-skill:foo', 'builtin', true, 1],
+          ['used-skill', 'builtin', ['foo'], 1],
+          ['called-tool:Read', 'builtin', 1, 1],
+          ['called-mcp:docs/search', 'builtin', 1, 1],
+          ['ran:/echo built/', 'builtin', 1, 1],
+          ['wrote:src/client.ts', 'builtin', ['src/client.ts'], 1],
+        ],
+      )
+      const [skill] = attempt?.grades ?? []
+      assert.equal(skill?.fingerprint.version, 1)
+      assert.equal(skill?.scoreDigest, undefined, 'a natural pass has no score function')
+      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      assert.equal(
+        canary?.grades?.[0]?.fingerprint.digest,
+        skill?.fingerprint.digest,
+        'one built-in on two evals has one fingerprint',
+      )
+    },
+  },
+  {
+    dir: 'grade/builtin-workspace',
+    tiers: ['fake', 'docker'],
+    env: 'app',
+    canary: /^score 0\.00 below 1: not-in-diff:src\/\*\* \(required\) scored 0\.00$/,
+    record: async ({ run, runDir }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      assert.equal(attempt?.score, 1)
+      const live = attempt?.grades?.map((g) => [g.grader, g.grade, g.score, g.weight])
+      assert.deepEqual(live, [
+        ['has-file:src/retry.ts', true, 1, 1],
+        ['has-file:src/missing.ts', false, 0, 0],
+        ['in-diff:src/**', ['src/retry.ts'], 1, 1],
+        ['not-in-diff:test/**/*.test.ts', [], 1, 1],
+        ['in-diff:**/*.js', [], 0, 0],
+        ['not-in-diff:**/package.json', [], 1, 1],
+      ])
+      const graders = [
+        hasFile('src/retry.ts', /export function retry/, { required: true }),
+        hasFile('src/missing.ts', { weight: 0 }),
+        inDiff('src/**'),
+        notInDiff('test/**/*.test.ts', { required: true }),
+        inDiff('**/*.js', { weight: 0 }),
+        notInDiff('**/package.json', { required: true }),
+      ].map((g) => graderDef(g) as GraderDef)
+      const stored = attempt && {
+        case: { key: '' },
+        turns: [],
+        skills: [],
+        trajectory: await readTrajectory(runDir, attempt),
+      }
+      const regraded = stored && (await runGraders(graders, stored, new AbortController().signal))
+      assert.deepEqual(
+        regraded?.map((g) => [g.grader, g.grade, g.score, g.weight]),
+        live,
+        'a regrade from the stored record gives the live grades',
+      )
+      assert.deepEqual(
+        attempt?.grades?.[0]?.reads.files?.map((f) => f.path),
+        ['src/retry.ts'],
+        'hasFile reads the kept file with no files declared',
+      )
+    },
+  },
+  {
+    dir: 'grade/builtin-execs',
+    tiers: ['fake'],
+    env: 'plain',
+    canary: /^score 0\.00 below 1: succeeded:tests scored 0\.00$/,
+    record: ({ run }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      assert.equal(attempt?.score, 1)
+      assert.deepEqual(
+        attempt?.grades?.map((g) => [g.grader, g.grade, g.score]),
+        [
+          ['succeeded:tests', 0, 1],
+          ['succeeded:echo built', 0, 1],
+          ['observed:health', 200, 1],
+          ['observed:ready', true, 1],
+          ['observed:lines', 3, null],
+        ],
+      )
+      const health = attempt?.grades?.[2]
+      assert.match(
+        health?.scoreDigest ?? '',
+        /^[0-9a-f]{64}$/,
+        "the predicate is the grader's score",
+      )
+      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      assert.equal(canary?.grades?.[0]?.grade, 3)
+    },
+  },
+  {
+    dir: 'grade/builtin-usage',
+    tiers: ['fake'],
+    env: 'plain',
+    canary: /^score 0\.00 below 1: within-limits \(required\) scored 0\.00$/,
+    record: ({ run }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      assert.equal(attempt?.score, 1)
+      const grades = attempt?.grades ?? []
+      assert.deepEqual(
+        grades.map((g) => [g.grader, g.score, g.weight]),
+        [
+          ['tokens', null, 1],
+          ['within-limits', 1, 1],
+          ['turns', 1, 1],
+          ['cost', null, 1],
+          ['duration', null, 1],
+        ],
+        "the config's graders come first, and the eval's turns replaces the config's",
+      )
+      const [tokens, limits, turns, cost] = grades
+      assert.equal(tokens?.grade, 2400)
+      assert.deepEqual(
+        { ...(limits?.grade as object), duration: undefined },
+        { tokens: 2400, toolCalls: { bash: 4 }, duration: undefined, cost: 0.02 },
+      )
+      assert.equal(turns?.grade, 2)
+      assert.match(turns?.scoreDigest ?? '', /^[0-9a-f]{64}$/)
+      assert.equal(cost?.grade, 0.02)
+    },
+  },
+  {
+    dir: 'grade/builtin-page',
+    tiers: ['fake'],
+    env: 'ui',
+    canary: /^score 0\.00 below 1: page-status:old \(required\) scored 0\.00$/,
+    record: ({ run }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      assert.equal(attempt?.score, 1)
+      assert.deepEqual(
+        attempt?.grades?.map((g) => [g.grader, g.grade, g.score, g.reads.artifacts?.[0]?.name]),
+        [
+          ['page-status:home', 200, 1, 'home'],
+          ['page-status:old', 404, 1, 'old'],
+          ['no-page-errors:home', 0, 1, 'home'],
+        ],
+      )
     },
   },
   {

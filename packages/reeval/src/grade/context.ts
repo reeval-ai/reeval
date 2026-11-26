@@ -12,11 +12,18 @@ export type GradeInputs = {
   case: Case
   turns: readonly GraderTurn[]
   trajectory: Trajectory
+  /** The skills the attempt's environment placed, by name. */
+  skills: readonly string[]
 }
 
 /** A grader's error that names what it did wrong, as the grade's `error` gives it. */
 export class GradeError extends Error {
   override name = 'GradeError'
+}
+
+/** `c.readFile` on a path the kept workspace doesn't have. */
+export class MissingFileError extends GradeError {
+  override name = 'MissingFileError'
 }
 
 /** Whether `files` lets a grader read `path`: some include pattern matches, and the last one wins. */
@@ -90,6 +97,8 @@ export function graderContext(
     case: inputs.case,
     turns: inputs.turns,
     execs: trajectory.execs,
+    changedFiles: trajectory.changedFiles,
+    skills: inputs.skills,
     observation: observation as GraderContext['observation'],
     async artifact(name) {
       const ref = trajectory.artifacts.find((a) => a.name === name)
@@ -111,7 +120,7 @@ export function graderContext(
       const entry = trajectory.workspace.manifest.files.find((f) => f.path === path)
       const bytes = await trajectory.workspace.readFile(path)
       if (!entry || bytes === null) {
-        throw new GradeError(`the attempt's workspace has no file ${path}`)
+        throw new MissingFileError(`the attempt's workspace has no file ${path}`)
       }
       files.set(path, { path, sha256: entry.sha256 ?? sha256(bytes) })
       return bytes.toString('utf8')

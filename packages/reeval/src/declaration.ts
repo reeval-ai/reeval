@@ -2,7 +2,7 @@
 // and raw options, and each eval's body by id. `evaluate` and `group` record it as they're called
 // (evaluate.ts), and `declareTree` declares one, so whoever declares a file, `planEval` plans the
 // same matrix from it. schema/plan/declaration.schema.json is its JSON Schema.
-import type { EvalOptionsData } from './types.ts'
+import type { BuiltinGraderData, EvalOptionsData } from './types.ts'
 
 /** How a group or eval was declared: `group`/`evaluate`, `.skip` or `.only`. */
 export type DeclaredMode = 'run' | 'skip' | 'only'
@@ -33,6 +33,8 @@ export type DeclaredEval = {
   source: DeclaredSource
   /** Set on each case of an eval with `cases`: its template, index and the list's length. */
   family?: DeclaredFamily
+  /** `reeval/graders`' built-ins the eval grades each attempt with, as data. */
+  graders?: BuiltinGraderData[]
 }
 
 /**

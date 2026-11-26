@@ -2145,6 +2145,27 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/grade.test.ts'],
   },
   {
+    id: 'grade.builtins',
+    area: 'Judges and matchers',
+    name: "`reeval/graders`' built-in graders, named `<kind>:<main argument>`, over the stored trajectory and workspace alone: skills, tools, MCP servers, commands, web searches and fetches, written files, the final diff, kept files, `c.exec` exit codes, usage limits, recorded usage, page captures and observations, each a natural pass (1 or 0) or a recorded grade, with `weight`, `required` and `score` as options and a code version in its fingerprint; `reeval/graders/match`'s plain functions share the matchers' logic",
+    fixtures: [
+      'grade/builtin-transcript',
+      'grade/builtin-workspace',
+      'grade/builtin-execs',
+      'grade/builtin-usage',
+      'grade/builtin-page',
+    ],
+    unit: ['reeval/test/graders.test.ts', 'reeval/test/refusals.test.ts'],
+  },
+  {
+    id: 'grade.config-graders',
+    area: 'Judges and matchers',
+    name: "`graders` in `reeval.config.ts` and a profile's `defaults`: built-ins as data, merged by name before the eval's own, and `--dry-run` listing each eval's graders with their weight and whether each is required",
+    fixtures: ['grade/builtin-usage'],
+    plan: ['graders/defaults', 'graders/profile-defaults'],
+    unit: ['reeval/test/refusals.test.ts'],
+  },
+  {
     id: 'assert.named-checks',
     area: 'Judges and matchers',
     name: "Named check results: `expect(value, 'label')`, every `expect` and `expect.require` recorded per attempt, tallied per cell, and checks that don't discriminate in a compare",

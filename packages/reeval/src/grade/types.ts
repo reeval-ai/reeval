@@ -1,5 +1,14 @@
 import type { ArtifactRef, ExecLine } from '../history/types.ts'
-import type { Case, Duration, EnvironmentHelpers, HostFile, JSONValue, TurnData } from '../types.ts'
+import type {
+  Case,
+  CostUsd,
+  Duration,
+  EnvironmentHelpers,
+  FileChange,
+  HostFile,
+  JSONValue,
+  TurnData,
+} from '../types.ts'
 
 /** A turn as a grader reads it: what the record keeps of it. */
 export type GraderTurn = Pick<
@@ -13,7 +22,10 @@ export type GraderTurn = Pick<
   | 'usage'
   | 'model'
   | 'unreported'
->
+> & {
+  /** What the turn cost: reported, else its tokens at list prices; unset when neither is known. */
+  cost?: CostUsd
+}
 
 /** A `c.capture()` the attempt made, as a grader reads it. */
 export type GraderArtifact = { name: string; png: Buffer; capture?: ArtifactRef['capture'] }
@@ -32,6 +44,10 @@ export type GraderContext<C = unknown> = {
   turns: readonly GraderTurn[]
   /** Each foreground `c.exec`, in call order, masked. */
   execs: readonly ExecLine[]
+  /** The final diff's files: every workspace path the attempt changed, however it changed it. */
+  changedFiles: readonly FileChange[]
+  /** The skills the attempt's environment placed, by name. */
+  skills: readonly string[]
   /** The last `c.observe(name, value)` value; throws when the attempt made none by that name. */
   observation(name: string): JSONValue
   observation(name: string, options: { optional: true }): JSONValue | undefined
@@ -89,9 +105,10 @@ export type GraderHelpers = Pick<EnvironmentHelpers, 'file' | 'directory'>
 
 declare const caseType: unique symbol
 
-/** A grader for an eval's `graders`, from `defineGrader` or `defineGraders`. */
+/** A grader for an eval's `graders`: from `defineGrader`, `defineGraders` or `reeval/graders`. */
 export type Grader<C = unknown> = {
-  readonly kind: 'code'
+  /** `code` from `defineGrader` or `defineGraders`, `builtin` from `reeval/graders`. */
+  readonly kind: 'code' | 'builtin'
   readonly name: string
   /** Only for type checking: the cases the grader can read. */
   readonly [caseType]?: (item: Case<C>) => void

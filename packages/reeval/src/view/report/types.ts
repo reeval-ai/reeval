@@ -525,7 +525,7 @@ export type ReportFailure = {
 /** One grader's result on an attempt. */
 export type GradeRow = {
   grader: string
-  kind: 'code'
+  kind: 'code' | 'builtin'
   /** In [0, 1]; null for a grade that records only. */
   score: number | null
   weight: number

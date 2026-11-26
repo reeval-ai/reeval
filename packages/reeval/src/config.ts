@@ -25,6 +25,8 @@ import { EXPORTERS } from './exporters.ts'
 import { gatewayScope, modelGatewayOrNone } from './gateway/models.ts'
 import { DEFAULT_GATEWAYS, gatewayHelper } from './gateway/resolve.ts'
 import { VERTEX_PROJECT_ENV } from './gateway/vertex.ts'
+import { builtinFromData } from './grade/builtins.ts'
+import { graderDef } from './grade/define.ts'
 import {
   AGENTS,
   DEFAULT_HARNESS,
@@ -52,6 +54,7 @@ import { resolveHistory } from './store/resolve.ts'
 import type {
   AttemptMeta,
   Budget,
+  BuiltinGraderData,
   ConfigHelpers,
   EnvVars,
   FakeAnalysisModel,
@@ -73,6 +76,7 @@ export { UsageError }
 
 const CONFIG_KEYS = [
   'include',
+  'graders',
   'gateway',
   'agents',
   'sandbox',
@@ -113,6 +117,7 @@ const PROFILE_KEYS = [
 ]
 const DEFAULTS_KEYS = [
   'agents',
+  'graders',
   'sandbox',
   'environments',
   'runs',
@@ -430,7 +435,14 @@ function checkProfile(name: string, profile: unknown, file: string): Profile {
   const p = profile as Profile
   if (p.defaults !== undefined) {
     unknownKey(p.defaults, DEFAULTS_KEYS, `${where}.defaults`, file)
-    checkOptions(p.defaults, `${where}.defaults in ${file}`)
+    const { graders, ...defaults } = p.defaults
+    checkOptions(defaults, `${where}.defaults in ${file}`)
+    if (graders !== undefined) {
+      p.defaults = {
+        ...p.defaults,
+        graders: configGraders(graders, `${where}.defaults.graders in ${file}`),
+      }
+    }
   }
   if (p.limit !== undefined) {
     unknownKey(p.limit, LIMIT_KEYS, `${where}.limit`, file)
@@ -655,6 +667,8 @@ export function resolveConfig(
     )
   }
   checkOptions(user, file, CONFIG_KEYS)
+  const graders =
+    user.graders === undefined ? [] : configGraders(user.graders, `graders in ${file}`)
   const include = user.include ?? defaultIncludeGlobs()
   if (!Array.isArray(include) || include.some((p) => typeof p !== 'string')) {
     throw new UsageError(
@@ -732,6 +746,7 @@ export function resolveConfig(
     question: user.question ?? {},
     timeoutMs: parseDuration(user.timeout ?? '15m'),
     snapshot: mergeSnapshot({ when: true, compress: false }, user.snapshot),
+    ...(graders.length ? { graders } : {}),
     concurrency:
       user.concurrency === undefined
         ? undefined
@@ -749,6 +764,38 @@ export function resolveConfig(
     cloud: user.cloud ?? false,
     ...(user.provider !== undefined ? { provider: user.provider } : {}),
   }
+}
+
+/**
+ * The config's or a profile's `graders` as data, which the run carries to every eval: only
+ * `reeval/graders`' built-ins whose options are data, each name once.
+ */
+function configGraders(value: unknown, where: string): BuiltinGraderData[] {
+  if (!Array.isArray(value)) {
+    throw new UsageError(
+      `${where} must be a list of reeval/graders' built-ins, e.g. graders: [noPageErrors('home')] (got ${typeof value})`,
+    )
+  }
+  const defs = value.map((g) => graderDef(g) ?? graderDef(builtinFromData(g, where)))
+  const data = defs.map((def): BuiltinGraderData => {
+    if (!def?.builtin) {
+      throw new UsageError(
+        `${where} takes reeval/graders' built-ins: ${def?.name} is a defineGrader grader, which goes in an eval's graders.`,
+      )
+    }
+    if (!def.builtin.data) {
+      throw new UsageError(
+        `${where}: ${def.name} has a function (score or a predicate), which a config's graders can't carry to every eval. Give it in the eval's graders.`,
+      )
+    }
+    return def.builtin.data
+  })
+  const names = defs.map((d) => d?.name)
+  const twice = names.find((n, i) => names.indexOf(n) !== i)
+  if (twice) {
+    throw new UsageError(`${where} has two graders named ${twice}. Pass name to tell them apart.`)
+  }
+  return data
 }
 
 const PROVIDER_EXAMPLE = "provider: boat() (from 'reeval/provider/boat') or daytona()"

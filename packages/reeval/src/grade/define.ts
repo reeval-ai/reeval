@@ -5,6 +5,7 @@ import { callerFile, DefinitionError, helpersFor, isHostFile, toPath } from '../
 import { UsageError } from '../errors.ts'
 import { isObjectLike } from '../object.ts'
 import type { HostFile, JSONValue } from '../types.ts'
+import type { BuiltinDef } from './builtins.ts'
 import { functionDigest } from './digest.ts'
 import type { Grader, GraderContext, GraderGroupSpec, GraderHelpers, GraderSpec } from './types.ts'
 
@@ -34,6 +35,8 @@ export type GraderDef = {
   scoreDigest?: string
   weight: number
   required: boolean
+  /** Set on `reeval/graders`' built-ins. */
+  builtin?: BuiltinDef
 }
 
 /** A grader's definition, from whichever copy of reeval made it; undefined for anything else. */
@@ -68,7 +71,7 @@ const pick = ({ file, directory }: ReturnType<typeof helpersFor>): GraderHelpers
   directory,
 })
 
-function checkName(name: unknown, where: string): asserts name is string {
+export function checkName(name: unknown, where: string): asserts name is string {
   if (typeof name !== 'string' || !NAME.test(name)) {
     throw new DefinitionError(
       `${where} needs a name of at most 80 letters, digits, ".", "_" or "-", starting with a letter or digit (got ${JSON.stringify(name)})`,
@@ -140,7 +143,7 @@ function dataOf(data: unknown, where: string, base: string): GradeRun['data'] {
   )
 }
 
-function weightOf(value: unknown, where: string): number {
+export function weightOf(value: unknown, where: string): number {
   if (value === undefined) return 1
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
     throw new DefinitionError(
@@ -150,7 +153,7 @@ function weightOf(value: unknown, where: string): number {
   return value
 }
 
-function requiredOf(value: unknown, where: string): boolean {
+export function requiredOf(value: unknown, where: string): boolean {
   if (value === undefined) return false
   if (typeof value !== 'boolean') {
     throw new DefinitionError(

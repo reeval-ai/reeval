@@ -433,6 +433,25 @@ class AttemptThrown(TypedDict):
     stack: NotRequired[str]
 
 
+# A built-in grader as data, as the config's `graders` and another language declare one: its
+# kind, the arguments its factory takes before the options, and the options that are data.
+class BuiltinGraderData(TypedDict):
+    # The factory's arguments before its options, e.g. `['http-retries']` for
+    # `usedSkill('http-retries')`: JSON, with a regular expression as `{ regexp, flags? }`.
+    args: NotRequired[list[JSONValue]]
+    builtin: BuiltinKind
+    # In place of `<kind>:<main argument>`, to tell two of one kind apart in one eval.
+    name: NotRequired[str]
+    # A failed natural pass (or an error) makes the attempt's score 0. Default false.
+    required: NotRequired[bool]
+    # Its share of the attempt's score. Default 1; 0 records only.
+    weight: NotRequired[float]
+
+
+# A built-in grader of `reeval/graders`, by its kind in grader names.
+BuiltinKind: TypeAlias = "Literal[\"used-skill\", \"called-tool\", \"called-mcp\", \"ran\", \"searched\", \"fetched\", \"wrote\", \"in-diff\", \"not-in-diff\", \"has-file\", \"succeeded\", \"within-limits\", \"turns\", \"tokens\", \"cost\", \"duration\", \"page-status\", \"no-page-errors\", \"observed\"]"
+
+
 class CaptureConsoleItem(TypedDict):
     level: Literal["error", "warning", "info", "log", "debug"]
     source: str
@@ -690,6 +709,8 @@ class DeclaredEval(TypedDict):
     body: str
     # Set on each case of an eval with `cases`: its template, index and the list's length.
     family: NotRequired[DeclaredFamily]
+    # `reeval/graders`' built-ins the eval grades each attempt with, as data.
+    graders: NotRequired[list[BuiltinGraderData]]
     mode: DeclaredMode
     # The eval's name, as passed to `evaluate` (a case's, for an eval with `cases`).
     name: str

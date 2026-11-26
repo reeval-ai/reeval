@@ -209,6 +209,46 @@ test('a grouped tree through JSON, declared again, plans the same tests', async 
   )
 })
 
+test("an eval's graders as data plan through the tree, and come back out of it", async () => {
+  const graders = [
+    { builtin: 'turns' },
+    { builtin: 'in-diff', args: ['src/**'], weight: 2, required: true },
+    { builtin: 'ran', args: [{ regexp: 'npm test', flags: 'i' }] },
+    { builtin: 'observed', args: ['health'] },
+  ]
+  const node = {
+    type: 'eval',
+    name: 'graded',
+    mode: 'run',
+    options: { agents: { only: 'fake' } },
+    graders,
+    body: 'g',
+    source: { body: '2'.repeat(64) },
+  } as DeclarationTree['children'][number]
+  const first = await collected(tempDir('tree-graders'), () =>
+    declareTree([node], () => async () => {}),
+  )
+  const planned = (tests: typeof first.tests) =>
+    tests.map(
+      (t) => (t.options as { attempt: { plan: { graders?: unknown } } }).attempt.plan.graders,
+    )
+  assert.deepEqual(planned(first.tests), [
+    [
+      { name: 'turns', kind: 'builtin', weight: 1, required: false, recordsOnly: true },
+      { name: 'in-diff:src/**', kind: 'builtin', weight: 2, required: true },
+      { name: 'ran:/npm test/i', kind: 'builtin', weight: 1, required: false },
+      { name: 'observed:health', kind: 'builtin', weight: 1, required: false },
+    ],
+  ])
+  const tree = JSON.parse(JSON.stringify(declaredTree(first.file))) as DeclarationTree
+  const [declared] = tree.children
+  assert.deepEqual(declared?.type === 'eval' ? declared.graders : undefined, graders)
+  const replayed = await collected(tempDir('tree-graders-again'), () =>
+    declareTree(tree.children, () => async () => {}),
+  )
+  assert.deepEqual(planned(replayed.tests), planned(first.tests))
+})
+
 /** A tree as another language writes it: host paths relative to the eval file, evals/x.eval.py. */
 function relativeTree(): DeclarationTree['children'] {
   const env = (name: string, spec: object) => ({
