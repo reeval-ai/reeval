@@ -1,3 +1,4 @@
+import { maskNumbers, notJson } from '../attempt/observe.ts'
 import { canonicalJson } from '../eval-source.ts'
 import { sha256 } from '../ids.ts'
 import { redactSecrets, redactValue } from '../redact.ts'
@@ -20,39 +21,23 @@ type Ran = {
 const message = (error: unknown) =>
   clip(redactSecrets(error instanceof Error ? error.message : String(error)), 2000)
 
-/** `grade`'s value as JSON data, or why it isn't. */
+/** `grade`'s value as JSON data, masked as an observed value is, or why it isn't. */
 function asGrade(value: unknown): { grade: JSONValue } | { error: string } {
   if (value === undefined) return { error: 'grade returned undefined. Return a JSON value.' }
-  let text: string | undefined
+  const problem = notJson(value, '', true)
+  if (problem) return { error: `grade returned a value that isn't JSON: ${problem}` }
+  let text: string
   try {
     text = JSON.stringify(value)
   } catch (error) {
     return { error: `grade returned a value that isn't JSON: ${message(error)}` }
-  }
-  if (text === undefined) return { error: `grade returned a ${typeof value}. Return a JSON value.` }
-  if (!isJsonData(value)) {
-    return {
-      error: `grade returned a value that isn't JSON data (a class instance or a non-finite number)`,
-    }
   }
   if (text.length > GRADE_LIMIT) {
     return {
       error: `grade returned ${text.length} characters of JSON, over the ${GRADE_LIMIT} a grade may be`,
     }
   }
-  return { grade: redactValue(JSON.parse(text) as JSONValue) }
-}
-
-function isJsonData(value: unknown): boolean {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean') return true
-  if (typeof value === 'number') return Number.isFinite(value)
-  if (Array.isArray(value)) return value.every(isJsonData)
-  if (typeof value !== 'object') return false
-  const proto = Object.getPrototypeOf(value)
-  return (
-    (proto === Object.prototype || proto === null) &&
-    Object.values(value).every((v) => v === undefined || isJsonData(v))
-  )
+  return { grade: maskNumbers(redactValue(JSON.parse(text) as JSONValue)) }
 }
 
 function abortable<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
