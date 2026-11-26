@@ -3126,6 +3126,13 @@ describe('harness options', () => {
     assert.equal(new Set(parts).size, parts.length)
   })
 
+  test("the fake agent's own tools stay out of its id", () => {
+    assert.equal(
+      harnessId(fakeAgent({ tools: [{ tool: 'Read', input: {}, output: 'ok' }] })),
+      'fake',
+    )
+  })
+
   test('withOptions sets the options on each agent', () => {
     const agents = withOptions(
       [claudeCode({ model: 'claude-sonnet-5' }), pi({ model: 'anthropic/claude-sonnet-5' })],

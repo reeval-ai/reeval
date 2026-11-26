@@ -185,8 +185,10 @@ function optionsId(h: HarnessDescriptor): string {
 export function harnessId(h: HarnessDescriptor): string {
   if (h.id) return h.id
   const effort = harnessEffort(h)
-  const suffix = `${effort ? `[effort=${idPart(effort)}]` : ''}${optionsId(h)}`
-  if (h.kind === 'fake') return `fake${suffix}`
+  const effortPart = effort ? `[effort=${idPart(effort)}]` : ''
+  // The fake agent takes none of the shared options: its `tools` are its own scripted calls.
+  if (h.kind === 'fake') return `fake${effortPart}`
+  const suffix = `${effortPart}${optionsId(h)}`
   const base = h.model ? `${h.kind}:${idPart(h.model)}` : h.kind
   return `${base}${suffix}`
 }
