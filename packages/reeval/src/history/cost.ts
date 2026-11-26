@@ -29,6 +29,18 @@ function estimate(
   return { usd: micro(usd), basis: 'estimated', source: priced.source }
 }
 
+/** A turn's cost: the one reported, else its tokens estimated at `model`'s price. */
+export const turnCost = (
+  t: Pick<AttemptRecord['turns'][number], 'cost' | 'usage' | 'model' | 'callUsage'>,
+  model: string | null | undefined,
+  pricer: Pricer | null,
+): CostUsd | undefined => t.cost ?? estimate(t.usage, t.model ?? model, pricer, t.callUsage)
+
+/** Whether some turn used tokens and has no cost. */
+export const unpricedTurns = (
+  turns: readonly Pick<AttemptRecord['turns'][number], 'cost' | 'usage'>[],
+) => turns.some((t) => !t.cost && used(t.usage))
+
 /** The turns' costs as the attempt's, unless some turn that used tokens has none. */
 function attemptCost(a: AttemptRecord): CostUsd | undefined {
   if (a.cost) return a.cost
@@ -51,8 +63,7 @@ export function needsPricing(record: RunRecord): boolean {
   return record.evals.some((e) =>
     e.attempts.some(
       (a) =>
-        a.turns.some((t) => !t.cost && used(t.usage)) ||
-        a.judgements.some((j) => !j.cost && !j.costUsd && used(j.usage)),
+        unpricedTurns(a.turns) || a.judgements.some((j) => !j.cost && !j.costUsd && used(j.usage)),
     ),
   )
 }
@@ -64,7 +75,7 @@ export function priceRecord(record: RunRecord, pricer: Pricer | null): RunRecord
     const models = new Map(e.cells.map((c) => [c.key, c.model]))
     const priced = e.attempts.map((a) => {
       const turns = a.turns.map((t) => {
-        const cost = t.cost ?? estimate(t.usage, t.model ?? models.get(a.cell), pricer, t.callUsage)
+        const cost = turnCost(t, models.get(a.cell), pricer)
         return cost ? { ...t, cost } : t
       })
       const judgments = a.judgements.map((j) => {

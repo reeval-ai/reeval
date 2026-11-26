@@ -621,7 +621,11 @@ function historyPatch(patch: string): string {
     .join('')
 }
 
-function changedFiles(files: FileChange[], patch?: string | null): AttemptRecord['changedFiles'] {
+/** The diff's files as the record keeps them: dependency directories collapsed, with line counts. */
+export function changedFiles(
+  files: FileChange[],
+  patch?: string | null,
+): AttemptRecord['changedFiles'] {
   const lines = new Map(
     (patch ? splitPatch(patch) : []).map((p) => [p.path, { added: p.added, removed: p.removed }]),
   )

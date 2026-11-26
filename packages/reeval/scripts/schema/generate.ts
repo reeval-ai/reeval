@@ -171,6 +171,8 @@ class Generator {
       a.name.localeCompare(b.name),
     )
     for (const p of props) {
+      // A unique-symbol key (`Grader`'s case brand) has no JSON form.
+      if (p.escapedName.startsWith('__@')) continue
       const prop = this.checker.getTypeOfSymbol(p)
       // `environment?: never` forbids that key beside a compare object. It is not a JSON value.
       if ((prop.flags as number) & (TypeFlags.Undefined | TypeFlags.Never | TypeFlags.Void)) {

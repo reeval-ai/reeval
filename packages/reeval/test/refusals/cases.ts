@@ -45,6 +45,15 @@ import { resolveModelGateway } from '../../src/gateway/models.ts'
 import { resolveGateway } from '../../src/gateway/resolve.ts'
 import { vercelCredentialProblem } from '../../src/gateway/vercel.ts'
 import { vertexSettings } from '../../src/gateway/vertex.ts'
+import {
+  calledTool,
+  inDiff,
+  observed,
+  pageStatus,
+  turns,
+  usedSkill,
+  withinLimits,
+} from '../../src/grade/builtins.ts'
 import { defineGrader } from '../../src/grade/define.ts'
 import { refusedMcp } from '../../src/harness/agents.ts'
 import { cloud } from '../../src/internal-vm.ts'
@@ -2101,6 +2110,36 @@ export const CASES: Record<string, Case[]> = {
     ['data: good', options({ environments: envData({ setup: ['ls'], files: { 'a.txt': 'a' } }) })],
   ],
   config: [
+    ['graders: not a list', config({ graders: 'turns' })],
+    ['graders: a defineGrader grader', config({ graders: [passes] })],
+    ['graders: a score function', () => config({ graders: [turns({ score: () => 1 })] })()],
+    ['graders: an unknown built-in', config({ graders: [{ builtin: 'lints' }] })],
+    [
+      'graders: a built-in named like a prototype key',
+      config({ graders: [{ builtin: 'toString' }] }),
+    ],
+    ['graders: a built-in named __proto__', config({ graders: [{ builtin: '__proto__' }] })],
+    ['graders: a built-in named constructor', config({ graders: [{ builtin: 'constructor' }] })],
+    ['graders: data with a score', config({ graders: [{ builtin: 'turns', score: 1 }] })],
+    ['graders: data args not a list', config({ graders: [{ builtin: 'ran', args: 'npm' }] })],
+    [
+      'graders: data args the factory refuses',
+      config({ graders: [{ builtin: 'page-status', args: ['home', 700] }] }),
+    ],
+    ['graders: two named alike', () => config({ graders: [turns(), { builtin: 'turns' }] })()],
+    [
+      'graders: a profile default with a predicate',
+      () =>
+        config({
+          profiles: { ci: { defaults: { graders: [observed('ok', (v) => v === true)] } } },
+        })(),
+    ],
+    [
+      'graders: data accepted',
+      config({
+        graders: [{ builtin: 'ran', args: [{ regexp: 'npm test', flags: 'i' }], weight: 2 }],
+      }),
+    ],
     [
       "unbrokered 'error': a plain MCP header named like a credential",
       strict({
@@ -3091,6 +3130,26 @@ environments:
     ['graders: not a grader', defines({ graders: [passes, 'lint'], task: async () => {} })],
     ['graders: two named alike', defines({ graders: [passes, [passes]], task: async () => {} })],
     ['graders: a list is accepted', defines({ graders: [passes, [also]], task: async () => {} })],
+    ['builtin: no main argument', () => calledTool(undefined as never)],
+    ['builtin: an unknown option', () => usedSkill('foo', { wieght: 2 } as never)],
+    ['builtin: a name that is not one', () => inDiff('src/**', { name: 'in diff' })],
+    ['builtin: a score that is not a function', () => turns({ score: 1 as never })],
+    ['builtin: required with no pass', () => turns({ required: true })],
+    ['builtin: a limit it has none of', () => withinLimits({ usd: 1 } as never)],
+    ['builtin: no limit', () => withinLimits({})],
+    ['builtin: a status out of range', () => pageStatus('home', 700 as never)],
+    ['builtin: a predicate and options alone', () => observed('ok', {}, {} as never)],
+    [
+      'builtin: two of a kind in one eval',
+      defines({ graders: [usedSkill('foo'), usedSkill('foo')], task: async () => {} }),
+    ],
+    [
+      'builtin: two of a kind told apart by name',
+      defines({
+        graders: [usedSkill('foo'), usedSkill('foo', { name: 'foo-again' })],
+        task: async () => {},
+      }),
+    ],
     ['agents: an empty list', defines({ agents: [], task: async () => {} })],
     ['agents: harnesses', defines({ harnesses: fakeAgent(), task: async () => {} })],
     [

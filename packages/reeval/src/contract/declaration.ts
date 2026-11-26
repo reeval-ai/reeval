@@ -13,6 +13,7 @@ import type {
   DeclaredTodo,
 } from '../declaration.ts'
 import type { EvalOptionsData } from '../types.ts'
+import { builtinGraderDataSchema } from './graders.ts'
 import { type Assert, dataProblem, type Same } from './shared.ts'
 
 /** A node's options: any object, until the cascade checks it. Its JSON Schema is the type's. */
@@ -47,6 +48,7 @@ export const declaredEvalSchema = z.strictObject({
   body: z.string(),
   source: declaredSourceSchema,
   family: declaredFamilySchema.optional(),
+  graders: z.array(builtinGraderDataSchema).optional(),
 })
 
 export const declaredGroupSchema = z.strictObject({

@@ -264,6 +264,8 @@ export const cases: PlanCase[] = [
   { dir: 'ids', name: 'glob', args: ['nested/*'] },
   { dir: 'skip', name: 'reason', args: [] },
   { dir: 'agents-profile', name: 'replaces', args: ['--profile', 'ci'] },
+  { dir: 'graders', name: 'defaults', args: [] },
+  { dir: 'graders', name: 'profile-defaults', args: ['--profile', 'ci'] },
   { dir: 'revision', name: 'cascade', args: [] },
   { dir: 'filters', name: 'dir-named-like-cell', args: ['right'] },
   { dir: 'filters', name: 'dir-path-only', args: ['evals/right'] },

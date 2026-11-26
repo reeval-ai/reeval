@@ -132,6 +132,8 @@ export default defineConfig({
     'store/local': 'src/store-local.ts',
     'store/s3': 'src/store-s3.ts',
     judge: 'src/judge.ts',
+    graders: 'src/graders.ts',
+    'graders/match': 'src/graders-match.ts',
     'internal/vm': 'src/internal-vm.ts',
     'internal/vm-api': 'src/internal-vm-api.ts',
     'internal/vm-api/boat': 'src/internal-vm-api-boat.ts',

@@ -49,6 +49,7 @@ import {
   vercelGatewaySchema,
   vertexGatewaySchema,
 } from './gateway.ts'
+import { builtinGraderDataSchema, builtinKindSchema } from './graders.ts'
 import {
   antigravityHarnessSchema,
   claudeCodeHarnessSchema,
@@ -178,6 +179,8 @@ export const CONTRACT_SCHEMAS: Record<string, z.ZodType> = {
   CaptureWindow: captureWindowSchema,
   AnalysisConfigData: analysisConfigDataSchema,
   FakeAnalysisData: fakeAnalysisDataSchema,
+  BuiltinKind: builtinKindSchema,
+  BuiltinGraderData: builtinGraderDataSchema,
 }
 
 /**

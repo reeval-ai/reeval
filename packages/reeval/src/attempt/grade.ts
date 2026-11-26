@@ -3,14 +3,17 @@
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { harnessModel, pricerOf } from '../cost.ts'
 import { debugLog } from '../debug/attempt.ts'
 import type { GradeInputs } from '../grade/context.ts'
 import type { GraderDef } from '../grade/define.ts'
 import { attemptScore, runGraders, scoreFailure } from '../grade/run.ts'
 import type { GraderTurn } from '../grade/types.ts'
-import { execLineOf } from '../history/assemble.ts'
+import { changedFiles, execLineOf } from '../history/assemble.ts'
+import { turnCost, unpricedTurns } from '../history/cost.ts'
 import { keptFiles, type Trajectory } from '../history/trajectory.ts'
 import { WORKSPACE_ARCHIVE, WORKSPACE_MANIFEST } from '../history/types.ts'
+import { loadPrices } from '../prices.ts'
 import { redactValue } from '../redact.ts'
 import type { Case } from '../types.ts'
 import { readableWorkspaceManifest } from '../view/record.ts'
@@ -47,24 +50,39 @@ async function liveTrajectory(a: Attempt, workspaceDir: string): Promise<Traject
             join(workspaceDir, WORKSPACE_ARCHIVE),
           )
         : null,
+    changedFiles: changedFiles(record.diff?.files ?? [], record.diff?.patch).map(
+      ({ path, status }) => ({ path, status }),
+    ),
   }
 }
 
-/** The attempt's turns as a grader reads them. */
-const graderTurns = (a: Attempt): GraderTurn[] =>
-  redactValue(
-    a.record.turns.map((t) => ({
-      prompt: t.prompt,
-      text: t.text,
-      status: t.status,
-      startedAt: t.startedAt,
-      durationMs: t.durationMs,
-      transcript: t.transcript,
-      usage: t.usage,
-      model: t.model,
-      unreported: t.unreported,
-    })),
+/**
+ * The attempt's turns as a grader reads them, each with the cost its record will have: the one
+ * reported, else its tokens at list prices, loaded only when some turn needs them.
+ */
+async function graderTurns(a: Attempt): Promise<GraderTurn[]> {
+  const pricer = unpricedTurns(a.record.turns)
+    ? await loadPrices().then(pricerOf, () => null)
+    : null
+  const model = harnessModel(a.spec.harness)
+  return redactValue(
+    a.record.turns.map((t) => {
+      const cost = turnCost(t, model, pricer)
+      return {
+        prompt: t.prompt,
+        text: t.text,
+        status: t.status,
+        startedAt: t.startedAt,
+        durationMs: t.durationMs,
+        transcript: t.transcript,
+        usage: t.usage,
+        model: t.model,
+        unreported: t.unreported,
+        ...(cost ? { cost } : {}),
+      }
+    }),
   )
+}
 
 /**
  * Runs the graders and records their grades and the attempt's score. Returns the error to fail
@@ -79,8 +97,9 @@ export async function gradeAttempt(
 ): Promise<Error | undefined> {
   const inputs: GradeInputs = {
     case: grading.item,
-    turns: graderTurns(a),
+    turns: await graderTurns(a),
     trajectory: await liveTrajectory(a, workspaceDir),
+    skills: a.env?.record.skills.map((s) => s.name) ?? [],
   }
   const grades = await runGraders(grading.graders, inputs, signal)
   if (signal.aborted) return undefined

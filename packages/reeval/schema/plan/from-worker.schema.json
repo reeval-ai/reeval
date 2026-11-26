@@ -1155,6 +1155,13 @@
             }
           ]
         },
+        "graders": {
+          "description": "The eval's graders, the config's and profile's included; unset without any.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlannedGrader"
+          }
+        },
         "harnesses": {
           "type": "number"
         },
@@ -2313,6 +2320,29 @@
         }
       },
       "required": ["auto", "policy"]
+    },
+    "PlannedGrader": {
+      "description": "A grader as `--dry-run` lists it.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": ["builtin", "code"]
+        },
+        "name": {
+          "type": "string"
+        },
+        "recordsOnly": {
+          "description": "A built-in whose grade has no score: it records the grade and counts for nothing.",
+          "const": true
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "weight": {
+          "type": "number"
+        }
+      },
+      "required": ["kind", "name", "required", "weight"]
     },
     "PlannedPhaseEgress": {
       "description": "One phase's egress policy, and the hosts a restricted one allows on top of its own.",

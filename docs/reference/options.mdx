@@ -10,6 +10,7 @@ description: "Options set how evaluations run. Each key is accepted in set place
 | Key | `reeval.config.ts` | Profile `defaults` | Group or evaluation | Profile `limit` |
 |---|---|---|---|---|
 | [`include`](#include) | ✓ |  |  |  |
+| [`graders`](#graders) | ✓ | ✓ |  |  |
 | [`gateway`](#gateway) | ✓ |  |  |  |
 | [`agents`](#agents) | ✓ | ✓ | ✓ | ✓ |
 | [`sandbox`](#sandbox) | ✓ | ✓ | ✓ |  |
@@ -56,6 +57,12 @@ For more information about overriding an option, see [Group evaluations](/evalua
 
 <Property name="include" type="string[]" optional>
   The default is `evals/**/*.eval.ts` and `evals/**/*.eval.py`.
+</Property>
+
+## `graders`
+
+<Property name="graders" type="BuiltinGraderData[]" optional>
+  Built-in graders from `reeval/graders`, or the same as data, that every evaluation runs before its own `graders`. A grader with an evaluation's grader's name gives way to it.
 </Property>
 
 ## `gateway`

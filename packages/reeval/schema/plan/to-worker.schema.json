@@ -214,6 +214,62 @@
       },
       "additionalProperties": false
     },
+    "BuiltinGraderData": {
+      "description": "A built-in grader as data, as the config's `graders` and another language declare one: its kind, the arguments its factory takes before the options, and the options that are data.",
+      "type": "object",
+      "properties": {
+        "args": {
+          "description": "The factory's arguments before its options, e.g. `['http-retries']` for `usedSkill('http-retries')`: JSON, with a regular expression as `{ regexp, flags? }`.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        },
+        "builtin": {
+          "$ref": "#/$defs/BuiltinKind"
+        },
+        "name": {
+          "description": "In place of `<kind>:<main argument>`, to tell two of one kind apart in one eval.",
+          "type": "string"
+        },
+        "required": {
+          "description": "A failed natural pass (or an error) makes the attempt's score 0. Default false.",
+          "type": "boolean"
+        },
+        "weight": {
+          "description": "Its share of the attempt's score. Default 1; 0 records only.",
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": ["builtin"],
+      "additionalProperties": false
+    },
+    "BuiltinKind": {
+      "description": "A built-in grader of `reeval/graders`, by its kind in grader names.",
+      "type": "string",
+      "enum": [
+        "used-skill",
+        "called-tool",
+        "called-mcp",
+        "ran",
+        "searched",
+        "fetched",
+        "wrote",
+        "in-diff",
+        "not-in-diff",
+        "has-file",
+        "succeeded",
+        "within-limits",
+        "turns",
+        "tokens",
+        "cost",
+        "duration",
+        "page-status",
+        "no-page-errors",
+        "observed"
+      ]
+    },
     "CaptureOptions": {
       "description": "Camera defaults for `c.capture()`. Cascades config → profile defaults → group → eval, shallow-merged. `viewport` on a level replaces the whole value. `port` is not an option: pass it as the first argument to `c.capture`.",
       "type": "object",
@@ -1753,6 +1809,20 @@
       "required": ["kind", "model"],
       "additionalProperties": false
     },
+    "Grader": {
+      "description": "A grader for an eval's `graders`: from `defineGrader`, `defineGraders` or `reeval/graders`.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "description": "`code` from `defineGrader` or `defineGraders`, `builtin` from `reeval/graders`.",
+          "enum": ["builtin", "code"]
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["kind", "name"]
+    },
     "GrokBuildHarnessDescriptor": {
       "description": "xAI's Grok Build through `@reeval/harness-grok-build` (`grok agent stdio`), made by `grokBuild()`. It runs xAI models on an xAI API key and reports each turn's tokens.",
       "type": "object",
@@ -2567,6 +2637,20 @@
             }
           ]
         },
+        "graders": {
+          "description": "`reeval/graders`' built-ins every eval grades with, their options data: merged by name over the config's, and under each eval's own.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/BuiltinGraderData"
+              },
+              {
+                "$ref": "#/$defs/Grader"
+              }
+            ]
+          }
+        },
         "judge": {
           "description": "Defaults for `c.judge()`, merged field by field over the config's.",
           "$ref": "#/$defs/ConfigJudgeOptions"
@@ -2863,6 +2947,13 @@
         "gatewaySet": {
           "description": "Whether the config sets `gateway`, so the plan shows where each cell resolved.",
           "type": "boolean"
+        },
+        "graders": {
+          "description": "The config's `graders` as data; unset when it sets none.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BuiltinGraderData"
+          }
         },
         "harness": {
           "type": "array",

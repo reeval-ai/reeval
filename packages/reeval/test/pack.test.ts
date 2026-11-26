@@ -55,8 +55,11 @@ async function makeApp(dir: string, pkg: string) {
   await writeFile(join(app, 'reeval.config.ts'), fakeConfig().replaceAll("'reeval", `'${pkg}`))
   await writeFile(
     join(app, 'evals/hello.eval.ts'),
-    `import { defineEval, expect } from '${pkg}'
+    `import { defineEval, defineGrader, expect } from '${pkg}'
+import { turns } from '${pkg}/graders'
+import { usage } from '${pkg}/graders/match'
 export default defineEval({
+  graders: [turns(), defineGrader('one-turn', { grade: (c) => usage(c).turns === 1 })],
   async task(c) {
     await c.send('say hi')
     expect(await c.judge('Did it say hi?', { diff: true })).toPass()
@@ -403,6 +406,8 @@ test('the packed package installs into a clean project and runs reeval', {
     'store/local',
     'store/s3',
     'judge',
+    'graders',
+    'graders/match',
     'view/index',
     'view/report/index',
     'renderer/markdown',

@@ -61,7 +61,9 @@ function inputs(files: Record<string, string> = {}): GradeInputs {
       ],
       readArtifact: async (name) => (name === 'home' ? png : null),
       workspace: entries.length ? keptFiles(manifest, archiveFile(archive)) : null,
+      changedFiles: [],
     },
+    skills: [],
   }
 }
 

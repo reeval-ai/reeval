@@ -137,6 +137,8 @@ export const OWN_EXPORTS: Record<string, () => Promise<unknown>> = {
   '/store/local': () => import('./store-local.ts'),
   '/store/s3': () => import('./store-s3.ts'),
   '/judge': () => import('./judge.ts'),
+  '/graders': () => import('./graders.ts'),
+  '/graders/match': () => import('./graders-match.ts'),
   '/internal/vm': () => import('./internal-vm.ts'),
   '/internal/vm-api': () => import('./internal-vm-api.ts'),
   '/internal/vm-api/boat': () => import('./internal-vm-api-boat.ts'),

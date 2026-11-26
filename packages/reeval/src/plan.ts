@@ -31,6 +31,7 @@ import type {
   LocalInputKind,
   PairFactor,
   PlannedEgress,
+  PlannedGrader,
   PlannedQuestion,
   ResolvedGateway,
   ResolvedProfile,
@@ -375,6 +376,15 @@ function questionLines(members: PlanRow[], questionModel: string | null): string
   )
 }
 
+/** `  grader 1/2  used-skill:http-retries · built-in · weight 2 · required`, for each grader. */
+function graderLines(members: PlanRow[]): string[] {
+  const graders = members.find((r) => !r.plan.skip)?.plan.graders ?? []
+  return graders.map(
+    (g, i) =>
+      `  grader ${i + 1}/${graders.length}  ${clip(g.name, 80)} · ${g.kind === 'builtin' ? 'built-in' : 'code'} · ${g.recordsOnly || (g.weight === 0 && !g.required) ? 'records only' : `weight ${g.weight}`}${g.required ? ' · required' : ''}`,
+  )
+}
+
 /** A case of an eval with two cases or more, which pools them. */
 const pooledCase = (r: Pick<PlanRow, 'family'>) => (r.family?.cases ?? 0) >= 2
 
@@ -623,7 +633,11 @@ export function planTable(plan: RunPlan, todos: readonly string[] = []): string[
     line(header),
     ...rows.flatMap((row, i) => {
       const g = groups[i]
-      return [line(row), ...(g ? questionLines(g.members, plan.questionModel) : [])]
+      return [
+        line(row),
+        ...(g ? graderLines(g.members) : []),
+        ...(g ? questionLines(g.members, plan.questionModel) : []),
+      ]
     }),
     ...egressLines(egress),
   ]
@@ -724,6 +738,8 @@ export type PlanEval = {
   cells: PlanCell[]
   /** Its questions: pairwise ones answered after the run, the rest after each attempt; unset without any. */
   questions?: PlanQuestion[]
+  /** What grades each attempt, the config's and profile's graders included; unset without any. */
+  graders?: PlannedGrader[]
   /**
    * On an eval with `cases`, each case: its key, the cells it runs and why it doesn't run.
    * `cells` above are the eval's over every case, `runs` summed.
@@ -889,6 +905,7 @@ export function planDocument(
         notes: attempt.plan.notes,
         cells: [],
         ...(questions.length ? { questions } : {}),
+        ...(attempt.plan.graders ? { graders: attempt.plan.graders } : {}),
         ...(attempt.family ? { family: attempt.family } : {}),
         ...(attempt.plan.excluded ? { whereExcluded: attempt.plan.excluded } : {}),
         ...(attempt.plan.traitExcluded ? { traitExcluded: attempt.plan.traitExcluded } : {}),

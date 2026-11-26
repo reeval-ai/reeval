@@ -138,6 +138,11 @@ export function renderPlan(
           : '',
       ])
     }
+    for (const g of e.graders ?? []) {
+      const weight =
+        g.recordsOnly || (g.weight === 0 && !g.required) ? 'records only' : `weight ${g.weight}`
+      rows.push(['', `grader ${g.name} · ${g.kind} · ${weight}${g.required ? ' · required' : ''}`])
+    }
     for (const q of e.questions ?? []) {
       const n = (count: number, one: string) => `${count} ${count === 1 ? one : `${one}s`}`
       const asks = q.across

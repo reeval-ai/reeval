@@ -3380,6 +3380,13 @@
             }
           ]
         },
+        "graders": {
+          "description": "The eval's graders, the config's and profile's included; unset without any.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlannedGrader"
+          }
+        },
         "harnesses": {
           "type": "number"
         },
@@ -4549,6 +4556,10 @@
         "revision": {
           "description": "The grader's `revision`, when set.",
           "type": "number"
+        },
+        "version": {
+          "description": "A built-in's code version, which reeval bumps when what it grades changes.",
+          "type": "number"
         }
       },
       "required": ["code", "digest"]
@@ -4606,7 +4617,7 @@
       "required": []
     },
     "GradeRecord": {
-      "description": "One grader's result on an attempt, from a `defineGrader` grader in the eval's `graders`.",
+      "description": "One grader's result on an attempt, from a grader in the eval's `graders`.",
       "type": "object",
       "properties": {
         "durationMs": {
@@ -4651,7 +4662,7 @@
           ]
         },
         "grader": {
-          "description": "The grader's name, unique in its eval.",
+          "description": "The grader's name, unique in its eval: a built-in's is `<kind>:<main argument>` unless it's given one.",
           "type": "string"
         },
         "group": {
@@ -4662,8 +4673,8 @@
           }
         },
         "kind": {
-          "description": "What the grader is: `code` runs its `grade` function on the host.",
-          "const": "code"
+          "description": "What the grader is: `code` runs its `grade` function on the host; `builtin` is one of `reeval/graders`' graders.",
+          "enum": ["builtin", "code"]
         },
         "reads": {
           "description": "What the grader read from the attempt, by content hash, in first-read order.",
@@ -5455,6 +5466,29 @@
         }
       },
       "required": ["auto", "policy"]
+    },
+    "PlannedGrader": {
+      "description": "A grader as `--dry-run` lists it.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": ["builtin", "code"]
+        },
+        "name": {
+          "type": "string"
+        },
+        "recordsOnly": {
+          "description": "A built-in whose grade has no score: it records the grade and counts for nothing.",
+          "const": true
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "weight": {
+          "type": "number"
+        }
+      },
+      "required": ["kind", "name", "required", "weight"]
     },
     "PlannedPhaseEgress": {
       "description": "One phase's egress policy, and the hosts a restricted one allows on top of its own.",

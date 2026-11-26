@@ -8,6 +8,7 @@ import {
   calledSkill,
   calledTool,
   changed,
+  contentMatches,
   edited,
   fetched,
   type Limits,
@@ -164,6 +165,19 @@ const firstErrors = (c: CapturePage & { name?: string }, max = 5) => {
   return [...shown, ...(rest > 0 ? [`… ${rest} more${file}`] : [])].join('\n')
 }
 
+/**
+ * Whether a page's status is `status`, a code from 100 to 599 or a range from `'1xx'` to `'5xx'`;
+ * undefined for anything else. No response (an undefined status) is never one.
+ */
+export function statusTest(status: unknown): ((actual: number | undefined) => boolean) | undefined {
+  const range = typeof status === 'string' && /^[1-5]xx$/.test(status) ? Number(status[0]) : 0
+  const code =
+    typeof status === 'number' && Number.isInteger(status) && status >= 100 && status <= 599
+  if (!range && !code) return undefined
+  return (actual) =>
+    actual !== undefined && (range ? Math.floor(actual / 100) === range : actual === status)
+}
+
 /** What `toPass()` and `.not.toPass()` fail with on a judge call that answered nothing. */
 export const judgeFailedMessage = (f: Pick<JudgeFailure, 'question' | 'model' | 'error'>) =>
   `judge failed for "${f.question}" (${f.model}): ${f.error}`
@@ -233,7 +247,7 @@ export const MATCHERS = {
         pass = true
         message = () => `expected no file at ${path}`
       } else {
-        pass = typeof pattern === 'string' ? content.includes(pattern) : pattern.test(content)
+        pass = contentMatches(content, pattern)
         message = () =>
           `expected ${path} ${pass ? 'not ' : ''}to match ${pattern}\n--- ${path} ---\n${tail(content)}`
       }
@@ -287,17 +301,13 @@ export const MATCHERS = {
 
   toHaveStatus: matcher((actual, [status]: [status: number | StatusRange]): Result => {
     if (!isCapture(actual)) throw subjectError('toHaveStatus() expects a c.capture() result')
-    const range = typeof status === 'string' && /^[1-5]xx$/.test(status) ? Number(status[0]) : 0
-    const code =
-      typeof status === 'number' && Number.isInteger(status) && status >= 100 && status <= 599
-    if (!range && !code) {
+    const test = statusTest(status)
+    if (!test) {
       throw subjectError(
         `toHaveStatus() expects a status from 100 to 599 or a range from '1xx' to '5xx', got ${JSON.stringify(status)}`,
       )
     }
-    const pass =
-      actual.status !== undefined &&
-      (range ? Math.floor(actual.status / 100) === range : actual.status === status)
+    const pass = test(actual.status)
     return {
       pass,
       message: () =>

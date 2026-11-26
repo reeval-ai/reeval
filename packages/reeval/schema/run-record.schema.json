@@ -2810,6 +2810,10 @@
         "revision": {
           "description": "The grader's `revision`, when set.",
           "type": "number"
+        },
+        "version": {
+          "description": "A built-in's code version, which reeval bumps when what it grades changes.",
+          "type": "number"
         }
       },
       "required": ["code", "digest"]
@@ -2867,7 +2871,7 @@
       "required": []
     },
     "GradeRecord": {
-      "description": "One grader's result on an attempt, from a `defineGrader` grader in the eval's `graders`.",
+      "description": "One grader's result on an attempt, from a grader in the eval's `graders`.",
       "type": "object",
       "properties": {
         "durationMs": {
@@ -2912,7 +2916,7 @@
           ]
         },
         "grader": {
-          "description": "The grader's name, unique in its eval.",
+          "description": "The grader's name, unique in its eval: a built-in's is `<kind>:<main argument>` unless it's given one.",
           "type": "string"
         },
         "group": {
@@ -2923,8 +2927,8 @@
           }
         },
         "kind": {
-          "description": "What the grader is: `code` runs its `grade` function on the host.",
-          "const": "code"
+          "description": "What the grader is: `code` runs its `grade` function on the host; `builtin` is one of `reeval/graders`' graders.",
+          "enum": ["builtin", "code"]
         },
         "reads": {
           "description": "What the grader read from the attempt, by content hash, in first-read order.",

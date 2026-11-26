@@ -30,7 +30,8 @@ import {
 import { UsageError } from './errors.ts'
 import { badEvalId, fileEvalId, legacyCaseEvalName } from './eval-id.ts'
 import { bodyHash, caseJson } from './eval-source.ts'
-import { type GraderDef, graderList } from './grade/define.ts'
+import { builtinFromData } from './grade/builtins.ts'
+import { type GraderDef, graderDef, graderList } from './grade/define.ts'
 import { evalId, relativeFile } from './ids.ts'
 import { environmentInputs } from './inputs.ts'
 import { isObjectLike } from './object.ts'
@@ -39,6 +40,7 @@ import { type PlannedEval, planEval } from './plan-eval.ts'
 import { maskedVariables, redactSecrets } from './redact.ts'
 import { sandboxKind } from './sandbox/kinds.ts'
 import type {
+  BuiltinGraderData,
   Case,
   CaseEvalSpec,
   CaseFn,
@@ -52,6 +54,7 @@ import type {
   EvalPlan,
   EvalSpec,
   GroupOptions,
+  RunContext,
 } from './types.ts'
 import type { CaseWhere } from './where.ts'
 
@@ -368,6 +371,7 @@ function prepare(
   )
   const body = `b${bodies.size + 1}`
   bodies.set(body, fn)
+  const asData = grading?.graders.flatMap((g) => (g.builtin?.data ? [g.builtin.data] : []))
   declare({
     type: 'eval',
     name,
@@ -376,8 +380,11 @@ function prepare(
     body,
     source,
     ...(family ? { family } : {}),
+    ...(asData?.length && asData.length === grading?.graders.length ? { graders: asData } : {}),
   })
   const run = getRunContext()
+  const graders = withDefaultGraders(grading?.graders ?? [], run)
+  const graded = graders.length ? { graders, item: grading?.item ?? { key: '' } } : undefined
   const planned = planEval(
     {
       name,
@@ -402,6 +409,16 @@ function prepare(
     if (note) {
       for (const notes of new Set(planned.tests.map((t) => t.attempt.plan.notes))) notes.push(note)
     }
+    const listed = graders.map((g) => ({
+      name: g.name,
+      kind: g.builtin ? ('builtin' as const) : ('code' as const),
+      weight: g.weight,
+      required: g.required,
+      ...(g.builtin && !g.score && g.builtin.kind !== 'observed'
+        ? { recordsOnly: true as const }
+        : {}),
+    }))
+    if (listed.length) for (const t of planned.tests) t.attempt.plan.graders = listed
     registered++
   }
   const commit = () => {
@@ -441,11 +458,28 @@ function prepare(
       registerTest(
         testName,
         test,
-        spec ? (handle) => runAttempt(spec, fn, handle, grading) : async () => {},
+        spec ? (handle) => runAttempt(spec, fn, handle, graded) : async () => {},
       )
     }
   }
   return { planned, commit }
+}
+
+/**
+ * An eval's graders under the config's and then the profile's: a grader replaces one of the same
+ * name before it.
+ */
+function withDefaultGraders(own: readonly GraderDef[], run: RunContext): GraderDef[] {
+  const data = [
+    ...(run.config.graders ?? []),
+    ...((run.profile?.defaults.graders ?? []) as BuiltinGraderData[]),
+  ]
+  const defaults = data.map(
+    (d) => graderDef(builtinFromData(d, "the config's graders")) as GraderDef,
+  )
+  return [...defaults, ...own].filter(
+    (g, i, all) => !all.slice(i + 1).some((h) => h.name === g.name),
+  )
 }
 
 /** Evals registered so far in this worker, for the scheduler's tie-break. */
@@ -538,7 +572,7 @@ function registerCases(
       ? legacyCaseEvalName(name, keys[i] as string)
       : caseEvalName(name, keys[i] as string)
     const named = { ...(label ? { label: label(key) } : {}), ...(skipReason ? { skipReason } : {}) }
-    const grading = graders && { graders, item }
+    const grading = { graders: graders ?? [], item }
     return prepare(mode, member, own, run, source, '', family, picks, named, grading)
   })
   if (pick) applyWhere(where, shownKeys, prepared)
@@ -729,10 +763,29 @@ function declareNodes(
       defineGroup(node.mode)(node.name, optionsFrom(node.options, where, base), () =>
         declareNodes(children, bodyFor, base),
       )
-    } else if (node.family) {
-      const options = optionsFrom(node.options, `evaluate("${redactSecrets(node.name)}")`, base)
+    } else if (node.family || node.graders) {
+      const where = `evaluate("${redactSecrets(node.name)}")`
+      const options = optionsFrom(node.options, where, base)
       checkOnly(node.mode, 'evaluate')
-      register(node.mode, node.name, options, bodyFor(node.body), node.source, '', node.family)
+      const graders =
+        node.graders &&
+        graderList(
+          node.graders.map((d) => builtinFromData(d, `graders in ${where}`)),
+          where,
+        )
+      const item = node.source.caseJson ? (JSON.parse(node.source.caseJson) as Case) : { key: '' }
+      const grading = graders && { graders, item }
+      register(
+        node.mode,
+        node.name,
+        options,
+        bodyFor(node.body),
+        node.source,
+        '',
+        node.family,
+        {},
+        grading,
+      )
     } else
       defineEvaluate(node.mode, node.source)(
         node.name,

@@ -54,7 +54,7 @@ export type ToolInputMatch = string | RegExp | Record<string, unknown>
 
 type ToolEvent = Extract<TranscriptEvent, { type: 'tool' }>
 
-type Subject = Pick<Turn, 'transcript' | 'unreported'>
+export type Subject = Pick<Turn, 'transcript' | 'unreported'>
 
 const isTurn = (value: unknown): value is Subject =>
   isObjectLike(value) && Array.isArray(value.transcript) && Array.isArray(value.unreported)
@@ -120,22 +120,41 @@ export function inputMatches(input: unknown, expected?: ToolInputMatch): boolean
   })
 }
 
+const WEB_FIELD: Record<WebEventType, (e: TranscriptEvent) => string> = {
+  'web-search': (e) => ('query' in e ? e.query : ''),
+  'web-fetch': (e) => ('url' in e ? e.url : ''),
+}
+
+/**
+ * The queries (`web-search`) or URLs (`web-fetch`) the transcript has, all of them and those
+ * matching `pattern`. A subject whose harness doesn't report them is a `HarnessCapabilityError`.
+ */
+export function webEvents(
+  subject: Subject,
+  type: WebEventType,
+  pattern: RegExp | string | undefined,
+  matcher: string,
+): { seen: string[]; hits: string[] } {
+  if (subject.unreported.includes(type)) {
+    const what = type === 'web-search' ? 'web searches' : 'web fetches'
+    throw new HarnessCapabilityError(
+      `${matcher} can't check this turn: its harness doesn't report ${what} ('${type}' is in turn.unreported), so the agent may have made them with no event. Check the reply or files instead, or use a harness that reports them.`,
+    )
+  }
+  const seen = subject.transcript.filter((e) => e.type === type).map(WEB_FIELD[type])
+  return { seen, hits: seen.filter((v) => matches(v, pattern)) }
+}
+
 function webEvent(
   matcher: string,
   actual: unknown,
   type: WebEventType,
-  field: (e: TranscriptEvent) => string,
   pattern: RegExp | string | undefined,
 ): Result {
-  const subject = transcriptSubject(actual, matcher)
   const what = type === 'web-search' ? 'web searches' : 'web fetches'
-  if (subject.unreported.includes(type)) {
-    throw new HarnessCapabilityError(
-      `${matcher}() can't check this turn: its harness doesn't report ${what} ('${type}' is in turn.unreported), so the agent may have made them with no event. Check the reply or files instead, or use a harness that reports them.`,
-    )
-  }
-  const seen = subject.transcript.filter((e) => e.type === type).map(field)
-  const pass = seen.some((v) => matches(v, pattern))
+  const subject = transcriptSubject(actual, matcher)
+  const { seen, hits } = webEvents(subject, type, pattern, `${matcher}()`)
+  const pass = hits.length > 0
   return {
     pass,
     message: () =>
@@ -145,6 +164,20 @@ function webEvent(
   }
 }
 
+/** The transcript's tool calls that used the skill `name`. */
+export const skillCalls = (transcript: TranscriptEvent[], name: string): ToolEvent[] =>
+  toolsOf(transcript).filter((e) => isSkillCall(e, name))
+
+/** Which of the `placed` skills the transcript's tool calls used, in order of first use. */
+export const placedSkillsUsed = (
+  transcript: TranscriptEvent[],
+  placed: readonly string[],
+): string[] => [
+  ...new Set(
+    toolsOf(transcript).flatMap((e) => skillsUsed(e.tool, targetText(e.input, e.tool), placed)),
+  ),
+]
+
 export function calledSkill(actual: unknown, name: string): Result {
   const { transcript } = transcriptSubject(actual, 'toHaveCalledSkill')
   const calls = toolsOf(transcript)
@@ -152,7 +185,7 @@ export function calledSkill(actual: unknown, name: string): Result {
     const label = skillLike(e)
     return label ? [label] : []
   })
-  const pass = calls.some((e) => isSkillCall(e, name))
+  const pass = skillCalls(transcript, name).length > 0
   return {
     pass,
     message: () =>
@@ -162,6 +195,29 @@ export function calledSkill(actual: unknown, name: string): Result {
   }
 }
 
+/** The transcript's tool calls named `name`, whose input matches `input` when given. */
+export const toolCalls = (
+  transcript: TranscriptEvent[],
+  name: string | RegExp,
+  input?: ToolInputMatch,
+): ToolEvent[] =>
+  toolsOf(transcript).filter((e) => nameMatches(e.tool, name) && inputMatches(e.input, input))
+
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/** The transcript's calls to the MCP server `server`'s tools, or to its `tool`. */
+export const mcpCalls = (
+  transcript: TranscriptEvent[],
+  server: string,
+  tool?: string,
+  input?: ToolInputMatch,
+): ToolEvent[] =>
+  toolCalls(
+    transcript,
+    tool === undefined ? new RegExp(`^mcp__${escapeRegExp(server)}__.`) : `mcp__${server}__${tool}`,
+    input,
+  )
+
 export function calledTool(actual: unknown, name: string | RegExp, input?: ToolInputMatch): Result {
   const { transcript } = transcriptSubject(actual, 'toHaveCalledTool')
   const calls = toolsOf(transcript)
@@ -169,7 +225,7 @@ export function calledTool(actual: unknown, name: string | RegExp, input?: ToolI
   const seen = calls.map((e) =>
     input === undefined ? e.tool : `${e.tool} ${JSON.stringify(e.input)}`,
   )
-  const pass = calls.some((e) => nameMatches(e.tool, name) && inputMatches(e.input, input))
+  const pass = toolCalls(transcript, name, input).length > 0
   return {
     pass,
     message: () =>
@@ -194,16 +250,16 @@ export function calledMcp(
   input?: ToolInputMatch,
 ): Result {
   const subject = transcriptSubject(actual, 'toHaveCalledMcp')
-  const result = calledTool(subject, `mcp__${server}__${tool}`, input)
-  const mcpCalls = toolsOf(subject.transcript).filter((e) => e.tool.startsWith('mcp__'))
+  const pass = mcpCalls(subject.transcript, server, tool, input).length > 0
+  const all = toolsOf(subject.transcript).filter((e) => e.tool.startsWith('mcp__'))
   const inputPart = input === undefined ? '' : ` with input ${formatInput(input)}`
-  const seen = mcpCalls.map((e) =>
+  const seen = all.map((e) =>
     input === undefined ? mcpLabel(e.tool) : `${mcpLabel(e.tool)} ${JSON.stringify(e.input)}`,
   )
   return {
-    pass: result.pass,
+    pass,
     message: () =>
-      result.pass
+      pass
         ? `expected no MCP calls matching ${server}/${tool}${inputPart}, got ${listed(seen)}`
         : `expected MCP calls matching ${server}/${tool}${inputPart}, got ${listed(seen)}`,
   }
@@ -262,34 +318,47 @@ export function runMatchLabel(match: unknown): string | undefined {
   return isPatternArg(args) ? `${programPart} args ${String(args)}` : programPart
 }
 
-function ranProgram(transcript: TranscriptEvent[], match: RunMatch): Result {
-  const commands = transcriptCommands(transcript)
-  const shown = (c: { program: string; args: string[] }) => [c.program, ...c.args].join(' ')
-  const hits = commands.filter(
-    (c) =>
-      (typeof match.program === 'string'
-        ? c.program === match.program
-        : match.program.test(c.program)) && matches(c.args.join(' '), match.args),
-  )
-  const argsPart = match.args === undefined ? '' : ` with args matching ${match.args}`
-  const target = `${match.program}${argsPart}`
-  return {
-    pass: hits.length > 0,
-    message: () =>
-      hits.length > 0
-        ? `expected no runs of ${target}, got ${listed(hits.map(shown))}`
-        : `expected runs of ${target}, got ${listed(commands.map(shown))}`,
+const shownCommand = (c: { program: string; args: string[] }) => [c.program, ...c.args].join(' ')
+
+/**
+ * The commands the transcript ran, all of them and those matching `command`: shell commands by
+ * their text, or with a `RunMatch`, each program a segment of one ran, after its wrappers.
+ */
+export function commandsRun(
+  transcript: TranscriptEvent[],
+  command?: RegExp | string | RunMatch,
+): { seen: string[]; hits: string[] } {
+  if (isObjectLike(command) && !(command instanceof RegExp)) {
+    const match = checkRunMatch(command)
+    const commands = transcriptCommands(transcript)
+    const hits = commands.filter(
+      (c) =>
+        (typeof match.program === 'string'
+          ? c.program === match.program
+          : match.program.test(c.program)) && matches(c.args.join(' '), match.args),
+    )
+    return { seen: commands.map(shownCommand), hits: hits.map(shownCommand) }
   }
+  const seen = transcript.filter(isShellCall).map(commandOf)
+  return { seen, hits: seen.filter((c) => matches(c, command)) }
 }
 
 export function ran(actual: unknown, command?: RegExp | string | RunMatch): Result {
   const { transcript } = transcriptSubject(actual, 'toHaveRun')
+  const { seen, hits } = commandsRun(transcript, command)
   if (isObjectLike(command) && !(command instanceof RegExp)) {
-    return ranProgram(transcript, checkRunMatch(command))
+    const match = command as RunMatch
+    const argsPart = match.args === undefined ? '' : ` with args matching ${match.args}`
+    const target = `${match.program}${argsPart}`
+    return {
+      pass: hits.length > 0,
+      message: () =>
+        hits.length > 0
+          ? `expected no runs of ${target}, got ${listed(hits)}`
+          : `expected runs of ${target}, got ${listed(seen)}`,
+    }
   }
-  const shells = transcript.filter(isShellCall)
-  const seen = shells.map(commandOf)
-  const pass = shells.some((e) => matches(commandOf(e), command))
+  const pass = hits.length > 0
   return {
     pass,
     message: () =>
@@ -318,6 +387,14 @@ const editedIn = (turn: unknown): string[] => {
   return hasDiff(turn) ? turn.diff.files.map((f) => f.path) : []
 }
 
+/** The paths the transcript's write and edit tool calls touched, once each, matching `path`. */
+export const editedPaths = (transcript: TranscriptEvent[], path?: RegExp | string): string[] =>
+  [...new Set(editsOf(transcript).map((e) => e.path))].filter((p) => matches(p, path))
+
+/** Whether `content` has `pattern`: a substring, or a match of a regular expression. */
+export const contentMatches = (content: string, pattern: RegExp | string): boolean =>
+  typeof pattern === 'string' ? content.includes(pattern) : pattern.test(content)
+
 /**
  * Edit tools' `file-edit` events and the files the turn changed in the workspace, so a file
  * written from the shell or by a script counts, and one only read doesn't.
@@ -325,7 +402,7 @@ const editedIn = (turn: unknown): string[] => {
 export function edited(actual: unknown, path?: RegExp | string): Result {
   const { transcript } = transcriptSubject(actual, 'toHaveEdited')
   const changed = isContext(actual) ? actual.turns.flatMap(editedIn) : editedIn(actual)
-  const seen = [...new Set([...editsOf(transcript).map((e) => e.path), ...changed])]
+  const seen = [...new Set([...editedPaths(transcript), ...changed])]
   const pass = seen.some((p) => matches(p, path))
   return {
     pass,
@@ -357,17 +434,24 @@ const pathTest = (pattern: string | RegExp): ((path: string) => boolean) => {
   return (path) => self(path) || inside(path)
 }
 
+const pathPatterns = (paths: PathMatch | undefined): Array<string | RegExp> =>
+  paths === undefined
+    ? []
+    : typeof paths === 'string' || paths instanceof RegExp
+      ? [paths]
+      : [...paths]
+
+/** The diff's files under any of `paths` (every file without any): a glob also takes its directory's files. */
+export function changesIn(files: readonly FileChange[], paths?: PathMatch): FileChange[] {
+  const tests = pathPatterns(paths).map(pathTest)
+  return files.filter((f) => tests.length === 0 || tests.some((t) => t(f.path)))
+}
+
 /** Files in the workspace diff, so every write counts: a tool's, a shell command's or a subprocess's. */
 export function changed(actual: unknown, paths?: PathMatch): Result {
   const files = changedFiles(actual)
-  const patterns =
-    paths === undefined
-      ? []
-      : typeof paths === 'string' || paths instanceof RegExp
-        ? [paths]
-        : [...paths]
-  const tests = patterns.map(pathTest)
-  const hits = files.filter((f) => tests.length === 0 || tests.some((t) => t(f.path)))
+  const patterns = pathPatterns(paths)
+  const hits = changesIn(files, paths)
   const label = (list: FileChange[]) =>
     list.length
       ? `[${list.map((f) => `${JSON.stringify(f.path)} (${f.status})`).join(', ')}]`
@@ -383,17 +467,11 @@ export function changed(actual: unknown, paths?: PathMatch): Result {
 }
 
 export function searched(actual: unknown, query?: RegExp | string): Result {
-  return webEvent(
-    'toHaveSearched',
-    actual,
-    'web-search',
-    (e) => ('query' in e ? e.query : ''),
-    query,
-  )
+  return webEvent('toHaveSearched', actual, 'web-search', query)
 }
 
 export function fetched(actual: unknown, url?: RegExp | string): Result {
-  return webEvent('toHaveFetched', actual, 'web-fetch', (e) => ('url' in e ? e.url : ''), url)
+  return webEvent('toHaveFetched', actual, 'web-fetch', url)
 }
 
 /** `toStayWithin`'s limits: each one caps what the turn, or every turn of `c`, used. */
@@ -408,7 +486,7 @@ export type Limits = {
 
 const LIMIT_KEYS = ['tokens', 'toolCalls', 'duration'] as const
 
-type BudgetSubject = Pick<Turn, 'usage' | 'transcript' | 'durationMs'>
+export type BudgetSubject = Pick<Turn, 'usage' | 'transcript' | 'durationMs'>
 
 const isBudgetTurn = (value: unknown): value is BudgetSubject =>
   isObjectLike(value) && Array.isArray(value.transcript) && typeof value.durationMs === 'number'
@@ -433,47 +511,119 @@ export function limitsLabel(limits: unknown): string | undefined {
   return parts.length ? parts.join(', ') : undefined
 }
 
-function checkLimits(limits: unknown): Limits {
-  const example = 'e.g. toStayWithin({ tokens: 200_000, toolCalls: { bash: 10 } })'
-  if (!isObjectLike(limits)) {
-    throw misuseError(`toStayWithin() takes limits, ${example} (got ${JSON.stringify(limits)})`)
+const andList = (keys: readonly string[]) =>
+  keys.length > 1 ? `${keys.slice(0, -1).join(', ')} and ${keys.at(-1)}` : keys.join('')
+
+const shown = (v: unknown) => (typeof v === 'number' ? String(v) : JSON.stringify(v))
+
+/**
+ * What's wrong with `limits` for `who` (`toStayWithin()`), which takes `keys`; undefined when
+ * nothing is. `cost` is US dollars, for the checks that take it.
+ */
+export function limitsProblem(
+  limits: unknown,
+  who: string,
+  keys: readonly string[],
+  example: string,
+): string | undefined {
+  if (!isObjectLike(limits) || Array.isArray(limits)) {
+    return `${who} takes limits, ${example} (got ${JSON.stringify(limits)})`
   }
   for (const key of Object.keys(limits)) {
-    if ((LIMIT_KEYS as readonly string[]).includes(key)) continue
-    const near = closest(key, LIMIT_KEYS)
-    throw misuseError(
-      `toStayWithin() has no limit "${key}"; it takes tokens, toolCalls and duration.${near ? ` Did you mean "${near}"?` : ''}`,
-    )
+    if (keys.includes(key)) continue
+    const near = closest(key, [...keys])
+    return `${who} has no limit "${key}"; it takes ${andList(keys)}.${near ? ` Did you mean "${near}"?` : ''}`
   }
-  if (!LIMIT_KEYS.some((k) => limits[k] !== undefined)) {
-    throw misuseError(`toStayWithin() needs at least one limit, ${example}`)
-  }
+  if (!keys.some((k) => limits[k] !== undefined))
+    return `${who} needs at least one limit, ${example}`
   const bad = (what: string, value: unknown) =>
-    misuseError(
-      `toStayWithin()'s ${what} is a whole number of 0 or more (got ${typeof value === 'number' ? String(value) : JSON.stringify(value)})`,
-    )
-  if (limits.tokens !== undefined && !isCount(limits.tokens)) throw bad('tokens', limits.tokens)
+    `${who}'s ${what} is a whole number of 0 or more (got ${shown(value)})`
+  if (limits.tokens !== undefined && !isCount(limits.tokens)) return bad('tokens', limits.tokens)
   const calls = limits.toolCalls
   if (calls !== undefined && !isCount(calls)) {
     if (!isObjectLike(calls) || !Object.keys(calls).length) {
-      throw misuseError(
-        `toStayWithin()'s toolCalls is a count, or a count per tool such as { bash: 10 } (got ${typeof calls === 'number' ? String(calls) : JSON.stringify(calls)})`,
-      )
+      return `${who}'s toolCalls is a count, or a count per tool such as { bash: 10 } (got ${shown(calls)})`
     }
     for (const [tool, n] of Object.entries(calls)) {
-      if (!isCount(n)) throw bad(`toolCalls.${tool}`, n)
+      if (!isCount(n)) return bad(`toolCalls.${tool}`, n)
     }
   }
   if (limits.duration !== undefined) {
     try {
       parseDuration(limits.duration as Duration)
     } catch (error) {
-      throw misuseError(
-        `toStayWithin()'s duration: ${error instanceof Error ? error.message : String(error)}`,
-      )
+      return `${who}'s duration: ${error instanceof Error ? error.message : String(error)}`
     }
   }
+  const cost = limits.cost
+  if (cost !== undefined && !(typeof cost === 'number' && Number.isFinite(cost) && cost >= 0)) {
+    return `${who}'s cost is US dollars, a number of 0 or more (got ${shown(cost)})`
+  }
+  return undefined
+}
+
+function checkLimits(limits: unknown): Limits {
+  const example = 'e.g. toStayWithin({ tokens: 200_000, toolCalls: { bash: 10 } })'
+  const problem = limitsProblem(limits, 'toStayWithin()', LIMIT_KEYS, example)
+  if (problem) throw misuseError(problem)
   return limits as Limits
+}
+
+/**
+ * What `turns` used, as `toStayWithin` counts it: input (cache included) plus output tokens, null
+ * when a turn's harness reported none; tool calls, in all and by tool name; the agent's time.
+ */
+export function budgetUsed(turns: readonly BudgetSubject[]): {
+  tokens: number | null
+  toolCalls: number
+  callsOf: (tool: string) => number
+  durationMs: number
+} {
+  const transcript = turns.flatMap((t) => t.transcript)
+  return {
+    tokens: turns.some((t) => t.usage === null)
+      ? null
+      : turns.reduce((sum, t) => sum + totalTokens(t.usage as TokenUsage), 0),
+    toolCalls: transcript.filter((e) => 'toolCallId' in e).length,
+    callsOf: (tool) => toolsOf(transcript).filter((e) => e.tool === tool).length,
+    durationMs: turns.reduce((sum, t) => sum + t.durationMs, 0),
+  }
+}
+
+/**
+ * Each limit `used` went over, as `toStayWithin` says it: `tokens 210,000 > 200,000`. Only the
+ * limits set are checked, so `used` needs only those.
+ */
+export function overLimits(
+  used: {
+    tokens: number
+    toolCalls: number
+    callsOf: (tool: string) => number
+    durationMs: number
+    cost?: number
+  },
+  limits: Limits & { cost?: number },
+): string[] {
+  const over: string[] = []
+  if (limits.tokens !== undefined && used.tokens > limits.tokens) {
+    over.push(`tokens ${count(used.tokens)} > ${count(limits.tokens)} (subagents included)`)
+  }
+  const calls = limits.toolCalls
+  if (typeof calls === 'number') {
+    if (used.toolCalls > calls) over.push(`toolCalls ${count(used.toolCalls)} > ${count(calls)}`)
+  } else if (calls) {
+    for (const [tool, limit] of Object.entries(calls)) {
+      const n = used.callsOf(tool)
+      if (n > limit) over.push(`${tool} ${count(n)} > ${count(limit)}`)
+    }
+  }
+  if (limits.duration !== undefined && used.durationMs > parseDuration(limits.duration)) {
+    over.push(`duration ${formatDuration(used.durationMs)} > ${String(limits.duration)}`)
+  }
+  if (limits.cost !== undefined && (used.cost ?? 0) > limits.cost) {
+    over.push(`cost $${used.cost} > $${limits.cost}`)
+  }
+  return over
 }
 
 /**
@@ -494,35 +644,13 @@ export function withinLimits(actual: unknown, limits: unknown, not: boolean): Re
           throw subjectError('toStayWithin() expects a turn from c.send(), or c')
         })()
   const checked = checkLimits(limits)
-  const over: string[] = []
-  if (checked.tokens !== undefined) {
-    if (turns.some((t) => t.usage === null)) {
-      throw new HarnessCapabilityError(
-        "toStayWithin() can't check tokens: the harness reported no token usage for this turn (turn.usage is null). Drop tokens, or use a harness that reports usage.",
-      )
-    }
-    const used = turns.reduce((sum, t) => sum + totalTokens(t.usage as TokenUsage), 0)
-    if (used > checked.tokens) {
-      over.push(`tokens ${count(used)} > ${count(checked.tokens)} (subagents included)`)
-    }
+  const used = budgetUsed(turns)
+  if (checked.tokens !== undefined && used.tokens === null) {
+    throw new HarnessCapabilityError(
+      "toStayWithin() can't check tokens: the harness reported no token usage for this turn (turn.usage is null). Drop tokens, or use a harness that reports usage.",
+    )
   }
-  const transcript = turns.flatMap((t) => t.transcript)
-  const calls = checked.toolCalls
-  if (typeof calls === 'number') {
-    const used = transcript.filter((e) => 'toolCallId' in e).length
-    if (used > calls) over.push(`toolCalls ${count(used)} > ${count(calls)}`)
-  } else if (calls) {
-    const tools = toolsOf(transcript)
-    for (const [tool, limit] of Object.entries(calls)) {
-      const used = tools.filter((e) => e.tool === tool).length
-      if (used > limit) over.push(`${tool} ${count(used)} > ${count(limit)}`)
-    }
-  }
-  if (checked.duration !== undefined) {
-    const limit = parseDuration(checked.duration)
-    const used = turns.reduce((sum, t) => sum + t.durationMs, 0)
-    if (used > limit) over.push(`duration ${formatDuration(used)} > ${String(checked.duration)}`)
-  }
+  const over = overLimits({ ...used, tokens: used.tokens ?? 0 }, checked)
   return {
     pass: over.length === 0,
     message: () =>
