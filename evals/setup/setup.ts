@@ -1,4 +1,6 @@
-import { type AttemptContext, expect } from 'reeval'
+import { type AttemptContext, defineGrader, type GraderContext } from 'reeval'
+import { observed, ran } from 'reeval/graders'
+import { execOf } from 'reeval/graders/match'
 import { arms, type Target } from './environments.ts'
 
 /** The pre-release reeval the sandbox has; the user would install it from npm. */
@@ -6,19 +8,24 @@ export const INSTALL =
   ' (reeval is pre-release here: install it with `npm i -D ~/reeval.tgz`, or the same with the ' +
   "project's package manager, instead of from npm. This machine has no Docker.)"
 
-type Plan = {
-  totals: { evals: number; cells: number }
-  evals: { name: string; cells: { role: string }[] }[]
-}
+/** What the graders read of `reeval run --dry-run --json`: its evals, by name with their cells' roles. */
+type Plan = { evals: { name: string; roles: string[] }[] }
 
 async function plan(c: AttemptContext): Promise<Plan | null> {
   const r = await c.exec('./node_modules/.bin/reeval run --dry-run --json 2>/dev/null')
   try {
-    return r.exitCode === 0 ? (JSON.parse(r.stdout) as Plan) : null
+    if (r.exitCode !== 0) return null
+    const { evals } = JSON.parse(r.stdout) as {
+      evals: { name: string; cells: { role: string }[] }[]
+    }
+    return { evals: evals.map((e) => ({ name: e.name, roles: e.cells.map((cell) => cell.role) })) }
   } catch {
     return null
   }
 }
+
+/** The task's `plan` observation; null when the project didn't plan. */
+export const planOf = (c: GraderContext) => c.observation('plan') as Plan | null
 
 /** The key each harness `reeval init` offers needs. */
 export const HARNESS_KEY =
@@ -26,28 +33,45 @@ export const HARNESS_KEY =
 
 export const evalFiles = "find evals -name '*.eval.ts' 2>/dev/null | sort"
 
-/** The checks every target shares, after the user has answered the agent's question. */
-export async function setUp(
-  c: AttemptContext,
-  before: string[],
-  expected: { evals: [number, number] },
-) {
-  const p = await plan(c)
-  expect(p, '`reeval run --dry-run` plans').not.toBeNull()
-  const added = (p?.totals.evals ?? 0) - before.length
-  expect(added, 'adds at least one eval').toBeGreaterThanOrEqual(expected.evals[0])
-  expect(added, 'adds at most three evals').toBeLessThanOrEqual(expected.evals[1])
-  expect(c, 'runs reeval doctor').toHaveRun(/reeval doctor/)
-  expect(c, 'never forces init').not.toHaveRun(/init[^\n]*--force/)
-  return p
-}
-
-export function asksFirst(turn: { text: string }, created: string) {
-  expect(turn.text, 'asks before writing evals').toMatch(/\?/)
-  expect(created, 'writes no eval before the answer').toBe('')
-}
-
 export const evalList = async (c: AttemptContext) => (await c.exec(evalFiles)).stdout.trim()
 export const names = (text: string) => text.split('\n').filter(Boolean)
+
+/** The `eval-sources` exec's output: every eval file the agent left, concatenated. */
+export const sourcesOf = (c: GraderContext) => execOf(c, 'eval-sources')?.stdout ?? ''
+
+/**
+ * The task every target shares: the first turn, whose `created` evals it observes, then the
+ * answer, then the plan, the eval sources and how many evals were there before.
+ */
+export async function setUp(c: AttemptContext, answer: string, before: string[] = []) {
+  const first = await c.send(`Set up reeval here.${INSTALL}`)
+  const created = names(await evalList(c)).filter((f) => !before.includes(f))
+  c.observe('evals-before-answer', created)
+  const last = await c.send(answer)
+  c.observe('evals-before', before.length)
+  c.observe('plan', await plan(c))
+  await c.exec('cat evals/*.ts 2>/dev/null', { label: 'eval-sources' })
+  return { first, last }
+}
+
+/** The checks every target shares, after the user has answered the agent's question. */
+export const shared = [
+  defineGrader('asks-before-writing-evals', {
+    grade: (c) => /\?/.test(c.turns[0]?.text ?? ''),
+  }),
+  observed<string[]>('evals-before-answer', (created) => created.length === 0, {
+    name: 'writes-no-eval-before-the-answer',
+  }),
+  defineGrader('plans', { grade: (c) => planOf(c) !== null }),
+  defineGrader('adds-one-to-three-evals', {
+    grade: (c) => (planOf(c)?.evals.length ?? 0) - Number(c.observation('evals-before')),
+    score: (added) => (added >= 1 && added <= 3 ? 1 : 0),
+  }),
+  ran(/reeval doctor/, { name: 'runs-reeval-doctor' }),
+  ran(/init[^\n]*--force/, { name: 'never-forces-init', score: (n) => (n === 0 ? 1 : 0) }),
+  defineGrader('names-the-harness-key', {
+    grade: (c) => HARNESS_KEY.test(c.turns.at(-1)?.text ?? ''),
+  }),
+]
 
 export const target = (t: Target) => ({ compare: arms(t) })

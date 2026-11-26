@@ -1,13 +1,17 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval, regression } from 'reeval'
+import { hasFile, judge } from 'reeval/graders'
 
 export default defineEval({
+  graders: [
+    hasFile('README.md', /notes\.js add/, { required: true }),
+    judge('How well does the README explain adding a note?', {
+      answers: ['fully', 'mostly', 'not at all'],
+      inputs: { contents: ['README.md'] },
+      score: { fully: 1, mostly: 0.8, 'not at all': 0 },
+    }),
+  ],
+  target: regression(0.95),
   task: async (c) => {
-    const turn = await c.send('Write README.md explaining how to add a note with notes.js.')
-    await expect(turn, 'README exists').toHaveFile('README.md', /notes\.js add/)
-    const verdict = await c.judge('Does the README explain how to add a note?', {
-      contents: ['README.md'],
-      threshold: 0.95,
-    })
-    expect(verdict, 'explains adding a note').toPass()
+    await c.send('Write README.md explaining how to add a note with notes.js.')
   },
 })

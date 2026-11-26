@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeJudge } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
@@ -16,5 +16,6 @@ const summary = Array.from(
 export default defineConfig({
   agents: fakeAgent({ script: [[{ exec: `node ${write}` }]], text: `Done.\n\n${summary}` }),
   sandbox: fakeSandbox(),
+  target: regression(),
   judge: { model: fakeJudge({ score: 0.9 }) },
 })

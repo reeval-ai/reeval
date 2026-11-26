@@ -29,7 +29,7 @@ const fixes = {
   ],
   'judge-threshold': [
     'evals/readme.eval.ts',
-    () => edit('evals/readme.eval.ts', 'threshold: 0.95', 'threshold: 0.8'),
+    () => edit('evals/readme.eval.ts', 'regression(0.95)', 'regression(0.8)'),
   ],
   'setup-step': [
     'evals/count.eval.ts',
@@ -48,7 +48,7 @@ const fixes = {
   ],
   'big-record': [
     'evals/export.eval.ts',
-    () => edit('evals/export.eval.ts', "toHaveFile('src/export.js'", "toHaveFile('lib/export.js'"),
+    () => edit('evals/export.eval.ts', "hasFile('src/export.js'", "hasFile('lib/export.js'"),
   ],
 }
 

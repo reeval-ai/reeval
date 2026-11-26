@@ -1,14 +1,14 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval, regression } from 'reeval'
+import { hasFile, succeeded } from 'reeval/graders'
 
 const greetsAda = `node -e "import('./lib/greet.js').then((m) =>
   process.exit(m.greet('Ada') === 'Hello, Ada!' ? 0 : 1))"`
 
 export default defineEval({
+  graders: [hasFile('src/greet.js', /export/, { required: true }), succeeded('greets Ada')],
+  target: regression(),
   task: async (c) => {
-    const turn = await c.send(
-      'Create lib/greet.js exporting greet(name), which returns "Hello, <name>!".',
-    )
-    await expect(turn, 'greet.js exists').toHaveFile('src/greet.js', /export/)
-    await expect(c.exec(greetsAda), 'greets Ada').toSucceed()
+    await c.send('Create lib/greet.js exporting greet(name), which returns "Hello, <name>!".')
+    await c.exec(greetsAda, { label: 'greets Ada' })
   },
 })

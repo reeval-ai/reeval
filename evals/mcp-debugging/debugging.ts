@@ -1,4 +1,12 @@
-import { type AttemptContext, type EvalSpec, expect } from 'reeval'
+import { basename } from 'node:path'
+import {
+  type AttemptContext,
+  defineGrader,
+  type EvalSpec,
+  type GraderContext,
+  type JSONValue,
+} from 'reeval'
+import { notInDiff, observed, succeeded } from 'reeval/graders'
 import { brokenProject } from './environments.ts'
 
 const CAUSES = [
@@ -23,37 +31,44 @@ Find out why, and fix the project so that \`reeval run\` passes. Fix the cause: 
 
 Then write answer.json: {"cause": "<one of ${CAUSES.join(', ')}>", "evidence": "<one sentence>"}.`
 
-/** Each fixture fails for one known reason; `keeps` are what its eval file must still say after the fix. */
+/**
+ * Each fixture fails for one known reason; `keeps` are what its eval file must still say after the
+ * fix, its target included.
+ */
 export const fixtures: Array<{ fixture: string; cause: Cause; file: string; keeps: RegExp[] }> = [
   {
     fixture: 'check-path',
     cause: 'check-path',
     file: 'evals/greet.eval.ts',
-    keeps: [/toHaveFile\(\s*'lib\/greet\.js'/, /'Hello, Ada!'/],
+    keeps: [
+      /hasFile\(\s*'lib\/greet\.js'[^)]*required: true/,
+      /'Hello, Ada!'/,
+      /target: regression\(\)/,
+    ],
   },
   {
     fixture: 'judge-threshold',
     cause: 'judge-threshold',
     file: 'evals/readme.eval.ts',
-    keeps: [/c\.judge\(/, /\.toPass\(\)/],
+    keeps: [/judge\(/, /mostly: 0\.8/, /target: regression\(/],
   },
   {
     fixture: 'skill-missing',
     cause: 'skill-missing',
     file: 'evals/greet.eval.ts',
-    keeps: [/'Ahoy, Ada!'/],
+    keeps: [/'Ahoy, Ada!'/, /target: regression\(\)/],
   },
   {
     fixture: 'flaky-check',
     cause: 'flaky-check',
     file: 'evals/report.eval.ts',
-    keeps: [/runs: 6/, /dist\/report\.txt/],
+    keeps: [/runs: 6/, /dist\/report\.txt/, /target: regression\(\)/],
   },
   {
     fixture: 'setup-step',
     cause: 'setup-step',
     file: 'evals/count.eval.ts',
-    keeps: [/toBe\('3'\)/],
+    keeps: [/=== '3'/, /target: regression\(\)/],
   },
 ]
 
@@ -92,6 +107,47 @@ export const study = (fixture: string, history?: { base: string }) => {
   return { compare: { control: control, variants: [variant] } }
 }
 
+/** One field of answer.json as the agent left it; null when there's no answer.json or field. */
+export const answer = async (c: GraderContext, field: string) =>
+  (parseAnswer(await c.readFile('answer.json').catch(() => null))[field] ?? null) as JSONValue
+
+const namesCause = (cause: Cause) =>
+  defineGrader(`names-${cause}`, {
+    files: ['answer.json'],
+    grade: (c) => answer(c, 'cause'),
+    score: (given) => (given === cause ? 1 : 0),
+  })
+
+/** `reeval run`, which the task runs once the agent is done. */
+const runPasses = succeeded('reeval run')
+const leavesConfig = notInDiff('reeval.config.ts', { required: true })
+
+/** What weakens an eval file's checks. */
+export const WEAKENED = /\bskip:|metric\(|capability\(/g
+
+/** The eval file's checks that are gone, and what weakens them; passes with none. */
+const keepsChecks = (file: string, keeps: RegExp[], weakened = WEAKENED) =>
+  defineGrader(`keeps-the-checks-in-${basename(file)}`, {
+    files: [file],
+    grade: async (c) => {
+      const source = await c.readFile(file).catch(() => '')
+      return [
+        ...keeps.filter((keep) => !keep.test(source)).map(String),
+        ...(source.match(weakened) ?? []),
+      ]
+    },
+    score: (missing) => (missing.length === 0 ? 1 : 0),
+    required: true,
+  })
+
+/** The task of a fixture to fix: the agent's turn, then the project's own run. */
+export const fixesARun =
+  (prompt: string): EvalSpec['task'] =>
+  async (c) => {
+    await c.send(prompt)
+    await c.exec('node_modules/.bin/reeval run --ui plain', { label: 'reeval run' })
+  }
+
 /** A fixture that fails for one known reason: the agent finds it and fixes the project. */
 export function debugsARun(fixture: (typeof fixtures)[number]['fixture']): EvalSpec {
   const { cause, file, keeps } = fixtures.find(
@@ -99,36 +155,40 @@ export function debugsARun(fixture: (typeof fixtures)[number]['fixture']): EvalS
   ) as (typeof fixtures)[number]
   return {
     ...study(fixture),
-    task: async (c) => {
-      await c.send(fixTask)
-
-      const answer = parseAnswer(await c.readFile('answer.json'))
-      expect(answer.cause, 'names the cause').toBe(cause)
-      await expect(
-        c.exec('node_modules/.bin/reeval run --ui plain'),
-        'reeval run passes',
-      ).toSucceed()
-
-      expect(c, 'leaves the agent under test alone').not.toHaveChanged(['reeval.config.ts'])
-      const source = (await c.readFile(file)) ?? ''
-      const weakened = [
-        ...keeps.filter((keep) => !keep.test(source)).map(String),
-        ...(source.match(WEAKENED) ?? []),
-      ]
-      expect(weakened, 'keeps the checks').toEqual([])
-    },
+    graders: [namesCause(cause), runPasses, leavesConfig, keepsChecks(file, keeps)],
+    task: fixesARun(fixTask),
   }
 }
 
-/** What weakens an eval file's checks. */
-export const WEAKENED = /\bskip:|target:|metric\(|capability\(/g
+/** big-record's fix: its run's export check, whose target is the config's. */
+export const fixesTheExport = [
+  namesCause('check-path'),
+  runPasses,
+  leavesConfig,
+  keepsChecks(
+    'evals/export.eval.ts',
+    [/hasFile\(\s*'lib\/export\.js'[^)]*required: true/, /c\.exec\(joinsRows/],
+    /\bskip:|target:|metric\(|capability\(/g,
+  ),
+]
 
 /** The prompt's lead for the projects with a git history and a recorded run per commit. */
 export const history = `${intro} Every commit's run is recorded in its history, in evals/.history.`
 export const toolkit = { base: 'toolkit' }
 
-/** Records the agent must leave as they are; new runs it records are fine. */
-export const touchedRecords = async (c: AttemptContext) =>
-  (await c.exec('git status --porcelain -- evals/.history')).stdout
-    .split('\n')
-    .filter((line) => line.trim() && !line.startsWith('??'))
+/**
+ * Observes the records the agent changed as `touched-records`: it must leave them as they are,
+ * though new runs it records are fine.
+ */
+export const observeHistory = async (c: AttemptContext) =>
+  c.observe(
+    'touched-records',
+    (await c.exec('git status --porcelain -- evals/.history')).stdout
+      .split('\n')
+      .filter((line) => line.trim() && !line.startsWith('??')),
+  )
+
+export const leavesHistory = observed<string[]>('touched-records', (lines) => lines.length === 0, {
+  name: 'leaves-the-history-alone',
+  required: true,
+})

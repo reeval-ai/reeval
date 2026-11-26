@@ -1,6 +1,7 @@
-// Checks the eval itself, with no keys or Docker: the oracle fixes every fixture and must pass,
-// `--profile canary` skips the failing eval instead and must fail, and `--profile mcp` also calls
-// reeval mcp from the variant (filter to `with-mcp`: the control has no server to call).
+// Checks the eval itself, with no keys or Docker: the oracle fixes every fixture and must score
+// 100%, `--profile canary` skips the failing eval instead and must score under it, and
+// `--profile mcp` also calls reeval mcp from the variant (only the `with-mcp` cells: the control
+// has no server to call).
 import { join } from 'node:path'
 import { defineConfig } from 'reeval'
 import { fakeAgent } from 'reeval/agent'

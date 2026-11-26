@@ -11,5 +11,5 @@ export default defineConfig({
     text: 'Wrote README.md.',
   }),
   sandbox: fakeSandbox(),
-  judge: { model: fakeJudge({ score: 0.85 }) },
+  judge: { model: fakeJudge({ answer: 'mostly' }) },
 })
