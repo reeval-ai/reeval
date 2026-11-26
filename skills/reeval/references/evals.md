@@ -28,8 +28,8 @@
   'users' }]`; `Case<T>` is `{ key: string } & T`). Keys are unique, at most 80 characters, with
   no surrounding whitespace, `#` or `›`. `cases` and `where` go on `defineEval`, not the config.
 - Porting `evaluate.each`: write `defineEval({ cases: items, ...opts, task })` with the old option names made plural (`agents`, `environments`,
-  `compare.control`). Give each item the `key` that `%s` or `$id` held, and the old runs read as this eval, so
-  `reeval compare` lines them up; a changed key starts that case's history again.
+  `compare.control`). Give each item the `key` that `%s` or `$id` held; a changed key starts
+  that case's history again.
 - `where: ({ case, environment, harness }) => boolean` (TypeScript only) picks which case runs
   on which environment, at plan time, from each environment's `traits` (`defineEnvironment('next',
   { traits: { stack: 'next' } })`; never shown to the agent). Reading a trait no environment
