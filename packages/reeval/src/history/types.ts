@@ -55,6 +55,7 @@ export const SCHEMA_VERSION = 1
 
 export type ArtifactLevel = 'all' | 'evidence' | 'failures' | 'none'
 export type RecordMode = 'manual' | 'ci' | 'always'
+export type ExportFormat = 'atif'
 
 /** `path` is relative to the run's artifact directory; `sha256` is of the bytes on disk. */
 export type FileRef = { path: string; sha256: string; bytes: number }
@@ -182,6 +183,8 @@ export type AttemptFiles = {
   rawTranscript?: FileRef
   diff?: FileRef
   judgeInput?: FileRef
+  /** The transcript as a Harbor ATIF trajectory, with the config's `exports: ['atif']`. */
+  atif?: FileRef
   /**
    * PNGs from `c.capture()`, under the `artifacts/<name>.png` path, then the page as each of its
    * instructions ended, `artifacts/<name>.step-<n>.png`, kept when the capture fails too.

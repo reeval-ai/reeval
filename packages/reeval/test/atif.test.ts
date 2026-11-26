@@ -262,6 +262,38 @@ describe('the ATIF schema', () => {
   })
 })
 
+describe('exports in the config', () => {
+  test("writes each attempt's atif.json beside its transcript, kept in the history", async () => {
+    const p = await project('config-exports', {
+      'reeval.config.ts': fakeConfig({
+        extra: "exports: ['atif'], record: 'always', history: { artifacts: 'all' },",
+      }),
+      'evals/hello.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  async task(c) {
+    await c.send('go')
+  },
+})
+`,
+    })
+    const run = await runCli(p.dir)
+    assert.equal(run.code, 0, run.stderr)
+    const history = join(p.dir, HISTORY_DIR)
+    const [file] = readdirSync(history).filter((f) => f.endsWith('.json'))
+    const record = JSON.parse(readFileSync(join(history, file as string), 'utf8')) as RunRecord
+    const [attempt] = record.evals.flatMap((e) => e.attempts)
+    const ref = attempt?.files.atif
+    assert.equal(
+      ref?.path,
+      attempt?.files.transcript?.path.replace('transcript.jsonl', 'atif.json'),
+    )
+    const trajectory = JSON.parse(readFileSync(join(history, record.runId, ref.path), 'utf8'))
+    const parsed = trajectorySchema.safeParse(trajectory)
+    assert.ok(parsed.success, JSON.stringify(parsed.error?.issues, null, 2))
+    assert.equal(parsed.data.session_id, record.runId)
+  })
+})
+
 describe('reeval export', () => {
   test("writes the run's archive, or an ATIF trajectory per attempt", async () => {
     const p = await project('export', { 'reeval.config.ts': fakeConfig() })

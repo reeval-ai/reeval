@@ -1,5 +1,5 @@
 import { readFile, stat } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, posix } from 'node:path'
 import type {
   AskedAttemptAnswer,
   AskedCall,
@@ -11,6 +11,7 @@ import { UNRECORDED_QUESTION_STATE } from '../compare/state.ts'
 import type { EngineEval, EngineRun } from '../engine/node.ts'
 import { NO_ENVIRONMENT, profileSandbox } from '../environment.ts'
 import { evalFile, sourcesPart } from '../eval-source.ts'
+import { EXPORTERS } from '../exporters.ts'
 import {
   effortFromModelLabel,
   harnessEffort,
@@ -66,6 +67,7 @@ import type {
 import { promptTokens, sumUsage } from '../usage.ts'
 import { cellOutcome, gatePart, passRateOf, worstOutcome } from '../view/gate.ts'
 import { checkTries } from '../view/judgments.ts'
+import { transcriptByLine } from '../view/model.ts'
 import { isLockfile, splitPatch } from '../view/patch.ts'
 import { SPANS_FILE } from '../view/spans.ts'
 import { turnErrorKind } from '../view/turn-error.ts'
@@ -82,6 +84,7 @@ import {
   type ContextFile,
   type Cost,
   type EvalEntry,
+  type ExportFormat,
   type FileRef,
   type FingerprintParts,
   type GitInfo,
@@ -1695,5 +1698,25 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
       ? { errors: engine.unhandledErrors.map((e) => redactSecrets(e)) }
       : {}),
   }
-  return { record: await withCosts(foldCases(record)), artifacts: out.files, moves: out.moves }
+  const final = await withCosts(foldCases(record))
+  writeExports(final, config.exports, out)
+  return { record: final, artifacts: out.files, moves: out.moves }
+}
+
+/** Each attempt's transcript in the config's `exports` formats, beside it. */
+function writeExports(run: RunRecord, formats: ExportFormat[], out: Artifacts): void {
+  if (!formats.length) return
+  for (const attempt of run.evals.flatMap((e) => e.attempts)) {
+    const path = attempt.files.transcript?.path
+    const bytes = path && out.files.get(path)
+    if (!bytes) continue
+    const lines = transcriptByLine(Buffer.from(bytes).toString('utf8')).filter((l) => l !== null)
+    for (const format of formats) {
+      const { file, render } = EXPORTERS[format]
+      attempt.files[format] = out.add(
+        posix.join(posix.dirname(path), file),
+        render(run, attempt, lines),
+      )
+    }
+  }
 }
