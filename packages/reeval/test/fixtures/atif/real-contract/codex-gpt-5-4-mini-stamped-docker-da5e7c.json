@@ -1,0 +1,73 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "20260929T034441Z_nogit_runner_dvee",
+  "trajectory_id": "evals/mcp.eval.ts › mcp # codex:gpt-5.4-mini/stamped/docker#1",
+  "agent": {
+    "name": "codex",
+    "version": "codex-cli 0.157.1",
+    "model_name": "gpt-5.4-mini"
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-29T03:45:07.952Z",
+      "source": "user",
+      "message": "Call the house_stamp tool of the stamp MCP server once, then reply with what it returned."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-29T03:45:10.890Z",
+      "source": "agent",
+      "model_name": "gpt-5.4-mini-2026-03-17[effort=medium]",
+      "message": "I’m going to look up the `stamp` MCP tool and call `house_stamp` once, then I’ll relay its raw return so we stay faithful to the tool output.\n\nI found the `stamp` server tool, so I’m calling `house_stamp` now and will pass back exactly what it returns.",
+      "tool_calls": [
+        {
+          "tool_call_id": "item_2",
+          "function_name": "mcp__stamp__house_stamp",
+          "arguments": {}
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "item_2",
+            "content": "[{\"type\":\"text\",\"text\":\"STAMP-7Q\"}]",
+            "extra": {
+              "ok": true,
+              "durationMs": 1034
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-29T03:45:13.042Z",
+      "source": "agent",
+      "model_name": "gpt-5.4-mini-2026-03-17[effort=medium]",
+      "message": "STAMP-7Q",
+      "metrics": {
+        "prompt_tokens": 32906,
+        "completion_tokens": 190,
+        "cached_tokens": 21248,
+        "extra": {
+          "cache_creation_input_tokens": 0,
+          "reasoning_tokens": 55
+        }
+      }
+    }
+  ],
+  "final_metrics": {
+    "total_prompt_tokens": 32906,
+    "total_completion_tokens": 190,
+    "total_cached_tokens": 21248,
+    "extra": {
+      "cache_creation_input_tokens": 0,
+      "reasoning_tokens": 55
+    },
+    "total_steps": 3
+  },
+  "extra": {
+    "outcome": "pass"
+  }
+}

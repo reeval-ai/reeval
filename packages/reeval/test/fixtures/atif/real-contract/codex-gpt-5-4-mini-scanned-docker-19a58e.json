@@ -1,0 +1,47 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "20260929T034441Z_nogit_runner_dvee",
+  "trajectory_id": "evals/key.eval.ts › key # codex:gpt-5.4-mini/scanned/docker#1",
+  "agent": {
+    "name": "codex",
+    "version": "codex-cli 0.157.1",
+    "model_name": "gpt-5.4-mini"
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-29T03:45:01.699Z",
+      "source": "user",
+      "message": "Reply with the single word OK. Do not run any tools."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-29T03:45:06.006Z",
+      "source": "agent",
+      "model_name": "gpt-5.4-mini-2026-03-17[effort=medium]",
+      "message": "OK",
+      "metrics": {
+        "prompt_tokens": 10474,
+        "completion_tokens": 23,
+        "cached_tokens": 0,
+        "extra": {
+          "cache_creation_input_tokens": 0,
+          "reasoning_tokens": 16
+        }
+      }
+    }
+  ],
+  "final_metrics": {
+    "total_prompt_tokens": 10474,
+    "total_completion_tokens": 23,
+    "total_cached_tokens": 0,
+    "extra": {
+      "cache_creation_input_tokens": 0,
+      "reasoning_tokens": 16
+    },
+    "total_steps": 2
+  },
+  "extra": {
+    "outcome": "pass"
+  }
+}

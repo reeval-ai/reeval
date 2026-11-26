@@ -2,7 +2,15 @@
 // test/fixtures/atif/, each held to the Zod port of Harbor's trajectory validator (drift.yml holds
 // the same goldens to Harbor's own), the port's refusals, and `reeval export` end to end.
 import assert from 'node:assert/strict'
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { dirname, join } from 'node:path'
 import { describe, test } from 'node:test'
 import { openArchive } from '../src/archive/index.ts'
@@ -15,7 +23,7 @@ import { fakeConfig, project, runCli } from './helpers.ts'
 import { CORPUS_DIR, HISTORY_DIR } from './support/corpus.ts'
 
 const GOLDEN_DIR = join(import.meta.dirname, 'fixtures/atif')
-const ENTRIES = ['real-harnesses', 'before-subagents']
+const ENTRIES = ['real-harnesses', 'before-subagents', 'real-contract']
 const update = process.env.REEVAL_UPDATE_SNAPSHOTS === '1'
 
 /** Each attempt with a transcript in an entry's runs, with its golden's path and its export. */
@@ -85,6 +93,82 @@ describe('toAtif', () => {
       [...ids].sort(),
     )
   })
+
+  test('turns, errors, web and edit calls, a bare input, and a subagent nested in a silent one', () => {
+    const usage = (n: number) => ({ input: n, output: 1, cacheRead: 0, cacheWrite: 0 })
+    const attempt = {
+      key: 'e#cell#1',
+      cell: 'cell',
+      imageId: 'img',
+      outcome: 'pass',
+      usage: usage(30),
+      turns: [
+        { model: 'm', usage: usage(10) },
+        { model: 'm', usage: usage(20) },
+      ],
+      subagents: [
+        { id: 'A', prompt: 'a', model: 'm' },
+        { id: 'B', parent: 'A', prompt: 'b', model: 'm' },
+      ],
+    }
+    const run = {
+      runId: 'r',
+      stack: { images: [{ id: 'img', agentCli: '1.0' }] },
+      evals: [{ cells: [{ key: 'cell', harnessKind: 'k', model: 'm' }], attempts: [attempt] }],
+    }
+    const ts = '2026-01-01T00:00:00.000Z'
+    const at = (turn: number, line: Record<string, unknown>) => ({ turn, ts, atMs: 0, ...line })
+    const lines = [
+      at(0, { type: 'prompt', text: 'go' }),
+      at(0, { type: 'retry', message: 'rate limited' }),
+      at(0, { type: 'tool', tool: 'Task', toolCallId: 'A', input: 'bare', output: { ok: 1 } }),
+      at(0, { type: 'text', text: 'deep', subagent: 'B' }),
+      at(0, { type: 'web-search', toolCallId: 'w1', query: 'q' }),
+      at(0, { type: 'web-fetch', toolCallId: 'w2', url: 'https://x', status: 200 }),
+      at(0, { type: 'turn-end', status: 'completed', durationMs: 1 }),
+      at(1, { type: 'prompt', text: 'again' }),
+      at(1, {
+        type: 'file-edit',
+        toolCallId: 'f',
+        path: 'a.ts',
+        kind: 'edit',
+        added: 1,
+        removed: 0,
+      }),
+      at(1, { type: 'error', message: 'boom' }),
+      at(1, { type: 'text', text: 'done' }),
+    ]
+    const t = toAtif(
+      structuredClone(run) as unknown as RunRecord,
+      structuredClone(attempt) as unknown as RunRecord['evals'][number]['attempts'][number],
+      lines as never,
+    )
+    const parsed = trajectorySchema.safeParse(JSON.parse(JSON.stringify(t)))
+    assert.ok(parsed.success, JSON.stringify(parsed.error?.issues, null, 2))
+    assert.equal(t.agent.name, 'k')
+    const agent = t.steps.filter((s) => s.source === 'agent')
+    assert.deepEqual(
+      agent.map((s) => s.tool_calls?.map((c) => [c.function_name, c.arguments]) ?? []),
+      [
+        [
+          ['Task', { input: 'bare' }],
+          ['web-search', { query: 'q' }],
+          ['web-fetch', { url: 'https://x' }],
+        ],
+        [['file-edit', { path: 'a.ts' }]],
+        [],
+      ],
+    )
+    assert.deepEqual(agent[0]?.extra, { errors: [{ type: 'retry', message: 'rate limited' }] })
+    assert.deepEqual(agent[1]?.extra, { errors: [{ type: 'error', message: 'boom' }] })
+    assert.deepEqual(
+      agent.map((s) => s.metrics?.prompt_tokens),
+      [10, undefined, 20],
+    )
+    const [a] = t.subagent_trajectories ?? []
+    assert.equal(a?.trajectory_id, 'A')
+    assert.equal(a?.subagent_trajectories?.[0]?.steps.at(-1)?.message, 'deep')
+  })
 })
 
 describe('the ATIF schema', () => {
@@ -143,6 +227,7 @@ describe('the ATIF schema', () => {
       /'metrics' must be absent when llm_call_count is 0/,
     ],
     ['a timestamp that is not ISO 8601', { steps: [step({ timestamp: 'yesterday' })] }, /ISO 8601/],
+    ['a day the month lacks', { steps: [step({ timestamp: '2026-02-30T00:00:00Z' })] }, /ISO 8601/],
     [
       'a text part with a source',
       {
@@ -168,6 +253,12 @@ describe('the ATIF schema', () => {
     assert.ok(trajectorySchema.safeParse(doc({})).success)
     const audio = { type: 'audio', source: { media_type: 'audio/mp3', path: 'a.mp3' } }
     assert.ok(trajectorySchema.safeParse(doc({ steps: [step({ message: [audio] })] })).success)
+    for (const timestamp of ['2024-02-29', '2026-01-01 10:00+05', '2026-01-01T10:00:00.5+0530']) {
+      assert.ok(
+        trajectorySchema.safeParse(doc({ steps: [step({ timestamp })] })).success,
+        timestamp,
+      )
+    }
   })
 })
 
@@ -199,5 +290,19 @@ describe('reeval export', () => {
     assert.equal(bad.code, 2)
     assert.match(bad.stderr, /no format "nope": use atif/)
     assert.ok(!existsSync(join(p.dir, `${runId}.nope`)))
+    const inherited = await runCli(p.dir, ['export', runId, '--format', 'constructor'])
+    assert.equal(inherited.code, 2)
+
+    mkdirSync(join(p.dir, 'zips'))
+    const inDir = await runCli(p.dir, ['export', runId, '--out', 'zips'])
+    assert.equal(inDir.code, 0, inDir.stderr)
+    assert.ok(existsSync(join(p.dir, 'zips', `${runId}.zip`)))
+
+    for (const e of exports('real-harnesses')) {
+      rmSync(join(p.dir, HISTORY_DIR, runId, e.path))
+    }
+    const none = await runCli(p.dir, ['export', runId, '--format', 'atif', '--out', 'none'])
+    assert.equal(none.code, 2)
+    assert.match(none.stderr, /kept no transcript for any attempt/)
   })
 })

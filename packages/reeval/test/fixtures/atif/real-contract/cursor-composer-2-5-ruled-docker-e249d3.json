@@ -1,0 +1,79 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "20260929T033347Z_nogit_runner_20sz",
+  "trajectory_id": "evals/rules.eval.ts › rules # cursor:composer-2.5/ruled/docker#1",
+  "agent": {
+    "name": "cursor",
+    "version": "@cursor/sdk 1.0.32",
+    "model_name": "composer-2.5"
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-29T03:34:30.535Z",
+      "source": "user",
+      "message": "What is the house codeword? Follow your house rules for it, then stop."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-29T03:34:34.946Z",
+      "source": "agent",
+      "model_name": "composer-2.5[fast=false]",
+      "message": "Writing the house codeword to `codeword.txt` per house rules.\n\n\n",
+      "reasoning_content": "The house codeword is TANGERINE-41.\n\nWriting TANGERINE-41 to codeword.txt in the workspace root.",
+      "tool_calls": [
+        {
+          "tool_call_id": "tool_684222b3-e075-4cc1-aa06-8f00a70efaf",
+          "function_name": "file-edit",
+          "arguments": {
+            "path": "codeword.txt"
+          },
+          "extra": {
+            "path": "codeword.txt",
+            "kind": "create",
+            "added": 1,
+            "removed": 0
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "tool_684222b3-e075-4cc1-aa06-8f00a70efaf",
+            "extra": {
+              "durationMs": 294
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-29T03:34:36.869Z",
+      "source": "agent",
+      "model_name": "composer-2.5[fast=false]",
+      "message": "The house codeword is in `/reeval/workspace/codeword.txt` as required.",
+      "reasoning_content": "The house codeword has been written to the file. House rules require no further elaboration. I will stop now.",
+      "metrics": {
+        "prompt_tokens": 26613,
+        "completion_tokens": 206,
+        "cached_tokens": 10816,
+        "extra": {
+          "cache_creation_input_tokens": 0
+        }
+      }
+    }
+  ],
+  "final_metrics": {
+    "total_prompt_tokens": 26613,
+    "total_completion_tokens": 206,
+    "total_cached_tokens": 10816,
+    "extra": {
+      "cache_creation_input_tokens": 0
+    },
+    "total_steps": 3
+  },
+  "extra": {
+    "outcome": "pass"
+  }
+}

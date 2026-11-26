@@ -1,5 +1,5 @@
 // `reeval export`: a run as its archive zip, or each attempt in an exporter's format.
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { writeArchive } from './archive/index.ts'
 import { CommandError, pick } from './commands.ts'
@@ -33,7 +33,8 @@ type Ctx = {
 export async function exportCommand(ctx: Ctx, refs: string[]): Promise<number> {
   const { config, flags } = ctx
   const format = flags.format
-  const exporter = format === undefined ? undefined : EXPORTERS[format]
+  const exporter =
+    format === undefined || !Object.hasOwn(EXPORTERS, format) ? undefined : EXPORTERS[format]
   if (format !== undefined && !exporter) {
     throw new CommandError(
       `reeval export has no format "${format}": use ${Object.keys(EXPORTERS).join(', ')}, or none for the run's archive`,
@@ -43,7 +44,10 @@ export async function exportCommand(ctx: Ctx, refs: string[]): Promise<number> {
   const { runId } = entry
   const dir = entry.recorded ? config.history.dir : scratchDir(config.root)
   if (!exporter) {
-    const file = resolve(flags.out ?? `${runId}.zip`)
+    const out = resolve(flags.out ?? `${runId}.zip`)
+    const file = (await stat(out).catch(() => null))?.isDirectory()
+      ? join(out, `${runId}.zip`)
+      : out
     await mkdir(dirname(file), { recursive: true })
     await writeArchive(file, {
       contents: 'run',
@@ -68,6 +72,11 @@ export async function exportCommand(ctx: Ctx, refs: string[]): Promise<number> {
     await mkdir(dirname(file), { recursive: true })
     await writeFile(file, exporter.render(run, attempt, lines))
     written++
+  }
+  if (!written) {
+    throw new CommandError(
+      `${runId} kept no transcript for any attempt (recorded with --artifacts failures or none?)`,
+    )
   }
   const note = skipped
     ? ` (${skipped} started ${skipped === 1 ? 'attempt' : 'attempts'} kept no transcript)`

@@ -6,16 +6,19 @@ import { z } from 'zod'
 
 const extra = z.record(z.string(), z.unknown()).nullish()
 
-/** `datetime.fromisoformat` after `Z` becomes `+00:00`, as Harbor reads a step's timestamp. */
-const isoTimestamp = z
-  .string()
-  .refine(
-    (v) =>
-      /^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}(?::\d{2}(?::\d{2}(?:\.\d+)?)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/.test(
-        v,
-      ) && !Number.isNaN(Date.parse(v.length === 10 ? v : v.replace(' ', 'T'))),
-    'Invalid ISO 8601 timestamp',
-  )
+const ISO =
+  /^(\d{4})-(\d{2})-(\d{2})(?:[T ]([01]\d|2[0-3])(?::[0-5]\d(?::[0-5]\d(?:\.\d+)?)?)?(?:Z|[+-]\d{2}(?::?\d{2})?)?)?$/
+
+/**
+ * `datetime.fromisoformat` after `Z` becomes `+00:00`, as Harbor reads a step's timestamp, in the
+ * extended format only (Python also takes `20260101T000000`, which reeval never writes).
+ */
+const isoTimestamp = z.string().refine((v) => {
+  const m = ISO.exec(v)
+  if (!m) return false
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])]
+  return mo >= 1 && mo <= 12 && d >= 1 && d <= new Date(Date.UTC(y, mo, 0)).getUTCDate()
+}, 'Invalid ISO 8601 timestamp')
 
 const imageSource = z.strictObject({
   media_type: z.enum(['image/jpeg', 'image/png', 'image/gif', 'image/webp']),

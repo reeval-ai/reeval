@@ -50,13 +50,21 @@ export function toAtif(
   lines: TranscriptLine[],
 ): Trajectory {
   const cell = run.evals
-    .find((e) => e.attempts.includes(attempt))
+    .find((e) => e.attempts.some((a) => a.key === attempt.key))
     ?.cells.find((c) => c.key === attempt.cell)
   const version = run.stack.images.find((i) => i.id === attempt.imageId)?.agentCli ?? 'unknown'
   const name = cell?.harnessKind ?? 'unknown'
   const records = new Map((attempt.subagents ?? []).map((s) => [s.id, s]))
-  const tagged = new Set(lines.flatMap((l) => ('subagent' in l && l.subagent ? [l.subagent] : [])))
   const parentOf = (id: string) => records.get(id)?.parent
+  // A subagent that streamed nothing itself still holds the trajectories of those it spawned.
+  const tagged = new Set<string>()
+  for (const line of lines) {
+    let id = 'subagent' in line ? line.subagent : undefined
+    while (id && !tagged.has(id)) {
+      tagged.add(id)
+      id = parentOf(id)
+    }
+  }
 
   const build = (scope: string | undefined): { steps: Step[]; subs: Trajectory[] } => {
     const subs = [...tagged].filter((id) => parentOf(id) === scope).map((id) => subagent(id))
@@ -217,25 +225,20 @@ export function toAtif(
   }
 
   const { steps, subs } = build(undefined)
+  const sum = attempt.usage ? totals(attempt.usage) : undefined
+  const cost = attempt.cost && { cost_basis: attempt.cost.basis, cost_source: attempt.cost.source }
   return defined({
     schema_version: ATIF_VERSION,
     session_id: run.runId,
     trajectory_id: attempt.key,
     agent: defined({ name, version, model_name: cell?.model ?? undefined }),
     steps,
-    final_metrics: (() => {
-      const t = attempt.usage ? totals(attempt.usage) : undefined
-      const cost = attempt.cost && {
-        cost_basis: attempt.cost.basis,
-        cost_source: attempt.cost.source,
-      }
-      return defined({
-        ...t,
-        total_cost_usd: attempt.cost?.usd,
-        total_steps: steps.length,
-        extra: t || cost ? { ...t?.extra, ...cost } : undefined,
-      })
-    })(),
+    final_metrics: defined({
+      ...sum,
+      total_cost_usd: attempt.cost?.usd,
+      total_steps: steps.length,
+      extra: sum || cost ? { ...sum?.extra, ...cost } : undefined,
+    }),
     extra: { outcome: attempt.outcome },
     subagent_trajectories: subs.length ? subs : undefined,
   })

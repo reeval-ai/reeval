@@ -1,0 +1,46 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "20260929T033538Z_nogit_runner_f3z3",
+  "trajectory_id": "evals/key.eval.ts › key # claude-code:claude-haiku-4-5/scanned/docker#1",
+  "agent": {
+    "name": "claude-code",
+    "version": "2.1.276 (Claude Code)",
+    "model_name": "claude-haiku-4-5"
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-29T03:36:32.317Z",
+      "source": "user",
+      "message": "Reply with the single word OK. Do not run any tools."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-29T03:36:34.775Z",
+      "source": "agent",
+      "model_name": "claude-haiku-4-5",
+      "message": "OK",
+      "reasoning_content": "The user is asking me to reply with the single word \"OK\" and explicitly instructing me not to run any tools. This is straightforward - they just want me to acknowledge that I've read and understood the system reminders and context setup.",
+      "metrics": {
+        "prompt_tokens": 21355,
+        "completion_tokens": 62,
+        "cached_tokens": 18501,
+        "extra": {
+          "cache_creation_input_tokens": 2844
+        }
+      }
+    }
+  ],
+  "final_metrics": {
+    "total_prompt_tokens": 21355,
+    "total_completion_tokens": 62,
+    "total_cached_tokens": 18501,
+    "extra": {
+      "cache_creation_input_tokens": 2844
+    },
+    "total_steps": 2
+  },
+  "extra": {
+    "outcome": "pass"
+  }
+}

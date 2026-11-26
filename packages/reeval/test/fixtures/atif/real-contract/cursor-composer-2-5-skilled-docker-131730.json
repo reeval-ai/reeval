@@ -1,0 +1,108 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "20260929T033347Z_nogit_runner_20sz",
+  "trajectory_id": "evals/skill.eval.ts › skill # cursor:composer-2.5/skilled/docker#1",
+  "agent": {
+    "name": "cursor",
+    "version": "@cursor/sdk 1.0.32",
+    "model_name": "composer-2.5"
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-29T03:34:42.864Z",
+      "source": "user",
+      "message": "Use your contract-probe skill: do exactly what it says, then stop. Keep your reply short."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-29T03:34:47.841Z",
+      "source": "agent",
+      "model_name": "composer-2.5[fast=false]",
+      "message": "",
+      "reasoning_content": "Reading the contract-probe skill file now. I will follow its instructions exactly and stop with a short reply.",
+      "tool_calls": [
+        {
+          "tool_call_id": "tool_32c9f5ad-5147-4455-8539-480877d83be",
+          "function_name": "read",
+          "arguments": {
+            "path": "/home/reeval/.agents/skills/contract-probe/SKILL.md"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "tool_32c9f5ad-5147-4455-8539-480877d83be",
+            "content": "{\"content\":\"---\\nname: contract-probe\\ndescription: Runs the contract probe. Use when asked to use the contract-probe skill or to run the contract probe.\\n---\\n\\n\\n# Contract probe\\n\\nCreate a file named `skill-proof.txt` in the workspace root (the current directory) containing\\nexactly this line, and nothing else:\\n\\nPROBE-7F3K-QUILL\\n\\nThen reply with the single word DONE.\\n\",\"totalLines\":15,\"fileSize\":353}",
+            "extra": {
+              "ok": true,
+              "durationMs": 176
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-29T03:34:49.450Z",
+      "source": "agent",
+      "model_name": "composer-2.5[fast=false]",
+      "message": "",
+      "reasoning_content": "Creating skill-proof.txt in the workspace root with the exact line PROBE-7F3K-QUILL.\n\nReplying with DONE.",
+      "tool_calls": [
+        {
+          "tool_call_id": "tool_e32afcad-7f91-4a12-82f5-0c02a925c20",
+          "function_name": "file-edit",
+          "arguments": {
+            "path": "skill-proof.txt"
+          },
+          "extra": {
+            "path": "skill-proof.txt",
+            "kind": "create",
+            "added": 1,
+            "removed": 0
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "tool_e32afcad-7f91-4a12-82f5-0c02a925c20",
+            "extra": {
+              "durationMs": 524
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 4,
+      "timestamp": "2026-09-29T03:34:51.332Z",
+      "source": "agent",
+      "model_name": "composer-2.5[fast=false]",
+      "message": "DONE",
+      "reasoning_content": "The contract-probe skill was used exactly as instructed. The reply will be the single word \"DONE\".",
+      "metrics": {
+        "prompt_tokens": 43616,
+        "completion_tokens": 149,
+        "cached_tokens": 19488,
+        "extra": {
+          "cache_creation_input_tokens": 0
+        }
+      }
+    }
+  ],
+  "final_metrics": {
+    "total_prompt_tokens": 43616,
+    "total_completion_tokens": 149,
+    "total_cached_tokens": 19488,
+    "extra": {
+      "cache_creation_input_tokens": 0
+    },
+    "total_steps": 4
+  },
+  "extra": {
+    "outcome": "pass"
+  }
+}

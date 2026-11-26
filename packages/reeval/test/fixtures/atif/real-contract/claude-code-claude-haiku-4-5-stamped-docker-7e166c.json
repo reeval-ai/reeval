@@ -1,0 +1,102 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "20260929T033538Z_nogit_runner_f3z3",
+  "trajectory_id": "evals/mcp.eval.ts › mcp # claude-code:claude-haiku-4-5/stamped/docker#1",
+  "agent": {
+    "name": "claude-code",
+    "version": "2.1.276 (Claude Code)",
+    "model_name": "claude-haiku-4-5"
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-29T03:36:46.390Z",
+      "source": "user",
+      "message": "Call the house_stamp tool of the stamp MCP server once, then reply with what it returned."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-29T03:36:49.409Z",
+      "source": "agent",
+      "model_name": "claude-haiku-4-5",
+      "message": "",
+      "reasoning_content": "The user is asking me to call the house_stamp tool from the stamp MCP server. Looking at the deferred tools list, I can see `mcp__stamp__house_stamp` is available. However, I need to use ToolSearch first to load its schema since it's a deferred tool.\n\nLet me search for the schema of that tool.",
+      "tool_calls": [
+        {
+          "tool_call_id": "toolu_01Vq7s6uTjwFRRLdqtXvb7cG",
+          "function_name": "ToolSearch",
+          "arguments": {
+            "query": "select:mcp__stamp__house_stamp"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "toolu_01Vq7s6uTjwFRRLdqtXvb7cG",
+            "content": "{\"matches\":[\"mcp__stamp__house_stamp\"],\"query\":\"select:mcp__stamp__house_stamp\",\"total_deferred_tools\":18}",
+            "extra": {
+              "ok": true,
+              "durationMs": 21
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-29T03:36:51.190Z",
+      "source": "agent",
+      "model_name": "claude-haiku-4-5",
+      "message": "",
+      "reasoning_content": "Good, the tool schema is now loaded. I can see it takes no parameters. Let me call it now.",
+      "tool_calls": [
+        {
+          "tool_call_id": "toolu_01XPkAEGPGNP43z4uWowujeP",
+          "function_name": "mcp__stamp__house_stamp",
+          "arguments": {}
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "toolu_01XPkAEGPGNP43z4uWowujeP",
+            "content": "[{\"type\":\"text\",\"text\":\"STAMP-7Q\"}]",
+            "extra": {
+              "ok": true,
+              "durationMs": 23
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 4,
+      "timestamp": "2026-09-29T03:36:52.368Z",
+      "source": "agent",
+      "model_name": "claude-haiku-4-5",
+      "message": "The house_stamp tool returned: **STAMP-7Q**",
+      "reasoning_content": "The tool returned \"STAMP-7Q\". I should report this to the user as they requested.",
+      "metrics": {
+        "prompt_tokens": 64744,
+        "completion_tokens": 264,
+        "cached_tokens": 61477,
+        "extra": {
+          "cache_creation_input_tokens": 3239
+        }
+      }
+    }
+  ],
+  "final_metrics": {
+    "total_prompt_tokens": 64744,
+    "total_completion_tokens": 264,
+    "total_cached_tokens": 61477,
+    "extra": {
+      "cache_creation_input_tokens": 3239
+    },
+    "total_steps": 4
+  },
+  "extra": {
+    "outcome": "pass"
+  }
+}

@@ -507,7 +507,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
       { flags: '--format <name>', help: 'atif: an ATIF trajectory per attempt' },
       {
         flags: '--out <path>',
-        help: 'The zip, or the directory for --format (default: <run>.zip, <run>.<format>)',
+        help: 'The zip or a directory for it, or the directory for --format (default: <run>.zip, <run>.<format>)',
       },
       ...HISTORY_STORE,
     ],
