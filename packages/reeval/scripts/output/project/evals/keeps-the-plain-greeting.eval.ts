@@ -1,4 +1,5 @@
-import { defineEnvironment, defineEval, expect, regression } from 'reeval'
+import { defineEnvironment, defineEval, regression } from 'reeval'
+import { succeeded } from 'reeval/graders'
 
 const plain = defineEnvironment('plain', {})
 const withSkill = defineEnvironment('with-skill', ({ skill }) => ({
@@ -16,8 +17,9 @@ export default defineEval({
   target: regression(),
   runs: 4,
   compare: { control: plain, variants: [withSkill] },
+  graders: [succeeded('says hello')],
   task: async (c) => {
     await c.send('Write greet.js that says Hello.')
-    await expect(c.exec('grep -q Hello greet.js'), 'says hello').toSucceed()
+    await c.exec('grep -q Hello greet.js', { label: 'says hello' })
   },
 })

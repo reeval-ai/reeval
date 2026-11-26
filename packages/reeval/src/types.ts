@@ -3628,7 +3628,7 @@ export type ServeRecord = {
   readyMs: number
 }
 
-/** One `expect` or `expect.require` matcher call an attempt made, or a check another language made. */
+/** One `expect` or `expect.require` matcher call, or another language's check, of an older reeval. */
 export type AssertionRecord = {
   /**
    * `label` is the supplied `expect` label. Without one, it is the matcher plus its first
@@ -3865,7 +3865,7 @@ export type EvalRecord = {
         tries?: Array<ExecResult & { durationMs: number }>
       }
   >
-  /** Every `expect` and `expect.require` matcher call that settled, in call order; unset with none. */
+  /** An older reeval's `expect` and `expect.require` matcher calls that settled, in call order; unset with none. */
   assertions?: AssertionRecord[]
   /** See `AttemptRecord.observations`. */
   observations?: Observation[]
@@ -3874,9 +3874,9 @@ export type EvalRecord = {
   /** See `AttemptRecord.score`. */
   score?: number
   /**
-   * In call order, with `retries` when transient provider errors were retried on the way to the
-   * verdict. `call` is the call's place among the attempt's `c.judge()` calls, failed ones
-   * included, which its judgment key is numbered by.
+   * An older reeval's `c.judge()` verdicts, in call order, with `retries` when transient provider
+   * errors were retried on the way to the verdict. `call` is the call's place among the attempt's
+   * `c.judge()` calls, failed ones included, which its judgment key is numbered by.
    */
   judgements: Array<
     Verdict & {
@@ -3894,7 +3894,7 @@ export type EvalRecord = {
   timings: PhaseTimings
   /** Skills, rules and MCP config visible to the agent, by content hash. */
   context?: Array<{ path: string; sha256: string }>
-  /** What each judge call saw, in call order, including calls that errored. */
+  /** What each `c.judge()` call of an older reeval saw, in call order, including calls that errored. */
   judgeInputs?: JudgeInput[]
   environment?: EnvironmentRecord
   image?: AttemptImage | null

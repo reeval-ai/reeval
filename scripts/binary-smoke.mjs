@@ -200,8 +200,9 @@ function bunInstall() {
         '',
       ].join('\n'),
       'apps/evals/evals/hi.eval.ts': [
-        "import { defineEval, expect } from 'reeval'",
-        "export default defineEval({ task: async (c) => expect((await c.send('Say hi')).text).toBe('hi') })",
+        "import assert from 'node:assert/strict'",
+        "import { defineEval } from 'reeval'",
+        "export default defineEval({ task: async (c) => assert.equal((await c.send('Say hi')).text, 'hi') })",
         '',
       ].join('\n'),
       ...files,

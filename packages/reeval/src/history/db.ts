@@ -246,7 +246,7 @@ CREATE TABLE found_skills (
 CREATE TABLE mcp_startup (
   run_id TEXT NOT NULL, attempt_key TEXT NOT NULL, turn INTEGER NOT NULL, server TEXT NOT NULL, ms INTEGER
 );
--- Every expect / expect.require matcher call each attempt made, in call order (seq from 1).
+-- Every expect / expect.require matcher call each attempt of an older reeval made, in call order (seq from 1).
 CREATE TABLE assertions (
   run_id TEXT NOT NULL, attempt_key TEXT NOT NULL, eval_key TEXT NOT NULL, cell_key TEXT NOT NULL,
   seq INTEGER NOT NULL, label TEXT NOT NULL, labelled INTEGER, matcher TEXT, status TEXT,
@@ -453,7 +453,7 @@ CREATE VIEW check_discrimination AS
   JOIN cells c ON c.run_id = k.run_id AND c.eval_key = k.eval_key AND c.key = k.cell_key
   WHERE c.role = 'variant' AND k.verdict IS NOT NULL;
 
--- Each check (expect label) per cell per run, on every cell (control and variant alike), over the
+-- Each check (an older reeval's expect label) per cell per run, on every cell (control and variant alike), over the
 -- cell's counted attempts. rate = pass / (pass + fail): an error (the matcher couldn't answer) and
 -- a not-run (an expect.require or a thrown error before it ended the body) are left out; null when neither passed nor failed.
 CREATE VIEW check_rates AS

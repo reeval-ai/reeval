@@ -1,5 +1,5 @@
 // A judge grader: a question reeval's judge answers about the stored attempt, once per model, with
-// what it shows drawn as `c.judge()` draws it, and a reference only the judge sees.
+// what it shows drawn from the stored attempt, and a reference only the judge sees.
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { relative, sep } from 'node:path'

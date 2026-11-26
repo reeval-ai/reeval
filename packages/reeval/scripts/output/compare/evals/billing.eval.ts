@@ -1,4 +1,5 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
+import { succeeded } from 'reeval/graders'
 
 const head = process.env.REEVAL_COMPARE_SIDE === 'head'
 
@@ -9,8 +10,9 @@ const withDoc = defineEnvironment('with-doc', {
 
 export default defineEval({
   environment: withDoc,
+  graders: [succeeded('amount in minor units')],
   task: async (c) => {
     await c.send('Bill the customer 12.50 GBP.')
-    await expect(c.exec('grep -q pence docs/billing.md'), 'amount in minor units').toSucceed()
+    await c.exec('grep -q pence docs/billing.md', { label: 'amount in minor units' })
   },
 })

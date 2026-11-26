@@ -1,12 +1,12 @@
-import { defineEval, expect } from 'reeval'
-import { fakeAgent } from 'reeval/agent'
+import { defineEval } from 'reeval'
+import { hasFile, judge } from 'reeval/graders'
 
 export default defineEval({
+  graders: [
+    hasFile('greet.js', /Hello/, { required: true }),
+    judge('Does greet.js export greet?', { name: 'exports-greet', inputs: { diff: true } }),
+  ],
   task: async (c) => {
-    const turn = await c.send('Write greet.js exporting greet(name).')
-    await expect.require(turn).toHaveFile('greet.js', /Hello/)
-    expect(await c.judge('Does greet.js export greet?', { diff: true })).toPass()
+    await c.send('Write greet.js exporting greet(name).')
   },
 })
-
-// A soft check that fails, then a judge that fails, in one attempt.

@@ -54,7 +54,7 @@ function attemptCost(a: AttemptRecord): CostUsd | undefined {
 
 type JudgeCall = Pick<JudgmentRecord, 'cost' | 'costUsd' | 'usage' | 'model' | 'resolvedModel'>
 
-/** A judge grader's calls, which count toward the attempt's judge cost as `c.judge()`'s do. */
+/** A judge grader's calls, which count toward the attempt's judge cost. */
 const graderCalls = (a: AttemptRecord): JudgeCall[] =>
   (a.grades ?? []).flatMap((g) => g.judge?.calls ?? [])
 

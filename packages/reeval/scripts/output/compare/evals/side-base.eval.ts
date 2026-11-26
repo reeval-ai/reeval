@@ -1,8 +1,10 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { succeeded } from 'reeval/graders'
 
 export default defineEval({
+  graders: [succeeded('german greeting')],
   async task(c) {
     await c.send('Write greet.js that greets in German.')
-    await expect(c.exec('grep -q Hallo greet.js'), 'german greeting').toSucceed()
+    await c.exec('grep -q Hallo greet.js', { label: 'german greeting' })
   },
 })

@@ -805,7 +805,7 @@ export async function buildDigestKeepingDropped(
       fact('criteria', {
         run: short.get(r.record.runId),
         eval: tagOf(e.key),
-        note: 'Each check (expect label) per cell: passed/counted, then the mean judge score for a judge.',
+        note: "Each check (an older reeval's expect label) per cell: passed/counted, then the mean judge score for a judge.",
         ...criteria,
       })
     }
