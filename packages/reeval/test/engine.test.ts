@@ -87,6 +87,31 @@ describe('engine', () => {
     assert.match(e?.error?.message ?? '', /expected 1 to be 2/)
   })
 
+  test("a declared tree's group runs the evals inside it under its name", async () => {
+    const p = await project('declared-group', {
+      'reeval.config.ts': fakeConfig(),
+      'evals/tree.eval.ts': `import { defineEval } from 'reeval'
+import { declareTree } from 'reeval/testing'
+const node = (name: string, body: string) =>
+  ({ type: 'eval', name, mode: 'run', options: {}, body, source: { body: '0'.repeat(64) } }) as const
+declareTree(
+  [{ type: 'group', name: 'outer', mode: 'run', options: {}, children: [node('inner', 'b1')] }],
+  () => async () => {},
+)
+export default defineEval({ async task() {} })
+`,
+    })
+    const r = await runCli(p.dir)
+    assert.equal(r.code, 0, r.stdout + r.stderr)
+    assert.deepEqual(
+      readRun(p.dir).evals.map((e) => [e.id, e.group]),
+      [
+        ['outer › inner', ['outer']],
+        ['tree', []],
+      ],
+    )
+  })
+
   test('filters match paths, then eval names', async () => {
     const p = await project('filter', {
       'reeval.config.ts': fakeConfig(),
