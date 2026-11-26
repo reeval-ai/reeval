@@ -44,7 +44,8 @@ progressive disclosure.
 Use when: someone asks for a skill review.`
 
 /** A fake agent that writes ok.txt only when it's given a skill. */
-const SKILLED = `fakeAgent({ withSkill: { files: { 'ok.txt': 'yes' } } })`
+// A fixed turn time keeps the arms' agent time equal, so no effort column joins the arm rows.
+const SKILLED = `fakeAgent({ turnMs: 1000, withSkill: { files: { 'ok.txt': 'yes' } } })`
 
 describe('harness matrix, cascade and runs', () => {
   test('harness lists and runs expand into attempts with per-cell pass rates', async () => {
