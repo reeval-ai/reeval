@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "acme-api",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-11-18",
+  "durable_objects": {
+    "bindings": [{ "name": "TENANT", "class_name": "AcmeTenant" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AcmeTenant"] }],
+  "observability": { "enabled": true }
+}

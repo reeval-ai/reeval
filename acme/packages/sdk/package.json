@@ -1,0 +1,17 @@
+{
+  "name": "@acme/sdk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types --no-warnings \"test/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@acme/core": "workspace:*"
+  },
+  "devDependencies": {}
+}

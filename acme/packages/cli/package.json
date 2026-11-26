@@ -1,0 +1,23 @@
+{
+  "name": "@acme/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "acme": "./dist/bin.mjs"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types --no-warnings \"test/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@acme/core": "workspace:*",
+    "@acme/sdk": "workspace:*",
+    "commander": "15.0.0"
+  },
+  "devDependencies": {}
+}
