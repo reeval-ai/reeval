@@ -2,6 +2,7 @@
 
 import { createRequire, isBuiltin } from 'node:module'
 import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { Jiti, JitiOptions } from 'jiti'
 import { COMPILED, ownDir, ownRequire, PACKAGE_NAMES, PREVIEW } from './root.ts'
 
@@ -96,6 +97,34 @@ export async function reevalJiti(id: string, options: JitiOptions = {}): Promise
       createRequire,
     },
   )
+}
+
+let resolver: Jiti | undefined
+
+/**
+ * The file `specifier` names when `parent` imports or requires it, resolved as jiti loads it
+ * (extensionless and `.js`-for-`.ts` paths, `#` imports, packages by their real path); undefined
+ * for a builtin or a module it can't find.
+ */
+export function resolveImport(specifier: string, parent: string): string | undefined {
+  if (isBuiltin(specifier)) return undefined
+  resolver ??= jitiFactory()(
+    parent,
+    { transform: jitiTransform, tryNative: false },
+    {
+      onError: (error) => {
+        throw error
+      },
+      nativeImport,
+      createRequire,
+    },
+  )
+  try {
+    const url = resolver.esmResolve(specifier, { parentURL: parent, try: true })
+    return url?.startsWith('file:') ? fileURLToPath(url) : url
+  } catch {
+    return undefined
+  }
 }
 
 /** Every module subpath in package.json's `exports`, which `test/manifest.test.ts` holds it to. */

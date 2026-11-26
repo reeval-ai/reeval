@@ -115,7 +115,7 @@ export const isEnvironment = (value: unknown): value is Environment =>
 
 // reeval's own files, so a stack trace's first frame outside them is the file that called us.
 // Compiled, all of reeval's code is one module at the root of the executable's filesystem.
-const OWN_DIRS = COMPILED
+export const OWN_DIRS = COMPILED
   ? [join(PACKAGE_DIR, sep)]
   : ['src', 'dist'].map((dir) => join(PACKAGE_DIR, dir, sep))
 

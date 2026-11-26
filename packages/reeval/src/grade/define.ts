@@ -110,7 +110,7 @@ function runOf(
     data: dataOf(spec.data, where, base),
     ...(spec.revision !== undefined ? { revision: spec.revision as number } : {}),
     timeoutMs,
-    gradeDigest: functionDigest(spec.grade as () => unknown, file),
+    gradeDigest: functionDigest(spec.grade as () => unknown, file, `grade in ${where}`),
   }
 }
 
@@ -191,7 +191,7 @@ export function defineGrader<C = unknown, G extends JSONValue = any>(
     ...(s.score
       ? {
           score: s.score as GraderDef['score'],
-          scoreDigest: functionDigest(s.score as () => unknown, file),
+          scoreDigest: functionDigest(s.score as () => unknown, file, `score in ${where}`),
         }
       : {}),
     weight: weightOf(s.weight, where),
@@ -274,7 +274,7 @@ function graderGroup(names: readonly string[], spec: Input<GraderGroupSpec<strin
       name,
       run,
       score: fn,
-      scoreDigest: functionDigest(fn, file),
+      scoreDigest: functionDigest(fn, file, `score in ${where}'s ${name}`),
       weight: weightOf(perName(s.weight, 'weight', name), `${where}'s ${name}`),
       required: requiredOf(perName(s.required, 'required', name), `${where}'s ${name}`),
     })
