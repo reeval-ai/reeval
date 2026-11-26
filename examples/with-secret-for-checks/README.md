@@ -4,8 +4,9 @@
 `secret.fromEnv('E2E_TOKEN', { to: 'checks', optional: true })`: `c.exec` and setup steps get it,
 the agent's own environment never does, and without `E2E_TOKEN` on the host the eval runs with the
 variable left out. A process a setup step leaves running keeps it while the agent works; broker it
-with `hosts` instead when one needs it. The agent saves its environment to `env.txt`; a `hasFile`
-grader checks the token isn't in it, and an `observed` grader that the task's `c.exec` got it.
+with `hosts` instead when one needs it. The agent saves its environment to `env.txt`; a required
+`agent-env` grader checks the token isn't in it (a missing `env.txt` fails it too), an `observed`
+grader that the task's `c.exec` got it, and `target: regression()` fails the run on either miss.
 
 **Needs:** Docker, even for the fake agent; in this repo, run `pnpm install && pnpm build` at the
 root first. `E2E_TOKEN` is optional. A real agent also needs its key in `.env.local`
@@ -33,22 +34,23 @@ one profile you need.
   ⚠  Warning: E2E_TOKEN reaches the checks (c.exec, setup steps) as its real value. It's never in the agent's own environment, but a process a setup step leaves running holds it while the agent works. To give the checks only a placeholder, add the hosts it's sent to, e.g. secret.fromEnv('E2E_TOKEN', { hosts: ['api.example.com'] }).
 …
 with-secret-for-checks.eval.ts
-  · with-secret-for-checks  100%  metric()
+  ✓ with-secret-for-checks  1/1 run at 100%  regression(1)
 ```
 
-Change `to: 'checks'` to `to: 'agent'` and `pnpm eval -v` shows the `agent-env` grader miss:
+Change `to: 'checks'` to `to: 'agent'` and `pnpm eval` fails the run, exiting 1:
 
 ```text
 with-secret-for-checks.eval.ts
-  · with-secret-for-checks  50%  metric()
-    #1  50%  agent-env 0%
+  ✗ with-secret-for-checks  0/1 run at 100%  regression(1)
+    #1  0%  agent-env 0% (required)
+    …
     Observed:
       task-has-token  true 1
 ```
 
 | File | What it is |
 |---|---|
-| [`with-secret-for-checks.eval.ts`](./with-secret-for-checks.eval.ts) | The eval: the checks-only token, one prompt, two graders |
+| [`with-secret-for-checks.eval.ts`](./with-secret-for-checks.eval.ts) | The eval: the checks-only token, one prompt, two graders and a `regression()` target |
 | [`reeval.config.ts`](./reeval.config.ts) | The scripted fake agent in Docker, and the real agents from `../profiles.ts` |
 
 Secrets, `to` and `optional` are in the [Pass secrets](../../docs/configuration/environments/secrets.mdx)
