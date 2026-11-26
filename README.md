@@ -80,7 +80,8 @@ The Vercel AI SDK deprecates `generateObject` in favor of `Output.object`, and a
 
 ```ts
 // evals/ai-sdk.eval.ts
-import { defineEnvironment, defineEval, expect } from 'reeval';
+import { defineEnvironment, defineEval } from 'reeval';
+import { hasFile } from 'reeval/graders';
 
 const plain = defineEnvironment('plain', {});
 
@@ -91,14 +92,15 @@ const withSkill = plain.extendEnvironment('with-skill', ({ skill }) => ({
 export default defineEval({
   runs: 4,
   compare: { control: plain, variants: [withSkill] },
+  graders: [
+    hasFile('triage.ts', { name: 'writes triage.ts' }),
+    hasFile('triage.ts', /Output\.object/, { name: 'uses Output.object' }),
+  ],
   task: async (c) => {
     await c.send(`
       Add triage.ts: triageIssue(title, body) uses the ai package to
       return a typed { labels, priority, duplicateOf }.
     `);
-
-    await expect(c, 'writes triage.ts').toHaveFile('triage.ts');
-    await expect(c, 'uses Output.object').toHaveFile('triage.ts', /Output\.object/);
   },
 });
 ```
@@ -114,7 +116,6 @@ pass             triages a GitHub issue with the AI SDK
   with-skill          4 of 4  helped
   check               plain   with-skill
   uses Output.object  0 of 4  4 of 4
-    expected triage.ts to match /Output\.object/
   +1 more passed
 …
 1 pass

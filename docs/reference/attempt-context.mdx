@@ -171,134 +171,6 @@ The `Capture` echoes the resolved `name`, `port`, `path`, and `viewport`, and ha
 
 For more information about the cascaded defaults, see [the `capture` option](/reference/options#capture). For more information about serving and capturing an app, see [Apps](/evaluations/task/apps).
 
-## `c.judge()`
-
-`c.judge(question, options)` asks a yes or no question about the last turn, shown only the inputs `options` turns on, at least one, and returns a `Verdict`, or a `JudgeFailure` when the provider fails.
-
-```ts
-const verdict = await c.judge('Does the test read like a specification?', {
-  contents: ['src/user.test.ts'],
-})
-```
-
-<Property name="question" type="string" required>
-  A non-empty yes or no question.
-</Property>
-
-<Property name="options.task" type="boolean" optional>
-  The graded turn's prompt.
-</Property>
-
-<Property name="options.output" type="boolean" optional>
-  The final message, or the value of `on`.
-</Property>
-
-<Property name="options.files" type="boolean" optional>
-  `status path` lines for the changed files.
-</Property>
-
-<Property name="options.diff" type="boolean | string[]" optional>
-  The diff from the start of the evaluation, or a non-empty list of gitignore-style patterns over workspace paths. The last matching pattern wins, and `!` excludes.
-</Property>
-
-<Property name="options.contents" type="string[]" optional>
-  Whole workspace files, as paths or patterns, left out of the diff.
-</Property>
-
-<Property name="options.transcript" type="boolean | 'tools' | 'full' | { detail?, agent?, subagents? }" optional>
-  The transcript has three enabled modes: `true` clips tool output, `'tools'` is tool calls only, and `'full'` is everything. Each subagent's events show under its spawn call; the object form takes one of those modes as `detail` and leaves out the agent's own events (`agent: false`) or its subagents' (`subagents: false`).
-</Property>
-
-<Property name="options.checks" type="boolean | string[]" optional>
-  `c.exec` results, or a list of the commands to show.
-</Property>
-
-<Property name="options.observations" type="boolean | string[]" optional>
-  `c.observe()` values as `{ name: value }`, or a list of the names to show.
-</Property>
-
-<Property name="options.artifacts" type="true | Array<Capture | string>" optional>
-  Captures sent as PNG file parts, by handle or name, or `true` for all so far.
-</Property>
-
-<Property name="options.on" type="Turn | JSONValue" optional>
-  A turn this attempt sent, graded instead of the last, or any other value, graded as the output, which needs `output: true`.
-</Property>
-
-<Property name="options.turns" type="'last' | 'all'" optional>
-  `'last'` is the graded turn, and `'all'` every turn up to it. The default is `'last'`.
-</Property>
-
-<Property name="options.model" type="string | JudgeModel" optional>
-  The `'provider/model'` string or model object for this call, replacing the cascaded model.
-</Property>
-
-<Property name="options.threshold" type="number" optional>
-  The minimum score for `pass`, from 0 to 1 (default `0.8`).
-</Property>
-
-<Property name="options.providerOptions" type="Record<string, Record<string, JSONValue>>" optional>
-  Provider settings for the call, keyed by provider.
-</Property>
-
-<Property name="options.maxConcurrent" type="number" optional>
-  The most judge calls to this provider at a time, across the run.
-</Property>
-
-<Property name="options.gateway" type="GatewayName | GatewayDescriptor" optional>
-  The gateway for this call, skipping the config list's fallback.
-</Property>
-
-A field on the call replaces the cascaded field. A `Verdict` has these fields:
-
-<Property name="verdict" type="'pass' | 'fail'" required>
-  `pass` when `score` is at least `threshold`.
-</Property>
-
-<Property name="score" type="number" required>
-  The judge's probability that the answer is yes, from 0 to 1.
-</Property>
-
-<Property name="threshold" type="number" required>
-  The threshold this call used.
-</Property>
-
-<Property name="question" type="string" required>
-  The question this call asked.
-</Property>
-
-<Property name="model" type="string" required>
-  The model id the call asked for.
-</Property>
-
-<Property name="resolvedModel" type="string" optional>
-  The model id the provider reports, when it reports one.
-</Property>
-
-<Property name="gateway" type="GatewayName" optional>
-  The config gateway the call used, when any.
-</Property>
-
-<Property name="upstream" type="string" optional>
-  The upstream provider the gateway reports (OpenRouter), when any.
-</Property>
-
-<Property name="costUsd" type="number" optional>
-  What the gateway reports the call cost, in US dollars, when any.
-</Property>
-
-<Property name="artifacts" type="JudgeArtifactRef[]" optional>
-  The captures sent, each with `name`, `path`, `sha256`, `bytes`, and `mediaType`.
-</Property>
-
-A `JudgeFailure` has `verdict` `'error'` and `score` `null`.
-
-<Property name="error" type="string" required>
-  The provider's message on a `JudgeFailure`, after any retries.
-</Property>
-
-For more information about the cascaded defaults, see [the `judge` option](/reference/options#judge). For more information about scoring, see [Judge agent work](/evaluations/grading/judgments).
-
 ## `c.readFile()`
 
 `c.readFile(path)` returns the text of a file in the sandbox, or `null` when there is no such file.
@@ -458,7 +330,7 @@ const changed = turn.diff.files.map((file) => file.path)
 </Property>
 
 <Property name="unreported" type="Array<'web-search' | 'web-fetch'>" required>
-  Event types the harness could not report, which `toHaveSearched()` and `toHaveFetched()` refuse.
+  Event types the harness could not report, which the `searched` and `fetched` graders refuse.
 </Property>
 
 <Property name="diff" type="{ patch: string; files: FileChange[] }" required>
@@ -621,4 +493,4 @@ A message the harness sent.
   A step that failed while the turn went on, such as a model call the harness retried. This event has no `durationMs`.
 </Property>
 
-For more information about transcripts, see [Debugging](/results/inspection/debugging#read-a-transcript). For more information about the matchers, see [Matchers](/reference/matchers).
+For more information about transcripts, see [Debugging](/results/inspection/debugging#read-a-transcript).

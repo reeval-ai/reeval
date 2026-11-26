@@ -3,85 +3,84 @@ title: "Assertions"
 description: "Fail the attempt when the agent's work misses an assertion."
 ---
 
-You call `expect` in the evaluation body. A failing assertion fails the attempt. For more information about how an assertion becomes an outcome, see [Assertion](/reference/glossary#assertion). For more information about scoring the reply with a model, see [Judgments](/evaluations/grading/judgments).
+You list graders in the evaluation's `graders`. A grader that scores below 1 lowers the attempt's score. For more information about how an assertion becomes an outcome, see [Assertion](/reference/glossary#assertion). For more information about scoring the reply with a model, see [Judgments](/evaluations/grading/judgments).
 
 ## Check a file the agent wrote
 
-`toHaveFile` reads a file in the sandbox. Await it. The second argument to `expect` is the label in the result. The `camelcase` environment is the one from [Evaluate](/evaluations/evaluate).
+`hasFile` reads a file in the workspace after the task returns. Its `name` option is the label in the result. The `camelcase` environment is the one from [Evaluate](/evaluations/evaluate).
 
 In the `evals/camelcase.eval.ts` file, send the task and check that the readme documents the option:
 
 ```ts title="evals/camelcase.eval.ts"
 export default defineEval({
   environment: camelcase,
+  graders: [hasFile('readme.md', /separators/)],
   task: async (c) => {
-  await c.send(
-    'Add a separators option to camelCase: a string of extra characters ' +
-      "that also separate words, so camelCase('foo/bar', {separators: '/'}) " +
-      "is 'fooBar'. Add tests to test.js and document it in readme.md. " +
-      'Run the tests with node --test.',
-  )
-
-  await expect(c).toHaveFile('readme.md', /separators/)
+    await c.send(
+      'Add a separators option to camelCase: a string of extra characters ' +
+        "that also separate words, so camelCase('foo/bar', {separators: '/'}) " +
+        "is 'fooBar'. Add tests to test.js and document it in readme.md. " +
+        'Run the tests with node --test.',
+    )
+  },
 })
 ```
 
-Without a label, the row reads `toHaveFile readme.md`. `c.readFile` returns the file text, or `null` when the path is missing:
+Without a name, the row reads `has-file:readme.md`. The second argument is a string the file contains or a regular expression it matches:
 
 ```ts title="with-checks-and-gates.eval.ts"
-expect(await c.readFile('test/math.test.js'), 'tests divide').toContain('divide(')
+hasFile('test/math.test.js', 'divide(', { name: 'tests-divide' }),
 ```
 
 ## Run the project's tests
 
-`c.exec` runs a command in the sandbox and returns `exitCode`, `stdout`, and `stderr`. `toSucceed` passes when `exitCode` is 0. Await it.
+`c.exec` runs a command in the sandbox and returns `exitCode`, `stdout`, and `stderr`. `succeeded` passes when the last `c.exec` of that command, or with that `label`, exited 0.
 
-In the `evals/camelcase.eval.ts` file, run the repository's tests, then write a hidden test the prompt never mentions and run it:
+In the `evals/camelcase.eval.ts` file, run the repository's tests, and grade a hidden test the prompt never mentions in a sandbox of its own:
 
 ```ts title="evals/camelcase.eval.ts"
-  await expect(c.exec('node --test'), "the repo's tests pass").toSucceed()
-  await c.writeFile('separators.test.js', hidden)
-  await expect(
-    c.exec('node --test separators.test.js'),
-    'the option works',
-  ).toSucceed()
+  graders: [succeeded('node --test'), separators],
+  task: async (c) => {
+    // ...
+    await c.exec('node --test')
+  },
 ```
 
-For more information about `c.exec`, see [the `c.exec` method](/reference/attempt-context#cexec). For a runnable project, see [`with-existing-codebase`](https://github.com/reeval-ai/reeval/tree/main/examples/with-existing-codebase).
+For the `separators` grader, see [Evaluate](/evaluations/evaluate). For more information about `c.exec`, see [the `c.exec` method](/reference/attempt-context#cexec). For a runnable project, see [`with-existing-codebase`](https://github.com/reeval-ai/reeval/tree/main/examples/with-existing-codebase).
 
 ## Check what the agent did
 
-`toHaveEdited` checks files the agent edited, with its edit tools or from the shell. It counts files that appear in the workspace diff; gitignored files don't appear there, so use `toHaveFile()` to check them. `toHaveRun` checks shell commands the harness ran. Pass `c` or the turn that `c.send` returns:
+`wrote` checks the paths the agent's write and edit tool calls touched. `ran` checks shell commands the harness ran, and counts them:
 
 ```ts title="with-transcript-matchers.eval.ts"
-expect(turn, 'edited math.js').toHaveEdited('src/math.js')
-expect(turn, 'ran the tests').toHaveRun(/node --test|npm (test|t)\b/)
-expect(turn, 'installed nothing').not.toHaveRun({
-  program: 'npm',
-  args: /^(install|i|add)\b/,
-})
+  graders: [
+    wrote('src/math.js'),
+    ran(/node --test|npm (test|t)\b/),
+    ran(
+      { program: 'npm', args: /^(install|i|add)\b/ },
+      { name: 'installed-nothing', score: (n) => (n === 0 ? 1 : 0) },
+    ),
+  ],
 ```
 
-A string or regular expression matches anywhere in the command line, so `/genkit/` also matches `cat genkit.config.ts`. The `{ program, args }` form matches the program each part of the line ran, after wrappers such as `FOO=1`, `timeout`, and `npx`. For the full list, see [`toHaveRun()`](/reference/matchers#tohaverun).
+A string or regular expression matches anywhere in the command line, so `/genkit/` also matches `cat genkit.config.ts`. The `{ program, args }` form matches the program each part of the line ran, after wrappers such as `FOO=1`, `timeout`, and `npx`. For the full list, see [`shellCommands()`](/reference/authoring-api#shellcommands).
 
-`toHaveCalledTool`, `toHaveCalledMcp`, and `toHaveCalledSkill` read the same transcript. `toStayWithin` caps the tokens, tool calls, and time the turns took, as in `expect(c).toStayWithin({ tokens: 20_000, toolCalls: 30 })`. For a runnable project, see [`with-transcript-matchers`](https://github.com/reeval-ai/reeval/tree/main/examples/with-transcript-matchers).
+`calledTool`, `calledMcp`, and `usedSkill` read the same transcript. `withinLimits` caps the tokens, tool calls, and time the turns took, as in `withinLimits({ tokens: 20_000, toolCalls: 30 })`. `notInDiff` and `inDiff` read the workspace diff. For a runnable project, see [`with-transcript-matchers`](https://github.com/reeval-ai/reeval/tree/main/examples/with-transcript-matchers).
 
-`toHaveSearched` and `toHaveFetched` throw `HarnessCapabilityError` when the harness does not report web searches or web fetches.
+`searched` and `fetched` record an error when the harness does not report web searches or web fetches.
 
-## Use required and polled assertions
+## Use required graders
 
-`expect` records a failure and runs the later assertions. The attempt fails at the end on the first assertion that did not pass. `expect.require` ends the body at its failure. In the `evals/camelcase.eval.ts` file, both file assertions report on each attempt:
+Every grader reports on each attempt. A grader with `required: true` that scores below 1 makes the attempt's score 0. In the `evals/camelcase.eval.ts` file, both file graders report on each attempt:
 
 ```ts title="evals/camelcase.eval.ts"
-await expect(c, 'readme documents it').toHaveFile('readme.md', /separators/)
-await expect(c, 'tests cover it').toHaveFile('test.js', /separators/)
+  graders: [
+    hasFile('readme.md', /separators/, { name: 'readme-documents-it' }),
+    hasFile('test.js', /separators/, { name: 'tests-cover-it' }),
+  ],
 ```
 
-`expect.poll` calls a function until the matcher passes, every 50 milliseconds, for at most 1000 milliseconds. It then fails with the last error. Await it. Pass `{ interval, timeout }` in milliseconds to change the wait. `message` sets the label:
-
-```ts
-await expect.poll(() => c, { timeout: 5000 }).toHaveFile('readme.md')
-```
+To stop the task, throw from it: an `EvalError` or a failed `assert` fails the attempt, and no grader runs.
 
 ## Troubleshooting
 
@@ -89,12 +88,11 @@ Match the attempt error to a fix:
 
 | Symptom | Check | Next action |
 |---|---|---|
-| `expected file readme.md to exist` | `toHaveFile` found no file at that path. | Use the path the prompt names. |
-| `expected command to succeed, exit code 1` | `exitCode` was not 0. The message includes the tail of `stderr` and `stdout`. | Read that tail, then change the command or the task. |
-| `expect(…).toHaveFile() … wasn't awaited` | An async matcher ran without `await`. | Put `await` before `toHaveFile`, `toSucceed`, or `expect.poll`. |
-| `toHaveSearched() can't check this turn: its harness doesn't report web searches` | The matcher threw `HarnessCapabilityError`. | Check the reply or a file, or use a harness that reports web searches. |
-| `toHaveEdited() expects a turn from c.send(), or c` | The matcher did not receive `c` or a turn. | Pass `c` or the turn that `c.send` returned. |
+| `has-file:readme.md scored 0.00` | `hasFile` found no file at that path, or it didn't match. | Use the path the prompt names. |
+| `succeeded:node --test scored 0.00` | The command's last `c.exec` exited with a code other than 0. | Read its output in the record, then change the command or the task. |
+| `the task ran no c.exec labeled or running "node --test"` | The task never ran the command `succeeded` names. | Run it in the task with `c.exec`, or name its `label`. |
+| `searched can't check this turn: its harness doesn't report web searches` | The grader threw `HarnessCapabilityError`. | Check the reply or a file, or use a harness that reports web searches. |
 
 ## Reference
 
-For more information about every matcher, `expect.require`, and `expect.poll`, see [Matchers](/reference/matchers).
+For more information about `defineGrader`, see [Authoring API](/reference/authoring-api#definegrader).
