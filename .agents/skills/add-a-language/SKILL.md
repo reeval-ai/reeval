@@ -16,21 +16,14 @@ lifecycle stay shared.
 **Rules (non-negotiable):**
 
 - **SDKs are language-native; the wire format is never the public API.** Python evals import
-  `evaluate` and `expect` from `reeval_python`, use snake_case (`c.read_file`, `assert result.ok`,
-  typed `ExecResult` / `Turn` / `Verdict`), and snake_case options mapped to camelCase on the wire
+  `evaluate` from `reeval_python`, use snake_case (`c.read_file`, `assert result.ok`,
+  typed `ExecResult` / `Turn`), and snake_case options mapped to camelCase on the wire
   internally, at any depth, from the generated key tables (`CAMEL_KEYS`, and `RECORD_FIELDS`,
-  whose keys are the eval's own and keep their spelling). Plain `assert`s in an eval file are
-  checks in the record: the SDK rewrites them at import, as pytest does, and sends a protocol
-  `record` call named by the assert's test as written. A pass is sent at once; a failure only if
-  its `AssertionError` escapes the body, so a failure the body catches isn't a failed check. The
-  message is the failure's reason. Use `expect(…).to_succeed()` and the other matchers for
-  reeval-specific checks.
+  whose keys are the eval's own and keep their spelling). The task fails when its body raises,
+  so a plain `assert` is how an eval file checks inside the task.
   Follow the language's own sync and async idioms rather than TypeScript's promises: in Python a
-  `def` body runs on a worker thread with a blocking context (`c.exec` returns its result) and
-  `reeval_python.expect`, and an `async def` body gets coroutines and `reeval_python.aio.expect`,
-  whose typed matchers return coroutines so the type checker reports a missing `await`. A poll
-  takes a function that reads or runs something (`expect.poll(lambda: c.read_file(p))`), which the
-  SDK calls once to learn the subject for reeval to re-read.
+  `def` body runs on a worker thread with a blocking context (`c.exec` returns its result), and an
+  `async def` body gets coroutines.
 - **TypeScript stays in-process.** Never send `.eval.ts` through the runner transport; records,
   stacks and matcher behavior must stay unchanged.
 - **No per-language branches in the engine.** The worker calls `loadEvalModule()` only; do not
@@ -60,7 +53,7 @@ flowchart TD
   Jiti --> Plan["Shared plan and matrix<br/>(one code path)"]
   Declare --> Plan
   Plan --> Attempt["Attempt lifecycle<br/>sandbox · harness · checks · judge · record"]
-  Jiti -->|"c.send / c.exec / expect"| Attempt
+  Jiti -->|"c.send / c.exec"| Attempt
   Host -->|"same AttemptContext + match.ts"| Attempt
 
   Conf["Conformance goldens<br/>declare/* · context/*.ndjson"] -. "every SDK must pass" .-> SDK
@@ -97,7 +90,7 @@ see [Prior art](#prior-art-dart-spike) below):
 |---|---|
 | `protocol.ts` | `RUNNER_PROTOCOL = 3`. Session messages use `t` (`hello`, `collect`, `declared`, `log`). Attempt traffic uses shapes from `src/contract/attempt.ts` (`start`, `abort`, `done`, `{id, call}`, replies), each with the `key` reeval gave the body in its `start` — no `t` on attempt lines. `key` is unique per started body; `attempt.id` isn't (two evals on one cell share it), so never multiplex on it. |
 | `transport.ts` | Spawns the runner; one JSON message a line on its stdin (to it) and stdout (from it). A stdout line that isn't a message is shown on stderr; one that starts with `{` but isn't JSON (a bare `NaN`) ends the session with an error |
-| `attempt-host.ts` | Maps protocol ops to real `AttemptContext` (`expect` → `match.ts`) |
+| `attempt-host.ts` | Maps protocol ops to real `AttemptContext` |
 | `remote.ts` | `collectLanguageFile`: collect tree, `declareTree`, run remote bodies |
 
 SDK runner responsibilities:
@@ -115,22 +108,14 @@ SDK runner responsibilities:
    non-zero with a sentence naming both versions instead of saying hello.
 2. On `{ t: 'collect', file }`, import the eval file; reply with `{ t: 'declared', file, tree }`
    (tree must match `schema/plan/declaration.schema.json`).
-3. On `start`, run the body async; each `c.*` becomes `{ id, call, key }`; read replies
-   (including `expect` assertion records); send `{ type: 'done', key, error? }`.
+3. On `start`, run the body async; each `c.*` becomes `{ id, call, key }`; read replies;
+   send `{ type: 'done', key, error? }`.
 4. On `{ type: 'abort', key }`, reeval has already settled the attempt: fail the body's calls in
    flight and every later one at once, without sending them, and stop the body where the
    language can. A body that keeps running must not reach reeval (it answers any call whose key
    it no longer knows with an `AbortError`).
 5. Route a body's prints as `{ t: 'log', key, stream, text }`, one line each, by the language's
    async-local context (`contextvars` in Python), so concurrent bodies' output stays apart.
-6. Send the language's own regular expressions as `{ matchedBy, answers }` (`matchedBy` is how
-   the language writes the pattern, e.g. Python's `repr`), never translated to JavaScript.
-   reeval runs the matcher and, when it tests a string `answers` lacks, replies
-   `{ ok: true, op: 'expect', untested: { [matchedBy]: strings } }` and records nothing: match
-   them in the language, off the thread that reads reeval's messages, add them to `answers` and
-   make the same call again. Stop after a few rounds (Python stops at 5): a subject that
-   changes on every read never runs out of new strings. reeval refuses `poll` with such an
-   argument. `{ regexp, flags }` is for a language whose patterns are JavaScript's.
 
 Declaration tree JSON is validated by the same contract TypeScript uses (`declareTree` in the worker).
 
@@ -234,7 +219,7 @@ on main should:
 
 - Reuse `remote.ts` / `protocol.ts` (attempt protocol **v2**, not legacy `t.*` attempt RPC).
 - Move SDK code to `sdks/dart` (or `packages/reeval-dart`) and delete Dart-only engine forks.
-- Re-run declare + context goldens; update expect traffic for v2.
+- Re-run declare + context goldens.
 - Copy the `python-sdk/hello` fixture pattern for smoke + plan.
 
 Rough size versus greenfield: **medium** epic — much smaller than the original spike if transport

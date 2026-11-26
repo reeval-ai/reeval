@@ -437,8 +437,7 @@ skipped, which passes. So the required set holds on either tier; rename or add j
   by hand, and don't edit versions or `CHANGELOG.md`.
 - **Dependabot** (`.github/dependabot.yml`) opens weekly version updates, titled `build(deps): …`,
   `build(deps-dev): …` or `ci: …` so `commits.yml` passes them. It covers every workspace
-  package's npm dependencies from `/` (the `@vitest/*` pair in one PR, dev minors and patches in
-  another), the workflows and the composite actions in `.github/actions/`, and the sandbox base
+  package's npm dependencies from `/` (dev minors and patches in one PR), the workflows and the composite actions in `.github/actions/`, and the sandbox base
   image in `packages/sandbox-docker/docker` (every other Dockerfile is `FROM ${REEVAL_BASE}`). It
   deliberately skips `ai` and every `@ai-sdk/*` package: the patched `@ai-sdk/harness-claude-code`
   must be moved by hand, and it pins `@ai-sdk/harness` and `@ai-sdk/provider-utils` exactly

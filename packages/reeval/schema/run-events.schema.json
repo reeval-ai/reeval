@@ -5251,7 +5251,7 @@
           }
         },
         "assertion": {
-          "description": "The `toPass` assertion label that consumed this verdict, when the attempt linked them; optional on older records.",
+          "description": "The `toPass` assertion label of an older reeval that consumed this verdict, when the attempt linked them; optional on older records.",
           "type": "string"
         },
         "cost": {
@@ -5271,7 +5271,7 @@
           "type": "string"
         },
         "label": {
-          "description": "From `JudgeOptions.label` when set; optional on older records.",
+          "description": "The label an older reeval's judge call set; optional on older records.",
           "type": "string"
         },
         "model": {

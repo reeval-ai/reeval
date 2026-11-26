@@ -167,11 +167,11 @@ export type JudgmentRecord = {
    * whichever finishes first.
    */
   key: string
-  /** From `JudgeOptions.label` when set; optional on older records. */
+  /** The label an older reeval's judge call set; optional on older records. */
   label?: string
   /**
-   * The `toPass` assertion label that consumed this verdict, when the attempt linked them; optional
-   * on older records.
+   * The `toPass` assertion label of an older reeval that consumed this verdict, when the attempt
+   * linked them; optional on older records.
    */
   assertion?: string
   /** Transient provider errors retried before this verdict, with the backoff before each retry. */
