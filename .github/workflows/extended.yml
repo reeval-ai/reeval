@@ -31,11 +31,11 @@ jobs:
     name: unit and plan (node 22.16, ${{ matrix.shard }})
     if: inputs.floor
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
-        shard: ['1/4', '2/4', '3/4', '4/4']
+        shard: ['1/8', '2/8', '3/8', '4/8', '5/8', '6/8', '7/8', '8/8']
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -61,7 +61,7 @@ jobs:
             --test-shard=${{ matrix.shard }} \
             test/!(features|docker|docker-antigravity|store-minio|studio|pack|contract|e2e-real|questions-real|openrouter-real).test.ts
       - name: sandbox-docker (without containers) and the harness packages
-        if: matrix.shard == '1/4'
+        if: matrix.shard == '1/8'
         run: |
           for p in sandbox-docker harness-antigravity harness-cursor-sdk harness-opencode harness-goose harness-pi harness-codex harness-fx harness-grok-build; do
             echo "::group::@reeval/$p"
