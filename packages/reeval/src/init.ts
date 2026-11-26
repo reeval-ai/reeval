@@ -125,7 +125,8 @@ export const greeter = defineEnvironment('greeter', {
 }
 
 export function evalSource(pkg: string): string {
-  return `import { defineEval, expect } from '${pkg}'
+  return `import { defineEval } from '${pkg}'
+import { hasFile, succeeded } from '${pkg}/graders'
 import { greeter } from './environments.ts'
 
 const greetsAda = \`node -e "import('./greet.js').then((m) =>
@@ -133,14 +134,13 @@ const greetsAda = \`node -e "import('./greet.js').then((m) =>
 
 export default defineEval({
   environment: greeter,
+  graders: [hasFile('greet.js', /greet/), succeeded('greets Ada')],
   async task(c) {
-    const turn = await c.send(
+    await c.send(
       'Create greet.js, an ES module exporting greet(name) that returns ' +
         '"Hello, <name>!". No dependencies.',
     )
-
-    await expect(turn).toHaveFile('greet.js', /greet/)
-    await expect(c.exec(greetsAda)).toSucceed()
+    await c.exec(greetsAda, { label: 'greets Ada' })
   },
 })
 `
