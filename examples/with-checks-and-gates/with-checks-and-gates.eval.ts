@@ -1,4 +1,3 @@
-// biome-ignore lint/suspicious/noShadowRestrictedNames: reeval's EvalError stands in for the global one
 import { defineEnvironment, defineEval, EvalError } from 'reeval'
 import { hasFile, succeeded } from 'reeval/graders'
 

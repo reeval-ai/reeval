@@ -23,6 +23,10 @@
       "linter": { "domains": { "react": "none" } }
     },
     {
+      "includes": ["examples/**"],
+      "linter": { "rules": { "suspicious": { "noShadowRestrictedNames": "off" } } }
+    },
+    {
       "includes": ["packages/agents/**"],
       "linter": {
         "rules": {
