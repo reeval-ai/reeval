@@ -882,7 +882,7 @@ export default defineEval({
       // Canary: the rebuilt image has v2, so the eval's v1 check now fails.
       const moved = await runCli(p.dir, ['run'], slow)
       assert.equal(moved.code, 1, moved.stdout + moved.stderr)
-      assert.match(readRun(p.dir).evals[0]?.error?.message ?? '', /expected 'v2\\n' to be 'v1\\n'/)
+      assert.match(readRun(p.dir).evals[0]?.error?.message ?? '', /'v2\\n' !== 'v1\\n'/)
 
       counter.reset()
       const current = await runCli(p.dir, ['image', 'build'], { env: counter.env, ...slow })
@@ -1176,7 +1176,7 @@ export default defineEval({
       const byName = Object.fromEntries(a.evals.map((e) => [e.name, e]))
       assert.equal(byName.bakes?.outcome, 'pass', first.stdout)
       assert.equal(byName.canary?.outcome, 'fail')
-      assert.match(byName.canary?.error?.message ?? '', /expected '0\\n' to be '1\\n'/)
+      assert.match(byName.canary?.error?.message ?? '', /'0\\n' !== '1\\n'/)
       const image = byName.bakes?.image
       ref = image?.ref ?? ''
       assert.match(ref, /^reeval-sandbox:cursor-[\d.]+-debian-bookworm-slim-[0-9a-f]{8}$/)

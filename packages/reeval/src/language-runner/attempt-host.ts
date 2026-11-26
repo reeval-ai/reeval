@@ -73,9 +73,7 @@ export async function replyToAttempt(
   request: AttemptRequest,
 ): Promise<AttemptReply> {
   const { id, call } = request
-  const raw = call as { env?: unknown; subject?: { env?: unknown } } | undefined
-  registerExecEnv(raw?.env)
-  registerExecEnv(raw?.subject?.env)
+  registerExecEnv((call as { env?: unknown } | undefined)?.env)
   let problem: string | undefined
   try {
     problem = attemptRequestProblem({ id, call })

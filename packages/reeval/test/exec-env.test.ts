@@ -47,25 +47,12 @@ test('a short brokered value is replaced only as a token of its own', () => {
 
 test('a secret-named exec value the protocol refuses is masked from then on', async () => {
   const value = ['rr', 'refused', '3k9d', '7m2p'].join('-')
-  const subject = ['ss', 'subject', '4j8f', '6n1q'].join('-')
-  const ask = (call: Record<string, unknown>) =>
-    replyToAttempt({} as AttemptContext, [], new Map(), { id: '1', call } as AttemptRequest)
-  const exec = await ask({ op: 'exec', command: 'true', env: { API_TOKEN: `${value}\0` } })
-  const poll = await ask({
-    op: 'expect',
-    subject: { exec: 'true', env: { MY_SECRET: `${subject}\0` } },
-    matcher: 'toSucceed',
-    args: [],
-    not: false,
-    soft: false,
-  })
-  for (const [reply, secret] of [
-    [exec, value],
-    [poll, subject],
-  ] as const) {
-    assert.equal(reply.ok, false)
-    const text = JSON.stringify(reply)
-    assert.ok(text.includes(secret), 'twin: the refusal quotes the value')
-    assert.ok(!redactSecrets(text).includes(secret), text)
-  }
+  const reply = await replyToAttempt({} as AttemptContext, new Map(), {
+    id: '1',
+    call: { op: 'exec', command: 'true', env: { API_TOKEN: `${value}\0` } },
+  } as AttemptRequest)
+  assert.equal(reply.ok, false)
+  const text = JSON.stringify(reply)
+  assert.ok(text.includes(value), 'twin: the refusal quotes the value')
+  assert.ok(!redactSecrets(text).includes(value), text)
 })

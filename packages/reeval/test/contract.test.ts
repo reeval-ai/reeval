@@ -233,13 +233,7 @@ export const behaviors: Behavior[] = [
     name: 'skill placed where the agent reads it, and used',
     canary: true,
     check(ran, row) {
-      const a = checkAndCanary(
-        ran,
-        row,
-        'skill',
-        'skilled',
-        /expected null to be 'PROBE-7F3K-QUILL'/,
-      )
+      const a = checkAndCanary(ran, row, 'skill', 'skilled', /\+ null\n- 'PROBE-7F3K-QUILL'/)
       const seen = a.context.map((c) => c.path)
       assert.ok(
         seen.some((p) => row.skillContext.test(p)),
@@ -256,7 +250,7 @@ export const behaviors: Behavior[] = [
         row,
         'installed-skill',
         'installed',
-        /expected null to be 'INSTALLED-2Q8W-WREN'/,
+        /\+ null\n- 'INSTALLED-2Q8W-WREN'/,
       )
       const env = ran.run.environments.find((e) => e.name === 'installed')
       assert.deepEqual(env?.skills, [], 'reeval placed no skill')
@@ -275,7 +269,7 @@ export const behaviors: Behavior[] = [
     name: 'rules read',
     canary: true,
     check: (ran, row) =>
-      void checkAndCanary(ran, row, 'rules', 'ruled', /expected null to be 'TANGERINE-41'/),
+      void checkAndCanary(ran, row, 'rules', 'ruled', /\+ null\n- 'TANGERINE-41'/),
   },
   {
     name: 'stdio MCP server started and called',
@@ -300,7 +294,7 @@ export const behaviors: Behavior[] = [
         assert.equal(evalsNamed(ran.run, /^mcp/).length, 0, 'the MCP evals were left out')
         return 'refused at plan time'
       }
-      const a = checkAndCanary(ran, row, 'mcp', 'stamped', /expected '' to contain 'tools\/call'/)
+      const a = checkAndCanary(ran, row, 'mcp', 'stamped', /includes\('tools\/call'\)/)
       const env = ran.run.environments.find((e) => e.name === 'stamped')
       assert.deepEqual(env?.mcp, ['stamp'])
       // reeval's timer saw every start of the server answer initialize.
@@ -324,7 +318,7 @@ export const behaviors: Behavior[] = [
         row,
         'edit-and-run',
         'notes',
-        /expected 'status: draft' to be 'status: final'/,
+        /\+ 'status: draft'\n- 'status: final'/,
       )
       assert.ok(
         a.changedFiles.some((f) => f.path === 'notes.txt' && f.status === 'modified'),
@@ -428,7 +422,7 @@ export const behaviors: Behavior[] = [
     name: 'real key never in the container',
     canary: true,
     check(ran, row) {
-      checkAndCanary(ran, row, 'key', 'scanned', /to deeply equal \[\]/, 'planted')
+      checkAndCanary(ran, row, 'key', 'scanned', /strictly deep-equal:[\s\S]*\n- \[\]\n/, 'planted')
       const key = keyOf(row)
       if (key) assert.equal(filesContaining(ran.runDir, key), '', 'the key is in the run directory')
     },
@@ -437,7 +431,7 @@ export const behaviors: Behavior[] = [
     name: 'deny-all plus auto hosts works, a blocked host refused and recorded',
     canary: true,
     check(ran, row) {
-      const a = checkAndCanary(ran, row, 'egress', 'closed', /expected '403 000' to match/)
+      const a = checkAndCanary(ran, row, 'egress', 'closed', /\/\^200 \/[\s\S]*'403 000'/)
       const egress = a.egress
       assert.equal(egress?.policy, 'deny-all')
       assert.deepEqual(egress?.allowed, row.autoHosts)
@@ -632,7 +626,7 @@ export const behaviors: Behavior[] = [
         row,
         'plugin-skill',
         'plugged',
-        new RegExp(`expected null to be '${PLUGIN_PROOF}'`),
+        new RegExp(`\\+ null\\n- '${PLUGIN_PROOF}'`),
       )
       const seen = a.context.map((c) => c.path)
       const at = row.plugin?.skillContext
@@ -651,13 +645,7 @@ export const behaviors: Behavior[] = [
         readFileSync(join(testDir, 'contract/stamp.mjs'), 'utf8'),
         "the probe plugin's stamp.mjs is a copy of the contract's",
       )
-      const a = checkAndCanary(
-        ran,
-        row,
-        'plugin-mcp',
-        'plugged',
-        /expected '' to contain 'tools\/call'/,
-      )
+      const a = checkAndCanary(ran, row, 'plugin-mcp', 'plugged', /includes\('tools\/call'\)/)
       const env = ran.run.environments.find((e) => e.name === 'plugged')
       assert.deepEqual(env?.plugins?.[0]?.parts.mcp, ['stamp'])
       assert.ok(env?.mcp.includes('probe:stamp'), JSON.stringify(env?.mcp))
@@ -675,14 +663,7 @@ export const behaviors: Behavior[] = [
     canary: true,
     skips: withoutPart('hooks', 'hooks'),
     check: (ran, row) =>
-      void checkAndCanary(
-        ran,
-        row,
-        'plugin-hook',
-        'plugged',
-        /expected null to be 'hook-ran'/,
-        'closed',
-      ),
+      void checkAndCanary(ran, row, 'plugin-hook', 'plugged', /null !== 'hook-ran'/, 'closed'),
   },
   {
     name: 'plugin subagent available',
@@ -694,7 +675,7 @@ export const behaviors: Behavior[] = [
         row,
         'plugin-subagent',
         'plugged',
-        /expected \[\] to not deeply equal \[\]/,
+        /not to be strictly deep-equal to: \[\]/,
         'closed',
       ),
   },
@@ -708,7 +689,7 @@ export const behaviors: Behavior[] = [
         row,
         'plugin-rules',
         'plugged',
-        new RegExp(`expected null to be '${PLUGIN_RULES_WORD}'`),
+        new RegExp(`\\+ null\\n- '${PLUGIN_RULES_WORD}'`),
         'closed',
       ),
   },
