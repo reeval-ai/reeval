@@ -370,7 +370,7 @@
               },
               "kind": {
                 "type": "string",
-                "const": "code"
+                "enum": ["code", "judge", "builtin"]
               },
               "required": {
                 "type": "boolean"
@@ -2449,7 +2449,7 @@
         },
         "reportVersion": {
           "type": "number",
-          "const": 1
+          "const": 2
         },
         "rollup": {
           "anyOf": [
@@ -2680,5 +2680,5 @@
       ]
     }
   },
-  "x-schemaVersion": 1
+  "x-schemaVersion": 2
 }

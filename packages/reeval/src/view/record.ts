@@ -95,7 +95,10 @@ export const READ_DEFAULTS: Record<ShapeName, ReadDefault[]> = {
  * Turns a file at schemaVersion `n` into one at `n + 1`, keyed by `n`. A change that can't be a new
  * optional field or a read default bumps the shape's schemaVersion and adds one here.
  */
-export const MIGRATIONS: Partial<Record<ShapeName, Record<number, (value: never) => unknown>>> = {}
+export const MIGRATIONS: Partial<Record<ShapeName, Record<number, (value: never) => unknown>>> = {
+  // Version 2 added grade kinds `judge` and `builtin`; a version 1 report reads as it is.
+  'run-report': { 1: (report: object) => ({ ...report, reportVersion: 2 }) },
+}
 
 /** The newest schemaVersion of each versioned shape this reeval reads. */
 export const SCHEMA_VERSIONS = {
