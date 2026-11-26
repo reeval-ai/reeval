@@ -1,0 +1,124 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "20260929T033347Z_nogit_runner_20sz",
+  "trajectory_id": "evals/edit-and-run.eval.ts › edit and run # cursor:composer-2.5/notes/docker#1",
+  "agent": {
+    "name": "cursor",
+    "version": "@cursor/sdk 1.0.32",
+    "model_name": "composer-2.5"
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-29T03:33:56.450Z",
+      "source": "user",
+      "message": "In notes.txt, change the word draft to final with your file editing tool. Then run this exact shell command once: echo contract-$((6*7)). Then stop."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-29T03:34:02.830Z",
+      "source": "agent",
+      "model_name": "composer-2.5[fast=false]",
+      "message": "",
+      "reasoning_content": "I will replace \"draft\" with \"final\" in notes.txt.\n\nThen I'll run `echo contract-$((6*7))` and stop.",
+      "tool_calls": [
+        {
+          "tool_call_id": "tool_25b7dd3b-da28-40ff-8b20-5be2459b15e",
+          "function_name": "read",
+          "arguments": {
+            "path": "notes.txt"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "tool_25b7dd3b-da28-40ff-8b20-5be2459b15e",
+            "content": "{\"content\":\"status: draft\\n\",\"totalLines\":2,\"fileSize\":14}",
+            "extra": {
+              "ok": true,
+              "durationMs": 387
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-29T03:34:04.655Z",
+      "source": "agent",
+      "model_name": "composer-2.5[fast=false]",
+      "message": "",
+      "reasoning_content": "Replacing \"draft\" with \"final\" in notes.txt.",
+      "tool_calls": [
+        {
+          "tool_call_id": "tool_9d27e96b-d38d-48dd-985c-90355729c63",
+          "function_name": "file-edit",
+          "arguments": {
+            "path": "notes.txt"
+          },
+          "extra": {
+            "path": "notes.txt",
+            "kind": "modify",
+            "added": 1,
+            "removed": 1
+          }
+        },
+        {
+          "tool_call_id": "tool_e7b20ffb-4ec4-47e9-9d50-d18aaafbbf6",
+          "function_name": "bash",
+          "arguments": {
+            "command": "echo contract-$((6*7))",
+            "timeout": 30000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "tool_9d27e96b-d38d-48dd-985c-90355729c63",
+            "extra": {
+              "durationMs": 499
+            }
+          },
+          {
+            "source_call_id": "tool_e7b20ffb-4ec4-47e9-9d50-d18aaafbbf6",
+            "content": "contract-42\n",
+            "extra": {
+              "ok": true,
+              "durationMs": 339
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 4,
+      "timestamp": "2026-09-29T03:34:07.006Z",
+      "source": "agent",
+      "model_name": "composer-2.5[fast=false]",
+      "message": "Updated `notes.txt` so the status line reads `final` instead of `draft`.\n\nShell output:\n\n```\ncontract-42\n```",
+      "reasoning_content": "Changed \"draft\" to \"final\" in notes.txt. Ran the echo command and got contract-42.",
+      "metrics": {
+        "prompt_tokens": 42701,
+        "completion_tokens": 235,
+        "cached_tokens": 19082,
+        "extra": {
+          "cache_creation_input_tokens": 0
+        }
+      }
+    }
+  ],
+  "final_metrics": {
+    "total_prompt_tokens": 42701,
+    "total_completion_tokens": 235,
+    "total_cached_tokens": 19082,
+    "extra": {
+      "cache_creation_input_tokens": 0
+    },
+    "total_steps": 4
+  },
+  "extra": {
+    "outcome": "pass"
+  }
+}

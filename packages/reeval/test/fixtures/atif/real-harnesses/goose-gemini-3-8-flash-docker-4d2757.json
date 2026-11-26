@@ -1,0 +1,78 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "20260927T161031Z_cc7e11c_cursor-agent_a3yh",
+  "trajectory_id": "evals/hello.es.ts › writes hello.txt # goose:gemini-3.8-flash/-/docker#1",
+  "agent": {
+    "name": "goose",
+    "version": "1.52.0",
+    "model_name": "gemini-3.8-flash"
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-27T16:10:44.361Z",
+      "source": "user",
+      "message": "Run `ls -a` to look around, then create hello.txt containing exactly: hi"
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-27T16:10:48.255Z",
+      "source": "agent",
+      "model_name": "gemini-3.8-flash",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_4651",
+          "function_name": "bash",
+          "arguments": {
+            "command": "ls -a"
+          }
+        },
+        {
+          "tool_call_id": "call_804622",
+          "function_name": "file-edit",
+          "arguments": {
+            "path": "hello.txt"
+          },
+          "extra": {
+            "path": "hello.txt",
+            "kind": "modify",
+            "added": null,
+            "removed": null
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_4651",
+            "content": "{\"stdout\":\".\\n..\",\"stderr\":\"\",\"exit_code\":0}",
+            "extra": {
+              "ok": true,
+              "durationMs": 41
+            }
+          },
+          {
+            "source_call_id": "call_804622",
+            "extra": {
+              "durationMs": 42
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-27T16:10:55.459Z",
+      "source": "agent",
+      "model_name": "gemini-3.8-flash",
+      "message": "I have run `ls -a` to inspect the directory and created `hello.txt` with the exact content `hi`."
+    }
+  ],
+  "final_metrics": {
+    "total_steps": 3
+  },
+  "extra": {
+    "outcome": "pass"
+  }
+}

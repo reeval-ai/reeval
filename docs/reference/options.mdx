@@ -924,12 +924,12 @@ export default defineEval({
 })
 ```
 
-<Property name="cases" type="T[]" optional>
-  The inputs, each JSON data. `task` takes one as its second argument. The cases pool into one pass rate and, with `compare`, one lift paired by case. reeval refuses `runs: { bestOf }` beside it.
+<Property name="cases" type="Case<T>[]" optional>
+  The inputs, each a JSON object with a `key`. `task` takes one as its second argument. The cases pool into one pass rate and, with `compare`, one lift paired by case. reeval refuses `runs: { bestOf }` beside it.
 </Property>
 
-<Property name="caseKey" type="(item: T) => string" optional>
-  Each case's key, which names it in the output and the record. A key is trimmed, 1–80 characters, with no `#`, `›` or control characters; a `/` is fine. reeval refuses two cases with one key. Without it, a string or a finite number is its own key, and an object uses its `id`, else its `name`.
+<Property name="cases[].key" type="string" required>
+  Each case's key, which names it in the output and the record. A key is 1–80 characters, with no surrounding whitespace, `#`, `›` or control characters; a `/` is fine. reeval refuses a case with no key and two cases with one key.
 </Property>
 
 <Property name="where" type="(pair: { case, environment, harness }) => boolean" optional>

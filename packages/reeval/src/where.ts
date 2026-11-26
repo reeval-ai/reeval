@@ -6,14 +6,14 @@ import { closest } from './contract/shared.ts'
 import { traitsOf } from './environment.ts'
 import { UsageError } from './errors.ts'
 import type { PlannedAttempt } from './options.ts'
-import type { ExcludedPair, Where } from './types.ts'
+import type { Case, ExcludedPair, Where } from './types.ts'
 
 /** One case's `where`, as `planEval` gets it. */
 export type CaseWhere = {
   /** The eval, as refusals name it: `evaluate("x")`. */
   label: string
   key: string
-  item: unknown
+  item: Case
   where: Where<unknown>
 }
 

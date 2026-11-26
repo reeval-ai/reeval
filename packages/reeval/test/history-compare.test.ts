@@ -209,7 +209,7 @@ export default defineEval({
   test("a case's hash masks its secrets, so the record can't confirm a guess and a rotated secret stays the same eval", async () => {
     const each = (user: string) => `import { defineEval } from 'reeval'
 export default defineEval({
-  cases: [{ id: '0', user: '${user}', password: process.env.DB_PASSWORD }],
+  cases: [{ key: '0', user: '${user}', password: process.env.DB_PASSWORD }],
   async task(c) {
     await c.send('write hello.txt')
   },
@@ -219,10 +219,13 @@ export default defineEval({
     const secret = { env: { DB_PASSWORD: 'postgres-dev-pass' } }
     assert.equal((await runCli(p.dir, ['run', '--record'], secret)).code, 0)
     const entry = readRun(p.dir, { history: HISTORY }).run.evals[0]
-    assert.equal(entry?.cases?.[0]?.hash, sha256('{"id":"0","password":"[REDACTED]","user":"ada"}'))
+    assert.equal(
+      entry?.cases?.[0]?.hash,
+      sha256('{"key":"0","password":"[REDACTED]","user":"ada"}'),
+    )
     assert.notEqual(
       entry?.cases?.[0]?.hash,
-      sha256('{"id":"0","password":"postgres-dev-pass","user":"ada"}'),
+      sha256('{"key":"0","password":"postgres-dev-pass","user":"ada"}'),
       'canary: the raw case would confirm a guessed password',
     )
     const row = async (env: Record<string, string>) => {
@@ -240,7 +243,7 @@ export default defineEval({
       'evals/connects.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 const db = defineEnvironment('db', ({ secret }) => ({ env: { DB_CONN: secret.fromEnv('DB_CONN') } }))
 export default defineEval({
-  cases: [{ id: '0', conn: process.env.DB_CONN }],
+  cases: [{ key: '0', conn: process.env.DB_CONN }],
   environment: db,
   async task(c) {
     await c.send('write hello.txt')
@@ -251,10 +254,10 @@ export default defineEval({
     const run = await runCli(p.dir, ['run', '--record'], { env: { DB_CONN: 'pgpass1' } })
     assert.equal(run.code, 0, run.stderr)
     const entry = readRun(p.dir, { history: HISTORY }).run.evals[0]
-    assert.equal(entry?.cases?.[0]?.hash, sha256('{"conn":"[REDACTED]","id":"0"}'))
+    assert.equal(entry?.cases?.[0]?.hash, sha256('{"conn":"[REDACTED]","key":"0"}'))
     assert.notEqual(
       entry?.cases?.[0]?.hash,
-      sha256('{"conn":"pgpass1","id":"0"}'),
+      sha256('{"conn":"pgpass1","key":"0"}'),
       'canary: DB_CONN is no secret name, so only its secret() masks it',
     )
   })
@@ -364,7 +367,7 @@ const skilled = defineEnvironment('skilled', ({ skill }) => ({
   skills: [skill.local('../skills/s')],
 }))
 export default defineEval({
-  cases: ['ada', 'grace', 'linus', 'margaret', 'dennis', 'barbara'],
+  cases: [{ key: 'ada' }, { key: 'grace' }, { key: 'linus' }, { key: 'margaret' }, { key: 'dennis' }, { key: 'barbara' }],
   compare: { control: plain, variants: [skilled], minLift: ${minLift} },
   async task(c) {
     await c.send('go')
@@ -521,7 +524,7 @@ const skilled = defineEnvironment('skilled', ({ skill }) => ({
   skills: [skill.local('../skills/s')],
 }))
 export default defineEval({
-  cases: ['ada', 'grace', 'linus', 'margaret', 'dennis', 'barbara'],
+  cases: [{ key: 'ada' }, { key: 'grace' }, { key: 'linus' }, { key: 'margaret' }, { key: 'dennis' }, { key: 'barbara' }],
   compare: { control: plain, variants: [skilled], minLift: 0.2 },
   async task(c) {
     await c.send('go')
@@ -568,7 +571,7 @@ export default defineEval({
     const p = await gitProject('compare-family-ungated', {
       'evals/greets.eval.ts': `import { defineEval, expect } from 'reeval'
 export default defineEval({
-  cases: ['ada', 'grace'],
+  cases: [{ key: 'ada' }, { key: 'grace' }],
   async task(c) {
     await c.send('go')
     expect(process.env.REEVAL_TEST_BREAK ?? 'ok').toBe('ok')
@@ -602,8 +605,8 @@ export default defineEval({
       'evals/greets.eval.ts': `import { defineEval, expect } from 'reeval'
 const fail = (process.env.REEVAL_TEST_FAIL ?? '').split(',')
 export default defineEval({
-  cases: (process.env.REEVAL_TEST_SET ?? 'a,b,c').split(','),
-  async task(c, k) {
+  cases: (process.env.REEVAL_TEST_SET ?? 'a,b,c').split(',').map((key) => ({ key })),
+  async task(c, { key: k }) {
     await c.send('go')
     expect(fail.includes(k), 'passes ' + k).toBe(false)
   },
@@ -655,7 +658,7 @@ export default defineEval({
       'evals/fp.eval.ts': `import { defineEval, expect } from 'reeval'
 const bv = Number(process.env.REEVAL_TEST_BV ?? 1)
 export default defineEval({
-  cases: [{ id: 'a', v: 1 }, { id: 'b', v: bv }],
+  cases: [{ key: 'a', v: 1 }, { key: 'b', v: bv }],
   async task(c, k) {
     await c.send('go')
     expect(k.v, 'small').toBeLessThan(3)
@@ -1292,9 +1295,9 @@ const plain = defineEnvironment('plain', { sandbox: fakeSandbox() })
 const withSkill = defineEnvironment('with-skill', { sandbox: fakeSandbox() })
 
 export default defineEval({
-  cases: ['add user authentication', 'add social login and email/password auth'],
+  cases: [{ key: 'add user authentication' }, { key: 'add social login and email/password auth' }],
   compare: { control: plain, variants: [withSkill] },
-  async task(c, prompt) {
+  async task(c, { key: prompt }) {
     await c.send(prompt)
     await expect(c).toHaveFile('greet.js')
   },

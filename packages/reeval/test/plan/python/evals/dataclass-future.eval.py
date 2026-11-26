@@ -7,9 +7,9 @@ from reeval_python.declare import evaluate
 
 @dataclass
 class Case:
-    name: str
+    key: str
 
 
 @evaluate("case", {"cases": [Case("a"), Case("b")]})
 async def each(c, case: Case):
-    await c.send(case.name)
+    await c.send(case.key)

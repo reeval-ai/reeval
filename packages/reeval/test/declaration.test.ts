@@ -86,7 +86,7 @@ const EVALS: Record<string, () => object> = {
     task: async () => {},
   }),
   d: () => ({ timeout: '2m', egress: 'deny-all', environment: skill, task: async () => {} }),
-  case: () => ({ cases: [1, 2], task: async () => {} }),
+  case: () => ({ cases: [{ key: '1' }, { key: '2' }], task: async () => {} }),
 }
 
 /**

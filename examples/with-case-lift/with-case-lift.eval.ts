@@ -7,12 +7,12 @@ const withJsdoc = math.extendEnvironment('jsdoc', ({ skill }) => ({
 
 // The compare's lift is paired by case across all six cases, so one run a side gives a verdict.
 // minLift gates that pooled lift, not each case's.
-const functions = ['subtract', 'multiply', 'divide', 'power', 'max', 'min']
+const functions = ['subtract', 'multiply', 'divide', 'power', 'max', 'min'].map((key) => ({ key }))
 
 export default defineEval({
   cases: functions,
   compare: { control: math, variants: [withJsdoc], minLift: 0.2 },
-  task: async (c, name) => {
+  task: async (c, { key: name }) => {
     await c.send(`Add a ${name}(a, b) function to src/math.js.`)
 
     const documented = new RegExp(`\\*/\\s*export function ${name}\\b`)

@@ -35,6 +35,5 @@ export const EVAL_OPTION_SPECS: EvalOptionSpec[] = [
   { key: 'revision', featureId: 'history.revision', plan: true, refusals: true },
   { key: 'pin', featureId: 'profiles', plan: true },
   { key: 'cases', featureId: 'cases', plan: true, refusals: true },
-  { key: 'caseKey', featureId: 'cases', plan: true, refusals: true },
   { key: 'where', featureId: 'where', plan: true, refusals: true },
 ]

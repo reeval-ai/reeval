@@ -137,6 +137,7 @@ const HISTORY_COMMANDS = {
   record: 1,
   history: 1,
   show: 1,
+  export: 1,
   compare: 1,
   checkout: 1,
   query: 1,
@@ -148,6 +149,7 @@ const HISTORY_COMMANDS = {
 const PULLS = {
   history: 1,
   show: 1,
+  export: 1,
   compare: 1,
   checkout: 1,
   query: 1,
@@ -436,6 +438,10 @@ async function run(argv: string[]): Promise<number> {
         return commands.historyCommand(ctx, filters)
       case 'show':
         return commands.showCommand(ctx, filters)
+      case 'export': {
+        const { exportCommand } = await import('./export.ts')
+        return exportCommand(ctx, filters)
+      }
       case 'compare':
         return commands.compareCommand(ctx, filters)
       case 'checkout':

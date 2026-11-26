@@ -38,6 +38,7 @@ import { type PlannedEval, planEval } from './plan-eval.ts'
 import { maskedVariables, redactSecrets } from './redact.ts'
 import { sandboxKind } from './sandbox/kinds.ts'
 import type {
+  Case,
   CaseEvalSpec,
   CaseFn,
   CaseOptions,
@@ -455,7 +456,7 @@ const defineEvaluate =
         `${where} sets where without cases. where picks case-and-environment pairs; to drop an environment, leave it out of environments.`,
       )
     }
-    if (isObjectLike(written) && ('cases' in written || 'caseKey' in written)) {
+    if (isObjectLike(written) && 'cases' in written) {
       return registerCases(
         mode,
         name,
@@ -493,21 +494,14 @@ function registerCases(
   base?: string,
   legacyCaseNames = false,
 ): void {
-  const { cases, caseKey, where: pick, ...rest } = written
+  const { cases, where: pick, ...rest } = written
   if (!Array.isArray(cases)) {
     throw new UsageError(
-      cases === undefined
-        ? `caseKey in ${where} names each case, but there are no cases. Add cases: [...], or drop caseKey.`
-        : `cases in ${where} must be a list (got ${typeof cases}), e.g. cases: ['users', 'posts'].`,
+      `cases in ${where} must be a list (got ${typeof cases}), e.g. cases: [{ key: 'users' }, { key: 'posts' }].`,
     )
   }
   if (cases.length === 0) {
     throw new UsageError(`cases in ${where} is an empty list. Give at least one case.`)
-  }
-  if (caseKey !== undefined && typeof caseKey !== 'function') {
-    throw new UsageError(
-      `caseKey in ${where} must be a function from a case to its key, e.g. caseKey: (item) => item.slug.`,
-    )
   }
   if (pick !== undefined && typeof pick !== 'function') {
     throw new UsageError(
@@ -519,13 +513,14 @@ function registerCases(
       `${where} has cases, so it can't take runs: { bestOf }: best-of stops each cell on its own, and the cases pool over the runs. Set a fixed count, e.g. runs: 3.`,
     )
   }
-  const keys = caseKeys(cases, caseKey, where)
+  const keys = caseKeys(cases, where)
   // Keys as they're shown and recorded: in the plan's notes and the pairs `where` leaves out.
   const shownKeys = keys.map((k) => redactSecrets(k))
   const own = withPaths(rest as EvalOptions, where, base)
+  checkOptions(own, where)
   const file = collectingFile()
   const body = bodyHash(fn, where, file)
-  const prepared = cases.map((item, i) => {
+  const prepared = (cases as Case[]).map((item, i) => {
     const key = shownKeys[i] as string
     const family = { name, case: i, cases: cases.length }
     const source = { body, caseJson: caseJson(item, `${where} case "${key}"`, file) }
@@ -672,7 +667,7 @@ export function declareDefault(file: string, module: unknown): void {
   const mode: DeclaredMode = skip ? 'skip' : 'run'
   const skipReason = typeof skip === 'string' ? skip : undefined
   const base = dirname(file)
-  if ('cases' in options || 'caseKey' in options) {
+  if ('cases' in options) {
     const label = (key: string) => `${rel} case "${key}"`
     const fn = task as CaseFn<unknown>
     const written = options as EvalOptions & CaseOptions<unknown>

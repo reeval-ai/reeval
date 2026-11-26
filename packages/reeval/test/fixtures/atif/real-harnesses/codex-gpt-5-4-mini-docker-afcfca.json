@@ -1,0 +1,107 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "20260927T161031Z_cc7e11c_cursor-agent_a3yh",
+  "trajectory_id": "evals/hello.es.ts › writes hello.txt # codex:gpt-5.4-mini/-/docker#1",
+  "agent": {
+    "name": "codex",
+    "version": "codex-cli 0.157.1",
+    "model_name": "gpt-5.4-mini"
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-09-27T16:10:45.456Z",
+      "source": "user",
+      "message": "Run `ls -a` to look around, then create hello.txt containing exactly: hi"
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-09-27T16:10:48.347Z",
+      "source": "agent",
+      "model_name": "gpt-5.4-mini-2026-03-17[effort=medium]",
+      "message": "I’ll take a quick look at the workspace with `ls -a`, then I’ll add `hello.txt` with the exact contents you asked for.",
+      "tool_calls": [
+        {
+          "tool_call_id": "item_1",
+          "function_name": "bash",
+          "arguments": {
+            "command": "/bin/bash -lc 'ls -a'"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "item_1",
+            "content": ".\n..\n",
+            "extra": {
+              "ok": true,
+              "durationMs": 3083
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-09-27T16:10:50.583Z",
+      "source": "agent",
+      "model_name": "gpt-5.4-mini-2026-03-17[effort=medium]",
+      "message": "I’ve checked the directory, and it’s empty aside from `.` and `..`. Next I’m creating `hello.txt` with the exact single-line content `hi`.",
+      "tool_calls": [
+        {
+          "tool_call_id": "item_3:0",
+          "function_name": "file-edit",
+          "arguments": {
+            "path": "hello.txt"
+          },
+          "extra": {
+            "path": "hello.txt",
+            "kind": "create",
+            "added": null,
+            "removed": null
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "item_3:0",
+            "extra": {
+              "durationMs": 934
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": 4,
+      "timestamp": "2026-09-27T16:10:51.684Z",
+      "source": "agent",
+      "model_name": "gpt-5.4-mini-2026-03-17[effort=medium]",
+      "message": "Created `hello.txt` with exactly `hi`.",
+      "metrics": {
+        "prompt_tokens": 31946,
+        "completion_tokens": 251,
+        "cached_tokens": 20736,
+        "extra": {
+          "cache_creation_input_tokens": 0,
+          "reasoning_tokens": 76
+        }
+      }
+    }
+  ],
+  "final_metrics": {
+    "total_prompt_tokens": 31946,
+    "total_completion_tokens": 251,
+    "total_cached_tokens": 20736,
+    "extra": {
+      "cache_creation_input_tokens": 0,
+      "reasoning_tokens": 76
+    },
+    "total_steps": 4
+  },
+  "extra": {
+    "outcome": "pass"
+  }
+}

@@ -4,7 +4,7 @@ import { base, skilled } from '../../../plan/compare/evals/envs.ts'
 evaluate(
   'pooled',
   {
-    cases: ['ada', 'grace', 'linus'],
+    cases: [{ key: 'ada' }, { key: 'grace' }, { key: 'linus' }],
     compare: { control: base, variants: [skilled], minLift: 0.2 },
   },
   async () => {},
@@ -12,10 +12,12 @@ evaluate(
 evaluate(
   'keyed',
   {
-    cases: [{ who: 'ada' }, { who: 'grace' }],
-    caseKey: (c) => c.who,
+    cases: [
+      { key: 'ada', who: 'Ada Lovelace' },
+      { key: 'grace', who: 'Grace Hopper' },
+    ],
     compare: { control: base, variants: [skilled] },
   },
   async () => {},
 )
-evaluate('one case is not pooled', { cases: ['only'] }, async () => {})
+evaluate('one case is not pooled', { cases: [{ key: 'only' }] }, async () => {})

@@ -167,21 +167,21 @@ def test_case_data_is_canonical_json_and_non_json_is_refused(tmp_path: Path) -> 
 
         @dataclass
         class Case:
-            id: str
+            key: str
             n: int
 
-        @evaluate("case", {"cases": [{"id": "0", "b": 1, "a": "é"}, Case("1", 2)]})
+        @evaluate("case", {"cases": [{"key": "0", "b": 1, "a": "é"}, Case("1", 2)]})
         def case(c, item): ...
         """,
     )
-    assert found["case [0]"]["caseJson"] == '{"a":"é","b":1,"id":"0"}'
-    assert found["case [1]"]["caseJson"] == '{"id":"1","n":2}'
+    assert found["case [0]"]["caseJson"] == '{"a":"é","b":1,"key":"0"}'
+    assert found["case [1]"]["caseJson"] == '{"key":"1","n":2}'
     assert found["case [0]"]["body"] == found["case [1]"]["body"]
 
     path = tmp_path / "c.eval.py"
     path.write_text(
         "from reeval_python import evaluate\n"
-        "@evaluate('case', {'cases': [object()], 'case_key': lambda c: '0'})\n"
+        "@evaluate('case', {'cases': [{'key': '0', 'when': object()}]})\n"
         "def case(c, item): ...\n",
         encoding="utf-8",
     )

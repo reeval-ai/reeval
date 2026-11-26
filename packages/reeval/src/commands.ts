@@ -67,6 +67,7 @@ export type HistoryFlags = {
   verbose?: boolean[]
   trace?: boolean
   out?: string
+  format?: string
   debug?: boolean
   'push-only'?: boolean
 }

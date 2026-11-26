@@ -182,7 +182,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'cases',
     area: 'Config and selection',
-    name: '`cases` and `caseKey`: one eval over a list of cases, counted and named once with its cases as rows inside it, pooled into a pass rate that `gate: { passRate }` gates and a paired lift that `minLift` gates; older records fold into the same shape, an `evaluate.each` family under its template without placeholders, so a port continues its history',
+    name: '`cases`: one eval over a list of cases, each an object with its `key`, counted and named once with its cases as rows inside it, pooled into a pass rate that `gate: { passRate }` gates and a paired lift that `minLift` gates; older records fold into the same shape, an `evaluate.each` family under its template without placeholders, so a port continues its history',
     plan: ['compare/cases', 'compare/cases-filtered', 'selection/tags'],
     fixtures: ['run/cases', 'run/cases-rate'],
     unit: [
@@ -487,6 +487,12 @@ export const inventory: InventoryFeature[] = [
     area: 'Config and selection',
     name: "`reeval cloud push [run]` with the stored sign-in (or `REEVAL_TOKEN`): the recorded run (default the newest; one only in `.reeval/runs` is refused with how to record it) as its history archive, uploaded to the studio of the project in `.reeval/project.json` or `--org` and `--project`; refused with exit 2 before anything is sent when the secret scan finds something in a file of it (named by file, line and rule, never any part of the value) unless `--skip-secret-scan`, or when signed out; waits until the platform has read it and prints the studio URL (`--no-wait` returns once uploaded), exit 3 with the platform's error when it can't read it, exit 2 with its message when it refuses the upload",
     unit: ['reeval/test/cloud-push.test.ts', 'reeval/test/cli.test.ts'],
+  },
+  {
+    id: 'export',
+    area: 'Records and studio',
+    name: "`reeval export [run]`: the run as its history archive zip (default `<run>.zip`), or with `--format atif` each attempt's ATIF trajectory as `atif.json` in the attempt's folder (default under `<run>.atif/`); an unknown format is refused with exit 2",
+    unit: ['reeval/test/atif.test.ts'],
   },
   {
     id: 'cloud.push-analyses',

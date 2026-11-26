@@ -274,6 +274,25 @@ Under each attempt, each `turn <n>` sits at the time it started, with the transc
 
 For more information about reading one run, see [Show one run](/results/output#show-one-run).
 
+## `reeval export`
+
+[//]: # (generated:cli-help:export)
+
+```text
+Usage: reeval export [run] [options]
+
+Export a run as its archive zip, or with --format in another format
+
+Options:
+  --format <name>           atif: an ATIF trajectory per attempt
+  --out <path>              The zip or a directory for it, or the directory for --format (default: <run>.zip, <run>.<format>)
+  --offline                 Read the history store's local copy without pulling
+  --all-branches            Include every branch's runs, not only HEAD's
+  --profile <name>          Profile whose history store to use
+```
+
+[//]: # (/generated:cli-help:export)
+
 ## `reeval compare`
 
 The `reeval compare` command diffs two runs. An omitted head is `latest`. The default base is the newest complete recorded run on the closest commit in the head's Git ancestry that has one; if no ancestral commit has one, it is the previous complete recorded run.

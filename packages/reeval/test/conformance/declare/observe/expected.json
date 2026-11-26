@@ -76,7 +76,7 @@
       "body": "b3",
       "source": {
         "body": "eb3e3dcbc03908fdd57fbad9d733b8407d9d149f40ff08f3357926f885cf47d6",
-        "caseJson": "\"chat\""
+        "caseJson": "{\"key\":\"chat\"}"
       },
       "family": {
         "name": "which framework",
@@ -94,7 +94,7 @@
       "body": "b4",
       "source": {
         "body": "eb3e3dcbc03908fdd57fbad9d733b8407d9d149f40ff08f3357926f885cf47d6",
-        "caseJson": "\"rag\""
+        "caseJson": "{\"key\":\"rag\"}"
       },
       "family": {
         "name": "which framework",

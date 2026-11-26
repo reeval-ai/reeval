@@ -6,7 +6,7 @@ data reeval documents for it, in snake_case too, and reeval checks them when it 
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import Any, Generic, Literal, Required, TypedDict, TypeVar
 
@@ -118,13 +118,19 @@ class EvalOptions(TypedDict, total=False):
     """Per attempt, in seconds or as a timedelta."""
 
 
+class Case(TypedDict):
+    """One case of an eval with `cases`; subclass it for the case's own fields:
+    `class Duration(Case): input: str`."""
+
+    key: str
+
+
 class CaseOptions(EvalOptions, Generic[T], total=False):
     """An eval's options with `cases`: each case runs the body, `(c, case)`, with every cell and
     run, and the cases pool into one pass rate (and, with `compare`, one lift paired by case).
     Per eval only."""
 
     cases: Required[Sequence[T]]
-    """The inputs, each JSON data."""
-    case_key: Callable[[T], str]
-    """Each case's key, which names it in the output and the record. Without it, a string or a
-    finite number is its own key, and a dict uses its `id`, else its `name`."""
+    """The inputs, each a dict (or a dataclass) of JSON data with its `key`, which names the case
+    in the output and the record: 1–80 characters, with no surrounding whitespace, `#`, `›` or
+    control characters, and unique within the eval."""

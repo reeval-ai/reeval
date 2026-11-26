@@ -113,7 +113,7 @@ export const EVAL_OPTION_KEYS = [
 ] as const
 
 /** Options of one eval with cases, read before the cascade. */
-export const CASE_OPTION_KEYS = ['cases', 'caseKey', 'where'] as const
+export const CASE_OPTION_KEYS = ['cases', 'where'] as const
 
 const KNOWN: string[] = [...EVAL_OPTION_KEYS]
 const SUGGEST: Record<string, string> = {
@@ -292,7 +292,7 @@ export function checkOptions(options: object, where: string, allowed = KNOWN): v
     const near = SUGGEST[key] ?? closest(key, allowed)
     const value = (options as Record<string, unknown>)[key]
     const hint =
-      key === 'cases' || key === 'caseKey'
+      key === 'cases'
         ? ` ${key} belongs to one eval: defineEval({ cases: [...], task: async (c, item) => { … } }).`
         : key === 'where'
           ? ' where is an option of defineEval only, beside cases: defineEval({ cases: [...], where: ({ case, environment }) => …, task }).'
