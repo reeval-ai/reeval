@@ -2131,6 +2131,20 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/eval-error.test.ts'],
   },
   {
+    id: 'grade.code-graders',
+    area: 'Judges and matchers',
+    name: "`defineGrader` code graders in `defineEval({ graders })`, typed against `cases`: once the task returns, each reads the attempt's case, turns, execs, observations, captures and kept files within its `files` (masked) and its `data`, all at once, with none after a throw, timeout, cancel or infra error; each attempt records `grades` (grade, score, weight, fingerprint, what it read) and its `score`, and passes only at 1",
+    fixtures: ['grade/code-graders'],
+    unit: ['reeval/test/grade.test.ts', 'reeval/test/refusals.test.ts'],
+  },
+  {
+    id: 'grade.score',
+    area: 'Judges and matchers',
+    name: "The attempt's score: the scored grades' mean weighted by `weight` (0 records only, a grade with no score too), 0 when a `required` grader scored under 1 or errored, and `defineGraders` groups sharing one `grade` call",
+    fixtures: ['grade/score'],
+    unit: ['reeval/test/grade.test.ts'],
+  },
+  {
     id: 'assert.named-checks',
     area: 'Judges and matchers',
     name: "Named check results: `expect(value, 'label')`, every `expect` and `expect.require` recorded per attempt, tallied per cell, and checks that don't discriminate in a compare",

@@ -31,7 +31,10 @@ function workspacePath(path: string): string | undefined {
   if (typeof path !== 'string' || !path || path.startsWith('/') || /^[A-Za-z]:/.test(path)) {
     return undefined
   }
-  const steps = path.replaceAll('\\', '/').split('/').filter((s) => s && s !== '.')
+  const steps = path
+    .replaceAll('\\', '/')
+    .split('/')
+    .filter((s) => s && s !== '.')
   return steps.includes('..') || !steps.length ? undefined : steps.join('/')
 }
 

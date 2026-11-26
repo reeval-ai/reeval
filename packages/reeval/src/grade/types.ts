@@ -1,12 +1,5 @@
 import type { ArtifactRef, ExecLine } from '../history/types.ts'
-import type {
-  Case,
-  Duration,
-  EnvironmentHelpers,
-  HostFile,
-  JSONValue,
-  TurnData,
-} from '../types.ts'
+import type { Case, Duration, EnvironmentHelpers, HostFile, JSONValue, TurnData } from '../types.ts'
 
 /** A turn as a grader reads it: what the record keeps of it. */
 export type GraderTurn = Pick<
@@ -78,10 +71,11 @@ export type GraderSpec<C = unknown, G extends JSONValue = JSONValue> = {
 }
 
 /** What `defineGraders` takes: one `grade` whose grade each named grader scores. */
-export type GraderGroupSpec<Name extends string, C = unknown, G extends JSONValue = JSONValue> = Omit<
-  GraderSpec<C, G>,
-  'score' | 'weight' | 'required'
-> & {
+export type GraderGroupSpec<
+  Name extends string,
+  C = unknown,
+  G extends JSONValue = JSONValue,
+> = Omit<GraderSpec<C, G>, 'score' | 'weight' | 'required'> & {
   /** Each grader's score of the shared grade, by name. */
   score: { [K in Name]: (grade: G) => number }
   /** Each grader's share, or a weight for all. Default 1. */

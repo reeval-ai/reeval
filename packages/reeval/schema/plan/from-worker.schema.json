@@ -2884,6 +2884,37 @@
             "at": {
               "type": "number"
             },
+            "error": {
+              "type": "string"
+            },
+            "grader": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "grade-end"
+            },
+            "ms": {
+              "type": "number"
+            },
+            "score": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          },
+          "required": ["at", "grader", "kind", "ms", "score"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "at": {
+              "type": "number"
+            },
             "host": {
               "type": "string"
             },

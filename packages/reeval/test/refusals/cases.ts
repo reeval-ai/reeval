@@ -45,6 +45,7 @@ import { resolveModelGateway } from '../../src/gateway/models.ts'
 import { resolveGateway } from '../../src/gateway/resolve.ts'
 import { vercelCredentialProblem } from '../../src/gateway/vercel.ts'
 import { vertexSettings } from '../../src/gateway/vertex.ts'
+import { defineGrader } from '../../src/grade/define.ts'
 import { refusedMcp } from '../../src/harness/agents.ts'
 import { cloud } from '../../src/internal-vm.ts'
 import { judgeRoute } from '../../src/judge/index.ts'
@@ -400,6 +401,8 @@ const withCases = (options: object, task: (...args: never[]) => unknown = async 
 /** What an ungated defineEval() refuses, in an eval file of its own. */
 const ungated = (options: object) => defines({ gate: 'observe', ...options, task: async () => {} })
 const plainEnv = defineEnvironment('plain', {})
+const passes = defineGrader('passes', { grade: () => true })
+const also = defineGrader('also', { grade: () => true })
 const nextEnv = defineEnvironment('next-app', { traits: { stack: 'next' } })
 const viteEnv = defineEnvironment('vite-app', { traits: { stack: 'vite' } })
 type Pair = {
@@ -3084,6 +3087,10 @@ environments:
     ['skip: an empty reason', defines({ skip: '', task: async () => {} })],
     ['skip: true is accepted', defines({ skip: true, task: async () => {} })],
     ['skip: a reason is accepted', defines({ skip: 'flaky on CI', task: async () => {} })],
+    ['graders: not a list', defines({ graders: passes, task: async () => {} })],
+    ['graders: not a grader', defines({ graders: [passes, 'lint'], task: async () => {} })],
+    ['graders: two named alike', defines({ graders: [passes, [passes]], task: async () => {} })],
+    ['graders: a list is accepted', defines({ graders: [passes, [also]], task: async () => {} })],
     ['agents: an empty list', defines({ agents: [], task: async () => {} })],
     ['agents: harnesses', defines({ harnesses: fakeAgent(), task: async () => {} })],
     [

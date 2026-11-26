@@ -4,7 +4,7 @@ import { redactSecrets, redactValue } from '../redact.ts'
 import { clip, formatDuration } from '../text.ts'
 import type { GradeFingerprint, GradeReads, GradeRecord, JSONValue } from '../types.ts'
 import { type GradeInputs, graderContext, readData } from './context.ts'
-import type { GraderDef, GradeRun } from './define.ts'
+import type { GradeRun, GraderDef } from './define.ts'
 
 /** The most a grade may be, as JSON. */
 const GRADE_LIMIT = 64 * 1024
@@ -30,13 +30,29 @@ function asGrade(value: unknown): { grade: JSONValue } | { error: string } {
     return { error: `grade returned a value that isn't JSON: ${message(error)}` }
   }
   if (text === undefined) return { error: `grade returned a ${typeof value}. Return a JSON value.` }
-  if (canonicalJson(JSON.parse(text)) !== canonicalJson(value)) {
-    return { error: `grade returned a value that isn't JSON data (a class instance or a non-finite number)` }
+  if (!isJsonData(value)) {
+    return {
+      error: `grade returned a value that isn't JSON data (a class instance or a non-finite number)`,
+    }
   }
   if (text.length > GRADE_LIMIT) {
-    return { error: `grade returned ${text.length} characters of JSON, over the ${GRADE_LIMIT} a grade may be` }
+    return {
+      error: `grade returned ${text.length} characters of JSON, over the ${GRADE_LIMIT} a grade may be`,
+    }
   }
   return { grade: redactValue(JSON.parse(text) as JSONValue) }
+}
+
+function isJsonData(value: unknown): boolean {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return true
+  if (typeof value === 'number') return Number.isFinite(value)
+  if (Array.isArray(value)) return value.every(isJsonData)
+  if (typeof value !== 'object') return false
+  const proto = Object.getPrototypeOf(value)
+  return (
+    (proto === Object.prototype || proto === null) &&
+    Object.values(value).every((v) => v === undefined || isJsonData(v))
+  )
 }
 
 function abortable<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
@@ -64,7 +80,12 @@ async function runOnce(run: GradeRun, inputs: GradeInputs, signal: AbortSignal):
     ).finally(() => {
       reads = ctx.reads
     })
-    return { ...asGrade(value), reads, ...(data ? { data } : {}), durationMs: performance.now() - started }
+    return {
+      ...asGrade(value),
+      reads,
+      ...(data ? { data } : {}),
+      durationMs: performance.now() - started,
+    }
   } catch (error) {
     const why = timeout.aborted
       ? `grade timed out after ${formatDuration(run.timeoutMs)}`
@@ -160,7 +181,8 @@ export function attemptScore(grades: readonly GradeRecord[]): number {
 /** Why an attempt that scored under 1 fails: its score and each grader that cost it. */
 export function scoreFailure(score: number, grades: readonly GradeRecord[]): string {
   const cost = grades.filter(
-    (g) => g.error !== undefined || (g.score !== null && g.score < 1 && (g.weight > 0 || g.required)),
+    (g) =>
+      g.error !== undefined || (g.score !== null && g.score < 1 && (g.weight > 0 || g.required)),
   )
   const why = cost.map((g) =>
     g.error !== undefined

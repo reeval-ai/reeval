@@ -6,13 +6,7 @@ import { UsageError } from '../errors.ts'
 import { isObjectLike } from '../object.ts'
 import type { HostFile, JSONValue } from '../types.ts'
 import { functionDigest } from './digest.ts'
-import type {
-  Grader,
-  GraderContext,
-  GraderGroupSpec,
-  GraderHelpers,
-  GraderSpec,
-} from './types.ts'
+import type { Grader, GraderContext, GraderGroupSpec, GraderHelpers, GraderSpec } from './types.ts'
 
 export const GRADER = Symbol.for('reeval.grader')
 
@@ -51,11 +45,11 @@ type Input<S> = S | ((helpers: GraderHelpers) => S)
 
 function specOf<S>(input: Input<S>, where: string, base: string): Record<string, unknown> {
   const spec =
-    typeof input === 'function'
-      ? (input as (h: GraderHelpers) => S)(pick(helpersFor(base)))
-      : input
+    typeof input === 'function' ? (input as (h: GraderHelpers) => S)(pick(helpersFor(base))) : input
   if (!isObjectLike(spec) || Array.isArray(spec)) {
-    throw new DefinitionError(`${where} takes a spec, e.g. { grade: (c) => … } (got ${typeof spec})`)
+    throw new DefinitionError(
+      `${where} takes a spec, e.g. { grade: (c) => … } (got ${typeof spec})`,
+    )
   }
   const unknown = Object.keys(spec).filter((k) => !KEYS.includes(k))
   if (unknown.length) {
@@ -82,14 +76,23 @@ function checkName(name: unknown, where: string): asserts name is string {
   }
 }
 
-function runOf(spec: Record<string, unknown>, names: string[], where: string, file: string | undefined, base: string): GradeRun {
+function runOf(
+  spec: Record<string, unknown>,
+  names: string[],
+  where: string,
+  file: string | undefined,
+  base: string,
+): GradeRun {
   const files = spec.files ?? []
   if (!Array.isArray(files) || files.some((f) => typeof f !== 'string' || !f)) {
     throw new DefinitionError(
       `files in ${where} must be a list of globs of workspace files, e.g. files: ['package.json', 'src/**'] (got ${JSON.stringify(files)})`,
     )
   }
-  if (spec.revision !== undefined && !(Number.isInteger(spec.revision) && (spec.revision as number) >= 0)) {
+  if (
+    spec.revision !== undefined &&
+    !(Number.isInteger(spec.revision) && (spec.revision as number) >= 0)
+  ) {
     throw new DefinitionError(
       `revision in ${where} must be a whole number, e.g. revision: 2 (got ${JSON.stringify(spec.revision)})`,
     )
@@ -150,7 +153,9 @@ function weightOf(value: unknown, where: string): number {
 function requiredOf(value: unknown, where: string): boolean {
   if (value === undefined) return false
   if (typeof value !== 'boolean') {
-    throw new DefinitionError(`required in ${where} must be true or false (got ${JSON.stringify(value)})`)
+    throw new DefinitionError(
+      `required in ${where} must be true or false (got ${JSON.stringify(value)})`,
+    )
   }
   return value
 }
@@ -213,7 +218,9 @@ export function defineGraders<
 ): { [K in keyof Names]: Grader<C> } {
   const where = `defineGraders(${JSON.stringify(names)})`
   if (!Array.isArray(names) || !names.length) {
-    throw new DefinitionError(`defineGraders needs a list of grader names, e.g. ['builds', 'tests']`)
+    throw new DefinitionError(
+      `defineGraders needs a list of grader names, e.g. ['builds', 'tests']`,
+    )
   }
   for (const name of names) checkName(name, 'defineGraders')
   const twice = names.find((n, i) => names.indexOf(n) !== i)
@@ -234,12 +241,15 @@ export function defineGraders<
   const perName = (value: unknown, field: string, name: string): unknown => {
     if (!isObjectLike(value) || Array.isArray(value)) return value
     const extra = Object.keys(value).filter((k) => !names.includes(k))
-    if (extra.length) throw new DefinitionError(`${field} in ${where} names no grader ${extra.join(', ')}`)
+    if (extra.length)
+      throw new DefinitionError(`${field} in ${where} names no grader ${extra.join(', ')}`)
     return value[name]
   }
   const run = runOf(s, [...names], where, file, base)
   return names.map((name) => {
-    const fn = (score as Record<string, GraderDef['score']>)[name] as NonNullable<GraderDef['score']>
+    const fn = (score as Record<string, GraderDef['score']>)[name] as NonNullable<
+      GraderDef['score']
+    >
     return grader({
       name,
       run,

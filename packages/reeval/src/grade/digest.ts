@@ -20,7 +20,9 @@ function resolveLocal(from: string, specifier: string): string | undefined {
   const tries = [
     base,
     ...EXTENSIONS.map((ext) => base + ext),
-    ...(/\.[cm]?jsx?$/.test(base) ? EXTENSIONS.map((ext) => base.replace(/\.[cm]?jsx?$/, ext)) : []),
+    ...(/\.[cm]?jsx?$/.test(base)
+      ? EXTENSIONS.map((ext) => base.replace(/\.[cm]?jsx?$/, ext))
+      : []),
     ...EXTENSIONS.map((ext) => resolve(base, `index${ext}`)),
   ]
   return tries.find(isFile)
@@ -54,8 +56,13 @@ export function moduleDigest(file: string): string {
 }
 
 /** sha256 of `fn`'s source as written, with `file`'s module digest when it's known. */
-export function functionDigest(fn: (...args: never[]) => unknown, file: string | undefined): string {
+export function functionDigest(
+  fn: (...args: never[]) => unknown,
+  file: string | undefined,
+): string {
   const text = Function.prototype.toString.call(fn)
   const source = originalText(text, file) ?? text
-  return sha256(canonicalJson({ source, ...(file && isFile(file) ? { module: moduleDigest(file) } : {}) }))
+  return sha256(
+    canonicalJson({ source, ...(file && isFile(file) ? { module: moduleDigest(file) } : {}) }),
+  )
 }

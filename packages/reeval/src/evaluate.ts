@@ -20,7 +20,6 @@ import {
   type TestOptions,
 } from './engine/runtime.ts'
 import { inCI } from './env.ts'
-import { type GraderDef, graderList } from './grade/define.ts'
 import {
   callerDir,
   environmentFrom,
@@ -31,6 +30,7 @@ import {
 import { UsageError } from './errors.ts'
 import { badEvalId, fileEvalId, legacyCaseEvalName } from './eval-id.ts'
 import { bodyHash, caseJson } from './eval-source.ts'
+import { type GraderDef, graderList } from './grade/define.ts'
 import { evalId, relativeFile } from './ids.ts'
 import { environmentInputs } from './inputs.ts'
 import { isObjectLike } from './object.ts'
