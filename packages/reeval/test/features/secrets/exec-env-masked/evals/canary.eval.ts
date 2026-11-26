@@ -1,4 +1,5 @@
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { plain } from './env.ts'
 import { TOKEN } from './token.ts'
 
@@ -7,6 +8,6 @@ export default defineEval({
   task: async (c) => {
     const r = await c.exec('printf %s "$EXEC_TOKEN"', { env: { EXEC_TOKEN: TOKEN } })
     // Must fail, quoting the value, masked.
-    expect(r.stdout).toBe('not the token')
+    assert.equal(r.stdout, 'not the token')
   },
 })

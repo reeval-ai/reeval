@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs'
 import { type AttemptContext, defineEnvironment } from 'reeval'
+import { judge } from 'reeval/graders'
 import { fakeJudge } from 'reeval/judge'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
@@ -17,25 +18,27 @@ export const tokens = defineEnvironment('tokens', ({ secret }) => ({
   },
 }))
 
-/**
- * The state a judge is sent after the agent printed its secret and a check printed the checks'
- * one, also written to `judge-saw-<name>.json` for the host to compare with `judge-input.json`.
- */
-export async function judgeSaw(c: AttemptContext, name: string) {
+/** The agent prints its secret and a check prints the checks' one. */
+export async function printTokens(c: AttemptContext) {
   await c.send('print AGENT_TOKEN')
   await c.exec('printf %s "$CHECK_TOKEN"')
-  let state: { checks?: Array<{ stdout: string }>; transcript?: string } = {}
-  const look = fakeJudge({
-    score: (s) => {
-      state = s as typeof state
-      return 1
-    },
-  })
-  await c.judge('Did the agent print its token?', {
-    model: look,
-    checks: true,
-    transcript: 'full',
-  })
-  writeFileSync(new URL(`../judge-saw-${name}.json`, import.meta.url), JSON.stringify(state))
-  return state
 }
+
+type Seen = { checks?: Array<{ stdout: string }>; transcript?: string }
+
+/**
+ * A judge grader shown the checks and the transcript, which scores 1 when `ok` holds of what it
+ * was sent, also written to `judge-saw-<name>.json` for the host to compare with
+ * `judge-input.json`.
+ */
+export const sawRedacted = (name: string, ok: (state: Seen) => boolean) =>
+  judge('Did the agent print its token?', {
+    name: 'sees-redacted',
+    inputs: { checks: true, transcript: 'full' },
+    model: fakeJudge({
+      score: (s) => {
+        writeFileSync(new URL(`../judge-saw-${name}.json`, import.meta.url), JSON.stringify(s))
+        return ok(s as Seen) ? 1 : 0
+      },
+    }),
+  })

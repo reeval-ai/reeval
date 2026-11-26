@@ -138,7 +138,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'target.metric',
     area: 'Config and selection',
-    name: '`target: metric()`, the default: every cell ungated, a failed `expect` reads `ran` and fails nothing',
+    name: '`target: metric()`, the default: every cell ungated, and a failing attempt fails nothing',
     plan: ['targets/targets'],
     fixtures: ['run/target-metric', 'output/study'],
     unit: ['reeval/test/output.test.ts'],
@@ -146,7 +146,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'assert.stay-within',
     area: 'Judges and matchers',
-    name: '`toStayWithin({ tokens, toolCalls, duration })`: a budget on a turn or on every turn of `c`; a `tokens` limit on a turn with no reported usage is an error, not a failure',
+    name: '`withinLimits({ tokens, toolCalls, duration })`: a budget on every turn; a `tokens` limit on a turn with no reported usage is an error, not a failure',
     plan: [],
     fixtures: ['assert/stay-within', 'assert/stay-within-unreported'],
     unit: ['reeval/test/assert.test.ts'],
@@ -1020,17 +1020,13 @@ export const inventory: InventoryFeature[] = [
     fixtures: [
       'secrets/redaction-coverage',
       'secrets/short-declared-secrets',
-      'secrets/expect-message-masked',
-      'secrets/expect-instance-masked',
-      'secrets/matcher-output-masked',
+      'secrets/exec-env-masked',
     ],
     unit: [
       'reeval/test/unit.test.ts',
       'reeval/test/secrets.test.ts',
       'reeval/test/debug.test.ts',
-      'reeval/test/engine-expect.test.ts',
       'reeval/test/engine-run.test.ts',
-      'reeval/test/match.test.ts',
       'reeval/test/capture-page.test.ts',
     ],
   },
@@ -1602,7 +1598,7 @@ export const inventory: InventoryFeature[] = [
     id: 'harness.unread-turn-error',
     area: 'Harnesses',
     name: 'A turn that ends with an error the body never reads (`turn.status`) makes the attempt an infra error, even when its checks pass, and leaves it out of compare questions',
-    fixtures: ['harness/unread-turn-error-is-infra', 'judge/unread-turn-error'],
+    fixtures: ['harness/unread-turn-error-is-infra'],
     unit: ['reeval/test/turn-status.test.ts', 'reeval/test/results.test.ts'],
   },
   {
@@ -1871,7 +1867,6 @@ export const inventory: InventoryFeature[] = [
       'harness-cursor-sdk/test/unit.test.ts',
       'reeval/test/cursor-sdk-shape.test.ts',
       'reeval/test/replay.test.ts',
-      'reeval/test/match.test.ts',
     ],
     real: ['contract › nothing silently unreported'],
   },
@@ -1989,15 +1984,8 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'judge',
     area: 'Judges and matchers',
-    name: 'Judge verdicts, errors, option cascade and retries',
+    name: "The judge's option cascade and its retries",
     unit: ['reeval/test/engine.test.ts', 'reeval/test/unit.test.ts'],
-  },
-  {
-    id: 'judge.outage-is-infra',
-    area: 'Judges and matchers',
-    name: "A judge call the provider never answered (a rate limit, a 5xx, overload or the network, after its retries) makes the attempt an infra error, asserted with `toPass()` (Python's `to_pass()` too) or not, so `--retry-errors` runs it again; a refused key or model, an input over the provider's token limit, an answered verdict, a polled `toPass()`, a Python `assert verdict.passed` or another failed check keeps it a fail",
-    fixtures: ['judge/outage-is-infra'],
-    unit: ['reeval/test/engine.test.ts', 'reeval/test/resume.test.ts'],
   },
   {
     id: 'judge.decide',
@@ -2034,14 +2022,13 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'judge.scope',
     area: 'Judges and matchers',
-    name: 'What the judge is given: only the inputs each judge (a `judge()` grader or a `c.judge()` call) turns on (task, output, files, diff patterns, contents by path or pattern, transcript, checks, observations, artifacts), over `turns`; none by default, and a call that turns none on fails before any model call (a compile error in TypeScript); build output, source maps, build info and minified files dropped from its diff',
+    name: 'What the judge is given: only the inputs each `judge()` grader turns on (task, output, files, diff patterns, contents by path or pattern, transcript, checks, observations, artifacts), over `turns`; none by default, and a grader that turns none on is refused; build output, source maps, build info and minified files dropped from its diff',
     fixtures: [
       'judge/build-output',
       'judge/input-diff',
       'judge/input-contents',
       'judge/input-contents-glob',
       'judge/inputs-explicit',
-      'judge/no-input',
       'judge/input-transcript',
       'judge/input-turns',
       'judge/input-checks',
@@ -2064,18 +2051,12 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'judge.input-size',
     area: 'Judges and matchers',
-    name: "A judge call's provider error, worded as the provider wrote it, with the input's estimated size, biggest parts and files and the inputs that were on, largest first; reeval sends what the call turns on, uncut",
+    name: "A judge grader's provider error, worded as the provider wrote it, with the input's estimated size, biggest parts and files and the inputs that were on, largest first; reeval sends what the call turns on, uncut",
     unit: [
       'reeval/test/unit.test.ts',
       'reeval/test/judge-state.test.ts',
       'reeval/test/engine.test.ts',
     ],
-  },
-  {
-    id: 'judge.soft-failure',
-    area: 'Judges and matchers',
-    name: 'A failed judge call returns `verdict: "error"`, is recorded, and fails the attempt after its body, so the judges and checks after it still run',
-    unit: ['reeval/test/engine.test.ts'],
   },
   {
     id: 'judge.real',
@@ -2084,15 +2065,9 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/engine.test.ts'],
   },
   {
-    id: 'matchers',
-    area: 'Judges and matchers',
-    name: '`toHaveFile`, `toSucceed` and `toPass`',
-    unit: ['reeval/test/match.test.ts', 'reeval/test/engine.test.ts'],
-  },
-  {
     id: 'assert.exec-env',
     area: 'Judges and matchers',
-    name: "`c.exec(command, { env })`: variables for one command, over the environment's, in the foreground, the background and `expect.poll`; secret-named values masked in everything reeval writes, and a brokered secret's host value sent as its placeholder",
+    name: "`c.exec(command, { env })`: variables for one command, over the environment's, in the foreground and the background; secret-named values masked in everything reeval writes, and a brokered secret's host value sent as its placeholder",
     fixtures: ['assert/exec-env', 'secrets/exec-env-masked', 'secrets/exec-env-brokered'],
     unit: [
       'reeval/test/refusals.test.ts',
@@ -2103,29 +2078,9 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'assert.exec-retries',
     area: 'Judges and matchers',
-    name: "`c.exec(command, { retries, interval })`: a non-zero exit runs the command again, each try, and `passed on try 2 of 3`, in the check's record and log (the `Worth knowing` note and the `summary.md` row are a `toSucceed` assertion's, not a `succeeded()` grader's)",
+    name: "`c.exec(command, { retries, interval })`: a non-zero exit runs the command again, each try, and `passed on try 2 of 3`, in the check's record and log",
     fixtures: ['assert/exec-retries'],
     unit: ['reeval/test/ui.test.ts'],
-  },
-  {
-    id: 'assert.exec-result-sync',
-    area: 'Judges and matchers',
-    name: "`expect(await c.exec(…)).toSucceed()` checks the result at once, with no `await` in front of `expect`; only `c.exec()`'s promise makes it async",
-    fixtures: ['assert/exec-result-sync'],
-    unit: ['reeval/test/match.test.ts', 'reeval/test/types.test.ts'],
-  },
-  {
-    id: 'assert.unawaited-matcher',
-    area: 'Judges and matchers',
-    name: "An async matcher the eval doesn't await (`toHaveFile`, `expect(c.exec(…)).toSucceed()`, `.resolves`) fails the attempt, naming the matcher and the eval's line",
-    fixtures: ['assert/unawaited-matcher'],
-    unit: ['reeval/test/engine-expect.test.ts'],
-  },
-  {
-    id: 'assert.matcher-subjects',
-    area: 'Judges and matchers',
-    name: "Each of reeval's matchers typechecks only on the subjects it takes (`toPass` on a verdict, `toSucceed` on an exec, the transcript matchers on `c` or a turn)",
-    unit: ['reeval/test/types.test.ts'],
   },
   {
     id: 'history.observe',
@@ -2212,27 +2167,9 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/grade-judge.test.ts'],
   },
   {
-    id: 'assert.named-checks',
-    area: 'Judges and matchers',
-    name: "Named check results: `expect(value, 'label')`, every `expect` and `expect.require` recorded per attempt, tallied per cell, and checks that don't discriminate in a compare",
-    fixtures: ['assert/labeled', 'compare/check-not-run'],
-    unit: ['reeval/test/engine-expect.test.ts', 'reeval/test/checks.test.ts'],
-  },
-  {
-    id: 'assert.soft-default',
-    area: 'Judges and matchers',
-    name: "Checks don't stop the eval: a failed `expect` is recorded and the body carries on, a failed `expect.require` ends it, and the result lists every failed check with its label and line",
-    fixtures: ['assert/soft-default', 'output/not-run'],
-    unit: [
-      'reeval/test/engine-expect.test.ts',
-      'reeval/test/engine.test.ts',
-      'reeval/test/ui.test.ts',
-    ],
-  },
-  {
     id: 'assert',
     area: 'Judges and matchers',
-    name: '`expect(c | turn)` transcript matchers: `toHaveCalledSkill`, `toHaveCalledMcp`, `toHaveCalledTool`, `toHaveRun`, `toHaveEdited`, `toHaveSearched`, `toHaveFetched`',
+    name: 'Transcript graders: `usedSkill`, `calledMcp`, `calledTool`, `ran`, `wrote`, `searched`, `fetched`',
     fixtures: [
       'assert/called-skill',
       'assert/called-skill-path',
@@ -2240,40 +2177,25 @@ export const inventory: InventoryFeature[] = [
       'assert/called-tool-mcp',
       'assert/ran',
       'assert/edited',
-      'assert/edited-shell',
-      'assert/edited-read-only',
-      'assert/edited-per-turn',
-      'assert/edited-eval-writes',
     ],
     unit: ['reeval/test/assert.test.ts', 'reeval/test/query.test.ts'],
   },
   {
     id: 'assert.ran-program',
     area: 'Judges and matchers',
-    name: '`toHaveRun({ program, args? })` and `shellCommands()`: the program each shell segment ran, after env assignments, `timeout`, `sudo` and package runners',
+    name: '`ran({ program, args? })` and `shellCommands()`: the program each shell segment ran, after env assignments, `timeout`, `sudo` and package runners',
     fixtures: ['assert/ran-program'],
     unit: [
       'reeval/test/shell-commands.test.ts',
       'reeval/test/assert.test.ts',
-      'reeval/test/match.test.ts',
     ],
   },
   {
     id: 'assert.changed',
     area: 'Judges and matchers',
-    name: '`toHaveChanged(paths?)`: files in the workspace diff, matched with globs',
+    name: '`inDiff(paths?)` and `notInDiff`: files in the workspace diff, matched with globs',
     fixtures: ['assert/changed', 'assert/changed-quoted-path'],
     unit: ['reeval/test/assert.test.ts', 'reeval/test/unit.test.ts'],
-  },
-  {
-    id: 'expect',
-    area: 'Judges and matchers',
-    name: "Vitest's `expect` from `@vitest/expect`: matchers, diffs, `soft`, `poll`, `assertions`",
-    unit: [
-      'reeval/test/engine.test.ts',
-      'reeval/test/engine-expect.test.ts',
-      'reeval/test/engine-errors.test.ts',
-    ],
   },
 
   // Records and studio
@@ -2579,7 +2501,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'summary.labels',
     area: 'Records and studio',
-    name: 'Labels and names: judges and `toSucceed` checks by their `expect` label in judge rates, `reeval show` and `summary.md` (a long script on one line), tokens as `430k vs 1,094k` everywhere, and a compare\u2019s control named by its environment in the digest',
+    name: 'Labels and names: an older record\u2019s judges and `toSucceed` checks by their label in judge rates, `reeval show` and `summary.md` (a long script on one line), tokens as `430k vs 1,094k` everywhere, and a compare\u2019s control named by its environment in the digest',
     unit: ['reeval/test/analysis.test.ts'],
   },
   {
@@ -2725,7 +2647,6 @@ export const inventory: InventoryFeature[] = [
     unit: [
       'reeval/test/ui.test.ts',
       'reeval/test/capture-page.test.ts',
-      'reeval/test/match.test.ts',
       'reeval/test/capture.test.ts',
       'reeval/test/capture-wait.test.ts',
     ],
@@ -2870,13 +2791,6 @@ export const inventory: InventoryFeature[] = [
     name: 'Result layouts by what an eval varies: results, measure a change, compare harnesses, both, and an eval with cases',
     fixtures: ['output/none', 'output/change', 'output/harness', 'output/both', 'output/cases'],
     unit: ['reeval/test/output.test.ts'],
-  },
-  {
-    id: 'output.not-run',
-    area: 'CLI and runner',
-    name: 'A check that never ran reads `not run`, never `0 of N`, including every check of a cell with no counted attempt',
-    fixtures: ['output/not-run', 'output/zero-counted'],
-    unit: ['reeval/test/output.test.ts', 'reeval/test/suite.test.ts'],
   },
   {
     id: 'output.tally',
