@@ -530,6 +530,13 @@ export function messageLine(text: string): string {
 }
 
 /**
+ * A task failure's one line: its reason, after its class for an error other than an `EvalError`,
+ * a plain `Error` or an `AssertionError` (`TypeError: x is not a function`, `KeyError: 'missing'`).
+ */
+export const failureHeadline = (f: Pick<AttemptFailure, 'reason' | 'name'>) =>
+  f.name && !/^(Assertion)?Error$/.test(f.name) ? `${f.name}: ${f.reason}` : f.reason
+
+/**
  * The errors of a cell's failed and infra-error attempts that no failed check explains: every
  * timeout, infra error and abort, and an assertion or judge error on an attempt whose recorded
  * checks all passed (a throw in the eval's body), plus each turn's error, which is often why.
@@ -552,7 +559,7 @@ function errorsOf(e: EvalEntry, cell: CellRecord): CellError[] {
     if (!a.error) continue
     const checked = a.error.kind === 'assertion' || a.error.kind === 'judge'
     if (checked && (a.assertions ?? []).some((x) => x.status !== 'pass')) continue
-    if (a.failure) add(a.error.kind, a.failure.reason, a.failure)
+    if (a.failure) add(a.error.kind, failureHeadline(a.failure), a.failure)
     else add(a.error.kind, a.error.message)
   }
   return out

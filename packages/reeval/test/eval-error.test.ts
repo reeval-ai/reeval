@@ -83,6 +83,37 @@ describe("the attempt's failure", () => {
     assert.deepEqual([global.failure?.name, global.failure?.reason], ['EvalError', 'not reeval’s'])
   })
 
+  test("the stack carries the error's causes, as Python's traceback does", () => {
+    const parse = new SyntaxError('Unexpected token } in JSON')
+    parse.stack = 'SyntaxError: Unexpected token } in JSON\n    at JSON.parse (<anonymous>)'
+    const error = new EvalError({ reason: 'config unreadable', cause: parse })
+    error.stack = 'EvalError: config unreadable\n    at task (/project/evals/a.eval.ts:4:11)'
+    assert.equal(
+      failed(error).failure?.stack,
+      'EvalError: config unreadable\n    at task (evals/a.eval.ts:4:11)\nCaused by: SyntaxError: Unexpected token } in JSON\n    at JSON.parse (<anonymous>)',
+    )
+    const looped = new Error('a', { cause: 'not an error' })
+    assert.match(failed(looped).failure?.stack ?? '', /\nCaused by: not an error$/)
+  })
+
+  test('meta past 4 KiB of JSON is recorded as how big it was', () => {
+    const error = new EvalError({ reason: 'x', meta: { stderr: 'y'.repeat(5000) } })
+    assert.deepEqual(failed(error).failure?.meta, { truncated: true, bytes: 5013 })
+  })
+
+  test('the reason drops escape sequences and control characters', () => {
+    const error = new EvalError('\u001b[2Jbuild\u0007 failed\u2028at\tlast')
+    assert.equal(failed(error).failure?.reason, 'build  failed at last')
+  })
+
+  test("JavaScript's own EvalError, given reeval's options, says to import reeval's", () => {
+    const error = new globalThis.EvalError({ reason: 'x' } as never)
+    assert.match(
+      failed(error).failure?.reason ?? '',
+      /^EvalError isn't reeval's: import \{ EvalError \}/,
+    )
+  })
+
   test('a failed expect.require the task let through is no failure: its assertion holds it', () => {
     const error = new Error('expected 1 to be 2')
     assert.equal(failed(error, [{ status: 'fail', error }]).failure, undefined)
@@ -120,7 +151,7 @@ export default defineEval({
     )
     assert.match(
       r.stdout,
-      /x\.y is not a function\n +before the first turn\n +at task \(evals\/b\.eval\.ts:5:\d+\)/,
+      /TypeError: x\.y is not a function\n +before the first turn\n +at task \(evals\/b\.eval\.ts:5:\d+\)/,
     )
     const { run } = readRun(p.dir)
     const [a, b] = run.evals.map((e) => e.attempts[0]?.failure)

@@ -2,6 +2,7 @@ import { clip, formatDuration, plural } from '../text.ts'
 import type { AttemptMeta } from '../types.ts'
 import { type DebugLine, debugTime } from '../view/debug.ts'
 import { triesNote } from '../view/judgments.ts'
+import { failureHeadline } from '../view/suite.ts'
 import type { Colors } from './colors.ts'
 import { colors, stripAnsi } from './colors.ts'
 import type { EvalResult, Progress } from './events.ts'
@@ -221,7 +222,7 @@ export function failureReason(e: EvalResult): string {
   if (e.meta?.errorKind === 'judge' && failed) {
     return stripAnsi(judgeLine(plainColors, failed)).replace(/\s+/g, ' ').trim()
   }
-  if (e.meta?.failure && !e.meta.failure.name) return e.meta.failure.reason
+  if (e.meta?.failure) return failureHeadline(e.meta.failure)
   const [first = ''] = (e.errors[0] ?? '').split('\n').filter((l) => l.trim())
   return first.trim().replace(ERROR_NAME, '')
 }
