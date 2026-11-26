@@ -1,8 +1,8 @@
 # with-judge-on-output
 
 **Shows:** judging what the program prints, not the diff. The agent writes `summary.js` for an
-`orders.csv`, the eval runs it, and `c.judge(question, { on: run.stdout, output: true })` asks
-whether the output has the right count and total.
+`orders.csv`, the task runs it, and a `judge` grader with `inputs: { checks: ['node summary.js'] }`
+asks whether what it printed has the right count and total.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
 first. A real agent needs its key in `.env.local` (`ANTHROPIC_API_KEY` for Claude Code, which
@@ -24,16 +24,12 @@ in [`examples/profiles.ts`](../profiles.ts).
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the attempt's `judge-input.json`, under `.reeval/runs/<run>/`. The program's
-output stands in for the agent's final message, as `output`, and it's the only input.
+**What to look at:** the grade lines in `pnpm eval -v`. The judge sees only the stored run of
+`node summary.js`, its exit code and output, which the attempt's `execs.jsonl` also keeps:
 
 ```text
-    "question": "Does it say there are 3 orders totaling 50?",
-    …
-    "state": {
-      "output": "3 orders, total 50.00\n"
-    },
-    …
+[judge#1 fake] 08:06:26 check     grade succeeded:node summary.js score 1 (4ms)
+[judge#1 fake] 08:06:26 check     grade judge:Does it say there are 3 orders totaling 50? score 1 (7ms)
 ```
 
 | File | What it is |

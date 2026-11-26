@@ -25,7 +25,7 @@ pnpm eval --profile vertex
 
 **Real or fake agent:** `pnpm eval` runs a fake agent and a fake judge, with no keys or Docker. The
 agent copies the [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent
-would produce, so the checks have something to check. `pnpm eval --profile vertex` runs Claude
+would produce, so the graders have something to grade. `pnpm eval --profile vertex` runs Claude
 Code on Vertex AI, and `--profile <name>` runs any agent in
 [`examples/profiles.ts`](../profiles.ts) on its own key.
 
@@ -50,8 +50,8 @@ A model the project can't call there gets the fix: enable it in Model Garden, or
 another region with `vertex({ regions: { anthropic: '<region>' } })`.
 
 ```text
-eval                                                           harnesses  variants  runs  attempts  notes
-with-vertex-gateway.eval.ts › adds a tested multiply function  1          —         1     1         gateway: claude-code:claude-sonnet-5-5 → vertex
+eval                 agents  variants  runs  attempts  target    notes
+with-vertex-gateway  1       —         1     1         metric()  gateway: claude-code:claude-sonnet-5-5 → vertex
 ```
 
 Claude ids are the same on Vertex as on Anthropic's API, so the same string works with `direct()`
@@ -62,7 +62,7 @@ Without a project in `GOOGLE_CLOUD_PROJECT` or `vertex({ project })`, the plan s
 
 | File | What it is |
 |---|---|
-| [`with-vertex-gateway.eval.ts`](./with-vertex-gateway.eval.ts) | The eval: one prompt, two checks and a judge |
+| [`with-vertex-gateway.eval.ts`](./with-vertex-gateway.eval.ts) | The eval: one prompt, two graders and a judge |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent and judge, the `vertex` profile, and the real agents from `../profiles.ts` |

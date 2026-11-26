@@ -1,9 +1,9 @@
 # with-guarded-files
 
 **Shows:** failing an agent that touches files it was told to leave alone. The agent adds
-`clamp(n, min, max)` to a small package with no new dependencies, and the eval guards
-`package.json` and `package-lock.json` with `expect(c).not.toHaveChanged([…])` before running the
-tests.
+`clamp(n, min, max)` to a small package with no new dependencies. A `required` `notInDiff` grader
+guards `package.json` and `package-lock.json`: when either changed, the attempt scores 0, however
+the tests went.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
 first. A real agent needs its key in `.env.local` (`ANTHROPIC_API_KEY` for Claude Code), Docker,
@@ -16,8 +16,8 @@ pnpm eval
 ```
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
-[`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check. `--profile canary` is a fake agent that does the same work but
+[`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so
+the graders have something to grade. `--profile canary` is a fake agent that does the same work but
 also adds a dependency to `package.json`, from [`canary/`](./canary). `pnpm eval --profile
 claude-code` runs the same eval on Claude Code, and `--profile <name>` on any other agent in
 [`examples/profiles.ts`](../profiles.ts).
@@ -26,25 +26,25 @@ claude-code` runs the same eval on Claude Code, and `--profile <name>` on any ot
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** `pnpm eval --profile canary`. The canary's `clamp` and tests are right, so
-only the guard catches it, and the run exits 1:
+**What to look at:** `pnpm eval --profile canary -v`. The canary's `clamp` and tests are right, so
+only the guard catches it, and the attempt scores 0:
 
 ```text
-fail             adds clamp without new dependencies
-  dependencies untouched  failed
-    expected no changes to package.json, package-lock.json, got ["package.json" (modified)]
+with-guarded-files.eval.ts
+  · with-guarded-files  0%  metric()
+    #1  0%  not-in-diff:package.json,package-lock.json 0% (required)
 ```
 
-`not.toHaveChanged` reads the workspace diff, so a write from a shell command such as
-`npm install` counts too. Its globs match exact paths, while `toHaveEdited`'s string matches any
-path containing it, so guard with `toHaveChanged`.
+`notInDiff` reads the workspace diff, so a write from a shell command such as `npm install` counts
+too. Its globs match exact paths, while `wrote`'s string matches any path containing it, so guard
+with `notInDiff`.
 
 | File | What it is |
 |---|---|
-| [`with-guarded-files.eval.ts`](./with-guarded-files.eval.ts) | The eval: one prompt, the guard and the tests |
+| [`with-guarded-files.eval.ts`](./with-guarded-files.eval.ts) | The eval: one prompt, a test run, the guard and the tests grader |
 | [`project/`](./project) | The package the agent starts from: `src/math.js`, its test, `package.json` and its lockfile |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`canary/`](./canary) | The canary's `package.json`, with a dependency added |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, the `canary` profile, and the real agents from `../profiles.ts` |
 
-`toHaveChanged` is in the [Matchers](../../docs/reference/matchers.mdx) reference.
+The built-in graders are in the [Authoring API reference](../../docs/reference/authoring-api.mdx).

@@ -25,25 +25,27 @@ Code, with the oracle beside it on the first, and `--profile <name>` on any othe
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the result blocks: the oracle joins the first eval's agents, and the second
-runs without the careful one.
+**What to look at:** the result blocks in `pnpm eval -v`: the oracle joins the first eval's
+agents, and the second runs without the careful one.
 
 ```text
-pass             adds multiply, with an oracle beside the agents
-  harness          pass
-  fake-quick       1 of 1
-  fake-careful     1 of 1
-  oracle           1 of 1
+adds-multiply.eval.ts
+  · adds-multiply  100%  metric()
+    fake-quick    100%
+    fake-careful  100%
+    oracle        100%
 
-pass             adds subtract, without the careful agent
+adds-subtract.eval.ts
+  · adds-subtract  100%  metric()
+    #1  100%
 ```
 
-Under a profile the edits apply to the profile's agent, and the plan notes it:
+Under a profile, the profile's agents replace the eval's, and the plan notes it:
 
 ```text
-eval                                                         harnesses  variants  runs  attempts  notes
-with-agent-edits.eval.ts › adds multiply, with an oracle…  2          —         1     2         harness set by the eval
-with-agent-edits.eval.ts › adds subtract, without the…     1          —         1     1         harness set by the eval
+eval           agents  variants  runs  attempts  target    notes
+adds-multiply  1       —         1     1         metric()  agents set by profile claude-code
+adds-subtract  1       —         1     1         metric()  agents set by profile claude-code
 ```
 
 `{ only: 'fake-quick' }` keeps inherited harnesses by id. Every id must be inherited, so it suits

@@ -10,7 +10,7 @@ const fakeFile = (path: string) =>
 
 export default defineConfig({
   include: ['*.eval.ts'],
-  // A scripted agent that copies ./fake-agent's files into the workspace, so the checks run
+  // A scripted agent that copies ./fake-agent's files into the workspace, so the graders run
   // without keys or Docker.
   agents: fakeAgent({
     files: {
@@ -20,9 +20,8 @@ export default defineConfig({
     text: 'I added divide(a, b) to src/math.js; it throws a RangeError when b is 0.',
   }),
   sandbox: fakeSandbox(),
-  // A fixed score and no model call. Each profile sets its own judge model, which wins over
-  // this one; the threshold stays.
-  judge: { model: fakeJudge({ score: 0.9 }), threshold: 0.8 },
+  // A fixed answer and no model call; each profile sets its own judge model, which wins.
+  judge: { model: fakeJudge({ score: 0.9 }) },
   // The real agents: `--profile claude-code`, or any other in ../profiles.ts. An example's own
   // profiles go beside them.
   profiles: { ...profiles },

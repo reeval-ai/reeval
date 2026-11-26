@@ -40,6 +40,7 @@ the run record, under `.reeval/runs/`, says why:
     "stderr": "…AcmeError: Acme API answered 503\n    at Object.weather (file:///reeval/workspace/vendor/acme/index.js:15:24)\n    at async forecast (file:///reeval/workspace/src/forecast.js:5:21)\n…"
   },
   "score": 0,
+  "weight": 1,
   "required": true,
   …
 }

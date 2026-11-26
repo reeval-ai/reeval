@@ -2,9 +2,9 @@
 
 **Shows:** a plugin in Claude Code's layout: a `release` skill, an MCP server that knows the next
 version, and a command. `plugin.local('./plugins/release', { only: ['skills', 'mcp'] })` places
-the skill and the server and leaves the command out. The agent prepares the release, and the eval
-checks it called the plugin's server, `release:releases`, with `toHaveCalledMcp`, and updated
-`package.json` and `CHANGELOG.md` as the skill says.
+the skill and the server and leaves the command out. The agent prepares the release, and the graders
+check it called the plugin's server, `release:releases`, with `calledMcp`, and updated
+`package.json` and `CHANGELOG.md` as the skill says, with `hasFile`.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
 first. A real agent needs its key in `.env.local` (`ANTHROPIC_API_KEY` for Claude Code), Docker,
@@ -17,12 +17,12 @@ pnpm eval
 ```
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
-[`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check; first it starts the plugin's server and calls `next_version`
-for real. `pnpm eval --profile claude-code` runs the same eval on Claude Code, and
-`--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts). Each agent loads
-the plugin's parts its own way; plugins are experimental, and the plan refuses a part an agent
-can't load.
+[`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so
+the graders have something to grade; first it starts the plugin's server and calls `next_version`
+for real. `pnpm eval --profile claude-code` runs the same eval on Claude Code, and `--profile
+<name>` on any other agent in [`examples/profiles.ts`](../profiles.ts). Each agent loads the
+plugin's parts its own way; plugins are experimental, and the plan refuses a part an agent can't
+load.
 
 **Copying it out of the repo:** `reeval.config.ts` imports `../profiles.ts`. Copy
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
@@ -41,7 +41,7 @@ where the skill and server went:
 
 | File | What it is |
 |---|---|
-| [`with-plugin.eval.ts`](./with-plugin.eval.ts) | The eval: the environment with the plugin, and three checks |
+| [`with-plugin.eval.ts`](./with-plugin.eval.ts) | The eval: the environment with the plugin, and three graders |
 | [`plugins/release/`](./plugins/release) | The plugin: its manifest, skill, `.mcp.json`, server and command |
 | [`project/`](./project) | The package the agent starts from: `package.json` and `CHANGELOG.md` |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |

@@ -24,13 +24,14 @@ runs one agent.
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the result block, a row per harness, then the contrast between them:
+**What to look at:** the result block in `pnpm eval -v`, a row per harness, then the contrast
+between them:
 
 ```text
-pass             adds a tested multiply function
-  harness          pass
-  fake-quick       1 of 1
-  fake-careful     1 of 1
+with-many-agents.eval.ts
+  · with-many-agents  100%  metric()
+    fake-quick    100%
+    fake-careful  100%
 ```
 
 One try a cell gives the query no verdict, so run four:
@@ -51,7 +52,7 @@ here; Claude Code, Codex and Cursor read `harness`.
 
 | File | What it is |
 |---|---|
-| [`with-many-agents.eval.ts`](./with-many-agents.eval.ts) | The eval: one prompt, two checks |
+| [`with-many-agents.eval.ts`](./with-many-agents.eval.ts) | The eval: one prompt, two graders |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agents copy into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The two fake agents, the `agents` profile and the real agents from `../profiles.ts` |

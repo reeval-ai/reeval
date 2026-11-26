@@ -14,7 +14,7 @@ const files = {
 export default defineConfig({
   include: ['*.eval.ts'],
   // One scripted agent at two reasoning efforts, each its own cell. It copies ./fake-agent's
-  // files into the workspace, so the checks run without keys or Docker.
+  // files into the workspace, so the graders run without keys or Docker.
   agents: [
     fakeAgent({ effort: 'low', servedModel: 'fake-1[effort=low]', files }),
     fakeAgent({ effort: 'high', servedModel: 'fake-1[effort=high]', files }),

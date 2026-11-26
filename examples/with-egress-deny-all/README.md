@@ -27,7 +27,7 @@ eval on Claude Code, and `--profile <name>` on any other agent in
 one profile you need.
 
 **What to look at:** `pnpm eval -v` shows the gateway refusing the registry, for the agent and then
-for the check:
+for the task's own request:
 
 ```text
 [adds#1 fake] 15:02:10 container network policy deny-all · detached from every Docker network, the gateway is its only way out
@@ -39,12 +39,12 @@ for the check:
 [adds#1 fake] 15:02:12 gateway   CONNECT registry.npmjs.org:443 → 403 · blocked: the policy denies all egress · ↑0 B ↓0 B · 0ms · no key substituted
 ```
 
-A refused request doesn't fail the attempt; the checks decide whether it matters. The run record's
+A refused request doesn't fail the attempt; the graders decide whether it matters. The run record's
 `egress.blocked` lists each refused host with the reason, and the studio's State tab shows it.
 
 | File | What it is |
 |---|---|
-| [`with-egress-deny-all.eval.ts`](./with-egress-deny-all.eval.ts) | The eval: `egress: 'deny-all'`, one prompt, three checks |
+| [`with-egress-deny-all.eval.ts`](./with-egress-deny-all.eval.ts) | The eval: `egress: 'deny-all'`, one prompt, three graders |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent writes into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The scripted fake agent in Docker, and the real agents from `../profiles.ts` |

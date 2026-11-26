@@ -5,7 +5,7 @@
 agent. The `boat` and `daytona` profiles set `provider: boat()` or `provider: daytona()`, so the
 same sandbox runs on the provider's machines: the first run builds the image into a saved snapshot
 there, and later runs start from that snapshot. The agent writes `fizzbuzz.dart` and a script that
-checks it, and the eval runs them with `dart`.
+checks it; the task runs them with `dart`, and two `succeeded` graders read the runs.
 
 **Needs:** Docker, or `BOAT_API_KEY` for `--profile boat` and `DAYTONA_API_KEY` for
 `--profile daytona`, even for the fake agent. `package.json` adds `@boatdev/sdk` and
@@ -22,10 +22,10 @@ pnpm eval --profile daytona   # on Daytona
 ```
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no agent key. It copies the
-[`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check; it still runs in the Dart image. `pnpm eval
---profile claude-code` runs the same eval on Claude Code, and `--profile <name>` on any other agent
-in [`examples/profiles.ts`](../profiles.ts).
+[`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so
+the graders have something to grade; it still runs in the Dart image. `pnpm eval --profile
+claude-code` runs the same eval on Claude Code, and `--profile <name>` on any other agent in
+[`examples/profiles.ts`](../profiles.ts).
 
 **Copying it out of the repo:** `reeval.config.ts` imports `../profiles.ts`. Copy
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
@@ -47,7 +47,7 @@ later one starts from the saved snapshot:
   ◆  Running...
 
 with-dart.eval.ts
-  ✓ writes and tests fizzbuzz in Dart  1 of 1 run passed
+  · with-dart  100%  metric()
 ```
 
 `pnpm reeval image list --profile boat` shows the snapshots, and
@@ -57,7 +57,7 @@ network, so the `daytona` profile sets `egress: 'allow-all'`.
 
 | File | What it is |
 |---|---|
-| [`with-dart.eval.ts`](./with-dart.eval.ts) | The eval: the Dart environment, one prompt, two checks |
+| [`with-dart.eval.ts`](./with-dart.eval.ts) | The eval: the Dart environment, one prompt, two graders |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, the `boat` and `daytona` profiles, and the real agents from `../profiles.ts` |
 

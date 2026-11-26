@@ -24,13 +24,13 @@ Claude Code at `low` and `high`. `--profile claude-code`, or any other in
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the result block, a row per effort:
+**What to look at:** the result block in `pnpm eval -v`, a row per effort:
 
 ```text
-pass             adds a tested multiply function
-  harness            pass
-  fake[effort=low]   1 of 1
-  fake[effort=high]  1 of 1
+with-reasoning-effort.eval.ts
+  · with-reasoning-effort  100%  metric()
+    fake[effort=low]   100%
+    fake[effort=high]  100%
 ```
 
 Under `--profile claude-code-efforts` the cells are `claude-code:claude-sonnet-5[effort=low]`
@@ -38,7 +38,7 @@ and `claude-code:claude-sonnet-5[effort=high]`.
 
 | File | What it is |
 |---|---|
-| [`with-reasoning-effort.eval.ts`](./with-reasoning-effort.eval.ts) | The eval: one prompt, two checks |
+| [`with-reasoning-effort.eval.ts`](./with-reasoning-effort.eval.ts) | The eval: one prompt, two graders |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent at two efforts, the `claude-code-efforts` profile and the real agents from `../profiles.ts` |

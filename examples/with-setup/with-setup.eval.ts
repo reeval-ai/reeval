@@ -1,4 +1,5 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
+import { notInDiff, observed } from 'reeval/graders'
 
 // Every attempt seeds data/users.json and checks the tests pass before the agent starts.
 const users = defineEnvironment('users', ({ directory }) => ({
@@ -8,15 +9,13 @@ const users = defineEnvironment('users', ({ directory }) => ({
 
 export default defineEval({
   environment: users,
+  graders: [
+    observed('active', (count) => count === '25'),
+    // The diff starts after setup, so the seeded file isn't the agent's change.
+    notInDiff('data/users.json', { name: 'setup-is-not-the-change' }),
+  ],
   task: async (c) => {
-    const turn = await c.send(
-      'Write src/active.js. It prints how many users in data/users.json are active.',
-    )
-
-    expect((await c.exec('node src/active.js')).stdout.trim()).toBe('25')
-    expect(
-      turn.diff.files.map((f) => f.path),
-      "setup isn't the agent's change",
-    ).not.toContain('data/users.json')
+    await c.send('Write src/active.js. It prints how many users in data/users.json are active.')
+    c.observe('active', (await c.exec('node src/active.js')).stdout.trim())
   },
 })

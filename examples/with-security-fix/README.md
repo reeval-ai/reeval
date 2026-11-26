@@ -41,6 +41,7 @@ record, under `.reeval/runs/`, names the test:
     "failed": ["not ok 2 - a name with a quote in it still matches"]
   },
   "score": 0,
+  "weight": 1,
   "required": true,
   …
 }

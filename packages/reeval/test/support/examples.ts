@@ -81,7 +81,7 @@ export const EXAMPLES: Record<string, Example> = {
   // Writing evals
   'with-checks': { run: { 'fake/math/fake': pass(1) } },
   'with-checks-and-gates': { run: { 'fake/math/fake': pass(1) } },
-  'with-hidden-tests': { run: { 'fake/slugify/fake': pass(1) } },
+  'with-hidden-tests': { run: { needs: 'Docker' } },
   'with-guarded-files': { run: { 'fake/math/fake': pass(1) }, profiles: { canary: fakePlan } },
   'with-transcript-matchers': { run: { 'fake/math/fake': pass(1) } },
   'with-web-matchers': {
@@ -164,7 +164,7 @@ export const EXAMPLES: Record<string, Example> = {
   'with-fixture': { run: { 'fake/csv/fake': pass(1) } },
   'with-git-workspace': { run: { 'fake/reeval-math/fake': pass(1) } },
   'with-setup': { run: { 'fake/users/fake': pass(1) } },
-  'with-extend-environment': { run: { 'fake/math-with-docs/fake': pass(1) } },
+  'with-extend-environment': { run: { needs: 'Docker' } },
   'with-env': { run: { 'fake/shop-eur/fake': pass(1) } },
   'with-mcp': { run: { 'fake/acme-cli/fake': pass(1) } },
   'with-plugin': { run: { 'fake/acme-math/fake': pass(1) } },

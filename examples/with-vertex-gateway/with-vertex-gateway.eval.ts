@@ -1,16 +1,18 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
+import { hasFile, judge, succeeded } from 'reeval/graders'
 
 // The agent starts from the small package in ./project.
 const math = defineEnvironment('math', ({ directory }) => ({ files: directory('./project') }))
 
 export default defineEval({
   environment: math,
+  graders: [
+    hasFile('src/math.js', /export function multiply/),
+    succeeded('node --test'),
+    judge('Does the new test check multiply, not add?', { inputs: { diff: true } }),
+  ],
   task: async (c) => {
     await c.send('Add a multiply(a, b) function to src/math.js, with a test in test/math.test.js.')
-
-    await expect(c).toHaveFile('src/math.js', /export function multiply/)
-    await expect(c.exec('node --test')).toSucceed()
-    const verdict = await c.judge('Does the new test check multiply, not add?', { diff: true })
-    expect(verdict).toPass()
+    await c.exec('node --test')
   },
 })

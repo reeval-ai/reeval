@@ -1,4 +1,5 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
+import { succeeded } from 'reeval/graders'
 import { docker } from 'reeval/sandbox'
 
 // The official Dart image: reeval builds it with Node, git and the agent, on this machine's Docker
@@ -8,6 +9,7 @@ const dart = defineEnvironment('dart', { sandbox: docker({ from: 'dart:3.5' }) }
 
 export default defineEval({
   environment: dart,
+  graders: [succeeded('dart --version'), succeeded('dart run fizzbuzz_test.dart')],
   task: async (c) => {
     await c.send(
       'Write fizzbuzz.dart with a function fizzbuzz(int n) that returns the FizzBuzz string for ' +
@@ -15,7 +17,7 @@ export default defineEval({
         'mismatch. Core libraries only, no pubspec.',
     )
 
-    await expect(c.exec('dart --version')).toSucceed()
-    await expect(c.exec('dart run fizzbuzz_test.dart')).toSucceed()
+    await c.exec('dart --version')
+    await c.exec('dart run fizzbuzz_test.dart')
   },
 })

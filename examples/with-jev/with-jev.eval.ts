@@ -1,4 +1,5 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
+import { hasFile, judge } from 'reeval/graders'
 
 // The agent starts from the small package in ./project.
 const math = defineEnvironment('math', ({ directory }) => ({ files: directory('./project') }))
@@ -10,13 +11,13 @@ const jev = { model: 'typesafe-ai/jev-1.14.0' }
 export default defineEval({
   environment: math,
   judge: jev,
+  graders: [
+    hasFile('README.md', /add\(/),
+    judge('Could a new user call add correctly from README.md alone?', {
+      inputs: { contents: ['README.md', 'src/math.js'] },
+    }),
+  ],
   task: async (c) => {
     await c.send('Write a README.md for this package: what it is and how to call add.')
-
-    await expect(c).toHaveFile('README.md', /add\(/)
-    const verdict = await c.judge('Could a new user call add correctly from README.md alone?', {
-      contents: ['README.md', 'src/math.js'],
-    })
-    expect(verdict).toPass()
   },
 })

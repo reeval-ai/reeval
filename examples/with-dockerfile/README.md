@@ -16,8 +16,8 @@ pnpm eval
 ```
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys. It copies the
-[`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check; it still runs in the Dockerfile's image, where the database is.
+[`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so
+the graders have something to grade; it still runs in the Dockerfile's image, where the database is.
 `pnpm eval --profile claude-code` runs the same eval on Claude Code, and `--profile <name>` on any
 other agent in [`examples/profiles.ts`](../profiles.ts).
 
@@ -40,7 +40,7 @@ builds anew. `RUN` lines build as root, but the agent runs as the `reeval` user.
 
 | File | What it is |
 |---|---|
-| [`with-dockerfile.eval.ts`](./with-dockerfile.eval.ts) | The eval: the Dockerfile environment, one prompt, two checks |
+| [`with-dockerfile.eval.ts`](./with-dockerfile.eval.ts) | The eval: the Dockerfile environment, one prompt, two graders |
 | [`sqlite/`](./sqlite) | The Dockerfile and the `seed.sql` it loads |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, and the real agents from `../profiles.ts` |
