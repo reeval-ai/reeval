@@ -116,11 +116,12 @@ test('systemPrompt, tools and commands are --system-prompt, --tools and the gate
   )
 })
 
-test('the command gate runs a listed prefix alone or with arguments, and blocks the rest', async () => {
+test('the command gate runs a listed prefix alone or with arguments, and writes only in the workspace', async () => {
   const gate = await import(
     `data:text/javascript,${encodeURIComponent(piCommandGate(['echo ok', 'npm test']))}`
   )
-  let hook: (event: { toolName: string; input: { command?: string } }) => unknown = () => {}
+  let hook: (event: { toolName: string; input: { command?: string; path?: string } }) => unknown =
+    () => {}
   gate.default({ on: (_: string, h: typeof hook) => (hook = h) })
   const blocked = (command: string) => hook({ toolName: 'bash', input: { command } }) !== undefined
   for (const ok of ['echo ok', 'echo ok hi', 'npm test -- --watch=false']) {
@@ -133,10 +134,19 @@ test('the command gate runs a listed prefix alone or with arguments, and blocks 
     'echo ok; ls',
     'echo ok $(ls)',
     'echo ok > f',
+    'echo ok\nls',
   ]) {
     assert.equal(blocked(no), true, no)
   }
-  assert.equal(hook({ toolName: 'read', input: {} }), undefined)
+  const writes = (toolName: string, path: string) =>
+    hook({ toolName, input: { path } }) === undefined
+  assert.equal(writes('write', 'src/a.ts'), true)
+  assert.equal(writes('edit', `${process.cwd()}/a.ts`), true)
+  for (const path of ['../a.ts', '/etc/x', '~/.pi/agent/x', '@~/x', '.']) {
+    assert.equal(writes('write', path), false, path)
+    assert.equal(writes('edit', path), false, path)
+  }
+  assert.equal(hook({ toolName: 'read', input: { path: '/etc/passwd' } }), undefined)
 })
 
 test('env and header values are escaped so pi reads them literally', () => {

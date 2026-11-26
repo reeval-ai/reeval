@@ -16,7 +16,7 @@ excluded: —
 image docker · codex · 1 evals
   base  reeval-sandbox:codex-0.1.14  (reeval's image: pulled or built when missing or when its key changed)
 image docker · claude-code · 1 evals
-  base  reeval-sandbox:claude-code-1.0.176-patch.881d1055  (reeval's image: pulled or built when missing or when its key changed)
+  base  reeval-sandbox:claude-code-1.0.176-patch.d3dce4bb  (reeval's image: pulled or built when missing or when its key changed)
 image docker · antigravity · 1 evals
   base  reeval-sandbox:antigravity-0.1.17  (reeval's image: pulled or built when missing or when its key changed)
 image docker · opencode · 1 evals

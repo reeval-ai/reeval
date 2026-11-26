@@ -135,10 +135,10 @@ export function observed(
  */
 const INTERACTIVE_TOOLS = ['askUserQuestions']
 
-/** The adapter's built-in tools the driver turns off: those of {@link INTERACTIVE_TOOLS} it offers. */
 /** The adapters' names for the tool that loads a skill, which `tools` never turns off. */
 const SKILL_TOOLS = ['Skill', 'skill']
 
+/** The adapter's built-in tools the driver turns off: those of {@link INTERACTIVE_TOOLS} it offers. */
 export function interactiveTools(adapter: HarnessV1): string[] {
   return INTERACTIVE_TOOLS.filter((name) => Object.hasOwn(adapter.builtinTools, name))
 }

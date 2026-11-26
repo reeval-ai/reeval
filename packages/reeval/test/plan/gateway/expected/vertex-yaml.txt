@@ -10,7 +10,7 @@ pinned  b/-/docker                                control  ungated  ×1  gateway
 excluded: —
 not in the cloud: vertex() calls models on this machine's Google Cloud credentials (greets)
 image docker · claude-code · 1 evals
-  base  reeval-sandbox:claude-code-1.0.176-patch.881d1055  (reeval's image: pulled or built when missing or when its key changed)
+  base  reeval-sandbox:claude-code-1.0.176-patch.d3dce4bb  (reeval's image: pulled or built when missing or when its key changed)
 image docker · codex · 1 evals
   base  reeval-sandbox:codex-0.1.14  (reeval's image: pulled or built when missing or when its key changed)
 image docker · fx · 1 evals

@@ -2,6 +2,7 @@ import { defineEnvironment, type HarnessOption, type PluginPart, type Turn } fro
 import {
   ALLOWED_COMMAND,
   BLOCKED_HOST,
+  CHAINED_COMMAND,
   COMMAND,
   DENIED_COMMAND,
   INSTALLED_DIRS,
@@ -80,7 +81,7 @@ export const prompts = {
   option:
     "What is the probe codeword? Follow your instructions for it, then stop. If you have none for it, don't look for it: write NONE into codeword.txt and stop.",
   systemPrompt: `What is the probe codeword? Follow your instructions for it. Then: ${editAndRun}`,
-  commands: `Run these two shell commands, one at a time, each exactly as written and as its own command: ${ALLOWED_COMMAND}, then ${DENIED_COMMAND}. If one is refused, don't try it another way: go on, then stop.`,
+  commands: `Run these three shell commands, one at a time, each exactly as written and as its own command: ${ALLOWED_COMMAND}, then ${DENIED_COMMAND}, then ${CHAINED_COMMAND}. If one is refused, don't try it another way: go on, then stop.`,
   mcp: 'Call the house_stamp tool of the stamp MCP server once, then reply with what it returned.',
   editAndRun,
   reasoning:

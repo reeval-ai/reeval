@@ -38,6 +38,10 @@ export const PLUGIN_AGENT = 'probe-agent'
 export const PLANTED = 'contract-planted-9d2e5f01a7c3b846'
 /** Only the eval's `instructions` or `systemPrompt` know it. */
 export const OPTION_WORD = 'JUNIPER-73'
-/** The one command the commands eval allows, and the one it must refuse. */
+/**
+ * The one command the commands eval allows, and the ones it must refuse: another command, and
+ * the allowed one chained to another.
+ */
 export const ALLOWED_COMMAND = 'touch allowed.txt'
 export const DENIED_COMMAND = 'touch denied.txt'
+export const CHAINED_COMMAND = `${ALLOWED_COMMAND} && touch chained.txt`

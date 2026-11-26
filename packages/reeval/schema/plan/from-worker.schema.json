@@ -510,7 +510,7 @@
       "type": "object",
       "properties": {
         "commands": {
-          "description": "The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the harness refuses every other.",
+          "description": "The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the harness refuses every other. A prefix has no shell operators: Claude Code and pi refuse any command with one, and OpenCode runs a chained command only when each part is allowed.",
           "minItems": 1,
           "type": "array",
           "items": {
@@ -560,7 +560,7 @@
           "pattern": "\\S"
         },
         "tools": {
-          "description": "The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`, `edit`, `bash`, `grep`, `glob` and `webSearch`. Its other built-in tools are off; skills and MCP tools stay.",
+          "description": "The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`, `edit`, `bash`, `grep`, `glob` and `webSearch`. Its other built-in tools are off; skills and MCP tools stay. OpenCode keeps `write` and `edit` only together.",
           "minItems": 1,
           "type": "array",
           "items": {
@@ -2377,7 +2377,7 @@
       "type": "object",
       "properties": {
         "commands": {
-          "description": "The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the harness refuses every other.",
+          "description": "The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the harness refuses every other. A prefix has no shell operators: Claude Code and pi refuse any command with one, and OpenCode runs a chained command only when each part is allowed.",
           "minItems": 1,
           "type": "array",
           "items": {
@@ -2427,7 +2427,7 @@
           "pattern": "\\S"
         },
         "tools": {
-          "description": "The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`, `edit`, `bash`, `grep`, `glob` and `webSearch`. Its other built-in tools are off; skills and MCP tools stay.",
+          "description": "The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`, `edit`, `bash`, `grep`, `glob` and `webSearch`. Its other built-in tools are off; skills and MCP tools stay. OpenCode keeps `write` and `edit` only together.",
           "minItems": 1,
           "type": "array",
           "items": {
@@ -2449,7 +2449,7 @@
       "type": "object",
       "properties": {
         "commands": {
-          "description": "The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the harness refuses every other.",
+          "description": "The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the harness refuses every other. A prefix has no shell operators: Claude Code and pi refuse any command with one, and OpenCode runs a chained command only when each part is allowed.",
           "minItems": 1,
           "type": "array",
           "items": {
@@ -2499,7 +2499,7 @@
           "pattern": "\\S"
         },
         "tools": {
-          "description": "The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`, `edit`, `bash`, `grep`, `glob` and `webSearch`. Its other built-in tools are off; skills and MCP tools stay.",
+          "description": "The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`, `edit`, `bash`, `grep`, `glob` and `webSearch`. Its other built-in tools are off; skills and MCP tools stay. OpenCode keeps `write` and `edit` only together.",
           "minItems": 1,
           "type": "array",
           "items": {

@@ -27,12 +27,14 @@ export type HarnessOptions<Tool extends ToolName = ToolName> = {
   /**
    * The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`, `edit`,
    * `bash`, `grep`, `glob` and `webSearch`. Its other built-in tools are off; skills and MCP
-   * tools stay.
+   * tools stay. OpenCode keeps `write` and `edit` only together.
    */
   tools?: Tool[]
   /**
    * The shell commands the agent may run, as prefixes: a command runs when it is one of them or
-   * starts with one and a space, and the harness refuses every other.
+   * starts with one and a space, and the harness refuses every other. A prefix has no shell
+   * operators: Claude Code and pi refuse any command with one, and OpenCode runs a chained
+   * command only when each part is allowed.
    */
   commands?: string[]
 }
@@ -42,9 +44,10 @@ export type SharedOption = Exclude<keyof HarnessOptions, 'model'>
 export const HARNESS_OPTIONS = ['instructions', 'systemPrompt', 'tools', 'commands'] as const
 
 /**
- * The options each harness can enforce, and the tools its `tools` can keep. Codex's tools are
- * feature switches, not a list it filters, and its approval rules can't refuse a command no rule
- * names; the other CLIs have no system prompt, tool filter or command filter of their own.
+ * The options each harness can enforce, the tools its `tools` can keep, and the tools it keeps
+ * only together (OpenCode's `write` asks its `edit` permission). Codex's tools are feature
+ * switches, not a list it filters, and its approval rules can't refuse a command no rule names;
+ * the other CLIs have no system prompt, tool filter or command filter of their own.
  */
 export const OPTION_SUPPORT = {
   cursor: { options: ['instructions'] },
@@ -56,6 +59,7 @@ export const OPTION_SUPPORT = {
   opencode: {
     options: ['instructions', 'systemPrompt', 'tools', 'commands'],
     tools: TOOL_NAMES,
+    together: [['write', 'edit']],
   },
   goose: { options: ['instructions'] },
   pi: {
@@ -65,12 +69,16 @@ export const OPTION_SUPPORT = {
   codex: { options: ['instructions', 'systemPrompt'] },
   fx: { options: ['instructions'] },
   'grok-build': { options: ['instructions'] },
-} as const satisfies Record<
-  AgentKind,
-  { options: readonly SharedOption[]; tools?: readonly ToolName[] }
->
+} as const satisfies Record<AgentKind, Support>
 
-type Support = { options: readonly SharedOption[]; tools?: readonly ToolName[] }
+type Support = {
+  options: readonly SharedOption[]
+  tools?: readonly ToolName[]
+  together?: readonly (readonly ToolName[])[]
+}
+
+/** What a `commands` prefix can't hold: every harness refuses a command with any of these. */
+const SHELL_OPERATORS = /[;&|`$()<>\n\r\\]/
 
 /** Why `kind` can't run with `options`, naming it `name`, or undefined when it can. */
 export function optionProblem(
@@ -87,6 +95,16 @@ export function optionProblem(
   const missing = options.tools?.find((t) => !support.tools?.includes(t))
   if (missing) {
     return `${name} has no ${missing} tool to keep; its tools are ${support.tools?.join(', ')}`
+  }
+  for (const group of support.together ?? []) {
+    const kept = group.filter((t) => options.tools?.includes(t))
+    if (kept.length > 0 && kept.length < group.length) {
+      return `${name} keeps ${group.join(' and ')} only together; tools has ${kept.join(', ')}`
+    }
+  }
+  const operator = options.commands?.find((c) => SHELL_OPERATORS.test(c))
+  if (operator !== undefined) {
+    return `${name}'s commands prefix ${JSON.stringify(operator)} has a shell operator; each is one plain command`
   }
   if (options.commands && options.tools && !options.tools.includes('bash')) {
     return `${name}'s commands run in its bash tool, so tools must include bash`

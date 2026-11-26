@@ -3107,7 +3107,14 @@ describe('harness options', () => {
   test('each option is in the default id and the fingerprint', () => {
     const plain = claudeCode({ model: 'claude-sonnet-5' })
     const tools = claudeCode({ model: 'claude-sonnet-5', tools: ['read', 'bash'] })
-    assert.equal(harnessId(tools), 'claude-code:claude-sonnet-5[tools=read+bash]')
+    assert.equal(harnessId(tools), 'claude-code:claude-sonnet-5[tools=bash+read]')
+    assert.equal(
+      harnessId(claudeCode({ model: 'claude-sonnet-5', tools: ['bash', 'read', 'bash'] })),
+      harnessId(tools),
+    )
+    const commands = (list: string[]) =>
+      harnessId(claudeCode({ model: 'claude-sonnet-5', commands: list }))
+    assert.equal(commands(['npm test', 'ls']), commands(['ls', 'npm test', 'ls']))
     assert.match(
       harnessId(claudeCode({ model: 'claude-sonnet-5', effort: 'high', commands: ['npm test'] })),
       /^claude-code:claude-sonnet-5\[effort=high\]\[commands=[0-9a-f]{8}\]$/,

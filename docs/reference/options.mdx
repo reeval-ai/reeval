@@ -128,7 +128,7 @@ Each factory in this table runs an agent and requires `model`. All but `fx()` ta
 
 ### Common harness options
 
-Every factory takes these options beside `model`, except `systemPrompt`, `tools`, and `commands`, which only the factories each names take. `withOptions(agents, options)` from `{{ pkg }}/agent` sets them on every agent in a list, and reeval refuses an option a harness in it can't enforce.
+Every factory takes these options beside `model`, except `systemPrompt`, `tools`, and `commands`, which only the factories each names take.
 
 <Property name="id" type="string" optional>
   Cell id. Defaults to the harness name followed by the model, such as `claude-code:<model>`, with `[effort=<value>]` added when `effort` is set, then `[tools=<names>]`, `[commands=<hash>]`, `[instructions=<hash>]`, and `[systemPrompt=<hash>]` for the options set. An id with a `/`, such as the `<provider>/<model>` id of `opencode`, keeps only the part after its last `/`, so `google/gemini-3.8-flash` gives `opencode:gemini-3.8-flash`. The id uses letters, digits, and `._:@+-=[]`.
@@ -143,11 +143,11 @@ Every factory takes these options beside `model`, except `systemPrompt`, `tools`
 </Property>
 
 <Property name="tools" type="ToolName[]" optional>
-  `claudeCode()`, `opencode()`, and `pi()`. The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`, `edit`, `bash`, `grep`, `glob`, and `webSearch` (not on `pi()`). Its other built-in tools are off. Skills and MCP tools stay.
+  `claudeCode()`, `opencode()`, and `pi()`. The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`, `edit`, `bash`, `grep`, `glob`, and `webSearch` (not on `pi()`). Its other built-in tools are off. Skills and MCP tools stay. `opencode()` keeps `write` and `edit` only together.
 </Property>
 
 <Property name="commands" type="string[]" optional>
-  `claudeCode()`, `opencode()`, and `pi()`. The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the harness refuses every other. reeval refuses it beside a `tools` without `bash`.
+  `claudeCode()`, `opencode()`, and `pi()`. The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the harness refuses every other. A prefix has no shell operators. `claudeCode()` and `pi()` refuse any command with one, and `opencode()` runs a chained command only when each part is allowed. reeval refuses it beside a `tools` without `bash`.
 </Property>
 
 <Property name="maxConcurrent" type="number" optional>

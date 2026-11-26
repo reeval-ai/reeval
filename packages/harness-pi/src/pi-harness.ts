@@ -230,19 +230,33 @@ export const PI_NATIVE_TOOLS = {
   glob: ['find', 'ls'],
 } as const
 
-/** The extension that blocks every bash command but `prefixes`, as pi's `tool_call` hook. */
+/**
+ * The extension that blocks every bash command but `prefixes`, and every write or edit outside
+ * the workspace, as pi's `tool_call` hook: no tool can rewrite what the next turn loads.
+ */
 export const piCommandGate = (
   prefixes: readonly string[],
-) => `const prefixes = ${JSON.stringify(prefixes)}
+) => `import { relative, resolve } from 'node:path'
+const prefixes = ${JSON.stringify(prefixes)}
 const allowed = (command) => {
   const c = command.trim()
-  if (/[;&|\`$()<>\\n\\\\]/.test(c)) return false
+  if (/[;&|\`$()<>\\n\\r\\\\]/.test(c)) return false
   return prefixes.some((p) => c === p || c.startsWith(p + ' '))
+}
+const inWorkspace = (path) => {
+  const p = String(path ?? '').replace(/^@/, '')
+  if (p.startsWith('~')) return false
+  const r = relative(process.cwd(), resolve(p))
+  return r !== '' && r !== '..' && !r.startsWith('../')
 }
 export default function (pi) {
   pi.on('tool_call', (event) => {
-    if (event.toolName !== 'bash' || allowed(String(event.input?.command ?? ''))) return
-    return { block: true, reason: 'Command not allowed: only ' + prefixes.join(', ') }
+    if (event.toolName === 'bash' && !allowed(String(event.input?.command ?? ''))) {
+      return { block: true, reason: 'Command not allowed: only ' + prefixes.join(', ') }
+    }
+    if ((event.toolName === 'write' || event.toolName === 'edit') && !inWorkspace(event.input?.path)) {
+      return { block: true, reason: 'Only files in the workspace may be written' }
+    }
   })
 }
 `
@@ -513,21 +527,7 @@ async function startSession(
     })
   }
   const systemPromptFile = posix.join(dataDir, 'system-prompt.txt')
-  if (settings.systemPrompt !== undefined) {
-    await sandbox.writeTextFile({
-      path: systemPromptFile,
-      content: settings.systemPrompt,
-      abortSignal,
-    })
-  }
   const gateFile = posix.join(dataDir, 'commands.mjs')
-  if (settings.commands) {
-    await sandbox.writeTextFile({
-      path: gateFile,
-      content: piCommandGate(settings.commands),
-      abortSignal,
-    })
-  }
   let turns = 0
   let running: { kill(): PromiseLike<void> } | undefined
   let ended = false
@@ -565,6 +565,21 @@ async function startSession(
         ...(turn.instructions !== undefined ? { instructions: turn.instructions } : {}),
         ...(turn.abortSignal ? { abortSignal: turn.abortSignal } : {}),
       })
+      // Each turn's pi loads them anew, so they're written anew: a turn can't change the next's.
+      if (settings.systemPrompt !== undefined) {
+        await sandbox.writeTextFile({
+          path: systemPromptFile,
+          content: settings.systemPrompt,
+          abortSignal: turn.abortSignal,
+        })
+      }
+      if (settings.commands) {
+        await sandbox.writeTextFile({
+          path: gateFile,
+          content: piCommandGate(settings.commands),
+          abortSignal: turn.abortSignal,
+        })
+      }
       const promptFile = posix.join(dataDir, `prompt-${n}.txt`)
       await sandbox.writeTextFile({
         path: promptFile,
