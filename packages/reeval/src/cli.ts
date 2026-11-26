@@ -1641,10 +1641,10 @@ async function runCommand(
   const { retried } = executed
   invocation.unhandledErrors = engineRun.unhandledErrors
   if ((interrupted || engineRun.canceled) && plan) {
-    await cleanupRun(ctx.runId, plan.sandboxes)
+    await cleanupRun(ctx.runId, [...plan.sandboxes, ...plan.graderSandboxes])
   }
   // Every worker has exited, so this catches the sandboxes of one that was killed mid-attempt.
-  if (plan) await reapOrphans(plan.sandboxes)
+  if (plan) await reapOrphans([...plan.sandboxes, ...plan.graderSandboxes])
   if (engineRun.stopped || !plan) {
     live?.remove()
     await exportDone()
@@ -2784,7 +2784,7 @@ async function executeRun(
       sandboxWarnings: plan.sandboxWarnings,
     })
     if (setup.dryRun) return false
-    await reapOrphans(plan.sandboxes)
+    await reapOrphans([...plan.sandboxes, ...plan.graderSandboxes])
     if (continuing) {
       // startRun cleared this machine and the config's Boat accounts before the plan named the
       // Macs and the evals' own Boat accounts the run's VMs were on.
@@ -2939,15 +2939,22 @@ async function executeRun(
       renderer.onEvent({ type: 'notice', at: Date.now(), level: 'warn', text })
     }
     try {
+      const { GRADER_HARNESS } = await import('./grade/sandbox.ts')
       sandboxVersions = await preflight(
         skipped
           .filter((p) => !p.attempt.plan.skip)
-          .map((p) => ({
-            harness: p.attempt.harness,
-            sandbox: p.attempt.sandbox,
-            plugins: p.attempt.pluginBuilds ?? [],
-            setBy: p.attempt.setBy,
-          })),
+          .flatMap((p) => [
+            {
+              harness: p.attempt.harness,
+              sandbox: p.attempt.sandbox,
+              plugins: p.attempt.pluginBuilds ?? [],
+              setBy: p.attempt.setBy,
+            },
+            ...(p.attempt.graderSandboxes ?? []).map(({ grader, sandbox }) => {
+              const by = `defineGrader("${grader}")`
+              return { harness: GRADER_HARNESS, sandbox, setBy: { sandbox: by, harness: by } }
+            }),
+          ]),
         {
           root: config.root,
           runId,

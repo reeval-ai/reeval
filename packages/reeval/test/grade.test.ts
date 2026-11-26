@@ -10,10 +10,14 @@ import type { GradeInputs } from '../src/grade/context.ts'
 import { defineGrader, defineGraders, type GraderDef, graderDef } from '../src/grade/define.ts'
 import { functionDigest } from '../src/grade/digest.ts'
 import { attemptScore, runGraders, scoreFailure } from '../src/grade/run.ts'
+import { graderSlots, type SandboxStarter } from '../src/grade/sandbox.ts'
 import type { Grader } from '../src/grade/types.ts'
 import { keptFiles } from '../src/history/trajectory.ts'
 import { sha256 } from '../src/ids.ts'
 import { registerSecret } from '../src/redact.ts'
+import { createSandbox, InfraError } from '../src/sandbox/index.ts'
+import { docker, fakeSandbox, tart } from '../src/sandbox.ts'
+import { acquire } from '../src/scheduler/client.ts'
 import type { GradeRecord } from '../src/types.ts'
 import { fakeConfig, project, readRun, runCli, tempDir } from './helpers.ts'
 
@@ -331,8 +335,198 @@ describe('grades and scores', () => {
   })
 })
 
+describe('graders with env', () => {
+  const started: string[] = []
+  const starter =
+    (dir: string): SandboxStarter =>
+    async (env, timeoutMs, _waiting, held) => {
+      const box = await createSandbox(env.sandbox, {
+        runId: 'r',
+        timeoutMs,
+        signal: held(),
+        env: {},
+        egress: env.egress,
+      })
+      started.push(box.workdir)
+      return {
+        box,
+        image: `image of ${dir}`,
+        close: async () => {
+          started.splice(started.indexOf(box.workdir), 1)
+          await box.destroy()
+        },
+      }
+    }
+  const env = (dir: string) => ({ env: fakeSandbox({ dir }), egress: 'allow-all' as const })
+
+  test('copy their files into a fresh sandbox, which c.sandbox runs in and is gone after', async () => {
+    const dir = tempDir('grade-env')
+    const g = defineGrader('hidden', {
+      ...env(dir),
+      files: ['src/**'],
+      grade: async (c) => {
+        await c.sandbox.writeFile('test/hidden.txt', 'hidden')
+        const ls = await c.sandbox.exec('ls -R src test && cat src/a.txt', { cwd: '.' })
+        return { ls: ls.stdout, secret: await c.sandbox.readFile('secret.txt') }
+      },
+    })
+    const files = { 'src/a.txt': 'a', 'src/b/c.txt': 'c', 'secret.txt': 's' }
+    const base = inputs(files)
+    const [r] = await runGraders(
+      defs(g),
+      { ...base, sandboxes: starter(dir) },
+      new AbortController().signal,
+    )
+    assert.equal(r?.error, undefined)
+    const out = r?.grade as { ls: string; secret: null }
+    assert.match(out.ls, /a\.txt/)
+    assert.match(out.ls, /hidden\.txt/)
+    assert.ok(out.ls.endsWith('a'), out.ls)
+    assert.equal(out.secret, null)
+    assert.deepEqual(
+      r?.reads.files?.map((f) => f.path),
+      ['src/a.txt', 'src/b/c.txt'],
+    )
+    assert.equal(r?.fingerprint.image, `image of ${dir}`)
+    assert.deepEqual(started, [])
+  })
+
+  test("that don't start fail the attempt with the infra error, recording no grade", async () => {
+    const dir = tempDir('grade-env-down')
+    const g = defineGrader('down', { ...env(dir), grade: () => true })
+    const failing: SandboxStarter = async () => {
+      throw new InfraError('no docker')
+    }
+    await assert.rejects(
+      runGraders(defs(g), { ...inputs(), sandboxes: failing }, new AbortController().signal),
+      (error: Error) => error instanceof InfraError && /no docker/.test(error.message),
+    )
+  })
+
+  test('c.sandbox throws for a grader without env', async () => {
+    const r = await grade(defineGrader('bare', { grade: (c) => c.sandbox.exec('true') }))
+    assert.match(r.error ?? '', /grader bare has no env, so it has no c\.sandbox/)
+  })
+
+  test("take the attempt's own slot first, then the run's or the attempt's freed one", async () => {
+    const box = docker()
+    const slot = graderSlots(1, box)
+    const signal = new AbortController().signal
+    const first = await slot(box, signal)
+    // The run's only slot is someone else's, so the second waits for the attempt's.
+    const other = await acquire({ attempts: 1 })
+    let second: Awaited<ReturnType<typeof slot>> | undefined
+    const waiting = slot(box, signal).then((lease) => {
+      second = lease
+    })
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    assert.equal(second, undefined)
+    first.release()
+    await waiting
+    assert.ok(second)
+    other.release()
+    // The run's slot, free now, isn't held: a third takes it while the second holds the attempt's.
+    const third = await slot(box, signal)
+    third.release()
+    second.release()
+  })
+
+  test("on another provider than the attempt's, lease that provider's maxConcurrent", async () => {
+    const box = docker({ maxConcurrent: 1 })
+    const signal = new AbortController().signal
+    // Two attempts on the fake sandbox, each grading in Docker.
+    const one = graderSlots(4, fakeSandbox())
+    const two = graderSlots(4, fakeSandbox())
+    const first = await one(box, signal)
+    let second: Awaited<ReturnType<typeof two>> | undefined
+    const waiting = two(box, signal).then((lease) => {
+      second = lease
+    })
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    assert.equal(second, undefined, 'two docker({ maxConcurrent: 1 }) sandboxes overlapped')
+    first.release()
+    await waiting
+    assert.ok(second)
+    second.release()
+  })
+
+  test('the timeout covers starting the sandbox', async () => {
+    const dir = tempDir('grade-env-hang')
+    const g = defineGrader('hangs', { ...env(dir), timeout: '1s', grade: () => true })
+    const hangs: SandboxStarter = (_env, _timeout, _waiting, held) =>
+      new Promise((_resolve, reject) => {
+        const signal = held()
+        signal.addEventListener('abort', () => reject(signal.reason), { once: true })
+      })
+    const [r] = await runGraders(
+      defs(g),
+      { ...inputs(), sandboxes: hangs },
+      new AbortController().signal,
+    )
+    assert.equal(r?.error, 'grade timed out after 1s')
+  })
+
+  test("the timeout doesn't count waiting for a slot", async () => {
+    const dir = tempDir('grade-env-queue')
+    const slot = graderSlots(4, fakeSandbox())
+    const queued: SandboxStarter = async (env, timeoutMs, waiting, held) => {
+      const lease = await slot(docker({ maxConcurrent: 1 }), waiting)
+      const box = await createSandbox(env.sandbox, {
+        runId: 'r',
+        timeoutMs,
+        signal: held(),
+        env: {},
+        egress: env.egress,
+      })
+      return {
+        box,
+        image: 'image',
+        close: async () => {
+          await box.destroy()
+          lease.release()
+        },
+      }
+    }
+    const slow = (name: string) =>
+      defineGrader(name, {
+        ...env(dir),
+        timeout: '1s',
+        grade: async () => {
+          await new Promise((r) => setTimeout(r, 600))
+          return true
+        },
+      })
+    const grades = await runGraders(
+      defs(slow('a'), slow('b'), slow('c')),
+      { ...inputs(), sandboxes: queued },
+      new AbortController().signal,
+    )
+    assert.deepEqual(
+      grades.map((g) => [g.grader, g.score, g.error]),
+      [
+        ['a', 1, undefined],
+        ['b', 1, undefined],
+        ['c', 1, undefined],
+      ],
+    )
+  })
+})
+
 describe('defineGrader', () => {
   const refused: Array<[() => unknown, RegExp]> = [
+    [
+      () => defineGrader('x', { grade: () => true, env: tart({ image: 'x' }) }),
+      /env in defineGrader\("x"\) must be docker\(\), podman\(\) or fakeSandbox\(\) from reeval\/sandbox \(got the tart sandbox\)/,
+    ],
+    [
+      () => defineGrader('x', { grade: () => true, egress: 'allow-all' }),
+      /egress in defineGrader\("x"\) is the network of its env sandbox, and it has no env/,
+    ],
+    [
+      () => defineGrader('x', { grade: () => true, env: docker(), egress: 'none' as never }),
+      /egress in defineGrader\("x"\) is 'proxy'/,
+    ],
+    [() => defineGrader('x', { grade: () => true, env: fakeSandbox() }), /deny-all/],
     [() => defineGrader('', { grade: () => true }), /needs a name of at most 80 letters/],
     [() => defineGrader('a b', { grade: () => true }), /needs a name/],
     [() => defineGrader('x', {} as never), /needs grade, a function/],

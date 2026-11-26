@@ -91,6 +91,8 @@ export type RunPlan = {
   /** Advice that doesn't stop the run, e.g. that an eval can't fail CI. */
   hints: string[]
   sandboxes: SandboxDescriptor[]
+  /** The sandboxes the planned attempts' graders start, which a killed run's cleanup sweeps too. */
+  graderSandboxes: SandboxDescriptor[]
   /** The harnesses the planned attempts run on, for their credentials. */
   harnessDescriptors: HarnessDescriptor[]
   /** The harness ids the planned attempts run on, for the run header. */
@@ -171,6 +173,7 @@ export async function buildPlan(options: {
   const warnings = new Set<string>()
   const sandboxWarnings = new Map<string, SandboxWarning>()
   const sandboxes = new Map<string, SandboxDescriptor>()
+  const graderSandboxes = new Map<string, SandboxDescriptor>()
   const descriptors = new Map<string, HarnessDescriptor>()
   const harnesses = new Set<string>()
   // One harness id can run at two efforts when evals route it through different gateways.
@@ -216,6 +219,9 @@ export async function buildPlan(options: {
     else limits.set(provider, Math.max(limits.get(provider) ?? limit, limit))
     costed.push({ id, cell: attempt.cell, harness: attempt.harness })
     sandboxes.set(JSON.stringify(attempt.sandbox), attempt.sandbox)
+    for (const { sandbox } of attempt.graderSandboxes ?? []) {
+      graderSandboxes.set(JSON.stringify(sandbox), sandbox)
+    }
     descriptors.set(JSON.stringify(attempt.harness), attempt.harness)
     harnesses.add(attempt.cell.harness)
     if (attempt.harness.kind !== 'fake') {
@@ -298,6 +304,7 @@ export async function buildPlan(options: {
       ...gatewayHints(planned),
     ],
     sandboxes: [...sandboxes.values()],
+    graderSandboxes: [...graderSandboxes.values()],
     harnessDescriptors: [...descriptors.values()],
     harnesses: [...harnesses],
     efforts: Object.fromEntries([...efforts].map(([id, set]) => [id, [...set].join(' or ')])),

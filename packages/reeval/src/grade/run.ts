@@ -1,11 +1,14 @@
+import { AgentError } from '@reeval/agents'
 import { maskNumbers, notJson } from '../attempt/observe.ts'
 import { canonicalJson } from '../eval-source.ts'
 import { sha256 } from '../ids.ts'
 import { redactSecrets, redactValue } from '../redact.ts'
+import { InfraError } from '../sandbox/types.ts'
 import { clip, formatDuration } from '../text.ts'
 import type { GradeFingerprint, GradeReads, GradeRecord, JSONValue } from '../types.ts'
-import { type GradeInputs, graderContext, readData } from './context.ts'
+import { copyFiles, GradeError, type GradeInputs, graderContext, readData } from './context.ts'
 import type { GradeRun, GraderDef } from './define.ts'
+import type { StartedSandbox } from './sandbox.ts'
 
 /** The most a grade may be, as JSON. */
 const GRADE_LIMIT = 64 * 1024
@@ -15,7 +18,17 @@ type Ran = {
   error?: string
   reads: GradeReads
   data?: string
+  image?: string
   durationMs: number
+}
+
+/** Why a grader's sandbox didn't start or take its files, which no grade records. */
+class SandboxFailure extends Error {
+  readonly infra: Error
+  constructor(infra: Error) {
+    super(infra.message)
+    this.infra = infra
+  }
 }
 
 const message = (error: unknown) =>
@@ -50,36 +63,89 @@ function abortable<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
 }
 
 async function runOnce(run: GradeRun, inputs: GradeInputs, signal: AbortSignal): Promise<Ran> {
-  const started = performance.now()
-  const timeout = AbortSignal.timeout(run.timeoutMs)
-  const both = AbortSignal.any([signal, timeout])
+  const startedAt = performance.now()
+  let timeout: AbortSignal | undefined
+  const timed = () => {
+    timeout ??= AbortSignal.timeout(run.timeoutMs)
+    return AbortSignal.any([signal, timeout])
+  }
   let reads: GradeReads = {}
   let data: string | undefined
+  let box: StartedSandbox | undefined
+  const ended = () => ({
+    reads,
+    ...(data ? { data } : {}),
+    ...(box ? { image: box.image } : {}),
+    durationMs: performance.now() - startedAt,
+  })
   try {
     const read = await readData(run.data)
     data = read.digest
-    const ctx = graderContext(inputs, run, read.data, both)
+    const sandbox = run.env && (await startSandbox(run, inputs, signal, timed))
+    box = sandbox?.started
+    const both = timed()
+    const ctx = graderContext(
+      inputs,
+      run,
+      read.data,
+      both,
+      sandbox && {
+        box: sandbox.started.box,
+        copied: sandbox.copied,
+      },
+    )
     const value = await abortable(
       Promise.resolve().then(() => run.grade(ctx.c)),
       both,
     ).finally(() => {
       reads = ctx.reads
     })
-    return {
-      ...asGrade(value),
-      reads,
-      ...(data ? { data } : {}),
-      durationMs: performance.now() - started,
-    }
+    return { ...asGrade(value), ...ended() }
   } catch (error) {
-    const why = timeout.aborted
+    if (error instanceof SandboxFailure) throw error.infra
+    const why = timeout?.aborted
       ? `grade timed out after ${formatDuration(run.timeoutMs)}`
       : message(error)
-    return { error: why, reads, ...(data ? { data } : {}), durationMs: performance.now() - started }
+    return { error: why, ...ended() }
+  } finally {
+    await box?.close().catch(() => {})
   }
 }
 
-function fingerprintOf(def: GraderDef, data: string | undefined): GradeFingerprint {
+/**
+ * `run`'s `env` sandbox with its files copied in. Failing to start it or copy them is the
+ * attempt's infra error, thrown as a `SandboxFailure`; a grader with files and no kept workspace
+ * is its own error. `timed()` is the signal, with the grader's timeout running, once its slot is
+ * held.
+ */
+async function startSandbox(
+  run: GradeRun,
+  inputs: GradeInputs,
+  signal: AbortSignal,
+  timed: () => AbortSignal,
+) {
+  const env = run.env as NonNullable<GradeRun['env']>
+  if (!inputs.sandboxes) throw new GradeError('graders with env run only in reeval run')
+  let started: StartedSandbox | undefined
+  let held = signal
+  try {
+    started = await inputs.sandboxes(env, run.timeoutMs, signal, () => {
+      held = timed()
+      return held
+    })
+    return { started, copied: await copyFiles(inputs, run, started.box, timed()) }
+  } catch (error) {
+    await started?.close().catch(() => {})
+    if (error instanceof GradeError || held.aborted) throw error
+    throw new SandboxFailure(
+      error instanceof AgentError
+        ? error
+        : new InfraError(`A grader's sandbox failed to start: ${message(error)}`),
+    )
+  }
+}
+
+function fingerprintOf(def: GraderDef, ran: Ran): GradeFingerprint {
   const { run, builtin } = def
   const code = sha256(
     canonicalJson(
@@ -91,7 +157,8 @@ function fingerprintOf(def: GraderDef, data: string | undefined): GradeFingerpri
   const parts = {
     code,
     ...(builtin ? { version: builtin.version } : {}),
-    ...(data ? { data } : {}),
+    ...(ran.data ? { data: ran.data } : {}),
+    ...(ran.image ? { image: ran.image } : {}),
     ...(run.revision !== undefined ? { revision: run.revision } : {}),
   }
   return { digest: sha256(canonicalJson(parts)), ...parts }
@@ -125,7 +192,8 @@ function scoreOf(def: GraderDef, ran: Ran): { score: number | null; error?: stri
 
 /**
  * Runs every grader at once, a `defineGraders` group's `grade` once for all its members, and
- * returns their grades in the order given.
+ * returns their grades in the order given. Throws the infra error of a grader's sandbox that
+ * didn't start, once every grader has settled.
  */
 export async function runGraders(
   defs: readonly GraderDef[],
@@ -136,6 +204,9 @@ export async function runGraders(
   for (const def of defs) {
     if (!runs.has(def.run)) runs.set(def.run, runOnce(def.run, inputs, signal))
   }
+  const settled = await Promise.allSettled(runs.values())
+  const failed = settled.find((s) => s.status === 'rejected')
+  if (failed) throw failed.reason
   return Promise.all(
     defs.map(async (def): Promise<GradeRecord> => {
       const ran = await (runs.get(def.run) as Promise<Ran>)
@@ -149,7 +220,7 @@ export async function runGraders(
         weight: def.weight,
         required: def.required,
         ...(error !== undefined ? { error } : {}),
-        fingerprint: fingerprintOf(def, ran.data),
+        fingerprint: fingerprintOf(def, ran),
         ...(def.scoreDigest ? { scoreDigest: def.scoreDigest } : {}),
         reads: ran.reads,
         durationMs: Math.round(ran.durationMs),

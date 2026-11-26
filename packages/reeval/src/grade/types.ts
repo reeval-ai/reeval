@@ -4,10 +4,13 @@ import type {
   CostUsd,
   DecisionRecord,
   Duration,
+  EgressPolicy,
   EnvironmentHelpers,
+  ExecResult,
   FileChange,
   HostFile,
   JSONValue,
+  SandboxDescriptor,
   TurnData,
 } from '../types.ts'
 
@@ -33,6 +36,18 @@ export type GraderArtifact = { name: string; png: Buffer; capture?: ArtifactRef[
 
 /** A `data` file's content, or a `directory()`'s files' by path. */
 export type GraderData = Record<string, string | Record<string, string>>
+
+/** The grader's own sandbox, from its `env`. Paths and `cwd` are relative to its workspace. */
+export type GraderSandbox = {
+  exec(
+    command: string,
+    options?: { cwd?: string; env?: Record<string, string> },
+  ): Promise<ExecResult>
+  /** A file's content; null when there's none. */
+  readFile(path: string): Promise<string | null>
+  /** Strings are written as UTF-8; bytes as they are. */
+  writeFile(path: string, content: string | Uint8Array): Promise<void>
+}
 
 /**
  * What a grader reads: the attempt as it ended, from the attempt's record. It can't send a turn,
@@ -63,6 +78,11 @@ export type GraderContext<C = unknown> = {
   decisions: readonly DecisionRecord[]
   /** The grader's `data` files, read from the host. */
   data: GraderData
+  /**
+   * The grader's own sandbox, started from its `env` with its `files` copied into the workspace.
+   * Throws for a grader without `env`.
+   */
+  sandbox: GraderSandbox
   /** Aborted when the grader times out or the run is canceled. */
   signal: AbortSignal
 }
@@ -81,6 +101,13 @@ export type GraderSpec<C = unknown, G extends JSONValue = JSONValue> = {
   files?: string[]
   /** Host files the grader reads, as `c.data`, from `file()` or `directory()`. */
   data?: Record<string, HostFile | Record<string, HostFile>>
+  /**
+   * A fresh sandbox for `grade`, as `c.sandbox`: `docker()`, `podman()` or `fakeSandbox()`, with
+   * `files` copied into its workspace. It counts toward the run's concurrency while it runs.
+   */
+  env?: SandboxDescriptor
+  /** The `env` sandbox's network. Default `'deny-all'`. */
+  egress?: EgressPolicy
   /** Bump to mark a change the grader's code and data don't show. */
   revision?: number
   /** How long `grade` may take. Default `'5m'`. */

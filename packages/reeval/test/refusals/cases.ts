@@ -402,7 +402,23 @@ const loads =
 /** What loading an eval file whose default export is `defineEval(spec)` refuses. */
 const defines = (spec: object, rel?: string) =>
   loads(() => ({ default: defineEval(spec as never) }), rel)
-const declaresIn = (rel: string, declare: (file: string) => void) => {
+/** What loading `defineEval(spec)` refuses on a run with `run`'s config or placement. */
+const definesOn =
+  (run: Partial<RunContext>, spec: object) =>
+  (name: string): void =>
+    declaresIn(
+      `evals/${slug(name)}.eval.ts`,
+      (abs) => {
+        ;(globalThis as Record<symbol, unknown>)[Symbol.for('reeval.defined')] = []
+        declareDefault(abs, { default: defineEval(spec as never) })
+      },
+      run,
+    )
+const declaresIn = (
+  rel: string,
+  declare: (file: string) => void,
+  over: Partial<RunContext> = {},
+) => {
   const file = join(DIR, rel)
   const run: RunContext = {
     runId: 'r',
@@ -411,6 +427,7 @@ const declaresIn = (rel: string, declare: (file: string) => void) => {
     tags: [],
     concurrency: 1,
     profile: null,
+    ...over,
   }
   useEngine({
     registerTest: () => {},
@@ -430,6 +447,7 @@ const targeted = (target: Target, options: object) =>
 const plainEnv = defineEnvironment('plain', {})
 const passes = defineGrader('passes', { grade: () => true })
 const also = defineGrader('also', { grade: () => true })
+const inDocker = defineGrader('in-docker', { env: docker(), grade: () => true })
 const nextEnv = defineEnvironment('next-app', { traits: { stack: 'next' } })
 const viteEnv = defineEnvironment('vite-app', { traits: { stack: 'vite' } })
 type Pair = {
@@ -3203,6 +3221,21 @@ environments:
         graders: [usedSkill('foo'), usedSkill('foo', { name: 'foo-again' })],
         task: async () => {},
       }),
+    ],
+    [
+      'graders: env on a provider',
+      definesOn(
+        { config: resolveConfig({ agents: fakeAgent(), provider: boat() }, DIR) },
+        { graders: [inDocker], task: async () => {} },
+      ),
+    ],
+    [
+      'graders: env on a cloud run',
+      definesOn({ placement: 'cloud' }, { graders: [inDocker], task: async () => {} }),
+    ],
+    [
+      'graders: env on this machine is accepted',
+      defines({ graders: [inDocker], task: async () => {} }),
     ],
     ['agents: an empty list', defines({ agents: [], task: async () => {} })],
     ['agents: harnesses', defines({ harnesses: fakeAgent(), task: async () => {} })],

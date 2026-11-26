@@ -4151,6 +4151,40 @@ export const features: Feature[] = [
     },
   },
   {
+    dir: 'grade/sandboxed',
+    tiers: ['fake', 'docker'],
+    env: 'plain',
+    canary: /^score 0\.50 below 1: hidden-wrong scored 0\.50$/,
+    record: ({ run, tier }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      assert.equal(attempt?.score, 1)
+      assert.deepEqual(
+        attempt?.grades?.map((g) => [g.grader, g.grade, g.score, g.error]),
+        [
+          ['hidden-add', 2, 1, undefined],
+          ['scoped', true, 1, undefined],
+          ...(tier === 'docker' ? [['offline', 3, 1, undefined]] : []),
+        ],
+      )
+      const [hidden] = attempt?.grades ?? []
+      assert.deepEqual(
+        hidden?.reads.files?.map((f) => f.path),
+        ['package.json', 'src/add.js'],
+      )
+      assert.match(hidden?.fingerprint.image ?? '', /^[0-9a-f]{64}$/)
+      assert.match(hidden?.fingerprint.data ?? '', /^[0-9a-f]{64}$/)
+      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      const wrong = canary?.grades?.[0]
+      assert.equal(wrong?.grade, 1)
+      assert.equal(
+        wrong?.fingerprint.image,
+        hidden?.fingerprint.image,
+        'the same env, the same image',
+      )
+      assert.notEqual(wrong?.fingerprint.data, hidden?.fingerprint.data)
+    },
+  },
+  {
     dir: 'grade/score',
     tiers: ['fake'],
     env: 'plain',

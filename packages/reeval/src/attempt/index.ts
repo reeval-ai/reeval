@@ -5,6 +5,7 @@ import { AttemptDebug, withDebug } from '../debug/attempt.ts'
 import { attemptDebugDir } from '../debug/files.ts'
 import { getRunContext, type TestHandle } from '../engine/runtime.ts'
 import { TimeoutError } from '../errors.ts'
+import { checkGraderImages } from '../grade/sandbox.ts'
 import { attemptId, attemptKey, evalId, evalSlug, relativeFile } from '../ids.ts'
 import { redactSecrets } from '../redact.ts'
 import { InfraError } from '../sandbox/types.ts'
@@ -184,6 +185,9 @@ async function attemptBody(
     a.report({ kind: 'sandbox' })
     const where = `${id} [${attemptId(spec.cell.key, spec.n)}]`
     await a.timed('setupMs', () => prepareEnvironment(a, config.root, runId, where, testSignal))
+    if (grading?.graders.some((g) => g.run.env)) {
+      await checkGraderImages(grading.graders.map((g) => g.run))
+    }
     clock = evalTimer(spec.timeoutMs)
     timer = clock.signal
     a.signal = AbortSignal.any([testSignal, timer])
@@ -263,6 +267,7 @@ async function attemptBody(
       const low = await gradeAttempt(
         a,
         grading,
+        key,
         workspaceSidecar(stagingDir, key),
         testSignal,
       ).catch(

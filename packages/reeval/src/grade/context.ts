@@ -1,11 +1,14 @@
 import { readFile } from 'node:fs/promises'
+import { shellQuote } from '@reeval/sandbox-docker/process'
 import { globFilter } from '../environment.ts'
 import { canonicalJson } from '../eval-source.ts'
 import type { Trajectory } from '../history/trajectory.ts'
 import { sha256 } from '../ids.ts'
+import type { Sandbox } from '../sandbox/types.ts'
 import type { Case, GradeReads, HostFile, JSONValue } from '../types.ts'
 import type { GradeRun } from './define.ts'
-import type { GraderContext, GraderData, GraderTurn } from './types.ts'
+import type { SandboxStarter } from './sandbox.ts'
+import type { GraderContext, GraderData, GraderSandbox, GraderTurn } from './types.ts'
 
 /** What an attempt's graders read: its case and turns, and what it left. */
 export type GradeInputs = {
@@ -14,7 +17,11 @@ export type GradeInputs = {
   trajectory: Trajectory
   /** The skills the attempt's environment placed, by name. */
   skills: readonly string[]
+  /** Starts a grader's `env` sandbox; a grader with `env` errors without it. */
+  sandboxes?: SandboxStarter
 }
+
+type FileRead = { path: string; sha256: string }
 
 /** A grader's error that names what it did wrong, as the grade's `error` gives it. */
 export class GradeError extends Error {
@@ -69,19 +76,80 @@ export async function readData(
   return { data: out, digest: sha256(canonicalJson(hashed)) }
 }
 
-/** `c` for one grade call, and what it read. */
+const who = (run: GradeRun) =>
+  run.names.length === 1 ? `grader ${run.names[0]}` : `graders ${run.names.join(', ')}`
+
+/**
+ * Copies the kept workspace's files that `run`'s `files` let it read into `box`'s workspace, and
+ * returns them as read. A grader with `files` and no kept workspace is a `GradeError`.
+ */
+export async function copyFiles(
+  inputs: GradeInputs,
+  run: GradeRun,
+  box: Sandbox,
+  signal: AbortSignal,
+): Promise<FileRead[]> {
+  const { workspace } = inputs.trajectory
+  const mayRead = readable(run.files)
+  if (!workspace) {
+    if (!run.files.some((p) => !p.startsWith('!'))) return []
+    throw new GradeError(
+      `the attempt kept no workspace, so ${who(run)} has no files to copy into its sandbox`,
+    )
+  }
+  const entries = workspace.manifest.files.filter((f) => f.target === undefined && mayRead(f.path))
+  const files = await Promise.all(
+    entries.map(async (f) => ({ path: f.path, content: await workspace.readFile(f.path) })),
+  )
+  const { writeFiles } = await import('../attempt/session.ts')
+  await writeFiles(
+    box,
+    files.flatMap((f) => (f.content ? [{ path: f.path, content: f.content }] : [])),
+    signal,
+  )
+  const executable = entries.filter((f) => f.executable).map((f) => shellQuote(f.path))
+  if (executable.length) {
+    const done = await box.exec(`chmod +x ${executable.join(' ')}`, { signal })
+    if (done.exitCode !== 0) throw new Error(`chmod +x failed: ${done.stderr.trim()}`)
+  }
+  return entries.map((f, i) => ({
+    path: f.path,
+    sha256: f.sha256 ?? sha256(files[i]?.content ?? ''),
+  }))
+}
+
+/** `box` as `c.sandbox`, each command stopped with the grade. */
+function graderSandbox(
+  box: Sandbox | undefined,
+  run: GradeRun,
+  signal: AbortSignal,
+): GraderSandbox {
+  if (!box) {
+    const none = async (): Promise<never> => {
+      throw new GradeError(`${who(run)} has no env, so it has no c.sandbox. Give it env: docker().`)
+    }
+    return { exec: none, readFile: none, writeFile: none }
+  }
+  return {
+    exec: (command, options) => box.exec(command, { ...options, signal }),
+    readFile: (path) => box.readFile(path),
+    writeFile: (path, content) => box.writeFile(path, content),
+  }
+}
+
+/** `c` for one grade call, and what it read: with `sandbox`, the files copied into it. */
 export function graderContext(
   inputs: GradeInputs,
   run: GradeRun,
   data: GraderData,
   signal: AbortSignal,
+  sandbox?: { box: Sandbox; copied: readonly FileRead[] },
 ): { c: GraderContext; reads: GradeReads } {
   const { trajectory } = inputs
   const observations = new Map<string, { name: string; sha256: string }>()
   const artifacts = new Map<string, { name: string; sha256: string }>()
-  const files = new Map<string, { path: string; sha256: string }>()
+  const files = new Map<string, FileRead>(sandbox?.copied.map((f) => [f.path, f]))
   const mayRead = readable(run.files)
-  const who = run.names.length === 1 ? `grader ${run.names[0]}` : `graders ${run.names.join(', ')}`
   function observation(name: string, options?: { optional: true }): JSONValue | undefined {
     const found = trajectory.observations.find((o) => o.name === name)
     if (!found) {
@@ -111,7 +179,7 @@ export function graderContext(
       const path = workspacePath(given)
       if (path === undefined || !mayRead(path)) {
         throw new GradeError(
-          `${who} can't read ${JSON.stringify(given)}: it isn't in its files (${run.files.length ? run.files.join(', ') : 'none'}). Add it to files.`,
+          `${who(run)} can't read ${JSON.stringify(given)}: it isn't in its files (${run.files.length ? run.files.join(', ') : 'none'}). Add it to files.`,
         )
       }
       if (!trajectory.workspace) {
@@ -127,6 +195,7 @@ export function graderContext(
     },
     decisions: trajectory.decisions,
     data,
+    sandbox: graderSandbox(sandbox?.box, run, signal),
     signal,
   }
   const reads = (): GradeReads => ({
