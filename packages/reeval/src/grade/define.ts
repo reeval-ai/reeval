@@ -206,16 +206,36 @@ export function defineGrader<C = unknown, G extends JSONValue = any>(
  *       grade: (c) => ({ built: …, passed: … }),
  *       score: { builds: (g) => (g.built ? 1 : 0), tests: (g) => g.passed / 10 },
  *     })
+ *
+ * To declare the case type the graders read, call it with the type first:
+ * `defineGraders<{ input: string }>()(['builds', 'tests'], { … })`.
  */
+export function defineGraders<C>(): GraderGroupDefiner<C>
 export function defineGraders<
+  const Names extends readonly string[],
   C = unknown,
-  // biome-ignore lint/suspicious/noExplicitAny: as in defineGrader, any grade once C is given
-  G extends JSONValue = any,
-  const Names extends readonly string[] = readonly string[],
+  G extends JSONValue = JSONValue,
+>(names: Names, spec: Input<GraderGroupSpec<Names[number], C, G>>): Graders<Names, C>
+export function defineGraders(names?: unknown, spec?: unknown): unknown {
+  if (names === undefined && spec === undefined) {
+    return (n: readonly string[], s: Input<GraderGroupSpec<string>>) => graderGroup(n, s)
+  }
+  return graderGroup(names as readonly string[], spec as Input<GraderGroupSpec<string>>)
+}
+
+/** One grader per name, each typed by the cases it reads. */
+export type Graders<Names extends readonly string[], C> = { [K in keyof Names]: Grader<C> }
+
+/** `defineGraders<C>()`: `defineGraders` with the case type given and the names inferred. */
+export type GraderGroupDefiner<C> = <
+  const Names extends readonly string[],
+  G extends JSONValue = JSONValue,
 >(
   names: Names,
   spec: Input<GraderGroupSpec<Names[number], C, G>>,
-): { [K in keyof Names]: Grader<C> } {
+) => Graders<Names, C>
+
+function graderGroup(names: readonly string[], spec: Input<GraderGroupSpec<string>>): Grader[] {
   const where = `defineGraders(${JSON.stringify(names)})`
   if (!Array.isArray(names) || !names.length) {
     throw new DefinitionError(
@@ -258,7 +278,7 @@ export function defineGraders<
       weight: weightOf(perName(s.weight, 'weight', name), `${where}'s ${name}`),
       required: requiredOf(perName(s.required, 'required', name), `${where}'s ${name}`),
     })
-  }) as { [K in keyof Names]: Grader<C> }
+  })
 }
 
 /** An eval's `graders`, each a grader once (a `defineGraders` group's members in place). */

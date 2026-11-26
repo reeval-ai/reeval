@@ -60,3 +60,35 @@ defineGraders(['a', 'b'], {
   // @ts-expect-error every member needs its score
   score: { a: () => 1 },
 })
+
+const [lengthOf, emptyOf] = defineGraders<{ input: string }>()(['length', 'empty'], {
+  grade: (c) => c.case.input.length,
+  score: { length: (n) => Math.min(n / 10, 1), empty: (n) => (n === 0 ? 0 : 1) },
+})
+const [fromAnnotation] = defineGraders(['from-annotation'], {
+  grade: (c: GraderContext<{ input: string }>) => c.case.input,
+  score: { 'from-annotation': (s) => s.length },
+})
+defineEval({
+  cases: [{ key: 'a', input: 'x' }],
+  graders: [[lengthOf, emptyOf], fromAnnotation],
+  task: async () => {},
+})
+defineEval({
+  cases: [{ key: 'a', other: 1 }],
+  // @ts-expect-error these graders read case.input, which these cases don't have
+  graders: [[lengthOf, emptyOf]],
+  task: async () => {},
+})
+defineGraders<{ input: string }>()(['a', 'b'], {
+  grade: (c) => c.case.input,
+  // @ts-expect-error every member needs its score, with the case type given too
+  score: { a: () => 1 },
+})
+defineGraders<{ input: string }>()(['a'], {
+  grade: () => 1,
+  // @ts-expect-error a score names only the group's members
+  score: { a: () => 1, c: () => 1 },
+})
+// @ts-expect-error the case type goes on defineGraders<C>(), not beside the names
+defineGraders<{ input: string }>(['a'], { grade: () => 1, score: { a: () => 1 } })
