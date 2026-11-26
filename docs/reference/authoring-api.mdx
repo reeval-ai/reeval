@@ -151,6 +151,14 @@ The returned `Environment` is a frozen object with the following fields.
 
 For more information about `EnvironmentSpec`, `EnvironmentHelpers`, each field's type, and how `extendEnvironment()` merges each field, see [Environment fields](/reference/environment-helpers#environmentspec) and [extend](/reference/environment-helpers#extend).
 
+## `defineGrader()`
+
+`defineGrader(name, spec)` defines a grader for an eval's `graders`: its `grade` function reads the attempt once the task returns, and its grade scores the attempt.
+
+## `defineGraders()`
+
+`defineGraders(names, spec)` defines graders that share one `grade` call per attempt, each scoring its grade with its own `score` function.
+
 ## `defineConfig()`
 
 `defineConfig(config)` returns its argument unchanged, so `reeval.config.ts` is type-checked. For more information about the config keys and the callback form, see [Configuration reference](/reference/configuration#defineconfig).
