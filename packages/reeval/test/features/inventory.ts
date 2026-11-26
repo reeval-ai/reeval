@@ -2161,6 +2161,13 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/grade-judge.test.ts', 'reeval/test/refusals.test.ts'],
   },
   {
+    id: 'grade.judge-outage',
+    area: 'Judges and matchers',
+    name: "A judge grader whose provider failed the call after the judge's retries (a 5xx, 408, 409, 429 or a network error, as the AI SDK marks retryable) or that ran past its `timeout` ends the attempt `infra_error`, naming the grader and the model, masked, with no grade, so `--retry-errors` runs it again; a refusal, a malformed answer or another 4xx stays the grade's error, scored 0; `reeval regrade` keeps the stored grade and fails",
+    fixtures: ['grade/judge-outage'],
+    unit: ['reeval/test/grade-judge.test.ts', 'reeval/test/regrade.test.ts'],
+  },
+  {
     id: 'grade.judge-reference',
     area: 'Judges and matchers',
     name: "A judge grader's `reference`: text, `file(…)` or `directory(…)`, or a function of the case returning one, shown only to the judge, whole or as a diff against the attempt's files (`inputs.reference`), its content digest a part of the fingerprint",

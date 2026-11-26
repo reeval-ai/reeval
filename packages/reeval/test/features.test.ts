@@ -567,6 +567,43 @@ before(async () => {
 })
 after(() => visionModel.close())
 
+/**
+ * TypeSafe AI's decision API for `grade/judge-outage`, keyed on the key it's called with: `down`
+ * gets a 503 every time, as in an outage, and `up` gets a yes. `calls` counts each key's calls.
+ */
+const judgeProvider = { url: '', calls: { up: 0, down: 0 } as Record<string, number> }
+const judgeProviderEnv = (key: 'up' | 'down') => ({
+  TYPESAFE_AI_API_KEY: key,
+  TYPESAFE_AI_BASE_URL: judgeProvider.url,
+  REEVAL_TEST_JUDGE_RETRY_MS: '1',
+})
+const JUDGE_OUTAGE =
+  /^The judge's provider failed judge grader written on typesafe-ai\/jev-1\.14\.0: overloaded$/
+const judgeApi = createServer((req, res) => {
+  req.resume().on('end', () => {
+    const key = String(req.headers.authorization).replace(/^Bearer /, '')
+    judgeProvider.calls[key] = (judgeProvider.calls[key] ?? 0) + 1
+    res.setHeader('content-type', 'application/json')
+    if (key !== 'up') {
+      res.statusCode = 503
+      res.end(JSON.stringify({ message: 'overloaded' }))
+      return
+    }
+    res.end(
+      JSON.stringify({
+        model: 'jev-1.14.0',
+        answers: { answer: { type: 'noul', noul: 0.9 } },
+        usage: { input_tokens: 1, output_tokens: 1 },
+      }),
+    )
+  })
+})
+before(async () => {
+  await new Promise<void>((resolve) => judgeApi.listen(0, '127.0.0.1', resolve))
+  judgeProvider.url = `http://127.0.0.1:${(judgeApi.address() as AddressInfo).port}/v1`
+})
+after(() => judgeApi.close())
+
 /** `npm pack` of `cwd` into `out`: the tarball's name. */
 function npmPack(cwd: string, out: string): string {
   const r = spawnTool('npm', ['pack', '--silent', '--pack-destination', out], {
@@ -4364,6 +4401,41 @@ export const features: Feature[] = [
         grade?.fingerprint.digest,
         'the same judge grader on another eval has the same fingerprint',
       )
+    },
+  },
+  {
+    dir: 'grade/judge-outage',
+    tiers: ['fake'],
+    env: 'plain',
+    args: ['--retry-errors'],
+    hostEnv: () => judgeProviderEnv('up'),
+    canary: zeroBy('written'),
+    canaryGraded: { written: true },
+    prepare: async (dir) => {
+      const r = await runCli(dir, ['run'], {
+        env: { ...judgeProviderEnv('down'), REEVAL_FIXTURE_SANDBOX: 'fake' },
+      })
+      assert.equal(r.code, 3, r.stdout + r.stderr)
+      for (const a of readRun(dir).run.evals.flatMap((e) => e.attempts)) {
+        assert.equal(a.outcome, 'infra_error')
+        assert.match(a.error?.message ?? '', JUDGE_OUTAGE)
+        assert.equal(a.grades, undefined, 'the outage is no grade, so no 0')
+      }
+      assert.equal(judgeProvider.calls.down, 12, "each attempt's judge tried six times")
+    },
+    record: ({ run, stdout }) => {
+      for (const a of run.evals.flatMap((e) => e.attempts)) {
+        assert.deepEqual(
+          a.retries?.map((r) => r.error.kind),
+          ['infra'],
+        )
+        assert.match(a.retries?.[0]?.error.message ?? '', JUDGE_OUTAGE)
+        assert.deepEqual(
+          a.grades?.[0]?.judge?.calls?.map((c) => [c.model, c.answer]),
+          [['typesafe-ai/jev-1.14.0', true]],
+        )
+      }
+      assert.match(stdout, /^retried 2 errored attempts: 1 now passes, 1 fails, 0 still error$/m)
     },
   },
   {

@@ -2,10 +2,14 @@
 // masking), their grades and scores over one or several models, and their fingerprints.
 import assert from 'node:assert/strict'
 import { mkdirSync, writeFileSync } from 'node:fs'
+import { createServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { join, relative, sep } from 'node:path'
 import { describe, test } from 'node:test'
 import { gzipSync } from 'node:zlib'
 import { writeTar } from '@reeval/sandbox-docker'
+import { APICallError, Experimental_DecisionRefusalError, RetryError } from 'ai'
+import { vercelDecisionModel } from '../src/gateway/vercel-models.ts'
 import type { GradeInputs } from '../src/grade/context.ts'
 import { defineGrader, type GraderDef, graderDef } from '../src/grade/define.ts'
 import { judge } from '../src/grade/judge-grader.ts'
@@ -15,6 +19,7 @@ import { keptFiles } from '../src/history/stored-attempt.ts'
 import { sha256 } from '../src/ids.ts'
 import { askJudge } from '../src/judge/index.ts'
 import { fakeJudge } from '../src/judge.ts'
+import { InfraError } from '../src/sandbox/types.ts'
 import type { GradeRecord, JudgeModel, JudgeState } from '../src/types.ts'
 import { tempDir } from './helpers.ts'
 
@@ -227,6 +232,155 @@ describe('a judge grader', () => {
       [['openai/gpt-6', 0.01]],
     )
   })
+})
+
+describe("a judge grader's failed call", () => {
+  const url = 'https://api.example.test/v1/decide'
+  const failing = (error: unknown) => {
+    const { inputs } = attempt({}, 'openai/gpt-6')
+    inputs.judge = { ...inputs.judge, ask: async () => Promise.reject(error) }
+    return inputs
+  }
+  const unavailable = new APICallError({
+    message: `Service Unavailable for ${SECRET}`,
+    url,
+    requestBodyValues: {},
+    statusCode: 503,
+  })
+
+  for (const [what, error] of [
+    ['a 5xx', unavailable],
+    [
+      'a network error',
+      new APICallError({
+        message: 'Cannot connect to API: ECONNRESET',
+        url,
+        requestBodyValues: {},
+        isRetryable: true,
+      }),
+    ],
+    [
+      "the AI SDK's retries of a 5xx",
+      new RetryError({
+        message: 'Failed after 3 attempts',
+        reason: 'maxRetriesExceeded',
+        errors: [unavailable],
+      }),
+    ],
+  ] as const) {
+    test(`is the attempt's infra error for ${what}, masked`, async () => {
+      await assert.rejects(
+        grade(judge('Q?', { name: 'q', inputs: { output: true } }), failing(error)),
+        (e: Error) => {
+          assert.ok(e instanceof InfraError)
+          assert.match(e.message, /^The judge's provider failed judge grader q on openai\/gpt-6: /)
+          assert.doesNotMatch(e.message, /ghp_a1B2/)
+          return true
+        },
+      )
+    })
+  }
+
+  test("is the attempt's infra error for Vercel AI Gateway's 5xx, and the grade's for its 400", async () => {
+    const server = createServer((req, res) => {
+      req.resume().on('end', () => {
+        const status = req.headers.authorization === 'Bearer bad-request' ? 400 : 503
+        res.writeHead(status, { 'content-type': 'application/json' })
+        res.end(
+          JSON.stringify({ error: { message: `status ${status}`, type: 'internal_server_error' } }),
+        )
+      })
+    })
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    const retryMs = process.env.REEVAL_TEST_JUDGE_RETRY_MS
+    process.env.REEVAL_TEST_JUDGE_RETRY_MS = '1'
+    const on = (apiKey: string) =>
+      vercelDecisionModel('typesafe-ai/jev-1.14.0', {
+        baseURL: `http://127.0.0.1:${(server.address() as AddressInfo).port}/v1/ai`,
+        apiKey,
+      }) as JudgeModel
+    try {
+      await assert.rejects(
+        grade(judge('Q?', { name: 'q', inputs: { output: true } }), attempt({}, on('down')).inputs),
+        (e: Error) =>
+          e instanceof InfraError &&
+          /^The judge's provider failed judge grader q on gateway\/typesafe-ai\/jev-1\.14\.0: /.test(
+            e.message,
+          ),
+      )
+      const r = await grade(
+        judge('Q?', { inputs: { output: true } }),
+        attempt({}, on('bad-request')).inputs,
+      )
+      assert.equal(r.score, 0)
+      assert.match(r.error ?? '', /status 400/)
+    } finally {
+      if (retryMs === undefined) delete process.env.REEVAL_TEST_JUDGE_RETRY_MS
+      else process.env.REEVAL_TEST_JUDGE_RETRY_MS = retryMs
+      server.close()
+    }
+  })
+
+  test('clips a long provider message, as a grade error is', async () => {
+    const long = new APICallError({
+      message: 'x'.repeat(10_000),
+      url,
+      requestBodyValues: {},
+      statusCode: 502,
+    })
+    await assert.rejects(
+      grade(judge('Q?', { name: 'q', inputs: { output: true } }), failing(long)),
+      (e: Error) => e instanceof InfraError && e.message.length < 2200,
+    )
+  })
+
+  test("is the attempt's infra error when the judge times out", async () => {
+    const { inputs } = attempt({}, 'openai/gpt-6')
+    inputs.judge = {
+      ...inputs.judge,
+      ask: (_q, _a, _s, _m, signal) =>
+        new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason))),
+    }
+    await assert.rejects(
+      grade(judge('Q?', { name: 'q', inputs: { output: true }, timeout: '50ms' }), inputs),
+      (e: Error) =>
+        e instanceof InfraError && e.message === 'The judge timed out after 50ms grading q',
+    )
+  })
+
+  for (const [what, error, message] of [
+    [
+      'a refusal',
+      new Experimental_DecisionRefusalError({
+        questionIds: ['answer'],
+        provider: 'openai',
+        modelId: 'gpt-6',
+        message: 'refused',
+      }),
+      /^openai\/gpt-6: refused$/,
+    ],
+    [
+      'a malformed answer',
+      new APICallError({
+        message: 'Invalid JSON response',
+        url,
+        requestBodyValues: {},
+        statusCode: 200,
+      }),
+      /^openai\/gpt-6: Invalid JSON response$/,
+    ],
+    [
+      'a 400',
+      new APICallError({ message: 'Bad Request', url, requestBodyValues: {}, statusCode: 400 }),
+      /^openai\/gpt-6: Bad Request$/,
+    ],
+  ] as const) {
+    test(`is the grade's error, scored 0, for ${what}`, async () => {
+      const r = await grade(judge('Q?', { inputs: { output: true } }), failing(error))
+      assert.equal(r.score, 0)
+      assert.match(r.error ?? '', message)
+    })
+  }
 })
 
 describe("a judge grader's reference", () => {

@@ -606,11 +606,12 @@ function judgeOf(current: CurrentEval): NonNullable<GradeInputs['judge']> {
 
 /**
  * Whether a grade's error says the grade couldn't be had today rather than what the grader made
- * of the attempt: an interrupt, a timeout, or anything from a judge (its provider, its network,
- * its answer). A code grader's own throw is its grade, scored 0 as a run scores it.
+ * of the attempt: an interrupt, a timeout, or anything from a judge (its answer; its provider
+ * failing is `runGraders`' infra error). A code grader's own throw is its grade, scored 0 as a run
+ * scores it.
  */
 const heldBack = (def: GraderDef, error: string, signal: AbortSignal) =>
-  signal.aborted || def.run.kind === 'judge' || /^(grade|judge) timed out after /.test(error)
+  signal.aborted || def.run.kind === 'judge' || /^grade timed out after /.test(error)
 
 /**
  * Runs what `steps` plans for the attempt. A grader whose grade can't be had today (`heldBack`,

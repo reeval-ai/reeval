@@ -95,9 +95,9 @@ async function graderTurns(a: Attempt): Promise<GraderTurn[]> {
 
 /**
  * Runs the graders and records their grades and the attempt's score. Returns the error to fail
- * the attempt with when it scored under its target's threshold, or a grader's sandbox's infra
- * error, which records no grades; undefined when the run was canceled while they ran, which
- * records none.
+ * the attempt with when it scored under its target's threshold, or the infra error of a grader's
+ * sandbox or a judge's provider, which records no grades; undefined when the run was canceled
+ * while they ran, which records none.
  */
 export async function gradeAttempt(
   a: Attempt,
@@ -128,7 +128,7 @@ export async function gradeAttempt(
     grades = await runGraders(grading.graders, inputs, signal)
   } catch (error) {
     if (signal.aborted) return undefined
-    debugLog('check', `grader sandbox: ${(error as Error).message}`)
+    debugLog('check', `grading: ${(error as Error).message}`)
     return error as Error
   }
   if (signal.aborted) return undefined

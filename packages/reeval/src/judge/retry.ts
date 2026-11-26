@@ -1,4 +1,6 @@
 import { setTimeout as sleep } from 'node:timers/promises'
+import { GatewayError } from '@ai-sdk/gateway'
+import { APICallError, RetryError } from 'ai'
 import type { JudgeRetry } from '../history/types.ts'
 
 /** Internal: how hard a judge call tries before it fails the eval. Not user config. */
@@ -6,6 +8,12 @@ export type RetryPolicy = { attempts: number; baseMs: number; maxMs: number }
 
 /** Up to six tries over about a minute: long enough to ride out a provider's "high demand". */
 export const JUDGE_RETRY: RetryPolicy = { attempts: 6, baseMs: 2_000, maxMs: 30_000 }
+
+/** `JUDGE_RETRY`, waiting `REEVAL_TEST_JUDGE_RETRY_MS` between tries when the test suite sets it. */
+export function judgeRetry(): RetryPolicy {
+  const ms = Number(process.env.REEVAL_TEST_JUDGE_RETRY_MS)
+  return ms > 0 ? { ...JUDGE_RETRY, baseMs: ms, maxMs: ms } : JUDGE_RETRY
+}
 
 const TRANSIENT_STATUS = new Set([408, 409, 425, 429])
 const TRANSIENT_MESSAGE =
@@ -36,6 +44,16 @@ export function isTransient(error: unknown): boolean {
     return e.statusCode >= 500 || TRANSIENT_STATUS.has(e.statusCode) || e.isRetryable === true
   }
   return e.isRetryable === true || TRANSIENT_MESSAGE.test(e.message ?? String(e))
+}
+
+/**
+ * The provider failed the call, so another attempt may get the answer: an API call, or a Vercel AI
+ * Gateway call, the AI SDK marks retryable (a 5xx, 408, 409, 429 or a network error), also inside
+ * its `RetryError`. Never a refusal, a malformed answer or another 4xx.
+ */
+export function isOutage(error: unknown): boolean {
+  if (RetryError.isInstance(error)) return isOutage(error.lastError)
+  return (APICallError.isInstance(error) || GatewayError.isInstance(error)) && error.isRetryable
 }
 
 function retryAfterMs(error: unknown): number {

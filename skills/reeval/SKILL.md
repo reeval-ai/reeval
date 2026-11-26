@@ -221,8 +221,9 @@ export default defineEval({
   `{ transcript: 'tools' }`. `turns` only selects; details in
   [references/evals.md](references/evals.md). Prefer deterministic checks for what can be checked; use the judge for quality, with plain
   yes/no questions that don't name one specific way of doing it.
-- A judge grader whose provider fails scores 0 with its `error`, and the other graders still
-  run.
+- A judge grader whose provider fails after its retries, or that times out, ends the attempt
+  `infra_error`, which `--retry-errors` runs again; one the model refuses, or answers malformed,
+  scores 0 with its `error`, and the other graders still run.
 - Make the eval trustworthy. Before a real run, swap in the fake harness, and only the harness,
   so the eval runs in its real sandbox (its `docker()` image, `install`, egress and brokered
   secrets): an oracle `fakeAgent` that does the task right must pass, and a canary that cheats
