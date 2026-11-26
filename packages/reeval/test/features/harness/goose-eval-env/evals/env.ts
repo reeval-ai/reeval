@@ -1,4 +1,4 @@
-import { defineEnvironment } from 'reeval'
+import { defineEnvironment, defineGrader } from 'reeval'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
 const sandbox =
@@ -34,5 +34,10 @@ export const closed = defineEnvironment('closed', {
 
 export const prompt = 'Run `sh report.sh` once with your shell tool, then reply "done".'
 
-/** The `NAME=value` lines the agent's shell saw. */
-export const varsSeen = (text: string | null) => (text ?? '').split('\n').filter(Boolean)
+/** The `NAME=value` lines the agent's shell saw, in vars.txt. */
+export const varsSeen = (name: string, score: (vars: string[]) => boolean) =>
+  defineGrader(name, {
+    files: ['vars.txt'],
+    grade: async (c) => ((await c.readFile('vars.txt')) ?? '').split('\n').filter(Boolean),
+    score: (vars) => (score(vars) ? 1 : 0),
+  })

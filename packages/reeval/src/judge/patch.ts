@@ -37,6 +37,9 @@ function collapse<T>(
   return { kept, dirs: [...counts].map(([dir, count]) => ({ dir, count })) }
 }
 
+/** A marker an earlier pass left, as in a stored diff: a diff's own lines never start with `[`. */
+const MARKER = /^\[reeval: dropped (.+)\]$/gm
+
 const changedLineList = (part: string) =>
   part.split('\n').filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---) /.test(l))
 
@@ -89,7 +92,10 @@ export function judgeDiff(
     ...[...deps.dirs, ...built.dirs].map((d) => `changed ${d.dir} (${plural(d.count, 'file')})`),
   ]
   if (!diff.patch) return { files: fileLines, patch: diff.patch, dropped }
-  const parts = diff.patch.split(/(?=^diff --git )/m).filter((part) => part.length > 0)
+  // An earlier pass's markers are parts of their own, so they outlive the file part before them.
+  const parts = diff.patch
+    .split(/(?=^diff --git |^\[reeval: dropped )/m)
+    .filter((part) => part.length > 0)
   const paths = parts.map(patchPath)
   const dirCounts = new Map<string, number>()
   const dirOf = (path: string) => DEPENDENCY_DIR.exec(path)?.[1] ?? BUILD_DIR.exec(path)?.[1]
@@ -103,10 +109,14 @@ export function judgeDiff(
     dropped.push(what)
     out.push(`[reeval: dropped ${what}]\n`)
   }
+  const keep = (part: string) => {
+    for (const m of part.matchAll(MARKER)) dropped.push(m[1] as string)
+    out.push(part)
+  }
   for (const [i, part] of parts.entries()) {
     const path = paths[i]
     if (!path) {
-      out.push(part)
+      keep(part)
       continue
     }
     if (!included(path) || inFull?.has(path)) continue
@@ -135,7 +145,7 @@ export function judgeDiff(
       drop(`${path}: minified, a line of ${longest} characters`)
       continue
     }
-    out.push(part)
+    keep(part)
   }
   return { files: fileLines, patch: out.join(''), dropped }
 }

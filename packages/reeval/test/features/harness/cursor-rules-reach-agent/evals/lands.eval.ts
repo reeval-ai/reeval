@@ -1,11 +1,11 @@
-import { defineEval, expect } from 'reeval'
-import { houseRules, prompt } from './env.ts'
+import { defineEval } from 'reeval'
+import { houseRules, prompt, said } from './env.ts'
 
 // Cursor loads the environment's rules (AGENTS.md) into its context without being told to read it.
 export default defineEval({
   environment: houseRules,
+  graders: [said],
   task: async (c) => {
-    const turn = await c.send(prompt)
-    expect(turn.text).toContain('MARMALADE')
+    await c.send(prompt)
   },
 })

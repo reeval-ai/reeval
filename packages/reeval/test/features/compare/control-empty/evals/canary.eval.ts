@@ -1,10 +1,12 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
 import { empty } from './env.ts'
 
-// Must fail: the empty environment doesn't get the variant's files.
 export default defineEval({
   environment: empty,
+  // The mistake: the empty environment doesn't get the variant's files.
+  graders: [hasFile('from-variant.txt', 'variant-only')],
   task: async (c) => {
-    expect(await c.readFile('from-variant.txt')).toBe('variant-only')
+    await c.exec('true')
   },
 })

@@ -1,4 +1,4 @@
-import { defineEnvironment, type Turn } from 'reeval'
+import { defineEnvironment, defineGrader } from 'reeval'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
 const sandbox =
@@ -13,6 +13,12 @@ export const prompt =
   'Use your web search tool (not the shell, not curl) once, to search for "google antigravity ' +
   'cli". Then reply with one URL it found and nothing else.'
 
-/** Whether each of the turn's web searches succeeded. */
-export const searched = (turn: Turn) =>
-  turn.transcript.flatMap((e) => (e.type === 'web-search' ? [e.ok !== false] : []))
+export const completed = defineGrader('completed', {
+  grade: (c) => c.turns[0]?.status === 'completed',
+})
+
+/** A search succeeded: one the gateway refused is still a web-search event, with ok false. */
+export const succeededSearch = defineGrader('search-succeeded', {
+  grade: (c) =>
+    (c.turns[0]?.transcript ?? []).some((e) => e.type === 'web-search' && e.ok !== false),
+})

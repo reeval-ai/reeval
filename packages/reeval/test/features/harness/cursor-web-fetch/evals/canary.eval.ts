@@ -1,11 +1,11 @@
-import { defineEval, expect } from 'reeval'
-import { beacon, plain, prompt } from './env.ts'
+import { defineEval } from 'reeval'
+import { noBeacon, plain, prompt } from './env.ts'
 
 // Must fail: the agent fetched the page, so its reply has the beacon's round and randomness.
 export default defineEval({
   environment: plain,
+  graders: [noBeacon],
   task: async (c) => {
-    const turn = await c.send(prompt)
-    expect(turn.text).not.toMatch(beacon)
+    await c.send(prompt)
   },
 })

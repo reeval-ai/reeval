@@ -1,4 +1,5 @@
-import { defineEnvironment } from 'reeval'
+import { defineEnvironment, defineGrader } from 'reeval'
+import { execOf } from 'reeval/graders/match'
 import { docker } from 'reeval/sandbox'
 
 /**
@@ -29,5 +30,12 @@ export const LOG = '/tmp/reeval-fx-probe.txt'
 export const prompt =
   'Call the probe tool of the probe MCP server once, and reply with what it returned.'
 
+/** Reads the probe's log, outside the workspace, after the turn. */
+export const readLog = `cat ${LOG}`
+
 /** The probe's lines, or none when it was never called. */
-export const probedLines = (text: string | null) => (text ?? '').split('\n').filter(Boolean)
+export const probedLines = (name: string, score: (lines: string[]) => boolean) =>
+  defineGrader(name, {
+    grade: (c) => (execOf(c, readLog)?.stdout ?? '').split('\n').filter(Boolean),
+    score: (lines) => (score(lines) ? 1 : 0),
+  })

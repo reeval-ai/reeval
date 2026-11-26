@@ -1,9 +1,11 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
 import { env } from './env.ts'
 
 // A question with no across is asked of each attempt as it ends, shown the inputs it turns on.
 export default defineEval({
   environment: env,
+  graders: [hasFile('out.txt', 'hi\n')],
   questions: [
     {
       question: 'Did it write out.txt?',
@@ -16,6 +18,5 @@ export default defineEval({
   ],
   task: async (c) => {
     await c.send('write out.txt')
-    expect(await c.readFile('out.txt')).toBe('hi\n')
   },
 })

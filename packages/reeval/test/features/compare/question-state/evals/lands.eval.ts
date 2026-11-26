@@ -1,9 +1,11 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
 import { baseline, variant } from './env.ts'
+import { printsOut } from './graders.ts'
 
 // The inputs pick the parts: the last turn's reply and one check's result, no diff and no first turn.
 export default defineEval({
   compare: { control: baseline, variants: [variant] },
+  graders: [printsOut('hi\n')],
   questions: [
     {
       question: 'Which reply is clearer?',
@@ -17,6 +19,6 @@ export default defineEval({
     await c.send('first turn')
     await c.send('second turn')
     await c.exec('echo unshown')
-    expect((await c.exec('cat out.txt')).stdout).toBe('hi\n')
+    await c.exec('cat out.txt')
   },
 })

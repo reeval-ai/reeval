@@ -1,4 +1,5 @@
-import { defineEnvironment } from 'reeval'
+import { defineEnvironment, defineGrader } from 'reeval'
+import { execOf } from 'reeval/graders/match'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
 const sandbox =
@@ -19,3 +20,10 @@ export const oddNames = defineEnvironment('odd-names', {
 })
 
 export const listing = `node -e "process.stdout.write(JSON.stringify(require('fs').readdirSync('.', { recursive: true }).filter((p) => /txt$/.test(p)).sort()))"`
+
+/** The stored listing's names. */
+export const listed = (name: string, score: (names: string[]) => number) =>
+  defineGrader(name, {
+    grade: (c) => JSON.parse(execOf(c, listing)?.stdout ?? '[]') as string[],
+    score,
+  })

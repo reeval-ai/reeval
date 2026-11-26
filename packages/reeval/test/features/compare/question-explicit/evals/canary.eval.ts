@@ -1,12 +1,14 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { baseline, variant } from './env.ts'
 
-// Must fail: the diff the question is shown has out.txt as the agent wrote it, not 'bye'.
 export default defineEval({
   compare: { control: baseline, variants: [variant] },
+  // The mistake: the agent wrote hi to out.txt, not bye.
+  graders: [observed<string | null>('out.txt', (text) => !!text?.includes('bye\n'))],
   questions: [{ question: 'Which out.txt is better?', across: 'environment', diff: true }],
   task: async (c) => {
     await c.send('write out.txt')
-    expect(await c.readFile('out.txt')).toBe('bye\n')
+    c.observe('out.txt', await c.readFile('out.txt'))
   },
 })

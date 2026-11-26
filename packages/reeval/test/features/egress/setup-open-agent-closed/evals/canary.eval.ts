@@ -1,13 +1,12 @@
-import { defineEval, expect } from 'reeval'
-import { agentSaw, direct, open } from './env.ts'
+import { defineEval } from 'reeval'
+import { direct, open, phases } from './env.ts'
 
 // Must fail: under one allow-all policy the agent and the check reach the listener too.
 export default defineEval({
   environment: open,
+  graders: [phases],
   task: async (c) => {
-    const [agent] = agentSaw(await c.send('reach the listener'))
-    const check = await c.exec(direct)
-    const seen = [await c.readFile('setup.txt'), agent, check.stdout].map((s) => s?.trim())
-    expect(seen.join(' · ')).toMatch(/^200 exit=0 · 000 exit=[1-9]\d* · 000 exit=[1-9]\d*$/)
+    await c.send('reach the listener')
+    await c.exec(direct)
   },
 })

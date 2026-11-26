@@ -1,10 +1,12 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
 import { ordered } from './env.ts'
 
 // Setup steps run in order, the parent environment's first, each to completion.
 export default defineEval({
   environment: ordered,
+  graders: [hasFile('order.txt', 'one\ntwo\n')],
   task: async (c) => {
-    expect(await c.readFile('order.txt')).toBe('one\ntwo\n')
+    await c.exec('true')
   },
 })

@@ -1,11 +1,12 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { withinLimits } from 'reeval/graders'
 import { plain } from './env.ts'
 
-// Must fail: one token below what the fake turn reports.
 export default defineEval({
   environment: plain,
+  // The mistake: one token below what the fake turn reports.
+  graders: [withinLimits({ tokens: 1199 })],
   task: async (c) => {
-    const turn = await c.send('look around')
-    expect(turn).toStayWithin({ tokens: 1199 })
+    await c.send('look around')
   },
 })

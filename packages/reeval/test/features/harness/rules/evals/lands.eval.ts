@@ -1,11 +1,13 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
 import { rulesFile } from '../layout.ts'
 import { houseRules } from './env.ts'
 
 // `rules` become the workspace file the harness reads, word for word.
 export default defineEval({
   environment: houseRules,
+  graders: [hasFile(rulesFile, 'Always write tests.')],
   task: async (c) => {
-    expect(await c.readFile(rulesFile)).toBe('Always write tests.')
+    await c.exec('true')
   },
 })

@@ -1,11 +1,11 @@
-import { defineEval, expect } from 'reeval'
-import { greeting, shellOutput } from './env.ts'
+import { defineEval } from 'reeval'
+import { greeting, readsSkill } from './env.ts'
 
 // A harness-placed skill is where the harness's adapter puts it (the agent's first read).
 export default defineEval({
   environment: greeting,
+  graders: [readsSkill(0)],
   task: async (c) => {
-    const turn = await c.send('read the house greeting skill')
-    expect(shellOutput(turn, 0)).toContain('Greet people with "Ahoy, <name>!".')
+    await c.send('read the house greeting skill')
   },
 })

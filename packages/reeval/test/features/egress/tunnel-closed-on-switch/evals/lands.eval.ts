@@ -1,11 +1,12 @@
-import { defineEval, expect } from 'reeval'
-import { closed, tunnel } from './env.ts'
+import { defineEval } from 'reeval'
+import { closed, tunnel, tunnelClosed } from './env.ts'
 
 // A tunnel setup opened stays open only while the policy allows its host: the switch to the
 // agent's deny-all closes it.
 export default defineEval({
   environment: closed,
+  graders: [tunnelClosed],
   task: async (c) => {
-    expect((await c.exec(tunnel)).stdout.trim()).toBe('closed')
+    await c.exec(tunnel)
   },
 })

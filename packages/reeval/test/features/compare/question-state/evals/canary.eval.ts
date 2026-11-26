@@ -1,9 +1,11 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
 import { baseline, variant } from './env.ts'
+import { printsOut } from './graders.ts'
 
-// Must fail: the check the question is shown prints out.txt as the agent wrote it, not 'bye'.
 export default defineEval({
   compare: { control: baseline, variants: [variant] },
+  // The mistake: out.txt says hi, not bye.
+  graders: [printsOut('bye\n')],
   questions: [
     {
       question: 'Which reply is clearer?',
@@ -16,6 +18,6 @@ export default defineEval({
   task: async (c) => {
     await c.send('first turn')
     await c.send('second turn')
-    expect((await c.exec('cat out.txt')).stdout).toBe('bye\n')
+    await c.exec('cat out.txt')
   },
 })

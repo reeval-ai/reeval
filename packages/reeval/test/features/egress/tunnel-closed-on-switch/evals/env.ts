@@ -1,4 +1,5 @@
-import { defineEnvironment } from 'reeval'
+import { defineEnvironment, defineGrader } from 'reeval'
+import { execOf } from 'reeval/graders/match'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
 const sandbox =
@@ -53,3 +54,9 @@ export const kept = defineEnvironment('kept', {
 /** What became of the tunnel after the switch: the check waits for it to change. */
 export const tunnel =
   'for i in $(seq 50); do [ "$(cat tunnel.txt)" != open ] && break; sleep 0.2; done; cat tunnel.txt'
+
+/** Whether the tunnel check found it closed. */
+export const tunnelClosed = defineGrader('tunnel-closed', {
+  grade: (c) => execOf(c, tunnel)?.stdout.trim() ?? null,
+  score: (state) => (state === 'closed' ? 1 : 0),
+})

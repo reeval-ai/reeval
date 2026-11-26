@@ -1,11 +1,13 @@
-import { defineEval, expect } from 'reeval'
-import { agentSaw, quiet } from './env.ts'
+import { defineEval } from 'reeval'
+import { agentPrinted, quiet } from './env.ts'
 
 // Node's fetch reaches the host through the gateway's proxy, and Node prints nothing else.
 export default defineEval({
   environment: quiet,
+  graders: [
+    agentPrinted('prints-only-the-body', ([output]) => output?.trim() === 'reeval-egress-ok'),
+  ],
   task: async (c) => {
-    const [output] = agentSaw(await c.send('fetch the listener with node'))
-    expect(output?.trim()).toBe('reeval-egress-ok')
+    await c.send('fetch the listener with node')
   },
 })

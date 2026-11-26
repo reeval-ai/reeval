@@ -1,14 +1,13 @@
-import { defineEval, expect } from 'reeval'
-import { closed, prompt, references } from './env.ts'
+import { defineEval } from 'reeval'
+import { searched } from 'reeval/graders'
+import { closed, completed, found, prompt } from './env.ts'
 
 // Under deny-all, the agent searched with its web tool and the search came back with results:
 // the transcript has the search, its query and how many pages it found.
 export default defineEval({
   environment: closed,
+  graders: [completed, searched(/opencode/i), found],
   task: async (c) => {
-    const turn = await c.send(prompt)
-    expect(turn.status).toBe('completed')
-    expect(turn).toHaveSearched(/opencode/i)
-    expect(Math.max(0, ...references(turn))).toBeGreaterThan(0)
+    await c.send(prompt)
   },
 })

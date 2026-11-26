@@ -12,11 +12,7 @@ export const house = defineEnvironment('house', ({ plugin }) => ({
 }))
 
 /** What the fake agent says it loaded: its skills, plugins and MCP servers. */
-export const loaded = (turn: Turn) =>
-  turn.transcript.flatMap((e) =>
+export const loaded = (turn: Pick<Turn, 'transcript'> | undefined) =>
+  (turn?.transcript ?? []).flatMap((e) =>
     e.type === 'text' && e.text.startsWith('Loaded ') ? [e.text] : [],
   )[0] ?? ''
-
-/** The trimmed file, or null when it's missing. */
-export const trimmed = async (read: (path: string) => Promise<string | null>, path: string) =>
-  (await read(path))?.trim() ?? null

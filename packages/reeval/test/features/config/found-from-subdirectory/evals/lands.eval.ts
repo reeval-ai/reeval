@@ -1,8 +1,10 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
 
 // Run from deep/nested/, the config's file('marker.txt') is the project root's.
 export default defineEval({
+  graders: [hasFile('marker.txt', 'from the project root\n')],
   task: async (c) => {
-    expect(await c.readFile('marker.txt')).toBe('from the project root\n')
+    await c.exec('true')
   },
 })

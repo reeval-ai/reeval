@@ -1,4 +1,5 @@
-import { defineEnvironment, type Turn } from 'reeval'
+import { defineEnvironment, defineGrader } from 'reeval'
+import { execOf } from 'reeval/graders/match'
 import { docker, fakeSandbox, podman } from 'reeval/sandbox'
 
 /** The Docker and Podman tiers run the same containers. */
@@ -27,6 +28,20 @@ export const phased = defineEnvironment('phased', {
 })
 export const open = defineEnvironment('open', { sandbox, egress: 'allow-all', setup })
 
-/** What each of the scripted agent's shell commands printed. */
-export const agentSaw = (turn: Turn) =>
-  turn.transcript.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : []))
+/**
+ * What setup, the agent's turn and the check after it saw, as `setup · agent · check`, passing
+ * when it matches the phases' expected reach.
+ */
+export const phases = defineGrader('phases', {
+  files: ['setup.txt'],
+  grade: async (c) => {
+    const agent = c.turns[0]?.transcript.find((e) => e.type === 'tool' && e.tool === 'shell')
+    const seen = [
+      await c.readFile('setup.txt'),
+      agent?.type === 'tool' ? String(agent.output ?? '') : undefined,
+      execOf(c, direct)?.stdout,
+    ]
+    return seen.map((s) => s?.trim()).join(' · ')
+  },
+  score: (seen) => (/^200 exit=0 · 000 exit=[1-9]\d* · 000 exit=[1-9]\d*$/.test(seen) ? 1 : 0),
+})

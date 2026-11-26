@@ -1,4 +1,4 @@
-import { defineEnvironment } from 'reeval'
+import { defineEnvironment, defineGrader } from 'reeval'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
 const sandbox =
@@ -12,3 +12,7 @@ export const closed = defineEnvironment('closed', { sandbox, egress: 'deny-all' 
 export const prompt =
   'Use your web search tool (not the shell, not curl) once, to search for "openai codex cli ' +
   'github". Then reply with the URL of the repository it finds and nothing else.'
+
+export const completed = defineGrader('completed', {
+  grade: (c) => c.turns[0]?.status === 'completed',
+})

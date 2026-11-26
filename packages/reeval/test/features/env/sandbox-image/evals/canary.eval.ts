@@ -1,10 +1,12 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { python } from './env.ts'
 
 // Must fail: a different sandbox id is not what the environment set.
 export default defineEval({
   environment: python,
+  graders: [observed('sandbox', (id) => id === 'docker')],
   task: async (c) => {
-    expect(c.attempt.cell.sandbox).toBe('docker')
+    c.observe('sandbox', c.attempt.cell.sandbox)
   },
 })

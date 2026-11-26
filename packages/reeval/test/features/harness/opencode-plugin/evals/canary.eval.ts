@@ -1,11 +1,13 @@
-import { defineEval, expect } from 'reeval'
-import { house, trimmed } from './env.ts'
+import { defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
+import { house } from './env.ts'
 
 // Must fail: the review code is written by the agent following the unpacked subagent, not by
 // reeval.
 export default defineEval({
   environment: house,
+  graders: [hasFile('review.txt', /^HERON-62\s*$/)],
   task: async (c) => {
-    expect(await trimmed(c.readFile, 'review.txt')).toBe('HERON-62')
+    await c.exec('true')
   },
 })

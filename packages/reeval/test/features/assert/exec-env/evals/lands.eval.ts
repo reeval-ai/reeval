@@ -1,11 +1,12 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { succeeded } from 'reeval/graders'
 import { plain } from './env.ts'
 
 // `env` sets a variable for this command only.
 export default defineEval({
   environment: plain,
+  graders: [succeeded('greets')],
   task: async (c) => {
-    const r = await c.exec('printf %s "$GREETING"', { env: { GREETING: 'hello' } })
-    expect(r.stdout).toBe('hello')
+    await c.exec('test "$GREETING" = hello', { env: { GREETING: 'hello' }, label: 'greets' })
   },
 })

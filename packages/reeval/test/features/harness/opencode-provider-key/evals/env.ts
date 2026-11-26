@@ -1,4 +1,4 @@
-import { defineEnvironment } from 'reeval'
+import { defineEnvironment, defineGrader } from 'reeval'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
 const sandbox =
@@ -14,4 +14,17 @@ export const prompt =
   'true` once with your shell tool, then reply "done".'
 
 /** The keys the agent's shell saw, one per line: printenv prints only the set ones. */
-export const keysSeen = (text: string | null) => (text ?? '').split('\n').filter(Boolean)
+const keysSeen = (text: string | null) => (text ?? '').split('\n').filter(Boolean)
+
+const keys = (name: string, score: (keys: string[]) => boolean) =>
+  defineGrader(name, {
+    files: ['keys.txt'],
+    grade: async (c) => keysSeen(await c.readFile('keys.txt')),
+    score: (seen) => (score(seen) ? 1 : 0),
+  })
+
+export const onePlaceholder = keys(
+  'one-placeholder',
+  (seen) => seen.length === 1 && /^aisdkhc_[\w-]{43}$/.test(seen[0] ?? ''),
+)
+export const twoKeys = keys('two-keys', (seen) => seen.length === 2)

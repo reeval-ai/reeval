@@ -1,10 +1,12 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { child } from './env.ts'
 
 // Must fail: the parent sandbox is not merged onto the child.
 export default defineEval({
   environment: child,
+  graders: [observed('sandbox', (id) => id === 'parent')],
   task: async (c) => {
-    expect(c.attempt.cell.sandbox).toBe('parent')
+    c.observe('sandbox', c.attempt.cell.sandbox)
   },
 })

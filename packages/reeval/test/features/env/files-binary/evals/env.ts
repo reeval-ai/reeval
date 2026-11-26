@@ -1,4 +1,5 @@
-import { defineEnvironment } from 'reeval'
+import { defineEnvironment, defineGrader } from 'reeval'
+import { execOf } from 'reeval/graders/match'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
 const sandbox =
@@ -16,3 +17,10 @@ export const hostBlob = new URL('../blob.tgz', import.meta.url)
 
 /** The file's sha256 in the sandbox. */
 export const sandboxSha256 = `node -e "process.stdout.write(require('crypto').createHash('sha256').update(require('fs').readFileSync('blob.tgz')).digest('hex'))"`
+
+/** Whether the stored `command` printed `text`. */
+export const prints = (name: string, command: string, text: string) =>
+  defineGrader(name, {
+    grade: (c) => execOf(c, command)?.stdout ?? null,
+    score: (out) => (out === text ? 1 : 0),
+  })

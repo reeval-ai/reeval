@@ -1,11 +1,14 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { withinLimits } from 'reeval/graders'
 import { plain } from './env.ts'
 
 export default defineEval({
   environment: plain,
+  graders: [
+    withinLimits({ tokens: 1200, toolCalls: { bash: 2 }, duration: '5m' }),
+    withinLimits({ toolCalls: 2 }, { name: 'tool-calls' }),
+  ],
   task: async (c) => {
-    const turn = await c.send('look around')
-    expect(turn).toStayWithin({ tokens: 1200, toolCalls: { bash: 2 }, duration: '5m' })
-    expect(c).toStayWithin({ toolCalls: 2 })
+    await c.send('look around')
   },
 })
