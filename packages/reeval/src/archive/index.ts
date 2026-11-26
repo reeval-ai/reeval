@@ -3,9 +3,11 @@
 // its entries sorted by path and timestamped with the run's start, so the same files, creation
 // time and reeval give the same zip. `openArchive` holds the manifest to the zip's entries, and
 // each file it reads to its hash.
-import { randomBytes } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
+import { createReadStream } from 'node:fs'
 import { type FileHandle, open, rename, rm } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
+import { crc32 } from 'node:zlib'
 import { z } from 'zod'
 import { RUN_ID, sha256 } from '../ids.ts'
 import { PACKAGE_VERSION } from '../root.ts'
@@ -35,8 +37,13 @@ export class ArchiveError extends Error {
   override name = 'ArchiveError'
 }
 
-/** A file to archive: its path from the archive's root, and its bytes or how to read them. */
-export type ArchiveInput = { path: string; data: Uint8Array | (() => Promise<Uint8Array>) }
+/**
+ * A file to archive: its path from the archive's root, and its bytes, how to read them, or the
+ * file on disk, which streams in stored and is never held whole.
+ */
+export type ArchiveInput =
+  | { path: string; data: Uint8Array | (() => Promise<Uint8Array>) }
+  | { path: string; file: string }
 
 export type WriteArchiveOptions = {
   contents: ArchiveManifest['contents']
@@ -115,6 +122,12 @@ export async function writeArchive(
     })
     const files: ArchiveFile[] = []
     for (const input of inputs) {
+      if ('file' in input) {
+        const read = await hashFile(input.file)
+        files.push({ path: input.path, sha256: read.sha256, bytes: read.bytes })
+        await zip.addStored(input.path, read.bytes, read.crc, createReadStream(input.file))
+        continue
+      }
       const data = typeof input.data === 'function' ? await input.data() : input.data
       files.push({ path: input.path, sha256: sha256(data), bytes: data.length })
       await zip.add(input.path, data, COMPRESSED.test(input.path) ? 'store' : 'deflate')
@@ -144,6 +157,21 @@ export async function writeArchive(
       await rm(tmp, { force: true })
     }
   }
+}
+
+/** The sha256, size and CRC-32 of `file`, read as it streams. */
+export async function hashFile(
+  file: string,
+): Promise<{ sha256: string; bytes: number; crc: number }> {
+  const hash = createHash('sha256')
+  let bytes = 0
+  let crc = 0
+  for await (const chunk of createReadStream(file) as AsyncIterable<Buffer>) {
+    hash.update(chunk)
+    bytes += chunk.length
+    crc = crc32(chunk, crc)
+  }
+  return { sha256: hash.digest('hex'), bytes, crc }
 }
 
 /** The rename's directory entry, flushed where the platform lets a directory be opened. */
