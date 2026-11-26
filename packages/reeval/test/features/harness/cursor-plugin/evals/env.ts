@@ -14,6 +14,5 @@ export const house = defineEnvironment('house', ({ plugin }) => ({
 /** What real Cursor is asked; only the plugin's rule says what to do. */
 export const prompt = 'What is the house codeword? Follow your rules for it, then stop.'
 
-/** The trimmed file, or null when it's missing. */
-export const trimmed = async (read: (path: string) => Promise<string | null>, path: string) =>
-  (await read(path))?.trim() ?? null
+/** Prints the file the plugin's session hook copies, under where the plugin was copied. */
+export const hookRan = 'cat ~/.reeval/plugins/house/hook-ran.txt'

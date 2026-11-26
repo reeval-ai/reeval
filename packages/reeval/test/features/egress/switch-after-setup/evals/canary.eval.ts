@@ -1,11 +1,11 @@
-import { defineEval, expect } from 'reeval'
-import { agentSaw, phased } from './env.ts'
+import { defineEval } from 'reeval'
+import { agentPrinted, phased } from './env.ts'
 
 // Must fail: the agent finds the setup step's file, so it didn't start before setup finished.
 export default defineEval({
   environment: phased,
+  graders: [agentPrinted('reads-nothing', ([read]) => read?.trim() === '')],
   task: async (c) => {
-    const [read] = agentSaw(await c.send('read ready.txt'))
-    expect(read?.trim()).toBe('')
+    await c.send('read ready.txt')
   },
 })

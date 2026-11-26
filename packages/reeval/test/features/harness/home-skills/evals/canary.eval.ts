@@ -1,11 +1,11 @@
-import { defineEval, expect } from 'reeval'
-import { greeting, shellOutput } from './env.ts'
+import { defineEval } from 'reeval'
+import { greeting, readsSkill } from './env.ts'
 
 // Must fail: the skill isn't also in the directory it must not be in (the agent's second read).
 export default defineEval({
   environment: greeting,
+  graders: [readsSkill(1)],
   task: async (c) => {
-    const turn = await c.send('read the house greeting skill')
-    expect(shellOutput(turn, 1)).toContain('Greet people with "Ahoy, <name>!".')
+    await c.send('read the house greeting skill')
   },
 })

@@ -1,27 +1,27 @@
-import { defineEval, expect } from 'reeval'
+import { isDeepStrictEqual } from 'node:util'
+import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 import { fakeJudge } from 'reeval/judge'
 import { app } from './env.ts'
 
 // Must fail: the `!**/*.test.ts` pattern leaves the test file out.
 export default defineEval({
   environment: app,
+  graders: [
+    judge('Is the app tidy?', {
+      name: 'tidy',
+      inputs: { contents: ['src/**', '!**/*.test.ts', 'docs/**'] },
+      model: fakeJudge({
+        // 0 only on the wrong value it's known to see; anything else errors the grader.
+        score: (s) => {
+          const saw = Object.keys((s as Record<string, unknown>).contents ?? {})
+          if (isDeepStrictEqual(saw, ['src/app.ts', 'src/util.ts'])) return 0
+          throw new Error(`the judge saw ${JSON.stringify(saw)}`)
+        },
+      }),
+    }),
+  ],
   task: async (c) => {
     await c.send('write the app')
-    let state: Record<string, unknown> = {}
-    const look = fakeJudge({
-      score: (s) => {
-        state = s as Record<string, unknown>
-        return 1
-      },
-    })
-    await c.judge('Is the app tidy?', {
-      model: look,
-      contents: ['src/**', '!**/*.test.ts', 'docs/**'],
-    })
-    expect(Object.keys(state.contents as object)).toEqual([
-      'src/app.test.ts',
-      'src/app.ts',
-      'src/util.ts',
-    ])
   },
 })

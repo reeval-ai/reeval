@@ -1,16 +1,17 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { pageStatus } from 'reeval/graders'
 import { baseline, variant } from './env.ts'
 
-// Must fail: the capture the question sends is landing.png, not aside.png.
 export default defineEval({
   compare: { control: baseline, variants: [variant] },
+  // The mistake: the task captured landing, not aside.
+  graders: [pageStatus('aside', 200)],
   questions: [
     { question: 'Which page looks better?', across: 'environment', artifacts: ['landing'] },
   ],
   task: async (c) => {
     await c.send('write the page')
     const server = await c.serve('node server.mjs')
-    const landing = await c.capture(server, { name: 'landing' })
-    expect(landing.file.path).toBe('artifacts/aside.png')
+    await c.capture(server, { name: 'landing' })
   },
 })

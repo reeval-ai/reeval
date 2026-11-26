@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { defineEnvironment } from 'reeval'
+import { defineEnvironment, defineGrader } from 'reeval'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
 const sandbox =
@@ -43,3 +43,8 @@ export async function randomness(round: number): Promise<string> {
   }
   throw new Error(`no drand relay served round ${round}: ${errors.join('; ')}`)
 }
+
+export const noBeacon = defineGrader('no-beacon', {
+  grade: (c) => c.turns[0]?.text ?? null,
+  score: (text) => (beacon.test(text ?? '') ? 0 : 1),
+})

@@ -1,10 +1,12 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { usedSkill } from 'reeval/graders'
 import { plain } from './env.ts'
 
 export default defineEval({
   environment: plain,
+  // The mistake: the agent loaded foo, not other.
+  graders: [usedSkill('other')],
   task: async (c) => {
-    const turn = await c.send('load the foo skill')
-    expect(turn).toHaveCalledSkill('other')
+    await c.send('load the foo skill')
   },
 })

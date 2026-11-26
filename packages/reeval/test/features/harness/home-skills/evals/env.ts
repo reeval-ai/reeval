@@ -1,4 +1,4 @@
-import { defineEnvironment, type Turn } from 'reeval'
+import { defineEnvironment, defineGrader, type Turn } from 'reeval'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
 const sandbox =
@@ -12,5 +12,14 @@ export const greeting = defineEnvironment('greeting', ({ skill }) => ({
 }))
 
 /** What the scripted agent's `n`th shell command printed. */
-export const shellOutput = (turn: Turn, n: number) =>
-  turn.transcript.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : []))[n]
+export const shellOutput = (turn: Pick<Turn, 'transcript'> | undefined, n: number) =>
+  (turn?.transcript ?? []).flatMap((e) =>
+    e.type === 'tool' && e.tool === 'shell' ? [String(e.output ?? '')] : [],
+  )[n]
+
+/** Whether the agent's `n`th shell command printed the skill. */
+export const readsSkill = (n: number) =>
+  defineGrader(`reads-the-skill-${n}`, {
+    grade: (c) => shellOutput(c.turns[0], n) ?? null,
+    score: (out) => (out?.includes('Greet people with "Ahoy, <name>!".') ? 1 : 0),
+  })

@@ -1,13 +1,12 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
 import { baseline, variant } from './env.ts'
+import { ownFile } from './graders.ts'
 
-// The variant cell is only its own files. The parent's environment is not applied.
+// Each cell is only its own files. The parent's environment is not applied.
 export default defineEval({
   compare: { control: baseline, variants: [variant] },
+  graders: [ownFile],
   task: async (c) => {
-    if (c.attempt.cell.role !== 'variant') return
-    expect(await c.readFile('from-variant.txt')).toBe('variant-only')
-    expect(await c.readFile('from-baseline.txt')).toBe(null)
-    expect(await c.readFile('from-ignored.txt')).toBe(null)
+    await c.exec('true')
   },
 })

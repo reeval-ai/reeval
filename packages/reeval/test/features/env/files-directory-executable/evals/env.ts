@@ -1,4 +1,5 @@
-import { defineEnvironment } from 'reeval'
+import { defineEnvironment, defineGrader } from 'reeval'
+import { execOf } from 'reeval/graders/match'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
 const sandbox =
@@ -14,3 +15,10 @@ export const executables = defineEnvironment('executables', ({ directory }) => (
 
 export const modes =
   'for f in bin/run.sh notes.txt; do test -x $f && echo "$f x" || echo "$f -"; done'
+
+/** Whether the stored `command` printed `text`. */
+export const prints = (name: string, command: string, text: string) =>
+  defineGrader(name, {
+    grade: (c) => execOf(c, command)?.stdout ?? null,
+    score: (out) => (out === text ? 1 : 0),
+  })

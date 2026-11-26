@@ -1857,7 +1857,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'harness.web-events',
     area: 'Harnesses',
-    name: "Web search and fetch events (Cursor's recovered from its stored conversation), `turn.unreported`, `toHaveSearched` and `toHaveFetched`",
+    name: "Web search and fetch events (Cursor's recovered from its stored conversation), `turn.unreported`, and the `searched` and `fetched` graders",
     fixtures: [
       'harness/cursor-web-fetch',
       'harness/opencode-web-search',
@@ -2034,7 +2034,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'judge.scope',
     area: 'Judges and matchers',
-    name: 'What the judge is given: only the inputs each `c.judge()` call turns on (task, output, files, diff patterns, contents by path or pattern, transcript, checks, observations, artifacts), over `turns`; none by default, and a call that turns none on fails before any model call (a compile error in TypeScript); build output, source maps, build info and minified files dropped from its diff',
+    name: 'What the judge is given: only the inputs each judge (a `judge()` grader or a `c.judge()` call) turns on (task, output, files, diff patterns, contents by path or pattern, transcript, checks, observations, artifacts), over `turns`; none by default, and a call that turns none on fails before any model call (a compile error in TypeScript); build output, source maps, build info and minified files dropped from its diff',
     fixtures: [
       'judge/build-output',
       'judge/input-diff',
@@ -2057,7 +2057,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'judge.artifacts',
     area: 'Judges and matchers',
-    name: '`c.judge({ artifacts })` sends captures as AI SDK file parts (`true` sends every one); JSON-only calls stay an object',
+    name: "A judge's `artifacts` input sends captures as AI SDK file parts (`true` sends every one); JSON-only calls stay an object",
     fixtures: ['judge/artifacts', 'judge/artifacts-all'],
     unit: ['reeval/test/unit.test.ts', 'reeval/test/engine.test.ts'],
   },
@@ -2103,7 +2103,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'assert.exec-retries',
     area: 'Judges and matchers',
-    name: "`c.exec(command, { retries, interval })`: a non-zero exit runs the command again, each try in the check's record and log, and `passed on try 2 of 3` in the output, `summary.md`, `reeval show` and the studio",
+    name: "`c.exec(command, { retries, interval })`: a non-zero exit runs the command again, each try, and `passed on try 2 of 3`, in the check's record and log (the `Worth knowing` note and the `summary.md` row are a `toSucceed` assertion's, not a `succeeded()` grader's)",
     fixtures: ['assert/exec-retries'],
     unit: ['reeval/test/ui.test.ts'],
   },

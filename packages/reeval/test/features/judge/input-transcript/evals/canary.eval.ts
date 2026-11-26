@@ -1,20 +1,26 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 import { fakeJudge } from 'reeval/judge'
 import { app } from './env.ts'
 
 // Must fail: 'tools' leaves the reasoning out.
 export default defineEval({
   environment: app,
+  graders: [
+    judge('Did the agent run the tests?', {
+      name: 'ran-the-tests',
+      inputs: { transcript: 'tools' },
+      model: fakeJudge({
+        // 0 only on the wrong value it's known to see; anything else errors the grader.
+        score: (s) => {
+          const saw = String((s as Record<string, unknown>).transcript)
+          if (/^tool shell: npm test → ok/m.test(saw) && !saw.includes('thinking it over')) return 0
+          throw new Error(`the judge saw ${JSON.stringify(saw)}`)
+        },
+      }),
+    }),
+  ],
   task: async (c) => {
     await c.send('write the app')
-    let state: Record<string, unknown> = {}
-    const look = fakeJudge({
-      score: (s) => {
-        state = s as Record<string, unknown>
-        return 1
-      },
-    })
-    await c.judge('Did the agent run the tests?', { model: look, transcript: 'tools' })
-    expect(state.transcript).toContain('thinking it over')
   },
 })

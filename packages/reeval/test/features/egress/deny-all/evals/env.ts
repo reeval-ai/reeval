@@ -1,4 +1,4 @@
-import { defineEnvironment, type Turn } from 'reeval'
+import { defineEnvironment, defineGrader } from 'reeval'
 import { docker, fakeSandbox, podman } from 'reeval/sandbox'
 
 /** The Docker and Podman tiers run the same containers. */
@@ -12,6 +12,14 @@ const sandbox =
 export const closed = defineEnvironment('closed', { sandbox, egress: 'deny-all' })
 export const open = defineEnvironment('open', { sandbox, egress: 'allow-all' })
 
-/** What each of the scripted agent's shell commands printed. */
-export const agentSaw = (turn: Turn) =>
-  turn.transcript.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : []))
+/** What the scripted agent's shell commands printed, passing when `check` holds. */
+export const agentPrinted = (name: string, check: (outputs: string[]) => boolean) =>
+  defineGrader(name, {
+    grade: (c) =>
+      c.turns.flatMap((t) =>
+        t.transcript.flatMap((e) =>
+          e.type === 'tool' && e.tool === 'shell' ? [String(e.output ?? '')] : [],
+        ),
+      ),
+    score: (outputs) => (check(outputs) ? 1 : 0),
+  })

@@ -1,12 +1,11 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { plain } from './env.ts'
 import { observeLog } from './observe.ts'
 
 export default defineEval({
   environment: plain,
-  task: async (c) => {
-    const log = await observeLog(c)
-    // The mistake: the build logged 4000 steps, not 4.
-    expect(log.split('\n'), 'logs every step').toHaveLength(5)
-  },
+  // The mistake: the build logged 4000 steps, not 4.
+  graders: [observed<string>('build-log', (log) => log.split('\n').length === 5)],
+  task: observeLog,
 })

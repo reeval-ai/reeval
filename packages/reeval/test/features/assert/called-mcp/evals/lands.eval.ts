@@ -1,10 +1,11 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { calledMcp } from 'reeval/graders'
 import { plain } from './env.ts'
 
 export default defineEval({
   environment: plain,
+  graders: [calledMcp('stamp', 'house_stamp')],
   task: async (c) => {
-    const turn = await c.send('call house_stamp')
-    expect(turn).toHaveCalledMcp('stamp', 'house_stamp')
+    await c.send('call house_stamp')
   },
 })

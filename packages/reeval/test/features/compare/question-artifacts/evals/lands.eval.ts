@@ -1,9 +1,11 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { pageStatus } from 'reeval/graders'
 import { baseline, variant } from './env.ts'
 
 // artifacts: ['landing'] sends each side's landing capture as an image, and not aside.
 export default defineEval({
   compare: { control: baseline, variants: [variant] },
+  graders: [pageStatus('landing', 200)],
   questions: [
     { question: 'Which page looks better?', across: 'environment', artifacts: ['landing'] },
   ],
@@ -11,7 +13,6 @@ export default defineEval({
     await c.send('write the page')
     const server = await c.serve('node server.mjs')
     await c.capture(server, { name: 'aside' })
-    const landing = await c.capture(server, { name: 'landing' })
-    expect(landing.file.path).toBe('artifacts/landing.png')
+    await c.capture(server, { name: 'landing' })
   },
 })

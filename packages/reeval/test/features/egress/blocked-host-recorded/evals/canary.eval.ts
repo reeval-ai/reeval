@@ -1,11 +1,13 @@
-import { defineEval, expect } from 'reeval'
-import { agentSaw, listed } from './env.ts'
+import { defineEval } from 'reeval'
+import { agentPrinted, listed } from './env.ts'
 
 // Must fail: the request was refused.
 export default defineEval({
   environment: listed,
+  graders: [
+    agentPrinted('not-refused', ([body]) => !body?.includes('blocked by the reeval egress policy')),
+  ],
   task: async (c) => {
-    const [body] = agentSaw(await c.send('fetch an unlisted host'))
-    expect(body).not.toContain('blocked by the reeval egress policy')
+    await c.send('fetch an unlisted host')
   },
 })

@@ -1,11 +1,13 @@
-import { defineEval, expect } from 'reeval'
-import { agentSaw, loud } from './env.ts'
+import { defineEval } from 'reeval'
+import { agentPrinted, loud } from './env.ts'
 
 // Must fail: Node 22 warns that EnvHttpProxyAgent is experimental.
 export default defineEval({
   environment: loud,
+  graders: [
+    agentPrinted('prints-only-the-body', ([output]) => output?.trim() === 'reeval-egress-ok'),
+  ],
   task: async (c) => {
-    const [output] = agentSaw(await c.send('fetch the listener with node'))
-    expect(output?.trim()).toBe('reeval-egress-ok')
+    await c.send('fetch the listener with node')
   },
 })

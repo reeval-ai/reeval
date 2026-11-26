@@ -1,4 +1,4 @@
-import { defineEnvironment } from 'reeval'
+import { defineEnvironment, defineGrader } from 'reeval'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 import { fakeDecisionModel } from 'reeval/testing'
 
@@ -17,3 +17,9 @@ export const model = fakeDecisionModel(({ state }) => ({
 export const questions = {
   done: { type: 'boolean', instructions: 'Did the agent write the app?' },
 } as const
+
+/** Whether the task sent the second turn its decision called for. */
+export const noted = defineGrader('noted', {
+  grade: (c) => c.turns.length,
+  score: (turns) => (turns === 2 ? 1 : 0),
+})

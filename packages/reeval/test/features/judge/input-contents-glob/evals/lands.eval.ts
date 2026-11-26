@@ -1,4 +1,6 @@
-import { defineEval, expect } from 'reeval'
+import { isDeepStrictEqual } from 'node:util'
+import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 import { fakeJudge } from 'reeval/judge'
 import { app } from './env.ts'
 
@@ -6,19 +8,22 @@ import { app } from './env.ts'
 // are out, and docs/** matches nothing, so it adds nothing.
 export default defineEval({
   environment: app,
+  graders: [
+    judge('Is the app tidy?', {
+      name: 'tidy',
+      inputs: { contents: ['src/**', '!**/*.test.ts', 'docs/**'] },
+      model: fakeJudge({
+        score: (s) => {
+          const state = s as Record<string, unknown>
+          return !String(state.diff).includes('export const twice') &&
+            isDeepStrictEqual(Object.keys(state.contents ?? {}), ['src/app.ts', 'src/util.ts'])
+            ? 1
+            : 0
+        },
+      }),
+    }),
+  ],
   task: async (c) => {
     await c.send('write the app')
-    let state: Record<string, unknown> = {}
-    const look = fakeJudge({
-      score: (s) => {
-        state = s as Record<string, unknown>
-        return 1
-      },
-    })
-    await c.judge('Is the app tidy?', {
-      model: look,
-      contents: ['src/**', '!**/*.test.ts', 'docs/**'],
-    })
-    expect(Object.keys(state.contents as object)).toEqual(['src/app.ts', 'src/util.ts'])
   },
 })

@@ -1,10 +1,11 @@
-import { defineEval, expect } from 'reeval'
-import { homeFiles } from './env.ts'
+import { defineEval } from 'reeval'
+import { hint, homeFiles, prints } from './env.ts'
 
 // A `~/` file lands in the sandbox's home directory.
 export default defineEval({
   environment: homeFiles,
+  graders: [prints('home-hint', hint, 'from home')],
   task: async (c) => {
-    expect(await c.readFile('~/.config/reeval/hint.txt')).toBe('from home')
+    await c.exec(hint)
   },
 })

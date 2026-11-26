@@ -1,12 +1,11 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { plain } from './env.ts'
 import { observeInstall } from './observe.ts'
 
 // The observations are data: the record keeps each name's last value and the turn it came after.
 export default defineEval({
   environment: plain,
-  task: async (c) => {
-    const deps = await observeInstall(c)
-    expect(deps, 'installs drizzle').toHaveProperty('drizzle-orm')
-  },
+  graders: [observed<string[]>('deps', (deps) => deps.includes('drizzle-orm'))],
+  task: observeInstall,
 })

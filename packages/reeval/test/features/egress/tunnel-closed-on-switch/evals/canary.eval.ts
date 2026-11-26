@@ -1,10 +1,11 @@
-import { defineEval, expect } from 'reeval'
-import { kept, tunnel } from './env.ts'
+import { defineEval } from 'reeval'
+import { kept, tunnel, tunnelClosed } from './env.ts'
 
 // Must fail: the agent's policy allows the listener's host, so its tunnel stays open.
 export default defineEval({
   environment: kept,
+  graders: [tunnelClosed],
   task: async (c) => {
-    expect((await c.exec(tunnel)).stdout.trim()).toBe('closed')
+    await c.exec(tunnel)
   },
 })

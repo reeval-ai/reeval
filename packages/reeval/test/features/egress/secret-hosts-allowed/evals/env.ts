@@ -1,4 +1,4 @@
-import { defineEnvironment, type Turn } from 'reeval'
+import { defineEnvironment, defineGrader } from 'reeval'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
 const sandbox =
@@ -15,6 +15,14 @@ export const keyed = defineEnvironment('keyed', ({ secret }) => ({
 }))
 export const closed = defineEnvironment('closed', { sandbox, egress: 'deny-all' })
 
-/** What each of the scripted agent's shell commands printed. */
-export const agentSaw = (turn: Turn) =>
-  turn.transcript.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : []))
+/** What the scripted agent's shell commands printed, passing when `check` holds. */
+export const agentPrinted = (name: string, check: (outputs: string[]) => boolean) =>
+  defineGrader(name, {
+    grade: (c) =>
+      c.turns.flatMap((t) =>
+        t.transcript.flatMap((e) =>
+          e.type === 'tool' && e.tool === 'shell' ? [String(e.output ?? '')] : [],
+        ),
+      ),
+    score: (outputs) => (check(outputs) ? 1 : 0),
+  })

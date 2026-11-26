@@ -1,4 +1,6 @@
-import { defineEval, expect } from 'reeval'
+import { isDeepStrictEqual } from 'node:util'
+import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 import { fakeJudge } from 'reeval/judge'
 import { app } from './env.ts'
 
@@ -6,16 +8,19 @@ import { app } from './env.ts'
 // diff from anywhere else.
 export default defineEval({
   environment: app,
+  graders: [
+    judge('Is the summary clear?', {
+      name: 'summary-clear',
+      inputs: { output: true },
+      model: fakeJudge({
+        score: (s) => {
+          const state = s as Record<string, unknown>
+          return isDeepStrictEqual(Object.keys(state), ['output']) ? 1 : 0
+        },
+      }),
+    }),
+  ],
   task: async (c) => {
     await c.send('write the app')
-    let state: Record<string, unknown> = {}
-    const look = fakeJudge({
-      score: (s) => {
-        state = s as Record<string, unknown>
-        return 1
-      },
-    })
-    await c.judge('Is the summary clear?', { model: look, output: true })
-    expect(Object.keys(state)).toEqual(['output'])
   },
 })

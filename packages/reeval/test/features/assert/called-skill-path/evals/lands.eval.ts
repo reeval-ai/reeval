@@ -1,10 +1,11 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { usedSkill } from 'reeval/graders'
 import { skilled } from './env.ts'
 
 export default defineEval({
   environment: skilled,
+  graders: [usedSkill('foo')],
   task: async (c) => {
-    const turn = await c.send('read the foo skill')
-    expect(turn).toHaveCalledSkill('foo')
+    await c.send('read the foo skill')
   },
 })

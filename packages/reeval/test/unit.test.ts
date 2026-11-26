@@ -885,6 +885,38 @@ test('judge prompt keeps source diffs and drops dependency noise', () => {
     patchForJudge('diff --git a/greet.js b/greet.js\n+hi\n'),
     'diff --git a/greet.js b/greet.js\n+hi\n',
   )
+  assert.deepEqual(
+    judgeDiff({ patch: shown, files: [] }).dropped,
+    [
+      'node_modules/ (1 file): installed dependencies',
+      'package-lock.json: lockfile, 1 changed line',
+    ],
+    'a diff dropped from before, as a stored one is, still says what it left out',
+  )
+  const stored = [
+    'diff --git a/lib/a.js b/lib/a.js',
+    '+export const a = 1',
+    '[reeval: dropped node_modules/ (1 file): installed dependencies]',
+    '[reeval: dropped package-lock.json: lockfile, 1 changed line]',
+    '',
+  ].join('\n')
+  const earlier = [
+    'node_modules/ (1 file): installed dependencies',
+    'package-lock.json: lockfile, 1 changed line',
+  ]
+  assert.deepEqual(
+    judgeDiff({ patch: stored, files: [] }, { inFull: new Set(['lib/a.js']) }).dropped,
+    earlier,
+    'a marker after a file shown in full stays',
+  )
+  assert.deepEqual(
+    judgeDiff(
+      { patch: stored, files: [{ path: 'lib/a.js', status: 'added' }] },
+      { patterns: ['src/**'] },
+    ).dropped,
+    ["lib/a.js: not in diff's patterns", ...earlier],
+    'a marker after a file the patterns leave out stays',
+  )
 })
 
 test('judge model strings need a provider, and credentials follow the provider', () => {

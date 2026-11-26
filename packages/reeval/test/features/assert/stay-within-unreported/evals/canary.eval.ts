@@ -1,11 +1,12 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { withinLimits } from 'reeval/graders'
 import { plain } from './env.ts'
 
-// Must fail: the limits it can check still fail, here a tool count below the turn's.
 export default defineEval({
   environment: plain,
+  // The mistake: the limits it can check still fail, here a tool count below the turn's.
+  graders: [withinLimits({ toolCalls: 0, duration: '5m' })],
   task: async (c) => {
-    const turn = await c.send('look around')
-    expect(turn).toStayWithin({ toolCalls: 0, duration: '5m' })
+    await c.send('look around')
   },
 })

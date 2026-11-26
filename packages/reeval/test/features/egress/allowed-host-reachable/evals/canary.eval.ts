@@ -1,11 +1,11 @@
-import { defineEval, expect } from 'reeval'
-import { agentSaw, closed } from './env.ts'
+import { defineEval } from 'reeval'
+import { agentPrinted, closed } from './env.ts'
 
 // Must fail: under deny-all the same request gets the gateway's refusal.
 export default defineEval({
   environment: closed,
+  graders: [agentPrinted('reaches-the-listener', ([body]) => body?.trim() === 'reeval-egress-ok')],
   task: async (c) => {
-    const [body] = agentSaw(await c.send('fetch the listener'))
-    expect(body?.trim()).toBe('reeval-egress-ok')
+    await c.send('fetch the listener')
   },
 })
