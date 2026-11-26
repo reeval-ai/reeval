@@ -193,7 +193,12 @@ export function judgeProblem(judge: unknown, site: JudgeSite): string | undefine
     const name = (key as (Issue & { keys: string[] }) | undefined)?.keys[0]
     if (name === undefined) return undefined
     const hint = nearest(name, Object.keys(schema.shape))
-    return `Unknown judge option "${name}"${loc}.${hint ? ` Did you mean "${hint}"?` : ''}`
+    const why = (INPUT_KEYS as readonly string[]).includes(name)
+      ? ` ${name} is a judge grader's input: judge(question, { inputs: { ${name} } }).`
+      : hint
+        ? ` Did you mean "${hint}"?`
+        : ''
+    return `Unknown judge option "${name}"${loc}.${why}`
   }
   const providerOptionsProblem = () =>
     at('providerOptions')
