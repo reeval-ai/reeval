@@ -81,7 +81,7 @@ export const EXAMPLES: Record<string, Example> = {
   // Writing evals
   'with-checks': { run: { 'fake/math/fake': pass(1) } },
   'with-checks-and-gates': { run: { 'fake/math/fake': pass(1) } },
-  'with-hidden-tests': { run: { needs: 'Docker' } },
+  'with-hidden-tests': { run: { 'fake/slugify/fake': pass(1) }, docker: true },
   'with-guarded-files': { run: { 'fake/math/fake': pass(1) }, profiles: { canary: fakePlan } },
   'with-transcript-matchers': { run: { 'fake/math/fake': pass(1) } },
   'with-web-matchers': {
@@ -164,7 +164,7 @@ export const EXAMPLES: Record<string, Example> = {
   'with-fixture': { run: { 'fake/csv/fake': pass(1) } },
   'with-git-workspace': { run: { 'fake/reeval-math/fake': pass(1) } },
   'with-setup': { run: { 'fake/users/fake': pass(1) } },
-  'with-extend-environment': { run: { needs: 'Docker' } },
+  'with-extend-environment': { run: { 'fake/math-with-docs/fake': pass(1) }, docker: true },
   'with-env': { run: { 'fake/shop-eur/fake': pass(1) } },
   'with-mcp': { run: { 'fake/acme-cli/fake': pass(1) } },
   'with-plugin': { run: { 'fake/acme-math/fake': pass(1) } },
@@ -223,11 +223,21 @@ export const EXAMPLES: Record<string, Example> = {
   'with-skill-lift': { run: { 'fake/math/fake': fail(4), 'fake/changelog/fake': pass(4) } },
   'with-compare-control': { run: { 'fake/math/fake': fail(4), 'fake/testing/fake': pass(4) } },
   'with-min-lift': { run: { 'fake/math/fake': fail(4), 'fake/jsdoc/fake': pass(4) } },
-  'with-two-variants': { run: { needs: 'Docker' } },
+  'with-two-variants': {
+    run: {
+      'fake/math/fake': fail(4),
+      'fake/errors-skill/fake': pass(4),
+      'fake/errors-doc/fake': pass(4),
+    },
+    docker: true,
+  },
   'with-rules-ab': {
     run: { 'fake/short-rules/fake': fail(4), 'fake/detailed-rules/fake': pass(4) },
   },
-  'with-compare-questions': { run: { needs: 'Docker' } },
+  'with-compare-questions': {
+    run: { 'fake/math/fake': pass(4), 'fake/errors/fake': pass(4) },
+    docker: true,
+  },
   'with-compare-agents': {
     run: { needs: 'ANTHROPIC_API_KEY, OPENAI_API_KEY and Docker' },
     plain: { harness: ['claude-code:claude-sonnet-5', 'codex:gpt-5.6-luna'], sandbox: ['docker'] },
@@ -283,11 +293,15 @@ export const EXAMPLES: Record<string, Example> = {
   // Real-world
   'with-bug-fix': { run: { 'fake/stats/fake': pass(1) } },
   'with-refactor': { run: { 'fake/records/fake': pass(1) } },
-  'with-test-writing': { run: { needs: 'Docker' }, profiles: { canary: fakePlan } },
+  'with-test-writing': {
+    run: { 'fake/duration/fake': pass(1) },
+    docker: true,
+    profiles: { canary: fakePlan },
+  },
   'with-framework-migration': { run: { 'fake/commonjs/fake': pass(1) } },
   'with-dependency-upgrade': { run: { 'fake/strfmt-1/fake': pass(1) } },
   'with-docs-adherence': { run: { 'fake/notes/fake': pass(1) } },
-  'with-sdk-usage': { run: { needs: 'Docker' } },
+  'with-sdk-usage': { run: { 'fake/acme-app/fake': pass(1) }, docker: true },
   'with-library-skill-lift': {
     run: { 'fake/page/fake': fail(4), 'fake/brand-guidelines/fake': pass(4) },
   },
@@ -301,7 +315,7 @@ export const EXAMPLES: Record<string, Example> = {
   'with-existing-codebase': { run: { needs: 'Docker and the network' } },
   'with-feedback-loop': { run: { 'fake/notes/fake': pass(1) } },
   'with-code-review': { run: { 'fake/search/fake': pass(1) }, profiles: { canary: fakePlan } },
-  'with-security-fix': { run: { needs: 'Docker' } },
+  'with-security-fix': { run: { 'fake/users/fake': pass(1) }, docker: true },
 }
 
 /** A copy of `examples/<name>` outside the repo, with `reeval` linked to this package. */
