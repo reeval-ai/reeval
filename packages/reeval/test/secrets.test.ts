@@ -24,7 +24,7 @@ import {
 import { createFakeHarness } from '../src/harness/fake.ts'
 import { capText, OUTPUT_CAP, rawLines, turnError, turnText } from '../src/history/assemble.ts'
 import { findingLines, findingSummary, scanText } from '../src/history/secret-scan.ts'
-import { transcriptForJudge } from '../src/judge/transcript.ts'
+import { trajectoryForJudge } from '../src/judge/trajectory.ts'
 import type { PlannedAttempt } from '../src/options.ts'
 import {
   brokeredIn,
@@ -52,7 +52,7 @@ import {
 import { scrubber } from '../src/report/scrub.ts'
 import { brokerPhases } from '../src/sandbox/phases.ts'
 import { FAILURE_CAP } from '../src/text.ts'
-import type { EnvironmentInput, EvalRecord, TranscriptEvent } from '../src/types.ts'
+import type { EnvironmentInput, EvalRecord, TrajectoryEvent } from '../src/types.ts'
 import { fakeConfig, project, readRun, runCli, tempDir } from './helpers.ts'
 
 const VALUE = 'reeval-unit-brokered-4f1c9e2a7b'
@@ -1007,7 +1007,7 @@ describe('redacting fragments of a secret', () => {
     }
   })
 
-  test('masks fragments inside JSON, a transcript line and a record', () => {
+  test('masks fragments inside JSON, a trajectory line and a record', () => {
     const text = JSON.stringify({ stdout: `key=${key.slice(3, 20)}\n`, cmd: key.slice(-10) })
     const out = redactSecrets(text, env)
     assert.equal(out.includes(key.slice(3, 20)) || out.includes(key.slice(-10)), false, out)
@@ -1290,7 +1290,7 @@ describe('redacting a secret split across stream parts', () => {
     }
   })
 
-  test('transcript.raw.jsonl masks a secret streamed as deltas', () => {
+  test('trajectory.raw.jsonl masks a secret streamed as deltas', () => {
     const before = process.env.ANTHROPIC_API_KEY
     process.env.ANTHROPIC_API_KEY = key
     try {
@@ -1306,7 +1306,7 @@ describe('redacting a secret split across stream parts', () => {
     }
   })
 
-  test('the staging record masks it, so transcript.raw.jsonl built from it has no pieces left', () => {
+  test('the staging record masks it, so trajectory.raw.jsonl built from it has no pieces left', () => {
     const before = process.env.ANTHROPIC_API_KEY
     process.env.ANTHROPIC_API_KEY = key
     try {
@@ -1887,7 +1887,7 @@ describe('masking before shortening', () => {
     "a turn's error is masked before it's clipped",
     withSecret(() => {
       const message = `${'x'.repeat(480)}=${secret}`
-      const [line] = turnErrors([[{ type: 'error', message } as TranscriptEvent]])
+      const [line] = turnErrors([[{ type: 'error', message } as TrajectoryEvent]])
       assert.match(line ?? '', /=\[REDACTED\]/)
       assert.doesNotMatch(line ?? '', /=corr/)
     }),
@@ -1947,16 +1947,16 @@ describe('masking before shortening', () => {
   )
 
   test(
-    "the judge's transcript cuts a tool's output before a secret, not through it",
+    "the judge's trajectory cuts a tool's output before a secret, not through it",
     withSecret(() => {
       // No whitespace, so `clip` cuts at its limit: the secret starts 4 characters before it.
       const output = JSON.stringify({ rows: 'x'.repeat(267), dsn: `password=${secret}` })
       const event = { type: 'tool', tool: 'shell', input: { command: 'psql' }, output, ok: true }
-      const shown = transcriptForJudge([event as TranscriptEvent], true).join('\n')
+      const shown = trajectoryForJudge([event as TrajectoryEvent], true).join('\n')
       assert.match(shown, /"password=…$/)
       assert.doesNotMatch(redactJson({ shown }), /password=corr/)
       const plain = { ...event, output: 'y'.repeat(400) }
-      assert.match(transcriptForJudge([plain as TranscriptEvent], true)[0] ?? '', /y{299}…$/)
+      assert.match(trajectoryForJudge([plain as TrajectoryEvent], true)[0] ?? '', /y{299}…$/)
     }),
   )
 
@@ -1968,7 +1968,7 @@ describe('masking before shortening', () => {
       assert.match(text, /password=\[RED/)
       assert.doesNotMatch(text, /password=corr/)
       const message = `${'x'.repeat(1024 - 14)} password=${secret}`
-      const error = turnError([{ type: 'error', message } as TranscriptEvent]) ?? ''
+      const error = turnError([{ type: 'error', message } as TrajectoryEvent]) ?? ''
       assert.match(error, /password=\[RED/)
       assert.doesNotMatch(error, /password=corr/)
     }),

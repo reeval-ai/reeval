@@ -560,7 +560,7 @@ export default defineEval({
     assert.equal(runs[0]?.counts.done, 1)
   })
 
-  test('a resume shows the attempts it kept with their outcome and transcript', async () => {
+  test('a resume shows the attempts it kept with their outcome and trajectory', async () => {
     const p = await project('live-resume', {
       'reeval.config.ts': fakeConfig({ harness: agent(0) }),
       'evals/kept-pass.eval.ts': `import assert from 'node:assert/strict'
@@ -613,9 +613,9 @@ export default defineEval({
     const was = (id: string, n = 1) =>
       run.evals.find((e) => e.id === id)?.attempts.find((a) => a.n === n)
     const _keptKey = was('kept-pass')?.key as string
-    const keptFile = was('kept-pass')?.files.transcript?.path as string
-    const keptTranscript = readFileSync(join(p.dir, '.reeval/runs', run.runId, keptFile), 'utf8')
-    assert.match(keptTranscript, /write hello\.txt/)
+    const keptFile = was('kept-pass')?.files.trajectory?.path as string
+    const keptTrajectory = readFileSync(join(p.dir, '.reeval/runs', run.runId, keptFile), 'utf8')
+    assert.match(keptTrajectory, /write hello\.txt/)
     await rm(gate)
 
     const child = spawn(process.execPath, [cli, 'run', '--resume', run.runId], {

@@ -1,4 +1,4 @@
-// The evidence the built-in graders read from a transcript: skill, tool, MCP and shell calls,
+// The evidence the built-in graders read from a trajectory: skill, tool, MCP and shell calls,
 // edits, the diff, web events and budgets, every replay capture through today's normalizer, and
 // each harness's captured skill use.
 import assert from 'node:assert/strict'
@@ -20,12 +20,12 @@ import {
   webEvents,
 } from '../src/assert.ts'
 import { AGENTS, type AgentKind } from '../src/harness/agents.ts'
-import { normalizeStream } from '../src/harness/transcript.ts'
+import { normalizeStream } from '../src/harness/trajectory.ts'
 import { classifyCall, skillsUsed } from '../src/history/tool-class.ts'
 import { toolTarget } from '../src/history/tool-target.ts'
-import type { TranscriptEvent } from '../src/types.ts'
+import type { TrajectoryEvent } from '../src/types.ts'
 import { toolCalls } from '../src/view/classify.ts'
-import { transcriptByLine } from '../src/view/model.ts'
+import { trajectoryByLine } from '../src/view/model.ts'
 import { testDir } from './support/fixture.ts'
 
 const at = { ts: '2026-10-05T12:00:00.000Z', atMs: 0, durationMs: 1 }
@@ -34,7 +34,7 @@ const tool = (
   name: string,
   input: unknown,
   output: unknown = 'ok',
-): Extract<TranscriptEvent, { type: 'tool' }> => ({
+): Extract<TrajectoryEvent, { type: 'tool' }> => ({
   ...at,
   type: 'tool',
   toolCallId: `call_${name}`,
@@ -47,7 +47,7 @@ const tool = (
 const edit = (
   path: string,
   kind: 'create' | 'modify' | 'delete' = 'modify',
-): Extract<TranscriptEvent, { type: 'file-edit' }> => ({
+): Extract<TrajectoryEvent, { type: 'file-edit' }> => ({
   ...at,
   type: 'file-edit',
   toolCallId: `edit_${path}`,
@@ -57,11 +57,11 @@ const edit = (
   removed: 0,
 })
 
-const usedSkill = (transcript: TranscriptEvent[], name: string) =>
-  skillCalls(transcript, name).length > 0
+const usedSkill = (trajectory: TrajectoryEvent[], name: string) =>
+  skillCalls(trajectory, name).length > 0
 
-const ranAny = (transcript: TranscriptEvent[], command?: Parameters<typeof commandsRun>[1]) =>
-  commandsRun(transcript, command).hits.length > 0
+const ranAny = (trajectory: TrajectoryEvent[], command?: Parameters<typeof commandsRun>[1]) =>
+  commandsRun(trajectory, command).hits.length > 0
 
 describe('skillCalls', () => {
   test('finds a dedicated load tool by id or name', () => {
@@ -228,7 +228,7 @@ describe('changesIn', () => {
 })
 
 describe('webEvents', () => {
-  const web: TranscriptEvent[] = [
+  const web: TrajectoryEvent[] = [
     {
       ...at,
       type: 'web-fetch',
@@ -246,7 +246,7 @@ describe('webEvents', () => {
   ]
 
   test('lists the fetches and searches, and those matching', () => {
-    const subject = { transcript: web, unreported: [] }
+    const subject = { trajectory: web, unreported: [] }
     assert.deepEqual(webEvents(subject, 'web-fetch', 'httpbin.org', 'fetched()').hits, [
       'https://httpbin.org/ip',
     ])
@@ -256,7 +256,7 @@ describe('webEvents', () => {
   })
 
   test("refuse a turn whose harness doesn't report them", () => {
-    const cursor = { transcript: [], unreported: ['web-search' as const, 'web-fetch' as const] }
+    const cursor = { trajectory: [], unreported: ['web-search' as const, 'web-fetch' as const] }
     assert.throws(
       () => webEvents(cursor, 'web-fetch', 'httpbin', 'fetched()'),
       (e: Error) => {
@@ -273,7 +273,7 @@ describe('toolTarget and toolCalls', () => {
     assert.equal(toolTarget({ name: 'house-greeting' }, 'load_skill'), 'house-greeting')
     assert.equal(toolTarget({ path: 'notes.txt' }, 'read'), 'notes.txt')
     const calls = toolCalls(
-      transcriptByLine(
+      trajectoryByLine(
         `${JSON.stringify({ type: 'tool', tool: 'skill', input: { id: 'foo' } })}\n`,
       ),
     )
@@ -291,7 +291,7 @@ describe('toolTarget and toolCalls', () => {
       { type: 'tool', tool: 'read', input: { path: 'd' } },
     ]
     assert.deepEqual(
-      toolCalls(transcriptByLine(lines.map((l) => JSON.stringify(l)).join('\n'))).map((c) => [
+      toolCalls(trajectoryByLine(lines.map((l) => JSON.stringify(l)).join('\n'))).map((c) => [
         c.target,
         c.ok,
       ]),
@@ -425,7 +425,7 @@ const SKILL_USES: Record<AgentKind, { from: string; tool: string; input: unknown
   },
 }
 
-/** A capture's normalized tool calls: a replay stream through normalizeStream, or a transcript. */
+/** A capture's normalized tool calls: a replay stream through normalizeStream, or a trajectory. */
 const capturedTools = (from: string) => {
   const text = readFileSync(join(testDir, from), 'utf8')
   const events = from.endsWith('.raw.jsonl')
@@ -440,7 +440,7 @@ const capturedTools = (from: string) => {
     : (text
         .split('\n')
         .filter(Boolean)
-        .map((l) => JSON.parse(l)) as TranscriptEvent[])
+        .map((l) => JSON.parse(l)) as TrajectoryEvent[])
   return events.flatMap((e) => (e.type === 'tool' ? [{ tool: e.tool, input: e.input }] : []))
 }
 
@@ -464,7 +464,7 @@ describe("every harness's skill use", () => {
       assert.equal(usedSkill(t, 'contract'), false)
       assert.equal(usedSkill(t, 'probe'), false)
       const [call] = toolCalls(
-        transcriptByLine(JSON.stringify({ type: 'tool', tool: use.tool, input: use.input })),
+        trajectoryByLine(JSON.stringify({ type: 'tool', tool: use.tool, input: use.input })),
       )
       assert.ok(call)
       assert.deepEqual(skillsUsed(call.tool, call.text, ['other', 'contract-probe']), [
@@ -503,11 +503,11 @@ describe("every harness's skill use", () => {
 describe('budgetUsed and overLimits', () => {
   const usage = { input: 900, output: 100, cacheRead: 50, cacheWrite: 0, reasoning: null }
   const budgetTurn = (
-    transcript: TranscriptEvent[],
+    trajectory: TrajectoryEvent[],
     durationMs = 1000,
     u: typeof usage | null = usage,
   ) => ({
-    transcript,
+    trajectory,
     durationMs,
     usage: u,
   })

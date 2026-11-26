@@ -1,5 +1,5 @@
 // Replays one real edit-and-reason turn per harness (test/replay/telemetry/, recorded with
-// REEVAL_RAW_TRANSCRIPT=1 on a two-file edit eval) through today's normalizer and the catalog's
+// REEVAL_RAW_TRAJECTORY=1 on a two-file edit eval) through today's normalizer and the catalog's
 // reasoning delivery: every harness's edits are counted, a reasoning time is a measurement only
 // where the harness streams its reasoning or recovers it with its time, and a time it can't
 // measure is null, never 0.
@@ -11,8 +11,8 @@ import { describe, test } from 'node:test'
 import { harnessUsage, reasoningTime } from '@reeval/agents'
 import { CodexStreamTranslator } from '@reeval/harness-codex'
 import { AGENTS } from '../src/harness/agents.ts'
-import { normalizeStream } from '../src/harness/transcript.ts'
-import type { TranscriptEvent } from '../src/types.ts'
+import { normalizeStream } from '../src/harness/trajectory.ts'
+import type { TrajectoryEvent } from '../src/types.ts'
 import { tokenUsage } from '../src/usage.ts'
 import { testDir } from './support/fixture.ts'
 import { nativeEvents } from './support/stream-formats.ts'
@@ -35,7 +35,7 @@ const usageOf = (lines: Line[]) => {
   const finish = lines.findLast((l) => l.part.type === 'finish')?.part
   return finish ? tokenUsage(finish.totalUsage as never) : null
 }
-const edits = (events: TranscriptEvent[]) =>
+const edits = (events: TrajectoryEvent[]) =>
   events.flatMap((e) => (e.type === 'file-edit' ? [e] : []))
 const reasoningMs = (harness: keyof typeof AGENTS, lines: Line[]) =>
   reasoningTime(AGENTS[harness].reasoning, normalize(lines), usageOf(lines))
@@ -147,7 +147,7 @@ test('twin: a streamed block with no end is unknown, not 0', () => {
 // reasoning: Claude Code's bridge counting thinking tokens, Codex with `model_reasoning_summary`,
 // and OpenCode on Gemini at `high` with `includeThoughts`. Each twin is the same harness's capture
 // above, from before those settings.
-const reasoningText = (events: TranscriptEvent[]) =>
+const reasoningText = (events: TrajectoryEvent[]) =>
   events.reduce((n, e) => n + (e.type === 'reasoning' ? e.text.length : 0), 0)
 
 describe("telemetry: the model's reasoning where the harness gets it", () => {
@@ -161,7 +161,7 @@ describe("telemetry: the model's reasoning where the harness gets it", () => {
     assert.equal(usageOf(parse(read('claude-code')))?.reasoning, null)
   })
 
-  test("Codex's reasoning summaries reach the transcript, whole", () => {
+  test("Codex's reasoning summaries reach the trajectory, whole", () => {
     const lines = parse(read('codex-reasoning'))
     assert.ok(reasoningText(normalize(lines)) > 0)
     const t = new CodexStreamTranslator({ workDir: '/reeval/workspace' })

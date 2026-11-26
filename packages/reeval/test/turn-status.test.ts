@@ -26,7 +26,7 @@ test('reclassifyTurnErrors moves unhandled turn errors to infra_error', () => {
     turns: [
       {
         status: 'error' as const,
-        transcript: [{ type: 'error' as const, message: 'HTTP 403 forbidden', ts: '', atMs: 0 }],
+        trajectory: [{ type: 'error' as const, message: 'HTTP 403 forbidden', ts: '', atMs: 0 }],
       },
     ],
   }
@@ -49,7 +49,7 @@ test('reclassifyTurnErrors keeps counted outcomes when status was read', () => {
     turns: [
       {
         status: 'error' as const,
-        transcript: [{ type: 'error' as const, message: 'boom', ts: '', atMs: 0 }],
+        trajectory: [{ type: 'error' as const, message: 'boom', ts: '', atMs: 0 }],
       },
     ],
   }

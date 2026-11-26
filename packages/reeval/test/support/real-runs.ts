@@ -1,7 +1,7 @@
 // The record corpus's real-harness runs from the real-agent contract (real.yml), attempt by attempt:
 // `real-e2e-pairs` holds two recorded runs of one eval per harness, and `real-contract` one run of
 // the harness contract per harness, with passing checks and failing canaries. Key-free readers of
-// real transcripts and diffs build on these.
+// real trajectories and diffs build on these.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { type PairAttempt, pairsOf } from '../../src/compare/pairs.ts'
@@ -27,7 +27,7 @@ export type RealAttempt = {
   /** The attempt's cell's `harnessKind`, e.g. `cursor`. */
   harness: string
   /** Absolute paths into the corpus; absent when the attempt never reached the agent. */
-  transcript?: string
+  trajectory?: string
   diff?: string
 }
 
@@ -50,7 +50,7 @@ export function realAttempts(only?: RealEntry): RealAttempt[] {
             eval: e,
             attempt: a,
             harness: cell?.harnessKind ?? 'unknown',
-            ...(a.files.transcript && { transcript: join(dir, a.files.transcript.path) }),
+            ...(a.files.trajectory && { trajectory: join(dir, a.files.trajectory.path) }),
             ...(a.files.diff && { diff: join(dir, a.files.diff.path) }),
           })
         }

@@ -29,6 +29,6 @@ export const brokered = defineEnvironment('brokered', ({ secret }) => ({
 
 /** What the scripted agent's shell command printed. */
 export const agentSaw = (turn: Turn) =>
-  turn.transcript
+  turn.trajectory
     .flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : []))[0]
     ?.trim()

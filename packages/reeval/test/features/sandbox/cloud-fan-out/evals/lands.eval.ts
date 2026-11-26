@@ -7,6 +7,6 @@ export default defineEval({
   graders: [observed('shell-output', (out) => out === 'root\n')],
   task: async (c) => {
     const turn = await c.send('who am I')
-    c.observe('shell-output', turn.transcript.find((e) => e.type === 'tool')?.output ?? null)
+    c.observe('shell-output', turn.trajectory.find((e) => e.type === 'tool')?.output ?? null)
   },
 })

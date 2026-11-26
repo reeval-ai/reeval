@@ -2,12 +2,12 @@ profile one (--profile) · 4 evals · 5 cells · 12 attempts
 questions-attempts/across-agents     a/-/docker        control          ungated             ×1  agents 2 → 1 (profile one) · 1 pairwise question off (profile one)
 questions-attempts/beside-a-compare  a/base/docker     control          ungated             ×4  agents 2 → 1 (profile one) · runs 4 (compare default)
                                      a/skilled/docker  variant skilled  ungated             ×4
-                                     question: What did the agent read first? · shows transcript · each attempt · 8 attempts · no language model
+                                     question: What did the agent read first? · shows trajectory · each attempt · 8 attempts · no language model
                                      question: Which is cleaner? · shows diff · environment · 4 pairs · no language model
 questions-attempts/choices           a/-/docker        control          gated passRate 0.5  ×2  target metric(0.5) · agents 2 → 1 (profile one)
-                                     question: Did the agent run the tests first? · shows transcript · each attempt · 2 attempts · yes / no · no language model
+                                     question: Did the agent run the tests first? · shows trajectory · each attempt · 2 attempts · yes / no · no language model
 questions-attempts/each-attempt      a/-/docker        control          ungated             ×1  agents 2 → 1 (profile one)
-                                     question: How did the agent find the failing test? · shows transcript · each attempt · 1 attempt · no language model
+                                     question: How did the agent find the failing test? · shows trajectory · each attempt · 1 attempt · no language model
 excluded: —
 image docker · cursor · 4 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

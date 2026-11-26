@@ -7,7 +7,7 @@ export default defineEval({
     {
       question: 'Which agent verified its work?',
       across: 'agent',
-      transcript: 'tools',
+      trajectory: 'tools',
     },
   ],
   task: async () => {},

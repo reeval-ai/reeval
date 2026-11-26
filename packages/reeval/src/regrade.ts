@@ -51,7 +51,7 @@ import type {
   ResolvedProfile,
   RunContext,
   SandboxDescriptor,
-  TranscriptEvent,
+  TrajectoryEvent,
 } from './types.ts'
 
 export type RegradeOptions = {
@@ -76,8 +76,8 @@ export type RegradeOptions = {
   out: (line: string) => void
 }
 
-/** Built-ins that read the turns' transcripts. */
-const TRANSCRIPT_KINDS: ReadonlySet<BuiltinKind> = new Set([
+/** Built-ins that read the turns' trajectories. */
+const TRAJECTORY_KINDS: ReadonlySet<BuiltinKind> = new Set([
   'used-skill',
   'called-tool',
   'called-mcp',
@@ -261,8 +261,8 @@ const isFull = (mode: unknown) =>
 
 /** What the run kept of one attempt for its graders, read once. */
 type Kept = {
-  events: Map<number, TranscriptEvent[]> | null
-  /** Why the kept transcript can't be read, when a line of it isn't JSON. */
+  events: Map<number, TrajectoryEvent[]> | null
+  /** Why the kept trajectory can't be read, when a line of it isn't JSON. */
   bad?: string
   /** A tool event or subagent text the record cut, which the live graders saw whole. */
   cut: boolean
@@ -284,13 +284,13 @@ type Kept = {
 const NULL_SHA = sha256('null')
 
 async function keptOf(dir: string, record: RunRecord, entry: EvalEntry, a: AttemptRecord) {
-  let events: Map<number, TranscriptEvent[]> | null = null
+  let events: Map<number, TrajectoryEvent[]> | null = null
   let bad: string | undefined
   let cut = (a.subagents ?? []).some((s) =>
     [s.prompt, s.finalMessage ?? ''].some((t) => t.length > SUBAGENT_TEXT_LIMIT && t.endsWith('…')),
   )
-  if (a.files.transcript) {
-    const path = a.files.transcript.path
+  if (a.files.trajectory) {
+    const path = a.files.trajectory.path
     const text = await readFile(join(dir, ...path.split('/')), 'utf8').catch(() => null)
     if (text !== null) {
       events = new Map()
@@ -309,7 +309,7 @@ async function keptOf(dir: string, record: RunRecord, entry: EvalEntry, a: Attem
           continue
         }
         if (JSON.stringify(event).includes('[reeval: truncated ')) cut = true
-        events.set(turn, [...(events.get(turn) ?? []), event as unknown as TranscriptEvent])
+        events.set(turn, [...(events.get(turn) ?? []), event as unknown as TrajectoryEvent])
       }
     }
   }
@@ -342,7 +342,7 @@ async function keptOf(dir: string, record: RunRecord, entry: EvalEntry, a: Attem
 
 const EXECS_GONE = "the c.exec results weren't kept"
 const CUT =
-  'the kept transcript cuts tool input or output, or subagent text, the live graders saw whole'
+  'the kept trajectory cuts tool input or output, or subagent text, the live graders saw whole'
 
 /** Why reading the observations `names` (every one for `true`) needs a value the run didn't keep. */
 function observationGone(a: AttemptRecord, kept: Kept, names: true | readonly string[]) {
@@ -358,11 +358,11 @@ function missingInput(def: GraderDef, a: AttemptRecord, kept: Kept): string | un
   const textCut = a.turns.some((t) => t.text.includes('… [reeval: truncated '))
   if (run.kind === 'judge') {
     const wanted = resolveStateOptions(run.inputs)
-    if (wanted.transcript && kept.bad) return kept.bad
-    if (wanted.transcript && !kept.events) return "the transcript wasn't kept"
-    if (wanted.transcript && isFull(wanted.transcript) && kept.cut) return CUT
+    if (wanted.trajectory && kept.bad) return kept.bad
+    if (wanted.trajectory && !kept.events) return "the trajectory wasn't kept"
+    if (wanted.trajectory && isFull(wanted.trajectory) && kept.cut) return CUT
     if (wanted.output && textCut && !kept.events) {
-      return "the final message was cut and the transcript wasn't kept"
+      return "the final message was cut and the trajectory wasn't kept"
     }
     if ((wanted.contents.length || wanted.files) && !kept.workspace) {
       return "the final workspace wasn't kept"
@@ -386,10 +386,10 @@ function missingInput(def: GraderDef, a: AttemptRecord, kept: Kept): string | un
   }
   const custom = !builtin
   const kind = builtin?.kind
-  const transcript = custom || TRANSCRIPT_KINDS.has(kind as BuiltinKind)
-  if (transcript && kept.bad) return kept.bad
-  if (transcript && !kept.events) return "the transcript wasn't kept"
-  if (transcript && kept.cut) return CUT
+  const trajectory = custom || TRAJECTORY_KINDS.has(kind as BuiltinKind)
+  if (trajectory && kept.bad) return kept.bad
+  if (trajectory && !kept.events) return "the trajectory wasn't kept"
+  if (trajectory && kept.cut) return CUT
   if ((custom || kind === 'used-skill') && !kept.skills) {
     return "the attempt's environment record is missing"
   }
@@ -568,11 +568,11 @@ async function planAttempt(
   return steps
 }
 
-/** The attempt's turns as its graders read them live, from its record and transcript. */
+/** The attempt's turns as its graders read them live, from its record and trajectory. */
 function storedTurns(a: AttemptRecord, kept: Kept): GraderTurn[] {
   return a.turns.map((t, i) => {
     const said = kept.events?.get(i) ?? []
-    // The record cuts a long final message; the transcript's last text event has it whole.
+    // The record cuts a long final message; the trajectory's last text event has it whole.
     const last = t.text.includes('… [reeval: truncated ')
       ? said.findLast((x) => x.type === 'text' && !('subagent' in x && x.subagent))
       : undefined
@@ -582,7 +582,7 @@ function storedTurns(a: AttemptRecord, kept: Kept): GraderTurn[] {
       status: t.status,
       startedAt: t.startedAt,
       durationMs: t.durationMs,
-      transcript: said,
+      trajectory: said,
       usage: t.usage,
       model: t.model,
       unreported: t.unreported,

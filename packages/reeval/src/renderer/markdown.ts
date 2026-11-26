@@ -776,7 +776,7 @@ export const blockMarkdown: BlockMarkdown = {
         ],
         rows.map((r) => {
           const evidence = [
-            r.links.transcript ? `[transcript](${r.links.transcript})` : null,
+            r.links.trajectory ? `[trajectory](${r.links.trajectory})` : null,
             r.links.diff ? `[diff](${r.links.diff})` : null,
             ...r.links.captures.map((c) => `[${c.name}](${c.href})`),
             ...r.links.questions.map((q, i) => `[q${i + 1}](${q})`),

@@ -1,19 +1,19 @@
 import { createReadStream } from 'node:fs'
-import type { TranscriptPage, TranscriptRange } from '../view/api.ts'
-import { parseTranscriptLine, type TranscriptLine } from '../view/model.ts'
+import type { TrajectoryPage, TrajectoryRange } from '../view/api.ts'
+import { parseTrajectoryLine, type TrajectoryLine } from '../view/model.ts'
 
 /**
- * `pageTranscript` over a file, read a chunk at a time: memory holds the longest line and the
+ * `pageTrajectory` over a file, read a chunk at a time: memory holds the longest line and the
  * page, so a file of any size pages, at the cost of reading it to the end to count its lines.
- * Lines end at `\n` only, as `parseTranscript` splits them: `JSON.stringify` leaves U+2028 and
+ * Lines end at `\n` only, as `parseTrajectory` splits them: `JSON.stringify` leaves U+2028 and
  * U+2029 raw inside strings, so `readline`, which ends a line at them too, would cut a line.
  */
-export async function pageJsonl(file: string, range: TranscriptRange): Promise<TranscriptPage> {
+export async function pageJsonl(file: string, range: TrajectoryRange): Promise<TrajectoryPage> {
   const end = range.start + range.limit
-  const items: TranscriptLine[] = []
+  const items: TrajectoryLine[] = []
   let total = 0
   const take = (text: string) => {
-    const line = parseTranscriptLine(text.endsWith('\r') ? text.slice(0, -1) : text)
+    const line = parseTrajectoryLine(text.endsWith('\r') ? text.slice(0, -1) : text)
     if (!line) return
     if (total >= range.start && total < end) items.push(line)
     total++

@@ -16,8 +16,8 @@ import {
   toolSpawns,
 } from '../src/catalog/subagents.ts'
 import { turnSubagents, turnTotals } from '../src/driver/subagents.ts'
-import { normalizeStream } from '../src/driver/transcript.ts'
-import type { SubagentRun, TokenUsage, TranscriptEvent } from '../src/types.ts'
+import { normalizeStream } from '../src/driver/trajectory.ts'
+import type { SubagentRun, TokenUsage, TrajectoryEvent } from '../src/types.ts'
 
 const at = { ts: '2026-11-24T10:45:11.000Z', atMs: 0 }
 const tool = (
@@ -26,7 +26,7 @@ const tool = (
   input: unknown,
   output: unknown,
   ok: boolean | null = true,
-): TranscriptEvent => ({
+): TrajectoryEvent => ({
   ...at,
   type: 'tool',
   toolCallId,
@@ -257,7 +257,7 @@ test("a Claude Code subagent's text and thinking, tagged with its spawn call and
 })
 
 describe("Claude Code's stored subagent usage", () => {
-  test("each subagent's own transcript, a message stored once per block counted once", () => {
+  test("each subagent's own trajectory, a message stored once per block counted once", () => {
     const home = mkdtempSync(join(tmpdir(), 'claude-subagents-'))
     try {
       const dir = join(home, 'projects', '-reeval-workspace', 'session-1', 'subagents')
@@ -389,7 +389,7 @@ describe('a turn and its subagents', () => {
     const events = [
       tool('toolu_1', 'Agent', { prompt: 'outer' }, { agentId: 'a1' }),
       { ...tool('toolu_2', 'Agent', { prompt: 'inner' }, { agentId: 'a2' }), subagent: 'toolu_1' },
-    ] as TranscriptEvent[]
+    ] as TrajectoryEvent[]
     const asked: string[] = []
     const runs = await turnSubagents(
       {

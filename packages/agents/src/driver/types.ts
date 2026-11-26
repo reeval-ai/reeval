@@ -3,7 +3,7 @@ import type {
   SubagentRun,
   SubagentUsage,
   TokenUsage,
-  TranscriptEvent,
+  TrajectoryEvent,
   TurnStatus,
   WebEventType,
 } from '../types.ts'
@@ -15,7 +15,7 @@ export type HarnessResult = {
   status: TurnStatus
   startedAt: string
   durationMs: number
-  transcript: TranscriptEvent[]
+  trajectory: TrajectoryEvent[]
   /** Tokens the turn used, when the harness reports them, its subagents' included. */
   usage: TokenUsage | null
   /**
@@ -29,7 +29,7 @@ export type HarnessResult = {
   subagents?: SubagentRun[]
   /** The model the harness says served the turn; null when it reports none. */
   model: string | null
-  /** Event types the harness can't report, so their absence from `transcript` proves nothing. */
+  /** Event types the harness can't report, so their absence from `trajectory` proves nothing. */
   unreported: WebEventType[]
   /**
    * Milliseconds the agent spent reasoning in the turn, from the reasoning blocks it streamed;
@@ -68,7 +68,7 @@ export interface HarnessSession {
    * caller stopped waiting for: what the agent streamed, with `note` (why it stopped waiting)
    * last, and the usage its CLI stored.
    */
-  stopped?(note: TranscriptEvent): Promise<HarnessResult>
+  stopped?(note: TrajectoryEvent): Promise<HarnessResult>
   /**
    * Reads the usage the running turn's CLI stored so far, for the turn's result: call it when the
    * run is cut off, before the runner the store is in goes away.

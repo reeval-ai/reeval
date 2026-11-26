@@ -802,7 +802,7 @@ export default defineEval({
     assert.equal(regressed.code, 1, regressed.out)
   })
 
-  test("a turn's text is cut at 8 KB in the record; transcript.jsonl keeps it whole", async () => {
+  test("a turn's text is cut at 8 KB in the record; trajectory.jsonl keeps it whole", async () => {
     const long = 'x'.repeat(20_000)
     const p = await project('turn-cap', {
       'reeval.config.ts': fakeConfig({ harness: `{ text: '${long}' }` }),
@@ -813,7 +813,7 @@ export default defineEval({
     const text = e?.trial.turns[0]?.text ?? ''
     assert.ok(text.startsWith('x'.repeat(8 * 1024)) && !text.startsWith('x'.repeat(8 * 1024 + 1)))
     assert.match(text, /\[reeval: truncated 20000 characters;/)
-    assert.ok(e?.read(e.trial.files.transcript?.path ?? '').includes(long))
+    assert.ok(e?.read(e.trial.files.trajectory?.path ?? '').includes(long))
   })
 
   test('cells join environments by digest, not name; attempts have keys', async () => {
@@ -1123,10 +1123,10 @@ describe('records from a newer reeval', () => {
     const p = await fixture(OLD)
     await portBefore100(p.dir)
     await future(p.dir, (r) => {
-      r.schemaVersion = 2
+      r.schemaVersion = 3
     })
     const upgrade =
-      /written by a newer reeval \(schemaVersion 2; this reeval reads up to 1\)\. Upgrade reeval to read it\./
+      /written by a newer reeval \(schemaVersion 3; this reeval reads up to 2\)\. Upgrade reeval to read it\./
     const shown = await runCli(p.dir, ['show', newRun])
     assert.notEqual(shown.code, 0, shown.stdout + shown.stderr)
     assert.match(shown.stderr, upgrade)
@@ -1145,7 +1145,7 @@ describe('records from a newer reeval', () => {
     assert.match(compared.stderr, upgrade)
   })
 
-  test('fields, values and transcript events a newer reeval added are ignored by every reader', async () => {
+  test('fields, values and trajectory events a newer reeval added are ignored by every reader', async () => {
     const p = await fixture(OLD)
     await portBefore100(p.dir)
     const schema = JSON.parse(
@@ -1163,14 +1163,14 @@ describe('records from a newer reeval', () => {
         status: 'paused' as never,
       }
     })
-    const transcripts = execFileSync(
+    const trajectories = execFileSync(
       'find',
       [join(p.dir, HISTORY, newRun), '-name', 'transcript.jsonl'],
       { encoding: 'utf8' },
     )
       .trim()
       .split('\n')
-    for (const t of transcripts) {
+    for (const t of trajectories) {
       await appendFile(
         t,
         `${JSON.stringify({ turn: 1, ts: '2027-01-01T00:00:00.000Z', atMs: 1, type: 'hologram', frames: 3 })}\n`,

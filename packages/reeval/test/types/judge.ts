@@ -4,7 +4,7 @@
 import type { EvalOptions, Question } from '../../src/index.ts'
 
 export const questions: Question[] = [
-  { question: 'How did the agent find the failing test?', transcript: true },
+  { question: 'How did the agent find the failing test?', trajectory: true },
   { question: 'Which is cleaner?', across: 'environment', diff: true, task: true },
   { question: 'Which screen is clearer?', across: 'agent', artifacts: ['home'] },
   // @ts-expect-error a question shows at least one input

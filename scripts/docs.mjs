@@ -1162,7 +1162,7 @@ for (const file of mdxFiles()) {
 
 // `reeval init` writes `analysis.model`, whose missing key is a warning in `reeval doctor`
 // (src/init.ts, src/doctor.ts) and which a run without questions never calls, so a page that
-// shows init and a doctor transcript may end "No problems." or "No problems, 1 warning.", and
+// shows init and a doctor trajectory may end "No problems." or "No problems, 1 warning.", and
 // must not call the analysis key required.
 const ANALYSIS_KEY_REQUIRED =
   /\bkeys? (?:for )?the (?:agent )?harness and (?:the )?(?:analysis|insights) model\b|\bkeys the harness and the (?:analysis|insights) model need\b|\bGoogle (?:API )?key\b[^\n]{0,40}\brequired\b/i

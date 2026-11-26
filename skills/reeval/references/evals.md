@@ -52,7 +52,7 @@
 ## The attempt: `c.send`, `c.exec`, `c.serve`, files
 
 - `await c.send(prompt)` runs one agent turn and returns a `Turn` (`text`, `status`, `diff`,
-  `transcript`). Call it again for multi-turn; a judge's `inputs: { turns: 'all' }` shows every
+  `trajectory`). Call it again for multi-turn; a judge's `inputs: { turns: 'all' }` shows every
   turn.
 - `await c.exec(cmd)` returns `{ exitCode, stdout, stderr }`; `c.exec(cmd, { background: true })`
   starts it without waiting and returns `{ kill() }`. `{ env: { NAME: 'value' } }` sets variables
@@ -96,18 +96,18 @@
   | `files: true` | `status path` lines for the changed files, under `diff`'s patterns |
   | `diff: true` / `['src/**', '!**/*.test.ts']` | the diff since the eval started (gitignore-style, last match wins) |
   | `contents: ['README.md', 'src/**']` | files whole, changed or not; they leave the diff |
-  | `transcript: true` / `'tools'` / `'full'` | the turn's transcript: clipped, tool calls only, everything |
+  | `trajectory: true` / `'tools'` / `'full'` | the turn's trajectory: clipped, tool calls only, everything |
   | `checks: true` / `['npm test']` | `c.exec` results, or those commands' |
   | `observations: true` / `['orm']` | `c.observe` values, or those names' |
   | `artifacts: true` / `[shot, 'home']` | captures, sent as file parts |
 
   Pick the inputs the question needs, usually one or two: a question about code reads `diff` or
-  `contents`, one about the agent's answer `output`, one about how it worked `transcript`, one
+  `contents`, one about the agent's answer `output`, one about how it worked `trajectory`, one
   about a screenshot `artifacts`. Spell out `{ task: true, output: true, diff: true }` only when
   the question needs all three. The diff leaves out dependencies, build output (`dist/`,
   `.next/`, top-level `build/` and `out/`), lockfiles, `*.map`, `*.tsbuildinfo` and minified
   files.
-- `turns` selects what `task`, `output`, `transcript` and `diff` read and shows nothing alone:
+- `turns` selects what `task`, `output`, `trajectory` and `diff` read and shows nothing alone:
   `turns: 'all'` adds every turn before the last one.
 - Ask about facts in a captured picture, not whether it "looks great". Jev
   (`typesafe-ai/jev-1.14.0`) takes PNG captures; a provider that cannot take files fails that
@@ -179,7 +179,7 @@ outcome, judge the program's output, not the diff: `await c.exec('node app.js')`
 `judge(q, { inputs: { checks: ['node app.js'] } })`. The task's `c.exec` runs in the agent's
 container as the same user, which suits AX evals but isn't a sealed verifier; a grader with `env` runs in a sandbox of its own.
 
-## Transcript graders
+## Trajectory graders
 
 - `usedSkill(name)`, `calledMcp(server, tool)`, `calledTool(name | RegExp, input?)`,
   `ran(command?)`, `wrote(path?)`, `searched(query?)` and `fetched(url?)`, from
@@ -193,7 +193,7 @@ container as the same user, which suits AX evals but isn't a sealed verifier; a 
   returns those programs to count or filter. `usedSkill` is opened or loaded (a `skill` /
   `Skill` / `load_skill` tool, or a Read/`sed` of `skills/<name>/`, on every harness), not
   "followed". MCP is `calledMcp(server, tool)` (the names in `mcp.<server>`);
-  `calledTool('mcp__<server>__<tool>')` is the raw transcript name. After adapters and the
+  `calledTool('mcp__<server>__<tool>')` is the raw trajectory name. After adapters and the
   normalizer, that string is the same on every harness (stdio; Goose, OpenCode, pi and Codex
   refuse `mcp.sse`). Use `wrote` / `searched`, not `calledTool('edit')` or `'webSearch'`.
 - Budgets: `withinLimits({ tokens: 20_000, toolCalls: 30, duration: '5m' })` caps the turns'

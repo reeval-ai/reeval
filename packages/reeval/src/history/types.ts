@@ -55,8 +55,8 @@ export type ChangedFile = FileChange & {
   lockfile?: boolean
 }
 
-/** Stays 1 while reeval is pre-release: the record changes in place. */
-export const SCHEMA_VERSION = 1
+/** Bumped only for a change that can't be additive, with a migration in `MIGRATIONS` (src/view/record.ts). */
+export const SCHEMA_VERSION = 2
 
 export type ArtifactLevel = 'all' | 'evidence' | 'failures' | 'none'
 export type RecordMode = 'manual' | 'ci' | 'always'
@@ -183,12 +183,12 @@ export type JudgmentRecord = {
 export type AttemptFiles = {
   /** Each environment setup step's command, exit code, duration, and output. */
   setupLog?: FileRef
-  transcript?: FileRef
-  /** Unnormalized harness stream parts, only with `REEVAL_RAW_TRANSCRIPT=1`. */
-  rawTranscript?: FileRef
+  trajectory?: FileRef
+  /** Unnormalized harness stream parts, only with `REEVAL_RAW_TRAJECTORY=1`. */
+  rawTrajectory?: FileRef
   diff?: FileRef
   judgeInput?: FileRef
-  /** The transcript as a Harbor ATIF trajectory, with the config's `exports: ['atif']`. */
+  /** The attempt as a Harbor ATIF trajectory, with the config's `exports: ['atif']`. */
   atif?: FileRef
   /**
    * PNGs from `c.capture()`, under the `artifacts/<name>.png` path, then the page as each of its
@@ -392,7 +392,7 @@ export type AttemptRecord = {
   turnStatusRead?: boolean
   durationMs: number
   /**
-   * `text` is the agent's final message, cut at 8 KB; the whole of it is in the `transcript.jsonl`
+   * `text` is the agent's final message, cut at 8 KB; the whole of it is in the `trajectory.jsonl`
    * file.
    * `mcpStartup` times each stdio MCP server's start in the turn (`McpStartup`).
    * `reasoningMs` is how long the turn's reasoning took, null when the harness can't time it.
@@ -474,7 +474,7 @@ export type AttemptRecord = {
   /** Tokens across the attempt's turns; null when the harness reported none. */
   usage: TokenUsage | null
   /**
-   * The subagents the agent spawned, in spawn order. Their events are in `transcript.jsonl`,
+   * The subagents the agent spawned, in spawn order. Their events are in `trajectory.jsonl`,
    * each tagged `subagent` with the entry's `id`. Absent when it spawned none.
    */
   subagents?: SubagentRecord[]
@@ -490,12 +490,12 @@ export type AttemptRecord = {
   captureUse?: { model: string; moves: number; usage: TokenUsage | null }
   /**
    * What the attempt's `c.decide()` calls used, apart from the agent's `usage` and `cost`. The
-   * calls are `files.decisions`, and each is a `decision` line in transcript.jsonl too.
+   * calls are `files.decisions`, and each is a `decision` line in trajectory.jsonl too.
    */
   decisionUse?: DecisionUseSpend
   timings: PhaseTimings
   /**
-   * Counts from the transcript, so the attempt's activity is available without reading the transcript. `webSearches` includes refused searches.
+   * Counts from the trajectory, so the attempt's activity is available without reading the trajectory. `webSearches` includes refused searches.
    * `fileEdits` counts edit tool calls, so a shell edit isn't one; `changedFiles` has what the workspace diff shows changed.
    * `reasoningMs` is null when some turn's reasoning time is unknown, so a 0 is always a measurement.
    */
@@ -509,7 +509,7 @@ export type AttemptRecord = {
      */
     llmCalls: number | null
     /**
-     * The transcript's `file-edit` events: calls to the agent's file-editing tools, a Claude Code
+     * The trajectory's `file-edit` events: calls to the agent's file-editing tools, a Claude Code
      * subagent's included. A file the agent changed from the shell, or through a subagent whose
      * calls its harness doesn't stream (Cursor's `task`, Codex's `spawn_agent`), isn't counted:
      * `changedFiles`, from the workspace diff, has every file the attempt changed.
@@ -523,9 +523,9 @@ export type AttemptRecord = {
      * measurement, never a harness that doesn't report it.
      */
     reasoningMs: number | null
-    /** Transcript tool events with `stalled: true` (long shell or edit). */
+    /** Trajectory tool events with `stalled: true` (long shell or edit). */
     stalledTools: number
-    /** Longest tool `durationMs` in the transcript; null when none reported a duration. */
+    /** Longest tool `durationMs` in the trajectory; null when none reported a duration. */
     maxToolMs: number | null
   }
   judgements: JudgmentRecord[]
@@ -1508,11 +1508,11 @@ export type HistoryEntry = {
 
 /**
  * A subagent an attempt's agent spawned (`subagents[]`). `toolCalls` and `fileEdits` count its
- * events in the transcript; null when its harness doesn't report them (`events: 'none'`).
+ * events in the trajectory; null when its harness doesn't report them (`events: 'none'`).
  * `prompt` and `finalMessage` are cut at 8 KB.
  */
 export type SubagentRecord = {
-  /** The spawn call's `toolCallId`, which the subagent's transcript events carry as `subagent`. */
+  /** The spawn call's `toolCallId`, which the subagent's trajectory events carry as `subagent`. */
   id: string
   /** 1, 2, … in spawn order across the attempt. */
   n: number

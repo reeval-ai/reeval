@@ -1,11 +1,11 @@
 import type { AttemptRecord, ExportFormat, RunRecord } from './history/types.ts'
 import { toAtif } from './view/atif.ts'
-import type { TranscriptLine } from './view/model.ts'
+import type { TrajectoryLine } from './view/model.ts'
 
 type Exporter = {
   /** The file each attempt's export is, in the attempt's folder. */
   file: string
-  render(run: RunRecord, attempt: AttemptRecord, lines: TranscriptLine[]): string
+  render(run: RunRecord, attempt: AttemptRecord, lines: TrajectoryLine[]): string
 }
 
 export const EXPORTERS: Record<ExportFormat, Exporter> = {

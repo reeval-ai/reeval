@@ -58,7 +58,7 @@ export {
   STALL_TOOL_MS,
   type StampedPart,
   timesReasoning,
-} from './driver/transcript.ts'
+} from './driver/trajectory.ts'
 export type { AgentLog, AgentLogPhase, HarnessResult, HarnessSession } from './driver/types.ts'
 export { AgentError } from './errors.ts'
 export {
@@ -83,7 +83,7 @@ export {
 } from './harnesses.ts'
 export { type LocalOptions, local } from './local.ts'
 export { masked, OUTPUT_CAP, type OutOptions } from './out/index.ts'
-export type { OutSession, OutTranscriptLine, OutTurn } from './out/types.ts'
+export type { OutSession, OutTrajectoryLine, OutTurn } from './out/types.ts'
 export { anthropicPath, apiHost, openaiPath, type RouteApi } from './routes/api.ts'
 export { everyModel, notGemini } from './routes/effort.ts'
 export { openCodeModelOn, ROUTES, type RouteName } from './routes/index.ts'
@@ -163,7 +163,7 @@ export type {
   SubagentRun,
   SubagentUsage,
   TokenUsage,
-  TranscriptEvent,
+  TrajectoryEvent,
   TurnStatus,
   WebEventType,
 } from './types.ts'

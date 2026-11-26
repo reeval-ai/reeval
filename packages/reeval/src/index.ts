@@ -117,7 +117,7 @@ export type {
   SkillSource,
   StatusRange,
   Target,
-  TranscriptEvent,
+  TrajectoryEvent,
   Turn,
   TurnData,
   Viewport,

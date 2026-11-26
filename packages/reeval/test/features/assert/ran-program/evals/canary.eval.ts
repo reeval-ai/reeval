@@ -7,7 +7,7 @@ const commands = defineGrader('commands', {
   weight: 0,
   grade: (c) =>
     c.turns.flatMap((t) =>
-      t.transcript.flatMap((e) =>
+      t.trajectory.flatMap((e) =>
         e.type === 'tool' && e.tool === 'shell'
           ? [String((e.input as { command?: unknown })?.command)]
           : [],

@@ -2,7 +2,7 @@
 
 **Shows:** choosing what the judge sees. The agent adds `multiply(a, b)` and lists it in the
 README, and the `judge` grader's `inputs` give the judge the diff of `src/` only (`diff`), the
-README whole (`contents`) and the commands the agent ran (`transcript: 'tools'`). Nothing else
+README whole (`contents`) and the commands the agent ran (`trajectory: 'tools'`). Nothing else
 reaches it.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
@@ -17,7 +17,7 @@ pnpm eval
 
 **Real or fake agent:** `pnpm eval` runs a fake agent and a fake judge, with no keys or Docker. The
 agent runs the tests, then copies the [`fake-agent/`](./fake-agent) fixture into the workspace to
-mimic what an agent would produce, so the judge has a transcript and a diff to see.
+mimic what an agent would produce, so the judge has a trajectory and a diff to see.
 `pnpm eval --profile claude-code` runs the same eval on Claude Code, judged by
 `anthropic/claude-sonnet-5`, and `--profile <name>` on any other agent in
 [`examples/profiles.ts`](../profiles.ts).

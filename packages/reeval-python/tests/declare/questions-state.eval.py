@@ -5,35 +5,35 @@ skilled = base.extend("skilled", {"env": {"MODE": "skilled"}})
 
 
 @evaluate(
-    "transcript across harnesses",
+    "trajectory across harnesses",
     {
         "compare": {"control": base, "variants": [skilled]},
         "questions": [
             {
                 "question": "Which agent verified its work?",
                 "across": "agent",
-                "transcript": "tools",
+                "trajectory": "tools",
             }
         ],
     },
 )
-async def transcript_across_harnesses(c): ...
+async def trajectory_across_harnesses(c): ...
 
 
 @evaluate(
-    "transcript within a harness",
+    "trajectory within a harness",
     {
         "compare": {"control": base, "variants": [skilled]},
         "questions": [
             {
                 "question": "Which arm verified its work?",
                 "across": "environment",
-                "transcript": "tools",
+                "trajectory": "tools",
             }
         ],
     },
 )
-async def transcript_within_a_harness(c): ...
+async def trajectory_within_a_harness(c): ...
 
 
 @evaluate(
@@ -53,7 +53,7 @@ async def screenshots(c): ...
 
 
 @evaluate(
-    "each attempt with the transcript",
+    "each attempt with the trajectory",
     {
         "questions": [
             {
@@ -61,16 +61,16 @@ async def screenshots(c): ...
                 "task": True,
                 "output": True,
                 "diff": True,
-                "transcript": True,
+                "trajectory": True,
             }
         ]
     },
 )
-async def each_attempt_with_the_transcript(c): ...
+async def each_attempt_with_the_trajectory(c): ...
 
 
 @evaluate(
-    "each attempt without the transcript",
+    "each attempt without the trajectory",
     {
         "questions": [
             {
@@ -82,4 +82,4 @@ async def each_attempt_with_the_transcript(c): ...
         ]
     },
 )
-async def each_attempt_without_the_transcript(c): ...
+async def each_attempt_without_the_trajectory(c): ...

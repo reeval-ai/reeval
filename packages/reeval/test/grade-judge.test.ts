@@ -57,7 +57,7 @@ function attempt(files: Record<string, string> = {}, model?: JudgeModel) {
         status: 'completed',
         startedAt: '2026-01-01T00:00:00.000Z',
         durationMs: 1,
-        transcript: [],
+        trajectory: [],
         usage: null,
       } as unknown as GradeInputs['turns'][number],
     ],

@@ -11,7 +11,7 @@ export default defineEval({
     succeeded('node --test'),
     // inputs is all the judge sees: the source diff, README.md whole and the tool calls.
     judge('Does README.md list every function src/math.js exports?', {
-      inputs: { diff: ['src/**'], contents: ['README.md'], transcript: 'tools' },
+      inputs: { diff: ['src/**'], contents: ['README.md'], trajectory: 'tools' },
     }),
   ],
   task: async (c) => {

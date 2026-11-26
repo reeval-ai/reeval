@@ -5,7 +5,7 @@ import type { CapturePageFile } from '../types.ts'
 import type { AnalysisDoc } from '../view/analysis.ts'
 import { type AnalysisEntry, pinnedAnalysis, sortAnalyses } from '../view/analysis.ts'
 import { type AttemptFacts, attemptFacts } from '../view/classify.ts'
-import { transcriptByLine } from '../view/model.ts'
+import { trajectoryByLine } from '../view/model.ts'
 import { readableCapturePage, readableRemarks } from '../view/record.ts'
 import { REMARKS_FILE, type RunRemarks } from '../view/remarks.ts'
 import type { RunReportOptions } from '../view/report/index.ts'
@@ -14,7 +14,7 @@ import type { RunRecord } from './types.ts'
 /**
  * Sidecars beside a recorded run directory for `buildRunReport`: remarks, the
  * pinned analysis, `.capture.json` page facts keyed by path and, given the run's record, each
- * attempt's facts from the transcript it kept. Only files whose real path is inside the run
+ * attempt's facts from the trajectory it kept. Only files whose real path is inside the run
  * directory count: a symlinked run directory has none, and a symlink inside it is skipped, as the
  * studio's artifacts route refuses both.
  */
@@ -41,8 +41,8 @@ export async function readReportInputs(
 }
 
 /**
- * Each attempt's facts from the transcript.jsonl its record names, read one at a time, so a run
- * holds one transcript in memory at once, never all of them.
+ * Each attempt's facts from the trajectory.jsonl its record names, read one at a time, so a run
+ * holds one trajectory in memory at once, never all of them.
  */
 async function loadFacts(
   read: Read,
@@ -52,10 +52,10 @@ async function loadFacts(
   const facts = new Map<string, AttemptFacts>()
   for (const e of record.evals) {
     for (const a of e.attempts) {
-      const ref = a.files.transcript
+      const ref = a.files.trajectory
       if (!ref) continue
       const text = await read(join(runDir, ...ref.path.split('/')))
-      if (text !== null) facts.set(a.key, attemptFacts(record, a, transcriptByLine(text)))
+      if (text !== null) facts.set(a.key, attemptFacts(record, a, trajectoryByLine(text)))
     }
   }
   return facts

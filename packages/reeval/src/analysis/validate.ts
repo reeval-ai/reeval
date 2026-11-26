@@ -18,7 +18,7 @@ import type { AnalysisOutput } from './schema.ts'
 
 const EXEC = /^(.+):exec(\d+)$/
 const LINE = /^(E\d+):L(\d+)$/
-const TRANSCRIPT = /^transcript:(.+)#L(\d+)$/
+const TRAJECTORY = /^trajectory:(.+)#L(\d+)$/
 
 const normal = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase()
 const NUMBER = /(?<![\w.#/:-])[−-]?\d+(?:\.\d+)?(?![\w/])/g
@@ -70,9 +70,9 @@ export function citations(digest: Digest) {
         digest.evidence.find((e) => e.id === id)?.lines.find((l) => l.startsWith(`L${n} `)) ?? null
       )
     }
-    const transcript = TRANSCRIPT.exec(c)
-    if (transcript) {
-      const [, attempt = '', n = ''] = transcript
+    const trajectory = TRAJECTORY.exec(c)
+    if (trajectory) {
+      const [, attempt = '', n = ''] = trajectory
       for (const id of evidenceOf(attempt)) {
         if (lines.get(id)?.has(Number(n))) return resolve(`${id}:L${n}`)
       }

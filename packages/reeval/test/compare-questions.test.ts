@@ -375,18 +375,18 @@ export default defineEval(failed(true))
 `,
       'evals/choices.eval.ts': `import { defineEval } from 'reeval'
 import { body, compare } from './envs.ts'
-export default defineEval({ compare, questions: [{ question: 'Did it write ok.txt?', choices: ['yes', 'no'], task: true, output: true, diff: true, transcript: true }], task: body })
+export default defineEval({ compare, questions: [{ question: 'Did it write ok.txt?', choices: ['yes', 'no'], task: true, output: true, diff: true, trajectory: true }], task: body })
 `,
       'evals/free-text.eval.ts': `import { defineEval } from 'reeval'
 import { body, compare } from './envs.ts'
-export default defineEval({ compare, questions: [{ question: 'What did it write?', task: true, output: true, diff: true, transcript: true }], task: body })
+export default defineEval({ compare, questions: [{ question: 'What did it write?', task: true, output: true, diff: true, trajectory: true }], task: body })
 `,
       'evals/unrun-command.eval.ts': `import { defineEval } from 'reeval'
 import { body, compare } from './envs.ts'
 export default defineEval({ compare, questions: [{ question: 'What did it run?', checks: ['npm tset'] }], task: body })
 `,
       'evals/one.ts': `import { fakeAgent } from 'reeval/agent'
-export const one = { agents: fakeAgent({ files: { 'ok.txt': 'yes' } }), runs: 1, questions: [{ question: 'What did it do?', task: true, output: true, diff: true, transcript: true }] }
+export const one = { agents: fakeAgent({ files: { 'ok.txt': 'yes' } }), runs: 1, questions: [{ question: 'What did it do?', task: true, output: true, diff: true, trajectory: true }] }
 `,
       'evals/passes.eval.ts': `import { defineEval } from 'reeval'
 import { one } from './one.ts'
@@ -418,7 +418,7 @@ export default defineEval({ ...one, agents: fakeAgent({ failWith: 'agent CLI fai
     )
     assert.match(
       dry.stdout,
-      /^ {2}question 1\/1 {2}Did it write ok\.txt\? · after each attempt · shows task, output, diff, transcript · each attempt · 12 attempts · yes \/ no · fake$/m,
+      /^ {2}question 1\/1 {2}Did it write ok\.txt\? · after each attempt · shows task, output, diff, trajectory · each attempt · 12 attempts · yes \/ no · fake$/m,
     )
     const r = await runCli(p.dir)
     assert.equal(r.code, 1, r.stdout + r.stderr)
@@ -513,7 +513,7 @@ export default defineEval({ ...one, agents: fakeAgent({ failWith: 'agent CLI fai
     const [first] = chose.attempts[0]?.answers ?? []
     assert.deepEqual(
       first?.stateOptions,
-      resolveQuestionState({ task: true, output: true, diff: true, transcript: true }),
+      resolveQuestionState({ task: true, output: true, diff: true, trajectory: true }),
     )
     assert.equal(first?.text, 'read the diff')
     assert.match(first?.input?.path ?? '', /\/1\/questions\/1\.json$/)
@@ -626,7 +626,7 @@ export default defineEval({ runs: 1, compare, questions: ${PAIRWISE}, task: body
 `,
       'evals/describes.eval.ts': `import { defineEval } from 'reeval'
 import { body, compare } from './envs.ts'
-export default defineEval({ runs: 1, compare, questions: [{ question: 'What did it write?', task: true, output: true, diff: true, transcript: true }], task: body })
+export default defineEval({ runs: 1, compare, questions: [{ question: 'What did it write?', task: true, output: true, diff: true, trajectory: true }], task: body })
 `,
     })
     const r = await runCli(p.dir)
@@ -685,7 +685,7 @@ export default defineEval({ runs: 1, compare, questions: [{ question: 'What did 
       const p = await project('questions-sigint', {
         'reeval.config.ts': fakeConfig({ harness: `{ files: { 'ok.txt': 'yes' } }` }),
         ...asks(
-          `[{ question: 'Which is cleaner?', across: 'environment', task: true, diff: true, model: 'openai/gpt-5.6-luna' }, { question: 'What did it write?', transcript: true, model: 'openai/gpt-5.6-luna' }]`,
+          `[{ question: 'Which is cleaner?', across: 'environment', task: true, diff: true, model: 'openai/gpt-5.6-luna' }, { question: 'What did it write?', trajectory: true, model: 'openai/gpt-5.6-luna' }]`,
         ),
       })
       let poll: ReturnType<typeof setInterval> | undefined

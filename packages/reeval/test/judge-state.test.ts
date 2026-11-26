@@ -4,8 +4,8 @@ import { judgeProblem } from '../src/contract/judge.ts'
 import { withInputSize } from '../src/judge/size.ts'
 import { type Draft, stateOf } from '../src/judge/state.ts'
 import { mergeJudge, resolveStateOptions } from '../src/judge/state-options.ts'
-import { transcriptForJudge } from '../src/judge/transcript.ts'
-import type { TranscriptEvent } from '../src/types.ts'
+import { trajectoryForJudge } from '../src/judge/trajectory.ts'
+import type { TrajectoryEvent } from '../src/types.ts'
 
 const at = { at: '2026-10-17T00:00:00.000Z' } as const
 const events = [
@@ -68,10 +68,10 @@ const events = [
     durationMs: null,
   },
   { ...at, type: 'error', message: 'rate limited' },
-] as unknown as TranscriptEvent[]
+] as unknown as TrajectoryEvent[]
 
-test('the transcript renders one compact entry per event, by mode', () => {
-  const tools = transcriptForJudge(events, 'tools')
+test('the trajectory renders one compact entry per event, by mode', () => {
+  const tools = trajectoryForJudge(events, 'tools')
   assert.deepEqual(
     tools.map((l) => l.split('\n')[0]),
     [
@@ -85,10 +85,10 @@ test('the transcript renders one compact entry per event, by mode', () => {
     ],
   )
   assert.ok((tools[0]?.length ?? 0) < 340, 'tool output is clipped')
-  const messages = transcriptForJudge(events, true)
+  const messages = trajectoryForJudge(events, true)
   assert.equal(messages[0], 'message: Looking at the tests.')
   assert.ok(!messages.some((l) => l.startsWith('reasoning:')), 'no reasoning without full')
-  const full = transcriptForJudge(events, 'full')
+  const full = trajectoryForJudge(events, 'full')
   assert.equal(full[1], 'reasoning: They probably use node:test.')
   assert.ok(full[2]?.includes('x'.repeat(400)), 'full leaves tool output whole')
 })
@@ -100,7 +100,7 @@ test("a call's inputs resolve every key, off unless it turns it on", () => {
     files: false,
     diff: false,
     contents: ['src/**'],
-    transcript: false,
+    trajectory: false,
     turns: 'last',
     checks: false,
   })
@@ -133,7 +133,7 @@ test('judge options leave the inputs to a judge grader', () => {
 })
 
 test("each subagent's events show under its spawn call, and a view picks whose", () => {
-  const sub: TranscriptEvent[] = [
+  const sub: TrajectoryEvent[] = [
     { type: 'text', text: 'Reviewing it.', at: 1 },
     {
       type: 'tool',
@@ -160,7 +160,7 @@ test("each subagent's events show under its spawn call, and a view picks whose",
       subagent: 's1',
     },
     { type: 'text', text: 'Done.', at: 3 },
-  ] as TranscriptEvent[]
+  ] as TrajectoryEvent[]
   const runs = [
     {
       id: 's1',
@@ -174,24 +174,24 @@ test("each subagent's events show under its spawn call, and a view picks whose",
       finalMessage: 'x.ts is fine',
     },
   ]
-  assert.deepEqual(transcriptForJudge(sub, true, runs), [
+  assert.deepEqual(trajectoryForJudge(sub, true, runs), [
     'message: Reviewing it.',
     'tool Agent: {"prompt":"review x.ts"} → ok · 3s\n  x.ts is fine',
     'subagent 1 (reviewer, claude-haiku-4-5, completed, 3s):\n  message: looking at x.ts\n  edit x.ts (update, +1 −0) · 5ms',
     'message: Done.',
   ])
-  assert.deepEqual(transcriptForJudge(sub, { subagents: false }, runs), [
+  assert.deepEqual(trajectoryForJudge(sub, { subagents: false }, runs), [
     'message: Reviewing it.',
     'tool Agent: {"prompt":"review x.ts"} → ok · 3s\n  x.ts is fine',
     'message: Done.',
   ])
-  assert.deepEqual(transcriptForJudge(sub, { agent: false, detail: 'tools' }, runs), [
+  assert.deepEqual(trajectoryForJudge(sub, { agent: false, detail: 'tools' }, runs), [
     'subagent 1 (reviewer, claude-haiku-4-5, completed, 3s):\n  task: review x.ts\n  edit x.ts (update, +1 −0) · 5ms\n  final message: x.ts is fine',
   ])
   const none = [{ ...runs[0], events: 'none' as const }]
-  assert.deepEqual(transcriptForJudge(sub.slice(0, 2), 'tools', none), [
+  assert.deepEqual(trajectoryForJudge(sub.slice(0, 2), 'tools', none), [
     'tool Agent: {"prompt":"review x.ts"} → ok · 3s\n  x.ts is fine',
-    "subagent 1 (reviewer, claude-haiku-4-5, completed, 3s):\n  (its own actions aren't in the transcript; the diff has what it changed)",
+    "subagent 1 (reviewer, claude-haiku-4-5, completed, 3s):\n  (its own actions aren't in the trajectory; the diff has what it changed)",
   ])
 })
 
@@ -201,7 +201,7 @@ const patch = (path: string, body: string) =>
 test("a provider error keeps the provider's message and names the inputs that were on, largest first", () => {
   const state = stateOf({
     all: false,
-    turns: [{ task: 'do it', output: 'done', transcript: 't'.repeat(8000) }],
+    turns: [{ task: 'do it', output: 'done', trajectory: 't'.repeat(8000) }],
     files: ['added big.ts'],
     diff: patch('big.ts', 'b'.repeat(20_000)),
   })
@@ -211,7 +211,7 @@ test("a provider error keeps the provider's message and names the inputs that we
   assert.deepEqual(rest, [])
   assert.match(
     hint ?? '',
-    /^The judge's input was ~7k tokens \(estimated\): diff 5k, of which big\.ts is 5k; transcript 2k\. Narrow diff, transcript, files, task or output\.$/,
+    /^The judge's input was ~7k tokens \(estimated\): diff 5k, of which big\.ts is 5k; trajectory 2k\. Narrow diff, trajectory, files, task or output\.$/,
   )
 })
 

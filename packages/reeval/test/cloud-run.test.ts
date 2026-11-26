@@ -2141,7 +2141,7 @@ describe("a cloud run's files, downloaded with --download", () => {
       assert.doesNotMatch(linked.stdout, / into \.reeval\/runs/, 'nothing new in .reeval/runs')
       assert.equal(readlinkSync(join(dir, link)), 'CLAUDE.md')
       const outside = tempDir('cloud-outside')
-      for (const at of [`${folder}/${runId}/out`, `${attempt}/transcript.jsonl.link`]) {
+      for (const at of [`${folder}/${runId}/out`, `${attempt}/trajectory.jsonl.link`]) {
         p.serve((machine) => [...machine, linkTo(at, outside)])
         const refused = await runCli(dir, ['attach', '--download', events], { env: env(p) })
         assert.equal(refused.code, 3, refused.stdout + refused.stderr)

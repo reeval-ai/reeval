@@ -35,7 +35,7 @@ export const open = defineEnvironment('open', { sandbox, egress: 'allow-all', se
 export const phases = defineGrader('phases', {
   files: ['setup.txt'],
   grade: async (c) => {
-    const agent = c.turns[0]?.transcript.find((e) => e.type === 'tool' && e.tool === 'shell')
+    const agent = c.turns[0]?.trajectory.find((e) => e.type === 'tool' && e.tool === 'shell')
     const seen = [
       await c.readFile('setup.txt'),
       agent?.type === 'tool' ? String(agent.output ?? '') : undefined,

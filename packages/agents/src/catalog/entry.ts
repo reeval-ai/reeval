@@ -1,6 +1,6 @@
 import type { HarnessV1StreamPart } from '@ai-sdk/harness'
 import type { PluginPart, ResolvedMcpServer } from '../spec.ts'
-import type { SubagentRun, TranscriptEvent, WebEventType } from '../types.ts'
+import type { SubagentRun, TrajectoryEvent, WebEventType } from '../types.ts'
 import type { Layout } from './layouts.ts'
 
 /** The kind of a real agent's harness, e.g. `cursor` or `claude-code`. */
@@ -60,7 +60,7 @@ export type HarnessEntry = Layout & {
   /** It reads a root `plugin.json` only when it names an Agent Plugins `$schema`. */
   pluginRootManifestNeedsSchema?: true
   /**
-   * Transcript events a turn may have had that its harness didn't report, from the turn's
+   * Trajectory events a turn may have had that its harness didn't report, from the turn's
    * `finish` part's `harnessMetadata`. Each turn carries these as `unreported`, so web matchers
    * refuse instead of passing silently.
    */
@@ -90,7 +90,7 @@ export type HarnessEntry = Layout & {
    */
   reasoningTokens: boolean | 'provider'
   /**
-   * Set when its adapter ends a step at each model call, so a turn's highest transcript `step`
+   * Set when its adapter ends a step at each model call, so a turn's highest trajectory `step`
    * is its model calls. Unset where a step ends when a call's tools have all returned (the ACP
    * harnesses) or spans the turn (Codex, Cursor).
    */
@@ -104,13 +104,13 @@ export type HarnessEntry = Layout & {
   storedUsage?: () => Promise<StoredUsage>
   /**
    * Tools whose result the agent reports whole while its model gets a cut of it, so their
-   * transcript `output` is the `full` view; `'all'` for every tool. Unset, every tool's output is
+   * trajectory `output` is the `full` view; `'all'` for every tool. Unset, every tool's output is
    * what the model saw, except one its adapter read from where the CLI saved it.
    */
   fullToolOutput?: 'all' | readonly string[]
   /**
    * How the harness reports the subagents its agent spawns; unset for an agent that has none.
-   * `events: 'streamed'` when a subagent's own events reach the transcript (Claude Code's bridge
+   * `events: 'streamed'` when a subagent's own events reach the trajectory (Claude Code's bridge
    * passes its messages on raw), `none` when only the spawn call does, so only the workspace
    * diff's `changedFiles` shows what it changed. `usage` says whether the turn's reported usage
    * counts its subagents: `separate` when it's the agent's own alone, so each subagent's stored
@@ -159,8 +159,8 @@ export type StoredUsage = {
 export type SubagentSupport = {
   events: SubagentRun['events']
   usage: 'separate' | 'included' | 'unknown'
-  /** The subagents a turn's spawn calls started, from its transcript and raw stream parts. */
-  spawns: (events: readonly TranscriptEvent[], raw: readonly unknown[]) => SpawnedSubagent[]
+  /** The subagents a turn's spawn calls started, from its trajectory and raw stream parts. */
+  spawns: (events: readonly TrajectoryEvent[], raw: readonly unknown[]) => SpawnedSubagent[]
   /** Reads each subagent's own usage from where its CLI stored it, after the turn. */
   stored?: () => Promise<StoredSubagents>
 }

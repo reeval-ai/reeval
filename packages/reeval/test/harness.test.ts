@@ -106,10 +106,10 @@ import {
 import { noDefaultEffort, withDefaultEffort } from '../src/harness/default-effort.ts'
 import { effortFromModelLabel, harnessEffort, servedEffortOf } from '../src/harness/effort.ts'
 import { workspaceSkillDir } from '../src/harness/index.ts'
-import { normalizeStream } from '../src/harness/transcript.ts'
+import { normalizeStream } from '../src/harness/trajectory.ts'
 import { harnessId } from '../src/options.ts'
 import { imageHarness } from '../src/sandbox/prepare.ts'
-import type { AgentHarnessDescriptor, TranscriptEvent } from '../src/types.ts'
+import type { AgentHarnessDescriptor, TrajectoryEvent } from '../src/types.ts'
 import { promptTokens, sumUsage, totalTokens } from '../src/usage.ts'
 import { formatUsage } from '../src/view/model.ts'
 import { turnThrough } from './support/harness-agent.ts'
@@ -1855,7 +1855,7 @@ describe('credential brokering per agent', () => {
   })
 })
 
-describe('OpenCode transcripts', () => {
+describe('OpenCode trajectories', () => {
   test("OpenCode's edits and writes are file edits, relative to the workspace", () => {
     const call = (id: string, toolName: string, input: unknown) => ({
       ms: 10,
@@ -1968,7 +1968,7 @@ describe('writes that say nothing of the file before', () => {
   })
 })
 
-describe('Claude Code transcripts', () => {
+describe('Claude Code trajectories', () => {
   test('its Edit and Write tools are file edits, keyed by file_path', () => {
     const call = (id: string, toolName: string, input: unknown) => ({
       ms: 10,
@@ -2167,7 +2167,7 @@ describe('Claude Code transcripts', () => {
   })
 })
 
-describe('Antigravity transcripts', () => {
+describe('Antigravity trajectories', () => {
   const call = (id: string, toolName: string, input: unknown) => ({
     ms: 10,
     part: { type: 'tool-call', toolCallId: id, toolName, input },
@@ -2397,7 +2397,7 @@ describe('a refused webSearch is a web-search event', () => {
     webFetches: events.filter((e) => e.type === 'web-fetch').length,
   })
   const turnOf = (events: ReturnType<typeof normalizeStream>) => ({
-    transcript: events,
+    trajectory: events,
     unreported: [] as Array<'web-search' | 'web-fetch'>,
   })
 
@@ -2420,7 +2420,7 @@ describe('a refused webSearch is a web-search event', () => {
     const turn = turnOf(events)
     assert.ok(webEvents(turn, 'web-search', undefined, 'searched').hits.length)
     assert.ok(webEvents(turn, 'web-search', 'firebase', 'searched').hits.length)
-    assert.equal(toolCalls(turn.transcript, 'webSearch').length, 0)
+    assert.equal(toolCalls(turn.trajectory, 'webSearch').length, 0)
   })
 
   test('a tool-error fetch stays web-fetch with ok: false', () => {
@@ -2605,10 +2605,10 @@ describe("agy's retried model calls, through HarnessAgent and the normalizer", (
       ...t.end({ exitCode: 0 }),
     ]
   }
-  const of = <T extends TranscriptEvent['type']>(events: TranscriptEvent[], type: T) =>
-    events.filter((e): e is Extract<TranscriptEvent, { type: T }> => e.type === type)
+  const of = <T extends TrajectoryEvent['type']>(events: TrajectoryEvent[], type: T) =>
+    events.filter((e): e is Extract<TrajectoryEvent, { type: T }> => e.type === type)
 
-  test("a retry that answered: the turn's text and transcript hold its reply once, and a retry", async () => {
+  test("a retry that answered: the turn's text and trajectory hold its reply once, and a retry", async () => {
     // agy ends this real turn ERROR ("The stream was interrupted") though the retry answered; as
     // SUCCESS, the turn's text is what reeval records for it.
     const parts = agyParts('provider-retried.ndjson', (s) =>
@@ -3026,7 +3026,7 @@ describe('what a tool event shows: the model view or the full output', () => {
     ms: 2,
     part: { type: 'tool-result', toolCallId: id, output, ...extra },
   })
-  const tools = (events: TranscriptEvent[]) =>
+  const tools = (events: TrajectoryEvent[]) =>
     events.flatMap((e) =>
       e.type === 'tool' ? [[e.tool, e.output, e.outputView, e.outputTruncated]] : [],
     )

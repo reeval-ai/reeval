@@ -1,10 +1,10 @@
 // Where a turn's time went: its tool calls (durations the harness didn't report inferred from
 // the next event), its model calls, and the background jobs it waited on, swept into one
 // segmented timeline whose totals are the turn's `timeSplit`. Browser-safe.
-import type { TimeSplit, TranscriptEvent } from '../types.ts'
+import type { TimeSplit, TrajectoryEvent } from '../types.ts'
 
 type ToolLike = Extract<
-  TranscriptEvent,
+  TrajectoryEvent,
   { type: 'file-edit' | 'web-search' | 'web-fetch' | 'tool' }
 >
 
@@ -21,7 +21,7 @@ export type WaitSpan = {
   polls: number[]
 }
 
-const isToolLike = (e: TranscriptEvent): e is ToolLike =>
+const isToolLike = (e: TrajectoryEvent): e is ToolLike =>
   e.type === 'file-edit' || e.type === 'web-search' || e.type === 'web-fetch' || e.type === 'tool'
 
 /**
@@ -31,9 +31,9 @@ const isToolLike = (e: TranscriptEvent): e is ToolLike =>
  * the whole turn doesn't.
  */
 export function inferDurations(
-  events: readonly TranscriptEvent[],
+  events: readonly TrajectoryEvent[],
   turnMs: number,
-): TranscriptEvent[] {
+): TrajectoryEvent[] {
   return events.map((e, i) => {
     if (!isToolLike(e) || e.durationMs !== null) return e
     const next = events
@@ -53,7 +53,7 @@ const record = (v: unknown): Record<string, unknown> =>
   v && typeof v === 'object' ? (v as Record<string, unknown>) : {}
 
 /** A shell call's command, or null for another tool. */
-function commandOf(e: TranscriptEvent): string | null {
+function commandOf(e: TrajectoryEvent): string | null {
   if (e.type !== 'tool' || !SHELL_TOOL.test(e.tool) || OUTPUT_TOOL.test(e.tool)) return null
   const input = record(e.input)
   const command = input.command ?? input.cmd
@@ -66,7 +66,7 @@ const strings = (v: unknown): string[] =>
 const textOf = (v: unknown) => (typeof v === 'string' ? v : (JSON.stringify(v) ?? ''))
 
 /** The command a Cursor terminal file's header names, from a read of it. */
-function terminalCommand(e: TranscriptEvent): string | null {
+function terminalCommand(e: TrajectoryEvent): string | null {
   if (e.type !== 'tool') return null
   const match = strings(e.output)
     .map((text) => TERMINAL_COMMAND.exec(text))
@@ -79,7 +79,7 @@ function terminalCommand(e: TranscriptEvent): string | null {
   }
 }
 
-function backgrounded(e: TranscriptEvent, named: ReadonlySet<string>): boolean {
+function backgrounded(e: TrajectoryEvent, named: ReadonlySet<string>): boolean {
   if (e.type !== 'tool') return false
   const input = record(e.input)
   if (input.run_in_background === true || input.is_background === true) return true
@@ -90,7 +90,7 @@ function backgrounded(e: TranscriptEvent, named: ReadonlySet<string>): boolean {
   )
 }
 
-function polls(e: TranscriptEvent): boolean {
+function polls(e: TrajectoryEvent): boolean {
   if (e.type !== 'tool') return false
   if (OUTPUT_TOOL.test(e.tool)) return true
   const command = commandOf(e)
@@ -104,12 +104,12 @@ const endOf = (e: ToolLike) => e.atMs + (e.durationMs ?? 0)
 const works = (e: ToolLike) => e.type === 'file-edit' || commandOf(e) !== null
 
 /**
- * The background jobs the agent waited on, a heuristic over the transcript: a span opens at a
+ * The background jobs the agent waited on, a heuristic over the trajectory: a span opens at a
  * call run in the background or a poll and takes in each poll after it. Until its first poll,
  * lookups (reads, searches) leave it open and an edit or another command drops it; after it,
  * the next call that isn't a poll closes it. A background call no poll followed isn't waited on.
  */
-export function waitSpans(events: readonly TranscriptEvent[]): WaitSpan[] {
+export function waitSpans(events: readonly TrajectoryEvent[]): WaitSpan[] {
   const named = new Set(events.map(terminalCommand).filter((c): c is string => c !== null))
   const spans: WaitSpan[] = []
   let open: WaitSpan | null = null
@@ -135,7 +135,7 @@ export function waitSpans(events: readonly TranscriptEvent[]): WaitSpan[] {
 const PRIORITY: SegmentKind[] = ['waiting', 'tool', 'model']
 
 /** The turn from 0 to `turnMs` as segments, each moment the first of waiting, tool, model and other. */
-export function segments(events: readonly TranscriptEvent[], turnMs: number): Segment[] {
+export function segments(events: readonly TrajectoryEvent[], turnMs: number): Segment[] {
   const marks: Array<{ at: number; kind: number; delta: 1 | -1 }> = []
   const add = (kind: number, start: number, end: number) => {
     const s = Math.max(0, Math.min(turnMs, start))
@@ -168,8 +168,8 @@ export function segments(events: readonly TranscriptEvent[], turnMs: number): Se
   return out
 }
 
-/** A turn's `timeSplit`, from its transcript (durations inferred) and length. */
-export function timeSplit(events: readonly TranscriptEvent[], turnMs: number): TimeSplit {
+/** A turn's `timeSplit`, from its trajectory (durations inferred) and length. */
+export function timeSplit(events: readonly TrajectoryEvent[], turnMs: number): TimeSplit {
   const total = { waiting: 0, tool: 0, model: 0, other: 0 }
   for (const s of segments(events, turnMs)) total[s.kind] += s.endMs - s.startMs
   const seen = events.some((e) => e.type === 'model-call' && !e.stream)
@@ -198,7 +198,7 @@ export function sumSplits(splits: ReadonlyArray<TimeSplit | undefined>): TimeSpl
 }
 
 /** Each event's part in a wait, by index: the call that went to the background, or a poll. */
-export function waitRoles(events: readonly TranscriptEvent[]): Map<number, 'background' | 'poll'> {
+export function waitRoles(events: readonly TrajectoryEvent[]): Map<number, 'background' | 'poll'> {
   const roles = new Map<number, 'background' | 'poll'>()
   for (const span of waitSpans(events)) {
     if (span.background !== null) roles.set(span.background, 'background')

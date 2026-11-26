@@ -27,11 +27,11 @@ import { type GraderDef, graderDef } from '../src/grade/define.ts'
 import * as match from '../src/grade/match.ts'
 import { runGraders } from '../src/grade/run.ts'
 import type { Grader, GraderTurn } from '../src/grade/types.ts'
-import type { TranscriptEvent } from '../src/types.ts'
+import type { TrajectoryEvent } from '../src/types.ts'
 
 const at = { ts: '2026-01-01T00:00:00.000Z', atMs: 0 }
 
-const tool = (name: string, input: unknown, id = name): TranscriptEvent => ({
+const tool = (name: string, input: unknown, id = name): TrajectoryEvent => ({
   ...at,
   type: 'tool',
   toolCallId: id,
@@ -43,7 +43,7 @@ const tool = (name: string, input: unknown, id = name): TranscriptEvent => ({
   durationMs: 0,
 })
 
-const TRANSCRIPT: TranscriptEvent[] = [
+const TRAJECTORY: TrajectoryEvent[] = [
   tool('Skill', { skill: 'http-retries' }, 's'),
   tool('bash', { command: 'npm test -- --run' }, 'b1'),
   tool('bash', { command: 'ls' }, 'b2'),
@@ -83,7 +83,7 @@ const TRANSCRIPT: TranscriptEvent[] = [
     output: '',
     outputView: 'model',
     durationMs: 0,
-  } as TranscriptEvent,
+  } as TrajectoryEvent,
 ]
 
 const turn = (over: Partial<GraderTurn> = {}): GraderTurn => ({
@@ -92,7 +92,7 @@ const turn = (over: Partial<GraderTurn> = {}): GraderTurn => ({
   status: 'completed',
   startedAt: at.ts,
   durationMs: 1500,
-  transcript: TRANSCRIPT,
+  trajectory: TRAJECTORY,
   usage: { input: 1000, output: 200, cacheRead: 0, cacheWrite: 0, reasoning: null },
   model: null,
   unreported: [],
@@ -104,7 +104,7 @@ function inputs(over: Partial<GradeInputs> = {}): GradeInputs {
   const png = Buffer.from('png')
   return {
     case: { key: '' },
-    turns: [turn(), turn({ transcript: [] })],
+    turns: [turn(), turn({ trajectory: [] })],
     skills: ['http-retries', 'unused'],
     stored: {
       execs: [
@@ -141,7 +141,7 @@ const grade = async (g: Grader, given = inputs()) =>
 
 describe('reeval/graders/match', () => {
   const c = { turns: inputs().turns, skills: ['http-retries', 'unused'] }
-  test('reads the transcript as the matchers do', () => {
+  test('reads the trajectory as the matchers do', () => {
     assert.equal(match.calledSkill(c, 'http-retries'), true)
     assert.equal(match.calledSkill(c, 'other'), false)
     assert.deepEqual(match.usedSkills(c), ['http-retries'])

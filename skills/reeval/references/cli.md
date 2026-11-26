@@ -28,7 +28,7 @@ reeval doctor            Docker, keys and images, with fixes (--json, --online)
 ## From a failure to what the agent did
 
 - `reeval run`'s status list names each failed check with its message and line, and `reeval show` prints the result blocks. Then `.reeval/runs/<run>/summary.md` and each attempt's
-  directory (`transcript.jsonl`, `diff.patch`, `checks/<n>.log`, `judge-input.json`,
+  directory (`trajectory.jsonl`, `diff.patch`, `checks/<n>.log`, `judge-input.json`,
   `setup.log`). `reeval run -v` prints a timestamped trace per attempt; `.reeval/debug/` keeps it.
 - For a slow run, `reeval show <run> --trace` writes `.reeval/traces/<run>.json`, a Perfetto
   timeline: attempts in lanes with their setup, turns, tool calls, checks and judge.
@@ -59,8 +59,8 @@ reeval doctor            Docker, keys and images, with fixes (--json, --online)
   every run.
 - If your client has a `reeval` MCP server (`reeval mcp`), prefer its tools for reading results:
   `failures` is the quickest way from "it failed" to why (failed checks and judge scores, check
-  logs, the transcript's tail, and whether the cell failed in earlier runs), far smaller than
-  `show` or summary.md; then `transcript` or `compare`. The rest return the same JSON as `--json`.
+  logs, the trajectory's tail, and whether the cell failed in earlier runs), far smaller than
+  `show` or summary.md; then `trajectory` or `compare`. The rest return the same JSON as `--json`.
 
 ## `reeval analyze`
 

@@ -1,5 +1,5 @@
 // Which tool calls an attempt made, what each did and which skills it used, from its record and
-// transcript.jsonl alone. `reeval query` stores these facts and the run report shows them, in any
+// trajectory.jsonl alone. `reeval query` stores these facts and the run report shows them, in any
 // JavaScript runtime, so nothing this module reaches may use Node or the filesystem
 // (test/view-boundary.test.ts holds it).
 import { SKILL_DIRS } from '@reeval/agents/layouts'
@@ -14,7 +14,7 @@ import {
 } from '../history/tool-class.ts'
 import { targetText, toolTarget } from '../history/tool-target.ts'
 import type { AttemptRecord, RunRecord } from '../history/types.ts'
-import type { TranscriptLine } from './model.ts'
+import type { TrajectoryLine } from './model.ts'
 
 const ADAPTER_HOME = /^~\/\.ai-sdk-harness\/\.harness-bootstrap\/[^/]+\/(?:implementation\/)?home\//
 
@@ -59,8 +59,8 @@ export type ToolCall = {
 
 type Event = Record<string, unknown>
 
-/** The tool calls in a transcript's lines (`transcriptByLine`), numbered by line from 1. */
-export function toolCalls(lines: readonly (TranscriptLine | null)[]): ToolCall[] {
+/** The tool calls in a trajectory's lines (`trajectoryByLine`), numbered by line from 1. */
+export function toolCalls(lines: readonly (TrajectoryLine | null)[]): ToolCall[] {
   const calls: ToolCall[] = []
   lines.forEach((line, i) => {
     const event = line as Event | null
@@ -84,7 +84,7 @@ export function toolCalls(lines: readonly (TranscriptLine | null)[]): ToolCall[]
  * The skills whose `SKILL.md` an attempt wrote: by a file-editing tool that created or rewrote it,
  * or by a shell command (a redirect, `tee`, `cp` and the like).
  */
-function skillsAuthored(lines: readonly (TranscriptLine | null)[], calls: ToolCall[]): Set<string> {
+function skillsAuthored(lines: readonly (TrajectoryLine | null)[], calls: ToolCall[]): Set<string> {
   const authored = new Set(calls.flatMap((t) => skillsWritten(t.tool, t.text)))
   for (const line of lines) {
     const event = line as Event | null
@@ -94,7 +94,7 @@ function skillsAuthored(lines: readonly (TranscriptLine | null)[], calls: ToolCa
   return authored
 }
 
-/** `classifyCall`, but a call its heuristic can't read counts as workspace: one transcript line can't stop the sync. */
+/** `classifyCall`, but a call its heuristic can't read counts as workspace: one trajectory line can't stop the sync. */
 function classifyOrWorkspace(
   tool: string,
   target: string,
@@ -125,13 +125,13 @@ export type AttemptCalls = {
 }
 
 /**
- * Classifies one attempt's tool calls from its transcript's lines: what `tool_calls`,
+ * Classifies one attempt's tool calls from its trajectory's lines: what `tool_calls`,
  * `context_reads`, `skill_uses` and `found_skills` hold, and what {@link attemptFacts} counts.
  */
 export function classifyAttempt(
   a: AttemptRecord,
   env: { skills: string[]; mcp: string[] },
-  lines: readonly (TranscriptLine | null)[] | undefined,
+  lines: readonly (TrajectoryLine | null)[] | undefined,
 ): AttemptCalls {
   const { skills } = env
   const calls = lines ? toolCalls(lines) : []
@@ -168,7 +168,7 @@ export function classifyAttempt(
   return { calls: classified, found }
 }
 
-/** What one attempt's transcript shows it did, counted from its classified tool calls. */
+/** What one attempt's trajectory shows it did, counted from its classified tool calls. */
 export type AttemptFacts = {
   toolCalls: number
   byClass: Record<ToolClass, number>
@@ -178,7 +178,7 @@ export type AttemptFacts = {
     source: SkillSource
     /** The calls that used it. */
     reads: number
-    /** The transcript line of its first use, from 1. */
+    /** The trajectory line of its first use, from 1. */
     firstLine: number
   }>
   /** Each placed context file its calls read, directly or through a glob, in order of first read. */
@@ -186,14 +186,14 @@ export type AttemptFacts = {
 }
 
 /**
- * One attempt's facts from its transcript's lines (as `transcriptByLine` parses them), its
+ * One attempt's facts from its trajectory's lines (as `trajectoryByLine` parses them), its
  * calls classified as `reeval query`'s `tool_calls`, `context_reads` and `skill_uses` classify them,
  * against the skills and MCP servers of the attempt's environment in `record`.
  */
 export function attemptFacts(
   record: RunRecord,
   attempt: AttemptRecord,
-  lines: readonly (TranscriptLine | null)[],
+  lines: readonly (TrajectoryLine | null)[],
 ): AttemptFacts {
   const digest = record.evals
     .find((e) => e.attempts.some((x) => x.key === attempt.key))

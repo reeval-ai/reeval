@@ -36,7 +36,7 @@ compare a skill, fix a config, read a failure. Read a reference file when the ta
 
 Use reeval's terms in code and messages: eval (`defineEval`), attempt (one run of a cell;
 `runs: n`), harness (`cursor()`, …), cell (harness × environment × sandbox), control and variant,
-lift (variant mean score − control mean score, 95% interval), target, graders and judge, transcript, effort
+lift (variant mean score − control mean score, 95% interval), target, graders and judge, trajectory, effort
 (measured tool calls, agent time, tokens). Not "trial" or "baseline/treatment";
 [references/vocabulary.md](references/vocabulary.md) maps other frameworks' words to these.
 
@@ -80,7 +80,7 @@ npx reeval run
    results as one JSON document on stdout (each check `ran` or `not run`, each variant's
    `effect`), with the progress on stderr.
 5. Read failures in the summary, then `.reeval/runs/<run>/summary.md` and each attempt's directory
-   (`transcript.jsonl`, `diff.patch`, `checks/<n>.log`, `judge-input.json`, `setup.log`).
+   (`trajectory.jsonl`, `diff.patch`, `checks/<n>.log`, `judge-input.json`, `setup.log`).
    `npx reeval run -v` prints a timestamped trace per attempt; `.reeval/debug/` keeps it.
    Each attempt's whole final workspace is in its directory there, under `snapshots/final/`, to
    read or run what the agent built.
@@ -201,7 +201,7 @@ export default defineEval({
   file restarts its history. Organize paths after the question they answer
   (`recommendation/genkit`, not `genkit-test-2`), so results and `reeval analyze` read clearly.
 - `await c.send(prompt)` runs one agent turn and returns a `Turn` (`text`, `status`, `diff`,
-  `transcript`). Call it again for multi-turn; a judge's `inputs: { turns: 'all' }` shows every
+  `trajectory`). Call it again for multi-turn; a judge's `inputs: { turns: 'all' }` shows every
   turn.
 - `await c.exec(cmd)` returns `{ exitCode, stdout, stderr }`. A check that can fail on a
   transient (a hidden test that calls a model or a network service) gets
@@ -215,10 +215,10 @@ export default defineEval({
   [references/capture.md](references/capture.md).
 - `judge(question, { inputs })`: the judge sees only the inputs the grader turns on, and it
   needs at least one (there are no defaults, here or in any config): `task`, `output`, `files`,
-  `diff` (`true` or patterns), `contents` (files whole), `transcript` (`true`, `'tools'`,
+  `diff` (`true` or patterns), `contents` (files whole), `trajectory` (`true`, `'tools'`,
   `'full'`), `checks`, `observations`, `artifacts`. Pick what the question needs: code → `{ diff: ['src/**'] }`
   or `{ contents: ['README.md'] }`, the agent's answer → `{ output: true }`, how it worked →
-  `{ transcript: 'tools' }`. `turns` only selects; details in
+  `{ trajectory: 'tools' }`. `turns` only selects; details in
   [references/evals.md](references/evals.md). Prefer deterministic checks for what can be checked; use the judge for quality, with plain
   yes/no questions that don't name one specific way of doing it.
 - A judge grader whose provider fails after its retries, or that times out, ends the attempt
@@ -238,7 +238,7 @@ export default defineEval({
   `await c.exec('node app.js')` in the task and `judge(q, { inputs: { checks: ['node app.js'] } })`.
 - Give the environment a `.gitignore` in `files` (the project's isn't copied in): an agent that
   runs a build otherwise fills the judge's diff with its output.
-- Transcript graders: `usedSkill(name)`, `calledMcp(server, tool)`,
+- Trajectory graders: `usedSkill(name)`, `calledMcp(server, tool)`,
   `calledTool(name | RegExp, input?)`, `ran(command?)`, `wrote(path?)`, `searched(query?)`,
   `fetched(url?)`. `wrote` counts write and edit tool calls; a shell write shows in
   `inDiff(paths)`. `ran('genkit')` matches anywhere in a command
@@ -297,7 +297,7 @@ export default defineEval({
   side each variant's effect is only a direction; from four, the block adds an effort table
   (median tools, time, tokens per arm), which often shows a skill's effect first. In a compare,
   keep independent requirements as separate graders, not an `EvalError` thrown from the task, so each gets a score.
-- `questions: [{ question: 'How did the agent pick its greeting?', transcript: true }]` beside
+- `questions: [{ question: 'How did the agent pick its greeting?', trajectory: true }]` beside
   `compare` asks a model about each attempt as it ends (`choices: ['yes', 'no']` for a pick); an
   entry with `across: 'environment'` (and, say, `diff: true`) asks which side did better, pair by
   pair, after the run. Each entry turns on at least one input, as on `judge()`, except `contents`. Questions

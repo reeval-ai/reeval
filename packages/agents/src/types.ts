@@ -1,4 +1,4 @@
-// What a harness reports for each turn: its transcript events, token usage, cost and status.
+// What a harness reports for each turn: its trajectory events, token usage, cost and status.
 
 /** When an event started: wall clock, and ms since its turn started. */
 export type EventTime = { ts: string; atMs: number }
@@ -19,7 +19,7 @@ export type FileEditEvent = {
 
 /**
  * The tool call behind a `file-edit`, `web-search` or `web-fetch` event, kept beside its semantic
- * fields as a `tool` event keeps it. Absent in transcripts from before it was kept.
+ * fields as a `tool` event keeps it. Absent in trajectories from before it was kept.
  */
 export type ToolPayload = {
   /** The tool's input, as a `tool` event's `input`. */
@@ -39,7 +39,7 @@ export type ToolPayload = {
  * call the harness never reported a result for (the turn ended or was cut short first) has
  * `ok: null`: it isn't known to have failed, and no failure count includes it.
  */
-export type TranscriptEvent = EventTime & {
+export type TrajectoryEvent = EventTime & {
   /**
    * The harness's step in its turn the event came in, from 1: a model call where the adapter
    * reports each one (Claude Code, Antigravity, pi; the ACP harnesses' steps end when a call's
@@ -116,7 +116,7 @@ export type TranscriptEvent = EventTime & {
         toolCallId: string
         tool: string
         /**
-         * The tool's input. `transcript.jsonl` keeps one whose JSON is past 128K characters as
+         * The tool's input. `trajectory.jsonl` keeps one whose JSON is past 128K characters as
          * text: its first 96K and last 16K characters, with a line where the rest was cut.
          */
         input: unknown
@@ -129,7 +129,7 @@ export type TranscriptEvent = EventTime & {
         outputView?: 'model' | 'full'
         /**
          * Set when `output` is only part of the output, with a line where the rest was cut:
-         * `transcript.jsonl` keeps the first 96K and last 16K characters of one past 128K (of its
+         * `trajectory.jsonl` keeps the first 96K and last 16K characters of one past 128K (of its
          * JSON, for structured output), and the harness adapter keeps the first and last 512 KiB
          * of a saved output past 1 MiB. `bytes` is the whole output's size in UTF-8.
          */
@@ -187,7 +187,7 @@ export type ModelCallEvent = {
   role?: 'main' | 'side'
 }
 
-/** The transcript events a harness may be unable to report. */
+/** The trajectory events a harness may be unable to report. */
 export type WebEventType = 'web-search' | 'web-fetch'
 
 export type TurnStatus = 'completed' | 'aborted' | 'error'
@@ -232,7 +232,7 @@ export type SubagentRun = {
   /** Set when it ran in the background while its spawner went on. */
   background?: true
   /**
-   * How its own events reached the transcript: `streamed` with its spawner's, or `none`, so only
+   * How its own events reached the trajectory: `streamed` with its spawner's, or `none`, so only
    * the spawn call and its result are there (the workspace diff has what it changed).
    */
   events: 'streamed' | 'none'

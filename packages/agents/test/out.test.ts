@@ -109,7 +109,7 @@ test('every file is written, with the key masked in each', async () => {
   for (const file of [
     'session.json',
     'turns.jsonl',
-    'transcript.jsonl',
+    'trajectory.jsonl',
     'raw/parts.jsonl',
     'debug.log',
   ]) {
@@ -117,7 +117,7 @@ test('every file is written, with the key masked in each', async () => {
     assert.ok(body.length > 0, `${file} is empty`)
     assert.ok(!body.includes(KEY), `${file} has the key`)
   }
-  assert.match(await text('transcript.jsonl'), /CURSOR_API_KEY=\[masked\]/)
+  assert.match(await text('trajectory.jsonl'), /CURSOR_API_KEY=\[masked\]/)
 
   const doc = JSON.parse(await text('session.json'))
   assert.equal(doc.schemaVersion, 1)
@@ -139,13 +139,13 @@ test('every file is written, with the key masked in each', async () => {
     ],
   )
   for (const t of turns) {
-    assert.ok(!('transcript' in t) && !('raw' in t) && !('steps' in t))
+    assert.ok(!('trajectory' in t) && !('raw' in t) && !('steps' in t))
     await fits('turn', t)
   }
-  const transcript = await lines('transcript.jsonl')
-  assert.deepEqual([...new Set(transcript.map((l) => l.turn))], [0, 1])
-  assert.ok(transcript.some((l) => l.type === 'tool'))
-  for (const l of transcript) await fits('transcript-line', l)
+  const trajectory = await lines('trajectory.jsonl')
+  assert.deepEqual([...new Set(trajectory.map((l) => l.turn))], [0, 1])
+  assert.ok(trajectory.some((l) => l.type === 'tool'))
+  for (const l of trajectory) await fits('trajectory-line', l)
   const parts = await lines('raw/parts.jsonl')
   assert.ok(parts.some((p) => p.turn === 1 && (p.part as { type: string }).type === 'finish'))
 })
@@ -164,7 +164,7 @@ test('a directory reads part-way through: the session running, each ended turn i
   assert.equal(doc.endedAt, undefined)
   await fits('session', doc)
   assert.equal((await lines('turns.jsonl')).length, 1)
-  assert.ok((await lines('transcript.jsonl')).length > 0)
+  assert.ok((await lines('trajectory.jsonl')).length > 0)
   await assert.rejects(text('debug.log'), { code: 'ENOENT' })
   await session.close()
 })
@@ -179,7 +179,7 @@ test("a tool's output past the cap is cut to its ends, with its whole size", asy
   }).start()
   await session.send('go').result
   await session.close()
-  const tool = (await lines('transcript.jsonl')).find((l) => l.type === 'tool') as {
+  const tool = (await lines('trajectory.jsonl')).find((l) => l.type === 'tool') as {
     output: string
     outputTruncated: { bytes: number }
   }
@@ -187,7 +187,7 @@ test("a tool's output past the cap is cut to its ends, with its whole size", asy
   assert.match(tool.output, /\[truncated \d+ of \d+ characters, sha256 [0-9a-f]{64}\]/)
   assert.ok(tool.output.includes('[masked]tail'))
   assert.ok(tool.outputTruncated.bytes > OUTPUT_CAP)
-  await fits('transcript-line', tool)
+  await fits('trajectory-line', tool)
 })
 
 test("an edit keeps its call's input and output, a long input cut to its ends", async () => {
@@ -207,10 +207,10 @@ test("an edit keeps its call's input and output, a long input cut to its ends", 
     credentials: { CURSOR_API_KEY: KEY },
     out,
   }).start()
-  const [event] = (await session.send('go').result).transcript.filter((e) => e.type === 'file-edit')
+  const [event] = (await session.send('go').result).trajectory.filter((e) => e.type === 'file-edit')
   assert.deepEqual(event?.type === 'file-edit' && event.input, { path: 'big.txt', content })
   await session.close()
-  const edit = (await lines('transcript.jsonl')).find((l) => l.type === 'file-edit') as {
+  const edit = (await lines('trajectory.jsonl')).find((l) => l.type === 'file-edit') as {
     input: string
     output: string
     outputView: string
@@ -219,7 +219,7 @@ test("an edit keeps its call's input and output, a long input cut to its ends", 
   assert.ok(edit.input.includes('[masked]tail'))
   assert.equal(edit.output, 'Wrote big.txt')
   assert.equal(edit.outputView, 'model')
-  await fits('transcript-line', edit)
+  await fits('trajectory-line', edit)
 })
 
 test('a session that fails to start is recorded failed, with why', async () => {
@@ -281,7 +281,7 @@ test('a secret that starts another leaves none of the longer one', async () => {
   }).start()
   await session.send('go').result
   await session.close()
-  for (const file of ['turns.jsonl', 'transcript.jsonl']) {
+  for (const file of ['turns.jsonl', 'trajectory.jsonl']) {
     const body = await text(file)
     assert.ok(!body.includes(KEY.slice(10)), `${file} has the rest of the key`)
     assert.match(body, /key \[masked\] and \[masked\]/)

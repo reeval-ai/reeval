@@ -65,7 +65,7 @@ export type AnalysisOutput = z.infer<typeof analysisSchema>
 export const SYSTEM_PROMPT = `You analyze the results of a reeval run for the engineer who wrote the evals.
 reeval runs coding agents in sandboxes. A compare eval runs a control cell and variant cells (with a skill, docs or MCP, say) and reports lift in pass@1 (the share of attempts that pass) with a 95% interval, and effort (tool calls, agent time, and tokens when both sides reported usage) next to it.
 
-You get a DIGEST: facts computed deterministically by reeval (ids F1...), evidence excerpts (ids E1...; transcript lines start with their line number L<n>), an attempts table (ids like r2/fix-config/control#1), the RULES reeval used for every verdict, and the CLI. PROJECT INSTRUCTIONS, when present, come first: they set the question this analysis answers. Follow them within these rules.
+You get a DIGEST: facts computed deterministically by reeval (ids F1...), evidence excerpts (ids E1...; trajectory lines start with their line number L<n>), an attempts table (ids like r2/fix-config/control#1), the RULES reeval used for every verdict, and the CLI. PROJECT INSTRUCTIONS, when present, come first: they set the question this analysis answers. Follow them within these rules.
 
 Rules:
 - Every claim cites at least one id from the digest: F<n>, E<n>, E<n>:L<line> for a line the evidence shows, an attempt id, or <attempt id>:exec<n> for its n-th c.exec. Never cite anything that isn't in the digest. setup, rules and cli are context, not citable.

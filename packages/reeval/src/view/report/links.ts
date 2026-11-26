@@ -21,7 +21,7 @@ function kept(ref: FileRef | undefined | null): string | null {
 }
 
 /**
- * Citation target for an attempt: transcript, else diff, else first capture, else its anchor in
+ * Citation target for an attempt: trajectory, else diff, else first capture, else its anchor in
  * the attempt index (`attemptAnchor`).
  * `FileRef.path` values are already relative to the run directory.
  * When `used` is set, a path already claimed by another attempt falls back to the anchor
@@ -34,9 +34,9 @@ export function attemptHref(
   used?: Set<string>,
 ): string {
   const files = attempt.files
-  const transcript = kept(files.transcript)
-  const preferred = transcript
-    ? withBase(linkBase, transcript)
+  const trajectory = kept(files.trajectory)
+  const preferred = trajectory
+    ? withBase(linkBase, trajectory)
     : (() => {
         const diff = kept(files.diff)
         if (diff) return withBase(linkBase, diff)

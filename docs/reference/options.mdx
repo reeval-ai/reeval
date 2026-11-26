@@ -218,9 +218,9 @@ For more information about writing rules and placing skills, see [Add project ru
 - **Codex:** `stdio` and `http`, under `[mcp_servers]` in the `~/.codex/config.toml` file. A `stdio` server is `command`, `args`, and `env`, and an `http` server is `url` and `http_headers`. A call is named `mcp__<server>__<tool>`. An `sse` server fails at plan time with exit code 2.
 - **OpenCode:** `stdio` and `http`, written as `{ type: 'local', command: [command, ...args], environment }` or `{ type: 'remote', url, headers, oauth: false }` in OpenCode's configuration. Code Mode is off, so the agent calls the tools directly, and the first prompt waits until every server has connected. reeval refuses an `sse` server at plan time with exit code 2.
 - **Goose:** `stdio` and `http`, written as enabled extensions in the `.config/goose/config.yaml` file under the private home directory `~/.ai-sdk-harness/.harness-bootstrap/goose/home`. A `stdio` server is `cmd`, `args`, and `envs`, and an `http` server is `uri` and `headers`, with type `streamable_http`. Goose keys each extension by dropping whitespace, replacing every character outside letters, digits, `_`, and `-` with `_`, and lower-casing the name. reeval refuses an `sse` server, or two servers that share a key, at plan time with exit code 2.
-- **pi:** `stdio` and `http`, in the `~/.pi/agent/mcp.json` file with direct exposure, so the model and the transcript name each tool `mcp__<server>__<tool>`. reeval escapes `$` and a leading `!` in `env` and header values, so each value reaches the server as written. reeval refuses an `sse` server, or a server name with characters other than letters, digits, `_`, and `-`, at plan time with exit code 2.
-- **fx:** `stdio`, `http`, and `sse`, passed on the ACP `session/new` call: a `stdio` server as `command`, `args`, and `env`, and an `http` or `sse` server as `type`, `url`, and `headers`. fx's `http` and `sse` servers, like its web tools, don't go through the relay. fx names an MCP call `mcp_<server>_<tool>`, which the transcript renames `mcp__<server>__<tool>`, so the `calledMcp` grader matches it.
-- **Grok Build:** `stdio`, `http`, and `sse`, passed on the ACP `session/new` call like fx. Grok Build calls a server's tool through its `use_tool` tool, which the transcript names `mcp__<server>__<tool>`, so the `calledMcp` grader matches it.
+- **pi:** `stdio` and `http`, in the `~/.pi/agent/mcp.json` file with direct exposure, so the model and the trajectory name each tool `mcp__<server>__<tool>`. reeval escapes `$` and a leading `!` in `env` and header values, so each value reaches the server as written. reeval refuses an `sse` server, or a server name with characters other than letters, digits, `_`, and `-`, at plan time with exit code 2.
+- **fx:** `stdio`, `http`, and `sse`, passed on the ACP `session/new` call: a `stdio` server as `command`, `args`, and `env`, and an `http` or `sse` server as `type`, `url`, and `headers`. fx's `http` and `sse` servers, like its web tools, don't go through the relay. fx names an MCP call `mcp_<server>_<tool>`, which the trajectory renames `mcp__<server>__<tool>`, so the `calledMcp` grader matches it.
+- **Grok Build:** `stdio`, `http`, and `sse`, passed on the ACP `session/new` call like fx. Grok Build calls a server's tool through its `use_tool` tool, which the trajectory names `mcp__<server>__<tool>`, so the `calledMcp` grader matches it.
 
 For more information about placing MCP servers, see [Connect MCP servers](/configuration/environments/mcp-servers).
 
@@ -261,7 +261,7 @@ A turn's `unreported` list names the events a harness can't report, and the `sea
 - **Cursor:** records both. The SDK's stream leaves those calls out, so reeval recovers them from the stored conversation. A turn reeval can't recover lists the event on `unreported`. A call of any tool that the stream leaves running at the end of the turn takes its result from the stored conversation too, or stays `ok: null` when that has none.
 - **Claude Code:** records both. A `webSearch` call records `query` and `references`, and a `webFetch` or `WebFetch` call records `url`. `ok` is false when a call fails.
 - **Antigravity:** records both, with `unreported` empty.
-- **Codex:** records both, with `unreported` empty. A search stores its text on `query`, and an `open_page` or `find_in_page` action with a URL is a fetch. A web action the turn ends without completing is a search with `ok` false. Codex sends each to `POST api.openai.com/v1/alpha/search` on the brokered key, so the transcript keeps each event under a restricted egress policy.
+- **Codex:** records both, with `unreported` empty. A search stores its text on `query`, and an `open_page` or `find_in_page` action with a URL is a fetch. A web action the turn ends without completing is a search with `ok` false. Codex sends each to `POST api.openai.com/v1/alpha/search` on the brokered key, so the trajectory keeps each event under a restricted egress policy.
 - **OpenCode:** records both, with `unreported` empty. A search runs on a hosted MCP server at `mcp.exa.ai`, which needs no key and is one of the harness's automatic egress hosts.
 - **Goose:** records neither, and `unreported` is empty.
 - **pi:** records neither. Its built-in tools are `bash`, `read`, `write`, and `edit`, so the `searched` and `fetched` graders fail on a pi turn.
@@ -823,7 +823,7 @@ For more information about screenshots, see [Check an app](/evaluations/task/app
 `history` is where recorded runs are kept and which evaluations keep artifacts there.
 
 <Property name="history" type="{ store?: LocalStoreDescriptor | S3StoreDescriptor, artifacts?: 'all' | 'evidence' | 'failures' | 'none', debug?: 'none' | 'requests' | 'all', archive?: boolean, debugArchive?: boolean }" optional>
-  `store` defaults to `local()`, whose `dir` defaults to the `.history` directory under the directory the `include` patterns share. `artifacts` is `'all'`, `'evidence'` (the default), `'failures'`, or `'none'`; `'evidence'` keeps every attempt's diff, captures, `execs.jsonl` (each `c.exec`'s output, capped), kept workspace, large observed values and questions' `input` files, and its transcript, setup logs, whole `checks/<n>.log` `c.exec` logs and judge input only when its outcome is `fail` or `infra_error`; `'failures'` keeps the artifacts of each attempt whose outcome is `fail` or `infra_error`, including its setup and `c.exec` logs, and only the `diff.patch` of a passing attempt in a cell with a failed attempt. A cell that failed with no failed attempt, such as on `minLift`, keeps every attempt's artifacts. Any other passing attempt keeps no transcript, so `skill_reads` and `skill_files` leave it out.
+  `store` defaults to `local()`, whose `dir` defaults to the `.history` directory under the directory the `include` patterns share. `artifacts` is `'all'`, `'evidence'` (the default), `'failures'`, or `'none'`; `'evidence'` keeps every attempt's diff, captures, `execs.jsonl` (each `c.exec`'s output, capped), kept workspace, large observed values and questions' `input` files, and its trajectory, setup logs, whole `checks/<n>.log` `c.exec` logs and judge input only when its outcome is `fail` or `infra_error`; `'failures'` keeps the artifacts of each attempt whose outcome is `fail` or `infra_error`, including its setup and `c.exec` logs, and only the `diff.patch` of a passing attempt in a cell with a failed attempt. A cell that failed with no failed attempt, such as on `minLift`, keeps every attempt's artifacts. Any other passing attempt keeps no trajectory, so `skill_reads` and `skill_files` leave it out.
 </Property>
 
 ## `budget`
@@ -958,7 +958,7 @@ For more information, see [Evaluate many cases](/evaluations/task/cases).
 `questions` lists what a language model is asked about the attempts after they end.
 
 <Property name="questions" type="Question[]" optional>
-  Objects with `question`, `model`, `across`, `choices`, `turns`, and at least one input: `task`, `output`, `files`, `diff`, `transcript`, `checks`, `observations`, or `artifacts`. reeval refuses an entry with no input. A list replaces the inherited one, so `[]` asks none. Questions never change pass, fail, or the exit code.
+  Objects with `question`, `model`, `across`, `choices`, `turns`, and at least one input: `task`, `output`, `files`, `diff`, `trajectory`, `checks`, `observations`, or `artifacts`. reeval refuses an entry with no input. A list replaces the inherited one, so `[]` asks none. Questions never change pass, fail, or the exit code.
 </Property>
 
 <Property name="questions[].across" type="'environment' | 'agent' | Array<'environment' | 'agent'>" optional>
@@ -970,7 +970,7 @@ For more information, see [Evaluate many cases](/evaluations/task/cases).
 </Property>
 
 <Property name="questions[].turns" type="'last' | 'all'" optional>
-  `'all'` shows every turn's task, output, and transcript, and `'last'` the last turn's. The default is `'all'`.
+  `'all'` shows every turn's task, output, and trajectory, and `'last'` the last turn's. The default is `'all'`.
 </Property>
 
 <Property name="questions[].task" type="boolean" optional>
@@ -989,8 +989,8 @@ For more information, see [Evaluate many cases](/evaluations/task/cases).
   The diff from the start of the evaluation. A list is gitignore-style patterns over workspace paths. The last matching pattern wins, and `!` excludes.
 </Property>
 
-<Property name="questions[].transcript" type="boolean | 'tools' | 'full' | { detail?, agent?, subagents? }" optional>
-  The transcript as text lines. `true` is messages and tool calls with tool output clipped, `'tools'` is tool calls only, and `'full'` adds reasoning and whole tool output, each subagent's events under its spawn call. The object form takes one of those modes as `detail` and leaves out the agent's own events (`agent: false`) or its subagents' (`subagents: false`). It names each harness's tools, so a pair of two harnesses is not blind.
+<Property name="questions[].trajectory" type="boolean | 'tools' | 'full' | { detail?, agent?, subagents? }" optional>
+  The trajectory as text lines. `true` is messages and tool calls with tool output clipped, `'tools'` is tool calls only, and `'full'` adds reasoning and whole tool output, each subagent's events under its spawn call. The object form takes one of those modes as `detail` and leaves out the agent's own events (`agent: false`) or its subagents' (`subagents: false`). It names each harness's tools, so a pair of two harnesses is not blind.
 </Property>
 
 <Property name="questions[].checks" type="boolean | string[]" optional>

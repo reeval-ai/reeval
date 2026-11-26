@@ -3,11 +3,11 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 import { parseCommandLine, shellCommands } from '../src/shell-commands.ts'
-import type { TranscriptEvent } from '../src/types.ts'
+import type { TrajectoryEvent } from '../src/types.ts'
 
 const at = { ts: '2026-10-05T12:00:00.000Z', atMs: 0, durationMs: 1 }
 
-const call = (command: string, tool = 'bash', ok: boolean | null = true): TranscriptEvent => ({
+const call = (command: string, tool = 'bash', ok: boolean | null = true): TrajectoryEvent => ({
   ...at,
   type: 'tool',
   toolCallId: `call_${command}`,
@@ -95,8 +95,8 @@ describe('parseCommandLine', () => {
 
 describe('shellCommands', () => {
   const turns = [
-    { transcript: [call('npx genkit flow:run x && ls'), call('notes.txt', 'read')] },
-    { transcript: [call('pnpm dlx skills add y', 'shell', false), call('echo hi', 'bash', null)] },
+    { trajectory: [call('npx genkit flow:run x && ls'), call('notes.txt', 'read')] },
+    { trajectory: [call('pnpm dlx skills add y', 'shell', false), call('echo hi', 'bash', null)] },
   ]
 
   test('reads every turn of c, or a list of turns, with its index, line and ok', () => {

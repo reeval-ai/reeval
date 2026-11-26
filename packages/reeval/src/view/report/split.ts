@@ -1,7 +1,7 @@
 import type { AttemptIndexRow, EvalSection, RunReport } from './types.ts'
 
 /** The newest `reportVersion` this reeval writes and reads. */
-export const REPORT_VERSION = 3 satisfies RunReport['reportVersion']
+export const REPORT_VERSION = 4 satisfies RunReport['reportVersion']
 
 /** One eval as the report's index lists it: its section's heading and headline, not its blocks. */
 export type EvalSummary = Pick<

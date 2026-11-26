@@ -317,8 +317,8 @@ const changed = turn.diff.files.map((file) => file.path)
   The turn's length in milliseconds.
 </Property>
 
-<Property name="transcript" type="TranscriptEvent[]" required>
-  Normalized events, one per message or tool call merged with its result. For each event type, see [`TranscriptEvent`](#transcriptevent).
+<Property name="trajectory" type="TrajectoryEvent[]" required>
+  Normalized events, one per message or tool call merged with its result. For each event type, see [`TrajectoryEvent`](#trajectoryevent).
 </Property>
 
 <Property name="usage" type="TokenUsage | null" required>
@@ -345,9 +345,9 @@ const changed = turn.diff.files.map((file) => file.path)
   Reads a sandbox file, as `c.readFile()` does, and returns the text or `null`.
 </Property>
 
-## `TranscriptEvent`
+## `TrajectoryEvent`
 
-A `TranscriptEvent` is one entry in `turn.transcript`. Every event has `ts`, the wall-clock time as an ISO 8601 string, and `atMs`, milliseconds from the start of the turn. Its `type` is one of the values below, and each subsection lists the fields that type adds.
+A `TrajectoryEvent` is one entry in `turn.trajectory`. Every event has `ts`, the wall-clock time as an ISO 8601 string, and `atMs`, milliseconds from the start of the turn. Its `type` is one of the values below, and each subsection lists the fields that type adds.
 
 A tool call whose result the harness never reported, because the turn ended or was cut short first, has `ok: null`. It isn't a failed call: `ok === false` and the `tool_calls` table's failures leave it out.
 
@@ -493,4 +493,4 @@ A message the harness sent.
   A step that failed while the turn went on, such as a model call the harness retried. This event has no `durationMs`.
 </Property>
 
-For more information about transcripts, see [Debugging](/results/inspection/debugging#read-a-transcript).
+For more information about trajectories, see [Debugging](/results/inspection/debugging#read-a-trajectory).

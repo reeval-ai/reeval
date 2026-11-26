@@ -1118,7 +1118,7 @@ describe('common mistakes', { concurrency: 4 }, () => {
         'a question that shows the model nothing',
         () => ({
           question: { model: 'google/gemini-3.8-flash' },
-          questions: [{ question: 'Q', diff: false, output: false, transcript: false }],
+          questions: [{ question: 'Q', diff: false, output: false, trajectory: false }],
           task: async () => {},
         }),
         /questions "Q" in evals\/m\d+\.eval\.ts shows the model nothing:/,
@@ -1442,7 +1442,7 @@ describe('common mistakes', { concurrency: 4 }, () => {
       ],
       [
         'a judge.state in the config',
-        { judge: { model: fakeJudge({ score: 0.9 }), state: { transcript: true } } },
+        { judge: { model: fakeJudge({ score: 0.9 }), state: { trajectory: true } } },
         /Unknown judge option "state" in reeval\.config\.ts\./,
       ],
       [
@@ -1934,7 +1934,7 @@ export default defineEval({
   async task(c) {
 
   const turn = await c.send('greet')
-  const loaded = turn.transcript.some((e) => e.type === 'text' && e.text === 'Loaded skills: house-greeting; mcp: docs')
+  const loaded = turn.trajectory.some((e) => e.type === 'text' && e.text === 'Loaded skills: house-greeting; mcp: docs')
   const token = (await c.exec('printf %s "$APP_TOKEN"')).stdout
   assert.equal(token, 's3cret-value-123')
   assert.equal((await c.exec('printf %s "$MODE"')).stdout, 'test')
@@ -2066,7 +2066,7 @@ export default defineEval({
   environment: env,
   async task(c) {
     const turn = await c.send('x')
-    assert.equal(turn.transcript.some((e) => e.type === 'text' && e.text === 'Loaded skills: house-greeting, house-rules'), true)
+    assert.equal(turn.trajectory.some((e) => e.type === 'text' && e.text === 'Loaded skills: house-greeting, house-rules'), true)
     assert.ok((await c.readFile('.agents/skills/house-rules/SKILL.md')).includes('Be nice.'))
     assert.deepEqual(turn.diff.files, [])
   },

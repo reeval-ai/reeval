@@ -3,9 +3,9 @@ name: telemetry-audit
 description: >
   The ground-truth method for checking what reeval records about a harness against what actually
   happened: run a real attempt, collect the gateway traffic, the CLI's on-disk state and its native
-  stream, diff all three against the run record and transcript signal by signal, and file a gap
+  stream, diff all three against the run record and trajectory signal by signal, and file a gap
   for each mismatch. Use when adding or bumping a harness, filling its telemetry declarations, or
-  when a token, cost or transcript number looks wrong.
+  when a token, cost or trajectory number looks wrong.
 ---
 
 # Audit a harness's telemetry
@@ -35,19 +35,19 @@ reasoning-capable model at an explicit `effort`. Two evals:
 ```bash
 pnpm build && pnpm images <harness>
 cd <audit project>
-REEVAL_RAW_TRANSCRIPT=1 node <repo>/packages/reeval/dist/cli.js run -vv --tag audit > cli.log 2>&1
+REEVAL_RAW_TRAJECTORY=1 node <repo>/packages/reeval/dist/cli.js run -vv --tag audit > cli.log 2>&1
 ```
 
 | Source | Where |
 |---|---|
-| Record | `.reeval/runs/<run>.json` and `.reeval/runs/<run>/<eval>/<cell>/<n>/transcript.jsonl` |
-| Stream | the same directory's `transcript.raw.jsonl` (`REEVAL_RAW_TRANSCRIPT=1`) |
+| Record | `.reeval/runs/<run>.json` and `.reeval/runs/<run>/<eval>/<cell>/<n>/trajectory.jsonl` |
+| Stream | the same directory's `trajectory.raw.jsonl` (`REEVAL_RAW_TRAJECTORY=1`) |
 | Wire, metadata | `.reeval/debug/<run>/<eval>/<cell>/<n>/requests.ndjson`: method, host, path, status, the served model, effort and cost the gateway read |
 | Wire, bodies | a local tap: patch `packages/sandbox-docker/src/egress/proxy.ts` to write each decrypted request and response body to a directory, and drop the patch after. Don't audit with reeval's own usage reader (`model-call` events): it is one of the things under test |
 | Disk | the `tar` from the `audit` eval. Look for sqlite databases (read them with `node:sqlite`), JSONL logs, session directories and spilled tool-output files |
 
 For the stream and disk alone, `@reeval/agents`' `agent().exec()` on `docker()` with
-`out: { dir, raw: true }` writes the transcript and `raw/parts.jsonl` without a reeval project;
+`out: { dir, raw: true }` writes the trajectory and `raw/parts.jsonl` without a reeval project;
 the wire still needs reeval's gateway.
 
 Keep the captures out of the repo; they hold prompts and paths.
@@ -75,7 +75,7 @@ Then, per signal:
 - **Cost**: any cost the provider or the CLI reports (response body, the CLI's ledger).
 - **Aborted turn**: the wire's calls and tool requests against the aborted turn's `usage` and
   events.
-- **Large output**: does the transcript hold the 300 KB output and the 60 KB result's marker, the
+- **Large output**: does the trajectory hold the 300 KB output and the 60 KB result's marker, the
   model's truncated view, a pointer, or `""`? Where is the full text on disk?
 - **MCP shape, context window, system prompt, rate limits, compaction**: present in the record,
   or only in a source?

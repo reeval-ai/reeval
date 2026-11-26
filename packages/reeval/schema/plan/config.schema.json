@@ -2833,7 +2833,7 @@
           ]
         },
         "exports": {
-          "description": "Formats each attempt with a transcript is also written in as its run ends, beside its transcript: `'atif'` writes `atif.json`, a Harbor ATIF trajectory. `reeval export --format` writes the same files for a run afterwards.",
+          "description": "Formats each attempt with a trajectory is also written in as its run ends, beside its trajectory: `'atif'` writes `atif.json`, a Harbor ATIF trajectory. `reeval export --format` writes the same files for a run afterwards.",
           "type": "array",
           "items": {
             "type": "string",

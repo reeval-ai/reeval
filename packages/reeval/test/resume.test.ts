@@ -1492,7 +1492,7 @@ export default defineEval({ async task(c) { await c.send('hi'); assert.equal(1, 
     assert.equal(run.artifacts, 'all', "history.artifacts' default doesn't replace --artifacts all")
     const passed = run.evals.find((e) => e.name === 'passes')?.attempts[0]
     assert.equal(passed?.outcome, 'pass')
-    assert.ok(passed?.files.transcript, 'the passing retry keeps its transcript')
+    assert.ok(passed?.files.trajectory, 'the passing retry keeps its trajectory')
   })
 
   test('leaves a pass and a fail as they were', async () => {

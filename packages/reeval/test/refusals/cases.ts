@@ -1147,13 +1147,13 @@ export const CASES: Record<string, Case[]> = {
       judgeGrader({ judge: { question: 'Q?', inputs: { contents: 'a.ts' } } }),
     ],
     [
-      'grader: transcript unknown',
-      judgeGrader({ judge: { question: 'Q?', inputs: { transcript: 'all' } } }),
+      'grader: trajectory unknown',
+      judgeGrader({ judge: { question: 'Q?', inputs: { trajectory: 'all' } } }),
     ],
     [
-      'grader: transcript showing no one',
+      'grader: trajectory showing no one',
       judgeGrader({
-        judge: { question: 'Q?', inputs: { transcript: { agent: false, subagents: false } } },
+        judge: { question: 'Q?', inputs: { trajectory: { agent: false, subagents: false } } },
       }),
     ],
     [
@@ -1430,11 +1430,11 @@ export const CASES: Record<string, Case[]> = {
     ],
     [
       'a question with every input off',
-      options({ questions: [{ question: 'Q', task: false, diff: false, transcript: false }] }),
+      options({ questions: [{ question: 'Q', task: false, diff: false, trajectory: false }] }),
     ],
     [
-      'a question whose transcript shows no one',
-      options({ questions: [{ question: 'Q', transcript: { agent: false, subagents: false } }] }),
+      'a question whose trajectory shows no one',
+      options({ questions: [{ question: 'Q', trajectory: { agent: false, subagents: false } }] }),
     ],
     ['a question with only turns', options({ questions: [{ question: 'Q', turns: 'last' }] })],
     [
@@ -1506,7 +1506,7 @@ export const CASES: Record<string, Case[]> = {
     ['the question option with choices', options({ question: { choices: ['a', 'b'] } })],
     ['the question option with an unknown key', options({ question: { modle: 'google/g' } })],
     ['the question option with state', options({ question: { state: { diff: true } } })],
-    ['the question option with an input', options({ question: { transcript: true } })],
+    ['the question option with an input', options({ question: { trajectory: true } })],
     ['the question option with turns', options({ question: { turns: 'all' } })],
     [
       'good: question inputs and artifacts',
@@ -1522,7 +1522,7 @@ export const CASES: Record<string, Case[]> = {
       options({
         compare: { control: e1, variants: [e2] },
         questions: [
-          { question: 'Q', transcript: 'tools', turns: 'last' },
+          { question: 'Q', trajectory: 'tools', turns: 'last' },
           { question: 'R', model: 'google/g', across: ['environment', 'agent'], diff: true },
           { question: 'S', choices: ['yes', 'no'], task: true, output: true },
         ],
@@ -2565,7 +2565,7 @@ export const CASES: Record<string, Case[]> = {
     ],
     ['yaml: a fake judge above 1', yaml('judge:\n  model:\n    kind: fake-judge\n    score: 2\n')],
     ['yaml: a judge model without a provider', yaml('judge:\n  model: jev\n')],
-    ['yaml: judge.state', yaml('judge:\n  state:\n    transcript: true\n')],
+    ['yaml: judge.state', yaml('judge:\n  state:\n    trajectory: true\n')],
     ['yaml: an input on judge', yaml('judge:\n  diff: true\n')],
     [
       'yaml: providerOptions as data',

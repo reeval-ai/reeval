@@ -1,7 +1,7 @@
 import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 
-// As the agent: print both secrets, and add a file of 1234 lines, so the transcript has a
+// As the agent: print both secrets, and add a file of 1234 lines, so the trajectory has a
 // `"added": 1234` beside the `null`s every record has.
 export default defineConfig({
   target: regression(),

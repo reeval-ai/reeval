@@ -12,7 +12,7 @@ export default defineEval({
       'lands',
       (s) =>
         s.checks?.[0]?.stdout === '[REDACTED]' &&
-        /AGENT_TOKEN[\s\S]*\[REDACTED\]/.test(s.transcript ?? '') &&
+        /AGENT_TOKEN[\s\S]*\[REDACTED\]/.test(s.trajectory ?? '') &&
         !raw().some((value) => value && JSON.stringify(s).includes(value)),
     ),
   ],

@@ -44,7 +44,7 @@ const record = {
           usage: { input: 10, output: 2, cacheRead: 30, cacheWrite: 0, reasoning: 0 },
         },
       ],
-      transcript: [
+      trajectory: [
         { type: 'reasoning', text: 'SECRET THOUGHT', durationMs: 10, ts: at(1100), atMs: 100 },
         {
           type: 'model-call',
@@ -172,7 +172,7 @@ test('one call that records several events gives each its own span id', () => {
     harness: { kind: 'opencode' } as HarnessDescriptor,
     record: {
       ...record,
-      turns: [{ ...turn, transcript: [edit('a.ts', 10), edit('b.ts', 20)] }],
+      turns: [{ ...turn, trajectory: [edit('a.ts', 10), edit('b.ts', 20)] }],
     } as unknown as EvalRecord,
   })
   const ids = spans.map((s) => s.spanId)
@@ -247,13 +247,13 @@ test('one record gives the same ids each time, and a retry of the attempt anothe
 })
 
 test("a turn's span and its tool calls' as it ends, then the rest at the end, are the whole trace", () => {
-  const [turn] = record.turns as unknown as Array<{ transcript: Array<Record<string, unknown>> }>
+  const [turn] = record.turns as unknown as Array<{ trajectory: Array<Record<string, unknown>> }>
   const timed = {
     ...record,
     turns: [
       {
         ...turn,
-        transcript: turn?.transcript.map((e) =>
+        trajectory: turn?.trajectory.map((e) =>
           e.durationMs === null ? { ...e, durationMs: 5 } : e,
         ),
       },
@@ -316,7 +316,7 @@ test('the agent span ends with the last tool call, even one that outlived a turn
         usage: null,
         model: null,
         unreported: [],
-        transcript: [
+        trajectory: [
           {
             type: 'tool',
             toolCallId: 'bash-1',

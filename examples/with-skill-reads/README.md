@@ -2,7 +2,7 @@
 
 **Shows:** whether the agent opened the skill you gave it, and which of its files. The agent adds
 `multiply(a, b)` with a `jsdoc` skill whose `SKILL.md` points to `references/tags.md`. After the
-run, `reeval query` answers from the transcript: `skill_files` counts the reads of each file the
+run, `reeval query` answers from the trajectory: `skill_files` counts the reads of each file the
 skill placed, `skill_reads` finds the first read, and `context_use` classes every tool call.
 
 **Needs:** Docker, even for the fake agent, and `pnpm reeval image build` once; in this repo, run
@@ -39,7 +39,7 @@ path                                       reads  first_line
 ```
 
 The reference was never opened. `first_line` is the read's line in the attempt's
-`transcript.jsonl`, and `skill_reads` and `context_use` say the same from the skill's side and
+`trajectory.jsonl`, and `skill_reads` and `context_use` say the same from the skill's side and
 the tool calls':
 
 ```bash

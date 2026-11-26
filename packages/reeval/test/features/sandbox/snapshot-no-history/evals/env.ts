@@ -14,4 +14,4 @@ export const seeded = defineEnvironment('seeded', {
 
 /** What the scripted agent's shell command printed. */
 export const agentSaw = (turn: Turn) =>
-  turn.transcript.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : []))
+  turn.trajectory.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : []))

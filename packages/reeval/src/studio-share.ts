@@ -143,13 +143,13 @@ const listLine = (s: Share) =>
     s.revokedAt ? `revoked ${s.revokedAt}` : s.url,
   ].join('  ')
 
-/** Why a `--full` share lacks some transcripts, from the level the run was recorded at. */
-function missingTranscripts(run: ScannedRun): string | null {
+/** Why a `--full` share lacks some trajectories, from the level the run was recorded at. */
+function missingTrajectories(run: ScannedRun): string | null {
   if (run.artifacts === 'all') return null
   const which =
     run.artifacts === 'none'
-      ? 'no attempt keeps its transcript'
-      : "passing attempts' transcripts weren't kept"
+      ? 'no attempt keeps its trajectory'
+      : "passing attempts' trajectories weren't kept"
   return `Run ${run.runId} was recorded with artifacts ${run.artifacts}, so ${which}: for future runs, history.artifacts: 'all' or reeval record --artifacts all records every attempt's.`
 }
 
@@ -227,7 +227,7 @@ export async function shareCommand(
   const scope = flags.public ? 'public' : 'team'
   const run = await scannedRun(config, flags, args[0], warn)
   const { runId } = run
-  if (flags.full) note("This share includes the run's transcripts and artifacts.")
+  if (flags.full) note("This share includes the run's trajectories and artifacts.")
   if (flags.public) note('Anyone with the link can view it, without signing in.')
   const what = `share run ${runId}`
   const ask = () => send(t, sharesUrl(t), { method: 'POST', what, body: { runId, type, scope } })
@@ -272,7 +272,7 @@ export async function shareCommand(
     )
   }
   // Only a copy pushed here is known to be at the run's recorded level.
-  const missingNote = flags.full && pushed ? missingTranscripts(run) : null
+  const missingNote = flags.full && pushed ? missingTrajectories(run) : null
   if (missingNote) warn(missingNote)
   const created = answer.status === 201
   io.out(

@@ -70,7 +70,7 @@ npx reeval run releases
 
 Read the block the run prints for the evaluation. The `releases` row carries the effect, and the file grader's row shows each cell's count. For more information about the rows, see [Read the result](/results/compare/lift#read-the-result).
 
-When the file grader passes on both sides, the harness finds the version without the server, and this task can't show what the server changed. When the variant's call grader reads 0, read the attempt's `transcript.jsonl` file under `.reeval/runs/<run>/`: `calledMcp` matches a tool call named `mcp__releases__latest_version`.
+When the file grader passes on both sides, the harness finds the version without the server, and this task can't show what the server changed. When the variant's call grader reads 0, read the attempt's `trajectory.jsonl` file under `.reeval/runs/<run>/`: `calledMcp` matches a tool call named `mcp__releases__latest_version`.
 
 </Step>
 </Steps>

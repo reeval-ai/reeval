@@ -2,28 +2,28 @@ import { evaluate } from 'reeval/legacy'
 import { base, skilled } from '../../../plan/compare/evals/envs.ts'
 
 evaluate(
-  'transcript across harnesses',
+  'trajectory across harnesses',
   {
     compare: { control: base, variants: [skilled] },
     questions: [
       {
         question: 'Which agent verified its work?',
         across: 'agent',
-        transcript: 'tools',
+        trajectory: 'tools',
       },
     ],
   },
   async () => {},
 )
 evaluate(
-  'transcript within a harness',
+  'trajectory within a harness',
   {
     compare: { control: base, variants: [skilled] },
     questions: [
       {
         question: 'Which arm verified its work?',
         across: 'environment',
-        transcript: 'tools',
+        trajectory: 'tools',
       },
     ],
   },
@@ -40,7 +40,7 @@ evaluate(
   async () => {},
 )
 evaluate(
-  'each attempt with the transcript',
+  'each attempt with the trajectory',
   {
     questions: [
       {
@@ -48,14 +48,14 @@ evaluate(
         task: true,
         output: true,
         diff: true,
-        transcript: true,
+        trajectory: true,
       },
     ],
   },
   async () => {},
 )
 evaluate(
-  'each attempt without the transcript',
+  'each attempt without the trajectory',
   {
     questions: [
       { question: 'What did the agent say it did?', task: true, output: true, diff: true },

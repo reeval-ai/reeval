@@ -7,7 +7,7 @@ export default defineEval({
     {
       question: 'Did the agent run the tests first?',
       choices: ['yes', 'no'],
-      transcript: 'tools',
+      trajectory: 'tools',
     },
   ],
   task: async () => {},

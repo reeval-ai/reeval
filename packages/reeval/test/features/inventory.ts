@@ -238,7 +238,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'compare.questions.state',
     area: 'Config and selection',
-    name: "What a question shows: only the inputs each entry turns on (task, output, files, diff, transcript, checks, artifacts), at least one, over `turns`, refused at plan time otherwise; and the `question` option's cascaded model",
+    name: "What a question shows: only the inputs each entry turns on (task, output, files, diff, trajectory, checks, artifacts), at least one, over `turns`, refused at plan time otherwise; and the `question` option's cascaded model",
     plan: ['compare/questions-state', 'compare/questions-model'],
     fixtures: ['compare/question-explicit', 'compare/question-state', 'compare/question-artifacts'],
     unit: [
@@ -503,7 +503,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'config.exports',
     area: 'Records and studio',
-    name: "`exports: ['atif']` in the config writes each attempt's `atif.json` beside its transcript as the run ends, listed as `files.atif` and kept in the history with the transcript; an unknown format or a value that isn't a list is refused",
+    name: "`exports: ['atif']` in the config writes each attempt's `atif.json` beside its trajectory as the run ends, listed as `files.atif` and kept in the history with the trajectory; an unknown format or a value that isn't a list is refused",
     unit: ['reeval/test/atif.test.ts', 'reeval/test/refusals.test.ts'],
   },
   {
@@ -527,7 +527,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'studio.share',
     area: 'Config and selection',
-    name: "`reeval studio share [run]`: pushes the recorded run as `reeval cloud push` does (secret scan included, nothing sent on a finding) unless the cloud project has read it already, then creates a share of its report for the org's members and prints its link; `--full` shares the transcripts and artifacts too and `--public` makes the link viewable without signing in, each saying so in one line (`--public` pushes the copy scanned here first, even when the project has the run); a refused share prints the platform's message and exits 2; `--json` prints the share; `--list [run]` lists the project's shares and `--revoke <id>` revokes one",
+    name: "`reeval studio share [run]`: pushes the recorded run as `reeval cloud push` does (secret scan included, nothing sent on a finding) unless the cloud project has read it already, then creates a share of its report for the org's members and prints its link; `--full` shares the trajectories and artifacts too and `--public` makes the link viewable without signing in, each saying so in one line (`--public` pushes the copy scanned here first, even when the project has the run); a refused share prints the platform's message and exits 2; `--json` prints the share; `--list [run]` lists the project's shares and `--revoke <id>` revokes one",
     unit: ['reeval/test/studio-share.test.ts', 'reeval/test/cli.test.ts'],
   },
   {
@@ -1899,20 +1899,20 @@ export const inventory: InventoryFeature[] = [
     ],
   },
   {
-    id: 'harness.transcripts',
+    id: 'harness.trajectories',
     area: 'Harnesses',
-    name: 'Transcripts, normalized per harness',
+    name: 'Trajectories, normalized per harness',
     unit: [
       'reeval/test/replay.test.ts',
       'reeval/test/harness.test.ts',
       'reeval/test/docker.test.ts',
     ],
-    real: ['contract › file edited and command run, both in the transcript'],
+    real: ['contract › file edited and command run, both in the trajectory'],
   },
   {
     id: 'harness.tool-output',
     area: 'Harnesses',
-    name: "A tool's output in the transcript: `outputView` says whether it's what the model saw or the whole output, `outputTruncated` marks one `transcript.jsonl` or the adapter cut, and output Cursor and Antigravity saved to a file is read back",
+    name: "A tool's output in the trajectory: `outputView` says whether it's what the model saw or the whole output, `outputTruncated` marks one `trajectory.jsonl` or the adapter cut, and output Cursor and Antigravity saved to a file is read back",
     fixtures: ['harness/tool-output-cut'],
     unit: [
       'reeval/test/harness.test.ts',
@@ -1926,7 +1926,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'harness.edit-web-payload',
     area: 'Harnesses',
-    name: "An edit's or web call's tool input and output in the transcript beside its semantic fields, with `outputView`, and a long input or output cut in `transcript.jsonl`",
+    name: "An edit's or web call's tool input and output in the trajectory beside its semantic fields, with `outputView`, and a long input or output cut in `trajectory.jsonl`",
     fixtures: ['harness/edit-payload'],
     unit: ['reeval/test/harness.test.ts', 'agents/test/out.test.ts'],
   },
@@ -1934,15 +1934,15 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'harness.subagents',
     area: 'Harnesses',
-    name: "The subagents an agent spawned: their events in the transcript tagged `subagent`, the record's `subagents[]`, and each turn's `usage` counting their tokens beside `agentUsage` and `subagentUsage`",
-    fixtures: ['harness/subagent-transcript'],
+    name: "The subagents an agent spawned: their events in the trajectory tagged `subagent`, the record's `subagents[]`, and each turn's `usage` counting their tokens beside `agentUsage` and `subagentUsage`",
+    fixtures: ['harness/subagent-trajectory'],
     unit: ['agents/test/subagents.test.ts', 'reeval/test/replay-telemetry.test.ts'],
   },
 
   {
-    id: 'harness.transcript-step',
+    id: 'harness.trajectory-step',
     area: 'Harnesses',
-    name: "Each transcript event's `step`: the harness's step in its turn, from its adapter's `finish-step` parts",
+    name: "Each trajectory event's `step`: the harness's step in its turn, from its adapter's `finish-step` parts",
     unit: [
       'reeval/test/harness.test.ts',
       'reeval/test/replay.test.ts',
@@ -1991,7 +1991,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'judge.decide',
     area: 'Judges and matchers',
-    name: "`c.decide({ model, state, questions })`: the AI SDK's `experimental_decide` on the call's model, else `decide.model`, else `analysis.model`, through the config's `gateway` list, with the attempt's signal and `decide.timeout`; `c.state()` builds the judge's inputs as a masked JSON part and `c.part()` a capture's image part; the state and questions are masked before they're sent and the answers before they're kept, each call is a line of the attempt's decisions.jsonl, kept with its other evidence, and a `decision` line in transcript.jsonl before the next turn's prompt, left out of an ATIF export; `decide.model`'s key is checked before the run, its tokens and cost are the attempt's `decisionUse`, never the agent's, and graders read them as `c.decisions`; `reeval/testing`'s `fakeDecisionModel` answers without a provider; the attempt protocol's `decide` op",
+    name: "`c.decide({ model, state, questions })`: the AI SDK's `experimental_decide` on the call's model, else `decide.model`, else `analysis.model`, through the config's `gateway` list, with the attempt's signal and `decide.timeout`; `c.state()` builds the judge's inputs as a masked JSON part and `c.part()` a capture's image part; the state and questions are masked before they're sent and the answers before they're kept, each call is a line of the attempt's decisions.jsonl, kept with its other evidence, and a `decision` line in trajectory.jsonl before the next turn's prompt, left out of an ATIF export; `decide.model`'s key is checked before the run, its tokens and cost are the attempt's `decisionUse`, never the agent's, and graders read them as `c.decisions`; `reeval/testing`'s `fakeDecisionModel` answers without a provider; the attempt protocol's `decide` op",
     fixtures: ['judge/decide'],
     unit: [
       'reeval/test/attempt-host.test.ts',
@@ -2023,14 +2023,14 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'judge.scope',
     area: 'Judges and matchers',
-    name: 'What the judge is given: only the inputs each `judge()` grader turns on (task, output, files, diff patterns, contents by path or pattern, transcript, checks, observations, artifacts), over `turns`; none by default, and a grader that turns none on is refused; build output, source maps, build info and minified files dropped from its diff',
+    name: 'What the judge is given: only the inputs each `judge()` grader turns on (task, output, files, diff patterns, contents by path or pattern, trajectory, checks, observations, artifacts), over `turns`; none by default, and a grader that turns none on is refused; build output, source maps, build info and minified files dropped from its diff',
     fixtures: [
       'judge/build-output',
       'judge/input-diff',
       'judge/input-contents',
       'judge/input-contents-glob',
       'judge/inputs-explicit',
-      'judge/input-transcript',
+      'judge/input-trajectory',
       'judge/input-turns',
       'judge/input-checks',
       'judge/input-observations',
@@ -2130,7 +2130,7 @@ export const inventory: InventoryFeature[] = [
     area: 'Judges and matchers',
     name: "`reeval/graders`' built-in graders, named `<kind>:<main argument>`, over the stored attempt and workspace alone: skills, tools, MCP servers, commands, web searches and fetches, written files, the final diff, kept files, `c.exec` exit codes, usage limits, recorded usage, page captures and observations, each a natural pass (1 or 0) or a recorded grade, with `weight`, `required` and `score` as options and a code version in its fingerprint; `reeval/graders/match`'s plain functions share the matchers' logic",
     fixtures: [
-      'grade/builtin-transcript',
+      'grade/builtin-trajectory',
       'grade/builtin-workspace',
       'grade/builtin-execs',
       'grade/builtin-usage',
@@ -2177,7 +2177,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'assert',
     area: 'Judges and matchers',
-    name: 'Transcript graders: `usedSkill`, `calledMcp`, `calledTool`, `ran`, `wrote`, `searched`, `fetched`',
+    name: 'Trajectory graders: `usedSkill`, `calledMcp`, `calledTool`, `ran`, `wrote`, `searched`, `fetched`',
     fixtures: [
       'assert/called-skill',
       'assert/called-skill-path',
@@ -2388,7 +2388,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'mcp.debugging',
     area: 'Records and studio',
-    name: "`reeval mcp` for debugging a failed run: `failures` (each failed attempt's checks, judge scores, error, check logs and transcript tail, and whether its cell failed before) and `history` listing scratch runs, with a note, when nothing is recorded",
+    name: "`reeval mcp` for debugging a failed run: `failures` (each failed attempt's checks, judge scores, error, check logs and trajectory tail, and whether its cell failed before) and `history` listing scratch runs, with a note, when nothing is recorded",
     unit: ['reeval/test/mcp.test.ts'],
   },
   {
@@ -2434,7 +2434,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'effort.time-split',
     area: 'Records and studio',
-    name: "Where each turn's and attempt's agent time went (`timeSplit`: model calls, tool calls, waiting on background jobs, other), the egress gateway's `model-call` transcript events, and tool durations inferred from the next event, in summary.md, the run's effort table, `reeval compare -v` and `reeval query effort`",
+    name: "Where each turn's and attempt's agent time went (`timeSplit`: model calls, tool calls, waiting on background jobs, other), the egress gateway's `model-call` trajectory events, and tool durations inferred from the next event, in summary.md, the run's effort table, `reeval compare -v` and `reeval query effort`",
     unit: ['reeval/test/timeline.test.ts', 'sandbox-docker/test/proxy.test.ts'],
   },
   {
@@ -2523,7 +2523,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'summary.report-facts',
     area: 'Records and studio',
-    name: "Each attempt's facts in the `RunReport` (`attemptFacts` in `reeval/view`: tool calls by class, skills used by source, context files read), counted from its kept transcript as `reeval query`'s `tool_calls`, `skill_uses` and `context_reads` count them, absent where the transcript wasn't kept, and a skill discovery's sources",
+    name: "Each attempt's facts in the `RunReport` (`attemptFacts` in `reeval/view`: tool calls by class, skills used by source, context files read), counted from its kept trajectory as `reeval query`'s `tool_calls`, `skill_uses` and `context_reads` count them, absent where the trajectory wasn't kept, and a skill discovery's sources",
     unit: ['reeval/test/report-facts.test.ts'],
   },
   {
@@ -2703,13 +2703,13 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'studio',
     area: 'Records and studio',
-    name: "`reeval studio`: the studio API (`reeval/view`'s routes and shapes, each run's report as an index and per-eval details, transcripts a page at a time, the same in any JavaScript runtime) on local runs, on loopback, paired with the hosted studio page by a one-time token, CORS for its origin only",
+    name: "`reeval studio`: the studio API (`reeval/view`'s routes and shapes, each run's report as an index and per-eval details, trajectories a page at a time, the same in any JavaScript runtime) on local runs, on loopback, paired with the hosted studio page by a one-time token, CORS for its origin only",
     unit: [
       'reeval/test/studio.test.ts',
       'reeval/test/report-split.test.ts',
       'reeval/test/view-boundary.test.ts',
     ],
-    real: ["e2e › the studio's report: both runs, linking every attempt's transcript"],
+    real: ["e2e › the studio's report: both runs, linking every attempt's trajectory"],
   },
   {
     id: 'studio.live',

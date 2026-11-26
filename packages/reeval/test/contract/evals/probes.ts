@@ -165,7 +165,7 @@ const text = (value: unknown) => (typeof value === 'string' ? value : JSON.strin
 
 /** Tool events whose input or output mentions `needle`, as `tool: input → output` lines. */
 export const toolsMentioning = (turn: Turn | undefined, needle: string) =>
-  (turn?.transcript ?? []).flatMap((e) =>
+  (turn?.trajectory ?? []).flatMap((e) =>
     e.type === 'tool' && (text(e.input).includes(needle) || text(e.output).includes(needle))
       ? [`${e.tool}: ${text(e.input).slice(0, 200)} → ${text(e.output).slice(0, 200)}`]
       : [],
@@ -197,7 +197,7 @@ const namesAgent = (input: unknown, agent: string): boolean =>
  * for a subagent it doesn't have, as `toolsMentioning` would count.
  */
 export const delegatedTo = (turn: Turn | undefined, agent: string) =>
-  (turn?.transcript ?? []).flatMap((e) =>
+  (turn?.trajectory ?? []).flatMap((e) =>
     e.type === 'tool' && e.ok && namesAgent(e.input, agent)
       ? [`${e.tool}: ${text(e.input).slice(0, 200)} → ${text(e.output).slice(0, 200)}`]
       : [],
@@ -205,7 +205,7 @@ export const delegatedTo = (turn: Turn | undefined, agent: string) =>
 
 /** Every tool event's name. */
 export const toolNames = (turn: Turn | undefined) =>
-  (turn?.transcript ?? []).flatMap((e) => (e.type === 'tool' ? [e.tool] : []))
+  (turn?.trajectory ?? []).flatMap((e) => (e.type === 'tool' ? [e.tool] : []))
 
 /** What `scan.mjs` found: each place a target's bytes appear. */
 export type ScanResult = { files: number; bytes: number; hits: string[] }

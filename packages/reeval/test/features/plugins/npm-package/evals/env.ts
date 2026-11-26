@@ -15,6 +15,6 @@ export const placed = '~/.reeval/plugins/review'
 
 /** What the plugin's MCP tool returned in the turn, or ''. */
 export const stamped = (turn: Turn): string =>
-  turn.transcript.flatMap((e) =>
+  turn.trajectory.flatMap((e) =>
     e.type === 'tool' && e.tool === 'mcp__review:docs__house_stamp' ? [String(e.output)] : [],
   )[0] ?? ''

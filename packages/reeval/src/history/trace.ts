@@ -1,11 +1,11 @@
 // `reeval show --trace`: a run as Chrome Trace Event JSON, the format Perfetto (ui.perfetto.dev)
 // and chrome://tracing open. Each lane is a track holding attempts that didn't overlap, with each
-// attempt's phases nested under it and, where the transcript was kept, its tool calls under its
+// attempt's phases nested under it and, where the trajectory was kept, its tool calls under its
 // turns. A record has each turn's start but only each phase's total, so setup is placed from the
 // attempt's start and the diff, checks and judge after the last turn, marked `placed: estimated`.
 import { clip } from '../text.ts'
 import { commandLine } from '../view/judgments.ts'
-import type { TranscriptLine } from '../view/model.ts'
+import type { TrajectoryLine } from '../view/model.ts'
 import type { AttemptRecord, RunRecord } from './types.ts'
 
 /** One Trace Event: `X` a slice, `i` an instant, `C` a counter sample, `M` a track's name. */
@@ -43,10 +43,10 @@ const RUN = { pid: 1, tid: 1 }
 /** The lanes' process; lane `n` is thread `n`, named `lane`, so its track reads `lane n`. */
 const LANES = 2
 
-/** The attempt's transcript lines, by its key; an attempt without one gets no tool slices. */
-export type Transcripts = ReadonlyMap<string, readonly TranscriptLine[]>
+/** The attempt's trajectory lines, by its key; an attempt without one gets no tool slices. */
+export type Trajectories = ReadonlyMap<string, readonly TrajectoryLine[]>
 
-export function runTrace(run: RunRecord, transcripts: Transcripts = new Map()): RunTrace {
+export function runTrace(run: RunRecord, trajectories: Trajectories = new Map()): RunTrace {
   const runStart = Date.parse(run.startedAt)
   const attempts = run.evals
     .flatMap((e) => e.attempts.map((a) => ({ evalName: e.name, a })))
@@ -69,7 +69,7 @@ export function runTrace(run: RunRecord, transcripts: Transcripts = new Map()): 
       lanes.push(lane)
     }
     lane.end = x.end
-    lane.spans.push(...attemptSpans(x.evalName, x.a, x.start, x.end, transcripts))
+    lane.spans.push(...attemptSpans(x.evalName, x.a, x.start, x.end, trajectories))
   }
   const laneEnds = lanes.map((l) => l.end)
 
@@ -169,7 +169,7 @@ function attemptSpans(
   a: AttemptRecord,
   start: number,
   end: number,
-  transcripts: Transcripts,
+  trajectories: Trajectories,
 ): Span[] {
   const within = (s: number, e: number) => {
     const from = Math.min(Math.max(s, start), end)
@@ -208,7 +208,7 @@ function attemptSpans(
     })
     cursor = setup.end
   }
-  const lines = transcripts.get(a.key) ?? []
+  const lines = trajectories.get(a.key) ?? []
   for (const { i, t, start: s, end: e } of turns) {
     spans.push({
       name: `turn ${i + 1}`,
@@ -257,7 +257,7 @@ function attemptSpans(
 }
 
 function eventSpan(
-  line: TranscriptLine,
+  line: TrajectoryLine,
 ): { name: string; ms: number; cat: string; args: Record<string, unknown> } | null {
   const ms = 'durationMs' in line && typeof line.durationMs === 'number' ? line.durationMs : 0
   switch (line.type) {

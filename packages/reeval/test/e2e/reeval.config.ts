@@ -48,6 +48,6 @@ export default defineConfig({
   runs: 1,
   timeout: '4m',
   budget: { attempts: 1 },
-  // The eval passes, and the studio's run view reads its recorded transcript.
+  // The eval passes, and the studio's run view reads its recorded trajectory.
   history: { artifacts: 'all' },
 })

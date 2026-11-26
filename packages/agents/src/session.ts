@@ -4,7 +4,7 @@ import type { HarnessCatalogEntry } from './catalog/entry.ts'
 import { HARNESSES } from './catalog/index.ts'
 import { agentMcp, LAYOUTS } from './catalog/layouts.ts'
 import { type ModelTraffic, REFUSED_KEY, startAgent } from './driver/agent.ts'
-import { errorText, type StampedPart } from './driver/transcript.ts'
+import { errorText, type StampedPart } from './driver/trajectory.ts'
 import type { AgentLog, HarnessResult, HarnessSession } from './driver/types.ts'
 import { AgentError } from './errors.ts'
 import {
@@ -23,7 +23,7 @@ import type { Runner, RunnerInfo } from './runner.ts'
 import type { RunnerSessionOptions } from './runner-session.ts'
 import { type InstallMode, installHarness } from './setup.ts'
 import type { PlacedPlugin, ResolvedMcpServer } from './spec.ts'
-import type { TranscriptEvent } from './types.ts'
+import type { TrajectoryEvent } from './types.ts'
 import { AGENTS_VERSION } from './version.ts'
 
 /** A skill the session places for the agent: `SKILL.md` and its other files. */
@@ -45,13 +45,13 @@ export type AgentPhase = 'runner' | 'place' | 'install' | 'bootstrap' | 'ready' 
 
 /**
  * What a session reports as it goes. A turn's `part` events arrive as the harness streams them
- * (only with `parts: true`); its `transcript` events once the turn ends, normalized.
+ * (only with `parts: true`); its `trajectory` events once the turn ends, normalized.
  */
 export type AgentEvent =
   | { type: 'phase'; phase: AgentPhase; ms: number }
   | { type: 'turn-start'; turn: number; prompt: string }
   | { type: 'part'; turn: number; part: StampedPart }
-  | { type: 'transcript'; turn: number; event: TranscriptEvent }
+  | { type: 'trajectory'; turn: number; event: TrajectoryEvent }
   | { type: 'warning'; message: string }
   | { type: 'turn-end'; turn: number; result: HarnessResult }
 
@@ -101,7 +101,7 @@ export type AgentOptions = {
   session?: RunnerSessionOptions
   /** Where the runner's network saw the agent's model calls, which say a turn was refused. */
   traffic?: ModelTraffic
-  /** Paths under it in the transcript are made relative to the workspace. */
+  /** Paths under it in the trajectory are made relative to the workspace. */
   workspace?: RegExp
   /** Keep every stream part on each turn's result, as `raw`; `out`'s `raw` does too. */
   raw?: boolean
@@ -124,7 +124,7 @@ export type AgentOptions = {
    * How long `close()` waits for a turn that ignores its abort, and then for the harness session
    * to close, before it ends the turn `aborted` and closes the runner anyway; 10 seconds by
    * default, and at most 2³¹ − 1 ms (`Infinity` is that). A turn ended this way has only the
-   * timeout's error in its transcript: what it streamed before is in `raw/parts.jsonl` alone.
+   * timeout's error in its trajectory: what it streamed before is in `raw/parts.jsonl` alone.
    */
   closeTimeoutMs?: number
 }
@@ -164,7 +164,7 @@ export type AgentSession = {
    * agent streamed, with `note` (why) last, and the usage its CLI stored. `close()` doesn't wait
    * for it after that.
    */
-  stopped(note: TranscriptEvent): Promise<HarnessResult>
+  stopped(note: TrajectoryEvent): Promise<HarnessResult>
   /**
    * Reads the usage the running turn's CLI stored so far, for the turn's result: call it when the
    * run is cut off, before the runner goes away.
@@ -504,7 +504,7 @@ export function agent(options: AgentOptions): Agent {
         const result = (async () => {
           try {
             const result = await Promise.race([session.send(prompt, turnSignal), forced])
-            for (const event of result.transcript) report({ type: 'transcript', turn, event })
+            for (const event of result.trajectory) report({ type: 'trajectory', turn, event })
             await writing(out?.parts(turn))
             await writing(out?.turn(turn, prompt, result))
             report({ type: 'turn-end', turn, result })
@@ -542,7 +542,7 @@ export function agent(options: AgentOptions): Agent {
               status: 'aborted',
               startedAt: new Date(turn.startedAt).toISOString(),
               durationMs: atMs,
-              transcript: [{ type: 'error', message, ts: new Date().toISOString(), atMs }],
+              trajectory: [{ type: 'error', message, ts: new Date().toISOString(), atMs }],
               usage: null,
               model: null,
               unreported: [],

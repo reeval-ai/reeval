@@ -63,7 +63,7 @@ export function describeSize(state: Record<string, JSONValue>, question: string)
     .join('; ')
 }
 
-/** `Narrow diff, transcript or output.`: the inputs that were on, largest first. */
+/** `Narrow diff, trajectory or output.`: the inputs that were on, largest first. */
 function stateHint(state: Record<string, JSONValue>, question: string): string {
   const keys = partsOf(state, question)
     .filter((p) => p.name !== 'question')

@@ -18,7 +18,7 @@ export const UNRECORDED_QUESTION_STATE: ResolvedQuestionStateOptions = {
   output: false,
   files: false,
   diff: true,
-  transcript: false,
+  trajectory: false,
   turns: 'all',
   checks: false,
 }
@@ -38,7 +38,7 @@ export function resolveQuestionState(
     output: state?.output ?? false,
     files: state?.files ?? false,
     diff: state?.diff ?? false,
-    transcript: state?.transcript ?? false,
+    trajectory: state?.trajectory ?? false,
     turns: state?.turns ?? 'all',
     checks: state?.checks ?? false,
     ...(observationsOn(observations) ? { observations } : {}),

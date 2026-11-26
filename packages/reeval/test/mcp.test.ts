@@ -149,7 +149,7 @@ describe('reeval mcp', () => {
       'show',
       'compare',
       'analysis',
-      'transcript',
+      'trajectory',
       ...VIEW_NAMES.map((v) => `query_${v}`),
       'query',
       'query_schema',
@@ -285,9 +285,9 @@ describe('reeval mcp', () => {
       [['has-file:ok.txt', 'builtin', 0]],
     )
     assert.deepEqual(first.failedAssertions, [], 'an older record lists its failed expect calls')
-    const transcript = first.transcript as { lines: number; tail: Json[] }
-    assert.ok(transcript.tail.some((l) => l.prompt === 'go'))
-    assert.ok(transcript.tail.length <= transcript.lines)
+    const trajectory = first.trajectory as { lines: number; tail: Json[] }
+    assert.ok(trajectory.tail.some((l) => l.prompt === 'go'))
+    assert.ok(trajectory.tail.length <= trajectory.lines)
     const cells = r.cells as Json[]
     assert.equal(cells.length, 2, 'one history per failing cell')
     for (const c of cells) {
@@ -296,12 +296,12 @@ describe('reeval mcp', () => {
       assert.equal((c.lastPass as Json).runId, runs[0])
       assert.deepEqual((c.lastPass as Json).changedSources, [])
     }
-    assert.match(String(r.next), /transcript/)
+    assert.match(String(r.next), /trajectory/)
 
     const one = await json(modern, 'failures', { filter: 'also', tail: 1 })
     assert.equal(one.failing, 1)
     const [only] = one.attempts as [Json]
-    assert.equal((only.transcript as { tail: Json[] }).tail.length, 1)
+    assert.equal((only.trajectory as { tail: Json[] }).tail.length, 1)
     const clean = await json(modern, 'failures', { run: runs[0] })
     assert.equal(clean.failing, 0)
     assert.match(String(clean.note), new RegExp(`Nothing failed in ${runs[0]}.*${runs[1]}`))
@@ -320,15 +320,15 @@ describe('reeval mcp', () => {
     assert.deepEqual((await json(modern, 'analysis', { run: runs[0] })).entries, [])
   })
 
-  test('transcripts, as a tool and as resources; runs are resources', async () => {
+  test('trajectories, as a tool and as resources; runs are resources', async () => {
     const record = await cliJson(dir, ['show'])
     const attempt = record.evals[0].attempts[0]
-    const r = await json(modern, 'transcript', { attempt: attempt.key })
+    const r = await json(modern, 'trajectory', { attempt: attempt.key })
     assert.equal(r.attempt, attempt.key)
     const lines = r.lines as Json[]
     assert.equal(r.total, lines.length)
     assert.ok(lines.some((l) => l.type === 'prompt' && l.text === 'go'))
-    const page = await json(modern, 'transcript', { attempt: attempt.key, offset: 1, limit: 1 })
+    const page = await json(modern, 'trajectory', { attempt: attempt.key, offset: 1, limit: 1 })
     assert.deepEqual(page.lines, lines.slice(1, 2))
 
     const read = await modern.readResource({ uri: r.uri as string })
@@ -350,11 +350,11 @@ describe('reeval mcp', () => {
       await cliJson(dir, ['show', runs[0] as string]),
     )
 
-    const ambiguous = await call(modern, 'transcript', { attempt: attempt.id })
+    const ambiguous = await call(modern, 'trajectory', { attempt: attempt.id })
     assert.ok(ambiguous.isError, 'two evals share the attempt id')
     assert.match(textOf(ambiguous), /use its key/)
     for (const bad of [
-      `reeval://runs/${runs[0]}/transcripts/..%2F..%2Freeval.config.ts`,
+      `reeval://runs/${runs[0]}/trajectories/..%2F..%2Freeval.config.ts`,
       'reeval://runs/..%2F..',
     ]) {
       await assert.rejects(modern.readResource({ uri: bad }), bad)

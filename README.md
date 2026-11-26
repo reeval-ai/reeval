@@ -19,7 +19,7 @@
 
 # reeval
 
-reeval is an open-source evaluation runner for developer tools. It gives a real coding agent a task in a fresh sandbox, then checks the result with assertions on files, commands, and the transcript, and with an LLM judge where an assertion can't decide. Run the same task with and without a skill, doc, or MCP server, and reeval reports whether the change helped.
+reeval is an open-source evaluation runner for developer tools. It gives a real coding agent a task in a fresh sandbox, then checks the result with assertions on files, commands, and the trajectory, and with an LLM judge where an assertion can't decide. Run the same task with and without a skill, doc, or MCP server, and reeval reports whether the change helped.
 
 Evals are TypeScript files in `evals/`, next to the tool they test. Each run writes a JSON record, and recorded runs commit to Git, so `reeval compare` can diff a pull request's run against the last recorded one and fail the job when an eval regresses.
 
@@ -31,7 +31,7 @@ Cursor ⋅ Claude Code ⋅ Codex ⋅ Antigravity ⋅ OpenCode ⋅ Goose ⋅ pi �
 - **Keys stay on the host**: each attempt starts in a fresh sandbox that holds only a placeholder key. reeval's egress gateway swaps in the real key on requests to that provider and nowhere else ([Pass secrets](docs/configuration/environments/secrets.mdx)).
 - **Compare a change**: one eval runs a baseline and its variants with the same prompt and checks, then prints whether each variant helped, made it worse, or did the same ([Measure lift against a baseline](docs/results/compare/lift.mdx)).
 - **Pinned environments**: an environment starts from a workspace, such as a git repository at a fixed ref, then adds files, setup steps, rules, skills, and MCP servers, so every attempt starts from the same state ([Define an environment](docs/configuration/environments/index.mdx)).
-- **History in Git**: recorded runs sit beside the code. `reeval query` reads them with SQL, and `reeval studio` shows each attempt's transcript, diff, and checks ([Record runs in Git](docs/evaluations/runs/recording.mdx)).
+- **History in Git**: recorded runs sit beside the code. `reeval query` reads them with SQL, and `reeval studio` shows each attempt's trajectory, diff, and checks ([Record runs in Git](docs/evaluations/runs/recording.mdx)).
 
 ## Install
 
@@ -131,7 +131,7 @@ Without the skill, no attempt used `Output.object`; with it, all four did. `help
 | <code>reeval&nbsp;compare&nbsp;--fail-on-regression</code> | Diff a run against its nearest recorded ancestor, and exit 1 when an eval regressed. |
 | <code>reeval&nbsp;show&nbsp;--md</code> | One run's results as Markdown, for a job summary or a PR comment. |
 | <code>reeval&nbsp;query</code> | Read-only SQL over every run, or built-in views such as `lift`, `effort`, and `failing_attempts`. |
-| <code>reeval&nbsp;studio</code> | Runs, transcripts, diffs, and checks in the browser. |
+| <code>reeval&nbsp;studio</code> | Runs, trajectories, diffs, and checks in the browser. |
 
 Environments load extensions from where teams already keep them:
 

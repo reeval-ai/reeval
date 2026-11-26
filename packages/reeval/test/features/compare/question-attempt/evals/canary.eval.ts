@@ -13,7 +13,7 @@ export default defineEval({
       task: true,
       output: true,
       diff: true,
-      transcript: true,
+      trajectory: true,
     },
   ],
   task: async (c) => {

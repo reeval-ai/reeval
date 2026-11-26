@@ -405,9 +405,9 @@ export function deriveFacts(db: DatabaseSync): void {
     cells.find((c) => c.run_id === run && c.eval_key === evalKey && c.key === key)
 
   // Tool calls by class per counted attempt, for each cell's per-class medians. An attempt counts
-  // when its calls were read from its transcript or its record says it made none (a turnless one
-  // has no transcript), with 0 for each class it made no calls in; one whose record has calls but
-  // whose transcript couldn't be read stays out. Null for a cell with no attempt that counts.
+  // when its calls were read from its trajectory or its record says it made none (a turnless one
+  // has no trajectory), with 0 for each class it made no calls in; one whose record has calls but
+  // whose trajectory couldn't be read stays out. Null for a cell with no attempt that counts.
   const classCounts = new Map<string, Map<string, number>>()
   for (const r of rowsOf<{ run_id: string; attempt_key: string; class: string; n: number }>(
     db.prepare(

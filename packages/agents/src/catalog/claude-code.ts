@@ -17,7 +17,7 @@ export const claudeCode = {
   reasoning: 'streamed',
   reasoningTokens: true,
   // The bridge streams a subagent's messages; the turn's usage leaves out its model calls, which
-  // its own transcript stores. Its reported cost counts them.
+  // its own session log stores. Its reported cost counts them.
   subagents: {
     events: 'streamed',
     usage: 'separate',

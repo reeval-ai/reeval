@@ -73,7 +73,7 @@ import {
   brokeringFor,
 } from '../src/harness/agents.ts'
 import { createFakeHarness } from '../src/harness/fake.ts'
-import { capText, OUTPUT_CAP, transcriptLines } from '../src/history/assemble.ts'
+import { capText, OUTPUT_CAP, trajectoryLines } from '../src/history/assemble.ts'
 import { warnings } from '../src/history/state.ts'
 import type { HistoryEntry, RunRecord } from '../src/history/types.ts'
 import { compare, stackChanges } from '../src/history/views.ts'
@@ -689,7 +689,7 @@ createInterface({ input: process.stdin }).on('line', (line) => {
       silentLog,
     )
     const turn = await session.send('stamp', AbortSignal.timeout(60_000))
-    return turn.transcript.find((e) => e.type === 'tool')
+    return turn.trajectory.find((e) => e.type === 'tool')
   }
   /** Opens the gate once the call has reached the server, while the client is still waiting. */
   const openGate = async () => {
@@ -1159,7 +1159,7 @@ test('huge single outputs keep their head and tail, with a marker and hash', () 
   assert.equal(capText('small'), 'small')
 })
 
-test("transcript.jsonl marks a tool output it cut with the whole output's size", () => {
+test("trajectory.jsonl marks a tool output it cut with the whole output's size", () => {
   const tool = (output: unknown, extra: Record<string, unknown> = {}) => ({
     ts: '2026-01-01T00:00:00.000Z',
     atMs: 0,
@@ -1172,15 +1172,15 @@ test("transcript.jsonl marks a tool output it cut with the whole output's size",
     durationMs: 1,
     ...extra,
   })
-  const turn = (transcript: unknown[]) => ({
+  const turn = (trajectory: unknown[]) => ({
     prompt: 'go',
     startedAt: '2026-01-01T00:00:00.000Z',
     durationMs: 1,
     status: 'completed',
-    transcript,
+    trajectory,
   })
-  const tools = (transcript: unknown[]) =>
-    transcriptLines({ turns: [turn(transcript)] } as never)
+  const tools = (trajectory: unknown[]) =>
+    trajectoryLines({ turns: [turn(trajectory)] } as never)
       .trim()
       .split('\n')
       .map((l) => JSON.parse(l))

@@ -15,7 +15,7 @@ import {
   readableRecord,
   readableRegrade,
   readableRemarks,
-  readableTranscriptLine,
+  readableTrajectoryLine,
 } from '../../src/view/record.ts'
 import { readableRunReport } from '../../src/view/report/schema.ts'
 import { type Change, checkDefaults, compare } from './compat.ts'
@@ -173,7 +173,7 @@ export async function checkCorpus(current: Map<string, ShapeSchema>): Promise<st
   }
   const {
     records,
-    transcripts,
+    trajectories,
     analyses,
     remarks,
     capturePages,
@@ -186,12 +186,12 @@ export async function checkCorpus(current: Map<string, ShapeSchema>): Promise<st
   for (const r of records) {
     report(r.file, validate(shape('run-record'), readableRecord(structuredClone(r.value) as never)))
   }
-  for (const file of transcripts) {
+  for (const file of trajectories) {
     const found = new Set<string>()
     for (const [i, line] of readFileSync(file, 'utf8').split('\n').entries()) {
       if (!line.trim()) continue
-      const read = readableTranscriptLine(JSON.parse(line))
-      for (const p of validate(shape('transcript-line'), read)) found.add(`line ${i + 1}: ${p}`)
+      const read = readableTrajectoryLine(JSON.parse(line))
+      for (const p of validate(shape('trajectory-line'), read)) found.add(`line ${i + 1}: ${p}`)
     }
     report(file, [...found])
   }

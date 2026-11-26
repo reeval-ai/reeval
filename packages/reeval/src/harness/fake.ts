@@ -14,7 +14,7 @@ import { type ResolvedMcpServer, skillFiles } from '../environment/resolve.ts'
 import { redactSecrets } from '../redact.ts'
 import { hasNetworkSession, InfraError, type Sandbox } from '../sandbox/types.ts'
 import { hostEnv } from '../secrets-file.ts'
-import type { FakeHarnessDescriptor, TranscriptEvent } from '../types.ts'
+import type { FakeHarnessDescriptor, TrajectoryEvent } from '../types.ts'
 import { AGENTS, fakeBrokering, keyRejected, layoutOf, writePluginFiles } from './agents.ts'
 import { fakeBootstrapScript } from './fake-bootstrap.ts'
 import type { Harness } from './types.ts'
@@ -78,7 +78,7 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
       const files = (skilled ? descriptor.withSkill?.files : undefined) ?? descriptor.files ?? {}
       const reply = (skilled ? descriptor.withSkill?.text : undefined) ?? descriptor.text ?? 'Done.'
       const flaked = Math.random() < (descriptor.flakeRate ?? 0)
-      let running: ((note: TranscriptEvent) => HarnessResult) | undefined
+      let running: ((note: TrajectoryEvent) => HarnessResult) | undefined
       return {
         async send(prompt, signal) {
           const startedAt = Date.now()
@@ -89,7 +89,7 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
             const ms = Date.now() - startedAt
             return { ts: new Date(startedAt + ms).toISOString(), atMs: ms }
           }
-          const transcript: TranscriptEvent[] = [
+          const trajectory: TrajectoryEvent[] = [
             { ...at(), type: 'text', text: `Working on: ${prompt}`, durationMs: 0 },
             ...(loaded.length
               ? [
@@ -111,7 +111,7 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
             status,
             startedAt: new Date(startedAt).toISOString(),
             durationMs: descriptor.turnMs ?? Date.now() - startedAt,
-            transcript,
+            trajectory,
             usage: descriptor.usage ?? null,
             ...(runs.length
               ? {
@@ -127,13 +127,13 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
             ...(descriptor.turnMs === undefined ? {} : { agentMs: descriptor.turnMs }),
           })
           // Cut off, the turn keeps what it did so far, as a real adapter's does.
-          running = (note) => ({ ...done('', 'aborted'), transcript: [...transcript, note] })
+          running = (note) => ({ ...done('', 'aborted'), trajectory: [...trajectory, note] })
           const write = async (path: string, content: string, subagent?: string) => {
             const time = at()
             const before = await sandbox.readFile(path)
             await sandbox.writeFile(path, content)
             log.log('harness', `tool write ${path} (${before === null ? 'create' : 'modify'})`)
-            transcript.push({
+            trajectory.push({
               ...time,
               type: 'file-edit',
               toolCallId: `call_${++calls}`,
@@ -149,7 +149,7 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
             })
           }
           if (descriptor.reasoning) {
-            transcript.push({
+            trajectory.push({
               ...at(),
               type: 'reasoning',
               text: descriptor.reasoning,
@@ -157,7 +157,7 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
             })
           }
           for (const tool of descriptor.tools ?? []) {
-            transcript.push({
+            trajectory.push({
               ...at(),
               type: 'tool',
               toolCallId: `call_${++calls}`,
@@ -185,13 +185,13 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
               ok: status === null ? null : status === 'completed',
               durationMs: 0,
             }
-            transcript.push(spawn)
+            trajectory.push(spawn)
             for (const [path, content] of Object.entries(sub.files ?? {})) {
               if (streamed) await write(path, content, id)
               else await sandbox.writeFile(path, content)
             }
             if (streamed && sub.text) {
-              transcript.push({
+              trajectory.push({
                 ...at(),
                 type: 'text',
                 text: sub.text,
@@ -213,7 +213,7 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
           }
           if (flaked) {
             const text = 'I ran out of ideas and left the workspace unchanged.'
-            transcript.push({ ...at(), type: 'text', text, durationMs: 0 })
+            trajectory.push({ ...at(), type: 'text', text, durationMs: 0 })
             return done(text, 'completed')
           }
           let scripted: string | undefined
@@ -229,7 +229,7 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
                 'harness',
                 `tool shell returned exit ${r.exitCode} in ${Date.now() - startedAt - time.atMs}ms`,
               )
-              transcript.push({
+              trajectory.push({
                 ...time,
                 type: 'tool',
                 toolCallId: `call_${++calls}`,
@@ -248,7 +248,7 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
               log.log('harness', `tool mcp__${server}__${tool} called`)
               const r = await callMcpTool(sandbox, mcp, server, tool, signal)
               log.log('harness', `tool mcp__${server}__${tool} ${r.ok ? 'returned' : 'failed'}`)
-              transcript.push({
+              trajectory.push({
                 ...time,
                 type: 'tool',
                 toolCallId: `call_${++calls}`,
@@ -261,14 +261,14 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
               })
             } else if ('error' in step) {
               log.log('harness', `turn failed: ${step.error}`)
-              transcript.push({ ...at(), type: 'error', message: step.error })
+              trajectory.push({ ...at(), type: 'error', message: step.error })
               const statuses = sandbox.brokeredStatuses?.().slice(brokeredBefore) ?? []
               const stopped = providerStop({ errors: [step.error], status: 'error', statuses })
               return { ...done('', 'error'), ...(stopped && { providerStop: stopped }) }
             } else if ('refuseKey' in step) {
               const message = `${keyRejected(step.refuseKey)}. 401 Unauthorized (the fake agent's)`
               log.log('harness', `turn failed: ${message}`)
-              transcript.push({ ...at(), type: 'error', message })
+              trajectory.push({ ...at(), type: 'error', message })
               return { ...done('', 'error'), rejectedKey: message }
             } else scripted = step.reply
           }
@@ -281,7 +281,7 @@ export const createFakeHarness = (descriptor: FakeHarnessDescriptor): Harness =>
           }
           for (const [path, content] of Object.entries(files)) await write(path, content)
           const text = scripted ?? reply
-          transcript.push({ ...at(), type: 'text', text, durationMs: 0 })
+          trajectory.push({ ...at(), type: 'text', text, durationMs: 0 })
           return done(text, 'completed')
         },
         stopped: async (note) => {

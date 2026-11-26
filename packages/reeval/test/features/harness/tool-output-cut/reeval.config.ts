@@ -2,7 +2,7 @@ import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 
 // REEVAL_FIXTURE_SANDBOX picks the tier: the fake sandbox (F) by default, or docker (D).
-// The command prints 318,911 bytes, past the 128K characters transcript.jsonl keeps of one output.
+// The command prints 318,911 bytes, past the 128K characters trajectory.jsonl keeps of one output.
 export default defineConfig({
   target: regression(),
   agents: fakeAgent({

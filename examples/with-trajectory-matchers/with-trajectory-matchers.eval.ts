@@ -5,7 +5,7 @@ const math = defineEnvironment('math', ({ directory }) => ({ files: directory('.
 
 export default defineEval({
   environment: math,
-  // Each reads the transcript: what the agent's tool calls did, not only what it left.
+  // Each reads the trajectory: what the agent's tool calls did, not only what it left.
   graders: [
     wrote('src/math.js'),
     ran(/node --test|npm (test|t)\b/),

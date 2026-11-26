@@ -16,8 +16,8 @@ import type {
 import { resolveRun } from '../history/views.ts'
 import type { ResolvedConfig } from '../types.ts'
 import { gateLabel } from '../view/gate.ts'
-import type { TranscriptLine } from '../view/model.ts'
-import { fileTail, transcriptLines } from './files.ts'
+import type { TrajectoryLine } from '../view/model.ts'
+import { fileTail, trajectoryLines } from './files.ts'
 
 export const DEFAULT_FAILURES = 10
 export const DEFAULT_TAIL = 12
@@ -28,8 +28,8 @@ const clip = (text: string, max: number) =>
 const asText = (value: unknown) =>
   typeof value === 'string' ? value : value == null ? '' : JSON.stringify(value)
 
-/** One transcript line, cut down to what says what happened. Line numbers count from 1. */
-function compactLine(line: TranscriptLine, n: number): Record<string, unknown> | null {
+/** One trajectory line, cut down to what says what happened. Line numbers count from 1. */
+function compactLine(line: TrajectoryLine, n: number): Record<string, unknown> | null {
   switch (line.type) {
     case 'prompt':
       return { line: n, turn: line.turn, prompt: clip(line.text, 300) }
@@ -66,7 +66,7 @@ function compactLine(line: TranscriptLine, n: number): Record<string, unknown> |
   }
 }
 
-function transcriptTail(lines: TranscriptLine[], tail: number) {
+function trajectoryTail(lines: TrajectoryLine[], tail: number) {
   const compact = lines.flatMap((line, i) => {
     const c = compactLine(line, i + 1)
     return c ? [c] : []
@@ -153,7 +153,7 @@ async function describeAttempt(
   tail: number,
 ) {
   const cell = e.cells.find((c) => c.key === a.cell)
-  const lines = await transcriptLines(config, run, a)
+  const lines = await trajectoryLines(config, run, a)
   const failedChecks = await Promise.all(
     a.checks
       .filter((c) => c.exitCode !== 0)
@@ -210,9 +210,9 @@ async function describeAttempt(
         : null,
     changedFiles: a.changedFiles.slice(0, 30).map((f) => `${f.status} ${f.path}`),
     finalMessage: finalText ? clip(finalText, 800) : null,
-    transcript: lines ? transcriptTail(lines, tail) : null,
+    trajectory: lines ? trajectoryTail(lines, tail) : null,
     files: {
-      transcript: a.files.transcript?.path ?? null,
+      trajectory: a.files.trajectory?.path ?? null,
       diff: a.files.diff?.path ?? null,
       setupLog: a.files.setupLog?.path ?? null,
     },
@@ -278,6 +278,6 @@ export async function failuresView(
     shown: shown.length,
     attempts,
     cells,
-    next: `For the whole story of one attempt, transcript { run: "${run.runId}", attempt }. compare { head: "${run.runId}" } diffs this run against its baseline; query_flaky_cells says whether a cell fails intermittently across runs.`,
+    next: `For the whole story of one attempt, trajectory { run: "${run.runId}", attempt }. compare { head: "${run.runId}" } diffs this run against its baseline; query_flaky_cells says whether a cell fails intermittently across runs.`,
   }
 }

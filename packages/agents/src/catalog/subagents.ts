@@ -1,17 +1,17 @@
 // What each harness's spawn calls say about the subagents they started, and where Claude Code
 // stores a subagent's own usage.
 import { shellQuote } from '@ai-sdk/harness/utils'
-import type { TranscriptEvent } from '../types.ts'
+import type { TrajectoryEvent } from '../types.ts'
 import type { SpawnedSubagent, StoredSubagent, StoredSubagents } from './entry.ts'
 
-type ToolEvent = Extract<TranscriptEvent, { type: 'tool' }>
+type ToolEvent = Extract<TrajectoryEvent, { type: 'tool' }>
 
 const record = (value: unknown): Record<string, unknown> =>
   typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
 const str = (value: unknown) => (typeof value === 'string' ? value : undefined)
 const num = (value: unknown) => (typeof value === 'number' ? value : undefined)
 
-const toolCalls = (events: readonly TranscriptEvent[], names: readonly string[]) =>
+const toolCalls = (events: readonly TrajectoryEvent[], names: readonly string[]) =>
   events.filter((e): e is ToolEvent => e.type === 'tool' && names.includes(e.tool))
 
 /** A harness's word for how a subagent ended, as `SubagentRun['status']`. */
@@ -38,7 +38,7 @@ const textOf = (content: unknown): string | undefined =>
  * `task_notification`, when it finished within the turn.
  */
 export function claudeSpawns(
-  events: readonly TranscriptEvent[],
+  events: readonly TrajectoryEvent[],
   raw: readonly unknown[],
 ): SpawnedSubagent[] {
   const notified = new Map<string, Record<string, unknown>>()
@@ -84,7 +84,7 @@ export function claudeSpawns(
  * Codex's `spawn_agent` calls. Its result's `agents_states` is keyed by the new thread's id; the
  * last `wait`, `send_input` or `close_agent` call on that thread says how it ended, and its message.
  */
-export function codexSpawns(events: readonly TranscriptEvent[]): SpawnedSubagent[] {
+export function codexSpawns(events: readonly TrajectoryEvent[]): SpawnedSubagent[] {
   const latest = new Map<string, Record<string, unknown>>()
   for (const e of toolCalls(events, ['spawn_agent', 'wait', 'send_input', 'close_agent'])) {
     for (const [thread, state] of Object.entries(record(e.output)))
@@ -106,7 +106,7 @@ export function codexSpawns(events: readonly TranscriptEvent[]): SpawnedSubagent
 }
 
 /** Cursor's `task` calls, whose result names the subagent's agent id and its time. */
-export function cursorSpawns(events: readonly TranscriptEvent[]): SpawnedSubagent[] {
+export function cursorSpawns(events: readonly TrajectoryEvent[]): SpawnedSubagent[] {
   return toolCalls(events, ['task']).map((e) => {
     const input = record(e.input)
     const output = record(e.output)
@@ -128,7 +128,7 @@ export function cursorSpawns(events: readonly TranscriptEvent[]): SpawnedSubagen
  * Antigravity's `invoke_subagent` calls, each starting every subagent its `subagents` lists. The
  * call returns as they start, with nothing about how they end.
  */
-export function antigravitySpawns(events: readonly TranscriptEvent[]): SpawnedSubagent[] {
+export function antigravitySpawns(events: readonly TrajectoryEvent[]): SpawnedSubagent[] {
   return toolCalls(events, ['invoke_subagent']).flatMap((e) => {
     const listed = Array.isArray(record(e.input).subagents)
       ? (record(e.input).subagents as unknown[])
@@ -148,7 +148,7 @@ export function antigravitySpawns(events: readonly TranscriptEvent[]): SpawnedSu
 }
 
 /** OpenCode's `subagent` calls, whose result's metadata names the child session and its state. */
-export function opencodeSpawns(events: readonly TranscriptEvent[]): SpawnedSubagent[] {
+export function opencodeSpawns(events: readonly TrajectoryEvent[]): SpawnedSubagent[] {
   return toolCalls(events, ['subagent', 'task']).map((e) => {
     const input = record(e.input)
     const output = record(e.output)
@@ -180,7 +180,7 @@ const acpText = (output: unknown): string | undefined =>
  */
 export const toolSpawns =
   (tools: readonly string[], background = false) =>
-  (events: readonly TranscriptEvent[]): SpawnedSubagent[] =>
+  (events: readonly TrajectoryEvent[]): SpawnedSubagent[] =>
     toolCalls(events, tools).map((e) => {
       const input = record(e.input)
       const finalMessage = str(e.output) ?? acpText(e.output)
@@ -201,7 +201,7 @@ export const toolSpawns =
 
 /**
  * Prints, as one JSON object by agent id, each Claude Code subagent's usage from its own
- * transcript (`<config>/projects/<cwd>/<session>/subagents/agent-<id>.jsonl`). The stream's copy
+ * trajectory (`<config>/projects/<cwd>/<session>/subagents/agent-<id>.jsonl`). The stream's copy
  * of a subagent's message carries its output tokens as they stood when it started; the stored one
  * has the final count. A message stored once per content block is counted once, by its id.
  */

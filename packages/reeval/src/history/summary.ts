@@ -3,7 +3,7 @@ import type { Outcome } from '../types.ts'
 import { colors } from '../ui/colors.ts'
 import { tallyLine } from '../ui/layout.ts'
 import { type AttemptFacts, attemptFacts } from '../view/classify.ts'
-import { harnessLabel, languageLabel, runtimeLabel, transcriptByLine } from '../view/model.ts'
+import { harnessLabel, languageLabel, runtimeLabel, trajectoryByLine } from '../view/model.ts'
 import { buildRunReport, type RunReportOptions } from '../view/report/index.ts'
 import { runResourcesLine } from '../view/resources.ts'
 import { suiteResult } from '../view/suite.ts'
@@ -122,7 +122,7 @@ export function renderSummary(run: RunRecord, opts: RunReportOptions = {}): stri
   return runReportMarkdown(buildRunReport(run, { links: { base: './' }, ...opts }))
 }
 
-/** Each attempt's facts from the transcript `record` keeps, as `files` holds it to write. */
+/** Each attempt's facts from the trajectory `record` keeps, as `files` holds it to write. */
 export function keptFacts(
   record: RunRecord,
   files: ReadonlyMap<string, Uint8Array>,
@@ -130,9 +130,9 @@ export function keptFacts(
   const facts = new Map<string, AttemptFacts>()
   for (const e of record.evals) {
     for (const a of e.attempts) {
-      const bytes = a.files.transcript && files.get(a.files.transcript.path)
+      const bytes = a.files.trajectory && files.get(a.files.trajectory.path)
       if (!bytes) continue
-      facts.set(a.key, attemptFacts(record, a, transcriptByLine(Buffer.from(bytes).toString())))
+      facts.set(a.key, attemptFacts(record, a, trajectoryByLine(Buffer.from(bytes).toString())))
     }
   }
   return facts

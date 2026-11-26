@@ -24,17 +24,17 @@ export async function printTokens(c: AttemptContext) {
   await c.exec('printf %s "$CHECK_TOKEN"')
 }
 
-type Seen = { checks?: Array<{ stdout: string }>; transcript?: string }
+type Seen = { checks?: Array<{ stdout: string }>; trajectory?: string }
 
 /**
- * A judge grader shown the checks and the transcript, which scores 1 when `ok` holds of what it
+ * A judge grader shown the checks and the trajectory, which scores 1 when `ok` holds of what it
  * was sent, also written to `judge-saw-<name>.json` for the host to compare with
  * `judge-input.json`.
  */
 export const sawRedacted = (name: string, ok: (state: Seen) => boolean) =>
   judge('Did the agent print its token?', {
     name: 'sees-redacted',
-    inputs: { checks: true, transcript: 'full' },
+    inputs: { checks: true, trajectory: 'full' },
     model: fakeJudge({
       score: (s) => {
         writeFileSync(new URL(`../judge-saw-${name}.json`, import.meta.url), JSON.stringify(s))

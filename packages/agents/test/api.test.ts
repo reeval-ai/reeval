@@ -31,8 +31,8 @@ function counted(): Runner & { closes: number } {
 const summary = (e: AgentEvent) =>
   e.type === 'phase'
     ? `phase ${e.phase}`
-    : e.type === 'transcript'
-      ? `transcript ${e.turn} ${e.event.type}`
+    : e.type === 'trajectory'
+      ? `trajectory ${e.turn} ${e.event.type}`
       : e.type === 'warning'
         ? `warning ${e.message}`
         : `${e.type} ${e.turn}`
@@ -81,7 +81,7 @@ test('start, two turns and close run in order, placing rules and skills first', 
   assert.deepEqual(one.usage, { input: 12, output: 5, cacheRead: 0, cacheWrite: 0, reasoning: 0 })
   assert.equal(seen[0], 'turn-start 0')
   assert.equal(seen.at(-1), 'turn-end 0')
-  assert.ok(seen.includes('transcript 0 text'))
+  assert.ok(seen.includes('trajectory 0 text'))
 
   const two = await session.send('two').result
   assert.equal(two.text, 'second')
@@ -95,7 +95,7 @@ test('start, two turns and close run in order, placing rules and skills first', 
   )
   assert.deepEqual(script.calls, ['start', 'turn 0', 'turn 1', 'destroy'])
   assert.equal(runner.closes, 0, "a runner passed as is is the caller's to close")
-  const order = events.map(summary).filter((s) => !s.startsWith('transcript'))
+  const order = events.map(summary).filter((s) => !s.startsWith('trajectory'))
   assert.deepEqual(order, [
     'phase runner',
     'phase place',
@@ -266,7 +266,7 @@ test('close() ends a turn that ignores its abort, closes the owned runner and th
   const r = await turn.result
   assert.equal(r.status, 'aborted')
   assert.deepEqual(
-    r.transcript.map((e) => e.type === 'error' && e.message),
+    r.trajectory.map((e) => e.type === 'error' && e.message),
     ["The turn didn't stop within 50ms of the session closing"],
   )
   assert.equal(runner.closes, 1)
@@ -374,7 +374,7 @@ test('stopped() ends a turn that ignores its abort, and close() then waits for n
   abort.abort()
   const note = { type: 'error', message: 'stopped waiting', ts: new Date().toISOString() } as const
   const stopped = await session.stopped(note as never)
-  assert.equal(stopped.transcript.at(-1)?.type, 'error')
+  assert.equal(stopped.trajectory.at(-1)?.type, 'error')
   assert.equal(await turn.result, stopped, "it is the turn's result")
   const since = Date.now()
   await session.close()
@@ -425,7 +425,7 @@ test("a turn whose every model call failed is an error, though the CLI's other r
   }
   const failed = await run([200, 402], [402, null])
   assert.equal(failed.status, 'error')
-  const error = failed.transcript.find((e) => e.type === 'error')
+  const error = failed.trajectory.find((e) => e.type === 'error')
   assert.match(JSON.stringify(error), /every Cursor model call in the turn failed \(HTTP 402\)/)
   assert.equal(failed.providerStop?.cause, 'credit')
   const refused = await run([200, 401], [401])

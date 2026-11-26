@@ -5,10 +5,10 @@ import { isObjectLike } from '../object.ts'
 import type { PairFactor, QuestionFields, QuestionInputs, QuestionOptions } from '../types.ts'
 import {
   inputsOn,
-  NO_TRANSCRIPT,
+  NO_TRAJECTORY,
   orList,
   sharedInputFields,
-  showsNoTranscript,
+  showsNoTrajectory,
   turnsSchema,
 } from './judge.ts'
 import { type Assert, closest, nonEmpty, type Same } from './shared.ts'
@@ -88,7 +88,7 @@ export type _SameAsSchema = [
   Assert<Same<z.infer<typeof questionOptionsSchema>, QuestionOptions>>,
 ]
 
-const QUESTION_EXAMPLE = `questions: [{ question: 'How did the agent find the failing test?', transcript: true }]`
+const QUESTION_EXAMPLE = `questions: [{ question: 'How did the agent find the failing test?', trajectory: true }]`
 const ACROSS_HINT = `'environment' (vary the environment, same agent) or 'agent' (vary the agent, same environment)`
 const ACROSS_MEAN =
   ' Did you mean "across"? It is the factor a pairwise question varies: across: \'environment\'.'
@@ -101,7 +101,7 @@ const VALUES: Record<Exclude<keyof QuestionInputs, 'artifacts'> | 'turns', strin
   output: 'true or false',
   files: 'true or false',
   diff: 'true, false or a non-empty list of patterns',
-  transcript: "true, false, 'tools', 'full' or { detail, agent, subagents }",
+  trajectory: "true, false, 'tools', 'full' or { detail, agent, subagents }",
   turns: "'last' or 'all'",
   checks: 'true, false or a list of commands',
   observations: 'true, false or a list of names',
@@ -133,8 +133,8 @@ function questionInputsProblem(
     const schema =
       key === 'turns' ? turnsSchema : sharedInputFields[key as keyof typeof sharedInputFields]
     if (!schema.safeParse(v).success) {
-      if (key === 'transcript' && showsNoTranscript(v)) {
-        return `${at} ${key} in ${where} ${NO_TRANSCRIPT}`
+      if (key === 'trajectory' && showsNoTrajectory(v)) {
+        return `${at} ${key} in ${where} ${NO_TRAJECTORY}`
       }
       return `${at} ${key} in ${where} must be ${VALUES[key as keyof typeof VALUES]} (got ${describe(v)})`
     }

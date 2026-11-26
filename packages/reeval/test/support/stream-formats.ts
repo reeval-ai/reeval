@@ -1,6 +1,6 @@
 // The shape of each agent CLI's native stream, as signatures: which events and step types it
 // sends, the key paths in each, the states it reports and the tools it advertises. Taken from the
-// `raw` parts of a raw transcript (REEVAL_RAW_TRANSCRIPT=1), which carry the native events. The known
+// `raw` parts of a raw trajectory (REEVAL_RAW_TRAJECTORY=1), which carry the native events. The known
 // signatures are committed in test/replay/formats/<harness>.json; a signature outside them means
 // the CLI's output format changed, and the contract fails on it (the drift job's loud failure).
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -402,9 +402,9 @@ const FORMATS: Record<string, Format> = {
 
 export const hasFormat = (harness: string) => Object.hasOwn(FORMATS, harness)
 
-/** The native events in a raw transcript: the `raw` parts' values that the CLI sent as JSON. */
-export function nativeEvents(rawTranscript: string): Record<string, unknown>[] {
-  return rawTranscript
+/** The native events in a raw trajectory: the `raw` parts' values that the CLI sent as JSON. */
+export function nativeEvents(rawTrajectory: string): Record<string, unknown>[] {
+  return rawTrajectory
     .split('\n')
     .filter(Boolean)
     .flatMap((line) => {
@@ -487,13 +487,13 @@ export function learnSignatures(harness: string, seen: string[]): void {
   writeFileSync(formatsFile(harness), `${JSON.stringify(all, null, 2)}\n`)
 }
 
-/** Every `transcript.raw.jsonl` under `dir`. */
-export function rawTranscripts(dir: string): string[] {
+/** Every `trajectory.raw.jsonl` under `dir`. */
+export function rawTrajectories(dir: string): string[] {
   const found: string[] = []
   const walk = (d: string) => {
     for (const e of readdirSync(d, { withFileTypes: true })) {
       if (e.isDirectory()) walk(join(d, e.name))
-      else if (e.name === 'transcript.raw.jsonl') found.push(join(d, e.name))
+      else if (e.name === 'trajectory.raw.jsonl') found.push(join(d, e.name))
     }
   }
   walk(dir)

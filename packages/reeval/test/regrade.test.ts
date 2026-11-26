@@ -273,7 +273,7 @@ describe('reeval regrade', () => {
     await writeFile(join(p.dir, 'evals/graders.ts'), graders('goodbye'))
     const plan = await cli(p.dir, ['regrade'])
     assert.match(plan, /0 to recompute, 0 to re-score, 0 unchanged, 1 can't be regraded/)
-    assert.match(plan, /says {2,}inputs missing {2,}skip 1 {2,}the transcript wasn't kept/)
+    assert.match(plan, /says {2,}inputs missing {2,}skip 1 {2,}the trajectory wasn't kept/)
     assert.match(plan, /Nothing to regrade: 1 attempt can't be regraded/)
     assert.deepEqual(regradeFiles(p.dir), [])
 
@@ -281,18 +281,18 @@ describe('reeval regrade', () => {
     const run = readdirSync(join(bad.dir, HISTORY))
       .find((n) => n.endsWith('.json'))
       ?.slice(0, -5)
-    const transcript = execFileSync(
+    const trajectory = execFileSync(
       'find',
-      [join(bad.dir, HISTORY, run ?? ''), '-name', 'transcript.jsonl'],
+      [join(bad.dir, HISTORY, run ?? ''), '-name', 'trajectory.jsonl'],
       {
         encoding: 'utf8',
       },
     ).trim()
-    await writeFile(transcript, `${readFileSync(transcript, 'utf8')}{not json\n`)
+    await writeFile(trajectory, `${readFileSync(trajectory, 'utf8')}{not json\n`)
     await writeFile(join(bad.dir, 'evals/graders.ts'), graders('goodbye'))
     assert.match(
       await cli(bad.dir, ['regrade', '--yes']),
-      /says {2,}inputs missing {2,}skip 1 {2,}line \d+ of .*transcript\.jsonl isn't JSON/,
+      /says {2,}inputs missing {2,}skip 1 {2,}line \d+ of .*trajectory\.jsonl isn't JSON/,
     )
   })
 
@@ -335,10 +335,10 @@ export default defineEval({ graders: [${list}], task: async (c) => {
     assert.deepEqual(regradeFiles(none.dir), [])
   })
 
-  test('marks a code grader inputs missing over a transcript the record cut', async () => {
+  test('marks a code grader inputs missing over a trajectory the record cut', async () => {
     const mid = `import { defineGrader } from 'reeval'
 export const mid = defineGrader('mid', {
-  grade: (c) => c.turns.some((t) => t.transcript.some((e) => typeof e.output === 'string' && e.output.includes('MIDDLE'))),
+  grade: (c) => c.turns.some((t) => t.trajectory.some((e) => typeof e.output === 'string' && e.output.includes('MIDDLE'))),
 })
 `
     const p = await setup('regrade-cut', {
@@ -353,7 +353,7 @@ export default defineEval({ graders: [mid], task: async (c) => void (await c.sen
     })
     await writeFile(join(p.dir, 'evals/graders.ts'), `${mid}// touched\n`)
     const out = await cli(p.dir, ['regrade', '--yes'])
-    assert.match(out, /mid {2,}inputs missing {2,}skip 1 {2,}the kept transcript cuts tool input/)
+    assert.match(out, /mid {2,}inputs missing {2,}skip 1 {2,}the kept trajectory cuts tool input/)
     assert.deepEqual(regradeFiles(p.dir), [])
     assert.match(await cli(p.dir, ['history']), /✓ +1\/1 {2}one/)
   })

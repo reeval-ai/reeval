@@ -36,7 +36,7 @@ function turnData(turn: Turn): TurnData {
     status,
     startedAt: turn.startedAt,
     durationMs: turn.durationMs,
-    transcript: turn.transcript,
+    trajectory: turn.trajectory,
     usage: turn.usage,
     model: turn.model,
     unreported: turn.unreported,

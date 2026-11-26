@@ -1,6 +1,6 @@
 import type { ExecResult, JSONValue, JudgeJsonState } from '../types.ts'
 
-export type DraftTurn = { task?: string; output?: JSONValue; transcript?: string }
+export type DraftTurn = { task?: string; output?: JSONValue; trajectory?: string }
 
 /** The judge's state before it's serialized: each part the `state` option kept. */
 export type Draft = {
@@ -17,14 +17,14 @@ function turnState(t: DraftTurn): JudgeJsonState {
   return {
     ...(t.task !== undefined ? { task: t.task } : {}),
     ...(t.output !== undefined ? { output: t.output } : {}),
-    ...(t.transcript !== undefined ? { transcript: t.transcript } : {}),
+    ...(t.trajectory !== undefined ? { trajectory: t.trajectory } : {}),
   }
 }
 
 /** The JSON the judge reads: the graded turn's keys at the top, or every turn under `turns`. */
 export function stateOf(d: Draft): JudgeJsonState {
   const last = d.turns.at(-1) ?? {}
-  const { transcript, ...top } = d.all ? {} : turnState(last)
+  const { trajectory, ...top } = d.all ? {} : turnState(last)
   return {
     ...(d.all ? { turns: d.turns.map(turnState) } : top),
     ...(d.files ? { files: d.files } : {}),
@@ -32,6 +32,6 @@ export function stateOf(d: Draft): JudgeJsonState {
     ...(d.contents ? { contents: d.contents } : {}),
     ...(d.checks ? { checks: d.checks } : {}),
     ...(d.observations ? { observations: d.observations } : {}),
-    ...(transcript !== undefined ? { transcript } : {}),
+    ...(trajectory !== undefined ? { trajectory } : {}),
   }
 }

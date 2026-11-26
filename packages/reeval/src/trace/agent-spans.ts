@@ -12,7 +12,7 @@
 // No content: prompts, agent text, reasoning and tool input and output stay out. Ids come from the
 // run, the attempt, its start and what each span is, so a turn's spans sent as it ends and the rest
 // sent when the attempt ends make one trace, and sending one record twice sends the same spans.
-import type { SubagentRun, SubagentUsage, TokenUsage, TranscriptEvent } from '@reeval/agents'
+import type { SubagentRun, SubagentUsage, TokenUsage, TrajectoryEvent } from '@reeval/agents'
 import { redactSecrets } from '../redact.ts'
 import { sha256Hex } from '../sha256.ts'
 import { clip } from '../text.ts'
@@ -93,7 +93,7 @@ function attemptSubagentUsage(turns: Array<{ subagentUsage?: SubagentUsage }>) {
   return all.find((u) => u === 'unknown') ?? all.find((u) => u === 'missing') ?? all[0]
 }
 
-const TOOL_NAME: Partial<Record<TranscriptEvent['type'], string>> = {
+const TOOL_NAME: Partial<Record<TrajectoryEvent['type'], string>> = {
   'file-edit': 'file-edit',
   'web-search': 'web-search',
   'web-fetch': 'web-fetch',
@@ -126,11 +126,11 @@ function turnSpans(o: AgentAttempt, i: number, parts: Parts): AgentSpan[] {
   const toolId = (callId: string, k: number) => spanId(`turn:${i}:tool:${callId}:${k}`)
   const seen = new Map<string, number>()
   const toolCalls = new Set(
-    turn.transcript.flatMap((e) => ('toolCallId' in e ? [e.toolCallId] : [])),
+    turn.trajectory.flatMap((e) => ('toolCallId' in e ? [e.toolCallId] : [])),
   )
   const turnEvents: NonNullable<AgentSpan['events']> = []
   let calls = 0
-  for (const e of turn.transcript) {
+  for (const e of turn.trajectory) {
     const startMs = turnStart + e.atMs
     if (e.type === 'error' || e.type === 'retry') {
       turnEvents.push({
@@ -208,7 +208,7 @@ function turnSpans(o: AgentAttempt, i: number, parts: Parts): AgentSpan[] {
     }
   }
   if (!parts.turn) return spans
-  const failure = turn.transcript.find((e) => e.type === 'error')
+  const failure = turn.trajectory.find((e) => e.type === 'error')
   spans.push({
     traceId,
     spanId: turnId,
@@ -248,7 +248,7 @@ function turnSpans(o: AgentAttempt, i: number, parts: Parts): AgentSpan[] {
  */
 export function finishedTurnSpans(o: AgentAttempt, i: number): AgentSpan[] {
   const turn = o.record.turns[i]
-  if (!turn || turn.transcript.some((e) => 'toolCallId' in e && e.durationMs === null)) return []
+  if (!turn || turn.trajectory.some((e) => 'toolCallId' in e && e.durationMs === null)) return []
   return turnSpans(o, i, { turn: true, tools: true, chat: false })
 }
 

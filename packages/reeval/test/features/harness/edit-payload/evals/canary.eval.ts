@@ -3,7 +3,7 @@ import { plain } from './env.ts'
 
 const editPayload = defineGrader('edit-payload', {
   grade: (c) => {
-    const edit = c.turns[0]?.transcript.find((e) => e.type === 'file-edit') as
+    const edit = c.turns[0]?.trajectory.find((e) => e.type === 'file-edit') as
       | { input?: { path?: string; content?: string }; output?: string; outputView?: string }
       | undefined
     return edit

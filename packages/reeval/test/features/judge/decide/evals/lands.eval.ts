@@ -2,7 +2,7 @@ import { defineEval, defineGrader } from 'reeval'
 import { model, noted, plain, questions } from './env.ts'
 
 // The task acts on a decision about its own state: the model answers from the diff, the call
-// lands in the transcript (features.test.ts checks it, masked) and graders read it.
+// lands in the trajectory (features.test.ts checks it, masked) and graders read it.
 export default defineEval({
   environment: plain,
   graders: [

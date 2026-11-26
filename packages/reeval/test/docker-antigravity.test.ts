@@ -167,14 +167,14 @@ export default defineEval({
   assert.equal(edit.status, 'completed')
   assert.match((await c.readFile('hello.js')) ?? '', /hi from agy/)
   assert.ok(((await c.exec('node hello.js')).stdout).includes('hi from agy'))
-  assert.equal(edit.transcript.some((e) => e.type === 'tool' && e.tool === 'bash'), true)
-  assert.equal(edit.transcript.some((e) => e.type === 'file-edit' && /hello\\.js$/.test(e.path)), true)
+  assert.equal(edit.trajectory.some((e) => e.type === 'tool' && e.tool === 'bash'), true)
+  assert.equal(edit.trajectory.some((e) => e.type === 'file-edit' && /hello\\.js$/.test(e.path)), true)
   const ask = await c.send('Reply on one line with the house word and the owl code.')
   assert.ok(ask.text.includes('PERIWINKLE-42'))
   assert.ok(ask.text.includes('OWL-5521'))
   // As the agent: a script it runs sees only the placeholder in the CLI's environment.
   const probe = await c.send('Run the shell command: sh probe.sh')
-  assert.equal(probe.transcript.some((e) => e.type === 'tool' && e.tool === 'bash'), true)
+  assert.equal(probe.trajectory.some((e) => e.type === 'tool' && e.tool === 'bash'), true)
   assert.equal((await c.exec('cat /tmp/probe.txt')).stdout.trim(), 'aisdkhc_')
   },
 })

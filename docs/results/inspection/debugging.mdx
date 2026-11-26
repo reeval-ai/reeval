@@ -3,7 +3,7 @@ title: "Debug a failing attempt"
 description: "Find why a failed attempt did what it did."
 ---
 
-When an attempt fails, read the phase trace and the transcript to see what the harness did.
+When an attempt fails, read the phase trace and the trajectory to see what the harness did.
 
 ## Print the trace
 
@@ -64,11 +64,11 @@ The `requests.ndjson` file records one JSON object for each request the egress g
 
 For more information, see [the studio's **Debug** tab](/results/inspection/studio).
 
-## Read a transcript
+## Read a trajectory
 
-The `transcript.jsonl` file lists every message and tool call of an attempt, in order. reeval writes that file for an attempt with a turn, at the `.reeval/runs/<run id>/<evaluation>/<cell>/<n>/transcript.jsonl` path.
+The `trajectory.jsonl` file lists every message and tool call of an attempt, in order. reeval writes that file for an attempt with a turn, at the `.reeval/runs/<run id>/<evaluation>/<cell>/<n>/trajectory.jsonl` path.
 
-Each line is one JSON object. A turn starts with a `prompt` line, continues with that turn's events, and ends with a `turn-end` line carrying `status` and `durationMs`. A tool line names the tool and includes the input and the output. The `transcript.jsonl` file keeps the final message whole.
+Each line is one JSON object. A turn starts with a `prompt` line, continues with that turn's events, and ends with a `turn-end` line carrying `status` and `durationMs`. A tool line names the tool and includes the input and the output. The `trajectory.jsonl` file keeps the final message whole.
 
 A prompt line has these fields.
 
@@ -82,7 +82,7 @@ A prompt line has these fields.
 }
 ```
 
-To also write the `transcript.raw.jsonl` file in that directory, one stream part per line, set [`REEVAL_RAW_TRANSCRIPT`](/reference/environment-variables#reevalrawtranscript).
+To also write the `trajectory.raw.jsonl` file in that directory, one stream part per line, set [`REEVAL_RAW_TRAJECTORY`](/reference/environment-variables#reevalrawtrajectory).
 
 ## Read the workspace and artifacts
 

@@ -13,7 +13,7 @@ export const agentPrinted = (name: string, check: (outputs: string[]) => boolean
   defineGrader(name, {
     grade: (c) =>
       c.turns.flatMap((t) =>
-        t.transcript.flatMap((e) =>
+        t.trajectory.flatMap((e) =>
           e.type === 'tool' && e.tool === 'shell' ? [String(e.output ?? '')] : [],
         ),
       ),

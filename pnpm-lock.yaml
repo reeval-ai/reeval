@@ -517,7 +517,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/reeval
 
-  examples/with-transcript-matchers:
+  examples/with-trajectory-matchers:
     dependencies:
       reeval:
         specifier: workspace:*

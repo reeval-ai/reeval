@@ -7,7 +7,7 @@ export default defineEval({
     ...shared,
     defineGrader('researches-tailwind-v4-first', {
       grade: (c) =>
-        (c.turns.at(-1)?.transcript ?? []).filter(
+        (c.turns.at(-1)?.trajectory ?? []).filter(
           (e) =>
             e.type === 'web-search' ||
             e.type === 'web-fetch' ||

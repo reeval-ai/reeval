@@ -3,7 +3,7 @@
 **Shows:** a session with a follow-up turn, graded turn by turn. The agent adds `multiply(a, b)`,
 then a second `c.send` asks it to take any number of arguments. An observation made before the
 second `c.send` sees the workspace as the first turn left it; one after it sees the final state.
-Each of `c.turns` has its own transcript, so the `edited-each-turn` grader calls `wrote` from
+Each of `c.turns` has its own trajectory, so the `edited-each-turn` grader calls `wrote` from
 `reeval/graders/match` on one turn at a time.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root

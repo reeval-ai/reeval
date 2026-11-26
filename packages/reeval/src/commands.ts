@@ -53,7 +53,7 @@ import type { ResolvedConfig } from './types.ts'
 import { renderCompare } from './ui/compare-layout.ts'
 import { runCost } from './view/cost.ts'
 import type { LiveRun } from './view/live.ts'
-import type { TranscriptLine } from './view/model.ts'
+import type { TrajectoryLine } from './view/model.ts'
 import { suiteResult } from './view/suite.ts'
 
 export type HistoryFlags = {
@@ -500,17 +500,17 @@ export async function showCommand(ctx: Ctx, refs: string[]): Promise<number> {
   const run = await readRecord(join(dir, `${entry.runId}.json`))
   if (ctx.flags.trace) {
     const { runTrace } = await import('./history/trace.ts')
-    const { transcriptLines } = await import('./mcp/files.ts')
-    const transcripts = new Map<string, TranscriptLine[]>()
+    const { trajectoryLines } = await import('./mcp/files.ts')
+    const trajectories = new Map<string, TrajectoryLine[]>()
     for (const a of run.evals.flatMap((e) => e.attempts)) {
-      const lines = a.startedAt ? await transcriptLines(config, run, a) : null
-      if (lines) transcripts.set(a.key, lines)
+      const lines = a.startedAt ? await trajectoryLines(config, run, a) : null
+      if (lines) trajectories.set(a.key, lines)
     }
     const file = resolve(
       ctx.flags.out ?? join(config.root, '.reeval', 'traces', `${run.runId}.json`),
     )
     await mkdir(dirname(file), { recursive: true })
-    await writeFile(file, `${JSON.stringify(runTrace(run, transcripts))}\n`)
+    await writeFile(file, `${JSON.stringify(runTrace(run, trajectories))}\n`)
     ctx.out(`Wrote ${fromCwd(file)}: open it at https://ui.perfetto.dev (Open trace file)`)
     return 0
   }

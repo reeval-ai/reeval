@@ -1477,14 +1477,14 @@ export function evalPlan(
   }
 }
 
-/** A pairwise question that shows each side's transcript, asked of two harnesses: tool names unblind it. */
+/** A pairwise question that shows each side's trajectory, asked of two harnesses: tool names unblind it. */
 function questionWarnings(resolved: Resolved): string[] {
   if (resolved.harness.length < 2) return []
   return resolved.questions
-    .filter((q) => pairFactors(q.across).includes('agent') && q.state?.transcript)
+    .filter((q) => pairFactors(q.across).includes('agent') && q.state?.trajectory)
     .map(
       (q) =>
-        `question "${q.question}" shows the transcript, which names each agent's tools, so its agent pairs aren't blind. Ask it with across: 'environment', or leave the transcript out.`,
+        `question "${q.question}" shows the trajectory, which names each agent's tools, so its agent pairs aren't blind. Ask it with across: 'environment', or leave the trajectory out.`,
     )
 }
 

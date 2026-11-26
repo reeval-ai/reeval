@@ -40,7 +40,7 @@ function cutOff(
         const empty: HarnessResult = {
           text: '',
           status: 'aborted',
-          transcript: [note],
+          trajectory: [note],
           usage: null,
           model: null,
           unreported: [],
@@ -123,7 +123,7 @@ export function turnSender(
       prompt,
       text: '',
       status: 'error',
-      transcript: [],
+      trajectory: [],
       usage: null,
       model: null,
       unreported: [],
@@ -151,7 +151,7 @@ export function turnSender(
       return {
         text: '',
         status: 'aborted',
-        transcript: [],
+        trajectory: [],
         usage: null,
         model: null,
         unreported: [],
@@ -186,8 +186,8 @@ export function turnSender(
       ? {
           ...sent,
           status: 'error' as const,
-          transcript: [
-            ...sent.transcript,
+          trajectory: [
+            ...sent.trajectory,
             {
               type: 'error' as const,
               message: timedOut,
@@ -209,18 +209,18 @@ export function turnSender(
       },
     )
     onTurnEnd?.(turnNumber - 1)
-    for (const event of result.transcript) {
+    for (const event of result.trajectory) {
       debugTrace(
         'harness',
-        'transcript',
+        'trajectory',
         { turn: turnNumber, ...event },
-        `transcript ${event.type}`,
+        `trajectory ${event.type}`,
       )
     }
     await takeContext(box, a.signal)
     const count = (...types: string[]) =>
-      result.transcript.filter((e) => types.includes(e.type)).length
-    const failure = result.transcript.find((e) => e.type === 'error')
+      result.trajectory.filter((e) => types.includes(e.type)).length
+    const failure = result.trajectory.find((e) => e.type === 'error')
     // The agent never got to work, or its provider stopped it, so checks on its workspace say
     // nothing about it.
     const stopped = result.status === 'aborted' ? undefined : providerStop

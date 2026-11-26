@@ -60,8 +60,8 @@ export const SIGNALS = {
     label: 'Usage on an aborted turn',
     record: "a timed-out turn's `usage`, equal to the calls the wire shows",
   },
-  abortedTranscript: {
-    label: 'Transcript of an aborted turn',
+  abortedTrajectory: {
+    label: 'Trajectory of an aborted turn',
     record: "a timed-out turn's events: the tool calls whose requests the wire shows",
   },
   largeShellOutput: {
@@ -133,7 +133,7 @@ export const TELEMETRY: Record<AgentKind, Row> = {
     },
     cost: notProduced,
     abortedUsage: dropped('`usage: null`'),
-    abortedTranscript: captured,
+    abortedTrajectory: captured,
     largeShellOutput: dropped(
       '`""`; the full output is in `~/.cursor/projects/*/agent-tools/*.txt`',
     ),
@@ -157,7 +157,7 @@ export const TELEMETRY: Record<AgentKind, Row> = {
     ),
     cost: dropped('`result.modelUsage[*].costUSD`'),
     abortedUsage: captured,
-    abortedTranscript: captured,
+    abortedTrajectory: captured,
     largeShellOutput: partial(MODEL_VIEW),
     largeMcpResult: partial(
       'a "saved to …" notice, which the model saw; the result is in `tool-results/`',
@@ -185,10 +185,10 @@ export const TELEMETRY: Record<AgentKind, Row> = {
     servedModel: captured,
     cost: notProduced,
     abortedUsage: dropped("`usage: null`; the rollout JSONL has each call's `last_token_usage`"),
-    abortedTranscript: captured,
+    abortedTrajectory: captured,
     largeShellOutput: {
       state: 'captured',
-      note: 'more than the model saw: the transcript has the full output',
+      note: 'more than the model saw: the trajectory has the full output',
     },
     largeMcpResult: captured,
     mcpCall: captured,
@@ -213,7 +213,7 @@ export const TELEMETRY: Record<AgentKind, Row> = {
     servedModel: captured,
     cost: notProduced,
     abortedUsage: partial("kept, without the title call's"),
-    abortedTranscript: captured,
+    abortedTrajectory: captured,
     largeShellOutput: partial(MODEL_VIEW),
     largeMcpResult: dropped(
       '`""`; the result is in `brain/<id>/.system_generated/steps/<n>/output.txt`',
@@ -238,7 +238,7 @@ export const TELEMETRY: Record<AgentKind, Row> = {
     servedModel: captured,
     cost: dropped('ACP `usage_update.cost`, and `opencode.db`'),
     abortedUsage: dropped("`usage: null`; `opencode.db` has the calls' tokens"),
-    abortedTranscript: dropped(
+    abortedTrajectory: dropped(
       'no parts: harness-acp drops what it buffered when it abandons the turn',
     ),
     largeShellOutput: partial(MODEL_VIEW),
@@ -263,7 +263,7 @@ export const TELEMETRY: Record<AgentKind, Row> = {
     servedModel: captured,
     cost: dropped('ACP `usage_update.cost`, and `usage_ledger.cost` (estimated)'),
     abortedUsage: dropped(),
-    abortedTranscript: dropped(
+    abortedTrajectory: dropped(
       'no parts: harness-acp drops what it buffered when it abandons the turn',
     ),
     largeShellOutput: partial(MODEL_VIEW),
@@ -288,7 +288,7 @@ export const TELEMETRY: Record<AgentKind, Row> = {
     servedModel: captured,
     cost: notProduced,
     abortedUsage: captured,
-    abortedTranscript: captured,
+    abortedTrajectory: captured,
     largeShellOutput: partial(MODEL_VIEW),
     largeMcpResult: partial(MODEL_VIEW),
     mcpCall: partial('the result keeps its `{output, details}` wrapper'),
@@ -312,12 +312,12 @@ export const TELEMETRY: Record<AgentKind, Row> = {
     servedModel: captured,
     cost: notProduced,
     abortedUsage: dropped(),
-    abortedTranscript: dropped(
+    abortedTrajectory: dropped(
       'no parts: harness-acp drops what it buffered when it abandons the turn',
     ),
     largeShellOutput: {
       state: 'captured',
-      note: 'more than the model saw: the transcript has the full output',
+      note: 'more than the model saw: the trajectory has the full output',
     },
     largeMcpResult: partial('a pointer the model follows with `read_tool_result`'),
     mcpCall: partial('the result keeps its `{server, tool, result}` wrapper'),
@@ -339,7 +339,7 @@ export const TELEMETRY: Record<AgentKind, Row> = {
     servedModel: captured,
     cost: dropped('`usage.cost_in_usd_ticks` on every response, and `usage.json`'),
     abortedUsage: dropped("`usage: null`; `sessions/<cwd>/<id>/usage.json` has the turn's"),
-    abortedTranscript: dropped(
+    abortedTrajectory: dropped(
       'no parts: harness-acp drops what it buffered when it abandons the turn',
     ),
     largeShellOutput: partial(MODEL_VIEW),

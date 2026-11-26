@@ -167,12 +167,12 @@ export type HarnessRow = {
   effort?: { value: string; asked: RegExp }
   /**
    * What the run records of the model's reasoning, on some turn: its tokens (`usage.reasoning`
-   * above 0) and its text (a non-empty `reasoning` event in a transcript). Unset, the row leaves
+   * above 0) and its text (a non-empty `reasoning` event in a trajectory). Unset, the row leaves
    * the reasoning check out.
    */
   reasoning?: { tokens: boolean; text: boolean }
   /**
-   * A model of the row's that shows its thinking, which the reasoning eval runs on: its transcript
+   * A model of the row's that shows its thinking, which the reasoning eval runs on: its trajectory
    * must have the reasoning's text and its turn a reasoning time. Unset, the row leaves the
    * reasoning eval out.
    */
@@ -999,8 +999,8 @@ export function rowEnv(row: HarnessRow): NodeJS.ProcessEnv {
         process.env[name] ? [[name, process.env[name]]] : [],
       ),
     ),
-    ...(process.env.REEVAL_RAW_TRANSCRIPT
-      ? { REEVAL_RAW_TRANSCRIPT: process.env.REEVAL_RAW_TRANSCRIPT }
+    ...(process.env.REEVAL_RAW_TRAJECTORY
+      ? { REEVAL_RAW_TRAJECTORY: process.env.REEVAL_RAW_TRAJECTORY }
       : {}),
   }
 }

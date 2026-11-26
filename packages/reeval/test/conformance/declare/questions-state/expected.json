@@ -2,7 +2,7 @@
   "children": [
     {
       "type": "eval",
-      "name": "transcript across harnesses",
+      "name": "trajectory across harnesses",
       "mode": "run",
       "options": {
         "compare": {
@@ -49,7 +49,7 @@
           {
             "question": "Which agent verified its work?",
             "across": "agent",
-            "transcript": "tools"
+            "trajectory": "tools"
           }
         ]
       },
@@ -60,7 +60,7 @@
     },
     {
       "type": "eval",
-      "name": "transcript within a harness",
+      "name": "trajectory within a harness",
       "mode": "run",
       "options": {
         "compare": {
@@ -107,7 +107,7 @@
           {
             "question": "Which arm verified its work?",
             "across": "environment",
-            "transcript": "tools"
+            "trajectory": "tools"
           }
         ]
       },
@@ -176,7 +176,7 @@
     },
     {
       "type": "eval",
-      "name": "each attempt with the transcript",
+      "name": "each attempt with the trajectory",
       "mode": "run",
       "options": {
         "questions": [
@@ -185,7 +185,7 @@
             "task": true,
             "output": true,
             "diff": true,
-            "transcript": true
+            "trajectory": true
           }
         ]
       },
@@ -196,7 +196,7 @@
     },
     {
       "type": "eval",
-      "name": "each attempt without the transcript",
+      "name": "each attempt without the trajectory",
       "mode": "run",
       "options": {
         "questions": [

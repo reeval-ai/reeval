@@ -16,13 +16,13 @@
         "judgeInput": {
           "$ref": "#/$defs/FileRef"
         },
-        "rawTranscript": {
+        "rawTrajectory": {
           "$ref": "#/$defs/FileRef"
         },
         "setupLog": {
           "$ref": "#/$defs/FileRef"
         },
-        "transcript": {
+        "trajectory": {
           "$ref": "#/$defs/FileRef"
         }
       },

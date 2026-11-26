@@ -6,4 +6,4 @@ const sandbox =
     ? docker()
     : fakeSandbox({ dir: new URL('../sandboxes', import.meta.url) })
 
-export const app = defineEnvironment('transcript-app', { sandbox })
+export const app = defineEnvironment('trajectory-app', { sandbox })

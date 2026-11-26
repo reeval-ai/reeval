@@ -48,7 +48,7 @@ const noDecideModel = (configFile: string) =>
   `c.decide() has no model. Set decide: { model: '${RECOMMENDED_JUDGE_MODEL}' } in ${configFile}, ` +
   'or pass { model } to this call.'
 
-const STATE_KEYS = ['output', 'diff', 'contents', 'observations', 'transcript', 'on'] as const
+const STATE_KEYS = ['output', 'diff', 'contents', 'observations', 'trajectory', 'on'] as const
 
 const nameOf = (model: DecideModel) =>
   typeof model === 'string' ? model : `${model.provider}/${model.modelId}`
@@ -95,7 +95,7 @@ function fileRecord(
   }
 }
 
-/** `state` masked as the record is, so the model is sent what the transcript keeps. */
+/** `state` masked as the record is, so the model is sent what the trajectory keeps. */
 function maskState(state: DecisionState): DecisionState {
   if (typeof state === 'string') return redactSecrets(state)
   if (!Array.isArray(state)) return redactValue(state)
@@ -303,7 +303,7 @@ const NO_TURN: Turn = {
   prompt: '',
   text: '',
   diff: { patch: '', files: [] },
-  transcript: [],
+  trajectory: [],
 } as unknown as Turn
 
 /**
@@ -316,7 +316,7 @@ export function stateBuilder(
 ): AttemptContext['state'] {
   return async (inputs) => {
     if (!isObjectLike(inputs)) {
-      throw new UsageError('c.state() takes { output, diff, contents, observations, transcript }')
+      throw new UsageError('c.state() takes { output, diff, contents, observations, trajectory }')
     }
     const unknown = Object.keys(inputs).find((k) => !(STATE_KEYS as readonly string[]).includes(k))
     if (unknown !== undefined) {
@@ -326,16 +326,16 @@ export function stateBuilder(
     }
     const { on, ...shown } = inputs as StateInputs
     const wanted = resolveStateOptions(shown)
-    const readsTurn = wanted.output || wanted.diff !== false || wanted.transcript !== false
+    const readsTurn = wanted.output || wanted.diff !== false || wanted.trajectory !== false
     const contents = wanted.contents.length > 0
     if (!readsTurn && !contents && !wanted.observations) {
       throw new UsageError(
-        'c.state() shows nothing: turn on output, diff, contents, observations or transcript',
+        'c.state() shows nothing: turn on output, diff, contents, observations or trajectory',
       )
     }
     const subject = turnFor(a, on)
     if (readsTurn && !subject) {
-      throw new UsageError('c.state() output, diff and transcript read a turn: call c.send() first')
+      throw new UsageError('c.state() output, diff and trajectory read a turn: call c.send() first')
     }
     const unobserved = Array.isArray(shown.observations)
       ? shown.observations.find((n) => !observedHere(a, n))

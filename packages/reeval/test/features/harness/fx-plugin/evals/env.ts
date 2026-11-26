@@ -12,7 +12,7 @@ export const house = defineEnvironment('house', ({ plugin }) => ({
 }))
 
 /** What the fake agent says it loaded: its skills, plugins and MCP servers. */
-export const loaded = (turn: Pick<Turn, 'transcript'> | undefined) =>
-  (turn?.transcript ?? []).flatMap((e) =>
+export const loaded = (turn: Pick<Turn, 'trajectory'> | undefined) =>
+  (turn?.trajectory ?? []).flatMap((e) =>
     e.type === 'text' && e.text.startsWith('Loaded ') ? [e.text] : [],
   )[0] ?? ''

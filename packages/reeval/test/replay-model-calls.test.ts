@@ -114,7 +114,7 @@ for (const capture of captures) {
 
       test(`${attempt.eval}: its LLM calls are its main model calls`, () => {
         const turns = attempt.turns.map((t) => ({
-          transcript: modelCallEvents(calls, {
+          trajectory: modelCallEvents(calls, {
             startedAt: t.startMs,
             durationMs: t.durationMs,
             model: t.model,
@@ -146,7 +146,7 @@ test('a harness whose catalog counts its steps as model calls reported one step 
 
 describe('LLM calls without the gateway', () => {
   const turn = (...steps: number[]) => ({
-    transcript: steps.map((step) => ({
+    trajectory: steps.map((step) => ({
       type: 'text',
       text: '',
       durationMs: 0,
@@ -162,11 +162,11 @@ describe('LLM calls without the gateway', () => {
     assert.equal(llmCalls([turn(1, 2, 3)] as never, false), null)
   })
   test('twin: no steps is unknown, not 0', () => {
-    assert.equal(llmCalls([turn(), { transcript: [] }] as never, true), null)
+    assert.equal(llmCalls([turn(), { trajectory: [] }] as never, true), null)
   })
   test("a call that carries the whole turn (Cursor's stream) counts none", () => {
     const stream = { type: 'model-call', role: 'main', stream: true, ts: '', atMs: 0 }
-    assert.equal(llmCalls([{ transcript: [stream] }] as never, true), null)
+    assert.equal(llmCalls([{ trajectory: [stream] }] as never, true), null)
   })
 })
 

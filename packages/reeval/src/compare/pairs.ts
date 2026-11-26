@@ -1,7 +1,7 @@
 // Pairs for pairwise questions, as pure data: which attempts are judged against which, the order
 // each is shown in, and how the blinded picks map back to names and win rates. A run's staging
 // records and recorded runs both feed it.
-import type { JudgeSubagent } from '../judge/transcript.ts'
+import type { JudgeSubagent } from '../judge/trajectory.ts'
 import { clip } from '../text.ts'
 import type {
   CompareAnswer,
@@ -14,15 +14,15 @@ import type {
   Outcome,
   PairFactor,
   PairVote,
-  TranscriptEvent,
+  TrajectoryEvent,
 } from '../types.ts'
 
-/** One turn of a side: its prompt, final message and transcript, when the record has them. */
+/** One turn of a side: its prompt, final message and trajectory, when the record has them. */
 export type PairTurn = {
   prompt: string
   text?: string
-  transcript?: readonly TranscriptEvent[]
-  /** The subagents the turn spawned, for the transcript's headers. */
+  trajectory?: readonly TrajectoryEvent[]
+  /** The subagents the turn spawned, for the trajectory's headers. */
   subagents?: readonly JudgeSubagent[]
 }
 

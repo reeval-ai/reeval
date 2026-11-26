@@ -52,7 +52,7 @@ For the `separators` grader, see [Evaluate](/evaluations/evaluate). For more inf
 
 `wrote` checks the paths the agent's write and edit tool calls touched. `ran` checks shell commands the harness ran, and counts them:
 
-```ts title="with-transcript-matchers.eval.ts"
+```ts title="with-trajectory-matchers.eval.ts"
   graders: [
     wrote('src/math.js'),
     ran(/node --test|npm (test|t)\b/),
@@ -65,7 +65,7 @@ For the `separators` grader, see [Evaluate](/evaluations/evaluate). For more inf
 
 A string or regular expression matches anywhere in the command line, so `/genkit/` also matches `cat genkit.config.ts`. The `{ program, args }` form matches the program each part of the line ran, after wrappers such as `FOO=1`, `timeout`, and `npx`. For the full list, see [`shellCommands()`](/reference/authoring-api#shellcommands).
 
-`calledTool`, `calledMcp`, and `usedSkill` read the same transcript. `withinLimits` caps the tokens, tool calls, and time the turns took, as in `withinLimits({ tokens: 20_000, toolCalls: 30 })`. `notInDiff` and `inDiff` read the workspace diff. For a runnable project, see [`with-transcript-matchers`](https://github.com/reeval-ai/reeval/tree/main/examples/with-transcript-matchers).
+`calledTool`, `calledMcp`, and `usedSkill` read the same trajectory. `withinLimits` caps the tokens, tool calls, and time the turns took, as in `withinLimits({ tokens: 20_000, toolCalls: 30 })`. `notInDiff` and `inDiff` read the workspace diff. For a runnable project, see [`with-trajectory-matchers`](https://github.com/reeval-ai/reeval/tree/main/examples/with-trajectory-matchers).
 
 `searched` and `fetched` record an error when the harness does not report web searches or web fetches.
 

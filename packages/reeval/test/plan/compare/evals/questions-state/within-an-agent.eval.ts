@@ -7,7 +7,7 @@ export default defineEval({
     {
       question: 'Which arm verified its work?',
       across: 'environment',
-      transcript: 'tools',
+      trajectory: 'tools',
     },
   ],
   task: async () => {},

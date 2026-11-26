@@ -1,24 +1,24 @@
 no profile · 5 evals · 16 cells · 52 attempts
-warning: question "Which agent verified its work?" shows the transcript, which names each agent's tools, so its agent pairs aren't blind. Ask it with across: 'environment', or leave the transcript out.
+warning: question "Which agent verified its work?" shows the trajectory, which names each agent's tools, so its agent pairs aren't blind. Ask it with across: 'environment', or leave the trajectory out.
 questions-state/across-agents       a/base/docker     control          ungated  ×4  runs 4 (compare default)
                                     a/skilled/docker  variant skilled  ungated  ×4
                                     b/base/docker     control          ungated  ×4
                                     b/skilled/docker  variant skilled  ungated  ×4
-                                    question: Which agent verified its work? · shows transcript · agent · 8 pairs · no language model
+                                    question: Which agent verified its work? · shows trajectory · agent · 8 pairs · no language model
 questions-state/screenshots         a/base/docker     control          ungated  ×4  runs 4 (compare default)
                                     a/skilled/docker  variant skilled  ungated  ×4
                                     b/base/docker     control          ungated  ×4
                                     b/skilled/docker  variant skilled  ungated  ×4
                                     question: Which page looks better? · shows artifacts · environment · 8 pairs · no language model
-questions-state/with-transcript     a/-/docker        control          ungated  ×1
+questions-state/with-trajectory     a/-/docker        control          ungated  ×1
                                     b/-/docker        control          ungated  ×1
-                                    question: What did the agent check before it finished? · shows task, output, diff, transcript · each attempt · 2 attempts · no language model
+                                    question: What did the agent check before it finished? · shows task, output, diff, trajectory · each attempt · 2 attempts · no language model
 questions-state/within-an-agent     a/base/docker     control          ungated  ×4  runs 4 (compare default)
                                     a/skilled/docker  variant skilled  ungated  ×4
                                     b/base/docker     control          ungated  ×4
                                     b/skilled/docker  variant skilled  ungated  ×4
-                                    question: Which arm verified its work? · shows transcript · environment · 8 pairs · no language model
-questions-state/without-transcript  a/-/docker        control          ungated  ×1
+                                    question: Which arm verified its work? · shows trajectory · environment · 8 pairs · no language model
+questions-state/without-trajectory  a/-/docker        control          ungated  ×1
                                     b/-/docker        control          ungated  ×1
                                     question: What did the agent say it did? · shows task, output, diff · each attempt · 2 attempts · no language model
 excluded: —

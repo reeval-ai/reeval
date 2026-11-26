@@ -715,7 +715,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
         summary: "Share a run's report with your org",
         description: "Share a run's report with your org (default: latest)",
         options: [
-          { flags: '--full', help: 'Include transcripts and artifacts' },
+          { flags: '--full', help: 'Include trajectories and artifacts' },
           { flags: '--public', help: 'Allow anyone with the link' },
           { flags: '--list', help: 'List shares' },
           { flags: '--revoke <id>', help: 'Revoke a share' },
