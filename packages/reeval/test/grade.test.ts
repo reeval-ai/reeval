@@ -1,8 +1,8 @@
 // Graders: their definition and refusals, the context they read an attempt through, their grades
 // and scores, the attempt's score, their code digests, and running them on an attempt end to end.
 import assert from 'node:assert/strict'
-import { existsSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { describe, test } from 'node:test'
 import { gzipSync } from 'node:zlib'
 import { writeTar } from '@reeval/sandbox-docker'
@@ -13,6 +13,7 @@ import { attemptScore, runGraders, scoreFailure } from '../src/grade/run.ts'
 import type { Grader } from '../src/grade/types.ts'
 import { keptFiles } from '../src/history/trajectory.ts'
 import { sha256 } from '../src/ids.ts'
+import { registerSecret } from '../src/redact.ts'
 import type { GradeRecord } from '../src/types.ts'
 import { fakeConfig, project, readRun, runCli, tempDir } from './helpers.ts'
 
@@ -59,9 +60,15 @@ function inputs(files: Record<string, string> = {}): GradeInputs {
         { name: 'home', path: 'home.png', sha256: sha256(png), bytes: 3, mediaType: 'image/png' },
       ],
       readArtifact: async (name) => (name === 'home' ? png : null),
-      workspace: entries.length ? keptFiles(manifest, async () => archive) : null,
+      workspace: entries.length ? keptFiles(manifest, archiveFile(archive)) : null,
     },
   }
+}
+
+function archiveFile(archive: Buffer): string {
+  const file = join(tempDir('grade-kept'), 'workspace.tar.gz')
+  writeFileSync(file, archive)
+  return file
 }
 
 const defs = (...graders: Array<Grader | Grader[]>): GraderDef[] =>
@@ -222,6 +229,14 @@ describe('the grader context', () => {
       delete process.env.REEVAL_TEST_GRADE_TOKEN
     }
   })
+
+  test('masks a number whose digits are a secret', async () => {
+    registerSecret('482915736104')
+    const r = await grade(
+      defineGrader('pin', { grade: () => ({ pin: 482915736104, n: 3, gone: undefined }) }),
+    )
+    assert.deepEqual(r.grade, { pin: '[REDACTED]', n: 3 })
+  })
 })
 
 describe('grades and scores', () => {
@@ -244,8 +259,8 @@ describe('grades and scores', () => {
         /^boom$/,
       ],
       [defineGrader('undef', { grade: () => undefined as never }), /returned undefined/],
-      [defineGrader('map', { grade: () => new Map() as never }), /isn't JSON data/],
-      [defineGrader('nan', { grade: () => Number.NaN }), /isn't JSON data/],
+      [defineGrader('map', { grade: () => new Map() as never }), /isn't JSON: /],
+      [defineGrader('nan', { grade: () => Number.NaN }), /isn't JSON: /],
       [
         defineGrader('slow', { timeout: '50ms', grade: () => new Promise<boolean>(() => {}) }),
         /grade timed out after 50ms/,
@@ -367,14 +382,80 @@ describe('the code digest', () => {
       "import { MIN } from './helper.ts'\nexport const x = MIN\n",
     )
     const fn = (n: number) => n > 1
-    const first = functionDigest(fn, join(dir, 'grader.ts'))
-    assert.equal(functionDigest(fn, join(dir, 'grader.ts')), first)
+    const first = functionDigest(fn, join(dir, 'grader.ts'), 'grade')
+    assert.equal(functionDigest(fn, join(dir, 'grader.ts'), 'grade'), first)
     assert.notEqual(
-      functionDigest((n: number) => n > 2, join(dir, 'grader.ts')),
+      functionDigest((n: number) => n > 2, join(dir, 'grader.ts'), 'grade'),
       first,
     )
     writeFileSync(join(dir, 'helper.ts'), 'export const MIN = 2\n')
-    assert.notEqual(functionDigest(fn, join(dir, 'grader.ts')), first, 'an imported module changed')
+    assert.notEqual(
+      functionDigest(fn, join(dir, 'grader.ts'), 'grade'),
+      first,
+      'an imported module changed',
+    )
+  })
+
+  test('follows require, # imports, re-exports and workspace packages, not installed ones', () => {
+    const dir = join(tempDir('grade-digest-resolve'), 'proj')
+    const files: Record<string, string> = {
+      'package.json': JSON.stringify({ name: 'p', imports: { '#lib/*': './lib/*.ts' } }),
+      'grader.ts': [
+        "import { a } from './a.js'",
+        "export * from './b'",
+        "import { s } from '#lib/s'",
+        "import { w } from '@w/util'",
+        "import { e } from 'ext'",
+        "const c = require('./c.cjs')",
+        'export const x = [a, s, w, e, c]',
+      ].join('\n'),
+      'a.ts': 'export const a = 1\n',
+      'b.ts': "export { d } from './d'\n",
+      'd.ts': 'export const d = 1\n',
+      'c.cjs': 'module.exports = 1\n',
+      'lib/s.ts': 'export const s = 1\n',
+      '../ws/util/package.json': JSON.stringify({ name: '@w/util', exports: './index.ts' }),
+      '../ws/util/index.ts': 'export const w = 1\n',
+      'node_modules/ext/package.json': JSON.stringify({ name: 'ext', main: 'index.js' }),
+      'node_modules/ext/index.js': 'exports.e = 1\n',
+    }
+    for (const [path, text] of Object.entries(files)) {
+      mkdirSync(dirname(join(dir, path)), { recursive: true })
+      writeFileSync(join(dir, path), text)
+    }
+    mkdirSync(join(dir, 'node_modules/@w'), { recursive: true })
+    symlinkSync(join(dir, '../ws/util'), join(dir, 'node_modules/@w/util'))
+    const fn = () => 1
+    const digest = () => functionDigest(fn, join(dir, 'grader.ts'), 'grade')
+    let last = digest()
+    for (const path of ['a.ts', 'd.ts', 'c.cjs', 'lib/s.ts', '../ws/util/index.ts']) {
+      writeFileSync(join(dir, path), `${files[path]}// edited\n`)
+      const next = digest()
+      assert.notEqual(next, last, `${path} is in the digest`)
+      last = next
+    }
+    writeFileSync(join(dir, 'node_modules/ext/index.js'), 'exports.e = 2\n')
+    assert.equal(digest(), last, 'an installed package is left to the lockfile')
+  })
+
+  test("refuses a bound function, whose source it can't read", () => {
+    const check = (min: number, g: number) => g >= min
+    assert.throws(
+      () => defineGrader('bound', { grade: () => 1, score: check.bind(null, 3) }),
+      /score in defineGrader\("bound"\) is a bound or built-in function/,
+    )
+    assert.throws(
+      () => defineGrader('bound', { grade: check.bind(null, 3) as never }),
+      /grade in defineGrader\("bound"\) is a bound or built-in function/,
+    )
+  })
+
+  test('defineGraders<C>() defines the group as the plain call does', () => {
+    const [a, b] = defineGraders<{ input: string }>()(['a', 'b'], {
+      grade: (c) => c.case.input.length,
+      score: { a: () => 1, b: () => 0 },
+    })
+    assert.deepEqual([a?.name, b?.name], ['a', 'b'])
   })
 })
 
