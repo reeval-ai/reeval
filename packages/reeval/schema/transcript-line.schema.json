@@ -4,6 +4,294 @@
   "title": "TranscriptLine",
   "$ref": "#/$defs/TranscriptLine",
   "$defs": {
+    "DecisionAnswerRecord": {
+      "description": "One question's answer, as the AI SDK returns it.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "box": {
+              "type": "object",
+              "properties": {
+                "bottom": {
+                  "type": "number"
+                },
+                "left": {
+                  "type": "number"
+                },
+                "right": {
+                  "type": "number"
+                },
+                "top": {
+                  "type": "number"
+                }
+              },
+              "required": ["bottom", "left", "right", "top"]
+            },
+            "type": {
+              "const": "box"
+            }
+          },
+          "required": ["box", "type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "choice": {
+              "type": "string"
+            },
+            "probabilities": {
+              "type": "object",
+              "properties": {},
+              "required": [],
+              "additionalProperties": {
+                "type": "number"
+              }
+            },
+            "type": {
+              "const": "choice"
+            }
+          },
+          "required": ["choice", "type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "probabilities": {
+              "type": "object",
+              "properties": {},
+              "required": [],
+              "additionalProperties": {
+                "type": "number"
+              }
+            },
+            "score": {
+              "type": "number"
+            },
+            "type": {
+              "const": "score"
+            }
+          },
+          "required": ["score", "type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "probability": {
+              "type": "number"
+            },
+            "type": {
+              "const": "boolean"
+            }
+          },
+          "required": ["probability", "type"]
+        }
+      ]
+    },
+    "DecisionFileRecord": {
+      "description": "A file part of a decision's state as it's recorded: its bytes' hash and size instead of the bytes, and the capture it is, when it's one of the attempt's.",
+      "type": "object",
+      "properties": {
+        "bytes": {
+          "type": "number"
+        },
+        "capture": {
+          "description": "The `c.capture()` name whose PNG this is.",
+          "type": "string"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "mediaType": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "type": {
+          "const": "file"
+        },
+        "url": {
+          "description": "A URL the provider was sent instead of bytes, masked.",
+          "type": "string"
+        }
+      },
+      "required": ["mediaType", "type"]
+    },
+    "DecisionRecord": {
+      "description": "One `c.decide()` call, masked as it was sent: a step of the task, never graded and never part of the agent's usage or cost.",
+      "type": "object",
+      "properties": {
+        "answers": {
+          "description": "Each question's answer, by id; empty when the call failed.",
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": {
+            "$ref": "#/$defs/DecisionAnswerRecord"
+          }
+        },
+        "costUsd": {
+          "description": "What the gateway says the call cost, in US dollars; unset when it names none.",
+          "type": "number"
+        },
+        "durationMs": {
+          "type": "number"
+        },
+        "error": {
+          "description": "Why the call failed, after the AI SDK's retries.",
+          "type": "string"
+        },
+        "gateway": {
+          "description": "The gateway from the config's `gateway` list the call went through; unset for a model object.",
+          "enum": ["direct", "openrouter", "vercel", "vertex"]
+        },
+        "model": {
+          "description": "`'provider/model'`, or a model object's `provider/modelId`.",
+          "type": "string"
+        },
+        "providerMetadata": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        },
+        "questions": {
+          "description": "The questions, by id, as the AI SDK takes them.",
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        },
+        "resolvedModel": {
+          "description": "The model id the provider says answered, when it reports one.",
+          "type": "string"
+        },
+        "startedAt": {
+          "type": "string"
+        },
+        "state": {
+          "description": "What the model was shown: a string, a JSON object, or parts.",
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DecisionStateRecord"
+              }
+            },
+            {
+              "type": "object",
+              "properties": {},
+              "required": [],
+              "additionalProperties": {
+                "$ref": "#/$defs/JSONValue"
+              }
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "turn": {
+          "description": "How many turns the attempt had sent when it was asked: 0 before the first.",
+          "type": "number"
+        },
+        "usage": {
+          "description": "Null when the provider reported none, or the call failed.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TokenUsage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        }
+      },
+      "required": [
+        "answers",
+        "durationMs",
+        "model",
+        "questions",
+        "startedAt",
+        "state",
+        "turn",
+        "usage"
+      ]
+    },
+    "DecisionStateRecord": {
+      "description": "One part of a decision's state as it's recorded.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DecisionFileRecord"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "type": {
+              "const": "text"
+            }
+          },
+          "required": ["text", "type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "json"
+            },
+            "value": {
+              "$ref": "#/$defs/JSONValue"
+            }
+          },
+          "required": ["type", "value"]
+        }
+      ]
+    },
+    "JSONValue": {
+      "description": "Any JSON value.",
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
     "TokenUsage": {
       "description": "The tokens one turn used, as its harness reported them. `input` excludes cache reads and writes (so the prompt was `input + cacheRead + cacheWrite`); `reasoning` is part of `output`.",
       "type": "object",
@@ -229,6 +517,27 @@
             }
           },
           "required": ["atMs", "durationMs", "ok", "toolCallId", "ts", "turn", "type", "url"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "atMs": {
+              "type": "number"
+            },
+            "decision": {
+              "$ref": "#/$defs/DecisionRecord"
+            },
+            "ts": {
+              "type": "string"
+            },
+            "turn": {
+              "type": "number"
+            },
+            "type": {
+              "const": "decision"
+            }
+          },
+          "required": ["atMs", "decision", "ts", "turn", "type"]
         },
         {
           "type": "object",

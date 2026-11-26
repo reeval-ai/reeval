@@ -75,7 +75,7 @@ type StateSources = {
  * its changed files and diff as `judgeDiff` shows them, files whole, `c.exec` results and the
  * transcript.
  */
-async function draftState(src: StateSources): Promise<{ draft: Draft; dropped: string[] }> {
+export async function draftState(src: StateSources): Promise<{ draft: Draft; dropped: string[] }> {
   const { subject, wanted } = src
   const at = src.turns.indexOf(subject)
   const graded = wanted.turns === 'all' && at >= 0 ? src.turns.slice(0, at + 1) : [subject]

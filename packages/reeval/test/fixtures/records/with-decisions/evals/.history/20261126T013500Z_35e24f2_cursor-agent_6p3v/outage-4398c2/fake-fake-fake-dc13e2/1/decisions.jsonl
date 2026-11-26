@@ -1,0 +1,1 @@
+{"model":"fake/fake-decision","turn":1,"startedAt":"2026-11-26T01:35:02.000Z","durationMs":2,"state":"Is it done?","questions":{"done":{"type":"boolean","instructions":"Done?"}},"answers":{},"usage":null,"error":"overloaded"}

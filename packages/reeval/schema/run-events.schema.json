@@ -342,6 +342,10 @@
           "description": "The transcript as a Harbor ATIF trajectory, with the config's `exports: ['atif']`.",
           "$ref": "#/$defs/FileRef"
         },
+        "decisions": {
+          "description": "`decisions.jsonl`: each `c.decide` call, one `DecisionRecord` per call in call order.",
+          "$ref": "#/$defs/FileRef"
+        },
         "diff": {
           "$ref": "#/$defs/FileRef"
         },
@@ -746,6 +750,10 @@
         "cost": {
           "description": "The gateway's billed `reportedCostUsd`, else the turns' costs added up; unset when a turn with tokens has none.",
           "$ref": "#/$defs/CostUsd"
+        },
+        "decisionUse": {
+          "description": "What the attempt's `c.decide()` calls used, apart from the agent's `usage` and `cost`. The calls are `files.decisions`, and each is a `decision` line in transcript.jsonl too.",
+          "$ref": "#/$defs/DecisionUseSpend"
         },
         "durationMs": {
           "type": "number"
@@ -2485,6 +2493,7 @@
             "broker",
             "check",
             "container",
+            "decide",
             "docker",
             "env",
             "gateway",
@@ -2500,6 +2509,30 @@
         }
       },
       "required": ["at", "level", "phase", "text"]
+    },
+    "DecisionUseSpend": {
+      "description": "What an attempt's `c.decide()` calls used: never the agent's `usage` or cost.",
+      "type": "object",
+      "properties": {
+        "calls": {
+          "type": "number"
+        },
+        "costUsd": {
+          "description": "The calls' cost the gateways named, in US dollars; unset when none named one.",
+          "type": "number"
+        },
+        "usage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TokenUsage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": ["calls", "usage"]
     },
     "DockerSandboxDescriptor": {
       "description": "A local Docker container, made by `docker()`, or a Podman one, made by `podman()`.",

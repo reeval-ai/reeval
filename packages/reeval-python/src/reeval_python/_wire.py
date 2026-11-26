@@ -254,9 +254,22 @@ class AttemptCallJudge(TypedDict):
     question: str
 
 
+# `c.decide(call)`. Replies with its result. A provider failure fails the call and the attempt,
+# as an infrastructure error.
+class AttemptCallDecide(TypedDict):
+    # `'provider/model'`. Default `decide.model`, then `analysis.model`.
+    model: NotRequired[str]
+    op: Literal["decide"]
+    providerOptions: NotRequired[dict[str, dict[str, JSONValue]]]
+    # The questions by id, as the AI SDK's `experimental_decide` takes them.
+    questions: dict[str, JSONValue]
+    # What the model decides about: a string, a JSON object or parts.
+    state: str | dict[str, JSONValue] | list[DecideStatePart]
+
+
 # One call an eval's body makes on its attempt. The sandbox and the agent session start on the
 # first call that needs them; there's no call to start them.
-AttemptCall: TypeAlias = "AttemptCallSend | AttemptCallExec | AttemptCallServe | AttemptCallKill | AttemptCallCapture | AttemptCallReadFile | AttemptCallWriteFile | AttemptCallObserve | AttemptCallExpect | AttemptCallRecord | AttemptCallJudge"
+AttemptCall: TypeAlias = "AttemptCallSend | AttemptCallExec | AttemptCallServe | AttemptCallKill | AttemptCallCapture | AttemptCallReadFile | AttemptCallWriteFile | AttemptCallObserve | AttemptCallExpect | AttemptCallRecord | AttemptCallJudge | AttemptCallDecide"
 
 
 # The runner to reeval: the eval's body has finished. The attempt's checks and record follow.
@@ -370,6 +383,14 @@ class AttemptReplyJudge(TypedDict):
     verdict: Verdict | JudgeFailure
 
 
+class AttemptReplyDecide(TypedDict):
+    # Pairs a reply with its request.
+    id: str
+    ok: Literal[True]
+    op: Literal["decide"]
+    result: DecideResult
+
+
 class AttemptReplyExpect2(TypedDict):
     # Pairs a reply with its request.
     id: str
@@ -385,12 +406,12 @@ class AttemptReplyError(TypedDict):
     # Pairs a reply with its request.
     id: str
     ok: Literal[False]
-    op: Literal["send", "exec", "readFile", "writeFile", "observe", "expect", "record", "judge", "serve", "kill", "capture"]
+    op: Literal["send", "exec", "readFile", "writeFile", "observe", "expect", "record", "judge", "serve", "kill", "capture", "decide"]
 
 
 # reeval's reply to a call: its result, or the error it threw. A failed matcher is a result (its
 # record says `fail`), not an error, unless the matcher couldn't run.
-AttemptReply: TypeAlias = "AttemptReplySend | AttemptReplyExec | AttemptReplyServe | AttemptReplyKill | AttemptReplyCapture | AttemptReplyReadFile | AttemptReplyWriteFile | AttemptReplyObserve | AttemptReplyExpect | AttemptReplyRecord | AttemptReplyJudge | AttemptReplyExpect2 | AttemptReplyError"
+AttemptReply: TypeAlias = "AttemptReplySend | AttemptReplyExec | AttemptReplyServe | AttemptReplyKill | AttemptReplyCapture | AttemptReplyReadFile | AttemptReplyWriteFile | AttemptReplyObserve | AttemptReplyExpect | AttemptReplyRecord | AttemptReplyJudge | AttemptReplyDecide | AttemptReplyExpect2 | AttemptReplyError"
 
 
 # A call, numbered so its reply can find it.
@@ -696,6 +717,72 @@ class CursorHarnessDescriptor(TypedDict):
     # How long the harness's session may take to become ready (its bootstrap and first session)
     # before the attempt is an infra error, after one retry; default 90s.
     startTimeout: NotRequired[Duration]
+
+
+class DecideResultResponse(TypedDict):
+    modelId: str
+    # ISO 8601.
+    timestamp: str
+
+
+class DecideResultUsage(TypedDict):
+    inputTokens: NotRequired[float]
+    outputTokens: NotRequired[float]
+    totalTokens: NotRequired[float]
+
+
+# `c.decide()`'s result, its response's id, headers and body left out.
+class DecideResult(TypedDict):
+    # Each question's answer, by id, as `experimental_decide` returns it.
+    answers: dict[str, JSONValue]
+    providerMetadata: NotRequired[dict[str, dict[str, JSONValue]]]
+    response: DecideResultResponse
+    usage: DecideResultUsage
+    warnings: list[JSONValue]
+
+
+class DecideStatePartText(TypedDict):
+    text: str
+    type: Literal["text"]
+
+
+class DecideStatePartJson(TypedDict):
+    type: Literal["json"]
+    value: JSONValue
+
+
+# A capture's PNG as an image file part, as `c.part(capture)` gives it.
+class DecideStatePartCapture(TypedDict):
+    name: str
+    type: Literal["capture"]
+
+
+# The turn `output`, `diff` and `transcript` read instead of the latest.
+class DecideStatePartInputsOn(TypedDict):
+    # The turn's index, from 0.
+    turn: int
+
+
+class DecideStatePartInputsTranscript3(TypedDict):
+    agent: NotRequired[bool]
+    detail: NotRequired[Literal["tools", "full"]]
+    subagents: NotRequired[bool]
+
+
+# The judge's inputs as one JSON part, masked as a judge's are, as `c.state(inputs)` gives them.
+class DecideStatePartInputs(TypedDict):
+    contents: NotRequired[list[str]]
+    diff: NotRequired[bool | list[str]]
+    observations: NotRequired[bool | list[str]]
+    # The turn `output`, `diff` and `transcript` read instead of the latest.
+    on: NotRequired[DecideStatePartInputsOn]
+    output: NotRequired[bool]
+    transcript: NotRequired[bool | Literal["tools", "full"] | DecideStatePartInputsTranscript3]
+    type: Literal["inputs"]
+
+
+# One part of the state a decision model is shown.
+DecideStatePart: TypeAlias = "DecideStatePartText | DecideStatePartJson | DecideStatePartCapture | DecideStatePartInputs"
 
 
 # An eval file's top-level groups, evals and todos, in declaration order.
@@ -2365,14 +2452,18 @@ CAMEL_KEYS: frozenset[str] = frozenset(
         "flakeRate",
         "identityFile",
         "ignoreAbort",
+        "inputTokens",
         "matchedBy",
         "maxConcurrent",
         "mediaType",
         "minLift",
+        "modelId",
+        "outputTokens",
         "outputTruncated",
         "outputView",
         "passRate",
         "preSatisfied",
+        "providerMetadata",
         "providerOptions",
         "readFile",
         "refuseKey",
@@ -2382,6 +2473,7 @@ CAMEL_KEYS: frozenset[str] = frozenset(
         "startTimeout",
         "startedAt",
         "toolCallId",
+        "totalTokens",
         "turnMs",
         "turnStatusRead",
         "withSkill",
@@ -2399,9 +2491,12 @@ RECORD_FIELDS: frozenset[str] = frozenset(
         "mcp",
         "meta",
         "params",
+        "providerMetadata",
         "providerOptions",
+        "questions",
         "regions",
         "score",
+        "state",
         "traits",
         "untested",
         "value",

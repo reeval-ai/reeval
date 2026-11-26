@@ -120,3 +120,45 @@ class Verdict:
             reason=reason,
             _data=dict(data),
         )
+
+
+def _int_or_none(value: Any) -> int | None:
+    return None if value is None else int(value)
+
+
+@dataclass(frozen=True, slots=True)
+class DecisionUsage:
+    input_tokens: int | None
+    output_tokens: int | None
+    total_tokens: int | None
+
+
+@dataclass(frozen=True, slots=True)
+class Decision:
+    """`c.decide()`'s result: each question's answer by id, as `experimental_decide` returns it
+    (`{"type": "boolean", "probability": 0.9}`), with the call's usage, warnings and response."""
+
+    answers: dict[str, Any]
+    usage: DecisionUsage
+    warnings: list[Any]
+    provider_metadata: dict[str, Any] | None
+    model_id: str
+    # ISO 8601.
+    timestamp: str
+
+    @classmethod
+    def _from_wire(cls, data: dict[str, Any]) -> Decision:
+        usage = cast(dict[str, Any], data.get("usage") or {})
+        response = cast(dict[str, Any], data.get("response") or {})
+        return cls(
+            answers=dict(data.get("answers") or {}),
+            usage=DecisionUsage(
+                input_tokens=_int_or_none(usage.get("inputTokens")),
+                output_tokens=_int_or_none(usage.get("outputTokens")),
+                total_tokens=_int_or_none(usage.get("totalTokens")),
+            ),
+            warnings=list(data.get("warnings") or []),
+            provider_metadata=data.get("providerMetadata"),
+            model_id=str(response.get("modelId") or ""),
+            timestamp=str(response.get("timestamp") or ""),
+        )

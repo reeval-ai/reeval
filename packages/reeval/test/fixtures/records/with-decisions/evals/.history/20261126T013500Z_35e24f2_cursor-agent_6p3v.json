@@ -1,0 +1,610 @@
+{
+  "kind": "reeval-run",
+  "schemaVersion": 1,
+  "runId": "20261126T013500Z_35e24f2_cursor-agent_6p3v",
+  "status": "complete",
+  "startedAt": "2026-11-26T01:35:00.798Z",
+  "endedAt": "2026-11-26T01:35:02.084Z",
+  "durationMs": 1286,
+  "author": "cursor-agent",
+  "git": {
+    "sha": "35e24f2978fba26f1072f52ec50b38b0ff663de6",
+    "branch": "master",
+    "dirty": false,
+    "diffHash": null,
+    "worktreePatch": null,
+    "worktreePatchNote": null,
+    "commitTime": "2026-11-26T01:35:00+00:00",
+    "shallow": false,
+    "remote": null
+  },
+  "spans": {
+    "path": "spans.jsonl",
+    "sha256": "4f3dcbbaeb30a8eb494f81170e357506c21d69c0826187b6b35f59a327afcd6b",
+    "bytes": 3563
+  },
+  "runner": {
+    "kind": "local",
+    "hostHash": "ba806126880f"
+  },
+  "dependencies": {
+    "lockfiles": []
+  },
+  "stack": {
+    "reeval": "0.31.0",
+    "node": "26.13.0",
+    "runtime": {
+      "name": "node",
+      "version": "26.13.0"
+    },
+    "language": {
+      "name": "typescript"
+    },
+    "os": "linux",
+    "arch": "x64",
+    "images": [],
+    "packages": {
+      "@vitest/expect": "5.1.0",
+      "jiti": "2.7.0",
+      "@reeval/harness-antigravity": "0.1.17",
+      "@reeval/harness-opencode": "0.2.16",
+      "@reeval/harness-goose": "0.1.17",
+      "@reeval/harness-pi": "0.2.10",
+      "@reeval/harness-cursor-sdk": "0.1.9",
+      "@ai-sdk/harness-claude-code": "1.0.176-patch.423f52e6",
+      "@reeval/harness-codex": "0.1.14",
+      "@reeval/harness-fx": "0.1.14",
+      "@reeval/harness-grok-build": "0.1.13",
+      "ai": "7.0.161",
+      "@ai-sdk/harness": "1.0.172",
+      "@ai-sdk/anthropic": "4.0.95",
+      "@ai-sdk/google": "4.0.110",
+      "@ai-sdk/openai": "4.0.107",
+      "@ai-sdk/typesafe-ai": "3.0.32"
+    },
+    "harnesses": [
+      {
+        "id": "fake",
+        "kind": "fake",
+        "model": null,
+        "effort": null,
+        "resolvedModels": [],
+        "resolvedEffort": []
+      }
+    ],
+    "judge": {
+      "model": null,
+      "resolvedModels": [],
+      "threshold": 0.8,
+      "version": "1f259248a52c"
+    },
+    "context": [],
+    "fingerprintScope": [
+      "eval-source",
+      "harness",
+      "environment",
+      "agent-cli",
+      "image-id",
+      "judge",
+      "context"
+    ]
+  },
+  "environments": [
+    {
+      "name": "fake",
+      "parent": null,
+      "overrides": [],
+      "digest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+      "setup": [],
+      "skills": [],
+      "mcp": [],
+      "files": [],
+      "vars": [],
+      "secrets": [],
+      "brokered": [],
+      "unset": [],
+      "egress": "proxy"
+    }
+  ],
+  "profile": null,
+  "invocation": {
+    "filters": [],
+    "tags": []
+  },
+  "plan": {
+    "evals": 2,
+    "cells": 2,
+    "attempts": 2,
+    "estimateMs": 2000,
+    "sandboxWarnings": []
+  },
+  "budget": null,
+  "config": {
+    "sandbox": "fake",
+    "environment": null,
+    "runs": 1,
+    "judgeModel": null,
+    "threshold": 0.8,
+    "timeoutMs": 900000,
+    "concurrency": 4,
+    "configHash": "4ded53d73542beee2e8a0dfb7a001c054f80a62e2c7890d2e54277294baf2909"
+  },
+  "cost": {
+    "inputTokens": null,
+    "outputTokens": null,
+    "usage": null,
+    "source": "unreported"
+  },
+  "artifacts": "all",
+  "redaction": {
+    "version": 1
+  },
+  "summary": {
+    "evals": 2,
+    "attempts": 2,
+    "pass": 1,
+    "fail": 0,
+    "notGated": 0,
+    "infraError": 1,
+    "skipped": 0,
+    "counted": 1,
+    "gated": {
+      "pass": 1,
+      "fail": 0
+    },
+    "ungated": {
+      "pass": 0,
+      "fail": 0
+    },
+    "reclassified": 0
+  },
+  "evals": [
+    {
+      "id": "decide",
+      "key": "decide",
+      "slug": "decide-5589aa",
+      "file": "evals/decide.eval.ts",
+      "group": [],
+      "name": "decide",
+      "tags": [],
+      "fingerprint": "e5e880858e6b1f3de9f5159b147d83e43ee5db6249174b7f8ee4c96d2f97ebac",
+      "sources": [
+        {
+          "path": "evals/decide.eval.ts",
+          "sha256": "163572044cf4e89941e3d9ff5a8d442c9d2d1ac3d0c71c93a0afa8d58067e588"
+        }
+      ],
+      "source": {
+        "body": "1f2e765b36bddd59873fca86ddbdabf9e56ba38ab839615baac7862b8c0e7566",
+        "options": "36c2f0d4a8441120b994530ffaf333d7a0114784c23889795b9426985cb86bfb"
+      },
+      "outcome": "pass",
+      "todo": false,
+      "passRate": 1,
+      "cells": [
+        {
+          "key": "fake/fake/fake",
+          "harness": "fake",
+          "environment": "fake",
+          "sandbox": "fake",
+          "role": "control",
+          "fingerprint": "11a8c9b84c6b49521d6274f8a602ce088934c2256e31676e7cb22266abf1e908",
+          "fingerprintParts": {
+            "sources": "fe3b5e56d9c7af972db44af6c3e51537d3f61f5dcb9d80393e07e7f481defb94",
+            "harness": "810182ad3e33f059848a9a9f87c1602d701e40b31c41a25b0bb453b18da2c851",
+            "environment": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+            "image": null,
+            "agentCli": null,
+            "judge": "c6920e9650c71d3766d60fd958bf2ca9ca4921c020f6b26afb06370e4241333e",
+            "context": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          },
+          "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+          "harnessKind": "fake",
+          "model": null,
+          "effort": null,
+          "gate": "all",
+          "overrides": [],
+          "runs": 1,
+          "pass": 1,
+          "fail": 0,
+          "infraError": 0,
+          "skipped": 0,
+          "passRate": 1,
+          "outcome": "pass",
+          "prompts": [
+            {
+              "sha256": "93d6b7b643a24926c99ebd0d9282b4f8c9472cf18db6b9f95dfe0482462c0030"
+            }
+          ]
+        }
+      ],
+      "attempts": [
+        {
+          "key": "decide # fake/fake/fake#1",
+          "id": "fake/fake/fake#1",
+          "cell": "fake/fake/fake",
+          "n": 1,
+          "seq": 2,
+          "startedAt": "2026-11-26T01:35:01.960Z",
+          "imageId": null,
+          "env": {
+            "vars": [],
+            "secrets": [],
+            "brokered": []
+          },
+          "context": [],
+          "egress": {
+            "policy": "proxy",
+            "allowed": null,
+            "recorded": false,
+            "contacted": [],
+            "blocked": [],
+            "expectedBlocked": [],
+            "unresolved": []
+          },
+          "servedModels": null,
+          "effort": null,
+          "servedEffort": null,
+          "outcome": "pass",
+          "error": null,
+          "durationMs": 120,
+          "turns": [
+            {
+              "prompt": "Write src/app.js",
+              "status": "completed",
+              "startedAt": "2026-11-26T01:35:01.988Z",
+              "durationMs": 2,
+              "usage": null,
+              "model": null,
+              "servedModel": null,
+              "servedEffort": null,
+              "unreported": [],
+              "error": null,
+              "timeSplit": {
+                "modelMs": null,
+                "toolMs": 2,
+                "waitingMs": 0,
+                "otherMs": 0
+              },
+              "text": "Done."
+            },
+            {
+              "prompt": "Write NOTES.md",
+              "status": "completed",
+              "startedAt": "2026-11-26T01:35:02.014Z",
+              "durationMs": 1,
+              "usage": null,
+              "model": null,
+              "servedModel": null,
+              "servedEffort": null,
+              "unreported": [],
+              "error": null,
+              "timeSplit": {
+                "modelMs": null,
+                "toolMs": 1,
+                "waitingMs": 0,
+                "otherMs": 0
+              },
+              "text": "Done."
+            }
+          ],
+          "usage": null,
+          "timeSplit": {
+            "modelMs": null,
+            "toolMs": 3,
+            "waitingMs": 0,
+            "otherMs": 0
+          },
+          "decisionUse": {
+            "calls": 1,
+            "usage": {
+              "input": 10,
+              "output": 2,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "reasoning": null
+            }
+          },
+          "timings": {
+            "setupMs": 21,
+            "agentMs": 2,
+            "diffMs": 25,
+            "checksMs": 0,
+            "judgeMs": 0
+          },
+          "activity": {
+            "tools": 0,
+            "fileEdits": 2,
+            "webSearches": 0,
+            "webFetches": 0,
+            "reasoningMs": 0,
+            "stalledTools": 0,
+            "maxToolMs": 2
+          },
+          "judgements": [],
+          "snapshots": [
+            {
+              "name": "final",
+              "form": "dir",
+              "path": "decide-5589aa/fake-fake-fake-dc13e2/1/snapshots/final",
+              "bytes": 33,
+              "files": 2,
+              "excluded": [],
+              "masked": [],
+              "dropped": [],
+              "skipped": null
+            }
+          ],
+          "workspace": {
+            "files": 2,
+            "bytes": 184,
+            "excluded": [],
+            "masked": [],
+            "dropped": [],
+            "skipped": null
+          },
+          "grades": [
+            {
+              "grader": "decided",
+              "kind": "code",
+              "grade": true,
+              "score": 1,
+              "weight": 1,
+              "required": false,
+              "fingerprint": {
+                "digest": "9105438a5aac2f1d571bbf495b2498d904d6e773418eb568e375afa0cedafcaa",
+                "code": "262d0c81132a081a5ee11d9296a7d7df971d4711bcc1aee1eb837b2dd4dc0262"
+              },
+              "reads": {},
+              "durationMs": 1
+            }
+          ],
+          "score": 1,
+          "checks": [],
+          "changedFiles": [
+            {
+              "path": "NOTES.md",
+              "status": "added",
+              "added": 1,
+              "removed": 0
+            },
+            {
+              "path": "src/app.js",
+              "status": "added",
+              "added": 1,
+              "removed": 0
+            }
+          ],
+          "files": {
+            "transcript": {
+              "path": "decide-5589aa/fake-fake-fake-dc13e2/1/transcript.jsonl",
+              "sha256": "42c32240094241d028989f35cf7d457f55e658786e1aa0aafe5b14d3db3e031f",
+              "bytes": 2378
+            },
+            "diff": {
+              "path": "decide-5589aa/fake-fake-fake-dc13e2/1/diff.patch",
+              "sha256": "b5cb22ff98ed14bc496dd9970ba87a81983fe843f225487e7ae962a1a76ae6b6",
+              "bytes": 281
+            },
+            "decisions": {
+              "path": "decide-5589aa/fake-fake-fake-dc13e2/1/decisions.jsonl",
+              "sha256": "0f75b22af2ec6d090325c5e893e726f623b046161891cb6cd0561a34c8d1dc17",
+              "bytes": 926
+            },
+            "workspace": {
+              "path": "decide-5589aa/fake-fake-fake-dc13e2/1/workspace.tar.gz",
+              "sha256": "a238853974372ab2a4d9ea9fe5df5469605ccde0e4a0841d584e1e9771a892c8",
+              "bytes": 184
+            },
+            "workspaceManifest": {
+              "path": "decide-5589aa/fake-fake-fake-dc13e2/1/workspace.json",
+              "sha256": "e2a5ecd370656209a173e4245331618cea9c14f2c9de911fd1e55772f3fc2257",
+              "bytes": 325
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "outage",
+      "key": "outage",
+      "slug": "outage-4398c2",
+      "file": "evals/outage.eval.ts",
+      "group": [],
+      "name": "outage",
+      "tags": [],
+      "fingerprint": "752b8615716940df7f4f16f3e37c94352ded6c092ec1231df728811e9dee37de",
+      "sources": [
+        {
+          "path": "evals/outage.eval.ts",
+          "sha256": "1e1a940c41d431c415c71f72be95124abbf2b3ba386ae64df8b250709e3f9227"
+        }
+      ],
+      "source": {
+        "body": "bf01d79fa33f3d6c5d6f9c02f1d93726c1d4c51d6020e7d1abfda735bceda793",
+        "options": "36c2f0d4a8441120b994530ffaf333d7a0114784c23889795b9426985cb86bfb"
+      },
+      "outcome": "infra_error",
+      "todo": false,
+      "passRate": null,
+      "cells": [
+        {
+          "key": "fake/fake/fake",
+          "harness": "fake",
+          "environment": "fake",
+          "sandbox": "fake",
+          "role": "control",
+          "fingerprint": "a236bf9bf6b3ea8be2ffaf927dbb970cbb73952acb042286f63e94a9b77aed42",
+          "fingerprintParts": {
+            "sources": "0db0b8064475a0b909d51408af075df811510f406181f87b7c36dea9bf9c8a27",
+            "harness": "810182ad3e33f059848a9a9f87c1602d701e40b31c41a25b0bb453b18da2c851",
+            "environment": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+            "image": null,
+            "agentCli": null,
+            "judge": "c6920e9650c71d3766d60fd958bf2ca9ca4921c020f6b26afb06370e4241333e",
+            "context": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          },
+          "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+          "harnessKind": "fake",
+          "model": null,
+          "effort": null,
+          "gate": "all",
+          "overrides": [],
+          "runs": 1,
+          "pass": 0,
+          "fail": 0,
+          "infraError": 1,
+          "skipped": 0,
+          "passRate": null,
+          "outcome": "infra_error",
+          "prompts": [
+            {
+              "sha256": "93d6b7b643a24926c99ebd0d9282b4f8c9472cf18db6b9f95dfe0482462c0030"
+            }
+          ]
+        }
+      ],
+      "attempts": [
+        {
+          "key": "outage # fake/fake/fake#1",
+          "id": "fake/fake/fake#1",
+          "cell": "fake/fake/fake",
+          "n": 1,
+          "seq": 1,
+          "startedAt": "2026-11-26T01:35:01.958Z",
+          "imageId": null,
+          "env": {
+            "vars": [],
+            "secrets": [],
+            "brokered": []
+          },
+          "context": [],
+          "egress": {
+            "policy": "proxy",
+            "allowed": null,
+            "recorded": false,
+            "contacted": [],
+            "blocked": [],
+            "expectedBlocked": [],
+            "unresolved": []
+          },
+          "servedModels": null,
+          "effort": null,
+          "servedEffort": null,
+          "outcome": "infra_error",
+          "error": {
+            "kind": "infra",
+            "message": "c.decide() with fake/fake-decision failed: overloaded. Set decide.model in reeval.config.ts to a decision model that answers, or pass { model } to the call."
+          },
+          "durationMs": 116,
+          "turns": [
+            {
+              "prompt": "Write src/app.js",
+              "status": "completed",
+              "startedAt": "2026-11-26T01:35:01.987Z",
+              "durationMs": 1,
+              "usage": null,
+              "model": null,
+              "servedModel": null,
+              "servedEffort": null,
+              "unreported": [],
+              "error": null,
+              "timeSplit": {
+                "modelMs": null,
+                "toolMs": 1,
+                "waitingMs": 0,
+                "otherMs": 0
+              },
+              "text": "Done."
+            }
+          ],
+          "usage": null,
+          "timeSplit": {
+            "modelMs": null,
+            "toolMs": 1,
+            "waitingMs": 0,
+            "otherMs": 0
+          },
+          "decisionUse": {
+            "calls": 1,
+            "usage": null
+          },
+          "timings": {
+            "setupMs": 21,
+            "agentMs": 1,
+            "diffMs": 12,
+            "checksMs": 0,
+            "judgeMs": 0
+          },
+          "activity": {
+            "tools": 0,
+            "fileEdits": 1,
+            "webSearches": 0,
+            "webFetches": 0,
+            "reasoningMs": 0,
+            "stalledTools": 0,
+            "maxToolMs": 1
+          },
+          "judgements": [],
+          "snapshots": [
+            {
+              "name": "final",
+              "form": "dir",
+              "path": "outage-4398c2/fake-fake-fake-dc13e2/1/snapshots/final",
+              "bytes": 25,
+              "files": 1,
+              "excluded": [],
+              "masked": [],
+              "dropped": [],
+              "skipped": null
+            }
+          ],
+          "workspace": {
+            "files": 1,
+            "bytes": 146,
+            "excluded": [],
+            "masked": [],
+            "dropped": [],
+            "skipped": null
+          },
+          "checks": [],
+          "changedFiles": [
+            {
+              "path": "src/app.js",
+              "status": "added",
+              "added": 1,
+              "removed": 0
+            }
+          ],
+          "files": {
+            "transcript": {
+              "path": "outage-4398c2/fake-fake-fake-dc13e2/1/transcript.jsonl",
+              "sha256": "b1c20ea777365c96114f26a1500c6cecf8d6fe31ec1b9152e8fa308883e8e55e",
+              "bytes": 1006
+            },
+            "diff": {
+              "path": "outage-4398c2/fake-fake-fake-dc13e2/1/diff.patch",
+              "sha256": "c8aea7ff232973e885f37bd99f24273f2adff5887a6e0633b2842005294a1472",
+              "bytes": 152
+            },
+            "decisions": {
+              "path": "outage-4398c2/fake-fake-fake-dc13e2/1/decisions.jsonl",
+              "sha256": "f82c063b257d7dff7d7b428dad147f7ee78c8f652fab2f4773eb4d57470c3f1e",
+              "bytes": 226
+            },
+            "workspace": {
+              "path": "outage-4398c2/fake-fake-fake-dc13e2/1/workspace.tar.gz",
+              "sha256": "be132be23641b14b083ace421dbf6c2bd72b14a5221b3549c110de6fc083eaf8",
+              "bytes": 146
+            },
+            "workspaceManifest": {
+              "path": "outage-4398c2/fake-fake-fake-dc13e2/1/workspace.json",
+              "sha256": "f768380f1672214edf8226206a401569e9e53dc068ce72c4ccb731f00dc660de",
+              "bytes": 185
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -6,6 +6,8 @@ import type { AttemptContext, BackgroundHandle } from './types.ts'
 
 export type { FakeInstructionStep, FakeInstructions } from './capture/fake-instructions.ts'
 export { fakeInstructions } from './capture/fake-instructions.ts'
+export type { FakeDecisionAnswers, FakeDecisionOptions } from './decide-fake.ts'
+export { fakeDecisionModel } from './decide-fake.ts'
 export type { DeclarationTree, DeclaredNode } from './declaration.ts'
 export { declareTree } from './evaluate.ts'
 export type { CaptureKey, CaptureUseAction, Wait } from './types.ts'

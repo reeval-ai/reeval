@@ -9,6 +9,7 @@ import {
   budgetSchema,
   captureOptionsSchema,
   captureWindowSchema,
+  decideConfigSchema,
   fakeAnalysisDataSchema,
   historyConfigDataSchema,
   localStoreDescriptorSchema,
@@ -181,6 +182,7 @@ export const CONTRACT_SCHEMAS: Record<string, z.ZodType> = {
   FakeAnalysisData: fakeAnalysisDataSchema,
   BuiltinKind: builtinKindSchema,
   BuiltinGraderData: builtinGraderDataSchema,
+  DecideConfig: decideConfigSchema,
 }
 
 /**

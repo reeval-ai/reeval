@@ -29,6 +29,7 @@ import { capturePage, serveCommand } from './capture.ts'
 import { createChecks } from './checks.ts'
 import { contextTaker } from './context.ts'
 import { tracePlan } from './debug.ts'
+import { decider, partOf, stateBuilder } from './decide.ts'
 import { prepareEnvironment } from './environment.ts'
 import { type Grading, gradeAttempt } from './grade.ts'
 import { judgeCaller } from './judge.ts'
@@ -169,6 +170,9 @@ async function attemptBody(
     attempt: { id: attemptId(spec.cell.key, spec.n), cell: spec.cell, n: spec.n },
     send: turnSender(a, takeContext, { exec, readFile }, tracing ? onTurnEnd : undefined),
     judge: judgeCaller(a, readFile),
+    decide: decider(a),
+    state: stateBuilder(a, readFile),
+    part: partOf(a),
   }
   bindAttemptContext(c, a)
 
@@ -185,15 +189,15 @@ async function attemptBody(
     a.signal = AbortSignal.any([testSignal, timer])
     timer.addEventListener('abort', destroy, { once: true })
     await fn(c).catch((error: unknown) => {
-      if (a.startFailure) throw a.startFailure.error
+      if (a.infraFailure) throw a.infraFailure.error
       taskThrew = { error }
       throw error
     })
     // A body that ignores the signal can still return normally after a timeout or cancel.
     a.signal.throwIfAborted()
     const missed = (await unawaited()) ?? checkFailure(assertions()) ?? expectError()
-    // A start that failed under a caught call or an `expect` still fails the attempt as itself.
-    if (a.startFailure) throw a.startFailure.error
+    // A start or decision that failed under a caught call or an `expect` still fails the attempt as itself.
+    if (a.infraFailure) throw a.infraFailure.error
     if (missed) throw missed
     const judgeErrors = judgeErrorsMessage(a)
     if (judgeErrors) {

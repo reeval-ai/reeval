@@ -1,0 +1,6 @@
+{"ts":"2026-11-26T01:35:01.987Z","atMs":0,"turn":0,"type":"prompt","text":"Write src/app.js"}
+{"turn":0,"ts":"2026-11-26T01:35:01.987Z","atMs":0,"type":"text","text":"Working on: Write src/app.js","durationMs":0}
+{"turn":0,"ts":"2026-11-26T01:35:01.987Z","atMs":0,"type":"file-edit","toolCallId":"call_1","path":"src/app.js","kind":"create","added":1,"removed":0,"input":{"path":"src/app.js","content":"export const answer = 42\n"},"output":"Wrote src/app.js","outputView":"model","durationMs":1}
+{"turn":0,"ts":"2026-11-26T01:35:01.988Z","atMs":1,"type":"text","text":"Done.","durationMs":0}
+{"ts":"2026-11-26T01:35:01.988Z","atMs":1,"turn":0,"type":"turn-end","status":"completed","durationMs":1}
+{"ts":"2026-11-26T01:35:02.000Z","atMs":0,"turn":1,"type":"decision","decision":{"model":"fake/fake-decision","turn":1,"startedAt":"2026-11-26T01:35:02.000Z","durationMs":2,"state":"Is it done?","questions":{"done":{"type":"boolean","instructions":"Done?"}},"answers":{},"usage":null,"error":"overloaded"}}

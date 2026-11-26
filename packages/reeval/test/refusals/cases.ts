@@ -21,6 +21,8 @@ import {
 import { checkResumeState } from '../../src/bundle/index.ts'
 import {
   checkGateways,
+  malformedCredentials,
+  missingCredentials,
   parseYamlConfig,
   resolveConfig,
   resolveConfigData,
@@ -245,6 +247,19 @@ const cliRefuses = (files: Record<string, string>) => (name: string) => {
     encoding: 'utf8',
   })
   if (status !== 0) throw new UsageError(`exit ${status}: ${stderr.trim()}`)
+}
+
+/** What `reeval run` refuses before the first attempt, of the config's keys in `env`. */
+const keys = (own: object, env: NodeJS.ProcessEnv) => () => {
+  const config = resolveConfig(
+    { agents: fakeAgent(), sandbox: fakeSandbox(), ...own },
+    DIR,
+    'reeval.config.ts',
+  )
+  const missing = missingCredentials(config, env)
+  if (missing.length) throw new UsageError(`Missing credentials: ${missing.join('; ')}`)
+  const malformed = malformedCredentials(config, env)
+  if (malformed.length) throw new UsageError(`Malformed credentials: ${malformed.join(', ')}`)
 }
 
 /** Run ids for `reeval run --bundle --resume`: staged here, recorded here, absent, still running. */
@@ -2514,6 +2529,30 @@ export const CASES: Record<string, Case[]> = {
     ['yaml: question with a model', yaml('question: { model: google/g }\n')],
     ['yaml: question with a bare model', yaml('question: { model: gemini }\n')],
     ['yaml: question state', yaml('question:\n  state: { output: true }\n')],
+    ['decide: not an object', config({ decide: 'typesafe-ai/jev' })],
+    ['decide: a typo', config({ decide: { modle: 'typesafe-ai/jev' } })],
+    ['decide: a bare model', config({ decide: { model: 'jev' } })],
+    ['decide: a model that is not one', config({ decide: { model: { id: 'jev' } } })],
+    ['decide: a bad timeout', config({ decide: { timeout: '30 seconds' } })],
+    ['decide: good', config({ decide: { model: 'typesafe-ai/jev', timeout: '30s' } })],
+    ['yaml: decide with a typo', yaml('decide: { modle: typesafe-ai/jev }\n')],
+    ['yaml: decide with a bare model', yaml('decide: { model: jev }\n')],
+    [
+      'decide: a model without its key',
+      keys({ decide: { model: 'anthropic/claude-haiku-4-5' } }, {}),
+    ],
+    [
+      'decide: a model with a broken key',
+      keys({ decide: { model: 'anthropic/claude-haiku-4-5' } }, { ANTHROPIC_API_KEY: 'sk-a\nb' }),
+    ],
+    [
+      'decide: a model with its key',
+      keys({ decide: { model: 'anthropic/claude-haiku-4-5' } }, { ANTHROPIC_API_KEY: 'sk-ab' }),
+    ],
+    [
+      'decide: a model no listed gateway serves',
+      planned({}, { decide: { model: 'mistral/large' } }),
+    ],
     ['yaml: question with an input', yaml('question: { diff: true }\n')],
     [
       'yaml: good',
@@ -3297,6 +3336,30 @@ environments:
         args: [],
         not: false,
         soft: false,
+      }),
+    ],
+    ['decide without questions', request({ op: 'decide', state: 'the app' })],
+    [
+      'decide with a bare model',
+      request({ op: 'decide', model: 'jev', state: 'x', questions: {} }),
+    ],
+    [
+      'decide with an unknown state part',
+      request({ op: 'decide', state: [{ type: 'image', url: 'x' }], questions: { q: {} } }),
+    ],
+    [
+      'decide state inputs with a typo',
+      request({ op: 'decide', state: [{ type: 'inputs', dif: true }], questions: { q: {} } }),
+    ],
+    [
+      'decide: good',
+      request({
+        op: 'decide',
+        state: [
+          { type: 'inputs', diff: true, on: { turn: 0 } },
+          { type: 'capture', name: 'home' },
+        ],
+        questions: { done: { type: 'boolean', instructions: 'Done?' } },
       }),
     ],
     ['judge without a question', request({ op: 'judge' })],

@@ -38,6 +38,7 @@ async function liveTrajectory(a: Attempt, workspaceDir: string): Promise<Traject
   return {
     execs: redactValue(record.checks.map(execLineOf)),
     observations: record.observations ?? [],
+    decisions: record.decisions ?? [],
     artifacts,
     readArtifact: async (name) => a.artifactBlobs.get(name) ?? null,
     workspace:

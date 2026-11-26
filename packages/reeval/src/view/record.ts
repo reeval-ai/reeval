@@ -10,7 +10,7 @@ import type { ExecLine, RunRecord, WorkspaceManifest } from '../history/types.ts
 import { SCHEMA_VERSION } from '../history/types.ts'
 import type { CredentialsFile } from '../login/types.ts'
 import type { CliInvocation } from '../report/types.ts'
-import type { CapturePageFile } from '../types.ts'
+import type { CapturePageFile, DecisionRecord } from '../types.ts'
 import type { AnalysisDoc } from './analysis.ts'
 import type { TranscriptLine } from './model.ts'
 import type { RunRemarks } from './remarks.ts'
@@ -34,6 +34,7 @@ export type ShapeName =
   | 'run-report'
   | 'run-span'
   | 'exec-line'
+  | 'decision-line'
   | 'workspace-manifest'
 
 /**
@@ -84,6 +85,7 @@ export const READ_DEFAULTS: Record<ShapeName, ReadDefault[]> = {
   'run-report': [],
   'run-span': [],
   'exec-line': [],
+  'decision-line': [],
   'workspace-manifest': [],
 }
 
@@ -249,6 +251,10 @@ export const readableCloudOrigin = <T>(doc: T, what = 'This marker'): T =>
 
 /** A line of an attempt's `execs.jsonl` as every reader sees it. */
 export const readableExecLine = (line: ExecLine): ExecLine => fillDefaults('exec-line', line)
+
+/** A line of an attempt's `decisions.jsonl` as every reader sees it. */
+export const readableDecisionLine = (line: DecisionRecord): DecisionRecord =>
+  fillDefaults('decision-line', line)
 
 /** An attempt's `workspace.json` as every reader sees it; one from a newer reeval throws. */
 export const readableWorkspaceManifest = (

@@ -19,14 +19,15 @@ type DecisionModel = Parameters<typeof decide>[0]['model']
  * See `judgeRoute`: the provider's own package on direct, the AI Gateway on vercel, OpenRouter's
  * Decisions API on openrouter, Vertex AI on vertex.
  */
-async function resolveModel(
-  model: Exclude<JudgeModel, { kind: 'fake-judge' }>,
+export async function resolveModel(
+  model: Exclude<JudgeModel, { kind: 'fake-judge' }> | DecisionModel,
   gateway: GatewayName | undefined,
   fallbacks: boolean,
   vertex: VertexSettings | undefined,
+  what = 'judge model',
 ): Promise<DecisionModel> {
   if (typeof model !== 'string') return model as DecisionModel
-  const { route, call } = hostCall(model, process.env, 'judge model', gateway)
+  const { route, call } = hostCall(model, process.env, what, gateway)
   if (route.kind === 'gateway') return vercelDecisionModel(model, call)
   if (route.kind === 'openrouter') return openRouterDecisionModel(model, fallbacks, call)
   if (route.kind === 'vertex') return vertexDecisionModel(model, vertex ?? vertexSettings())

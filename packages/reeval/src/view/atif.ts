@@ -4,7 +4,8 @@
 // Codex's and Cursor's steps are whole turns. Each tool call is one `tool_calls` entry with its
 // result in `observation`. A turn's tokens, cost and LLM calls go on its last agent step; a streamed
 // subagent's events are an embedded trajectory its spawn call's result refers to. What ATIF has
-// no field for (tool timing, `ok`, cost basis, the outcome) goes in `extra`.
+// no field for (tool timing, `ok`, cost basis, the outcome) goes in `extra`. The eval's own
+// `c.decide` calls aren't the agent's, so they're left out.
 import type { AttemptRecord, RunRecord } from '../history/types.ts'
 import type { TokenUsage } from '../types.ts'
 import type { Metrics, ObservationResult, Step, ToolCall, Trajectory } from './atif-schema.ts'
@@ -147,6 +148,7 @@ export function toAtif(
           close()
           break
         case 'model-call':
+        case 'decision':
           break
         case 'text':
         case 'reasoning': {

@@ -830,6 +830,10 @@ Each input of a cell fingerprint, hashed on its own, so a change can be named.
   Tokens the capture vision loop used. Infrastructure only: never included in `usage`, effort, compare, or lift.
 </Property>
 
+<Property name="decisionUse" type="DecisionUseSpend" optional>
+  What the attempt's `c.decide()` calls used, apart from the agent's `usage` and `cost`. The calls are `files.decisions`, and each is a `decision` line in transcript.jsonl too.
+</Property>
+
 <Property name="timings" type="PhaseTimings"></Property>
 
 <Property name="activity" type="{tools: number; llmCalls: number | null; fileEdits: number; webSearches: number | null; webFetches: number | null; reasoningMs: number | null; stalledTools: number; maxToolMs: number | null}">
@@ -918,6 +922,10 @@ Each input of a cell fingerprint, hashed on its own, so a change can be named.
 
 <Property name="execs" type="FileRef" optional>
   `execs.jsonl`: each foreground `c.exec`'s result, one `ExecLine` per call in call order.
+</Property>
+
+<Property name="decisions" type="FileRef" optional>
+  `decisions.jsonl`: each `c.decide` call, one `DecisionRecord` per call in call order.
 </Property>
 
 <Property name="workspace" type="FileRef" optional>

@@ -52,7 +52,9 @@ function corpusTurns(): TurnData[] {
       } else if (line.type === 'turn-end') {
         const t = turns.get(turn) as TurnData
         Object.assign(t, { status: line.status, durationMs: line.durationMs })
-      } else (turns.get(turn) as TurnData).transcript.push(line as unknown as TranscriptEvent)
+      } else if (line.type !== 'decision') {
+        ;(turns.get(turn) as TurnData).transcript.push(line as unknown as TranscriptEvent)
+      }
     }
     return [...turns.values()]
   })

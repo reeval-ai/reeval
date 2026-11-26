@@ -28,12 +28,23 @@ from reeval_python.options import (
     JudgeDefaults,
     JudgeOptions,
 )
-from reeval_python.types import BackgroundHandle, Diff, ExecResult, FileChange, Turn, Verdict
+from reeval_python.types import (
+    BackgroundHandle,
+    Decision,
+    DecisionUsage,
+    Diff,
+    ExecResult,
+    FileChange,
+    Turn,
+    Verdict,
+)
 
 __all__ = [
     "DEFAULT_EGRESS_ALLOW",
     "AttemptContext",
     "BackgroundHandle",
+    "Decision",
+    "DecisionUsage",
     "BestOf",
     "Diff",
     "DockerSandbox",

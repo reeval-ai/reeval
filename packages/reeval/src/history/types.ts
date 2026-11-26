@@ -11,6 +11,7 @@ import type {
   CompareAnswer,
   CostTotal,
   CostUsd,
+  DecisionUseSpend,
   EgressRecord,
   EnvironmentRecord,
   EvalCompareMeta,
@@ -195,6 +196,8 @@ export type AttemptFiles = {
   artifacts?: ArtifactRef[]
   /** `execs.jsonl`: each foreground `c.exec`'s result, one `ExecLine` per call in call order. */
   execs?: FileRef
+  /** `decisions.jsonl`: each `c.decide` call, one `DecisionRecord` per call in call order. */
+  decisions?: FileRef
   /** `workspace.tar.gz`: the final workspace, gzipped (see `AttemptRecord.workspace`). */
   workspace?: FileRef
   /** `workspace.json`: the `WorkspaceManifest` of `workspace`. */
@@ -484,6 +487,11 @@ export type AttemptRecord = {
    * in `usage`, effort, compare, or lift.
    */
   captureUse?: { model: string; moves: number; usage: TokenUsage | null }
+  /**
+   * What the attempt's `c.decide()` calls used, apart from the agent's `usage` and `cost`. The
+   * calls are `files.decisions`, and each is a `decision` line in transcript.jsonl too.
+   */
+  decisionUse?: DecisionUseSpend
   timings: PhaseTimings
   /**
    * Counts from the transcript, so the attempt's activity is available without reading the transcript. `webSearches` includes refused searches.

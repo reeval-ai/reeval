@@ -357,7 +357,13 @@ describe('machine providers', () => {
   })
 
   test("a run needs boat()'s key, once, and no other sandbox's", () => {
-    const config = { harness: [], judge: {}, env: {}, profiles: {} } as unknown as ResolvedConfig
+    const config = {
+      harness: [],
+      judge: {},
+      decide: {},
+      env: {},
+      profiles: {},
+    } as unknown as ResolvedConfig
     const lines = neededCredentials(config, {
       harnesses: [],
       sandboxes: [boatVm(), boatVm({ type: 'large' }), tartVm(), { kind: 'fake' }],
@@ -367,7 +373,13 @@ describe('machine providers', () => {
   })
 
   test("cloud()'s variables are the cloud platform's to set, and boat()'s key isn't", () => {
-    const config = { harness: [], judge: {}, env: {}, profiles: {} } as unknown as ResolvedConfig
+    const config = {
+      harness: [],
+      judge: {},
+      decide: {},
+      env: {},
+      profiles: {},
+    } as unknown as ResolvedConfig
     const needed = neededCredentials(config, {
       harnesses: [],
       sandboxes: [boatVm(), { kind: 'cloud' }],

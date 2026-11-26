@@ -332,6 +332,15 @@ function planTests(
       if (error instanceof UsageError) throw new UsageError(`${where}: ${error.message}`)
       throw error
     }
+    const decideModel = ctx.config.decide.model
+    if (typeof decideModel === 'string') {
+      try {
+        resolveModelGateway(decideModel, undefined, { gateways }, 'decide.model')
+      } catch (error) {
+        if (error instanceof UsageError) throw new UsageError(`${where}: ${error.message}`)
+        throw error
+      }
+    }
   }
   if (ctx.config.secrets.unbrokered === 'error') {
     const [first] = unbrokered(resolved.env, plannedAttempts)

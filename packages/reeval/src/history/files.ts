@@ -494,17 +494,22 @@ const failed = (x: { outcome: string }) => x.outcome === 'fail' || x.outcome ===
 const keeps = (x: { outcome: string }, level: ArtifactLevel) =>
   level === 'all' || level === 'evidence' || (level === 'failures' && failed(x))
 
-/** What a passing attempt keeps under `evidence`: its diff, captures, `c.exec` results and final workspace. */
+/**
+ * What a passing attempt keeps under `evidence`: its diff, captures, `c.exec` results, `c.decide`
+ * calls and final workspace.
+ */
 const evidenceFiles = ({
   diff,
   artifacts,
   execs,
+  decisions,
   workspace,
   workspaceManifest,
 }: AttemptFiles): AttemptFiles => ({
   ...(diff ? { diff } : {}),
   ...(artifacts?.length ? { artifacts } : {}),
   ...(execs ? { execs } : {}),
+  ...(decisions ? { decisions } : {}),
   ...(workspace ? { workspace } : {}),
   ...(workspaceManifest ? { workspaceManifest } : {}),
 })

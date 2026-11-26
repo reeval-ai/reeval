@@ -1,7 +1,7 @@
 // What an attempt left for grading, read back from its run's directory (`.reeval/runs/<run>/` or
-// the history folder's `<run>/`): its `c.exec` results, observations, captures and final
-// workspace. Every file is checked against the hash its record holds. A kept workspace is never
-// read whole: each file streams out of its archive when it's asked for.
+// the history folder's `<run>/`): its `c.exec` results, observations, `c.decide` calls, captures
+// and final workspace. Every file is checked against the hash its record holds. A kept workspace
+// is never read whole: each file streams out of its archive when it's asked for.
 import { createReadStream } from 'node:fs'
 import { readFile, rename, rm } from 'node:fs/promises'
 import { join, posix } from 'node:path'
@@ -10,8 +10,12 @@ import { createGunzip } from 'node:zlib'
 import { readTarStream } from '@reeval/sandbox-docker'
 import { safeZipPath } from '../archive/zip.ts'
 import { randomSuffix, sha256 } from '../ids.ts'
-import type { FileChange, JSONValue, Observation } from '../types.ts'
-import { readableExecLine, readableWorkspaceManifest } from '../view/record.ts'
+import type { DecisionRecord, FileChange, JSONValue, Observation } from '../types.ts'
+import {
+  readableDecisionLine,
+  readableExecLine,
+  readableWorkspaceManifest,
+} from '../view/record.ts'
 import { HistoryError, isMissing, sha256File } from './files.ts'
 import {
   type ArtifactRef,
@@ -50,6 +54,8 @@ export type Trajectory = {
   execs: ExecLine[]
   /** The last value of each `c.observe` name, in first-call order, each value read back. */
   observations: Observation[]
+  /** Each `c.decide` call, in call order. */
+  decisions: DecisionRecord[]
   /** Each capture's PNG, by name. */
   artifacts: ArtifactRef[]
   /** A capture's PNG, or null when the attempt has none by that name. */
@@ -138,6 +144,20 @@ async function fromArchive(archive: string, path: string): Promise<Buffer | null
   }
 }
 
+/** The attempt's `decisions.jsonl`, line by line. */
+export async function readDecisions(
+  runDir: string,
+  attempt: AttemptRecord,
+): Promise<DecisionRecord[]> {
+  const ref = attempt.files.decisions
+  if (!ref) return []
+  return (await readRef(runDir, ref))
+    .toString('utf8')
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => readableDecisionLine(JSON.parse(line)))
+}
+
 /** The attempt's kept workspace, or null when it has none. */
 export async function readKeptFiles(
   runDir: string,
@@ -219,6 +239,7 @@ export async function readTrajectory(
   return {
     execs: await readExecs(runDir, attempt),
     observations: await observedValues(runDir, attempt),
+    decisions: await readDecisions(runDir, attempt),
     artifacts,
     async readArtifact(name) {
       const ref = artifacts.find((a) => a.name === name)

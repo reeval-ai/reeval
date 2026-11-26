@@ -9,6 +9,7 @@ import type {
   Budget,
   CaptureOptions,
   CaptureWindow,
+  DecideConfig,
   FakeAnalysisData,
   HistoryConfigData,
   LocalStoreDescriptor,
@@ -180,6 +181,11 @@ export const analysisConfigDataSchema = z.strictObject({
   maxOutputTokens: z.number().int().min(500).optional(),
 })
 
+export const decideConfigSchema = z.strictObject({
+  model: z.string().includes('/').optional(),
+  timeout: durationSchema.optional(),
+})
+
 export const reevalConfigDataSchema = z.strictObject({
   include: z.array(z.string()).optional(),
   agents: harnessList.optional(),
@@ -193,6 +199,7 @@ export const reevalConfigDataSchema = z.strictObject({
   timeout: durationSchema.optional(),
   capture: captureOptionsSchema.optional(),
   question: questionOptionsSchema.optional(),
+  decide: decideConfigSchema.optional(),
   snapshot: snapshotOptionSchema.optional(),
   graders: z.array(builtinGraderDataSchema).optional(),
   concurrency: count().optional(),
@@ -237,6 +244,7 @@ export type _SameAsSchema = [
   Assert<Same<keyof z.infer<typeof profileDataSchema>, keyof ProfileData>>,
   Assert<Same<z.infer<typeof fakeAnalysisDataSchema>, FakeAnalysisData>>,
   Assert<Same<z.infer<typeof analysisConfigDataSchema>, AnalysisConfigData>>,
+  Assert<Same<z.infer<typeof decideConfigSchema>, DecideConfig>>,
   Assert<Same<z.infer<typeof reevalConfigDataSchema>, ReevalConfigData>>,
   Assert<Same<keyof z.infer<typeof reevalConfigDataSchema>, keyof ReevalConfigData>>,
 ]

@@ -12,18 +12,21 @@ from typing import Any, Literal, NoReturn, Unpack, cast, overload
 
 from reeval_python._wire import (
     AttemptCall,
+    AttemptCallDecide,
     AttemptCallExec,
     AttemptCallExpect,
     AttemptCallExpectAt,
     AttemptCallExpectPoll,
     AttemptCallJudge,
+    DecideStatePart,
+    DecideStatePartInputs,
     JudgeCallData,
     MatcherSubject,
 )
 from reeval_python.errors import ReevalAssertionError, ReevalCallError
 from reeval_python.expect import bind_expect, tracked
 from reeval_python.options import JUDGE_INPUTS, JudgeOptions
-from reeval_python.types import BackgroundHandle, ExecResult, Turn, Verdict
+from reeval_python.types import BackgroundHandle, Decision, ExecResult, Turn, Verdict
 from reeval_python.wire import Patterns, json_value, options_to_wire, seconds, wire_args
 
 _UNSET: Any = object()
@@ -48,6 +51,58 @@ def _shows_something(options: JudgeOptions) -> None:
     """Refuses a call that turns no input on, before it reaches reeval or a model."""
     if not any(_input_on(options.get(key)) for key in JUDGE_INPUTS):
         raise TypeError(NO_JUDGE_INPUT)
+
+
+DecideState = str | Mapping[str, Any] | list[DecideStatePart]
+
+
+def _state_part(
+    output: bool,
+    diff: bool | list[str] | None,
+    contents: list[str] | None,
+    observations: bool | list[str] | None,
+    transcript: bool | str | Mapping[str, Any] | None,
+    on: Turn | None,
+) -> DecideStatePartInputs:
+    part: dict[str, Any] = {"type": "inputs"}
+    for key, value in (
+        ("diff", diff),
+        ("contents", contents),
+        ("observations", observations),
+        ("transcript", transcript),
+    ):
+        if value is not None:
+            part[key] = value
+    if output:
+        part["output"] = True
+    if on is not None:
+        part["on"] = {"turn": on.index}
+    if not any(
+        _input_on(part.get(key))
+        for key in ("output", "diff", "contents", "observations", "transcript")
+    ):
+        raise TypeError(
+            "c.state() shows nothing: turn on output, diff, contents, observations or transcript"
+        )
+    return cast(DecideStatePartInputs, part)
+
+
+def _decide_call(
+    state: DecideState,
+    questions: Mapping[str, Any],
+    model: str | None,
+    provider_options: Mapping[str, Mapping[str, Any]] | None,
+) -> AttemptCallDecide:
+    call: dict[str, Any] = {
+        "op": "decide",
+        "state": json_value(state, "c.decide()'s state is a string, a JSON object or parts"),
+        "questions": json_value(questions, "c.decide()'s questions are JSON"),
+    }
+    if model is not None:
+        call["model"] = model
+    if provider_options is not None:
+        call["providerOptions"] = json_value(provider_options, "providerOptions are JSON")
+    return cast(AttemptCallDecide, call)
 
 
 SendFn = Callable[[AttemptCall], Awaitable[dict[str, Any]]]
@@ -331,6 +386,40 @@ class AttemptContext:
         reply = await self._call(call)
         return Verdict._from_wire(cast(dict[str, Any], reply["verdict"]))  # pyright: ignore[reportPrivateUsage]
 
+    def decide(
+        self,
+        state: DecideState,
+        questions: Mapping[str, Any],
+        *,
+        model: str | None = None,
+        provider_options: Mapping[str, Mapping[str, Any]] | None = None,
+    ) -> Coroutine[Any, Any, Decision]:
+        """Ask a decision model `questions` about `state`, with the AI SDK's `experimental_decide`:
+        a string, a JSON object or parts, such as `c.state(diff=True)`. The model is
+        `'provider/model'`; default `decide.model`, then `analysis.model`. Returns the answers by
+        question id, with the call's usage, warnings and response."""
+        _not_describing("c.decide")
+        call = _decide_call(state, questions, model, provider_options)
+        return tracked(self._decide(call), "c.decide()")
+
+    async def _decide(self, call: AttemptCallDecide) -> Decision:
+        reply = await self._call(call)
+        return Decision._from_wire(cast(dict[str, Any], reply["result"]))  # pyright: ignore[reportPrivateUsage]
+
+    def state(
+        self,
+        *,
+        output: bool = False,
+        diff: bool | list[str] | None = None,
+        contents: list[str] | None = None,
+        observations: bool | list[str] | None = None,
+        transcript: bool | str | Mapping[str, Any] | None = None,
+        on: Turn | None = None,
+    ) -> DecideStatePart:
+        """The judge's inputs as one part of `c.decide()`'s state, masked as a judge's are: the
+        latest turn's, or `on` an earlier one's."""
+        return _state_part(output, diff, contents, observations, transcript, on)
+
     async def run_expect(
         self,
         *,
@@ -486,6 +575,36 @@ class SyncAttemptContext:
         _not_describing("c.judge")
         _shows_something(options)
         return self._run(self._ctx._judge(question, on, dict(options)))  # pyright: ignore[reportPrivateUsage]
+
+    def decide(
+        self,
+        state: DecideState,
+        questions: Mapping[str, Any],
+        *,
+        model: str | None = None,
+        provider_options: Mapping[str, Mapping[str, Any]] | None = None,
+    ) -> Decision:
+        """Ask a decision model `questions` about `state`, with the AI SDK's `experimental_decide`:
+        a string, a JSON object or parts, such as `c.state(diff=True)`. The model is
+        `'provider/model'`; default `decide.model`, then `analysis.model`. Returns the answers by
+        question id, with the call's usage, warnings and response."""
+        _not_describing("c.decide")
+        call = _decide_call(state, questions, model, provider_options)
+        return self._run(self._ctx._decide(call))  # pyright: ignore[reportPrivateUsage]
+
+    def state(
+        self,
+        *,
+        output: bool = False,
+        diff: bool | list[str] | None = None,
+        contents: list[str] | None = None,
+        observations: bool | list[str] | None = None,
+        transcript: bool | str | Mapping[str, Any] | None = None,
+        on: Turn | None = None,
+    ) -> DecideStatePart:
+        """The judge's inputs as one part of `c.decide()`'s state, masked as a judge's are: the
+        latest turn's, or `on` an earlier one's."""
+        return _state_part(output, diff, contents, observations, transcript, on)
 
     def bind_expect(self) -> None:
         def submit(**kwargs: Any) -> None:

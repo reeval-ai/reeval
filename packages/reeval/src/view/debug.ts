@@ -21,6 +21,7 @@ export const DEBUG_PHASES = [
   'harness',
   'check',
   'judge',
+  'decide',
   'gateway',
   'teardown',
   'docker',

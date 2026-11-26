@@ -2,6 +2,7 @@ import type { ArtifactRef, ExecLine } from '../history/types.ts'
 import type {
   Case,
   CostUsd,
+  DecisionRecord,
   Duration,
   EnvironmentHelpers,
   FileChange,
@@ -58,8 +59,8 @@ export type GraderContext<C = unknown> = {
    * `files`, or one the attempt didn't keep.
    */
   readFile(path: string): Promise<string>
-  /** The decisions the attempt made; empty for now. */
-  decisions: readonly never[]
+  /** The attempt's `c.decide()` calls, in call order, as they were recorded (masked). */
+  decisions: readonly DecisionRecord[]
   /** The grader's `data` files, read from the host. */
   data: GraderData
   /** Aborted when the grader times out or the run is canceled. */

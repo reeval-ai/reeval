@@ -263,7 +263,7 @@ export function turnSender(
     if (infra) {
       // Fails the attempt even when the eval's body catches it, like a failed start.
       const error = !timedOut && stopped ? new ProviderStopError(stopped) : new InfraError(infra)
-      a.startFailure ??= { error }
+      a.infraFailure ??= { error }
       throw error
     }
     a.signal.throwIfAborted()

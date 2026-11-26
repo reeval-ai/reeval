@@ -387,6 +387,73 @@
           },
           "required": ["op", "options", "question"],
           "additionalProperties": false
+        },
+        {
+          "description": "`c.decide(call)`. Replies with its result. A provider failure fails the call and the attempt, as an infrastructure error.",
+          "type": "object",
+          "properties": {
+            "model": {
+              "description": "`'provider/model'`. Default `decide.model`, then `analysis.model`.",
+              "type": "string",
+              "pattern": "\\/"
+            },
+            "op": {
+              "type": "string",
+              "const": "decide"
+            },
+            "providerOptions": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/JSONValue"
+                }
+              }
+            },
+            "questions": {
+              "description": "The questions by id, as the AI SDK's `experimental_decide` takes them.",
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/JSONValue"
+              }
+            },
+            "state": {
+              "description": "What the model decides about: a string, a JSON object or parts.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/$defs/JSONValue"
+                  }
+                },
+                {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/DecideStatePart"
+                  }
+                }
+              ]
+            }
+          },
+          "required": ["op", "questions", "state"],
+          "additionalProperties": false
         }
       ]
     },
@@ -616,6 +683,147 @@
       },
       "required": ["height", "width"],
       "additionalProperties": false
+    },
+    "DecideStatePart": {
+      "description": "One part of the state a decision model is shown.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "text"
+            }
+          },
+          "required": ["text", "type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "json"
+            },
+            "value": {
+              "$ref": "#/$defs/JSONValue"
+            }
+          },
+          "required": ["type", "value"],
+          "additionalProperties": false
+        },
+        {
+          "description": "A capture's PNG as an image file part, as `c.part(capture)` gives it.",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "type": {
+              "type": "string",
+              "const": "capture"
+            }
+          },
+          "required": ["name", "type"],
+          "additionalProperties": false
+        },
+        {
+          "description": "The judge's inputs as one JSON part, masked as a judge's are, as `c.state(inputs)` gives them.",
+          "type": "object",
+          "properties": {
+            "contents": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "\\S"
+              }
+            },
+            "diff": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  }
+                }
+              ]
+            },
+            "observations": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  }
+                }
+              ]
+            },
+            "on": {
+              "description": "The turn `output`, `diff` and `transcript` read instead of the latest.",
+              "type": "object",
+              "properties": {
+                "turn": {
+                  "description": "The turn's index, from 0.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": ["turn"],
+              "additionalProperties": false
+            },
+            "output": {
+              "type": "boolean"
+            },
+            "transcript": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": ["tools", "full"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "agent": {
+                      "type": "boolean"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "enum": ["tools", "full"]
+                    },
+                    "subagents": {
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "const": "inputs"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      ]
     },
     "Duration": {
       "description": "More than zero and at most 596h: `90s`, `15m`, `1h`, or a number of milliseconds.",

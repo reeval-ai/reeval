@@ -839,7 +839,7 @@ async function keptAttempt(
   for (const line of (await text(kept.files.transcript))?.split('\n') ?? []) {
     if (!line) continue
     const { turn, ...event } = JSON.parse(line) as { turn: number; type: string }
-    if (event.type === 'prompt' || event.type === 'turn-end') continue
+    if (event.type === 'prompt' || event.type === 'turn-end' || event.type === 'decision') continue
     events.set(turn, [...(events.get(turn) ?? []), event as TranscriptEvent])
   }
   const checks = []

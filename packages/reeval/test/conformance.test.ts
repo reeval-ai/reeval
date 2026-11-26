@@ -286,7 +286,7 @@ function steady(value: unknown, root: string): unknown {
   return Object.fromEntries(
     Object.entries(value).map(([key, v]) => [
       key,
-      (key === 'startedAt' || key === 'ts') && typeof v === 'string'
+      (key === 'startedAt' || key === 'ts' || key === 'timestamp') && typeof v === 'string'
         ? TIME
         : (key === 'durationMs' || key === 'atMs') && typeof v === 'number'
           ? 0
@@ -457,7 +457,7 @@ describe('context goldens', () => {
       l.runner?.call ? [l.runner.call as Record<string, unknown>] : [],
     )
     const ops = new Set(calls.map((c) => c.op))
-    for (const op of ['send', 'exec', 'kill', 'readFile', 'writeFile', 'expect', 'judge'])
+    for (const op of ['send', 'exec', 'kill', 'readFile', 'writeFile', 'expect', 'judge', 'decide'])
       assert.ok(ops.has(op), op)
     assert.ok(calls.some((c) => c.op === 'exec' && c.background))
     assert.ok(calls.some((c) => c.op === 'expect' && c.poll))

@@ -788,6 +788,7 @@
             "broker",
             "check",
             "container",
+            "decide",
             "docker",
             "env",
             "gateway",

@@ -71,6 +71,31 @@ describe('toAtif', () => {
     }
   }
 
+  test("leaves the eval's own c.decide calls out", () => {
+    const history = join(CORPUS_DIR, 'with-decisions', HISTORY_DIR)
+    const file = readdirSync(history).find((f) => f.endsWith('.json')) as string
+    const run = readableRecord(JSON.parse(readFileSync(join(history, file), 'utf8')) as RunRecord)
+    const attempts = run.evals.flatMap((e) => e.attempts)
+    assert.equal(attempts.length, 2)
+    for (const a of attempts) {
+      const path = a.files.transcript?.path as string
+      const lines = parseTranscript(readFileSync(join(history, run.runId, path), 'utf8'))
+      assert.ok(
+        lines.some((l) => l.type === 'decision'),
+        path,
+      )
+      const atif = toAtif(run, a, lines)
+      const parsed = trajectorySchema.safeParse(atif)
+      assert.ok(parsed.success, JSON.stringify(parsed.error?.issues, null, 2))
+      const without = toAtif(
+        run,
+        a,
+        lines.filter((l) => l.type !== 'decision'),
+      )
+      assert.deepEqual(atif, without, path)
+    }
+  })
+
   test('embeds streamed subagents and refers to each from its spawn call', () => {
     const golden = join(GOLDEN_DIR, 'before-subagents')
     const t = JSON.parse(

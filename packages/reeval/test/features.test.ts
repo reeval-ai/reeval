@@ -3789,6 +3789,67 @@ export const features: Feature[] = [
     },
   },
   {
+    dir: 'judge/decide',
+    tiers: ['fake', 'docker'],
+    env: 'plain',
+    canary: /expected \[ …\(1\) \] to have a length of 2 but got 1/,
+    record: ({ run, runDir }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      assert.equal(attempt?.decisionUse?.calls, 1)
+      assert.equal(attempt?.decisionUse?.usage?.input, 10)
+      assert.equal(attempt?.usage?.input, undefined, "the decision's tokens aren't the agent's")
+      assert.deepEqual(
+        attempt?.grades?.map((g) => [g.grader, g.grade, g.score]),
+        [['decided', [{ type: 'boolean', probability: 0.9 }], 1]],
+      )
+      const path = attempt?.files.transcript?.path
+      assert.ok(path, 'lands wrote its transcript')
+      const lines = readFileSync(join(runDir, path), 'utf8')
+        .trim()
+        .split('\n')
+        .map((l) => JSON.parse(l))
+      assert.deepEqual(
+        lines
+          .map((l) => `${l.type} ${l.turn}`)
+          .filter((l) => !l.startsWith('text') && !l.startsWith('file-edit')),
+        ['prompt 0', 'turn-end 0', 'decision 1', 'prompt 1', 'turn-end 1'],
+      )
+      const { decision } = lines.find((l) => l.type === 'decision')
+      assert.equal(decision.model, 'fake/fake-decision')
+      assert.deepEqual(decision.answers, { done: { type: 'boolean', probability: 0.9 } })
+      assert.deepEqual(Object.keys(decision.questions), ['done'])
+      const state = JSON.stringify(decision.state)
+      assert.match(state, /answer = 42/)
+      assert.ok(!state.includes('ghp_'), "the agent's output is masked in the recorded state")
+    },
+  },
+  {
+    dir: 'judge/decide-outage',
+    tiers: ['fake'],
+    env: 'app',
+    lands: {
+      outcome: 'infra_error',
+      error: {
+        kind: 'infra',
+        message:
+          /^c\.decide\(\) with fake\/fake-decision failed: overloaded\. Set decide\.model in reeval\.config\.ts/,
+      },
+    },
+    canary: /expected true to be false/,
+    record: ({ run, runDir }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      assert.deepEqual(attempt?.decisionUse, { calls: 1, usage: null })
+      const path = attempt?.files.transcript?.path
+      assert.ok(path)
+      const line = readFileSync(join(runDir, path), 'utf8')
+        .trim()
+        .split('\n')
+        .map((l) => JSON.parse(l))
+        .find((l) => l.type === 'decision')
+      assert.equal(line?.decision.error, 'overloaded')
+    },
+  },
+  {
     dir: 'judge/input-diff',
     tiers: ['fake'],
     env: 'scoped-app',
