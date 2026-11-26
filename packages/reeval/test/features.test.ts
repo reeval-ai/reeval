@@ -1325,6 +1325,24 @@ export const features: Feature[] = [
     record: ({ runDir }) => assert.equal(filesContaining(runDir, TOKEN), ''),
   },
   {
+    dir: 'secrets/grade-masked',
+    tiers: ['fake'],
+    env: 'tokens',
+    hostEnv: { REEVAL_FIXTURE_TOKEN: TOKEN },
+    canary: /: thrower errored: bad \[REDACTED\]$/,
+    record: ({ run, project, runDir, stdout }) => {
+      const grades = landed(run)?.grades?.map((g) => [g.grader, g.grade, g.error])
+      assert.deepEqual(grades, [
+        ['value', 'token [REDACTED]', undefined],
+        ['from-exec', '[REDACTED]', undefined],
+        ['thrower', undefined, 'bad [REDACTED]'],
+      ])
+      assert.equal(filesContaining(runDir, TOKEN), '')
+      assert.equal(filesContaining(join(project, '.reeval'), TOKEN), '')
+      assert.ok(!stdout.includes(TOKEN), 'the terminal output has the token')
+    },
+  },
+  {
     dir: 'secrets/file-sandbox-agent-sees-value',
     tiers: ['fake', 'docker'],
     env: 'keys',

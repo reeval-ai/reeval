@@ -1021,6 +1021,7 @@ export const inventory: InventoryFeature[] = [
       'secrets/redaction-coverage',
       'secrets/short-declared-secrets',
       'secrets/exec-env-masked',
+      'secrets/grade-masked',
     ],
     unit: [
       'reeval/test/unit.test.ts',
