@@ -667,7 +667,7 @@ async function placeObservations(
 }
 
 /** Dependency and binary noise dropped, and each remaining file's diff capped. */
-function historyPatch(patch: string): string {
+export function historyPatch(patch: string): string {
   return patchForJudge(patch)
     .split(/(?=^diff --git )/m)
     .map((part) => capText(part))

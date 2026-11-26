@@ -10,15 +10,17 @@ import type { GraderDef } from '../grade/define.ts'
 import { attemptScore, runGraders, scoreFailure } from '../grade/run.ts'
 import { sandboxStarter } from '../grade/sandbox.ts'
 import type { GraderTurn } from '../grade/types.ts'
-import { changedFiles, execLineOf } from '../history/assemble.ts'
+import { changedFiles, execLineOf, historyPatch } from '../history/assemble.ts'
 import { turnCost, unpricedTurns } from '../history/cost.ts'
-import { keptFiles, type Trajectory } from '../history/trajectory.ts'
+import { diffFiles, keptFiles, type Trajectory } from '../history/trajectory.ts'
 import { WORKSPACE_ARCHIVE, WORKSPACE_MANIFEST } from '../history/types.ts'
+import { askJudge } from '../judge/index.ts'
 import { loadPrices } from '../prices.ts'
 import { redactValue } from '../redact.ts'
 import { thresholdOf } from '../target.ts'
 import type { Case, GradeRecord } from '../types.ts'
 import { readableWorkspaceManifest } from '../view/record.ts'
+import { onJudge } from './judge.ts'
 import type { Attempt } from './state.ts'
 
 /** An eval's graders, and the case its attempts grade. */
@@ -37,6 +39,7 @@ async function liveTrajectory(a: Attempt, workspaceDir: string): Promise<Traject
   }))
   const kept = record.workspace && !record.workspace.skipped
   const manifestPath = join(workspaceDir, WORKSPACE_MANIFEST)
+  const changed = changedFiles(record.diff?.files ?? [], record.diff?.patch)
   return {
     execs: redactValue(record.checks.map(execLineOf)),
     observations: record.observations ?? [],
@@ -53,9 +56,11 @@ async function liveTrajectory(a: Attempt, workspaceDir: string): Promise<Traject
             join(workspaceDir, WORKSPACE_ARCHIVE),
           )
         : null,
-    changedFiles: changedFiles(record.diff?.files ?? [], record.diff?.patch).map(
-      ({ path, status }) => ({ path, status }),
-    ),
+    changedFiles: changed.map(({ path, status }) => ({ path, status })),
+    diff: redactValue({
+      patch: record.diff ? historyPatch(record.diff.patch) : '',
+      files: diffFiles(changed),
+    }),
   }
 }
 
@@ -105,7 +110,15 @@ export async function gradeAttempt(
     turns: await graderTurns(a),
     trajectory: await liveTrajectory(a, workspaceDir),
     skills: a.env?.record.skills.map((s) => s.name) ?? [],
-    ...(grading.graders.some((g) => g.run.env) && {
+    subagents: a.record.turns.map((t) => t.subagents),
+    judge: {
+      ...(a.spec.judge.model !== undefined ? { model: a.spec.judge.model } : {}),
+      ask: (question, answers, state, model, signal) =>
+        onJudge(a, { ...a.spec.judge, model }, (routed) =>
+          askJudge(question, answers, state, routed, signal),
+        ),
+    },
+    ...(grading.graders.some((g) => g.run.kind === 'code' && g.run.env) && {
       sandboxes: sandboxStarter(key, a.spec.sandbox),
     }),
   }

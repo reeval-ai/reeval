@@ -367,6 +367,8 @@ export type FakeJudgeModel = {
   kind: 'fake-judge'
   /** The score (0–1) every call gets, or a function of the state it would see. */
   score: number | ((state: JudgeState) => number)
+  /** A judge grader's answer when it has `answers`, or a function of the state it would see. */
+  answer?: string | ((state: JudgeState) => string)
 }
 
 /**
@@ -3724,10 +3726,10 @@ export type GradeRecord = {
   /** The grader's name, unique in its eval: a built-in's is `<kind>:<main argument>` unless it's given one. */
   grader: string
   /**
-   * What the grader is: `code` runs its `grade` function on the host; `builtin` is one of
-   * `reeval/graders`' graders.
+   * What the grader is: `code` runs its `grade` function on the host, `judge` asks its judge,
+   * `builtin` is one of `reeval/graders`' other graders.
    */
-  kind: 'code' | 'builtin'
+  kind: 'code' | 'judge' | 'builtin'
   /** Every name of the `defineGraders` group whose one `grade` call this came from. */
   group?: string[]
   /** What `grade` returned, masked; unset when the grader errored. */
@@ -3748,7 +3750,40 @@ export type GradeRecord = {
   scoreDigest?: string
   /** What the grader read from the attempt, by content hash, in first-read order. */
   reads: GradeReads
+  /** A judge grader's call to each model, and its reference; unset for any other. */
+  judge?: JudgeGrade
   durationMs: number
+}
+
+/** What a judge grader asked: each model's answer, and the reference it showed. */
+export type JudgeGrade = {
+  /** One per model, in the grader's order; unset when it errored before asking. */
+  calls?: JudgeGradeCall[]
+  /** The reference shown, by content; unset without one. */
+  reference?: { digest: string; files: number }
+  /** What the judge's state leaves out and why, e.g. `dist/ (3 files): build output`. */
+  dropped?: string[]
+}
+
+/** One model's answer to a judge grader. */
+export type JudgeGradeCall = {
+  model: string
+  /** Yes or no, or the answer it chose. */
+  answer: boolean | string
+  /** The model's probability of yes, or of the answer it chose, when it gives one. */
+  probability?: number
+  /** The model id the provider says served the call, when it reports one. */
+  resolvedModel?: string
+  /** The gateway from the config's `gateway` list the call went through; unset without one. */
+  gateway?: GatewayName
+  /** What the gateway says the call cost, in US dollars; unset when it names none. */
+  costUsd?: number
+  /** The call's cost: the gateway's, else its tokens at list prices; unset with neither. */
+  cost?: CostUsd
+  /** The call's tokens, when the provider reported them. */
+  usage?: TokenUsage
+  /** Transient provider errors retried on the way to the answer. */
+  retries?: JudgeRetry[]
 }
 
 /** What makes two grades of the same attempt comparable: equal digests, the same grade. */
@@ -3757,13 +3792,15 @@ export type GradeFingerprint = {
   digest: string
   /**
    * sha256 of the grader's name, its `files` and its `grade` function, with the local modules of
-   * the file it's defined in.
+   * the file it's defined in; for a judge grader, of its name, question, answers, inputs and models.
    */
   code: string
   /** sha256 of the `data` files' content; unset without `data`. */
   data?: string
   /** sha256 of the `env` sandbox's recipe, its egress and the id of the image it ran; unset without `env`. */
   image?: string
+  /** sha256 of a judge grader's reference, by each file's content; unset without one. */
+  reference?: string
   /** The grader's `revision`, when set. */
   revision?: number
   /** A built-in's code version, which reeval bumps when what it grades changes. */
@@ -3817,7 +3854,10 @@ export type PlannedGrader = {
   kind: GradeRecord['kind']
   weight: number
   required: boolean
-  /** A built-in whose grade has no score: it records the grade and counts for nothing. */
+  /**
+   * A built-in or judge grader whose grade has no score: it records the grade and counts for
+   * nothing.
+   */
   recordsOnly?: true
 }
 

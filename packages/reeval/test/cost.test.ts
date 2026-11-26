@@ -921,6 +921,32 @@ describe('record costs', () => {
     assert.deepEqual(priceRecord(run, pricer), run, 'pricing a priced record changes nothing')
   })
 
+  test("a judge grader's calls count toward the judge cost", () => {
+    const calls = [
+      { model: 'claude-sonnet-5', answer: true, costUsd: 0.01 },
+      { model: 'claude-sonnet-5', answer: true, usage },
+    ]
+    const run = priceRecord(
+      record(
+        [{ turns: [turn('claude-sonnet-5')], grades: [{ kind: 'judge', judge: { calls } }] }],
+        [{ model: 'claude-sonnet-5', costUsd: 0.02 }],
+      ),
+      pricer,
+    )
+    assert.deepEqual(
+      run.evals[0]?.attempts[0]?.grades?.[0]?.judge?.calls?.map((c) => c.cost),
+      [
+        { usd: 0.01, basis: 'reported', source: 'openrouter' },
+        { usd: 0.0074, basis: 'estimated', source: 'models.dev 2026-11-05' },
+      ],
+    )
+    assert.deepEqual(run.cost.judgeUsd, {
+      usd: 0.0374,
+      basis: 'estimated',
+      source: 'openrouter, models.dev 2026-11-05',
+    })
+  })
+
   test('a reported $0 is no cost, so the tokens are estimated', () => {
     const run = priceRecord(
       record(

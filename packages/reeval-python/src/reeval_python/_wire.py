@@ -1325,6 +1325,8 @@ class FakeJudgeData(TypedDict):
 # A canned judge for tests and dry runs; see `fakeJudge()` in `reeval/judge`. `score` as a
 # function of the state the judge would see works per group, eval or call, not in the config.
 class FakeJudgeModel(TypedDict):
+    # A judge grader's answer when it has `answers`, or a function of the state it would see.
+    answer: NotRequired[dict[str, Any] | str]
     kind: Literal["fake-judge"]
     # The score (0–1) every call gets, or a function of the state it would see.
     score: float | dict[str, Any]
@@ -2518,6 +2520,7 @@ CAMEL_KEYS: frozenset[str] = frozenset(
 # Fields whose keys are the eval's own (env, headers, …), which keep their spelling.
 RECORD_FIELDS: frozenset[str] = frozenset(
     {
+        "answer",
         "answers",
         "env",
         "files",

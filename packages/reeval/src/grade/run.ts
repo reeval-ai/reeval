@@ -5,9 +5,10 @@ import { sha256 } from '../ids.ts'
 import { redactSecrets, redactValue } from '../redact.ts'
 import { InfraError } from '../sandbox/types.ts'
 import { clip, formatDuration } from '../text.ts'
-import type { GradeFingerprint, GradeReads, GradeRecord, JSONValue } from '../types.ts'
+import type { GradeFingerprint, GradeReads, GradeRecord, JSONValue, JudgeGrade } from '../types.ts'
 import { copyFiles, GradeError, type GradeInputs, graderContext, readData } from './context.ts'
-import type { GradeRun, GraderDef } from './define.ts'
+import type { CodeRun, GradeRun, GraderDef } from './define.ts'
+import { type JudgeRun, judgeCode, readsOf, runJudgeGrader } from './judge.ts'
 import type { StartedSandbox } from './sandbox.ts'
 
 /** The most a grade may be, as JSON. */
@@ -19,6 +20,10 @@ type Ran = {
   reads: GradeReads
   data?: string
   image?: string
+  /** A judge grader's calls and reference, its reference's digest and its models' names. */
+  judge?: JudgeGrade
+  reference?: string
+  models?: string[]
   durationMs: number
 }
 
@@ -63,6 +68,33 @@ function abortable<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
 }
 
 async function runOnce(run: GradeRun, inputs: GradeInputs, signal: AbortSignal): Promise<Ran> {
+  return run.kind === 'judge' ? runJudge(run, inputs, signal) : runCode(run, inputs, signal)
+}
+
+async function runJudge(run: JudgeRun, inputs: GradeInputs, signal: AbortSignal): Promise<Ran> {
+  const started = performance.now()
+  const timeout = AbortSignal.timeout(run.timeoutMs)
+  const reads = readsOf()
+  try {
+    const { error, ...ran } = await abortable(
+      runJudgeGrader(run, inputs, reads, AbortSignal.any([signal, timeout])),
+      AbortSignal.any([signal, timeout]),
+    )
+    return {
+      ...ran,
+      ...(error !== undefined ? { error: message(error) } : {}),
+      reads: reads.reads(),
+      durationMs: performance.now() - started,
+    }
+  } catch (error) {
+    const why = timeout.aborted
+      ? `judge timed out after ${formatDuration(run.timeoutMs)}`
+      : message(error)
+    return { error: why, reads: reads.reads(), durationMs: performance.now() - started }
+  }
+}
+
+async function runCode(run: CodeRun, inputs: GradeInputs, signal: AbortSignal): Promise<Ran> {
   const startedAt = performance.now()
   let timeout: AbortSignal | undefined
   const timed = () => {
@@ -119,12 +151,12 @@ async function runOnce(run: GradeRun, inputs: GradeInputs, signal: AbortSignal):
  * held.
  */
 async function startSandbox(
-  run: GradeRun,
+  run: CodeRun,
   inputs: GradeInputs,
   signal: AbortSignal,
   timed: () => AbortSignal,
 ) {
-  const env = run.env as NonNullable<GradeRun['env']>
+  const env = run.env as NonNullable<CodeRun['env']>
   if (!inputs.sandboxes) throw new GradeError('graders with env run only in reeval run')
   let started: StartedSandbox | undefined
   let held = signal
@@ -147,18 +179,23 @@ async function startSandbox(
 
 function fingerprintOf(def: GraderDef, ran: Ran): GradeFingerprint {
   const { run, builtin } = def
-  const code = sha256(
-    canonicalJson(
-      builtin
-        ? { name: def.name, builtin: builtin.kind, args: builtin.args }
-        : { name: def.name, files: run.files, grade: run.gradeDigest },
-    ),
-  )
+  const { data, reference } = ran
+  const code =
+    run.kind === 'judge'
+      ? judgeCode(run, def.name, ran.models ?? [])
+      : sha256(
+          canonicalJson(
+            builtin
+              ? { name: def.name, builtin: builtin.kind, args: builtin.args }
+              : { name: def.name, files: run.files, grade: run.gradeDigest },
+          ),
+        )
   const parts = {
     code,
     ...(builtin ? { version: builtin.version } : {}),
-    ...(ran.data ? { data: ran.data } : {}),
+    ...(data ? { data } : {}),
     ...(ran.image ? { image: ran.image } : {}),
+    ...(reference ? { reference } : {}),
     ...(run.revision !== undefined ? { revision: run.revision } : {}),
   }
   return { digest: sha256(canonicalJson(parts)), ...parts }
@@ -213,7 +250,7 @@ export async function runGraders(
       const { score, error } = scoreOf(def, ran)
       return {
         grader: def.name,
-        kind: def.builtin ? 'builtin' : 'code',
+        kind: def.builtin ? 'builtin' : def.run.kind,
         ...(def.run.names.length > 1 ? { group: def.run.names } : {}),
         ...('grade' in ran ? { grade: ran.grade } : {}),
         score,
@@ -223,6 +260,7 @@ export async function runGraders(
         fingerprint: fingerprintOf(def, ran),
         ...(def.scoreDigest ? { scoreDigest: def.scoreDigest } : {}),
         reads: ran.reads,
+        ...(ran.judge ? { judge: ran.judge } : {}),
         durationMs: Math.round(ran.durationMs),
       }
     }),

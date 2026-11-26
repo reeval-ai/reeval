@@ -4,9 +4,11 @@ import { globFilter } from '../environment.ts'
 import { canonicalJson } from '../eval-source.ts'
 import type { Trajectory } from '../history/trajectory.ts'
 import { sha256 } from '../ids.ts'
+import type { DraftSource } from '../judge/draft.ts'
 import type { Sandbox } from '../sandbox/types.ts'
 import type { Case, GradeReads, HostFile, JSONValue } from '../types.ts'
-import type { GradeRun } from './define.ts'
+import type { CodeRun } from './define.ts'
+import type { GradeJudge } from './judge.ts'
 import type { SandboxStarter } from './sandbox.ts'
 import type { GraderContext, GraderData, GraderSandbox, GraderTurn } from './types.ts'
 
@@ -19,6 +21,13 @@ export type GradeInputs = {
   skills: readonly string[]
   /** Starts a grader's `env` sandbox; a grader with `env` errors without it. */
   sandboxes?: SandboxStarter
+  /**
+   * Each turn's subagent runs, which a judge's `transcript` shows under their spawn calls. Live
+   * only: the record keeps a summary of each, so a regrade's judge sees none.
+   */
+  subagents?: ReadonlyArray<DraftSource['subagents']>
+  /** How judge graders ask; without it they error. */
+  judge?: GradeJudge
 }
 
 type FileRead = { path: string; sha256: string }
@@ -54,7 +63,7 @@ function workspacePath(path: string): string | undefined {
 
 /** The grader's `data` files' content, and its digest. */
 export async function readData(
-  data: GradeRun['data'],
+  data: CodeRun['data'],
 ): Promise<{ data: GraderData; digest?: string }> {
   const entries = Object.entries(data)
   if (!entries.length) return { data: {} }
@@ -76,7 +85,7 @@ export async function readData(
   return { data: out, digest: sha256(canonicalJson(hashed)) }
 }
 
-const who = (run: GradeRun) =>
+const who = (run: CodeRun) =>
   run.names.length === 1 ? `grader ${run.names[0]}` : `graders ${run.names.join(', ')}`
 
 /**
@@ -85,7 +94,7 @@ const who = (run: GradeRun) =>
  */
 export async function copyFiles(
   inputs: GradeInputs,
-  run: GradeRun,
+  run: CodeRun,
   box: Sandbox,
   signal: AbortSignal,
 ): Promise<FileRead[]> {
@@ -119,11 +128,7 @@ export async function copyFiles(
 }
 
 /** `box` as `c.sandbox`, each command stopped with the grade. */
-function graderSandbox(
-  box: Sandbox | undefined,
-  run: GradeRun,
-  signal: AbortSignal,
-): GraderSandbox {
+function graderSandbox(box: Sandbox | undefined, run: CodeRun, signal: AbortSignal): GraderSandbox {
   if (!box) {
     const none = async (): Promise<never> => {
       throw new GradeError(`${who(run)} has no env, so it has no c.sandbox. Give it env: docker().`)
@@ -140,7 +145,7 @@ function graderSandbox(
 /** `c` for one grade call, and what it read: with `sandbox`, the files copied into it. */
 export function graderContext(
   inputs: GradeInputs,
-  run: GradeRun,
+  run: CodeRun,
   data: GraderData,
   signal: AbortSignal,
   sandbox?: { box: Sandbox; copied: readonly FileRead[] },

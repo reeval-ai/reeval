@@ -1602,7 +1602,7 @@ export const inventory: InventoryFeature[] = [
     id: 'harness.unread-turn-error',
     area: 'Harnesses',
     name: 'A turn that ends with an error the body never reads (`turn.status`) makes the attempt an infra error, even when its checks pass, and leaves it out of compare questions',
-    fixtures: ['harness/unread-turn-error-is-infra'],
+    fixtures: ['harness/unread-turn-error-is-infra', 'judge/unread-turn-error'],
     unit: ['reeval/test/turn-status.test.ts', 'reeval/test/results.test.ts'],
   },
   {
@@ -2196,6 +2196,20 @@ export const inventory: InventoryFeature[] = [
     name: "A grader's `env` (`docker()`, `podman()` or `fakeSandbox()`): a fresh sandbox from an image preflight prepares, `egress` deny-all by default, its `files` copied in from the kept workspace, as `c.sandbox` (`exec`, `readFile`, `writeFile`), torn down after; it takes a slot of the run's concurrency, and one that doesn't start ends the attempt `infra_error`; its recipe and image id fingerprint the grade",
     fixtures: ['grade/sandboxed'],
     unit: ['reeval/test/grade.test.ts'],
+  },
+  {
+    id: 'grade.judge',
+    area: 'Judges and matchers',
+    name: "Judge graders, `judge(question, options)` from `reeval/graders` or `defineGrader`'s `judge` spec: reeval's judge answers the question about the stored attempt (the judge inputs, drawn from its turns, execs, observations, captures and kept workspace, masked) once per model, its grade the answer or one per model; a yes/no question scores 1 for yes, `answers` score by their `score` map (the mean over models, digested apart) or record only; `kind: 'judge'` grades record each model's answer",
+    fixtures: ['grade/judge-boolean', 'grade/judge-labels', 'grade/judge-builtins'],
+    unit: ['reeval/test/grade-judge.test.ts', 'reeval/test/refusals.test.ts'],
+  },
+  {
+    id: 'grade.judge-reference',
+    area: 'Judges and matchers',
+    name: "A judge grader's `reference`: text, `file(…)` or `directory(…)`, or a function of the case returning one, shown only to the judge, whole or as a diff against the attempt's files (`inputs.reference`), its content digest a part of the fingerprint",
+    fixtures: ['grade/judge-reference'],
+    unit: ['reeval/test/grade-judge.test.ts'],
   },
   {
     id: 'assert.named-checks',

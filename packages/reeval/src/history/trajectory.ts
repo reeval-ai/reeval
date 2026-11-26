@@ -64,6 +64,11 @@ export type Trajectory = {
   workspace: KeptFiles | null
   /** The final diff's files. */
   changedFiles: FileChange[]
+  /**
+   * The workspace diff as the record keeps it: each file's part capped, noise dropped, and each
+   * dependency directory one entry with its file count.
+   */
+  diff: { patch: string; files: Array<FileChange & { count?: number }> }
 }
 
 /** `ref`'s file in `runDir`, as a path; refused when it's absolute or climbs out. */
@@ -247,5 +252,13 @@ export async function readTrajectory(
     },
     workspace: await readKeptFiles(runDir, attempt, options),
     changedFiles: (attempt.changedFiles ?? []).map(({ path, status }) => ({ path, status })),
+    diff: {
+      patch: attempt.files.diff ? (await readRef(runDir, attempt.files.diff)).toString('utf8') : '',
+      files: diffFiles(attempt.changedFiles ?? []),
+    },
   }
 }
+
+/** The changed files as a grader's judge sees them, a dependency directory with its count. */
+export const diffFiles = (changed: AttemptRecord['changedFiles']): Trajectory['diff']['files'] =>
+  changed.map(({ path, status, count }) => ({ path, status, ...(count ? { count } : {}) }))

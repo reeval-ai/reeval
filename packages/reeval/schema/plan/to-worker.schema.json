@@ -1549,6 +1549,19 @@
       "description": "A canned judge for tests and dry runs; see `fakeJudge()` in `reeval/judge`. `score` as a function of the state the judge would see works per group, eval or call, not in the config.",
       "type": "object",
       "properties": {
+        "answer": {
+          "description": "A judge grader's answer when it has `answers`, or a function of the state it would see.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {},
+              "required": []
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
         "kind": {
           "const": "fake-judge"
         },
@@ -1814,8 +1827,8 @@
       "type": "object",
       "properties": {
         "kind": {
-          "description": "`code` from `defineGrader` or `defineGraders`, `builtin` from `reeval/graders`.",
-          "enum": ["builtin", "code"]
+          "description": "`code` from `defineGrader` or `defineGraders`, `judge` from `defineGrader`'s `judge` or `reeval/graders`' `judge()`, `builtin` from `reeval/graders`' others.",
+          "enum": ["builtin", "code", "judge"]
         },
         "name": {
           "type": "string"

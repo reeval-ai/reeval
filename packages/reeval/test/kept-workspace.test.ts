@@ -313,7 +313,9 @@ describe('readTrajectory', () => {
     await keepWorkspace(a, box, join(run, 'staged'))
     const attempt = {
       observations: [{ name: 'orm', value: 'drizzle', turn: 1, sha256: sha256('"drizzle"') }],
+      changedFiles: [{ path: 'src/app.js', status: 'modified', added: 1, removed: 0 }],
       files: {
+        diff: ref('1/diff.patch', '+export {}\n'),
         execs: ref('1/execs.jsonl', lines.map((l) => `${JSON.stringify(l)}\n`).join('')),
         workspace: ref('1/workspace.tar.gz', readFileSync(join(run, 'staged/workspace.tar.gz'))),
         workspaceManifest: ref(
@@ -330,6 +332,10 @@ describe('readTrajectory', () => {
     assert.deepEqual(t.observations, attempt.observations)
     assert.equal((await t.readArtifact('home'))?.toString(), 'png')
     assert.equal(await t.readArtifact('missing'), null)
+    assert.deepEqual(t.diff, {
+      patch: '+export {}\n',
+      files: [{ path: 'src/app.js', status: 'modified' }],
+    })
     assert.deepEqual(
       t.workspace?.manifest.files.map((f) => f.path),
       ['src/app.js'],
@@ -341,8 +347,14 @@ describe('readTrajectory', () => {
       readTrajectory(run, attempt),
       /1\/execs\.jsonl changed since the run wrote it/,
     )
-    const bare = await readTrajectory(run, { files: {} } as unknown as AttemptRecord)
-    assert.deepEqual([bare.execs, bare.observations, bare.workspace], [[], [], null])
+    const bare = await readTrajectory(run, {
+      files: {},
+      changedFiles: [],
+    } as unknown as AttemptRecord)
+    assert.deepEqual(
+      [bare.execs, bare.observations, bare.workspace, bare.diff],
+      [[], [], null, { patch: '', files: [] }],
+    )
   })
 
   test('reads a large observed value from its file', async () => {
@@ -354,6 +366,7 @@ describe('readTrajectory', () => {
     const attempt = {
       observations: [{ name: 'rows', value: null, turn: 1, sha256: file.sha256, file }],
       files: {},
+      changedFiles: [],
     } as unknown as AttemptRecord
     const t = await readTrajectory(run, attempt)
     assert.deepEqual(t.observations[0]?.value, value)

@@ -21,12 +21,17 @@ export function collapseDependencies<T>(items: T[], pathOf: (item: T) => string)
   return collapse(items, pathOf, DEPENDENCY_DIR)
 }
 
-function collapse<T>(items: T[], pathOf: (item: T) => string, dirOf: RegExp): Collapsed<T> {
+function collapse<T>(
+  items: T[],
+  pathOf: (item: T) => string,
+  dirOf: RegExp,
+  countOf: (item: T) => number = () => 1,
+): Collapsed<T> {
   const kept: T[] = []
   const counts = new Map<string, number>()
   for (const item of items) {
     const dir = dirOf.exec(pathOf(item))?.[1]
-    if (dir) counts.set(dir, (counts.get(dir) ?? 0) + 1)
+    if (dir) counts.set(dir, (counts.get(dir) ?? 0) + countOf(item))
     else kept.push(item)
   }
   return { kept, dirs: [...counts].map(([dir, count]) => ({ dir, count })) }
@@ -59,7 +64,7 @@ export type JudgeDiffOptions = {
  * `patterns` (`diff`'s) leave out are gone. `git apply` skips the marker lines.
  */
 export function judgeDiff(
-  diff: { patch: string; files: Array<{ path: string; status: string }> },
+  diff: { patch: string; files: Array<{ path: string; status: string; count?: number }> },
   { patterns, inFull }: JudgeDiffOptions = {},
 ): JudgeDiff {
   const included = patterns?.length ? globFilter(patterns) : () => true
@@ -67,8 +72,18 @@ export function judgeDiff(
   const files = diff.files.filter((f) => included(f.path))
   for (const f of diff.files)
     if (!included(f.path)) dropped.push(`${f.path}: not in diff's patterns`)
-  const deps = collapse(files, (f) => f.path, DEPENDENCY_DIR)
-  const built = collapse(deps.kept, (f) => f.path, BUILD_DIR)
+  const deps = collapse(
+    files,
+    (f) => f.path,
+    DEPENDENCY_DIR,
+    (f) => f.count ?? 1,
+  )
+  const built = collapse(
+    deps.kept,
+    (f) => f.path,
+    BUILD_DIR,
+    (f) => f.count ?? 1,
+  )
   const fileLines = [
     ...built.kept.map((f) => `${f.status} ${f.path}`),
     ...[...deps.dirs, ...built.dirs].map((d) => `changed ${d.dir} (${plural(d.count, 'file')})`),

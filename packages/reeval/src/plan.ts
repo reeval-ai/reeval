@@ -388,7 +388,7 @@ function graderLines(members: PlanRow[]): string[] {
   const graders = members.find((r) => !r.plan.skip)?.plan.graders ?? []
   return graders.map(
     (g, i) =>
-      `  grader ${i + 1}/${graders.length}  ${clip(g.name, 80)} · ${g.kind === 'builtin' ? 'built-in' : 'code'} · ${g.recordsOnly || (g.weight === 0 && !g.required) ? 'records only' : `weight ${g.weight}`}${g.required ? ' · required' : ''}`,
+      `  grader ${i + 1}/${graders.length}  ${clip(g.name, 80)} · ${g.kind === 'builtin' ? 'built-in' : g.kind} · ${g.recordsOnly || (g.weight === 0 && !g.required) ? 'records only' : `weight ${g.weight}`}${g.required ? ' · required' : ''}`,
   )
 }
 

@@ -57,6 +57,7 @@ import {
   withinLimits,
 } from '../../src/grade/builtins.ts'
 import { defineGrader } from '../../src/grade/define.ts'
+import { judge } from '../../src/grade/judge-grader.ts'
 import { refusedMcp } from '../../src/harness/agents.ts'
 import { cloud } from '../../src/internal-vm.ts'
 import { judgeRoute } from '../../src/judge/index.ts'
@@ -480,6 +481,8 @@ const request =
     const problem = attemptRequestProblem({ id, call })
     if (problem) throw new UsageError(problem)
   }
+/** What defineGrader() refuses of a judge grader's spec. */
+const judgeGrader = (spec: object) => () => defineGrader('g', spec as never)
 /** What a c.judge() call's options are checked against before it asks the model. */
 const judgeCall = (options: unknown) => () => {
   const problem = judgeProblem(options, { at: 'call' })
@@ -1259,6 +1262,105 @@ export const CASES: Record<string, Case[]> = {
         'vercel',
       ),
     ],
+    [
+      'grader: grade with judge',
+      judgeGrader({ judge: { question: 'Q?', inputs: { diff: true } }, grade: () => 1 }),
+    ],
+    [
+      'grader: files on a judge grader',
+      judgeGrader({ judge: { question: 'Q?', inputs: { diff: true } }, files: ['a'] }),
+    ],
+    ['grader: no question', judgeGrader({ judge: { inputs: { diff: true } } })],
+    [
+      'grader: an unknown spec key',
+      judgeGrader({ judge: { question: 'Q?', inputs: { diff: true }, threshold: 0.5 } }),
+    ],
+    [
+      'grader: one answer',
+      judgeGrader({ judge: { question: 'Q?', inputs: { diff: true }, answers: ['a'] } }),
+    ],
+    [
+      'grader: model and models',
+      judgeGrader({
+        judge: { question: 'Q?', inputs: { diff: true }, model: 'google/g', models: ['google/g'] },
+      }),
+    ],
+    [
+      'grader: empty models',
+      judgeGrader({ judge: { question: 'Q?', inputs: { diff: true }, models: [] } }),
+    ],
+    [
+      'grader: a model with no provider',
+      judgeGrader({ judge: { question: 'Q?', inputs: { diff: true }, model: 'gemini' } }),
+    ],
+    ['grader: no inputs', judgeGrader({ judge: { question: 'Q?' } })],
+    [
+      'grader: inputs that show nothing',
+      judgeGrader({ judge: { question: 'Q?', inputs: { diff: false } } }),
+    ],
+    ['grader: an unknown input', judgeGrader({ judge: { question: 'Q?', inputs: { dif: true } } })],
+    [
+      'grader: inputs.reference with no reference',
+      judgeGrader({ judge: { question: 'Q?', inputs: { reference: 'whole' } } }),
+    ],
+    [
+      'grader: inputs.reference not whole or diff',
+      judgeGrader({ judge: { question: 'Q?', inputs: { reference: 'all' }, reference: 'x' } }),
+    ],
+    [
+      'grader: a reference that is a number',
+      judgeGrader({ judge: { question: 'Q?', inputs: { diff: true }, reference: 3 } }),
+    ],
+    [
+      'grader: a missing reference file',
+      judgeGrader({
+        judge: {
+          question: 'Q?',
+          inputs: { diff: true },
+          reference: { kind: 'file', path: '/nope/x.md' },
+        },
+      }),
+    ],
+    [
+      'grader: a score map missing an answer',
+      judgeGrader({
+        judge: { question: 'Q?', inputs: { diff: true }, answers: ['a', 'b'] },
+        score: { a: 1 },
+      }),
+    ],
+    [
+      'grader: a score over 1',
+      judgeGrader({
+        judge: { question: 'Q?', inputs: { diff: true } },
+        score: { true: 2, false: 0 },
+      }),
+    ],
+    [
+      'grader: required answers with no score',
+      judgeGrader({
+        judge: { question: 'Q?', inputs: { diff: true }, answers: ['a', 'b'] },
+        required: true,
+      }),
+    ],
+    [
+      'grader: good, answers scored per model',
+      judgeGrader({
+        judge: {
+          question: 'Q?',
+          inputs: { diff: true },
+          answers: ['a', 'b'],
+          models: ['google/g', 'openai/o'],
+        },
+        score: { a: 1, b: 0 },
+      }),
+    ],
+    [
+      'grader: good, a reference per case',
+      judgeGrader({
+        judge: { question: 'Q?', inputs: { reference: 'diff' }, reference: () => 'x' },
+      }),
+    ],
+    ['grader: judge() options that are not an object', () => judge('Q?', 3 as never)],
   ],
   compare: [
     ['a list', options({ compare: [e1, e2] })],
@@ -2150,6 +2252,10 @@ export const CASES: Record<string, Case[]> = {
   config: [
     ['graders: not a list', config({ graders: 'turns' })],
     ['graders: a defineGrader grader', config({ graders: [passes] })],
+    [
+      'graders: a judge grader',
+      config({ graders: [judge('Q?', { inputs: { diff: true }, model: 'google/g' })] }),
+    ],
     ['graders: a score function', () => config({ graders: [turns({ score: () => 1 })] })()],
     ['graders: an unknown built-in', config({ graders: [{ builtin: 'lints' }] })],
     [
@@ -3236,6 +3342,18 @@ environments:
     [
       'graders: env on this machine is accepted',
       defines({ graders: [inDocker], task: async () => {} }),
+    ],
+    [
+      'graders: a judge grader with no model',
+      defines({ graders: [judge('Q?', { inputs: { diff: true } })], task: async () => {} }),
+    ],
+    [
+      "graders: a judge grader is accepted on the eval's judge model",
+      defines({
+        graders: [judge('Q?', { inputs: { diff: true } })],
+        judge: { model: 'google/g' },
+        task: async () => {},
+      }),
     ],
     ['agents: an empty list', defines({ agents: [], task: async () => {} })],
     ['agents: harnesses', defines({ harnesses: fakeAgent(), task: async () => {} })],

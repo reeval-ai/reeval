@@ -4747,7 +4747,7 @@
       "type": "object",
       "properties": {
         "code": {
-          "description": "sha256 of the grader's name, its `files` and its `grade` function, with the local modules of the file it's defined in.",
+          "description": "sha256 of the grader's name, its `files` and its `grade` function, with the local modules of the file it's defined in; for a judge grader, of its name, question, answers, inputs and models.",
           "type": "string"
         },
         "data": {
@@ -4760,6 +4760,10 @@
         },
         "image": {
           "description": "sha256 of the `env` sandbox's recipe, its egress and the id of the image it ran; unset without `env`.",
+          "type": "string"
+        },
+        "reference": {
+          "description": "sha256 of a judge grader's reference, by each file's content; unset without one.",
           "type": "string"
         },
         "revision": {
@@ -4881,9 +4885,13 @@
             "type": "string"
           }
         },
+        "judge": {
+          "description": "A judge grader's call to each model, and its reference; unset for any other.",
+          "$ref": "#/$defs/JudgeGrade"
+        },
         "kind": {
-          "description": "What the grader is: `code` runs its `grade` function on the host; `builtin` is one of `reeval/graders`' graders.",
-          "enum": ["builtin", "code"]
+          "description": "What the grader is: `code` runs its `grade` function on the host, `judge` asks its judge, `builtin` is one of `reeval/graders`' other graders.",
+          "enum": ["builtin", "code", "judge"]
         },
         "reads": {
           "description": "What the grader read from the attempt, by content hash, in first-read order.",
@@ -5114,6 +5122,92 @@
         }
       },
       "required": ["bytes", "mediaType", "name", "path", "sha256"]
+    },
+    "JudgeGrade": {
+      "description": "What a judge grader asked: each model's answer, and the reference it showed.",
+      "type": "object",
+      "properties": {
+        "calls": {
+          "description": "One per model, in the grader's order; unset when it errored before asking.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JudgeGradeCall"
+          }
+        },
+        "dropped": {
+          "description": "What the judge's state leaves out and why, e.g. `dist/ (3 files): build output`.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reference": {
+          "description": "The reference shown, by content; unset without one.",
+          "type": "object",
+          "properties": {
+            "digest": {
+              "type": "string"
+            },
+            "files": {
+              "type": "number"
+            }
+          },
+          "required": ["digest", "files"]
+        }
+      },
+      "required": []
+    },
+    "JudgeGradeCall": {
+      "description": "One model's answer to a judge grader.",
+      "type": "object",
+      "properties": {
+        "answer": {
+          "description": "Yes or no, or the answer it chose.",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "cost": {
+          "description": "The call's cost: the gateway's, else its tokens at list prices; unset with neither.",
+          "$ref": "#/$defs/CostUsd"
+        },
+        "costUsd": {
+          "description": "What the gateway says the call cost, in US dollars; unset when it names none.",
+          "type": "number"
+        },
+        "gateway": {
+          "description": "The gateway from the config's `gateway` list the call went through; unset without one.",
+          "enum": ["direct", "openrouter", "vercel", "vertex"]
+        },
+        "model": {
+          "type": "string"
+        },
+        "probability": {
+          "description": "The model's probability of yes, or of the answer it chose, when it gives one.",
+          "type": "number"
+        },
+        "resolvedModel": {
+          "description": "The model id the provider says served the call, when it reports one.",
+          "type": "string"
+        },
+        "retries": {
+          "description": "Transient provider errors retried on the way to the answer.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JudgeRetry"
+          }
+        },
+        "usage": {
+          "description": "The call's tokens, when the provider reported them.",
+          "$ref": "#/$defs/TokenUsage"
+        }
+      },
+      "required": ["answer", "model"]
     },
     "JudgeRetry": {
       "description": "One failed judge try that was retried, and the backoff before the next.",
@@ -5681,13 +5775,13 @@
       "type": "object",
       "properties": {
         "kind": {
-          "enum": ["builtin", "code"]
+          "enum": ["builtin", "code", "judge"]
         },
         "name": {
           "type": "string"
         },
         "recordsOnly": {
-          "description": "A built-in whose grade has no score: it records the grade and counts for nothing.",
+          "description": "A built-in or judge grader whose grade has no score: it records the grade and counts for nothing.",
           "const": true
         },
         "required": {

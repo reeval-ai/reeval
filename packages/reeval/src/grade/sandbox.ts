@@ -72,7 +72,7 @@ export function sandboxStarter(attempt: string, attemptSandbox: SandboxDescripto
 export async function checkGraderImages(runs: readonly GradeRun[]): Promise<void> {
   const { runId, config } = getRunContext()
   for (const run of new Set(runs)) {
-    if (run.env) await graderImage(config.root, runId, run.env.sandbox)
+    if (run.kind === 'code' && run.env) await graderImage(config.root, runId, run.env.sandbox)
   }
 }
 

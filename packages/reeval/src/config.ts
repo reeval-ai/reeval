@@ -784,7 +784,7 @@ function configGraders(value: unknown, where: string): BuiltinGraderData[] {
   const data = defs.map((def): BuiltinGraderData => {
     if (!def?.builtin) {
       throw new UsageError(
-        `${where} takes reeval/graders' built-ins: ${def?.name} is a defineGrader grader, which goes in an eval's graders.`,
+        `${where} takes reeval/graders' built-ins: ${def?.name} is a ${def?.run.kind === 'judge' ? 'judge' : 'defineGrader'} grader, which goes in an eval's graders.`,
       )
     }
     if (!def.builtin.data) {
