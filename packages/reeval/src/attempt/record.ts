@@ -1,10 +1,12 @@
 import { mkdir, rename, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
+import { stripVTControlCharacters } from 'node:util'
 import { AgentError, statusCause } from '@reeval/agents'
 import { debugLog } from '../debug/attempt.ts'
 import { allowedHosts, isDirect } from '../egress.ts'
 import type { RawAssertion } from '../engine/runtime.ts'
 import { isTimeout } from '../errors.ts'
+import { isEvalError } from '../eval-error.ts'
 import { expectedBlockedFor } from '../harness/agents.ts'
 import { ProviderStopError } from '../harness/provider-stop.ts'
 import { attemptKey, recordFileName } from '../ids.ts'
@@ -14,13 +16,21 @@ import { redactJson, redactSecrets, redactSplitSecrets } from '../redact.ts'
 import { InfraError, RunStopped, type Sandbox } from '../sandbox/index.ts'
 import { PrepareError } from '../sandbox/provider.ts'
 import { capMiddle, clip } from '../text.ts'
-import type { ErrorKind, EvalMeta, EvalRecord, TranscriptEvent } from '../types.ts'
+import type {
+  AttemptFailure,
+  ErrorKind,
+  EvalMeta,
+  EvalRecord,
+  JSONValue,
+  TranscriptEvent,
+} from '../types.ts'
 import { resourcesLine } from '../view/resources.ts'
 import { messageLine } from '../view/suite.ts'
 import { inferDurations, sumSplits, timeSplit } from '../view/timeline.ts'
 import { turnErrorKind } from '../view/turn-error.ts'
 import { checkFailure } from './assertions.ts'
 import { writeCaptureSidecars } from './capture.ts'
+import { MAX_OBSERVED_BYTES, maskedJson } from './observe.ts'
 import type { Attempt } from './state.ts'
 
 /**
@@ -188,6 +198,82 @@ export function recordFailure(
   record.outcome = record.error.kind === 'infra' ? 'infra_error' : 'fail'
 }
 
+const withoutStack = ({ stack: _, ...failure }: AttemptFailure) => failure
+
+const REASON_MAX = 200
+const STACK_MAX = 8 * 1024
+
+/**
+ * A thrown message on one line: each line break, and the space around it, folded to a space, and
+ * every escape sequence and other control character dropped, so it can't redraw a terminal.
+ */
+const oneLine = (text: string) =>
+  stripVTControlCharacters(text)
+    .replace(/\s*[\r\n\u2028\u2029]+\s*/g, ' ')
+    .replace(/\p{Cc}/gu, ' ')
+    .trim()
+
+/** How many `cause`s deep a recorded stack follows. */
+const CAUSE_DEPTH = 5
+
+/** `error`'s stack, then each of its `cause`s' as `Caused by: …`, as Python's traceback chains them. */
+function chainedStack(error: Error): string | undefined {
+  let stack = error.stack
+  let cause: unknown = error.cause
+  for (let depth = 0; cause !== undefined && depth < CAUSE_DEPTH; depth++) {
+    const said =
+      cause instanceof Error ? (cause.stack ?? `${cause.name}: ${cause.message}`) : String(cause)
+    stack = `${stack ?? `${error.name}: ${error.message}`}\nCaused by: ${said}`
+    cause = cause instanceof Error ? cause.cause : undefined
+  }
+  return stack
+}
+
+/** An `EvalError`'s meta, masked; past `MAX_OBSERVED_BYTES` of JSON, a marker saying how big it was. */
+function cappedMeta(meta: { [key: string]: JSONValue }): { [key: string]: JSONValue } {
+  const masked = maskedJson(meta) as { [key: string]: JSONValue }
+  const bytes = Buffer.byteLength(JSON.stringify(masked))
+  return bytes > MAX_OBSERVED_BYTES ? { truncated: true, bytes } : masked
+}
+
+/** JavaScript's own `EvalError` given reeval's options: it stringifies them. */
+const UNIMPORTED =
+  "EvalError isn't reeval's: import { EvalError } from 'reeval' to record its reason and meta"
+
+/**
+ * What the task threw, into the record, when it failed the attempt as itself: not a failed
+ * `expect` the body let through, which its assertion records already hold.
+ */
+export function recordTaskFailure(
+  a: Attempt,
+  error: unknown,
+  raw: readonly RawAssertion[],
+  root: string,
+): void {
+  const { record } = a
+  if (record.error?.kind !== 'assertion') return
+  const message = messageOf(error)
+  if (raw.some((r) => r.status !== 'pass' && (r.error === error || messageOf(r.error) === message)))
+    return
+  const evalError = isEvalError(error)
+  const name = error instanceof Error ? error.name : undefined
+  const unimported =
+    !evalError && error instanceof globalThis.EvalError && error.message === '[object Object]'
+  const said = unimported ? UNIMPORTED : oneLine(evalError ? (error.reason ?? message) : message)
+  const stack = error instanceof Error ? chainedStack(error) : undefined
+  record.failure = {
+    kind: 'task',
+    reason: clip(redactSecrets(said || name || 'the task threw'), REASON_MAX),
+    ...(evalError && error.meta ? { meta: cappedMeta(error.meta) } : {}),
+    ...(!evalError && name ? { name } : {}),
+    turn: a.turns.length,
+    ...(stack
+      ? { stack: capMiddle(redactSecrets(stack.replaceAll(`${root}${sep}`, '')), STACK_MAX) }
+      : {}),
+  }
+  if (evalError) record.error.message = record.failure.reason
+}
+
 /** What the sandbox gave the attempt and what it used, into the record, before the sandbox goes. */
 export async function recordResources(a: Attempt): Promise<void> {
   const resources = await a.meter?.stop({ gone: a.signal.aborted }).catch(() => undefined)
@@ -330,6 +416,7 @@ export async function writeRecord(a: Attempt, stagingDir: string, id: string): P
   return {
     outcome: record.outcome,
     errorKind: record.error?.kind ?? null,
+    ...(record.failure ? { failure: withoutStack(record.failure) } : {}),
     judgements: record.judgements.map((j) => ({
       verdict: j.verdict,
       score: j.score,

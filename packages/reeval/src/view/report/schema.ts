@@ -673,6 +673,15 @@ const attemptIndexRowSchema: z.ZodType<AttemptIndexRow> = z.strictObject({
   outcome: z.enum(['pass', 'fail', 'infra_error', 'canceled']),
   reclassified: z.boolean(),
   turnError: z.string().nullable(),
+  failure: z
+    .strictObject({
+      reason: z.string(),
+      meta: z.array(z.strictObject({ key: z.string(), value: z.string() })),
+      name: z.string().nullable(),
+      turn: z.number().int().nonnegative(),
+      stack: z.string().nullable(),
+    })
+    .optional(),
   tokens: figureSchema,
   agentMs: figureSchema,
   toolCalls: figureSchema,

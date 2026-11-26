@@ -18,7 +18,7 @@ from reeval_python.environment import (
     plugin,
     tart,
 )
-from reeval_python.errors import ReevalAssertionError, ReevalCallError
+from reeval_python.errors import EvalError, ReevalAssertionError, ReevalCallError
 from reeval_python.expect import Expectation, expect
 from reeval_python.options import (
     BestOf,
@@ -39,6 +39,7 @@ __all__ = [
     "DockerSandbox",
     "Environment",
     "Case",
+    "EvalError",
     "CaseOptions",
     "EvalOptions",
     "ExecResult",

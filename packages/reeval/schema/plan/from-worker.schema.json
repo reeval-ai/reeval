@@ -1005,6 +1005,37 @@
             "required": ["label", "message"]
           }
         },
+        "failure": {
+          "description": "What the task threw, without its stack.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "task"
+            },
+            "meta": {
+              "description": "The `EvalError`'s `meta`, masked like observations; absent without one.",
+              "type": "object",
+              "properties": {},
+              "required": [],
+              "additionalProperties": {
+                "$ref": "#/$defs/JSONValue"
+              }
+            },
+            "name": {
+              "description": "The class of an error that isn't an `EvalError`, such as `TypeError`; absent for an `EvalError`.",
+              "type": "string"
+            },
+            "reason": {
+              "description": "The `EvalError`'s reason, or the error's message: one line, cut at 200 characters, masked.",
+              "type": "string"
+            },
+            "turn": {
+              "description": "How many turns the attempt had sent when the task threw: 0 before the first.",
+              "type": "number"
+            }
+          },
+          "required": ["kind", "reason", "turn"]
+        },
         "judgements": {
           "type": "array",
           "items": {
@@ -2071,6 +2102,37 @@
           },
           "required": ["run"],
           "additionalProperties": false
+        }
+      ]
+    },
+    "JSONValue": {
+      "description": "Any JSON value.",
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        },
+        {
+          "type": "string"
         }
       ]
     },

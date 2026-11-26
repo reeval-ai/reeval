@@ -72,6 +72,7 @@ loading. The `reeval.config.ts` follows the config API like any other project.
 | `real-contract` | The same nightly run: the harness contract on Cursor, Claude Code and Codex, one run each of six behaviours that pass and six canaries that fail, with transcripts, raw transcripts and diffs. Copied from the contract projects' `.reeval/runs`, since the contract never records |
 | `with-archive` | The corpus recipe's run with its history archive, `<runId>.zip` beside it (written by `corpus:add --archive`): the record and every file recorded with it, and `reeval-archive.json` (`ArchiveManifest`) listing each with its sha256; the saved analysis, added after recording, stays beside the zip |
 | `with-run-report` | The corpus recipe's run with `<run>/report.json` (`RunReport`) beside its summary.md, both from one report built when the run was recorded |
+| `before-eval-error` | The corpus project's fake-harness runs from before `evals[].attempts[].failure` (what an eval's task threw: an `EvalError`'s reason and meta, or another error's message and class) |
 
 What reads them:
 

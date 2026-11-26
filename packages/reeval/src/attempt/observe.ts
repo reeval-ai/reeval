@@ -14,7 +14,12 @@ const MAX_DEPTH = 64
 const at = (path: string) => (path ? ` at ${path}` : '')
 
 /** Why `value` isn't JSON, naming where, or undefined. */
-function notJson(value: unknown, path: string, seen: Set<object>, depth = 0): string | undefined {
+export function notJson(
+  value: unknown,
+  path: string,
+  seen: Set<object>,
+  depth = 0,
+): string | undefined {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return undefined
   if (typeof value === 'number') {
     return Number.isFinite(value) ? undefined : `${value}${at(path)} isn't a finite number`
@@ -52,6 +57,9 @@ function maskNumbers(value: JSONValue): JSONValue {
   }
   return value
 }
+
+/** `value` masked as an observed value is: secret-looking strings and numbers. */
+export const maskedJson = (value: JSONValue): JSONValue => maskNumbers(redactValue(value))
 
 /**
  * An observation's name as it's recorded and shown: masked as its value is. A name that holds a
@@ -97,7 +105,7 @@ export function observer(a: Attempt): AttemptContext['observe'] {
     }
     const problem = notJson(value, '', new Set())
     if (problem) throw new UsageError(`c.observe("${name}") takes JSON: ${problem}`)
-    const masked = maskNumbers(redactValue(value as JSONValue))
+    const masked = maskedJson(value as JSONValue)
     const bytes = Buffer.byteLength(JSON.stringify(masked))
     if (bytes > MAX_OBSERVED_BYTES) {
       throw new UsageError(

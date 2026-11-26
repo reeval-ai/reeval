@@ -40,6 +40,7 @@ import {
   recordFailure,
   recordOom,
   recordResources,
+  recordTaskFailure,
   recordTimeline,
   writeRecord,
 } from './record.ts'
@@ -164,6 +165,7 @@ async function attemptBody(
   const timedOut = () => !!timer?.aborted && !testSignal.aborted
   let failure: { error: unknown } | undefined
   let oom: Error | undefined
+  let taskThrew: { error: unknown } | undefined
   try {
     a.report({ kind: 'sandbox' })
     const where = `${id} [${attemptId(spec.cell.key, spec.n)}]`
@@ -173,7 +175,9 @@ async function attemptBody(
     a.signal = AbortSignal.any([testSignal, timer])
     timer.addEventListener('abort', destroy, { once: true })
     await fn(c).catch((error: unknown) => {
-      throw a.startFailure ? a.startFailure.error : error
+      if (a.startFailure) throw a.startFailure.error
+      taskThrew = { error }
+      throw error
     })
     // A body that ignores the signal can still return normally after a timeout or cancel.
     a.signal.throwIfAborted()
@@ -189,6 +193,7 @@ async function attemptBody(
   } catch (thrown) {
     const error = attemptError(a, thrown, assertions())
     recordFailure(a, error, timedOut(), assertions())
+    if (taskThrew?.error === error) recordTaskFailure(a, error, assertions(), config.root)
     failure = {
       error: timedOut()
         ? new TimeoutError(`Eval timed out after ${spec.timeoutMs / 1000}s`)
@@ -233,6 +238,8 @@ async function attemptBody(
       debug.log('check', `assert ${mark} ${x.label} (${x.matcher}, ${x.status})${why}`)
     }
     reclassifyTurnErrors(a)
+    // A turn's error, an OOM kill or a provider outage the timeout hid is why it ended instead.
+    if (record.error?.kind !== 'assertion') delete record.failure
     const error = record.error ? ` · ${record.error.kind}: ${record.error.message}` : ''
     debug.log('teardown', `outcome ${record.outcome}${error}`)
     const rel = (path: string) => relativeFile(config.root, path) || '.'

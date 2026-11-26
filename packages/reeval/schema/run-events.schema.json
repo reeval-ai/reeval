@@ -293,6 +293,41 @@
       },
       "required": ["kind", "message"]
     },
+    "AttemptFailure": {
+      "description": "What the eval's task threw that failed the attempt: an `EvalError`, or any other error. Not a failed `expect`, a judge, a timeout, a cancel or an infra error.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "task"
+        },
+        "meta": {
+          "description": "The `EvalError`'s `meta`, masked like observations; absent without one.",
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        },
+        "name": {
+          "description": "The class of an error that isn't an `EvalError`, such as `TypeError`; absent for an `EvalError`.",
+          "type": "string"
+        },
+        "reason": {
+          "description": "The `EvalError`'s reason, or the error's message: one line, cut at 200 characters, masked.",
+          "type": "string"
+        },
+        "stack": {
+          "description": "The error's stack, masked, its paths relative to the project; absent when it had none.",
+          "type": "string"
+        },
+        "turn": {
+          "description": "How many turns the attempt had sent when the task threw: 0 before the first.",
+          "type": "number"
+        }
+      },
+      "required": ["kind", "reason", "turn"]
+    },
     "AttemptFiles": {
       "type": "object",
       "properties": {
@@ -751,6 +786,10 @@
               "type": "null"
             }
           ]
+        },
+        "failure": {
+          "description": "What the eval's task threw that failed the attempt (`kind: 'task'`): an `EvalError`'s `reason` and `meta`, or another error's message as `reason` with its class in `name`; `turn` is how many turns it had sent then, and `stack` the error's stack. `error` is the same failure, as `assertion`. Absent when the task didn't throw, or what it threw was a failed `expect`, a timeout, a cancel or an infra error.",
+          "$ref": "#/$defs/AttemptFailure"
         },
         "files": {
           "$ref": "#/$defs/AttemptFiles"
@@ -3155,6 +3194,37 @@
             },
             "required": ["label", "message"]
           }
+        },
+        "failure": {
+          "description": "What the task threw, without its stack.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "task"
+            },
+            "meta": {
+              "description": "The `EvalError`'s `meta`, masked like observations; absent without one.",
+              "type": "object",
+              "properties": {},
+              "required": [],
+              "additionalProperties": {
+                "$ref": "#/$defs/JSONValue"
+              }
+            },
+            "name": {
+              "description": "The class of an error that isn't an `EvalError`, such as `TypeError`; absent for an `EvalError`.",
+              "type": "string"
+            },
+            "reason": {
+              "description": "The `EvalError`'s reason, or the error's message: one line, cut at 200 characters, masked.",
+              "type": "string"
+            },
+            "turn": {
+              "description": "How many turns the attempt had sent when the task threw: 0 before the first.",
+              "type": "number"
+            }
+          },
+          "required": ["kind", "reason", "turn"]
         },
         "judgements": {
           "type": "array",
