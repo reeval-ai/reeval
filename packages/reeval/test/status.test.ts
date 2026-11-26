@@ -102,6 +102,8 @@ evals/throws.eval.ts
      Failed on fake.
      ✗ 1 run failed
        the fixture is missing
+         after turn 1
+         at task (evals/throws.eval.ts:5:11)
 
 evals/two-checks-fail.eval.ts
 └─ ✗ two-checks-fail  0 of 2 runs passed

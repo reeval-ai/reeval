@@ -1353,6 +1353,7 @@ async function attemptEvidence(
     ...(record?.serves?.length ? { serves: record.serves } : {}),
     ...(record?.assertions?.length ? { assertions: record.assertions } : {}),
     ...(observations.length ? { observations } : {}),
+    ...(record?.failure ? { failure: record.failure } : {}),
     checks: (record?.checks ?? []).map((c, i) => ({
       command: c.command,
       ...(c.label !== undefined ? { label: c.label } : {}),

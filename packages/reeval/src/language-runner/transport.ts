@@ -3,6 +3,8 @@ import { spawn } from 'node:child_process'
 import { createInterface } from 'node:readline'
 import { AgentError } from '@reeval/agents'
 import { UsageError } from '../errors.ts'
+// biome-ignore lint/suspicious/noShadowRestrictedNames: reeval's EvalError stands in for the global one
+import { EvalError } from '../eval-error.ts'
 import { InfraError } from '../sandbox/types.ts'
 import {
   type FromRunner,
@@ -173,6 +175,11 @@ export async function startLanguageRunner(
 
 /** The runner's error as reeval's own class where it has one, so an infra failure records as one. */
 export function errorFrom(wire: WireError): Error {
+  if (wire.name === 'EvalError') {
+    const error = new EvalError({ reason: wire.message || 'the task threw', meta: wire.meta })
+    error.stack = wire.stack ?? `EvalError: ${wire.message}`
+    return error
+  }
   const Class =
     wire.name === 'InfraError'
       ? InfraError

@@ -2,6 +2,7 @@ import { clip, formatDuration, plural } from '../text.ts'
 import type { AttemptMeta } from '../types.ts'
 import { type DebugLine, debugTime } from '../view/debug.ts'
 import { triesNote } from '../view/judgments.ts'
+import { failureHeadline } from '../view/suite.ts'
 import type { Colors } from './colors.ts'
 import { colors, stripAnsi } from './colors.ts'
 import type { EvalResult, Progress } from './events.ts'
@@ -221,6 +222,7 @@ export function failureReason(e: EvalResult): string {
   if (e.meta?.errorKind === 'judge' && failed) {
     return stripAnsi(judgeLine(plainColors, failed)).replace(/\s+/g, ' ').trim()
   }
+  if (e.meta?.failure) return failureHeadline(e.meta.failure)
   const [first = ''] = (e.errors[0] ?? '').split('\n').filter((l) => l.trim())
   return first.trim().replace(ERROR_NAME, '')
 }
@@ -248,6 +250,15 @@ function failureBody(
       const reason = options.reasons?.[i]
       return [judgeLine(c, { ...j, threshold: j.threshold }), ...(reason ? [`  ${reason}`] : [])]
     })
+  }
+  const thrown = e.meta?.failure
+  if (outcome === 'fail' && thrown && !thrown.name) {
+    const meta = Object.entries(thrown.meta ?? {}).map(([key, value]) => {
+      const text = typeof value === 'string' ? value : JSON.stringify(value)
+      return c.dim(`  ${clip(`${key}: ${text.replace(/\s+/g, ' ').trim()}`, 160)}`)
+    })
+    const turn = thrown.turn ? `after turn ${thrown.turn}` : 'before the first turn'
+    return [`${c.red('✗ failed')}  ${c.dim(thrown.reason)}`, ...meta, c.dim(`  ${turn}`)]
   }
   const formatted = e.formattedErrors[0]
   const body = formatted && e.meta?.errorKind !== 'timeout' ? formatted : message

@@ -693,6 +693,18 @@ export const attemptErrorSchema = z
   })
   .describe("Why a call failed, in reeval's words.")
 
+export const attemptThrownSchema = attemptErrorSchema
+  .extend({
+    stack: z.string().optional().describe("The error's traceback, in the runner's own format."),
+    meta: z
+      .record(z.string(), jsonValueSchema)
+      .optional()
+      .describe("An `EvalError`'s meta: a JSON object recorded beside its reason."),
+  })
+  .describe(
+    "What an eval's body threw: an `EvalError` (`name` `EvalError`, its reason as `message`, and its meta) or any other error.",
+  )
+
 const id = nonEmpty.describe('Pairs a reply with its request.')
 
 export const attemptRequestSchema = z
@@ -825,7 +837,7 @@ export const attemptAbortSchema = z
 export const attemptDoneSchema = z
   .strictObject({
     type: z.literal('done'),
-    error: attemptErrorSchema
+    error: attemptThrownSchema
       .optional()
       .describe('What the body threw, if it threw. A failed `expect.require` is one.'),
     turnStatusRead: z
@@ -898,6 +910,7 @@ export const ATTEMPT_SCHEMAS: Record<string, z.ZodType> = {
   AttemptCall: attemptCallSchema,
   AttemptReply: attemptReplySchema,
   AttemptError: attemptErrorSchema,
+  AttemptThrown: attemptThrownSchema,
   MatcherSubject: matcherSubjectSchema,
   MatcherArg: matcherArgSchema,
   Pattern: patternSchema,

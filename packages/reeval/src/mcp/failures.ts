@@ -188,6 +188,7 @@ async function describeAttempt(
     error: a.error
       ? { kind: a.error.kind, message: repeated ? null : clip(a.error.message, 1500) }
       : null,
+    failure: a.failure ?? null,
     failedAssertions,
     failedJudgments: a.judgements
       .filter((j) => j.verdict === 'fail')

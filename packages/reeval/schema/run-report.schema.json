@@ -317,6 +317,42 @@
           "description": "What its transcript shows it did, from the report's `facts`; absent when the report had none for it, such as a passing attempt whose transcript `evidence` didn't keep.",
           "$ref": "#/$defs/AttemptFacts"
         },
+        "failure": {
+          "description": "What its task threw (`AttemptRecord.failure`); absent when it threw nothing.",
+          "type": "object",
+          "properties": {
+            "meta": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "required": ["key", "value"]
+              }
+            },
+            "name": {
+              "type": ["string", "null"]
+            },
+            "reason": {
+              "type": "string"
+            },
+            "stack": {
+              "type": ["string", "null"]
+            },
+            "turn": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": ["meta", "name", "reason", "stack", "turn"]
+        },
         "harness": {
           "type": "string"
         },

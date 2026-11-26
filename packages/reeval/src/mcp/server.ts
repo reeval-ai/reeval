@@ -35,6 +35,8 @@ const VIEW_ROWS: Record<string, string> = {
     'answer to a question asked of one attempt on its own (no across): the attempt, its outcome, the choice picked, the text, and the error when the call failed',
   attempt_values:
     'value an attempt recorded with c.observe(name, value), its last per name: the attempt, its outcome, the JSON value with its kind, num for a number and text for a string, and file_path for a value over 4 KiB (kind file)',
+  failure_meta:
+    'key of the meta an EvalError an attempt threw carried: the attempt, its outcome and reason, the turn it threw after, the JSON value with its kind, num for a number and text for a string',
   factor_effects:
     'factor contrast (environment, harness, model) by evidence tier, with pass@1 and effort verdicts',
   measure_effects:
@@ -45,7 +47,7 @@ const VIEW_ROWS: Record<string, string> = {
   drift:
     'run where a cell’s fingerprint changed from its previous run, what changed, and noise = 1 when only agent runtime state did',
   failing_attempts:
-    'failed or infra-error attempt, with its harness, model, environment skill, error, OOM kills and first failed check',
+    'failed or infra-error attempt, with its harness, model, environment skill, error, the reason its task threw, OOM kills and first failed check',
   attempt_resources:
     'attempt whose sandbox gave readings: its machine (provider, size, vCPUs, memory) and what it used there (CPU seconds, average, 95th percentile and peak cores, peak memory, a container’s cgroup memory peak and CPU throttling, a VM’s disk bytes, and the shares of what it was given)',
   eval_trend:

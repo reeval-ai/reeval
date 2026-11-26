@@ -108,6 +108,13 @@ CREATE TABLE attempt_values_m (
   attempt_id TEXT, outcome TEXT, name TEXT NOT NULL, value TEXT, kind TEXT, num REAL, text TEXT,
   turn INTEGER, file_path TEXT, case_key TEXT
 );
+-- Each key of the meta an EvalError the task threw carried, as attempt_values_m holds a value:
+-- the JSON as text, its kind, num for a number and text for a string.
+CREATE TABLE failure_meta_m (
+  run_id TEXT NOT NULL, eval_key TEXT NOT NULL, cell_key TEXT NOT NULL, attempt_key TEXT NOT NULL,
+  attempt_id TEXT, outcome TEXT, key TEXT NOT NULL, value TEXT, kind TEXT, num REAL, text TEXT,
+  turn INTEGER, case_key TEXT
+);
 -- Every pairwise question's vote: a pair of sides (arms within a harness, harnesses across an arm)
 -- on one run, shown in one order (swapped = 1: b first), and the side picked or 'tie'.
 CREATE TABLE votes (
@@ -164,7 +171,7 @@ CREATE TABLE attempts (
   machine_memory_bytes INTEGER, cpu_seconds REAL, avg_cores REAL, peak_cores REAL,
   peak_memory_bytes INTEGER, disk_read_bytes INTEGER, disk_write_bytes INTEGER, p95_cores REAL,
   cgroup_peak_memory_bytes INTEGER, cpu_periods INTEGER, throttled_periods INTEGER,
-  throttled_seconds REAL, llm_calls INTEGER,
+  throttled_seconds REAL, llm_calls INTEGER, reason TEXT,
   PRIMARY KEY (run_id, key)
 );
 CREATE TABLE judgements (
@@ -322,6 +329,14 @@ CREATE VIEW attempt_values AS
   FROM attempt_values_m v JOIN runs r USING (run_id)
   JOIN cells c ON c.run_id = v.run_id AND c.eval_key = v.eval_key AND c.key = v.cell_key;
 
+-- Each key of the meta an attempt's EvalError carried, with the attempt's outcome and cell, its
+-- reason beside it, and the turn the task threw after.
+CREATE VIEW failure_meta AS
+  SELECT m.*, a.reason, c.agent, c.environment, c.role, c.variant, r.started_at, r.branch
+  FROM failure_meta_m m JOIN runs r USING (run_id)
+  JOIN attempts a ON a.run_id = m.run_id AND a.key = m.attempt_key
+  JOIN cells c ON c.run_id = m.run_id AND c.eval_key = m.eval_key AND c.key = m.cell_key;
+
 -- Each pairwise question's pairs of sides, head to head: wins when both orders agree, and splits
 -- when the order decided. The pooled win rate counts a split as a win for each side.
 CREATE VIEW question_pairs AS SELECT * FROM question_pairs_m;
@@ -391,11 +406,12 @@ CREATE VIEW skill_files AS
     OR EXISTS (SELECT 1 FROM tool_calls t WHERE t.run_id = a.run_id AND t.attempt_key = a.key));
 
 -- Failed attempts and infra errors (an OOM kill among them) with the cell's harness, model, each
--- of its environment's skills and the label of the first check that failed.
+-- of its environment's skills, the reason the task threw (an EvalError's, or another error's
+-- message) and the label of the first check that failed.
 CREATE VIEW failing_attempts AS
   SELECT a.run_id, r.started_at, a.eval_key, a.key AS attempt_key, a.cell_key, c.agent,
     c.model, c.environment, s.name AS skill, a.outcome, a.error_kind, a.error_message,
-    a.duration_ms, a.oom_kills,
+    a.reason, a.duration_ms, a.oom_kills,
     (SELECT x.label FROM assertions x WHERE x.run_id = a.run_id AND x.attempt_key = a.key
       AND x.status = 'fail' ORDER BY x.seq LIMIT 1) AS first_failed_check
   FROM attempts a JOIN runs r USING (run_id)
@@ -474,6 +490,7 @@ export const VIEW_NAMES = [
   'question_pairs',
   'attempt_answers',
   'attempt_values',
+  'failure_meta',
   'factor_effects',
   'measure_effects',
   'skill_reads',
@@ -758,7 +775,7 @@ function insertRun(
     }
     for (const a of e.attempts) {
       run(
-        `INSERT INTO attempts VALUES (${Array(55).fill('?').join(', ')})`,
+        `INSERT INTO attempts VALUES (${Array(56).fill('?').join(', ')})`,
         record.runId,
         e.key,
         a.cell,
@@ -814,6 +831,7 @@ function insertRun(
         a.resources?.usage?.throttling?.throttledPeriods ?? null,
         a.resources?.usage?.throttling?.throttledSeconds ?? null,
         a.activity.llmCalls,
+        a.failure?.reason ?? null,
       )
       const env = envOf.get(cellEnv.get(a.cell) ?? '')
       const skills = env?.skills.map((x) => x.name) ?? []
@@ -963,6 +981,24 @@ function insertRun(
           a.case ?? null,
         )
       }
+      for (const [key, value] of Object.entries(a.failure?.meta ?? {})) {
+        run(
+          `INSERT INTO failure_meta_m VALUES (${Array(13).fill('?').join(', ')})`,
+          record.runId,
+          e.key,
+          a.cell,
+          a.key,
+          a.id,
+          a.outcome,
+          key,
+          JSON.stringify(value),
+          valueKind(value),
+          typeof value === 'number' ? value : null,
+          typeof value === 'string' ? value : null,
+          a.failure?.turn ?? null,
+          a.case ?? null,
+        )
+      }
       for (const j of a.judgements) {
         run(
           'INSERT OR IGNORE INTO judgements VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -1101,6 +1137,7 @@ const DATA_TABLES = [
   'case_lift_m',
   'attempt_answers_m',
   'attempt_values_m',
+  'failure_meta_m',
   'votes',
   'question_pairs_m',
   'cells',

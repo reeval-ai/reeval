@@ -3068,6 +3068,24 @@ export type AttemptError = {
   turn?: { index: number; kind: 'transport' | 'config' }
 }
 
+/**
+ * What the eval's task threw that failed the attempt: an `EvalError`, or any other error. Not a
+ * failed `expect`, a judge, a timeout, a cancel or an infra error.
+ */
+export type AttemptFailure = {
+  kind: 'task'
+  /** The `EvalError`'s reason, or the error's message: one line, cut at 200 characters, masked. */
+  reason: string
+  /** The `EvalError`'s `meta`, masked like observations; absent without one. */
+  meta?: { [key: string]: JSONValue }
+  /** The class of an error that isn't an `EvalError`, such as `TypeError`; absent for an `EvalError`. */
+  name?: string
+  /** How many turns the attempt had sent when the task threw: 0 before the first. */
+  turn: number
+  /** The error's stack, masked, its paths relative to the project; absent when it had none. */
+  stack?: string
+}
+
 export type TurnRecord = Pick<
   Turn,
   | 'prompt'
@@ -3591,6 +3609,8 @@ export type EvalRecord = {
   startedAt?: string
   outcome: Exclude<Outcome, 'skipped'>
   error: AttemptError | null
+  /** See `AttemptRecord.failure`. */
+  failure?: AttemptFailure
   /**
    * True when the eval body read `turn.status` (so a mid-turn error was intentional). False when a
    * turn errored and the body never inspected status. Absent on older records.
@@ -3994,6 +4014,8 @@ export type FamilyMeta = {
 export type EvalMeta = {
   outcome: EvalRecord['outcome']
   errorKind: ErrorKind | null
+  /** What the task threw, without its stack. */
+  failure?: Omit<AttemptFailure, 'stack'>
   judgements: Array<Pick<Verdict, 'verdict' | 'score' | 'threshold'> & { question: string }>
   /** Each turn that ended in an error, as `turn 2 error: <message>`, so a failure shows why. */
   turnErrors?: string[]

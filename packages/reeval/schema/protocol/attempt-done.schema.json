@@ -10,7 +10,7 @@
       "properties": {
         "error": {
           "description": "What the body threw, if it threw. A failed `expect.require` is one.",
-          "$ref": "#/$defs/AttemptError"
+          "$ref": "#/$defs/AttemptThrown"
         },
         "turnStatusRead": {
           "description": "True when the body read turn.status. False when a turn errored and status was never read.",
@@ -24,20 +24,66 @@
       "required": ["type"],
       "additionalProperties": false
     },
-    "AttemptError": {
-      "description": "Why a call failed, in reeval's words.",
+    "AttemptThrown": {
+      "description": "What an eval's body threw: an `EvalError` (`name` `EvalError`, its reason as `message`, and its meta) or any other error.",
       "type": "object",
       "properties": {
         "message": {
           "type": "string"
         },
+        "meta": {
+          "description": "An `EvalError`'s meta: a JSON object recorded beside its reason.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        },
         "name": {
           "description": "The error's class, e.g. `UsageError` or `AssertionError`.",
+          "type": "string"
+        },
+        "stack": {
+          "description": "The error's traceback, in the runner's own format.",
           "type": "string"
         }
       },
       "required": ["message", "name"],
       "additionalProperties": {}
+    },
+    "JSONValue": {
+      "description": "Any JSON value.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        }
+      ]
     }
   }
 }

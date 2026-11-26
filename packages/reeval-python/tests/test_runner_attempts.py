@@ -11,7 +11,7 @@ from stdio_host import Host
 
 EVALS = """
 import time
-from reeval_python import aio, evaluate, expect
+from reeval_python import EvalError, aio, evaluate, expect
 
 
 @evaluate("sleeps then calls")
@@ -43,6 +43,15 @@ def require_stops(c):
 async def require_poll_stops(c):
     await aio.expect.require.poll(lambda: c.exec("false"), timeout=0.1).to_succeed()
     await c.exec("echo never")
+
+
+@evaluate("raises an EvalError")
+def raises_an_eval_error(c):
+    r = c.exec("false")
+    try:
+        raise OSError("no such file")
+    except OSError as exc:
+        raise EvalError("the build fails", meta={"exit_code": r.exit_code}) from exc
 
 
 @evaluate("asserts an unanswered judge")
@@ -175,6 +184,27 @@ def test_a_failed_require_poll_ends_the_body(host: Host) -> None:
     [call] = [c for c in host.calls() if c["op"] == "expect"]
     assert (call["soft"], call["poll"]) == (False, {"timeout": 100})
     assert [c for c in host.calls() if c["op"] == "exec"] == []
+
+
+def test_an_eval_error_ends_the_body_with_its_reason_and_meta(host: Host) -> None:
+    host.start("raises an EvalError")
+    error = host.done()["error"]
+    assert (error["name"], error["message"], error["meta"]) == (
+        "EvalError",
+        "the build fails",
+        {"exit_code": 1},
+    )
+    assert "OSError: no such file" in error["stack"]
+
+
+def test_an_eval_error_takes_a_reason_and_json_meta() -> None:
+    from reeval_python import EvalError
+
+    assert EvalError("the build fails").meta is None
+    with pytest.raises(TypeError, match="takes a reason"):
+        EvalError("  ")
+    with pytest.raises(TypeError, match="takes JSON"):
+        EvalError("x", meta={"at": object()})
 
 
 def test_expect_has_no_soft() -> None:
