@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { harnessModel, pricerOf } from '../cost.ts'
-import { debugLog } from '../debug/attempt.ts'
+import { debugLog, debugTrace } from '../debug/attempt.ts'
 import type { GradeInputs } from '../grade/context.ts'
 import type { GraderDef } from '../grade/define.ts'
 import { attemptScore, runGraders, scoreFailure } from '../grade/run.ts'
@@ -14,10 +14,11 @@ import { changedFiles, execLineOf, historyPatch } from '../history/assemble.ts'
 import { turnCost, unpricedTurns } from '../history/cost.ts'
 import { diffFiles, keptFiles, type StoredAttempt } from '../history/stored-attempt.ts'
 import { WORKSPACE_ARCHIVE, WORKSPACE_MANIFEST } from '../history/types.ts'
-import { askJudge } from '../judge/index.ts'
+import { askJudge, judgeModelName } from '../judge/index.ts'
 import { loadPrices } from '../prices.ts'
-import { redactValue } from '../redact.ts'
+import { redactSecrets, redactValue } from '../redact.ts'
 import { thresholdOf } from '../target.ts'
+import { clip, formatDuration } from '../text.ts'
 import type { Case, GradeRecord } from '../types.ts'
 import { readableWorkspaceManifest } from '../view/record.ts'
 import { onJudge } from './judge.ts'
@@ -115,7 +116,7 @@ export async function gradeAttempt(
       ...(a.spec.judge.model !== undefined ? { model: a.spec.judge.model } : {}),
       ask: (question, answers, state, model, signal) =>
         onJudge(a, { ...a.spec.judge, model }, (routed) =>
-          askJudge(question, answers, state, routed, signal),
+          tracedAsk(question, answers, state, routed, signal),
         ),
     },
     ...(grading.graders.some((g) => g.run.kind === 'code' && g.run.env) && {
@@ -147,4 +148,30 @@ export async function gradeAttempt(
   a.record.score = score
   const threshold = thresholdOf(a.spec.target)
   return score < threshold ? new Error(scoreFailure(score, threshold, grades)) : undefined
+}
+
+/** `askJudge`, with its question, prompt and answer in the attempt's debug log. */
+async function tracedAsk(...args: Parameters<typeof askJudge>): ReturnType<typeof askJudge> {
+  const [question, answers, state, options] = args
+  const name = judgeModelName(options.model)
+  debugLog('judge', `asking ${name}: ${JSON.stringify(clip(redactSecrets(question), 160))}`)
+  debugTrace('judge', 'prompt', { question, answers, state }, 'judge prompt')
+  const start = performance.now()
+  const ms = () => formatDuration(performance.now() - start)
+  try {
+    const answer = await askJudge(...args)
+    const p = answer.probability === undefined ? '' : ` · P ${answer.probability.toFixed(2)}`
+    const retried = answer.retries.length ? ` · ${answer.retries.length} retries` : ''
+    debugLog(
+      'judge',
+      `${answer.resolvedModel ?? answer.model} · ${ms()} · ${JSON.stringify(answer.answer)}${p}${retried}`,
+    )
+    debugTrace('judge', 'response', answer, 'judge response')
+    return answer
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    debugLog('judge', `${name} · ${ms()} · error: ${message}`)
+    debugTrace('judge', 'error', { error: message }, 'judge error')
+    throw error
+  }
 }

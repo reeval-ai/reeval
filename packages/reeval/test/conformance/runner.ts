@@ -1,8 +1,8 @@
 // The TypeScript reference runner for the context/ scripts. It runs as an eval's body: it hands
 // each `runner` request of a script to reeval's attempt host on the attempt `c`, as another
 // language's runner's requests reach it, and writes the messages reeval answered with, in order.
-// conformance.test.ts copies it into the project it runs, adds what each judge call graded from the
-// run record, and compares the result with the script.
+// conformance.test.ts copies it into the project it runs, adds the attempt's record from the run
+// record, and compares the result with the script.
 import { readFileSync, writeFileSync } from 'node:fs'
 import type { AttemptContext } from 'reeval'
 import { attemptReply } from 'reeval/testing'

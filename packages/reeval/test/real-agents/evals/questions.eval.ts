@@ -1,4 +1,5 @@
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { composer, pim } from './agents.ts'
 import { plain, withHouseGreeting } from './environments.ts'
 
@@ -33,6 +34,6 @@ export default defineEval({
       'Create greet.js exporting greet(name) that greets the person in our house greeting style. ' +
         'Add a package.json with "type": "module". No dependencies.',
     )
-    await expect(c.exec(namesAda)).toSucceed()
+    assert.equal((await c.exec(namesAda)).exitCode, 0)
   },
 })

@@ -68,8 +68,8 @@ reeval doctor            Docker, keys and images, with fixes (--json, --online)
 command checks: not high if any check failed, low if a claim was dropped or a command rejected.
 Anomalies are number-checked, and a cited judge score that disagrees is dropped.
 
-When every cell is ungated (the default `target: metric()`), it reads the run as a study: how the arms differ, check by
-check, so label your expects. `analysis.instructions` is the question it answers.
+When every cell is ungated (the default `target: metric()`), it reads the run as a study: how the arms differ, grader by
+grader, so name your graders. `analysis.instructions` is the question it answers.
 
 `analysis.model` is the model `reeval analyze` uses (else the judge's, when it's a language
 model), and the one questions without their own model use. `reeval init` sets it to `google/gemini-3.8-flash` (`GOOGLE_GENERATIVE_AI_API_KEY`;

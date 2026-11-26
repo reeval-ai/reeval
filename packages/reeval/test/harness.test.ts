@@ -85,7 +85,7 @@ import {
   opencode,
   pi,
 } from '../src/agent.ts'
-import { calledTool, fetched, searched } from '../src/assert.ts'
+import { toolCalls, webEvents } from '../src/assert.ts'
 import { malformedCredentials, missingCredentials, resolveConfig } from '../src/config.ts'
 import { plannedEgress } from '../src/egress.ts'
 import type { ServedModel } from '../src/environment/harness-wire.ts'
@@ -2418,9 +2418,9 @@ describe('a refused webSearch is a web-search event', () => {
     )
     assert.deepEqual(activity(events), { tools: 0, webSearches: 1, webFetches: 0 })
     const turn = turnOf(events)
-    assert.equal(searched(turn).pass, true)
-    assert.equal(searched(turn, 'firebase').pass, true)
-    assert.equal(calledTool(turn, 'webSearch').pass, false)
+    assert.ok(webEvents(turn, 'web-search', undefined, 'searched').hits.length)
+    assert.ok(webEvents(turn, 'web-search', 'firebase', 'searched').hits.length)
+    assert.equal(toolCalls(turn.transcript, 'webSearch').length, 0)
   })
 
   test('a tool-error fetch stays web-fetch with ok: false', () => {
@@ -2432,7 +2432,7 @@ describe('a refused webSearch is a web-search event', () => {
       events.flatMap((e) => (e.type === 'web-fetch' ? [[e.url, e.ok]] : [])),
       [['https://example.com', false]],
     )
-    assert.equal(fetched(turnOf(events)).pass, true)
+    assert.ok(webEvents(turnOf(events), 'web-fetch', undefined, 'fetched').hits.length)
   })
 
   test('a successful search still has ok: true and its references', () => {
@@ -2453,7 +2453,7 @@ describe('a refused webSearch is a web-search event', () => {
       [['firebase ui web', null, null]],
     )
     assert.deepEqual(activity(events), { tools: 0, webSearches: 1, webFetches: 0 })
-    assert.equal(searched(turnOf(events), /firebase/).pass, true)
+    assert.ok(webEvents(turnOf(events), 'web-search', /firebase/, 'searched').hits.length)
   })
 
   test('a pending fetch is web-fetch with ok: null, not failed', () => {
@@ -2520,7 +2520,7 @@ describe('a refused webSearch is a web-search event', () => {
       [['firebase ui web', false]],
     )
     assert.deepEqual(activity(events), { tools: 0, webSearches: 1, webFetches: 0 })
-    assert.equal(searched(turnOf(events), 'firebase').pass, true)
+    assert.ok(webEvents(turnOf(events), 'web-search', 'firebase', 'searched').hits.length)
   })
 })
 

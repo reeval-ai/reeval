@@ -1,7 +1,8 @@
-from reeval_python import evaluate, expect
+from reeval_python import evaluate
 
 
 # The mistake: the command prints `ran`, not `skipped`.
 @evaluate("canary")
 def canary(c):
-    expect(c.exec("echo ran").stdout.strip(), "ran").to_be("skipped")
+    out = c.exec("echo ran").stdout.strip()
+    assert out == "skipped", f"ran: {out!r} is not 'skipped'"

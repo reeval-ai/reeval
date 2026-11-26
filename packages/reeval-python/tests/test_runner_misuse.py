@@ -1,4 +1,5 @@
-"""Bodies that would pass without running their checks: each fails its attempt instead."""
+"""Bodies that would pass without running their calls: each fails its attempt instead, and calls
+reeval refuses before they run."""
 
 from __future__ import annotations
 
@@ -11,7 +12,7 @@ from stdio_host import Host
 EVAL = '''
 import asyncio
 from types import MappingProxyType
-from reeval_python import aio, evaluate, expect
+from reeval_python import evaluate
 
 
 def hidden(fn):
@@ -22,14 +23,14 @@ def hidden(fn):
 @evaluate("async generator body")
 @hidden
 async def agen(c):
-    await aio.expect(1).to_be(2)
+    assert 1 == 2
     yield
 
 
 @evaluate("sync generator body")
 @hidden
 def gen(c):
-    expect(1).to_be(2)
+    assert 1 == 2
     yield
 
 
@@ -44,9 +45,9 @@ async def unawaited_send(c):
     c.send("do the task")
 
 
-@evaluate("orphan task matcher")
+@evaluate("orphan task")
 async def orphan(c):
-    asyncio.get_running_loop().create_task(aio.expect(await c.exec("false")).to_succeed())
+    asyncio.get_running_loop().create_task(c.exec("false"))
     await asyncio.sleep(0)
 
 
@@ -65,26 +66,6 @@ async def awaited_task(c):
     await asyncio.gather(task, c.exec("true"))
 
 
-@evaluate("sync poll read")
-def sync_poll_read(c):
-    expect.poll(lambda: c.read_file("ready.txt"), timeout=0.5).to_be("ready")
-
-
-@evaluate("sync poll exec")
-def sync_poll_exec(c):
-    expect.poll(lambda: c.exec("test -f ready.txt"), interval=0.05).to_succeed()
-
-
-@evaluate("sync poll attribute")
-def sync_poll_attr(c):
-    expect.poll(lambda: c.exec("cat x").stdout).to_contain("ok")
-
-
-@evaluate("sync poll or")
-def sync_poll_or(c):
-    expect.poll(lambda: c.read_file("a") or c.read_file("b")).to_be("x")
-
-
 @evaluate("sync exec retries")
 def sync_exec_retries(c):
     c.exec("npm test", retries=2, interval=0.25)
@@ -93,11 +74,6 @@ def sync_exec_retries(c):
 @evaluate("exec negative interval")
 async def exec_negative_interval(c):
     await c.exec("npm test", retries=1, interval=-1)
-
-
-@evaluate("sync poll exec retries")
-def sync_poll_exec_retries(c):
-    expect.poll(lambda: c.exec("test -f ready.txt", retries=2)).to_succeed()
 
 
 @evaluate("exec env")
@@ -110,9 +86,6 @@ def exec_env_not_strings(c):
     c.exec("npm test", env={"PORT": 3000})
 
 
-@evaluate("aio expect in sync body")
-def aio_in_sync(c):
-    aio.expect(1).to_be(1)
 '''
 
 
@@ -142,8 +115,8 @@ def test_an_unawaited_call_fails_the_body(host: Host, body: str, call: str) -> N
     assert "RuntimeWarning" not in host.stderr
 
 
-def test_a_task_left_running_fails_the_body_and_its_check_is_not_lost(host: Host) -> None:
-    host.start("orphan task matcher")
+def test_a_task_left_running_fails_the_body(host: Host) -> None:
+    host.start("orphan task")
     error = host.done()["error"]
     assert "1 task(s) it started still running" in error["message"], error
 
@@ -159,17 +132,6 @@ def test_a_task_left_running_makes_no_call_after_done(host: Host) -> None:
 def test_a_task_the_body_awaits_is_fine(host: Host) -> None:
     host.start("awaited task")
     assert host.done() == {"type": "done", "key": "k1"}
-
-
-def test_sync_poll_sends_the_read_or_command_and_seconds_as_ms(host: Host) -> None:
-    host.start("sync poll read")
-    host.done()
-    [read] = host.calls()
-    assert (read["subject"], read["poll"]) == ({"readFile": "ready.txt"}, {"timeout": 500})
-    host.start("sync poll exec", "k2")
-    host.done("k2")
-    [run] = host.calls("k2")
-    assert (run["subject"], run["poll"]) == ({"exec": "test -f ready.txt"}, {"interval": 50})
 
 
 def test_exec_sends_retries_and_its_interval_in_seconds_as_ms(host: Host) -> None:
@@ -198,27 +160,3 @@ def test_exec_refuses_a_negative_interval_before_running(host: Host) -> None:
     message = host.done()["error"]["message"]
     assert "c.exec(interval=…) takes 0 or more seconds (got -1)" in message, message
     assert host.calls() == []
-
-
-def test_poll_refuses_exec_retries(host: Host) -> None:
-    host.start("sync poll exec retries")
-    message = host.done()["error"]["message"]
-    assert "expect.poll runs its command again on each try already" in message, message
-    assert host.calls() == []
-
-
-def test_sync_poll_attribute_says_what_to_do(host: Host) -> None:
-    host.start("sync poll attribute")
-    message = host.done()["error"]["message"]
-    assert "expect.poll's function returns c.read_file(…) or c.exec(…) itself" in message
-
-
-def test_sync_poll_of_two_reads_is_refused(host: Host) -> None:
-    host.start("sync poll or")
-    assert "check its contents or output with a matcher" in host.done()["error"]["message"]
-    assert host.calls() == []
-
-
-def test_aio_expect_in_a_sync_body_is_refused(host: Host) -> None:
-    host.start("aio expect in sync body")
-    assert "in a def body" in host.done()["error"]["message"]

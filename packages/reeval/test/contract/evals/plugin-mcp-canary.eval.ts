@@ -1,4 +1,5 @@
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { MCP_LOG, plugged, withFakePlugin } from './probes.ts'
 
 // The probe plugin's stdio MCP server starts in the sandbox and the agent calls its tool: the
@@ -10,6 +11,9 @@ export default defineEval({
   agents: withFakePlugin,
   tags: ['plugin'],
   task: async (c) => {
-    expect((await c.readFile(MCP_LOG)) ?? '').toContain('tools/call')
+    assert.ok(
+      ((await c.readFile(MCP_LOG)) ?? '').includes('tools/call'),
+      'the MCP server logged a tools/call',
+    )
   },
 })

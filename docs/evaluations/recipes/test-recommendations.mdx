@@ -23,7 +23,7 @@ In the `reeval.config.ts` file, set `agents` to a list and set `judge.model`. Ea
 +  judge: { model: 'typesafe-ai/jev-1.14.0' },
 ```
 
-Add each harness key and `TYPESAFE_AI_API_KEY` to the `.env.local` file. For more information about each harness and its key, see [Choose an agent](/configuration/agents). For more information about the judge model, see [Set the model and threshold](/evaluations/grading/judgments#set-the-model-and-threshold).
+Add each harness key and `TYPESAFE_AI_API_KEY` to the `.env.local` file. For more information about each harness and its key, see [Choose an agent](/configuration/agents). For more information about the judge model, see [Set the model](/evaluations/grading/judgments#set-the-model).
 
 </Step>
 <Step title="Write the questions">
@@ -64,7 +64,7 @@ export default defineEval({
 })
 ```
 
-The open question names no library, so a pass means the harness reached for yours. `cases` runs the evaluation once per rival and pools them into one mean score. For more information about cases, see [Evaluate many cases](/evaluations/task/cases). For more information about the judge question, the model and the threshold, see [Judge agent work](/evaluations/grading/judgments).
+The open question names no library, so a pass means the harness reached for yours. `cases` runs the evaluation once per rival and pools them into one mean score. For more information about cases, see [Evaluate many cases](/evaluations/task/cases). For more information about the judge question and the model, see [Judge agent work](/evaluations/grading/judgments).
 
 </Step>
 <Step title="Run the evaluations">

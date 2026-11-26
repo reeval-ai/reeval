@@ -1,6 +1,5 @@
 // `reeval/testing`: helpers for fixture evals. Not the authoring API.
 import type { AttemptReply, AttemptRequest } from './contract/attempt.ts'
-import { attemptRecordings } from './engine/runtime.ts'
 import { replyToAttempt } from './language-runner/attempt-host.ts'
 import type { AttemptContext, BackgroundHandle } from './types.ts'
 
@@ -18,5 +17,5 @@ const handles = new WeakMap<AttemptContext, Map<string, BackgroundHandle>>()
 export function attemptReply(c: AttemptContext, request: AttemptRequest): Promise<AttemptReply> {
   const own = handles.get(c) ?? new Map<string, BackgroundHandle>()
   handles.set(c, own)
-  return replyToAttempt(c, attemptRecordings(), own, request)
+  return replyToAttempt(c, own, request)
 }

@@ -1,6 +1,6 @@
 // The attempt protocol's contract (src/contract/attempt.ts): real turns from the record corpus fit
-// it as replies, under both its Zod schemas and the JSON Schema in schema/protocol/; every reeval
-// matcher can be named in a call; and its shared defs stay held to their hand-written types.
+// it as replies, under both its Zod schemas and the JSON Schema in schema/protocol/, and its
+// shared defs stay held to their hand-written types.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -18,7 +18,6 @@ import {
   attemptStartSchema,
   transcriptEventSchema,
 } from '../src/contract/attempt.ts'
-import { matchers } from '../src/matchers.ts'
 import type { TranscriptEvent, TurnData } from '../src/types.ts'
 import { readableTranscriptLine } from '../src/view/record.ts'
 
@@ -78,37 +77,6 @@ test('every turn in the record corpus fits a send reply, in Zod and in the JSON 
   assert.equal(transcriptEventSchema.safeParse(event).success, false)
 })
 
-test('every judgment in the record corpus fits a judge reply, in Zod and in the JSON Schema', () => {
-  const judgments = corpus().records.flatMap(({ value }) =>
-    ((value.evals ?? []) as Array<{ attempts?: Array<{ judgements?: unknown[] }> }>).flatMap((e) =>
-      (e.attempts ?? []).flatMap((a) => a.judgements ?? []),
-    ),
-  ) as Array<Record<string, unknown>>
-  assert.ok(judgments.length >= 10, `${judgments.length} judgments`)
-  const reply = snapshot('attempt-reply')
-  for (const [i, { key: _, retries: __, assertion: ___, ...verdict }] of judgments.entries()) {
-    const value = { id: String(i), ok: true, op: 'judge', verdict }
-    const parsed = attemptReplySchema.safeParse(value)
-    assert.ok(parsed.success, JSON.stringify(parsed.error?.issues[0]))
-    assert.deepEqual(validate(reply, value), [])
-  }
-  const failure = {
-    verdict: 'error',
-    score: null,
-    threshold: 0.8,
-    question: 'Does greet.js export greet?',
-    model: 'google/gemini-3.8-flash',
-    error: '503 Service Unavailable',
-  }
-  const value = { id: 'f', ok: true, op: 'judge', verdict: failure }
-  assert.ok(attemptReplySchema.safeParse(value).success)
-  assert.deepEqual(validate(reply, value), [])
-  // The canary: a failure that still carries a score.
-  const scored = { ...value, verdict: { ...failure, score: 0.4 } }
-  assert.equal(attemptReplySchema.safeParse(scored).success, false)
-  assert.notDeepEqual(validate(reply, scored), [])
-})
-
 test('every attempt in the record corpus has a start message, in Zod and in the JSON Schema', () => {
   type Cell = { key: string; harness: string; environment: string; sandbox: string; role: string }
   type Eval = {
@@ -157,51 +125,16 @@ test('abort and done round-trip through JSON unchanged', () => {
   }
 })
 
-test('every matcher reeval adds can be named in an expect call', () => {
-  const names = Object.keys(matchers)
-  assert.ok(names.includes('toHaveFile') && names.includes('toSucceed'), names.join(', '))
-  const request = snapshot('attempt-request')
-  for (const matcher of names) {
-    const value = {
-      id: '1',
-      call: {
-        op: 'expect',
-        subject: { attempt: true },
-        matcher,
-        args: [],
-        not: false,
-        soft: false,
-      },
-    }
-    assert.ok(attemptRequestSchema.safeParse(value).success, matcher)
-    assert.deepEqual(validate(request, value), [], matcher)
-  }
-})
-
 test('a call and its reply round-trip through JSON unchanged', () => {
   const request = {
     id: '7',
-    call: {
-      op: 'expect',
-      subject: { turn: 0 },
-      matcher: 'toHaveRun',
-      args: [{ regexp: '^npm (test|t)$', flags: 'i' }, 'and a string'],
-      not: true,
-      soft: true,
-      label: 'never runs the tests',
-    },
+    call: { op: 'exec', command: 'npm test', label: 'tests pass', retries: 2, interval: 500 },
   }
   const reply = {
     id: '7',
     ok: true,
-    op: 'expect',
-    assertion: {
-      label: 'never runs the tests',
-      labelled: true,
-      matcher: 'not.toHaveRun',
-      status: 'pass',
-      soft: true,
-    },
+    op: 'exec',
+    result: { exitCode: 0, stdout: 'ok', stderr: '' },
   }
   const failed = {
     id: '8',
@@ -220,7 +153,7 @@ test('a call and its reply round-trip through JSON unchanged', () => {
   }
 })
 
-test('a served app, captured, polled and killed, round-trips through JSON unchanged', () => {
+test('a served app, captured and killed, round-trips through JSON unchanged', () => {
   const capture = {
     name: 'about',
     port: 3000,
@@ -232,15 +165,6 @@ test('a served app, captured, polled and killed, round-trips through JSON unchan
     console: [{ level: 'warning', text: 'slow', source: 'console-api', url: '/about' }],
     errors: [],
     failedRequests: [{ method: 'GET', url: '/missing.js', status: 404 }],
-  }
-  const poll = {
-    op: 'expect',
-    subject: { exec: 'curl -sf localhost:3000/health' },
-    matcher: 'toSucceed',
-    args: [],
-    not: false,
-    soft: false,
-    poll: { interval: 200, timeout: 10000 },
   }
   const steps = [
     [
@@ -255,19 +179,6 @@ test('a served app, captured, polled and killed, round-trips through JSON unchan
       { op: 'capture', target: { handle: 'h1' }, options: { path: '/about', wait: 'idle' } },
       { op: 'capture', capture },
     ],
-    [
-      poll,
-      {
-        op: 'expect',
-        assertion: {
-          label: 'expect(…).toSucceed()',
-          labelled: false,
-          matcher: 'toSucceed',
-          status: 'pass',
-          soft: false,
-        },
-      },
-    ],
     [{ op: 'kill', handle: 'h2' }, { op: 'kill' }],
     [{ op: 'kill', handle: 'h1' }, { op: 'kill' }],
   ] as const
@@ -279,15 +190,13 @@ test('a served app, captured, polled and killed, round-trips through JSON unchan
     assert.deepEqual(attemptReplySchema.parse(reply), reply)
     assert.deepEqual(validate(snapshot('attempt-reply'), reply), [])
   }
-  // The canaries: a background exec's reply that also carries output, a numeric handle, and a
-  // polled value. validate() allows extra keys, so only Zod refuses the first.
+  // The canaries: a background exec's reply that also carries output, and a numeric handle.
+  // validate() allows extra keys, so only Zod refuses the first.
   const both = { id: '1', ok: true, op: 'exec', result: { handle: 'h2', exitCode: 0 } }
   assert.equal(attemptReplySchema.safeParse(both).success, false)
   const numeric = { id: '1', ok: true, op: 'serve', handle: 1, port: 3000 }
   assert.equal(attemptReplySchema.safeParse(numeric).success, false)
   assert.notDeepEqual(validate(snapshot('attempt-reply'), numeric), [])
-  const value = { id: '1', call: { ...poll, subject: { value: 1 } } }
-  assert.equal(attemptRequestSchema.safeParse(value).success, false)
 })
 
 test("the protocol's shared defs match their types' properties and TSDoc", () => {

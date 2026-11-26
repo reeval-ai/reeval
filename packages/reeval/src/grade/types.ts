@@ -52,8 +52,8 @@ export type GraderSandbox = {
 }
 
 /**
- * What a grader reads: the attempt as it ended, from the attempt's record. It can't send a turn,
- * run a command or call `expect`.
+ * What a grader reads: the attempt as it ended, from the attempt's record. It can't send a turn
+ * or run a command.
  */
 export type GraderContext<C = unknown> = {
   /** The attempt's case; `{ key: '' }` for an eval without `cases`. */
@@ -119,7 +119,7 @@ export type GraderSpec<C = unknown, G extends JSONValue = JSONValue> = {
 /** A judge grader's gold answer: text, a `file()`, or files by path from `directory()`. */
 export type JudgeReference = string | HostFile | Record<string, HostFile>
 
-/** What a judge grader shows the judge: `c.judge()`'s inputs, read from the stored attempt. */
+/** What a judge grader shows the judge, read from the stored attempt. */
 export type JudgeGraderInputs = JudgeInputs & {
   /** `'all'`: every turn under `turns`, each with its task, output and transcript. Default `'last'`. */
   turns?: 'last' | 'all'

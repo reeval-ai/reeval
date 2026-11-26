@@ -795,7 +795,7 @@ export async function checkJudge(
       {
         id: 'judge',
         status: 'warn',
-        summary: `no judge model, and ${named} ${callers.length === 1 ? 'calls' : 'call'} c.judge`,
+        summary: `no judge model, and ${named} ${callers.length === 1 ? 'calls' : 'call'} judge()`,
         fix: `set judge: { model: '${RECOMMENDED_JUDGE_MODEL}' } in the config, or fakeJudge()`,
       },
     ]
@@ -817,11 +817,11 @@ export async function checkJudge(
   )
 }
 
-const JUDGE_CALL = /\.judge\s*\(/
+const JUDGE_CALL = /\bjudge\s*\(/
 const RELATIVE_IMPORT = /\bfrom\s+['"](\.{1,2}\/[^'"]+)['"]/g
 
 /**
- * The eval files that call `.judge(`, in their own source or a module they import by a relative
+ * The eval files that call `judge(`, in their own source or a module they import by a relative
  * path, relative to the root. Read as text, not run: a call further away isn't seen.
  */
 export async function judgeCallers(config: ResolvedConfig): Promise<string[]> {

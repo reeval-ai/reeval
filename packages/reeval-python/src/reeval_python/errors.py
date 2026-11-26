@@ -6,10 +6,6 @@ import json
 from typing import Any
 
 
-class ReevalAssertionError(AssertionError):
-    """An expect matcher failed (mirrors reeval's assertion record message)."""
-
-
 class ReevalCallError(Exception):
     """reeval refused a call or couldn't make it. `name` is reeval's name for why, such as
     `TimeoutError`."""

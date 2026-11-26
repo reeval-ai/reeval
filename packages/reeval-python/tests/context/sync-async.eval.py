@@ -1,6 +1,6 @@
-from reeval_python import evaluate, expect
+from reeval_python import evaluate
 
 
 @evaluate("sync-async")
 def sync_async(c):
-    expect(c.exec("echo sync-async-ok")).to_succeed()
+    assert c.exec("echo sync-async-ok").ok

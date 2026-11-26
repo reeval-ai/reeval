@@ -1372,11 +1372,12 @@ export default defineConfig({ agents: fakeAgent({}), sandbox: fakeSandbox(), tar
 /** One eval that waits for `go` beside the config, so a test can attach while it runs. */
 const gated = `
 import { existsSync } from 'node:fs'
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     while (!existsSync(new URL('../go', import.meta.url))) await new Promise((r) => setTimeout(r, 50))
-    expect(c.attempt.n).toBe(1)
+    assert.equal(c.attempt.n, 1)
   },
 })
 `
@@ -1424,10 +1425,11 @@ describe('reeval run --events and reeval attach', () => {
   test("a run's paths from a folder in its project print as they did, and attach reads them as the project's", async () => {
     const p = await project('events-paths', {
       'reeval.config.ts': config,
-      'evals/passes.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/passes.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
-    expect(c.attempt.n).toBe(1)
+    assert.equal(c.attempt.n, 1)
   },
 })
 `,
@@ -1462,12 +1464,13 @@ export default defineEval({
   test('an attempt reports its sandbox up before its setup steps run, and ready after', async () => {
     const p = await project('events-sandbox-up', {
       'reeval.config.ts': config,
-      'evals/slow.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+      'evals/slow.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 const slow = defineEnvironment('slow', { setup: [{ run: 'sleep 1 && touch set-up' }] })
 export default defineEval({
   environment: slow,
   async task(c) {
-    expect(await c.readFile('set-up')).toBe('')
+    assert.equal(await c.readFile('set-up'), '')
   },
 })
 `,
@@ -1487,19 +1490,21 @@ export default defineEval({
   test('a heartbeat names the attempts in progress on REEVAL_EVENTS_HEARTBEAT, stops with the run, and draws nothing', async () => {
     const p = await project('events-attempts-heartbeat', {
       'reeval.config.ts': config,
-      'evals/quick.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/quick.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await new Promise((r) => setTimeout(r, 2000))
-    expect(c.attempt.n).toBe(1)
+    assert.equal(c.attempt.n, 1)
   },
 })
 `,
-      'evals/slow.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/slow.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await new Promise((r) => setTimeout(r, 4500))
-    expect(c.attempt.n).toBe(1)
+    assert.equal(c.attempt.n, 1)
   },
 })
 `,
@@ -1561,10 +1566,11 @@ export default defineEval({
         'sandbox: fakeSandbox(),',
         'sandbox: fakeSandbox(), history: { archive: true },',
       ),
-      'evals/passes.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/passes.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
-    expect(c.attempt.n).toBe(1)
+    assert.equal(c.attempt.n, 1)
   },
 })
 `,

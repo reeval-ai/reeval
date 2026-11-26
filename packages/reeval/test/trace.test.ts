@@ -185,11 +185,12 @@ describe('reeval show --trace', () => {
   test('writes the trace of a run, by default under .reeval/traces', async () => {
     const p = await project('show-trace', {
       'reeval.config.ts': fakeConfig({ harness: `{ files: { 'hello.txt': 'hi\\n' } }` }),
-      'evals/a.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/a.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('write hello.txt')
-    await expect(c.exec('cat hello.txt')).toSucceed()
+    assert.equal((await c.exec('cat hello.txt')).exitCode, 0)
   },
 })
 `,

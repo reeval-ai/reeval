@@ -1408,8 +1408,9 @@ const slowEvals = (started: string) => ({
   'evals/passes.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({ async task(c) { await c.send('hi') } })
 `,
-  'evals/fails.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task(c) { await c.send('hi'); expect(1).toBe(2) } })
+  'evals/fails.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
+export default defineEval({ async task(c) { await c.send('hi'); assert.equal(1, 2) } })
 `,
   'evals/slow.eval.ts': `import { writeFileSync } from 'node:fs'
 import { defineEval } from 'reeval'
@@ -1433,8 +1434,9 @@ describe('reeval run --retry-errors', () => {
     'evals/passes.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({ async task(c) { await c.send('hi') } })
 `,
-    'evals/fails.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task(c) { await c.send('hi'); expect(1).toBe(2) } })
+    'evals/fails.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
+export default defineEval({ async task(c) { await c.send('hi'); assert.equal(1, 2) } })
 `,
   }
   const outage = { env: { FAIL: '1' } }
@@ -1477,36 +1479,6 @@ export default defineEval({ async task(c) { await c.send('hi'); expect(1).toBe(2
     assert.equal(json.code, 1, json.stdout + json.stderr)
     assert.match(json.stderr, /nothing to run again/)
     assert.equal((JSON.parse(json.stdout) as { outcome: string }).outcome, 'fail')
-  })
-
-  test("runs again an attempt the judge's provider never answered", async () => {
-    const p = await project('retry-judge-outage', {
-      'reeval.config.ts': fakeConfig(),
-      'evals/judged.eval.ts': `import { defineEval, expect } from 'reeval'
-import { fakeJudge } from 'reeval/judge'
-const model = fakeJudge({
-  score: () => {
-    if (process.env.FAIL) throw Object.assign(new Error('rate limit exceeded'), { statusCode: 429 })
-    return 0.9
-  },
-})
-export default defineEval({
-  async task(c) {
-    await c.send('hi')
-    expect(await c.judge('Is it done?', { model, diff: true })).toPass()
-  },
-})
-`,
-    })
-    const first = await runCli(p.dir, ['run', '--ui', 'plain'], outage)
-    assert.equal(first.code, 3, first.stdout + first.stderr)
-    const r = await runCli(p.dir, ['run', '--retry-errors', '--ui', 'plain'])
-    assert.equal(r.code, 0, r.stdout + r.stderr)
-    assert.match(r.stdout, /^retried 1 errored attempt: 1 now passes, 0 fail, 0 still error$/m)
-    const { run } = readRun(p.dir)
-    assert.deepEqual(attemptsOf(run), [
-      ['judged', 'pass', ['judge failed for "Is it done?" (fake): rate limit exceeded']],
-    ])
   })
 
   test('re-records a recorded run at the level it was recorded at', async () => {
@@ -1569,7 +1541,7 @@ export default defineEval({
     const { run } = readRun(p.dir)
     const bytes = readFileSync(scratchOf(p.dir, run.runId))
     const file = join(p.dir, 'evals/fails.eval.ts')
-    writeFileSync(file, readFileSync(file, 'utf8').replace('toBe(2)', 'toBe(3)'))
+    writeFileSync(file, readFileSync(file, 'utf8').replace('equal(1, 2)', 'equal(1, 3)'))
     const r = await runCli(p.dir, ['run', '--retry-errors'])
     assert.equal(r.code, 2, r.stdout + r.stderr)
     assert.match(
@@ -1700,7 +1672,7 @@ export default defineEval({ runs: { bestOf: 3 }, async task(c) { await c.send('h
       ...failing,
       'reeval.config.ts': fakeConfig({
         harness: "process.env.FAIL ? { failWith: 'agent start refused' } : {}",
-        judge: '{ model: fakeJudge({ score: 0.9 }), threshold: process.env.TH ? 0.2 : 0.7 }',
+        judge: "{ model: process.env.TH ? 'google/gemini-3.8-flash' : fakeJudge({ score: 0.9 }) }",
       }),
     })
     await runCli(p.dir, ['run'], outage)

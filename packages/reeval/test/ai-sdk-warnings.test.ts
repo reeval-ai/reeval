@@ -6,7 +6,7 @@ import { generateText } from 'ai'
 import { stubPng } from '../src/capture/stub.ts'
 import { runJourney } from '../src/capture/use.ts'
 import { decideState, filePartsOf, resolveJudgeArtifacts } from '../src/judge/artifacts.ts'
-import { runJudge } from '../src/judge/index.ts'
+import { askJudge } from '../src/judge/index.ts'
 import type { CaptureUseAction } from '../src/types.ts'
 
 type Warning = { type: string; setting?: string; message?: string }
@@ -83,8 +83,9 @@ test('a capture journey and a judge given its capture send nothing deprecated', 
   })
   const files = filePartsOf(resolveJudgeArtifacts(true, new Map([['home', journey.png]])))
   const decided: unknown[] = []
-  const judged = await runJudge(
+  const judged = await askJudge(
     'Does the page show a heading?',
+    undefined,
     decideState({ answer: 'done' }, files),
     {
       model: {
@@ -97,11 +98,10 @@ test('a capture journey and a judge given its capture send nothing deprecated', 
           return { answers: { answer: { type: 'boolean', probability: 0.9 } }, warnings: [] }
         },
       } as never,
-      threshold: 0.8,
     },
     new AbortController().signal,
   )
-  assert.equal(judged.verdict.verdict, 'pass')
+  assert.equal(judged.answer, true)
   assert.equal((decided[0] as Array<{ type: string }>).at(-1)?.type, 'file')
   assert.deepEqual(deprecated(), [])
 })

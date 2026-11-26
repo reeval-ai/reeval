@@ -54,11 +54,11 @@ const VIEW_ROWS: Record<string, string> = {
     'eval per run (an eval with cases is one, with how many): outcome, target, pass@1, mean score, pass@k and pass^k, branch, PR and fingerprint',
   verdict_flips: 'judge question per cell whose pass rate changed from its previous run',
   check_discrimination:
-    'check (expect label) per variant cell per run: its passes, failures and not-run on both sides, and whether it discriminates (both-pass and both-fail checks measure nothing)',
+    "check (an older reeval's expect label) per variant cell per run: its passes, failures and not-run on both sides, and whether it discriminates (both-pass and both-fail checks measure nothing)",
   check_rates:
-    'check (expect label) per cell per run, control and variant alike: harness, environment, role, passes, failures, errors, not-run and rate = pass / (pass + fail), null when none',
+    "check (an older reeval's expect label) per cell per run, control and variant alike: harness, environment, role, passes, failures, errors, not-run and rate = pass / (pass + fail), null when none",
   check_streaks:
-    'check (expect label) per cell, comparable fingerprint and branch over recorded runs: how many newest runs in a row it passed with no fail (on a variant, on both sides), their tries, and the run that ended the streak',
+    "check (an older reeval's expect label) per cell, comparable fingerprint and branch over recorded runs: how many newest runs in a row it passed with no fail (on a variant, on both sides), their tries, and the run that ended the streak",
 }
 
 const READ_ONLY = {
@@ -162,7 +162,7 @@ async function recordById(config: ResolvedConfig, runId: string): Promise<RunRec
 }
 
 const INSTRUCTIONS = `Read-only access to this project's reeval run history: runs of evals for coding agents, recorded in git and scratch runs in .reeval/runs. Use it to debug a failed, flaky or regressed eval run.
-Why did a run fail? Call failures first: each failed attempt's failing checks and judge scores, error, check logs and the end of its transcript, and whether its cell failed in earlier runs (new or not, since which run, what changed since it last passed). It's far smaller than show or summary.md.
+Why did a run fail? Call failures first: each failed attempt's failing graders, error, check logs and the end of its transcript, and whether its cell failed in earlier runs (new or not, since which run, what changed since it last passed). It's far smaller than show or summary.md.
 Then: transcript reads one attempt in full; compare diffs two runs (regressions, fixes, stack changes); history is pass/fail per eval over recent runs; show is one run's whole record. The query_* tools answer questions across runs (flaky_cells, drift, failing_attempts, eval_trend, lift, effort); query runs read-only SQL (query_schema lists tables). analysis returns saved reeval analyze results. Runs are named latest, latest~N, a run id prefix or a git SHA prefix. Nothing here runs evals: reeval run does, in a terminal.`
 
 /** Builds the factory `reeval mcp` serves: one McpServer per connection (stdio) or request (HTTP). */
@@ -179,7 +179,7 @@ export async function serverFactory(config: ResolvedConfig, version: string) {
       {
         title: 'Why a run failed',
         description:
-          'Debug a failed reeval eval run: why each failed or infra-error attempt failed. Per attempt: the failing expect checks with their messages, failed judge scores against thresholds, the error, nonzero check commands with their log tails, the setup log tail for infra errors, changed files, the final message and the last transcript lines (tool calls with targets and output). Per cell: whether the failure is new, the run its failing streak started in, the last run it passed and what changed since (fingerprint parts, eval source files). Start here, before show or transcript.',
+          'Debug a failed reeval eval run: why each failed or infra-error attempt failed. Per attempt: the graders that scored under 1 or errored, the failing expect checks and judge scores an older record has, the error, nonzero check commands with their log tails, the setup log tail for infra errors, changed files, the final message and the last transcript lines (tool calls with targets and output). Per cell: whether the failure is new, the run its failing streak started in, the last run it passed and what changed since (fingerprint parts, eval source files). Start here, before show or transcript.',
         inputSchema: z.object({
           run: z.string().optional().describe(RUN_REF),
           filter: z.string().optional().describe('Only evals whose id contains this'),

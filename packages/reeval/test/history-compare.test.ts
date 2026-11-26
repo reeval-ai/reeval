@@ -39,19 +39,21 @@ const sh = (cwd: string, ...args: string[]) =>
   execFileSync('git', args, { cwd, env: GIT_ENV, encoding: 'utf8' }).trim()
 
 const HISTORY = 'evals/.history'
-const agent = `import { defineEval, expect } from 'reeval'
+const agent = `import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 export default defineEval({
+  graders: [judge('Did it write hello.txt?', { inputs: { diff: true } })],
   async task(c) {
     await c.send('write hello.txt')
-    expect(await c.judge('Did it write hello.txt?', { diff: true })).toPass()
   },
 })
 `
-const failing = `import { defineEval, expect } from 'reeval'
+const failing = `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('write hello.txt')
-    await expect(c.exec('exit 4')).toSucceed()
+    assert.equal((await c.exec('exit 4')).exitCode, 0)
   },
 })
 `
@@ -69,11 +71,12 @@ const portBefore100 = async (dir: string) => {
   )
   await writeFile(
     join(dir, 'evals/writes-greet.eval.ts'),
-    `import { defineEval, expect } from 'reeval'
+    `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('Write greet.js')
-    await expect(c).toHaveFile('greet.js', /Hello/)
+    assert.match((await c.readFile('greet.js')) ?? '', /Hello/)
   },
 })
 `,
@@ -116,16 +119,17 @@ describe('what a record says about comparability', () => {
     sibling = 'write other.txt',
     extra = '',
   } = {}) => ({
-    'evals/agent.eval.ts': `import { defineEval, expect } from 'reeval'
+    'evals/agent.eval.ts': `import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 import { prompt } from './helpers.ts'
 const unused = 1
 export default defineEval({
   revision: ${revision},
   runs: ${runs},
   tags: [${tags}]${extra},
+  graders: [judge('Did it write hello.txt?', { inputs: { diff: true } })],
   async task(c) {
     await c.send(${prompt})
-    expect(await c.judge('Did it write hello.txt?', { diff: true })).toPass()
   },
 })
 `,
@@ -263,11 +267,12 @@ export default defineEval({
   })
 
   test('reeval compare --fail-on-regression fails on a regression and on a failing new eval; no base is no error', async () => {
-    const flip = `import { defineEval, expect } from 'reeval'
+    const flip = `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('write hello.txt')
-    expect(process.env.REEVAL_TEST_BREAK ?? 'ok').toBe('ok')
+    assert.equal(process.env.REEVAL_TEST_BREAK ?? 'ok', 'ok')
   },
 })
 `
@@ -296,7 +301,7 @@ export default defineEval({
     assert.match(newFailing.out, /^1 new eval \(1 below\)$/m)
     assert.match(
       (await compareCode('--md')).out,
-      /^# flips\n[\s\S]*\*\*0% passed\*\*/m,
+      /^# flips\n[\s\S]*\*\*0\/1 run at 100%\*\*/m,
       'compare --md with no base is the head RunReport',
     )
 
@@ -319,11 +324,12 @@ export default defineEval({
   })
 
   test('reeval compare --fail-on-regression fails on a failing eval that changed (not comparable); a passing one is fine', async () => {
-    const edited = (prompt: string) => `import { defineEval, expect } from 'reeval'
+    const edited = (prompt: string) => `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('${prompt}')
-    expect(process.env.REEVAL_TEST_BREAK ?? 'ok').toBe('ok')
+    assert.equal(process.env.REEVAL_TEST_BREAK ?? 'ok', 'ok')
   },
 })
 `
@@ -356,9 +362,8 @@ export default defineEval({
   test('reeval compare has one row for an eval with cases, gated on its pooled minLift, and --fail-on-regression fails when it goes from pass to fail', async () => {
     // The control passes only with REEVAL_TEST_BASE_OK set: then the cases still pass on their
     // own, but the pooled lift is 0 and falls below minLift.
-    const pooled = (
-      minLift: number,
-    ) => `import { defineEnvironment, defineEval, expect } from 'reeval'
+    const pooled = (minLift: number) => `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
@@ -372,7 +377,7 @@ export default defineEval({
   async task(c) {
     await c.send('go')
     if (c.attempt.cell.role === 'control' && process.env.REEVAL_TEST_BASE_OK) return
-    await expect(c).toHaveFile('ok.txt')
+    assert.notEqual(await c.readFile('ok.txt'), null)
   },
 })
 `
@@ -441,11 +446,12 @@ export default defineEval({
       fakeConfig({ harness: harness(), extra: `runs: 2, target: ${target},` })
     const p = await gitProject('compare-gate', {
       'reeval.config.ts': config('metric(0.5)'),
-      'evals/flaky.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/flaky.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('go')
-    expect(process.env.REEVAL_TEST_BREAK || c.attempt.n === 2 ? 'miss' : 'ok').toBe('ok')
+    assert.equal(process.env.REEVAL_TEST_BREAK || c.attempt.n === 2 ? 'miss' : 'ok', 'ok')
   },
 })
 `,
@@ -528,7 +534,8 @@ export default defineEval({
     const p = await gitProject('compare-family-gate-change', {
       'reeval.config.ts': config('regression()'),
       'skills/s/SKILL.md': '---\nname: s\ndescription: A skill. Use when testing.\n---\nBody.\n',
-      'evals/writes-ok-txt.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+      'evals/writes-ok-txt.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
@@ -542,7 +549,7 @@ export default defineEval({
   async task(c) {
     await c.send('go')
     if (c.attempt.cell.role === 'control' && process.env.REEVAL_TEST_BASE_OK) return
-    await expect(c).toHaveFile('ok.txt')
+    assert.notEqual(await c.readFile('ok.txt'), null)
   },
 })
 `,
@@ -582,12 +589,13 @@ export default defineEval({
 
   test('reeval compare has one row for an eval with cases without a gate, its cases inside it', async () => {
     const p = await gitProject('compare-family-ungated', {
-      'evals/greets.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/greets.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   cases: [{ key: 'ada' }, { key: 'grace' }],
   async task(c) {
     await c.send('go')
-    expect(process.env.REEVAL_TEST_BREAK ?? 'ok').toBe('ok')
+    assert.equal(process.env.REEVAL_TEST_BREAK ?? 'ok', 'ok')
   },
 })
 `,
@@ -615,13 +623,14 @@ export default defineEval({
 
   test('runs of different cases compare over the cases both ran; a failing case only head ran fails --fail-on-regression', async () => {
     const p = await gitProject('compare-case-scope', {
-      'evals/greets.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/greets.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 const fail = (process.env.REEVAL_TEST_FAIL ?? '').split(',')
 export default defineEval({
   cases: (process.env.REEVAL_TEST_SET ?? 'a,b,c').split(',').map((key) => ({ key })),
   async task(c, { key: k }) {
     await c.send('go')
-    expect(fail.includes(k), 'passes ' + k).toBe(false)
+    assert.equal(fail.includes(k), false, 'passes ' + k)
   },
 })
 `,
@@ -668,13 +677,14 @@ export default defineEval({
 
   test("a change to one case's data is drift on that case and its eval's cells, not flakiness", async () => {
     const p = await gitProject('compare-case-drift', {
-      'evals/fp.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/fp.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 const bv = Number(process.env.REEVAL_TEST_BV ?? 1)
 export default defineEval({
   cases: [{ key: 'a', v: 1 }, { key: 'b', v: bv }],
   async task(c, k) {
     await c.send('go')
-    expect(k.v, 'small').toBeLessThan(3)
+    assert.ok(k.v < 3, 'small')
   },
 })
 `,
@@ -719,11 +729,12 @@ export default defineEval({
     mkdirSync(join(p.dir, 'evals'))
     await writeFile(
       join(p.dir, 'evals/flips.eval.ts'),
-      `import { defineEval, expect } from 'reeval'
+      `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('write hello.txt')
-    expect(process.env.REEVAL_TEST_BREAK ?? 'ok', 'returns ok').toBe('ok')
+    assert.equal(process.env.REEVAL_TEST_BREAK ?? 'ok', 'ok', 'returns ok')
   },
 })
 `,
@@ -731,14 +742,15 @@ export default defineEval({
     await writeFile(
       join(p.dir, 'evals/slow.eval.ts'),
       `import { writeFileSync } from 'node:fs'
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     if (process.env.REEVAL_TEST_SLOW) {
       writeFileSync(${JSON.stringify(started)}, '')
       await new Promise((_, reject) => c.signal.addEventListener('abort', () => reject(c.signal.reason)))
     }
-    expect(1, 'finished').toBe(1)
+    assert.equal(1, 1, 'finished')
   },
 })
 `,
@@ -784,10 +796,7 @@ export default defineEval({
     // Canary: a real pass → fail in the same interrupted head still regresses and fails the check.
     await interrupted({ REEVAL_TEST_BREAK: '1' })
     const regressed = await compareCode('--fail-on-regression')
-    assert.match(
-      regressed.out,
-      /^regressed {8}flips\n(.*\n){2} {2}returns ok {7}pass → fail +evals\/flips\.eval\.ts:5$/m,
-    )
+    assert.match(regressed.out, /^regressed {8}flips\n(.*\n){2} {2}error {12}returns ok\b/m)
     assert.match(regressed.out, /^can't compare {4}slow$/m)
     assert.match(regressed.out, /^1 regressed · 1 can't compare$/m)
     assert.equal(regressed.code, 1, regressed.out)
@@ -807,18 +816,19 @@ export default defineEval({
     assert.ok(e?.read(e.trial.files.transcript?.path ?? '').includes(long))
   })
 
-  test('cells join environments by digest, not name; attempts and verdicts have keys', async () => {
+  test('cells join environments by digest, not name; attempts have keys', async () => {
     const p = await project('joins', {
       'reeval.config.ts': fakeConfig({ extra: 'concurrency: 1,' }),
-      'evals/uses-one.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+      'evals/uses-one.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 import { fakeSandbox } from 'reeval/sandbox'
 const one = defineEnvironment('tools', { sandbox: fakeSandbox(), env: { FLAVOR: 'one' } })
 export default defineEval({
   environment: one,
   runs: 3,
+  graders: [judge('Is it fine?', { inputs: { diff: true } })],
   async task(c) {
     await c.send('x')
-    expect(await c.judge('Is it fine?', { diff: true })).toPass()
   },
 })
 `,
@@ -867,7 +877,7 @@ export default defineEval({
       [1, 2, 3].map((n) => `${one?.key} # fake/tools/fake#${n}`),
     )
     assert.ok(attempts.every((a) => a.startedAt && a.imageId === null))
-    assert.match(one?.attempts[0]?.judgements[0]?.key ?? '', /^0:[0-9a-f]{12}$/)
+    assert.equal(one?.attempts[0]?.grades?.[0]?.grader, 'judge:Is it fine?')
     assert.equal('config' in run && 'harnesses' in run.config, false)
     assert.equal(run.runner.kind === 'local' || run.runner.pr !== undefined, true)
   })
@@ -877,8 +887,9 @@ describe('config discovery', () => {
   const passing = () => `import { defineEval } from 'reeval'
 export default defineEval({ async task() {} })
 `
-  const wrongConfig = () => `import { defineEval, expect } from 'reeval'
-export default defineEval({ async task() { expect('this config').toBe('never run') } })
+  const wrongConfig = () => `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
+export default defineEval({ async task() { assert.equal('this config', 'never run') } })
 `
 
   test('every command run from a nested subdirectory finds the project config and acts from its directory', async () => {
@@ -1301,7 +1312,8 @@ describe('history recorded with evaluate.each by reeval 0.18', () => {
     await writeFile(join(p.dir, 'reeval.config.ts'), fakeConfig())
     await writeFile(
       join(p.dir, 'evals/discovery.eval.ts'),
-      `import { defineEnvironment, defineEval, expect } from 'reeval'
+      `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 
 const plain = defineEnvironment('plain', { sandbox: fakeSandbox() })
@@ -1312,14 +1324,15 @@ export default defineEval({
   compare: { control: plain, variants: [withSkill] },
   async task(c, { key: prompt }) {
     await c.send(prompt)
-    await expect(c).toHaveFile('greet.js')
+    assert.notEqual(await c.readFile('greet.js'), null)
   },
 })
 `,
     )
     await writeFile(
       join(p.dir, 'evals/options.eval.ts'),
-      `import { defineEnvironment, defineEval, expect } from 'reeval'
+      `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 
@@ -1331,7 +1344,7 @@ export default defineEval({
   environment: app,
   async task(c) {
     await c.send('Write greet.js.')
-    await expect(c).toHaveFile('greet.js')
+    assert.notEqual(await c.readFile('greet.js'), null)
   },
 })
 `,

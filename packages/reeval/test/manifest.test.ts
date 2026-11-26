@@ -62,11 +62,11 @@ test('the packed manifest names nothing that only exists in this workspace', () 
     }
   }
 
-  // @vitest/utils is internal to Vitest and not semver-safe alone: it moves only with
-  // @vitest/expect, pinned to exactly the same version. Neither Vitest nor Vite ships.
+  // @vitest/utils is internal to Vitest and not semver-safe, so it's pinned exactly. Neither
+  // Vitest nor Vite ships.
   const { dependencies } = manifest
-  assert.match(dependencies['@vitest/expect'], /^\d+\.\d+\.\d+$/)
-  assert.equal(dependencies['@vitest/utils'], dependencies['@vitest/expect'])
+  assert.match(dependencies['@vitest/utils'], /^\d+\.\d+\.\d+$/)
+  assert.equal(dependencies['@vitest/expect'], undefined)
   assert.equal(dependencies.vitest, undefined)
   assert.equal(dependencies.vite, undefined)
 })

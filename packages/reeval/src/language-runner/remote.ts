@@ -3,7 +3,6 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 import { relative } from 'node:path'
 import { attemptForContext } from '../attempt/state.ts'
 import type { AttemptDone } from '../contract/attempt.ts'
-import { attemptRecordings } from '../engine/runtime.ts'
 import { UsageError } from '../errors.ts'
 import { declareTree } from '../evaluate.ts'
 import { InfraError } from '../sandbox/types.ts'
@@ -88,7 +87,6 @@ function remoteBody(
   return (t) =>
     new Promise<void>((resolve, reject) => {
       const attemptKey = `${body}:${t.attempt.id}:${++started}`
-      const matcherCalls = attemptRecordings()
       const handles = new Map<string, BackgroundHandle>()
       const inAttempt = AsyncLocalStorage.snapshot()
       const finish = (settle: () => void) => {
@@ -112,7 +110,7 @@ function remoteBody(
 
       live.set(attemptKey, {
         onRequest: (message) => {
-          void inAttempt(() => replyToAttempt(t, matcherCalls, handles, message)).then((reply) =>
+          void inAttempt(() => replyToAttempt(t, handles, message)).then((reply) =>
             runner.send({ ...reply, key: attemptKey }),
           )
         },

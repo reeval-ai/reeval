@@ -42,111 +42,37 @@ reeval package, `test/python-sdk.test.ts` runs the same suite in CI.
 ## Writing evals
 
 ```python
-from reeval_python import SyncAttemptContext, evaluate, expect
+from reeval_python import SyncAttemptContext, evaluate
 
 
 @evaluate("lands", {"runs": 3, "timeout": 300})
 def lands(c: SyncAttemptContext) -> None:
     c.send("Create greet.py that prints hi")
-    assert c.exec("test -f greet.py").ok
-    expect(c.judge("Does greet.py print hi?", contents=["greet.py"])).to_pass()
+    assert c.exec("python greet.py").stdout == "hi\n"
 ```
 
-Plain `assert` is first-class, as in pytest: each one in an eval file is a check in the run
-record, named by its test as written (`assert c.exec("test -f greet.py").ok` is
-`assert c.exec("test -f greet.py").ok`). A pass is recorded when it runs. A failure ends the body,
-as in Python, and is recorded with its message and both sides of a comparison as the reason
-(`greet.py exists: assert 1 == 2`). An `AssertionError` the body catches isn't a failed check, so
-a retry loop can assert; one the escaping error carries (each failure in a `TaskGroup`'s
-`ExceptionGroup`, or one an error was raised from or while handling) is. Use typed results (`ExecResult.ok`, `Verdict.passed`, `Turn.text`, …) and `c.file(path)`
-for quick checks. Keep `expect` for reeval matchers (`to_have_file`, `to_succeed`, checks that carry on,
-labels) — Playwright-style.
+A body is the task: it drives the agent and fails the attempt by raising. Plain `assert` keeps
+Python's semantics: a failure ends the body, and its message (or, with none, the statement as
+written) is the attempt's failure. An `AssertionError` the body catches fails nothing, so a retry
+loop can assert. Raise `EvalError("the build fails")` for an attempt that didn't get far enough to
+grade. Use typed results (`ExecResult.ok`, `Turn.text`, …) and `c.file(path)`.
 
-#### Checks carry on; `expect.require` is a gate
-
-A failed `expect` is recorded and the body carries on, so every later check and judge still runs;
-the attempt fails when the body ends. `expect.require` raises `ReevalAssertionError` instead, for a
-gate the rest depends on:
-
-```python
-c.send("Add a sign-up page")
-expect.require(c.exec("npm run build"), "builds").to_succeed()  # stops here if the build fails
-expect(c.exec("npm test"), "tests pass").to_succeed()  # recorded, carries on
-```
-
-reeval records a failed `expect.require` before the error reaches the body. One the body catches
-still fails the attempt when the body ends, and its error says the eval caught it. A plain
-`assert` the body catches records nothing, as in Python.
-
-| The body catches | Recorded | Fails the attempt |
-|---|---|---|
-| a failed `expect.require(…)` | a failed check | yes, when the body ends |
-| a failed `assert` | nothing | no |
-| neither (it escapes) | a failed check | yes |
-
-So retry with `expect.poll`, which retries the matcher and records only its final outcome, or with
-a plain `assert` or `if` in the loop, never `expect.require` in `try`/`except`:
-
-```python
-# Retries the command until it succeeds, for up to 10 seconds: one check.
-expect.poll(lambda: c.exec("curl -sf localhost:3000"), timeout=10).to_succeed()
-
-# A plain assert in a retry loop: only the try that held is recorded.
-for _ in range(3):
-    try:
-        assert c.exec("test -f ready.txt").ok
-        break
-    except AssertionError:
-        time.sleep(1)
-```
-
-Matchers that take a pattern (`to_have_file`, `to_have_run`, `to_have_searched`, `to_have_fetched`,
-`to_have_called_tool`, `to_have_edited`, `to_have_changed`) take a `str` or a compiled `re.Pattern`,
-`str` or `bytes`, with any flags. Python matches it with `pattern.search`, so anything `re` accepts
-works (lookbehind, `re.VERBOSE`, named groups). The record shows the pattern's `repr`.
-
-```python
-import re
-
-expect(c.turns[0]).to_have_run(re.compile(r"^(npm|pnpm) t(est)?$"))
-```
-
-`to_have_run(program=…, args=…)` matches the program a shell call ran instead of the whole command
-line, after env assignments, `timeout`, `sudo` and package runners such as `npx`, so
-`cat genkit.config.ts` doesn't count as running `genkit`:
-
-```python
-expect(c).to_have_run(program="genkit", args=re.compile(r"^flow:run\b"))
-```
-
-Use snake_case on the context (`read_file`, `write_file`, `file`) and on matchers (`to_succeed`,
-`to_pass`, `to_equal`, `to_contain`, …). Matcher failures raise `ReevalAssertionError`.
-
-Options are typed (`EvalOptions`, and `JudgeOptions` for `c.judge(…)`), so pyright refuses a
-misspelled key such as `runz`. They take reeval's keys in snake_case at any depth (`min_lift`,
-`delay_ms`); the keys of `env`, `headers` and the other maps of your own keep their spelling. Every
-duration is seconds or a `timedelta`: `{"timeout": 90}`, `docker(start_timeout=timedelta(minutes=2))`,
-`expect.poll(…, timeout=10)`. `docker()`, `fake_harness()`, `fake_judge()` and `plugin.*` return
-values to pass as options, not data to edit.
-
-`c.judge` takes the inputs the judge reads as keywords, and needs at least one: `diff=True`,
-`contents=["src/**"]`, `output=True` with `on=result`, and so on. With none it raises `TypeError`.
-
-```python
-expect(c.judge("Is it valid JSON?", on=result, output=True)).to_pass()
-```
+Use snake_case on the context (`read_file`, `write_file`, `file`). Options are typed
+(`EvalOptions`), so pyright refuses a misspelled key such as `runz`. They take reeval's keys in
+snake_case at any depth (`min_lift`, `delay_ms`); the keys of `env`, `headers` and the other maps of
+your own keep their spelling. Every duration is seconds or a `timedelta`: `{"timeout": 90}`,
+`docker(start_timeout=timedelta(minutes=2))`. `docker()`, `fake_harness()`, `fake_judge()` and
+`plugin.*` return values to pass as options, not data to edit.
 
 ### `def` and `async def` bodies
 
 A `def` body gets a blocking context: `c.exec(…)` runs the command and returns its `ExecResult`,
-and `c.read_file(…)` returns the contents. Use `expect` from `reeval_python`, whose matchers check
-at once.
+and `c.read_file(…)` returns the contents.
 
-An `async def` body gets the async context: every `c.*` call is a coroutine, and `expect` comes
-from `reeval_python.aio`, whose matchers you await. A call or matcher the body never awaits never
-runs, so it fails the attempt, and so does a task the body started and left running when it
-returns: await each one (`asyncio.gather`, a `TaskGroup`). Each `expect` refuses to run in the
-other kind of body, and a body that `yield`s is refused where it's declared.
+An `async def` body gets the async context: every `c.*` call is a coroutine to await. A call the
+body never awaits never runs, so it fails the attempt, and so does a task the body started and
+left running when it returns: await each one (`asyncio.gather`, a `TaskGroup`). A body that
+`yield`s is refused where it's declared.
 
 Annotate `c` (`SyncAttemptContext` or `AttemptContext`) and pyright checks the body too: a missing
 `await`, the wrong context for the kind of body, a generator or a returned value. An unannotated
@@ -154,34 +80,23 @@ body is checked only when it runs.
 
 ```python
 from reeval_python import AttemptContext, evaluate
-from reeval_python.aio import expect
 
 
 @evaluate("lands, async")
 async def lands(c: AttemptContext) -> None:
     await c.send("Create greet.py that prints hi")
-    await expect(await c.exec("python greet.py")).to_succeed()
+    assert (await c.exec("python greet.py")).ok
 ```
 
 `c.exec(cmd, retries=2, interval=2)` runs a command that exits non-zero again, up to 2 more
 times, 2 seconds apart (`interval` is seconds or a timedelta, one second by default), and returns
-the last try. Use it for a check that can fail on a transient, such as a test that calls a model:
-`expect(c.exec("pytest -q tests/hidden", retries=2)).to_succeed()`. Any non-zero exit retries,
-and the record and output say `passed on try 2 of 3`.
+the last try. Use it for a command that can fail on a transient, such as a test that calls a
+model: `c.exec("pytest -q tests/hidden", retries=2)`. Any non-zero exit retries, and the record and
+output say `passed on try 2 of 3`.
 
 `c.exec(cmd, env={"EXPECTED": "42"})` sets variables for that command only, over the
-environment's, in the background and in `expect.poll` too. A value named like a secret
-(`*_TOKEN`, `*_KEY`, …) is masked in everything reeval writes.
-
-`expect.poll` retries a matcher until it passes, every `interval` until `timeout` (one second by
-default). Hand it a function that returns one `c.read_file(…)` or `c.exec(…)`, and reeval reads or
-runs it again on each try; it works the same in both kinds of body. Check the output with the
-matcher, not in the function: `lambda: c.exec("cat x").stdout` is refused.
-
-```python
-expect.poll(lambda: c.read_file("ready.txt"), timeout=10).to_be("ready\n")
-expect.poll(c, "the server wrote its log").to_have_file("server.log")
-```
+environment's, in the background too. A value named like a secret (`*_TOKEN`, `*_KEY`, …) is
+masked in everything reeval writes.
 
 ### Cases
 

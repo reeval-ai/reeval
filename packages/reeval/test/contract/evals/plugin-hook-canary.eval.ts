@@ -1,4 +1,5 @@
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { closed, PLUGIN_HOOK_MARKER, trimmed } from './probes.ts'
 
 // The probe plugin's SessionStart hook ran: only it writes the marker. Tagged plugin-hooks too, so
@@ -10,6 +11,6 @@ export default defineEval({
   environment: closed,
   tags,
   task: async (c) => {
-    expect(await trimmed(c.readFile, PLUGIN_HOOK_MARKER)).toBe('hook-ran')
+    assert.equal(await trimmed(c.readFile, PLUGIN_HOOK_MARKER), 'hook-ran')
   },
 })

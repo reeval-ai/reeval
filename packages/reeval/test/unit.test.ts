@@ -84,7 +84,7 @@ import {
   filePartsOf,
   resolveJudgeArtifacts,
 } from '../src/judge/artifacts.ts'
-import { checkModelString, judgeCredentials, judgeRoute, runJudge } from '../src/judge/index.ts'
+import { askJudge, checkModelString, judgeCredentials, judgeRoute } from '../src/judge/index.ts'
 import { decideWithModel } from '../src/judge/model.ts'
 import { changedFilesForJudge, judgeDiff, patchForJudge } from '../src/judge/patch.ts'
 import { backoffMs, isApiError, isTransient } from '../src/judge/retry.ts'
@@ -935,7 +935,7 @@ test('judge model strings need a provider, and credentials follow the provider',
     () => resolveConfig({ judge: { model: 'gemini-3.8-flash' } }, '/p'),
     /provider prefix/,
   )
-  assert.deepEqual(resolveConfig({}, '/p').judge, { threshold: 0.8 })
+  assert.deepEqual(resolveConfig({}, '/p').judge, {})
 })
 
 test('missingCredentials names the judge key for the configured provider', () => {
@@ -973,7 +973,7 @@ test("the credential checks ask for the key of the judge the run uses, the profi
       profiles: {
         fake: { judge: { model: fakeJudge() } },
         jev: { defaults: { judge: { model: 'typesafe-ai/jev-1.14.0' } } },
-        threshold: { judge: { threshold: 0.5 } },
+        concurrent: { judge: { maxConcurrent: 2 } },
       },
     },
     '/p',
@@ -1003,7 +1003,7 @@ test("the credential checks ask for the key of the judge the run uses, the profi
     "the config judge's key doesn't stand in for the profile's",
   )
   assert.deepEqual(
-    missingCredentials(config, env, { profile: profile('threshold') }),
+    missingCredentials(config, env, { profile: profile('concurrent') }),
     [google],
     'a profile judge without a model keeps the config judge',
   )
@@ -2232,15 +2232,15 @@ function scriptedModel(errors: Array<Record<string, unknown>>, probability = 0.9
 
 const quick = { attempts: 4, baseMs: 1, maxMs: 5 }
 const judge = (model: object) =>
-  runJudge('ok?', { output: 'x' }, { model, threshold: 0.8 }, new AbortController().signal, quick)
+  askJudge('ok?', undefined, { output: 'x' }, { model }, new AbortController().signal, quick)
 
 test('judge calls retry transient provider errors with backoff and record them', async () => {
   const model = scriptedModel([
     { message: 'The model is overloaded due to high demand', statusCode: 503 },
     { message: 'Too many requests', statusCode: 429, responseHeaders: { 'retry-after': '0' } },
   ])
-  const { verdict, retries } = await judge(model)
-  assert.equal(verdict.verdict, 'pass')
+  const { answer, retries } = await judge(model)
+  assert.equal(answer, true)
   assert.equal(model.calls, 3)
   assert.deepEqual(
     retries.map((r) => r.error),
@@ -2261,7 +2261,7 @@ test('judge calls fail at once on permanent errors, and after the last try on tr
   assert.equal(down.calls, quick.attempts)
 })
 
-test('a judge model is sent the question with secrets masked, and the verdict keeps it as asked', async () => {
+test('a judge model is sent the question with secrets masked', async () => {
   const value = 'judge-question-secret-5d2c8e1a'
   registerSecret(value)
   const asked: unknown[] = []
@@ -2276,15 +2276,15 @@ test('a judge model is sent the question with secrets masked, and the verdict ke
     },
   }
   const question = `Did the agent keep ${value} out of the log?`
-  const { verdict } = await runJudge(
+  await askJudge(
     question,
+    undefined,
     { output: 'x' },
-    { model, threshold: 0.8 },
+    { model },
     new AbortController().signal,
     quick,
   )
   assert.deepEqual(asked, ['Did the agent keep [REDACTED] out of the log?'])
-  assert.equal(verdict.question, question)
 })
 
 test('isTimeout is the TimeoutError name, not the message', () => {

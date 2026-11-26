@@ -40,6 +40,7 @@
   ],
   "redirects": {
     "/": "/overview",
+    "/reference/matchers": "/evaluations/grading/assertions",
     "/evals/evaluate": "/evaluations/evaluate",
     "/evals/turns": "/evaluations/task/turns",
     "/evals/checks": "/evaluations/grading/assertions",
@@ -557,10 +558,6 @@
             {
               "title": "Attempt context",
               "href": "/reference/attempt-context"
-            },
-            {
-              "title": "Matchers",
-              "href": "/reference/matchers"
             },
             {
               "title": "Options",

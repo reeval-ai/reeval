@@ -24,9 +24,9 @@ import type {
   JudgeOptions,
   JudgeState,
   TokenUsage,
-  Verdict,
 } from '../types.ts'
-import { JUDGE_RETRY, type RetryPolicy, withRetries } from './retry.ts'
+import { isApiError, isTransient, JUDGE_RETRY, type RetryPolicy, withRetries } from './retry.ts'
+import { overTokenLimit, withInputSize } from './size.ts'
 
 /** The judge the docs recommend, pinned so a model update never silently moves scores. */
 export const RECOMMENDED_JUDGE_MODEL = 'typesafe-ai/jev-1.14.0'
@@ -285,14 +285,6 @@ export function hostCall(
   return { route: { kind: 'gateway' }, call }
 }
 
-/** A verdict plus the transient failures retried on the way to it. */
-export type JudgeResult = {
-  verdict: Verdict
-  retries: JudgeRetry[]
-  /** The call's tokens; null when the provider reported none, and for the fake judge. */
-  usage: TokenUsage | null
-}
-
 /** A model call's gateway by name, with the list entry's OpenRouter fallbacks and Vertex settings. */
 export function gatewaySettings(entry: GatewayName | GatewayDescriptor | undefined): {
   gateway: GatewayName | undefined
@@ -322,33 +314,6 @@ export type JudgeAnswer = {
   costUsd?: number
   retries: JudgeRetry[]
   usage: TokenUsage | null
-}
-
-/** Transient provider errors (429, 5xx, "high demand") are retried with backoff and recorded. */
-export async function runJudge(
-  question: string,
-  state: JudgeState,
-  options: Required<Pick<JudgeOptions, 'model' | 'threshold'>> & JudgeOptions,
-  signal: AbortSignal,
-  retry: RetryPolicy = JUDGE_RETRY,
-): Promise<JudgeResult> {
-  const { threshold } = options
-  const {
-    probability,
-    retries,
-    usage,
-    answer: _answer,
-    ...called
-  } = await askJudge(question, undefined, state, options, signal, retry)
-  const score = probability ?? 0
-  const verdict: Verdict = {
-    verdict: score >= threshold ? 'pass' : 'fail',
-    score,
-    threshold,
-    question,
-    ...called,
-  }
-  return { verdict, retries, usage }
 }
 
 /**
@@ -402,7 +367,9 @@ export async function askJudge(
       ),
     retry,
     signal,
-  )
+  ).catch((error: unknown) => {
+    throw sized(error, state, question)
+  })
   const { answer, probability, resolvedModel, usage, ...billing } = decided.value
   return {
     answer,
@@ -414,4 +381,13 @@ export async function askJudge(
     retries: decided.retries,
     usage,
   }
+}
+
+/** The input's size can explain a request the provider refused, never an outage. */
+function sized(error: unknown, judged: JudgeState, question: string): unknown {
+  const state = Array.isArray(judged) ? judged.find((part) => part.type === 'json')?.value : judged
+  if (!(error instanceof Error) || !isApiError(error) || !state) return error
+  if (isTransient(error) && !overTokenLimit(error.message, state, question)) return error
+  error.message = withInputSize(error.message, state, question)
+  return error
 }

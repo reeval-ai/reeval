@@ -1,8 +1,9 @@
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 
-// Must fail: its block names the failed check and its assertion.
+// Must fail: its block names the failure.
 export default defineEval({
   task: async (c) => {
-    expect(c.attempt.n, 'second try').toBe(2)
+    assert.equal(c.attempt.n, 2, 'second try')
   },
 })

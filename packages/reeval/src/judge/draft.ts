@@ -30,7 +30,7 @@ export type DraftSources = {
   observations: readonly Observation[] | undefined
   readFile: (path: string) => Promise<string | null>
   listFiles: () => Promise<string[]>
-  /** Names the caller in a refusal: `c.judge()`. */
+  /** Names the caller in a refusal: `c.state()`. */
   who: string
 }
 

@@ -1,6 +1,6 @@
 // Runs one eval file's collected attempts in its worker, all at once: each waits for the
-// scheduler's lease, then runs on its own timer, with its console output and assertions routed
-// to it through async context.
+// scheduler's lease, then runs on its own timer, with its console output routed to it through
+// async context.
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { existsSync } from 'node:fs'
 import { format } from 'node:util'
@@ -15,15 +15,6 @@ import { backstops, backstopTimer } from './backstop.ts'
 import { budgetMarker } from './budget.ts'
 import type { CollectedTest } from './collector.ts'
 import type { SerializedError } from './errors.ts'
-import {
-  attemptExpectError,
-  createExpect,
-  type ExpectTask,
-  type Pending,
-  rawAssertions,
-  unawaitedError,
-  withAttemptExpect,
-} from './expect.ts'
 import { originalStack } from './loader.ts'
 import type { WireResult } from './protocol.ts'
 
@@ -161,14 +152,6 @@ async function runTest(
   }
   const startedAt = Date.now()
   reporter.start(index, startedAt)
-  const task: ExpectTask = {
-    type: 'test',
-    name: test.name,
-    fullTestName: [...test.groups, test.name].join(' > '),
-    file,
-  }
-  const own = createExpect(task)
-  const pending: Pending[] = []
   const timeout = new AbortController()
   const timedOut = new Promise<never>((_, reject) => {
     timeout.signal.addEventListener('abort', () => reject(timeout.signal.reason), { once: true })
@@ -185,22 +168,17 @@ async function runTest(
   let meta: EvalMeta | undefined
   const run = () =>
     currentAttempt.run(index, () =>
-      withAttemptExpect(own, pending, () =>
-        test.body({
-          file,
-          signal: AbortSignal.any([signal, timeout.signal]),
-          setMeta: (next) => {
-            // Masked here, where the attempt's own secrets are known: labels are the eval's words.
-            meta = redactValue(next)
-            if (reported) reporter.meta(index, next)
-          },
-          progress: (progress) => reporter.progress(index, progress),
-          debug: (line) => reporter.debug(index, line),
-          unawaited: () => unawaitedError(pending, file),
-          expectError: () => attemptExpectError(own),
-          assertions: () => rawAssertions(task),
-        }),
-      ),
+      test.body({
+        file,
+        signal: AbortSignal.any([signal, timeout.signal]),
+        setMeta: (next) => {
+          // Masked here, where the attempt's own secrets are known: labels are the eval's words.
+          meta = redactValue(next)
+          if (reported) reporter.meta(index, next)
+        },
+        progress: (progress) => reporter.progress(index, progress),
+        debug: (line) => reporter.debug(index, line),
+      }),
     )
   const body = backstop ? backstops.run(backstop, run) : run()
   bodies.add(body)

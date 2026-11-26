@@ -15,7 +15,7 @@ export default defineConfig({
     nightly: {
       defaults: { runs: 3 },
       limit: { runs: 1, compare: false },
-      judge: { threshold: 0.9 },
+      judge: { model: 'typesafe-ai/jev-1.14.0' },
       budget: { attempts: 80, duration: '2h' },
       record: 'always',
       tags: ['nightly'],

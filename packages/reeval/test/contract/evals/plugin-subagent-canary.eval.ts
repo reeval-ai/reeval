@@ -1,4 +1,5 @@
-import { defineEval, expect, type Turn } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval, type Turn } from 'reeval'
 import { closed, delegatedTo, PLUGIN_AGENT, prompts, toolsMentioning } from './probes.ts'
 
 // The probe plugin's subagent is available: the agent delegates to it by name, and the call
@@ -18,6 +19,6 @@ export default defineEval({
   environment: closed,
   tags,
   task: async (c) => {
-    expect(delegated(await c.send(prompts.pluginAgent))).not.toEqual([])
+    assert.notDeepEqual(delegated(await c.send(prompts.pluginAgent)), [])
   },
 })

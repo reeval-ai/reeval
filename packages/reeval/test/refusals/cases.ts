@@ -35,7 +35,6 @@ import {
   execOptionsProblem,
 } from '../../src/contract/attempt.ts'
 import { declarationProblem } from '../../src/contract/declaration.ts'
-import { judgeProblem } from '../../src/contract/judge.ts'
 import type { DeclaredNode } from '../../src/declaration.ts'
 import { useEngine } from '../../src/engine/runtime.ts'
 import { buildRefusal, readMarketplace } from '../../src/environment/plugins.ts'
@@ -483,11 +482,6 @@ const request =
   }
 /** What defineGrader() refuses of a judge grader's spec. */
 const judgeGrader = (spec: object) => () => defineGrader('g', spec as never)
-/** What a c.judge() call's options are checked against before it asks the model. */
-const judgeCall = (options: unknown) => () => {
-  const problem = judgeProblem(options, { at: 'call' })
-  if (problem) throw new UsageError(problem)
-}
 const execOptions = (options: unknown) => () => {
   const problem = execOptionsProblem(options)
   if (problem) throw new UsageError(problem)
@@ -511,16 +505,6 @@ const start = (o: object = {}) =>
     body: 'greets',
     ...o,
   })
-const expectCall = (o: object = {}) => ({
-  op: 'expect',
-  subject: { attempt: true },
-  matcher: 'toHaveFile',
-  args: ['greet.js'],
-  not: false,
-  soft: false,
-  ...o,
-})
-
 const e1 = defineEnvironment('one', {})
 const e2 = defineEnvironment('two', {})
 const envData = (spec: unknown) => ({
@@ -1145,56 +1129,50 @@ export const CASES: Record<string, Case[]> = {
     ['data: good', harnesses({ kind: 'cursor', model: 'm' }, { kind: 'fake', id: 'f' })],
   ],
   judge: [
-    ['threshold above 1', options({ judge: { threshold: 2 } })],
-    ['threshold a string', options({ judge: { threshold: '0.5' } })],
+    ['threshold', options({ judge: { threshold: 0.5 } })],
     ['maxConcurrent 0', options({ judge: { maxConcurrent: 0 } })],
-    ['diff outside a call', options({ judge: { diff: ['src/'] } })],
-    ['contents outside a call', options({ judge: { contents: ['a.ts'] } })],
-    ['artifacts outside a call', options({ judge: { artifacts: true } })],
-    ['on outside a call', options({ judge: { on: 'x' } })],
-    ['turns outside a call', options({ judge: { turns: 'all' } })],
+    ['diff in the options', options({ judge: { diff: ['src/'] } })],
+    ['contents in the options', options({ judge: { contents: ['a.ts'] } })],
+    ['artifacts in the options', options({ judge: { artifacts: true } })],
+    ['on in the options', options({ judge: { on: 'x' } })],
+    ['turns in the options', options({ judge: { turns: 'all' } })],
     ['state', options({ judge: { state: { diff: true } } })],
-    ['call: no options', judgeCall(undefined)],
-    ['call: empty options', judgeCall({})],
-    ['call: only a model and threshold', judgeCall({ model: 'google/g', threshold: 0.5 })],
-    ['call: only on and turns', judgeCall({ on: { turn: 0 }, turns: 'all' })],
-    ['call: every input off', judgeCall({ task: false, diff: false, transcript: false })],
-    ['call: an empty contents list', judgeCall({ contents: [] })],
-    ['call: state', judgeCall({ state: { diff: true } })],
-    ['call: a typo', judgeCall({ dif: true })],
-    ['call: diff empty', judgeCall({ diff: [] })],
-    ['call: diff with an empty pattern', judgeCall({ diff: ['src/', ' '] })],
-    ['call: contents not a list', judgeCall({ contents: 'a.ts' })],
-    ['call: transcript unknown', judgeCall({ transcript: 'all' })],
+    ['grader: diff empty', judgeGrader({ judge: { question: 'Q?', inputs: { diff: [] } } })],
     [
-      'call: transcript showing no one',
-      judgeCall({ transcript: { agent: false, subagents: false } }),
+      'grader: diff with an empty pattern',
+      judgeGrader({ judge: { question: 'Q?', inputs: { diff: ['src/', ' '] } } }),
     ],
-    ['call: turns unknown', judgeCall({ diff: true, turns: 'first' })],
-    ['call: checks a string', judgeCall({ checks: 'npm test' })],
-    ['call: observations a string', judgeCall({ observations: 'orm' })],
-    ['call: observations with an empty name', judgeCall({ observations: [' '] })],
-    ['good: call with contents', judgeCall({ contents: ['src/**/*.tsx'] })],
-    ['good: call with artifacts', judgeCall({ artifacts: ['home'] })],
     [
-      'good: call with every option',
-      judgeCall({
-        model: 'google/g',
-        threshold: 0.7,
-        task: true,
-        output: true,
-        files: true,
-        diff: ['src/**'],
-        contents: ['a.ts'],
-        transcript: 'tools',
-        checks: ['npm test'],
-        observations: ['orm'],
-        artifacts: true,
-        turns: 'all',
-        on: { turn: 0 },
+      'grader: contents not a list',
+      judgeGrader({ judge: { question: 'Q?', inputs: { contents: 'a.ts' } } }),
+    ],
+    [
+      'grader: transcript unknown',
+      judgeGrader({ judge: { question: 'Q?', inputs: { transcript: 'all' } } }),
+    ],
+    [
+      'grader: transcript showing no one',
+      judgeGrader({
+        judge: { question: 'Q?', inputs: { transcript: { agent: false, subagents: false } } },
       }),
     ],
-    ['a typo', options({ judge: { treshold: 0.5 } })],
+    [
+      'grader: turns unknown',
+      judgeGrader({ judge: { question: 'Q?', inputs: { diff: true, turns: 'first' } } }),
+    ],
+    [
+      'grader: checks a string',
+      judgeGrader({ judge: { question: 'Q?', inputs: { checks: 'npm test' } } }),
+    ],
+    [
+      'grader: observations a string',
+      judgeGrader({ judge: { question: 'Q?', inputs: { observations: 'orm' } } }),
+    ],
+    [
+      'grader: observations with an empty name',
+      judgeGrader({ judge: { question: 'Q?', inputs: { observations: [' '] } } }),
+    ],
+    ['a typo', options({ judge: { modle: 'google/g' } })],
     ['not an object', options({ judge: 'google/gemini-3.8-flash' })],
     ['maxConcurrent fractional', options({ judge: { maxConcurrent: 1.5 } })],
     ['providerOptions not an object', options({ judge: { providerOptions: 'fast' } })],
@@ -1207,7 +1185,6 @@ export const CASES: Record<string, Case[]> = {
       'good',
       options({
         judge: {
-          threshold: 0.5,
           maxConcurrent: 2,
           providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } },
         },
@@ -1219,12 +1196,12 @@ export const CASES: Record<string, Case[]> = {
       'config: fake judge score function',
       config({ judge: { model: { kind: 'fake-judge', score: () => 1 } } }),
     ],
-    ['config: threshold above 1', config({ judge: { threshold: 1.5 } })],
+    ['config: threshold', config({ judge: { threshold: 0.7 } })],
     ['config: fake judge', config({ judge: { model: { kind: 'fake-judge', score: 0.9 } } })],
     ['config: a typo', config({ judge: { modle: 'google/gemini-3.8-flash' } })],
     ['config: state', config({ judge: { state: { contents: ['a.ts'] } } })],
     ['config: diff', config({ judge: { diff: true } })],
-    ['config: good', config({ judge: { model: 'google/gemini-3.8-flash', threshold: 0.7 } })],
+    ['config: good', config({ judge: { model: 'google/gemini-3.8-flash', maxConcurrent: 2 } })],
     [
       'held: a sandbox key',
       heldModelCall({ ANTHROPIC_API_KEY: { mode: 'sandbox' } }, 'anthropic/claude', 'direct'),
@@ -2698,7 +2675,7 @@ env:
 egress: { allow: [api.example.com] }
 judge:
   model: { kind: fake-judge, score: 0.9 }
-  threshold: 0.7
+  maxConcurrent: 2
 capture: { viewport: full-page, timeout: 30s }
 concurrency: 2
 record: manual
@@ -3461,49 +3438,6 @@ environments:
   protocol: [
     ['an empty id', request({ op: 'send', prompt: 'hi' }, '')],
     ['an unknown op', request({ op: 'teleport', to: 'mars' })],
-    [
-      'record with a status that is neither pass nor fail',
-      request({ op: 'record', matcher: 'assert', status: 'skipped' }),
-    ],
-    [
-      'record with a matcher that is not a name',
-      request({ op: 'record', matcher: 'my check', status: 'pass' }),
-    ],
-    [
-      'a polled exec with the result it already has',
-      request({
-        op: 'expect',
-        subject: { exec: 'test -f a', result: { exitCode: 1, stdout: '', stderr: '' } },
-        matcher: 'toSucceed',
-        args: [],
-        not: false,
-        soft: false,
-        poll: { timeout: 1000 },
-      }),
-    ],
-    [
-      'a polled call with a pattern the runner answers',
-      request({
-        op: 'expect',
-        subject: { attempt: true },
-        matcher: 'toHaveFile',
-        args: ['ready.txt', { matchedBy: "re.compile('ok')", answers: {} }],
-        not: false,
-        soft: false,
-        poll: { timeout: 1000 },
-      }),
-    ],
-    [
-      'an exec result with a fractional exit code',
-      request({
-        op: 'expect',
-        subject: { exec: 'true', result: { exitCode: 0.5, stdout: '', stderr: '' } },
-        matcher: 'toSucceed',
-        args: [],
-        not: false,
-        soft: false,
-      }),
-    ],
     ['decide without questions', request({ op: 'decide', state: 'the app' })],
     [
       'decide with a bare model',
@@ -3526,71 +3460,6 @@ environments:
           { type: 'capture', name: 'home' },
         ],
         questions: { done: { type: 'boolean', instructions: 'Done?' } },
-      }),
-    ],
-    ['judge without a question', request({ op: 'judge' })],
-    ['judge with an empty question', request({ op: 'judge', question: ' ' })],
-    [
-      'judge with a model without a provider',
-      request({ op: 'judge', question: 'ok?', options: { model: 'jev' } }),
-    ],
-    [
-      'judge with a fake score function',
-      request({ op: 'judge', question: 'ok?', options: { model: { kind: 'fake-judge' } } }),
-    ],
-    [
-      'judge with a threshold above 1',
-      request({ op: 'judge', question: 'ok?', options: { threshold: 2 } }),
-    ],
-    ['judge without options', request({ op: 'judge', question: 'ok?' })],
-    [
-      'judge with state',
-      request({ op: 'judge', question: 'ok?', options: { state: { transcript: true } } }),
-    ],
-    [
-      'judge with a transcript typo',
-      request({ op: 'judge', question: 'ok?', options: { transcript: 'tool' } }),
-    ],
-    [
-      'judge on a turn that is not an index',
-      request({ op: 'judge', question: 'ok?', options: { on: { turn: -1 } } }),
-    ],
-    [
-      'judge with an empty artifact name',
-      request({ op: 'judge', question: 'ok?', options: { artifacts: [''] } }),
-    ],
-    [
-      'judge with artifacts false',
-      request({ op: 'judge', question: 'ok?', options: { artifacts: false } }),
-    ],
-    [
-      'good: judge with every artifact',
-      request({ op: 'judge', question: 'ok?', options: { artifacts: true } }),
-    ],
-    [
-      'judge with a capture missing its file',
-      request({
-        op: 'judge',
-        question: 'ok?',
-        options: { artifacts: [{ name: 'home', port: 3000, path: '/', viewport: 'full-page' }] },
-      }),
-    ],
-    [
-      'judge with a capture viewport that is not whole',
-      request({
-        op: 'judge',
-        question: 'ok?',
-        options: {
-          artifacts: [
-            {
-              name: 'home',
-              port: 3000,
-              path: '/',
-              viewport: { width: 10.5, height: 10 },
-              file: { path: 'artifacts/home.png', sha256: 'ab', bytes: 10 },
-            },
-          ],
-        },
       }),
     ],
     ['send without a prompt', request({ op: 'send' })],
@@ -3647,14 +3516,6 @@ environments:
       'writeFile with a bad encoding',
       request({ op: 'writeFile', path: 'a', contents: 'YQ==', encoding: 'hex' }),
     ],
-    ['expect with a dotted matcher', request(expectCall({ matcher: 'not.toBe' }))],
-    ['expect without not', request(expectCall({ not: undefined }))],
-    ['expect with a bad subject', request(expectCall({ subject: { turm: 0 } }))],
-    [
-      'expect with a bad pattern flag',
-      request(expectCall({ args: [{ regexp: 'a', flags: 'x' }] })),
-    ],
-    ['expect with a label that is a number', request(expectCall({ label: 3 }))],
     [
       'exec in the background with a string',
       request({ op: 'exec', command: 'ls', background: 'yes' }),
@@ -3693,13 +3554,6 @@ environments:
       request({ op: 'capture', target: { port: 3000 }, options: { name: 'a'.repeat(100) } }),
     ],
     [
-      'poll on a value',
-      request(expectCall({ subject: { value: 1 }, matcher: 'toBe', args: [1], poll: {} })),
-    ],
-    ['poll with a zero interval', request(expectCall({ poll: { interval: 0 } }))],
-    ['poll with a timeout over 596h', request(expectCall({ poll: { timeout: 2 ** 31 } }))],
-    ['poll with an interval over 596h', request(expectCall({ poll: { interval: 2 ** 31 } }))],
-    [
       'capture with a wait over 596h',
       request({ op: 'capture', target: { port: 3000 }, options: { wait: { ms: 2 ** 31 } } }),
     ],
@@ -3707,55 +3561,7 @@ environments:
       'capture with a timeout over 596h',
       request({ op: 'capture', target: { port: 3000 }, options: { timeout: '1000h' } }),
     ],
-    ['poll with a typo', request(expectCall({ poll: { timout: 5000 } }))],
     ['good: send', request({ op: 'send', prompt: 'Write greet.js.' })],
-    [
-      'good: judge',
-      request({ op: 'judge', question: 'Does greet.js export greet?', options: { diff: true } }),
-    ],
-    [
-      'good: judge with options',
-      request({
-        op: 'judge',
-        question: 'Does the page show a greeting?',
-        options: {
-          model: 'google/gemini-3.8-flash',
-          threshold: 0.7,
-          providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } },
-          transcript: 'tools',
-          turns: 'all',
-          checks: ['npm test'],
-          on: { turn: 0 },
-          artifacts: [
-            'home',
-            {
-              name: 'about',
-              port: 3000,
-              path: '/about',
-              viewport: { width: 1280, height: 720 },
-              file: { path: 'artifacts/about.png', sha256: 'ab', bytes: 10 },
-              status: 200,
-              finalUrl: '/about',
-              console: [],
-              errors: [],
-              failedRequests: [],
-            },
-          ],
-        },
-      }),
-    ],
-    [
-      'good: judge on a value with a fake judge',
-      request({
-        op: 'judge',
-        question: 'Is it polite?',
-        options: {
-          model: { kind: 'fake-judge', score: 0.9 },
-          output: true,
-          on: { value: { text: 'Hi' } },
-        },
-      }),
-    ],
     ['good: exec', request({ op: 'exec', command: 'node greet.js' })],
     [
       'good: exec in the background',
@@ -3781,55 +3587,10 @@ environments:
         },
       }),
     ],
-    [
-      'good: poll a command',
-      request(
-        expectCall({
-          subject: { exec: 'curl -s localhost:3000' },
-          matcher: 'toSucceed',
-          args: [],
-          poll: { interval: 200, timeout: 10000 },
-        }),
-      ),
-    ],
-    [
-      'good: poll a file',
-      request(
-        expectCall({
-          subject: { readFile: 'out.log' },
-          matcher: 'toContain',
-          args: ['ready'],
-          poll: {},
-        }),
-      ),
-    ],
     ['good: readFile', request({ op: 'readFile', path: '~/notes.md' })],
     [
       'good: writeFile',
       request({ op: 'writeFile', path: 'a.bin', contents: 'AAE=', encoding: 'base64' }),
-    ],
-    [
-      'good: expect',
-      request(
-        expectCall({
-          subject: { turn: 0 },
-          matcher: 'toHaveRun',
-          args: [{ regexp: '^npm (test|t)$', flags: 'i' }],
-          not: true,
-          soft: true,
-          label: 'never runs the tests',
-        }),
-      ),
-    ],
-    [
-      'good: expect on a value',
-      request(
-        expectCall({
-          subject: { value: { exitCode: 0, stdout: '', stderr: '' } },
-          matcher: 'toSucceed',
-          args: [],
-        }),
-      ),
     ],
   ],
 }

@@ -11,7 +11,7 @@ from stdio_host import Host
 
 EVALS = """
 import time
-from reeval_python import EvalError, aio, evaluate, expect
+from reeval_python import EvalError, evaluate
 
 
 @evaluate("sleeps then calls")
@@ -26,23 +26,11 @@ def calls(c):
     c.exec("echo calls")
 
 
-@evaluate("soft then more")
-def soft_then_more(c):
-    expect(c.exec("false")).to_succeed()
-    c.exec("echo still-running")
-
-
-@evaluate("require stops")
-def require_stops(c):
-    expect(c.exec("echo first")).to_succeed()
-    expect.require(c.exec("false"), "builds").to_succeed()
+@evaluate("assert stops")
+def assert_stops(c):
+    assert c.exec("echo first").ok
+    assert c.exec("false").ok, "builds"
     c.exec("echo never")
-
-
-@evaluate("require poll stops")
-async def require_poll_stops(c):
-    await aio.expect.require.poll(lambda: c.exec("false"), timeout=0.1).to_succeed()
-    await c.exec("echo never")
 
 
 @evaluate("raises an EvalError")
@@ -54,15 +42,9 @@ def raises_an_eval_error(c):
         raise EvalError("the build fails", meta={"exit_code": r.exit_code}) from exc
 
 
-@evaluate("asserts an unanswered judge")
-def asserts_an_unanswered_judge(c):
-    expect(c.judge("unanswered?", diff=True)).to_pass()
-
-
-@evaluate("writes and judges")
-async def writes_and_judges(c):
+@evaluate("writes bytes")
+async def writes_bytes(c):
     await c.write_file("data.bin", bytes([0, 1]))
-    await c.judge("q", diff=True)
 """
 
 
@@ -99,39 +81,12 @@ def test_an_aborted_sync_body_makes_no_more_calls(host: Host) -> None:
     assert host.calls("k1") == [], "the body's thread called reeval after the abort"
 
 
-def test_a_soft_failure_lets_the_body_go_on(host: Host) -> None:
-    host.start("soft then more")
-    assert "error" not in host.done()
-    commands = [c.get("command") for c in host.calls() if c["op"] == "exec"]
-    assert commands == ["false", "echo still-running"]
-
-
-def test_bytes_go_as_base64_and_a_judge_sends_its_inputs(host: Host) -> None:
-    host.start("writes and judges")
+def test_bytes_go_as_base64(host: Host) -> None:
+    host.start("writes bytes")
     assert "error" not in host.done()
     assert host.calls() == [
         {"op": "writeFile", "path": "data.bin", "contents": "AAE=", "encoding": "base64"},
-        {"op": "judge", "question": "q", "options": {"diff": True}},
     ]
-
-
-def test_a_judge_call_that_failed_goes_back_to_reeval_as_it_came(host: Host) -> None:
-    # reeval matches a failed `toPass()` to its call by message, so the verdict goes back whole.
-    host.start("asserts an unanswered judge")
-    assert "error" not in host.done()
-    [judged, expected] = host.calls()
-    assert judged == {"op": "judge", "question": "unanswered?", "options": {"diff": True}}
-    assert expected["matcher"] == "toPass"
-    assert expected["subject"] == {
-        "value": {
-            "verdict": "error",
-            "score": None,
-            "threshold": 0.8,
-            "error": "rate limit",
-            "question": "unanswered?",
-            "model": "fake",
-        }
-    }
 
 
 def test_a_body_the_runner_cancels_without_an_abort_ends_with_an_error() -> None:
@@ -167,23 +122,12 @@ def test_a_body_the_runner_cancels_without_an_abort_ends_with_an_error() -> None
     ]
 
 
-def test_a_failed_require_ends_the_body_with_its_message(host: Host) -> None:
-    host.start("require stops")
-    assert host.done()["error"]["message"] == "expected command to succeed"
+def test_a_failed_assert_ends_the_body_with_its_message(host: Host) -> None:
+    host.start("assert stops")
+    error = host.done()["error"]
+    assert (error["name"], error["message"]) == ("AssertionError", "builds")
     commands = [c.get("command") for c in host.calls() if c["op"] == "exec"]
     assert commands == ["echo first", "false"]
-    expects = [c for c in host.calls() if c["op"] == "expect"]
-    assert [(c["soft"], c.get("label")) for c in expects] == [(True, None), (False, "builds")]
-    assert all(c["at"]["file"].endswith("x.eval.py") for c in expects), expects
-    assert [c["at"]["line"] for c in expects] == [26, 27]
-
-
-def test_a_failed_require_poll_ends_the_body(host: Host) -> None:
-    host.start("require poll stops")
-    assert host.done()["error"]["message"] == "expected command to succeed"
-    [call] = [c for c in host.calls() if c["op"] == "expect"]
-    assert (call["soft"], call["poll"]) == (False, {"timeout": 100})
-    assert [c for c in host.calls() if c["op"] == "exec"] == []
 
 
 def test_an_eval_error_ends_the_body_with_its_reason_and_meta(host: Host) -> None:
@@ -205,12 +149,3 @@ def test_an_eval_error_takes_a_reason_and_json_meta() -> None:
         EvalError("  ")
     with pytest.raises(TypeError, match="takes JSON"):
         EvalError("x", meta={"at": object()})
-
-
-def test_expect_has_no_soft() -> None:
-    from reeval_python import expect as sync_expect
-    from reeval_python.aio import expect as async_expect
-
-    assert not hasattr(sync_expect, "soft")
-    assert not hasattr(async_expect, "soft")
-    assert not hasattr(sync_expect.require, "require")

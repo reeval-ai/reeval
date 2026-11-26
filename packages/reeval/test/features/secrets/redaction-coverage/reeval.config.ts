@@ -1,9 +1,8 @@
 import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
-import { fakeJudge } from 'reeval/judge'
 
 // As the agent: print the unbrokered secret raw, base64-, URL- and JSON-encoded, one per line,
-// and write them to leak.txt, so they reach the transcript, the diff and the judge's input.
+// and write them to leak.txt, so they reach the transcript, the diff and what the judge is sent.
 const leak = `node -e '
 const v = process.env.LEAKY_TOKEN
 const forms = [v, Buffer.from(v).toString("base64"), encodeURIComponent(v), JSON.stringify(v).slice(1, -1)]
@@ -15,5 +14,4 @@ console.log(forms.join("\\n"))
 export default defineConfig({
   target: regression(),
   agents: fakeAgent({ script: [[{ exec: leak }]] }),
-  judge: { model: fakeJudge({ score: 0.9 }) },
 })

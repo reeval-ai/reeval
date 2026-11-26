@@ -72,7 +72,9 @@ console.log('')
 console.log(
   'First-class watch targets for the judge (`experimental_evaluate` / `experimental_decide`).',
 )
-console.log('A bump here can unlock or break `c.judge(question, { artifacts })` even when')
+console.log(
+  'A bump here can unlock or break `judge(question, { inputs: { artifacts } })` even when',
+)
 console.log('harness CLI pins are unchanged.')
 console.log('')
 console.log('| package | pinned | latest | published |')

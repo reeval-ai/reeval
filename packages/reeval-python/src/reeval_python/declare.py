@@ -20,7 +20,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast, overload
 
 from reeval_python import _wire as w
-from reeval_python.checks import ASSERT_HOOK, check, compile_eval
 from reeval_python.environment import Environment
 from reeval_python.options import CaseOptions, EvalOptions
 from reeval_python.wire import options_to_wire
@@ -49,6 +48,7 @@ class DeclaredEval:
     body: str
     source: w.DeclaredSource
     family: DeclaredFamily | None = None
+    graders: list[w.BuiltinGraderData] | None = None
 
     def as_json(self) -> w.DeclaredEval:
         out: w.DeclaredEval = {
@@ -61,6 +61,8 @@ class DeclaredEval:
         }
         if self.family is not None:
             out["family"] = self.family.as_json()
+        if self.graders is not None:
+            out["graders"] = self.graders
         return out
 
 
@@ -187,6 +189,10 @@ def group(
         opts, fn = dict[str, Any](cast(dict[str, Any], arg)), arg2
     else:
         raise TypeError("group(name, options, fn) or group(name, fn)")
+    if "graders" in opts:
+        raise TypeError(
+            f"group({name!r}) sets graders, which are per eval: give each eval inside it its own"
+        )
 
     node = DeclaredGroup(name=name, mode=mode, options=_wire_options(opts), children=[])
     _declare(node)
@@ -584,6 +590,8 @@ def _register_eval(
         )
     if family is None and key in _families:
         raise _named_like_family(path, _families[key])
+    options = dict(options)
+    graders = _graders(options.pop("graders", None), where)
     _names[key] = (path, family is not None)
     body = _next_body(fn)
     _declare(
@@ -594,8 +602,25 @@ def _register_eval(
             body=body,
             source=source,
             family=family,
+            graders=graders,
         )
     )
+
+
+def _graders(value: object, where: str) -> list[w.BuiltinGraderData] | None:
+    """An eval's built-in graders as data, which reeval checks when it plans the run."""
+    if value is None:
+        return None
+    if not isinstance(value, list | tuple) or not all(
+        isinstance(g, Mapping) and isinstance(cast(Mapping[str, Any], g).get("builtin"), str)
+        for g in cast(Sequence[object], value)
+    ):
+        raise TypeError(
+            f"graders in {where} must be a list of built-in graders as data, e.g. "
+            '[{"builtin": "used-skill", "args": ["http-retries"]}] '
+            f"(got {cast(object, value)!r})"
+        )
+    return [cast(w.BuiltinGraderData, dict(g)) for g in cast(Sequence[Mapping[str, Any]], value)]
 
 
 def _collect_suite_sync(suite: _Suite) -> None:
@@ -637,11 +662,10 @@ def collect_eval_file(path: Path) -> w.DeclarationTree:
         if spec is None:
             raise ImportError(f"can't load {path}")
         module = importlib.util.module_from_spec(spec)
-        module.__dict__[ASSERT_HOOK] = check
         source = importlib.util.decode_source(path.read_bytes())
         sys.modules[name] = module
         try:
-            exec(compile_eval(source, str(path)), module.__dict__)  # noqa: S102
+            exec(compile(source, str(path), "exec", dont_inherit=True), module.__dict__)  # noqa: S102
         except BaseException:
             sys.modules.pop(name, None)
             raise

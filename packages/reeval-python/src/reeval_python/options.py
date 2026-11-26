@@ -1,4 +1,4 @@
-"""Typed options for `evaluate`, `group` and `c.judge`, with reeval's keys in snake_case.
+"""Typed options for `evaluate` and `group`, with reeval's keys in snake_case.
 
 A duration (`timeout`) is seconds or a `timedelta`. The values nested inside an option are the
 data reeval documents for it, in snake_case too, and reeval checks them when it plans the run.
@@ -10,6 +10,7 @@ from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import Any, Generic, Literal, Required, TypedDict, TypeVar
 
+from reeval_python._wire import BuiltinGraderData as BuiltinGrader
 from reeval_python.environment import (
     DockerSandbox,
     Environment,
@@ -24,54 +25,12 @@ T = TypeVar("T")
 
 
 class JudgeDefaults(TypedDict, total=False):
-    """Defaults for `c.judge()`, merged field by field down the cascade."""
+    """The judge's model and settings, merged field by field down the cascade."""
 
     gateway: Literal["direct", "vercel", "openrouter"] | Mapping[str, Any]
     max_concurrent: int
     model: str | FakeJudge
     provider_options: Mapping[str, Mapping[str, Any]]
-    threshold: float
-
-
-class TranscriptView(TypedDict, total=False):
-    """What of the transcript the judge sees: the detail, and whose events (on unless false)."""
-
-    detail: Literal["tools", "full"]
-    agent: bool
-    subagents: bool
-
-
-class JudgeOptions(JudgeDefaults, total=False):
-    """`c.judge()`'s options: the judge defaults, and what the call shows the judge.
-
-    Every input is off unless the call turns it on, and a call turns on at least one of `task`,
-    `output`, `files`, `diff`, `contents`, `transcript`, `checks`, `observations` or `artifacts`.
-    `turns` says whether they read every turn up to the graded one (`"all"`) or that turn alone.
-    """
-
-    task: bool
-    output: bool
-    files: bool
-    diff: bool | Sequence[str]
-    contents: Sequence[str]
-    transcript: bool | Literal["tools", "full"] | TranscriptView
-    checks: bool | Sequence[str]
-    observations: bool | Sequence[str]
-    artifacts: Literal[True] | Sequence[str]
-    turns: Literal["last", "all"]
-
-
-JUDGE_INPUTS = (
-    "task",
-    "output",
-    "files",
-    "diff",
-    "contents",
-    "transcript",
-    "checks",
-    "observations",
-    "artifacts",
-)
 
 
 class BestOf(TypedDict):
@@ -94,6 +53,10 @@ class EvalOptions(TypedDict, total=False):
     """One environment, or a list, each its own cell beside each harness; `{"add": …}` and
     `{"only": [names]}` edit the inherited list."""
     agents: Harness | Sequence[Harness] | Mapping[str, Any]
+    graders: Sequence[BuiltinGrader]
+    """Built-in graders as data, each `{"builtin": kind, "args": […]}` with `name`, `weight` or
+    `required`, e.g. `{"builtin": "used-skill", "args": ["http-retries"], "weight": 2}`; a
+    regular expression argument is `{"regexp": …, "flags": …}`. Per eval only."""
     judge: JudgeDefaults
     pin: Sequence[str]
     question: Mapping[str, Any]

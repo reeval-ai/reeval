@@ -49,7 +49,7 @@ export const comparable = (path: string, windows = process.platform === 'win32')
 }
 
 /** Loaders and assertion libraries reeval runs eval files through; never the eval's own frames. */
-const HIDDEN = ['/node_modules/jiti/', '/node_modules/@vitest/', '/node_modules/chai/']
+const HIDDEN = ['/node_modules/jiti/', '/node_modules/@vitest/']
 
 export type FormatOptions = {
   root: string

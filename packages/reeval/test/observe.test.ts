@@ -208,14 +208,15 @@ describe('observations in a run', () => {
   test('recorded per attempt, tallied in the output and queryable, and never gating', async () => {
     const p = await project('observe-run', {
       'reeval.config.ts': fakeConfig(),
-      'evals/a.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/a.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   runs: 2,
   async task(c) {
     await c.send('x')
     c.observe('orm', c.attempt.n === 1 ? 'drizzle' : 'prisma')
     c.observe('files', c.attempt.n)
-    expect(c.attempt.n, 'first run only').toBe(1)
+    assert.equal(c.attempt.n, 1, 'first run only')
   },
 })
 `,
@@ -283,7 +284,7 @@ export default defineEval({
 })
 
 describe('observations as judge and question input', () => {
-  test('c.judge() and questions see them only when they turn them on', async () => {
+  test('judges and questions see them only when they turn them on', async () => {
     const p = await project('observe-input', {
       'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
@@ -295,7 +296,8 @@ export default defineConfig({
   analysis: { model: fakeAnalysis({ answer: (q) => JSON.stringify(q.attempt.observations ?? null) }) },
 })
 `,
-      'evals/a.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 import { fakeJudge } from 'reeval/judge'
 const seen = (state) => (state.observations?.orm === 'drizzle' ? 0.9 : 0.1)
 const questions = [
@@ -305,15 +307,14 @@ const questions = [
 ]
 export default defineEval({
   questions, judge: { model: fakeJudge({ score: seen }) },
+  graders: [
+    judge('picked drizzle?', { inputs: { observations: ['orm'] } }),
+    judge('saw it without asking?', { inputs: { output: true }, weight: 0 }),
+  ],
   async task(c) {
     await c.send('x')
     c.observe('orm', 'drizzle')
     c.observe('lines', 3)
-    expect(await c.judge('picked drizzle?', { observations: ['orm'] })).toPass()
-    expect(await c.judge('saw it without asking?', { output: true })).not.toPass()
-    await expect(() => c.judge('typo', { observations: ['ormm'] })).rejects.toThrow(
-      'c.judge() observations names a value this attempt hasn\\'t observed: "ormm"',
-    )
   },
 })
 `,
@@ -326,6 +327,13 @@ export default defineEval({
     )
     assert.deepEqual(validate(schema, run), [])
     const attempt = run.evals[0]?.attempts[0]
+    assert.deepEqual(
+      attempt?.grades?.map((g) => [g.grader, (g.score ?? 0) >= 0.5]),
+      [
+        ['judge:picked drizzle?', true],
+        ['judge:saw it without asking?', false],
+      ],
+    )
     assert.deepEqual(
       attempt?.answers?.map((a) => [a.question, a.text]),
       [
@@ -412,7 +420,9 @@ describe('a secret-looking observation name in a run', () => {
     analysis: { model: fakeAnalysis({ answer: (q) => JSON.stringify(q.attempt.observations ?? null) }) },
   })
   `,
-      'evals/masked.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/masked.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
   import { fakeJudge } from 'reeval/judge'
   const token = 'ghp_' + 'q'.repeat(36)
   const other = 'ghp_' + 'z'.repeat(36)
@@ -421,14 +431,11 @@ describe('a secret-looking observation name in a run', () => {
   export default defineEval({
     questions,
     judge: { model: fakeJudge({ score: seen }) },
+    graders: [judge('kept?', { inputs: { observations: [token] } })],
     async task(c) {
       await c.send('x')
       c.observe(token, 'kept')
-      expect(() => c.observe(other, 'lost')).toThrow('names a secret')
-      expect(await c.judge('kept?', { observations: [token] })).toPass()
-      await expect(() => c.judge('other?', { observations: [other] })).rejects.toThrow(
-        'c.judge() observations names a value this attempt hasn\\'t observed: "[REDACTED]"',
-      )
+      assert.throws(() => c.observe(other, 'lost'), /names a secret/)
     },
   })
 `,

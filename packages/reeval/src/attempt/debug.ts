@@ -44,10 +44,7 @@ export function tracePlan(debug: AttemptDebug, spec: AttemptSpec, ctx: RunContex
         : judge.model
           ? 'a model object'
           : 'none'
-  debug.log(
-    'plan',
-    `judge ${model}${judge.threshold !== undefined ? ` · threshold ${judge.threshold}` : ''} ${from('judge')}`,
-  )
+  debug.log('plan', `judge ${model} ${from('judge')}`)
   for (const note of spec.notes) debug.log('plan', `profile: ${note}`)
   debug.trace('plan', 'config', { config: ctx.config, profile: ctx.profile }, 'resolved config')
   debug.trace(

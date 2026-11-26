@@ -126,16 +126,17 @@ describe('docker sandbox', () => {
       'reeval.config.ts': config(
         `{ files: { 'greet.js': 'export const greet = (n) => \`Hello, \${n}!\`\\n', 'package.json': '{"type":"module"}' } }`,
       ),
-      'evals/d.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/d.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
 
   const turn = await c.send('write greet.js')
-  await expect(turn).toHaveFile('greet.js', /Hello/)
-  await expect(c.exec('node -e "import(\\'./greet.js\\').then(m => console.log(m.greet(\\'Ada\\')))"')).toSucceed()
+  assert.match((await c.readFile('greet.js')) ?? '', /Hello/)
+  assert.equal((await c.exec('node -e "import(\\'./greet.js\\').then(m => console.log(m.greet(\\'Ada\\')))"')).exitCode, 0)
   const r = await c.exec('pwd && git --version && ls -A')
-  expect(r.stdout).toContain('/reeval/workspace')
-  expect(turn.diff.files).toEqual(expect.arrayContaining([{ path: 'greet.js', status: 'added' }]))
+  assert.ok(r.stdout.includes('/reeval/workspace'))
+  assert.ok(turn.diff.files.some((f) => f.path === 'greet.js' && f.status === 'added'))
 
   },
 })`,
@@ -202,7 +203,8 @@ export default defineEval({
         },
         '(printenv DB_URL || echo none) > /opt/reeval-secret && echo layer > /opt/reeval-layer && date +%s%N > /opt/reeval-built',
       ]
-      const eval_ = `import { defineEval, defineEnvironment, expect } from 'reeval'
+      const eval_ = `import assert from 'node:assert/strict'
+import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const tools = defineEnvironment('tools', ({ secret }) => ({
   files: { '~/.config/reeval/hint.txt': 'from home' },
@@ -218,16 +220,16 @@ export default defineEval({
 
   const turn = await c.send('x')
   const agentEnv = turn.transcript.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : [])).join('')
-  expect(agentEnv.split('\\n')).toContain('DB_URL')
-  expect(agentEnv.split('\\n')).not.toContain('CHECK_ONLY')
-  expect((await c.exec('cat /opt/reeval-layer')).stdout).toBe('layer\\n')
-  expect((await c.exec('cat /opt/reeval-cwd')).stdout).toBe('/\\n')
-  expect((await c.exec('cat /opt/reeval-workspace')).stdout).toBe('0\\n')
-  expect((await c.exec('cat /opt/reeval-secret')).stdout).toBe('none\\n')
-  expect((await c.exec('printf %s "$DB_URL"')).stdout).toBe('postgres://u:pw-long-enough@db')
-  expect((await c.exec('cat ~/.config/reeval/hint.txt')).stdout).toBe('from home')
+  assert.ok(agentEnv.split('\\n').includes('DB_URL'))
+  assert.ok(!agentEnv.split('\\n').includes('CHECK_ONLY'))
+  assert.equal((await c.exec('cat /opt/reeval-layer')).stdout, 'layer\\n')
+  assert.equal((await c.exec('cat /opt/reeval-cwd')).stdout, '/\\n')
+  assert.equal((await c.exec('cat /opt/reeval-workspace')).stdout, '0\\n')
+  assert.equal((await c.exec('cat /opt/reeval-secret')).stdout, 'none\\n')
+  assert.equal((await c.exec('printf %s "$DB_URL"')).stdout, 'postgres://u:pw-long-enough@db')
+  assert.equal((await c.exec('cat ~/.config/reeval/hint.txt')).stdout, 'from home')
   await c.exec('cat /opt/reeval-built')
-  expect((await c.exec('cat /tmp/check-only')).stdout).toBe('postgres://u:pw-long-enough@db')
+  assert.equal((await c.exec('cat /tmp/check-only')).stdout, 'postgres://u:pw-long-enough@db')
 
   },
 })`
@@ -272,19 +274,21 @@ export default defineEval({
     async () => {
       const p = await project('docker-root-warning', {
         'reeval.config.ts': config('{}'),
-        'evals/installs-deps.eval.ts': `import { defineEval, defineEnvironment, expect } from 'reeval'
+        'evals/installs-deps.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
 export default defineEval({
   environment: defineEnvironment('installs-deps', { sandbox: docker({ root: true }) }),
   async task(c) {
-  expect((await c.exec('id -u')).stdout.trim()).toBe('0')
+  assert.equal((await c.exec('id -u')).stdout.trim(), '0')
   },
 })`,
-        'evals/plain.eval.ts': `import { defineEval, expect } from 'reeval'
+        'evals/plain.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
 
-  expect((await c.exec('id -u')).stdout.trim()).toBe('10001')
+  assert.equal((await c.exec('id -u')).stdout.trim(), '10001')
 
   },
 })`,
@@ -543,10 +547,11 @@ export default defineEval({
     async () => {
       const p = await project('docker-prepare-scoped', {
         'reeval.config.ts': config('{}'),
-        'evals/ok.eval.ts': `import { defineEval, expect } from 'reeval'
+        'evals/ok.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
-  expect((await c.exec('echo fine')).stdout).toBe('fine\\n')
+  assert.equal((await c.exec('echo fine')).stdout, 'fine\\n')
   },
 })`,
         'evals/broken-tools-env.ts': `import { defineEnvironment } from 'reeval'
@@ -838,13 +843,14 @@ export default defineEval({
       push('v1')
       const p = await project('docker-from-moves', {
         'reeval.config.ts': config('{}'),
-        'evals/a.eval.ts': `import { defineEval, defineEnvironment, expect } from 'reeval'
+        'evals/a.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
 export default defineEval({
   environment: defineEnvironment('base', { sandbox: docker({ from: '${tag}' }) }),
   async task(c) {
 
-  expect((await c.exec('cat /etc/reeval-version')).stdout).toBe('v1\\n')
+  assert.equal((await c.exec('cat /etc/reeval-version')).stdout, 'v1\\n')
 
   },
 })`,
@@ -876,7 +882,7 @@ export default defineEval({
       // Canary: the rebuilt image has v2, so the eval's v1 check now fails.
       const moved = await runCli(p.dir, ['run'], slow)
       assert.equal(moved.code, 1, moved.stdout + moved.stderr)
-      assert.match(readRun(p.dir).evals[0]?.error?.message ?? '', /expected 'v2\\n' to be 'v1\\n'/)
+      assert.match(readRun(p.dir).evals[0]?.error?.message ?? '', /'v2\\n' !== 'v1\\n'/)
 
       counter.reset()
       const current = await runCli(p.dir, ['image', 'build'], { env: counter.env, ...slow })
@@ -902,14 +908,15 @@ export default defineEval({
       const nonce = `${Date.now()}-${process.pid}`
       const p = await project('docker-registry', {
         'reeval.config.ts': config('{}'),
-        'evals/a.eval.ts': `import { defineEval, defineEnvironment, expect } from 'reeval'
+        'evals/a.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const box = defineEnvironment('box', { sandbox: docker({ install: ['echo ${nonce} > /opt/reeval-registry'] }) })
 export default defineEval({
   environment: box,
   async task(c) {
 
-  expect((await c.exec('cat /opt/reeval-registry')).stdout.trim()).toBe('${nonce}')
+  assert.equal((await c.exec('cat /opt/reeval-registry')).stdout.trim(), '${nonce}')
 
   },
 })`,
@@ -1037,7 +1044,8 @@ export default defineEval({
       'evals/tools/greeting.txt': 'hello\n',
       'evals/tools/.dockerignore': 'scratch\n',
       'evals/deb.Dockerfile': `FROM debian:bookworm-slim\nRUN echo ${nonce} > /opt/deb\n`,
-      'evals/tools.eval.ts': `import { defineEval, defineEnvironment, expect } from 'reeval'
+      'evals/tools.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
 export default defineEval({
   environment: defineEnvironment('tools', { sandbox: docker({ dockerfile: './tools/Dockerfile' }) }),
@@ -1045,22 +1053,23 @@ export default defineEval({
 
   await c.send('x')
   const greeting = (await c.exec('cat /opt/greeting.txt')).stdout
-  expect(greeting).toMatch(/^(hello|bonjour)\\n$/)
-  expect((await c.exec('cat /opt/nonce')).stdout).toBe('${nonce}\\n')
-  expect((await c.exec('pwd')).stdout).toBe('/reeval/workspace\\n')
+  assert.match(greeting, /^(hello|bonjour)\\n$/)
+  assert.equal((await c.exec('cat /opt/nonce')).stdout, '${nonce}\\n')
+  assert.equal((await c.exec('pwd')).stdout, '/reeval/workspace\\n')
 
   },
 })`,
-      'evals/deb.eval.ts': `import { defineEval, defineEnvironment, expect } from 'reeval'
+      'evals/deb.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
 export default defineEval({
   environment: defineEnvironment('deb', { sandbox: docker({ dockerfile: './deb.Dockerfile' }) }),
   async task(c) {
 
   await c.send('x')
-  expect((await c.exec('cat /opt/deb')).stdout).toBe('${nonce}\\n')
-  expect((await c.exec('grep -c bookworm /etc/os-release')).exitCode).toBe(0)
-  expect((await c.exec('node --version && git --version')).exitCode).toBe(0)
+  assert.equal((await c.exec('cat /opt/deb')).stdout, '${nonce}\\n')
+  assert.equal((await c.exec('grep -c bookworm /etc/os-release')).exitCode, 0)
+  assert.equal((await c.exec('node --version && git --version')).exitCode, 0)
 
   },
 })`,
@@ -1129,7 +1138,8 @@ export default defineEval({
       'reeval.config.ts': config(
         `{ script: [[{ exec: 'node -e "process.stdout.write(process.version)"' }]] }`,
       ),
-      'evals/bakes.eval.ts': `import { defineEval, defineEnvironment, expect } from 'reeval'
+      'evals/bakes.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const bookworm = defineEnvironment('bookworm', { sandbox: docker({ from: 'debian:bookworm-slim' }) })
 export default defineEval({
@@ -1138,21 +1148,22 @@ export default defineEval({
 
   const turn = await c.send('x')
   const shell = turn.transcript.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : []))
-  expect(shell.join('')).toMatch(/^v26\\./)
-  expect((await c.exec('grep -c bookworm /etc/os-release')).exitCode).toBe(0)
-  expect((await c.exec('git --version && curl --version && pnpm --version')).exitCode).toBe(0)
-  expect((await c.exec('pwd')).stdout).toBe('/reeval/workspace\\n')
+  assert.match(shell.join(''), /^v26\\./)
+  assert.equal((await c.exec('grep -c bookworm /etc/os-release')).exitCode, 0)
+  assert.equal((await c.exec('git --version && curl --version && pnpm --version')).exitCode, 0)
+  assert.equal((await c.exec('pwd')).stdout, '/reeval/workspace\\n')
 
   },
 })`,
-      'evals/canary.eval.ts': `import { defineEval, defineEnvironment, expect } from 'reeval'
+      'evals/canary.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const bookworm = defineEnvironment('bookworm', { sandbox: docker({ from: 'debian:bookworm-slim' }) })
 export default defineEval({
   environment: bookworm,
   async task(c) {
 
-  expect((await c.exec('grep -c trixie /etc/os-release')).stdout).toBe('1\\n')
+  assert.equal((await c.exec('grep -c trixie /etc/os-release')).stdout, '1\\n')
 
   },
 })`,
@@ -1165,7 +1176,7 @@ export default defineEval({
       const byName = Object.fromEntries(a.evals.map((e) => [e.name, e]))
       assert.equal(byName.bakes?.outcome, 'pass', first.stdout)
       assert.equal(byName.canary?.outcome, 'fail')
-      assert.match(byName.canary?.error?.message ?? '', /expected '0\\n' to be '1\\n'/)
+      assert.match(byName.canary?.error?.message ?? '', /'0\\n' !== '1\\n'/)
       const image = byName.bakes?.image
       ref = image?.ref ?? ''
       assert.match(ref, /^reeval-sandbox:cursor-[\d.]+-debian-bookworm-slim-[0-9a-f]{8}$/)
@@ -1726,7 +1737,8 @@ export default defineEval({
     const { version } = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8'))
     const p = await project('docker-npm-tarball', {
       'reeval.config.ts': config('{}'),
-      'evals/d.eval.ts': `import { defineEval, defineEnvironment, expect } from 'reeval'
+      'evals/d.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval, defineEnvironment } from 'reeval'
 const tarballEnv = defineEnvironment('reeval-tarball', ({ file }) => ({
   files: { 'reeval.tgz': file(${JSON.stringify(join(out, tarball))}) },
 }))
@@ -1734,8 +1746,8 @@ export default defineEval({
   environment: tarballEnv, timeout: '6m',
   async task(c) {
 
-  await expect(c.exec('npm install --no-audit --no-fund ./reeval.tgz')).toSucceed()
-  expect((await c.exec('npx --no-install reeval --version')).stdout.trim()).toBe('${version}')
+  assert.equal((await c.exec('npm install --no-audit --no-fund ./reeval.tgz')).exitCode, 0)
+  assert.equal((await c.exec('npx --no-install reeval --version')).stdout.trim(), '${version}')
 
   },
 })`,
@@ -1820,12 +1832,13 @@ export default defineConfig(({ secret }) => ({ target: regression(),
   judge: { model: fakeJudge() },
 }))
 `,
-        'evals/d.eval.ts': `import { defineEval, expect } from 'reeval'
+        'evals/d.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
 
   await c.send('call the api')
-  await expect(c.exec('true')).toSucceed()
+  assert.equal((await c.exec('true')).exitCode, 0)
 
   },
 })`,
@@ -1988,22 +2001,26 @@ export default defineConfig({ target: regression(),
   timeout: '90s',
 })
 `,
-          'evals/hi.eval.ts': String.raw`import { defineEval, expect } from 'reeval'
+          'evals/hi.eval.ts': String.raw`import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
-  // The refused token makes the attempt an infra error; the checks below still run, caught.
+  // The refused token makes the attempt an infra error; the checks below still run.
   await c.send('Reply with the word hi.').catch(() => {})
   // Goose's own environment, read from /proc while its session is open.
   const env = await c.exec(
     "for p in /proc/[0-9]*; do case \"$(tr '\\0' ' ' < $p/cmdline 2>/dev/null)\" in */goose\\ acp*) tr '\\0' '\\n' < $p/environ;; esac; done",
   )
   const goose = env.stdout.split('\n').filter((l) => /^(GCP_|GOOGLE_APPLICATION|REEVAL_GOOSE)/.test(l))
-  expect(goose.sort()).toEqual([
+  const expected = [
     'GCP_LOCATION=global',
     'GCP_PROJECT_ID=reeval-test-project',
     'GOOGLE_APPLICATION_CREDENTIALS=/reeval/google-adc.json',
-  ])
-  expect((await c.exec('printenv GCP_PROJECT_ID')).stdout.trim()).toBe('eval-project')
+  ]
+  const same = goose.sort().join('\n') === expected.join('\n')
+  // The infra error is the attempt's error, so each check's result is an exit code the record keeps.
+  await c.exec(same ? 'true' : 'false', { label: 'goose env' })
+  const project = (await c.exec('printenv GCP_PROJECT_ID')).stdout.trim()
+  await c.exec(project === 'eval-project' ? 'true' : 'false', { label: 'eval env' })
   },
 })
 `,
@@ -2034,9 +2051,15 @@ export default defineEval({
           trial?.error?.message ?? '',
           /^The API rejected the access token reeval minted from Google Cloud credentials/,
         )
-        const failed = (trial?.assertions ?? []).filter((x) => x.status !== 'pass')
-        assert.deepEqual(failed, [], "Goose's environment checks passed")
-        assert.equal(trial?.assertions?.length, 2)
+        const checks = trial?.checks.filter((x) => x.label).map((x) => [x.label, x.exitCode])
+        assert.deepEqual(
+          checks,
+          [
+            ['goose env', 0],
+            ['eval env', 0],
+          ],
+          "Goose's environment checks",
+        )
         const leaked = spawnSync('grep', ['-rlsF', token, join(p.dir, '.reeval')])
         assert.equal(leaked.stdout.toString().trim(), '', 'no file under .reeval has the token')
         assert.equal(liveContainers(run.runId), '')
@@ -2094,15 +2117,16 @@ import { codex } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 export default defineConfig({ target: regression(), agents: codex({ model: 'gpt-5.4-mini' }), timeout: '3m' })
 `,
-        'evals/d.eval.ts': `import { defineEval, expect } from 'reeval'
+        'evals/d.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
 
   await c.send('Reply with the word hi.').catch(() => {})
   // Each turn is its own codex process, gone by now: the files it left are what can hold the key.
   const found = await c.exec('grep -rl not_a_real_key "$HOME" /reeval /tmp 2>/dev/null; true')
-  expect(found.stdout).toBe('')
-  expect(await c.exec('cat ~/.codex/config.toml').then((r) => r.stdout)).toContain('openai-http')
+  assert.equal(found.stdout, '')
+  assert.ok((await c.exec('cat ~/.codex/config.toml').then((r) => r.stdout)).includes('openai-http'))
 
   },
 })`,
@@ -2163,15 +2187,16 @@ export default defineConfig({ target: regression(),
   timeout: '3m',
 })
 `,
-          'evals/d.eval.ts': `import { defineEval, expect } from 'reeval'
+          'evals/d.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
 
   await c.send('Reply with the word hi.').catch(() => {})
   const found = await c.exec('grep -rl run-token-not-real "$HOME" /reeval /tmp 2>/dev/null; true')
-  expect(found.stdout).toBe('')
+  assert.equal(found.stdout, '')
   const config = await c.exec('cat ~/.codex/config.toml').then((r) => r.stdout)
-  expect(config).toContain('"https://${ip}:${port}/proxy/v1"')
+  assert.ok(config.includes('"https://${ip}:${port}/proxy/v1"'))
 
   },
 })`,
@@ -2220,20 +2245,21 @@ import { grokBuild } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 export default defineConfig({ target: regression(), agents: grokBuild({ model: 'grok-4.6' }), timeout: '3m' })
 `,
-        'evals/d.eval.ts': `import { defineEval, expect } from 'reeval'
+        'evals/d.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
 
   await c.send('Reply with the word hi.').catch(() => {})
   const found = await c.exec('grep -rl not_a_real_key "$HOME" /reeval /tmp 2>/dev/null; true')
-  expect(found.stdout).toBe('')
+  assert.equal(found.stdout, '')
   const environ = await c.exec('cat /proc/[0-9]*/environ | tr "\\\\0" "\\\\n"')
-  expect(environ.stdout).not.toContain('not_a_real_key')
+  assert.ok(!environ.stdout.includes('not_a_real_key'))
   const config = await c.exec(
     'cat ~/.ai-sdk-harness/.harness-bootstrap/grok-build/home/.grok/config.toml',
   )
-  expect(config.stdout).toContain('session_summary = "grok-4.6"')
-  expect(config.stdout).toContain('telemetry = false')
+  assert.ok(config.stdout.includes('session_summary = "grok-4.6"'))
+  assert.ok(config.stdout.includes('telemetry = false'))
 
   },
 })`,
@@ -2276,7 +2302,8 @@ export default defineConfig({ target: regression(),
   timeout: '90s',
 })
 `
-      const eval_ = `import { defineEval, expect } from 'reeval'
+      const eval_ = `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
 
@@ -2288,14 +2315,12 @@ export default defineEval({
   const keyLines = environ.stdout
     .split('\\n')
     .filter((line) => line.startsWith('ANTHROPIC_API_KEY='))
-  expect(
-    keyLines.every((line) =>
+  assert.equal(keyLines.every((line) =>
       /^ANTHROPIC_API_KEY=(?:aisdkhc_[\\w-]{43}|reeval_secret_[0-9A-Za-z]{32})?$/.test(
         line,
       ),
-    ),
-  ).toBe(true)
-  expect(environ.stdout).not.toContain('not_a_real_key')
+    ), true)
+  assert.ok(!environ.stdout.includes('not_a_real_key'))
 
   },
 })`
@@ -2408,7 +2433,8 @@ export default defineConfig({ target: regression(),
   timeout: '90s',
 })
 `,
-        'evals/d.eval.ts': `import { defineEval, expect } from 'reeval'
+        'evals/d.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
 
@@ -2417,12 +2443,10 @@ export default defineEval({
   const tokenLines = environ.stdout
     .split('\\n')
     .filter((line) => /^(CLAUDE_CODE_OAUTH_TOKEN|ANTHROPIC_API_KEY)=/.test(line))
-  expect(
-    tokenLines.every((line) =>
+  assert.equal(tokenLines.every((line) =>
       /^CLAUDE_CODE_OAUTH_TOKEN=(?:aisdkhc_[\\w-]{43}|reeval_secret_[0-9A-Za-z]{32})?$/.test(line),
-    ),
-  ).toBe(true)
-  expect(environ.stdout).not.toContain('not_a_real_token')
+    ), true)
+  assert.ok(!environ.stdout.includes('not_a_real_token'))
 
   },
 })`,

@@ -13,9 +13,6 @@ updates:
     exclude-paths:
       - packages/*/assets/**
     groups:
-      # Pinned to exactly the same version (AGENTS.md, Project rules).
-      vitest:
-        patterns: ['@vitest/expect', '@vitest/utils']
       dev-minor:
         dependency-type: development
         update-types: [minor, patch]

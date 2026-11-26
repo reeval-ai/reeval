@@ -49,7 +49,6 @@ export type {
 
 /** What runs eval files, for the record. */
 export const engineVersions: Record<string, string> = {
-  '@vitest/expect': ownVersion('@vitest/expect'),
   jiti: ownVersion('jiti'),
 }
 

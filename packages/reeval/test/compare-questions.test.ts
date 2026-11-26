@@ -9,7 +9,8 @@ import type { QuestionCall } from '../src/types.ts'
 import { fakeConfig, noSignals, project, readRun, runCli } from './helpers.ts'
 
 describe('questions', () => {
-  const ENVS = `import { defineEnvironment, expect } from 'reeval'
+  const ENVS = `import assert from 'node:assert/strict'
+import { defineEnvironment } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox({ dir: new URL('../sandboxes', import.meta.url) })
 export const base = defineEnvironment('base', { sandbox })
@@ -17,7 +18,7 @@ export const skilled = defineEnvironment('skilled', { sandbox })
 export const compare = { control: base, variants: [skilled] }
 export const body = async (c) => {
   await c.send('go')
-  await expect(c).toHaveFile('ok.txt')
+  assert.notEqual(await c.readFile('ok.txt'), null)
 }
 `
   const asks = (question: string) => ({
@@ -346,8 +347,9 @@ export default defineEval({ compare, task: body })
 import { body, compare } from './envs.ts'
 export default defineEval({ compare, questions: [{ question: 'Which is tidier?', across: 'environment', task: true, diff: true }], task: body })
 `,
-      'evals/failed.ts': `import { expect } from 'reeval'
+      'evals/failed.ts': `import assert from 'node:assert/strict'
 import { fakeAgent } from 'reeval/agent'
+import { judge } from 'reeval/graders'
 import { fakeJudge } from 'reeval/judge'
 import { compare } from './envs.ts'
 export const failed = (judged) => ({
@@ -356,10 +358,10 @@ export const failed = (judged) => ({
   runs: 1,
   judge: { model: fakeJudge({ score: 0.2 }) },
   questions: [{ question: 'Which is neater?', across: 'environment', task: true, diff: true }],
+  graders: judged ? [judge('Is it nice?', { inputs: { diff: true } })] : [],
   async task(c) {
     await c.send('go')
-    if (judged) await c.judge('Is it nice?', { diff: true })
-    await expect(c.exec('exit 1'), 'tests pass').toSucceed()
+    assert.equal((await c.exec('exit 1')).exitCode, 0, 'tests pass')
   },
 })
 `,
@@ -392,11 +394,12 @@ export default defineEval({ ...one, async task(c) {
   await c.send('go')
 } })
 `,
-      'evals/fails.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/fails.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { one } from './one.ts'
 export default defineEval({ ...one, async task(c) {
   await c.send('go')
-  await expect(c).toHaveFile('missing.txt')
+  assert.notEqual(await c.readFile('missing.txt'), null)
 } })
 `,
       'evals/broken-agent.eval.ts': `import { defineEval } from 'reeval'

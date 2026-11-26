@@ -16,16 +16,6 @@ from __future__ import annotations
 
 from typing import Any, Literal, NotRequired, TypeAlias, TypedDict
 
-# A pattern the runner matches in its own language. reeval runs the matcher with it, and when
-# the matcher tests a string not in `answers` replies with those strings (`untested`) instead of
-# a record; the runner matches them and makes the call again with them in `answers`.
-class AnsweredPattern(TypedDict):
-    # Whether it matches each string the runner has been asked about.
-    answers: dict[str, bool]
-    # The pattern as the runner's language writes it, e.g. `re.compile('npm t')`.
-    matchedBy: str
-
-
 # The Antigravity CLI through `@reeval/harness-antigravity`, made by `antigravity()`.
 class AntigravityHarnessDescriptor(TypedDict):
     # Reasoning effort passed as `agy --effort`, e.g. `low`, `medium`, `high` or `max`. The
@@ -46,43 +36,6 @@ class AntigravityHarnessDescriptor(TypedDict):
     # How long the harness's session may take to become ready (its bootstrap and first session)
     # before the attempt is an infra error, after one retry; default 90s.
     startTimeout: NotRequired[Duration]
-
-
-# One `expect` or `expect.require` matcher call an attempt made, or a check another language
-# made.
-class AssertionRecord(TypedDict):
-    # `path:line` of the call in the eval file, relative to the project root, when reeval saw
-    # it.
-    at: NotRequired[str]
-    # Async matchers only (`toHaveFile`, `toSucceed`, `.resolves`, `expect.poll`).
-    durationMs: NotRequired[float]
-    # `label` is the supplied `expect` label. Without one, it is the matcher plus its first
-    # argument or named subject, cut at 60 characters. Repeats get ` #2`, ` #3`, and later
-    # suffixes.
-    label: str
-    # The eval gave the label.
-    labelled: bool
-    # `toHaveFile`, `not.toBe`, `resolves.toBe`, `poll.toBe`.
-    matcher: str
-    # Why it failed or couldn't answer, or why `expect.skip` marked it not applicable, cut at 1
-    # KB.
-    message: NotRequired[str]
-    # A passing `toHaveFile` / `not.toHaveFile` the agent didn't satisfy (path already matched,
-    # or was absent before and after). Optional on older records.
-    preSatisfied: NotRequired[bool]
-    # Why the check does not apply (`expect.skip`'s second argument).
-    reason: NotRequired[str]
-    # A failure didn't end the eval's body: an `expect`. False for `expect.require` and for a
-    # check that threw, such as Python's `assert`, which end the body when they fail. True for
-    # `expect.skip`.
-    soft: bool
-    # `error`: the matcher couldn't answer (a subject it can't read, an event the harness
-    # doesn't report). `not_applicable`: `expect.skip` (or a language runner's equivalent);
-    # never fails the attempt and leaves the check's pass/fail denominator.
-    status: Literal["pass", "fail", "error", "not_applicable"]
-    # File matcher target: `toHaveFile`'s path, or `path <pattern>` when a pattern was given.
-    # Optional on older records and non-file matchers.
-    target: NotRequired[str]
 
 
 # reeval to the runner: the attempt was aborted, as `c.signal` aborts. Calls in flight reply
@@ -182,78 +135,6 @@ class AttemptCallObserve(TypedDict):
     value: JSONValue
 
 
-# Where the eval made the call, which the record names beside the check's outcome.
-class AttemptCallExpectAt(TypedDict):
-    # The eval file: absolute, or relative to the project root.
-    file: str
-    # From 1.
-    line: int
-
-
-# `expect.poll`: reeval re-reads the subject and retries the matcher until it passes, recording
-# only the final outcome. The subject must be one reeval can re-read: the attempt, a command or
-# a file.
-class AttemptCallExpectPoll(TypedDict):
-    # Milliseconds between tries. Default 50.
-    interval: NotRequired[float]
-    # Milliseconds before it fails with the last error. Default 1000.
-    timeout: NotRequired[float]
-
-
-# A matcher call: `expect(subject, label).not?.matcher(...args)`. Replies with its record.
-AttemptCallExpect = TypedDict(
-    "AttemptCallExpect",
-    {
-        "args": "list[MatcherArg]",
-        "at": "NotRequired[AttemptCallExpectAt]",
-        "label": "NotRequired[str]",
-        "matcher": "str",
-        "not": "bool",
-        "op": "Literal[\"expect\"]",
-        "poll": "NotRequired[AttemptCallExpectPoll]",
-        "soft": "bool",
-        "subject": "MatcherSubject",
-    },
-)
-
-
-# Where the eval made the call, which the record names beside the check's outcome.
-class AttemptCallRecordAt(TypedDict):
-    # The eval file: absolute, or relative to the project root.
-    file: str
-    # From 1.
-    line: int
-
-
-# A check the eval's own language made, such as Python's `assert`: recorded as a matcher call
-# is, so it's named, counted and compared the same. Replies with its record.
-class AttemptCallRecord(TypedDict):
-    # Where the eval made the call, which the record names beside the check's outcome.
-    at: NotRequired[AttemptCallRecordAt]
-    # The check's own name, the same whether it passes or fails.
-    label: NotRequired[str]
-    # What made the check in the eval's language, e.g. `assert`.
-    matcher: str
-    # Why it failed.
-    message: NotRequired[str]
-    op: Literal["record"]
-    # The body carried on after a failure, as after an `expect`. Default false: the check
-    # raised, as Python's `assert` does.
-    soft: NotRequired[bool]
-    status: Literal["pass", "fail"]
-    # What it checked, as the eval wrote it (`result.ok`): names the check when it has no label.
-    subject: NotRequired[str]
-
-
-# `c.judge(question, options)`. Replies with its verdict, or a judge failure when the provider
-# failed.
-class AttemptCallJudge(TypedDict):
-    op: Literal["judge"]
-    options: JudgeCallData
-    # A yes/no question about the inputs `options` turns on.
-    question: str
-
-
 # `c.decide(call)`. Replies with its result. A provider failure fails the call and the attempt,
 # as an infrastructure error.
 class AttemptCallDecide(TypedDict):
@@ -269,12 +150,12 @@ class AttemptCallDecide(TypedDict):
 
 # One call an eval's body makes on its attempt. The sandbox and the agent session start on the
 # first call that needs them; there's no call to start them.
-AttemptCall: TypeAlias = "AttemptCallSend | AttemptCallExec | AttemptCallServe | AttemptCallKill | AttemptCallCapture | AttemptCallReadFile | AttemptCallWriteFile | AttemptCallObserve | AttemptCallExpect | AttemptCallRecord | AttemptCallJudge | AttemptCallDecide"
+AttemptCall: TypeAlias = "AttemptCallSend | AttemptCallExec | AttemptCallServe | AttemptCallKill | AttemptCallCapture | AttemptCallReadFile | AttemptCallWriteFile | AttemptCallObserve | AttemptCallDecide"
 
 
-# The runner to reeval: the eval's body has finished. The attempt's checks and record follow.
+# The runner to reeval: the eval's body has finished. The attempt's graders and record follow.
 class AttemptDone(TypedDict):
-    # What the body threw, if it threw. A failed `expect.require` is one.
+    # What the body threw, if it threw.
     error: NotRequired[AttemptThrown]
     # True when the body read turn.status. False when a turn errored and status was never read.
     turnStatusRead: NotRequired[bool]
@@ -359,30 +240,6 @@ class AttemptReplyObserve(TypedDict):
     op: Literal["observe"]
 
 
-class AttemptReplyExpect(TypedDict):
-    assertion: AssertionRecord
-    # Pairs a reply with its request.
-    id: str
-    ok: Literal[True]
-    op: Literal["expect"]
-
-
-class AttemptReplyRecord(TypedDict):
-    assertion: AssertionRecord
-    # Pairs a reply with its request.
-    id: str
-    ok: Literal[True]
-    op: Literal["record"]
-
-
-class AttemptReplyJudge(TypedDict):
-    # Pairs a reply with its request.
-    id: str
-    ok: Literal[True]
-    op: Literal["judge"]
-    verdict: Verdict | JudgeFailure
-
-
 class AttemptReplyDecide(TypedDict):
     # Pairs a reply with its request.
     id: str
@@ -391,27 +248,16 @@ class AttemptReplyDecide(TypedDict):
     result: DecideResult
 
 
-class AttemptReplyExpect2(TypedDict):
-    # Pairs a reply with its request.
-    id: str
-    ok: Literal[True]
-    op: Literal["expect"]
-    # The strings the matcher tested that a `{ matchedBy, answers }` argument has no answer for,
-    # by its `matchedBy`. Nothing was recorded: answer them and make the call again.
-    untested: dict[str, list[str]]
-
-
 class AttemptReplyError(TypedDict):
     error: AttemptError
     # Pairs a reply with its request.
     id: str
     ok: Literal[False]
-    op: Literal["send", "exec", "readFile", "writeFile", "observe", "expect", "record", "judge", "serve", "kill", "capture", "decide"]
+    op: Literal["send", "exec", "readFile", "writeFile", "observe", "serve", "kill", "capture", "decide"]
 
 
-# reeval's reply to a call: its result, or the error it threw. A failed matcher is a result (its
-# record says `fail`), not an error, unless the matcher couldn't run.
-AttemptReply: TypeAlias = "AttemptReplySend | AttemptReplyExec | AttemptReplyServe | AttemptReplyKill | AttemptReplyCapture | AttemptReplyReadFile | AttemptReplyWriteFile | AttemptReplyObserve | AttemptReplyExpect | AttemptReplyRecord | AttemptReplyJudge | AttemptReplyDecide | AttemptReplyExpect2 | AttemptReplyError"
+# reeval's reply to a call: its result, or the error it threw.
+AttemptReply: TypeAlias = "AttemptReplySend | AttemptReplyExec | AttemptReplyServe | AttemptReplyKill | AttemptReplyCapture | AttemptReplyReadFile | AttemptReplyWriteFile | AttemptReplyObserve | AttemptReplyDecide | AttemptReplyError"
 
 
 # A call, numbered so its reply can find it.
@@ -679,17 +525,12 @@ class ConfigJudgeOptions(TypedDict):
     # The gateway the judge's calls go through, by name or by its helper. It skips the config's
     # `gateway` fallback: the plan refuses a gateway that isn't listed or can't serve the model.
     gateway: NotRequired[DirectGatewayDescriptor | OpenRouterGatewayDescriptor | VercelGatewayDescriptor | VertexGatewayDescriptor | Literal["direct", "openrouter", "vercel", "vertex"]]
-    # Stable label for this judge call in the record and report. When unset, the report derives
-    # one from the `toPass` assertion label or the question text.
-    label: NotRequired[str]
     # The most judge calls to this model's provider at once, across the run.
     maxConcurrent: NotRequired[float]
     # `'provider/model'`, or a fake judge.
     model: NotRequired[FakeJudgeModel | str]
     # AI SDK provider options for the judge's calls, keyed by provider.
     providerOptions: NotRequired[dict[str, dict[str, JSONValue]]]
-    # Minimum score (0–1) for a `pass` verdict.
-    threshold: NotRequired[float]
 
 
 # Cursor's agent through the Cursor TypeScript SDK's local runtime
@@ -1044,7 +885,7 @@ class EvalOptionsDataCompare(TypedDict):
     egress: NotRequired[PhasedEgress | Literal["allow-all", "deny-all", "proxy"] | EvalOptionsDataCompareEgressAllow]
     # Variables and secrets for the sandbox, merged by name down the cascade.
     env: NotRequired[EnvVars]
-    # Defaults for `c.judge()`, merged field by field down the cascade.
+    # Defaults for judge graders, merged field by field down the cascade.
     judge: NotRequired[ConfigJudgeOptions]
     # Keys a profile's `limit` may not narrow for this group or eval.
     pin: NotRequired[list[PinnableKey]]
@@ -1138,7 +979,7 @@ class EvalOptionsData2(TypedDict):
     # What this group or eval runs in: one environment, or a list, each its own cell beside each
     # harness. `{ add }` and `{ only }` edit the inherited list.
     environments: NotRequired[EnvironmentData | list[EnvironmentData] | EvalOptionsData2EnvironmentsAdd | EvalOptionsData2EnvironmentsOnly]
-    # Defaults for `c.judge()`, merged field by field down the cascade.
+    # Defaults for judge graders, merged field by field down the cascade.
     judge: NotRequired[ConfigJudgeOptions]
     # Keys a profile's `limit` may not narrow for this group or eval.
     pin: NotRequired[list[PinnableKey]]
@@ -1313,13 +1154,6 @@ class FakeHarnessDescriptor(TypedDict):
     usage: NotRequired[FakeHarnessDescriptorUsage]
     # Files and message used instead when the environment gives the agent a skill.
     withSkill: NotRequired[FakeHarnessDescriptorWithSkill]
-
-
-# `fakeJudge()` as data: the score every call gets.
-class FakeJudgeData(TypedDict):
-    kind: Literal["fake-judge"]
-    # The score (0–1) every call gets.
-    score: float
 
 
 # A canned judge for tests and dry runs; see `fakeJudge()` in `reeval/judge`. `score` as a
@@ -1507,161 +1341,6 @@ InstallStep: TypeAlias = "str | InstallStepRun"
 JSONValue: TypeAlias = "list[JSONValue] | bool | None | float | dict[str, JSONValue] | str"
 
 
-# A capture this judge call sent as a file part. Bytes live in the `artifacts/<name>.png` file.
-class JudgeArtifactRef(TypedDict):
-    bytes: float
-    mediaType: Literal["image/png"]
-    name: str
-    # The `artifacts/<name>.png` path under the attempt directory.
-    path: str
-    sha256: str
-
-
-# Each provider's own key: made by `direct()` in `reeval/gateway`. Every `gateway` list ends
-# with it unless it's listed elsewhere, where it's tried in that place.
-class JudgeCallDataGatewayDirect(TypedDict):
-    # `false` turns off the fallback to each provider's own key, so a cell no other gateway in
-    # the list serves is refused at plan time. Default `true`.
-    enabled: NotRequired[bool]
-    kind: Literal["direct"]
-
-
-# Vercel AI Gateway, with `AI_GATEWAY_API_KEY` (else `VERCEL_OIDC_TOKEN`): made by `vercel()` in
-# `reeval/gateway`. It serves Claude Code, Codex, Goose, pi, OpenCode, fx and Grok Build.
-class JudgeCallDataGatewayVercel(TypedDict):
-    kind: Literal["vercel"]
-
-
-# OpenRouter, with `OPENROUTER_API_KEY`: made by `openrouter()` in `reeval/gateway`. It serves
-# Claude Code, Codex, Goose, OpenCode, fx, Grok Build and pi.
-class JudgeCallDataGatewayOpenrouter(TypedDict):
-    # Let OpenRouter fail over to another upstream provider when the one it picked can't serve a
-    # call. Off by default, so reeval's own calls (the judge, analysis, compare questions and
-    # captures) send `allow_fallbacks: false`. The harnesses' calls take OpenRouter's own
-    # routing either way.
-    fallbacks: NotRequired[bool]
-    kind: Literal["openrouter"]
-
-
-# Google Cloud's Vertex AI, on Application Default Credentials: made by `vertex()` in
-# `reeval/gateway`.
-class JudgeCallDataGatewayVertex(TypedDict):
-    kind: Literal["vertex"]
-    # The region the models are called in, e.g. `us-east5`; defaults to `global`.
-    location: NotRequired[str]
-    # The Google Cloud project the calls are billed to; defaults to `GOOGLE_CLOUD_PROJECT`.
-    project: NotRequired[str]
-    # A region per publisher, where it differs from `location`, e.g. `{ anthropic: 'us-east5'
-    # }`.
-    regions: NotRequired[dict[str, str]]
-
-
-class JudgeCallDataOnTurn(TypedDict):
-    # The turn's index, from 0.
-    turn: int
-
-
-class JudgeCallDataOnValue(TypedDict):
-    # Graded as the output.
-    value: JSONValue
-
-
-class JudgeCallDataTranscript3(TypedDict):
-    agent: NotRequired[bool]
-    detail: NotRequired[Literal["tools", "full"]]
-    subagents: NotRequired[bool]
-
-
-# `c.judge()`'s options as data: the judge options, with the model by name or a fake judge's
-# numeric score, the inputs it shows the judge (at least one turned on) and `on`.
-class JudgeCallData(TypedDict):
-    # Captures this call sends the judge as image file parts: a capture `c.capture` returned, or
-    # its name, or `true` for every capture so far. The provider that cannot take files fails
-    # the call.
-    artifacts: NotRequired[Literal[True] | list[str | Capture]]
-    checks: NotRequired[bool | list[str]]
-    contents: NotRequired[list[str]]
-    diff: NotRequired[bool | list[str]]
-    files: NotRequired[bool]
-    # The gateway the judge's calls go through, by name or by its helper. It skips the config's
-    # `gateway` fallback: the plan refuses a gateway that isn't listed or can't serve the model.
-    gateway: NotRequired[Literal["direct", "vercel", "openrouter", "vertex"] | JudgeCallDataGatewayDirect | JudgeCallDataGatewayVercel | JudgeCallDataGatewayOpenrouter | JudgeCallDataGatewayVertex]
-    # Stable label for this judge call in the record and report. When unset, the report derives
-    # one from the `toPass` assertion label or the question text.
-    label: NotRequired[str]
-    # The most judge calls to this model's provider at once, across the run.
-    maxConcurrent: NotRequired[int]
-    # `'provider/model'`, or a fake judge with a numeric score.
-    model: NotRequired[str | FakeJudgeData]
-    observations: NotRequired[bool | list[str]]
-    # The turn `task`, `output`, `transcript` and `diff` read instead of the latest: an earlier
-    # turn, or a value graded as the output.
-    on: NotRequired[JudgeCallDataOnTurn | JudgeCallDataOnValue]
-    output: NotRequired[bool]
-    # AI SDK provider options for the judge's calls, keyed by provider.
-    providerOptions: NotRequired[dict[str, dict[str, JSONValue]]]
-    task: NotRequired[bool]
-    # Minimum score (0–1) for a `pass` verdict.
-    threshold: NotRequired[float]
-    transcript: NotRequired[bool | Literal["tools", "full"] | JudgeCallDataTranscript3]
-    turns: NotRequired[Literal["last", "all"]]
-
-
-# What `c.judge()` returns when the call failed (the provider's error, after any retries): the
-# attempt fails as a judge error once the eval's body has finished, so the judges and checks
-# after it still run.
-class JudgeFailure(TypedDict):
-    # Captures this call sent the judge as file parts, when any.
-    artifacts: NotRequired[list[JudgeArtifactRef]]
-    error: str
-    # The gateway from the config's `gateway` list the call went through; unset without one.
-    gateway: NotRequired[Literal["direct", "vercel", "openrouter", "vertex"]]
-    model: str
-    question: str
-    score: None
-    threshold: float
-    verdict: Literal["error"]
-
-
-# One argument to a matcher: a JSON value, a regular expression as `{ regexp, flags? }`, or a
-# pattern in the runner's own language as `{ matchedBy, answers }`.
-MatcherArg: TypeAlias = "Pattern | AnsweredPattern | JSONValue"
-
-
-class MatcherSubjectTurn(TypedDict):
-    # The turn's index, from 0.
-    turn: int
-
-
-class MatcherSubjectAttempt(TypedDict):
-    # The attempt itself, `c`.
-    attempt: Literal[True]
-
-
-class MatcherSubjectValue(TypedDict):
-    # A value the eval passes as it is.
-    value: JSONValue
-
-
-class MatcherSubjectExec(TypedDict):
-    env: NotRequired[ExecEnv]
-    # A command reeval runs, for its `ExecResult`; again on each try when polled.
-    exec: str
-    # The command's `ExecResult` when the runner already ran it: reeval checks that instead of
-    # running it again, and the check is still named by the command.
-    result: NotRequired[ExecResult]
-
-
-class MatcherSubjectReadFile(TypedDict):
-    # A file reeval reads, for its contents (null when there's none).
-    readFile: str
-
-
-# What `expect` was given: a turn `c.send` returned, the attempt (for its files and latest
-# turn), a value, such as an `ExecResult`, or a command or file reeval reads for it.
-MatcherSubject: TypeAlias = "MatcherSubjectTurn | MatcherSubjectAttempt | MatcherSubjectValue | MatcherSubjectExec | MatcherSubjectReadFile"
-
-
 class McpServerMcp(TypedDict):
     args: list[str]
     # The command that starts the server in the sandbox.
@@ -1723,14 +1402,6 @@ class OpenRouterGatewayDescriptor(TypedDict):
 
 # A matrix factor a pairwise question varies; the others are held.
 PairFactor: TypeAlias = "Literal[\"environment\", \"agent\", \"harness\"]"
-
-
-# A regular expression, where a matcher takes a string or a `RegExp`.
-class Pattern(TypedDict):
-    # Its flags, e.g. `i`.
-    flags: NotRequired[str]
-    # The pattern's source, as `RegExp.prototype.source` gives it.
-    regexp: str
 
 
 # An egress policy per phase of the attempt: `setup` covers its files and setup steps, `agent`
@@ -2422,27 +2093,6 @@ class VercelGatewayDescriptor(TypedDict):
     kind: Literal["vercel"]
 
 
-class Verdict(TypedDict):
-    # Captures this call sent the judge as file parts, when any.
-    artifacts: NotRequired[list[JudgeArtifactRef]]
-    # What the gateway says the call cost, in US dollars (OpenRouter's `usage.cost`); unset when
-    # it names none.
-    costUsd: NotRequired[float]
-    # The gateway from the config's `gateway` list the call went through; unset without one.
-    gateway: NotRequired[Literal["direct", "vercel", "openrouter", "vertex"]]
-    model: str
-    question: str
-    # The model id the provider says served the call, when it reports one.
-    resolvedModel: NotRequired[str]
-    # The judge's probability that the answer is yes, from 0 to 1.
-    score: float
-    threshold: float
-    # The upstream provider the gateway says served the call (OpenRouter's); unset when it names
-    # none.
-    upstream: NotRequired[str]
-    verdict: Literal["pass", "fail"]
-
-
 # Google Cloud's Vertex AI, on Application Default Credentials: made by `vertex()` in
 # `reeval/gateway`.
 class VertexGatewayDescriptor(TypedDict):
@@ -2490,20 +2140,15 @@ CAMEL_KEYS: frozenset[str] = frozenset(
         "identityFile",
         "ignoreAbort",
         "inputTokens",
-        "matchedBy",
         "maxConcurrent",
-        "mediaType",
         "minLift",
         "modelId",
         "outputTokens",
         "outputTruncated",
         "outputView",
-        "preSatisfied",
         "providerMetadata",
         "providerOptions",
-        "readFile",
         "refuseKey",
-        "resolvedModel",
         "servedModel",
         "startHangs",
         "startTimeout",
@@ -2535,7 +2180,6 @@ RECORD_FIELDS: frozenset[str] = frozenset(
         "score",
         "state",
         "traits",
-        "untested",
         "value",
         "write",
     }

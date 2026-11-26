@@ -92,21 +92,6 @@ export type Attempt = {
   infraFailure?: { error: unknown }
   /** The MCP timer's log, once the session starts with a stdio MCP server. */
   mcpStartup?: McpStartupLog
-  /**
-   * The messages of the errors a judge throws: no model, or the calls that failed, once the body
-   * is done. By message, since another language's runner hands back its own copy.
-   */
-  judgeThrown: Set<string>
-  /**
-   * Judge calls that failed without throwing, with each call's place, which fail the attempt once
-   * the eval's body is done, listed in call order. `transient` is a provider error retrying could
-   * fix (a rate limit, a 5xx, overload, the network); `matcher` is what `toPass()` fails with on it.
-   */
-  judgeErrors: Array<{ call: number; message: string; transient: boolean; matcher: string }>
-  /** `c.judge()` calls made so far: the next call's place, taken before it awaits anything. */
-  judgeCalls: number
-  /** The place of each entry in `record.judgeInputs`, which is kept in place order. */
-  judgeInputCalls: number[]
   /** `c.capture()` names already used in this attempt. */
   captureNames: Set<string>
   /** Background processes from `c.exec({ background })` / `c.serve`; teardown kills leftovers. */
@@ -159,7 +144,6 @@ export function createAttempt(
     checks: [],
     judgements: [],
     timings: { setupMs: 0, agentMs: 0, diffMs: 0, checksMs: 0, judgeMs: 0 },
-    judgeInputs: [],
   }
   let starting: Promise<[Sandbox, HarnessSession]> | undefined
   let ended = false
@@ -184,7 +168,7 @@ export function createAttempt(
     get ended() {
       return ended
     },
-    // The terminal draws a check's command, a judge's question and a warning as they come.
+    // The terminal draws a check's command and a warning as they come.
     report: (update) => progress({ at: Date.now(), ...redactFields(update, ['kind']) }),
     async timed(phase, fn, name) {
       const start = performance.now()
@@ -200,10 +184,6 @@ export function createAttempt(
       }
     },
     signal,
-    judgeThrown: new Set(),
-    judgeErrors: [],
-    judgeCalls: 0,
-    judgeInputCalls: [],
     captureNames: new Set(),
     backgrounds: [],
     artifactBlobs: new Map(),

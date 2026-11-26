@@ -53,13 +53,15 @@ describe('harness matrix, cascade and runs', () => {
         '',
         `[fakeAgent({ id: 'good', files: { 'ok.txt': 'yes' } }), fakeAgent({ id: 'bad' })]`,
       ),
-      'evals/writes-ok.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/writes-ok.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
 export default defineEval({
   runs: 2,
+  graders: [hasFile('ok.txt')],
   async task(c) {
     await c.send('go')
-    expect(c.attempt.n).toBeGreaterThan(0)
-    await expect(c).toHaveFile('ok.txt')
+    assert.ok(c.attempt.n > 0)
   },
 })
 `,
@@ -71,7 +73,7 @@ export default defineEval({
     assert.match(r.stdout, /^\[writes#2 bad\] ▶ writes-ok$/m)
     assert.match(
       r.stdout,
-      /evals\/writes-ok\.eval\.ts\n└─ ✗ writes-ok {2}2\/4 runs at 100%, worst 0% {2}regression\(1\)\n {5}#1–2 · bad {2}0% {2}"toHaveFile ok\.txt" failed\n {7}expected file ok\.txt to exist · evals\/writes-ok\.eval\.ts:7\n/,
+      /evals\/writes-ok\.eval\.ts\n└─ ✗ writes-ok {2}2\/4 runs at 100%, worst 0% {2}regression\(1\)\n {5}#1–2 · bad {2}0% {2}has-file:ok\.txt 0%\n/,
     )
     assert.match(r.stdout, /^Done in \S+ · 1 eval · 1 below$/m)
     const thirds = await project('matrix-thirds', {
@@ -234,29 +236,6 @@ export default defineEval({
     assert.equal(none.code, 2)
     assert.match(none.stderr, /No evals matched .* with filter "no-such-eval"/)
   })
-
-  test('c.judge without a model names where to set one', async () => {
-    const p = await project('no-judge', {
-      'reeval.config.ts': config('').replace('judge: { model: fakeJudge({ score: 0.9 }) },', ''),
-      'evals/judged.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({
-  async task(c) {
-
-  await c.send('x')
-  expect(await c.judge('ok?', { diff: true })).toPass()
-
-  },
-})
-`,
-    })
-    const r = await runCli(p.dir)
-    assert.equal(r.code, 1, r.stdout + r.stderr)
-    assert.match(
-      r.stdout,
-      /c\.judge\(\) has no model\. Set judge: \{ model: 'typesafe-ai\/jev-1\.14\.0' \} in reeval\.config\.ts/,
-    )
-    assert.equal(readRun(p.dir).evals[0]?.error?.kind, 'judge')
-  })
 })
 
 describe('compare', () => {
@@ -277,15 +256,16 @@ export const skilled = base.extendEnvironment('skilled', ({ skill }) => ({
     'reeval.config.ts': config('', SKILLED),
     'skills/house-greeting/SKILL.md': SKILL,
     'evals/envs.ts': envs,
-    'evals/writes-ok.eval.ts': `import { defineEval, expect } from 'reeval'
+    'evals/writes-ok.eval.ts': `import { defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
 import { base, skilled } from './envs.ts'
 export default defineEval({
   cases: ${cases},
   compare: { control: base, variants: [skilled], minLift: MIN_LIFT },
   runs: ${runs},
+  graders: [hasFile('ok.txt')],
   async task(c, { key: name }) {
     await c.send('write ok.txt for ' + name)
-    await expect(c).toHaveFile('ok.txt')
   },
 })
 `,
@@ -301,7 +281,7 @@ export default defineEval({
     assert.equal(r.code, 0, r.stdout + r.stderr)
     // The family is one row, its arms pooled over the cases.
     const pooled =
-      /✓ writes-ok {2}6\/6 runs at 100% {2}regression\(1\)\n[│ ]+arm +pass +vs control\n[│ ]+base +0 of 6\n[│ ]+skilled +6 of 6 {2}helped {2}(?:(?:\d+(?:\.\d)?× |\d+% )?(?:slower|faster) · )?"toHaveFile ok\.txt" \+100 pts\n/
+      /✓ writes-ok {2}6\/6 runs at 100% {2}regression\(1\)\n[│ ]+arm +pass\n[│ ]+base +0 of 6\n[│ ]+skilled +6 of 6 {2}helped\n/
     assert.match(r.stdout, pooled)
     assert.doesNotMatch(r.stdout, /Failed cases/, 'every case passed')
     assert.match(
@@ -347,10 +327,6 @@ export default defineEval({
     assert.match(summary, /^\| Arm \| Pass rate \| Lift \| Pass-rate verdict \|/m)
     assert.match(summary, /^\| base \| 0% \| n\/a \| Baseline \|/m)
     assert.match(summary, /^\| skilled \| 100% \| \+100 pts \| Helped \|/m)
-    assert.match(
-      summary,
-      /^\| toHaveFile ok\.txt \| toHaveFile \| 0 of 6 \| 6 of 6 \| 6 of 12 \|$/m,
-    )
 
     const agent = await runCli(p.dir, ['run', '--ui', 'agent'])
     assert.equal(agent.code, 0, agent.stdout + agent.stderr)
@@ -403,7 +379,7 @@ export default defineEval({
     assert.equal(r.code, 1, r.stdout + r.stderr)
     assert.match(
       r.stdout,
-      /✗ writes-ok {2}6\/6 runs at 100% {2}regression\(1\)\n[│ ]+arm +pass +vs control\n[│ ]+base +0 of 6\n[│ ]+skilled +6 of 6 {2}helped, not by minLift 60 {2}(?:(?:\d+(?:\.\d)?× |\d+% )?(?:slower|faster) · )?"toHaveFile ok\.txt" \+100 pts\n/,
+      /✗ writes-ok {2}6\/6 runs at 100% {2}regression\(1\)\n[│ ]+arm +pass\n[│ ]+base +0 of 6\n[│ ]+skilled +6 of 6 {2}helped, not by minLift 60\n/,
     )
     assert.doesNotMatch(r.stdout, /Failed cases/, 'every case passed on its own')
     assert.match(
@@ -439,10 +415,7 @@ export default defineEval({
     ])
     assert.deepEqual(JSON.parse(paired.stdout), [{ small_sample: 1 }], 'three cases are too few')
     // Three pairs are too few for the lift to hold, however one-sided they are: it shows the direction.
-    assert.match(
-      r.stdout,
-      /^[│ ]+skilled +6 of 6 {2}helped {2}(?:(?:\d+(?:\.\d)?× |\d+% )?(?:slower|faster) · )?"toHaveFile ok\.txt" \+100 pts$/m,
-    )
+    assert.match(r.stdout, /^[│ ]+skilled +6 of 6 {2}helped$/m)
   })
 
   test('variants run next to the control, lift is stored, and the control is not gated', async () => {
@@ -450,16 +423,18 @@ export default defineEval({
       'reeval.config.ts': config('', SKILLED),
       'skills/house-greeting/SKILL.md': SKILL,
       'evals/envs.ts': envs,
-      'evals/writes-ok.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/writes-ok.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
 import { base, skilled } from './envs.ts'
 export default defineEval({
   compare: { control: base, variants: [skilled] },
   runs: 2,
+  graders: [hasFile('ok.txt')],
   async task(c) {
     await c.send('go')
     const mode = (await c.exec('printf %s "$MODE"')).stdout
-    expect(mode).toBe(c.attempt.cell.role === 'control' ? 'base' : 'skilled')
-    await expect(c).toHaveFile('ok.txt')
+    assert.equal(mode, c.attempt.cell.role === 'control' ? 'base' : 'skilled')
   },
 })
 `,
@@ -469,7 +444,7 @@ export default defineEval({
     assert.match(r.stdout, /^ {2}➜ {2}Scope: +1 eval file · 1 eval · 2 cells · 4 attempts$/m)
     // A successful compare reads as one: the control's expected misses aren't failures.
     const block =
-      /✓ writes-ok {2}2\/2 runs at 100% {2}regression\(1\)\n[│ ]+arm +pass\n[│ ]+base +0 of 2\n[│ ]+skilled +2 of 2 {2}helped\n[│ ]+check +base +skilled\n[│ ]+toBe base +2 of 2 +not run\n[│ ]+toHaveFile ok\.txt +0 of 2 +2 of 2\n[│ ]+expected file ok\.txt to exist\n/
+      /✓ writes-ok {2}2\/2 runs at 100% {2}regression\(1\)\n[│ ]+arm +pass\n[│ ]+base +0 of 2\n[│ ]+error {2}score 0\.00 below 1: has-file:ok\.txt scored 0\.00 \(2 runs\)\n[│ ]+skilled +2 of 2 {2}helped\n/
     assert.match(r.stdout, block)
     assert.match(r.stdout, /^Done in \S+ · 1 eval · 1 on target$/m)
 
@@ -493,11 +468,11 @@ export default defineEval({
     assert.match(md, /^\| Arm \| Pass rate \| Lift \| Pass-rate verdict \|/m)
     assert.match(md, /^\| base \| 0% \| n\/a \| Baseline \|/m)
     assert.match(md, /^\| skilled \| 100% \| \+100 pts \| Too few runs \|/m)
-    assert.match(md, /^\| Assertion \| Matcher \| base \| skilled \| Total \|$/m)
-    assert.match(md, /^\| toBe base \| toBe \| 2 of 2 \| n\/a \| 2 of 2 \|$/m)
-    assert.match(md, /^\| toHaveFile ok\.txt \| toHaveFile \| 0 of 2 \| 2 of 2 \| 2 of 4 \|$/m)
     assert.match(md, /^## Failures and caveats$/m)
-    assert.match(md, /^\| assertion \| toHaveFile ok\.txt \|/m)
+    assert.match(
+      md,
+      /^\| error \| score 0\.00 below 1: has-file:ok\.txt scored 0\.00 \| n\/a \| 2 of 4 \|/m,
+    )
     const { run, evals } = readRun(p.dir)
     const [e] = evals
     assert.equal(e?.outcome, 'pass', 'the ungated control fails without failing the eval')
@@ -532,19 +507,21 @@ export default defineEval({
       'reeval.config.ts': config('', SKILLED),
       'skills/house-greeting/SKILL.md': SKILL,
       'evals/envs.ts': envs,
-      'evals/all-gated.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/all-gated.eval.ts': `import { defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
 import { base, skilled } from './envs.ts'
 export default defineEval({
   runs: 1, compare: { control: base, variants: [skilled] },
+  graders: [hasFile('ok.txt')],
   async task(c) {
 
   await c.send('go')
-  await expect(c).toHaveFile('ok.txt')
 
   },
 })
 `,
-      'evals/no-worse.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/no-worse.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { base, skilled } from './envs.ts'
 export default defineEval({
   runs: 2,
@@ -553,7 +530,7 @@ export default defineEval({
     await c.send('go')
     if (c.attempt.cell.role === 'control') await c.exec('touch ok.txt')
     if (c.attempt.cell.role === 'variant') throw new Error('variant fails')
-    await expect(c).toHaveFile('ok.txt')
+    assert.notEqual(await c.readFile('ok.txt'), null)
   },
 })
 `,
@@ -755,13 +732,12 @@ describe('profiles', () => {
       'reeval.config.ts': fakeConfig({
         extra: `profiles: { real: { judge: { model: 'google/gemini-3.8-flash' } } },`,
       }),
-      'evals/judged.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/judged.eval.ts': `import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 export default defineEval({
+  graders: [judge('Did it?', { inputs: { diff: true } })],
   async task(c) {
-
-  await c.send('x')
-  expect(await c.judge('Did it?', { diff: true })).toPass()
-
+    await c.send('x')
   },
 })
 `,
@@ -794,21 +770,23 @@ export default defineEval({
       'reeval.config.ts': `import { direct, vercel } from 'reeval/gateway'${fakeConfig({
         extra: `gateway: [direct(), vercel()],`,
       })}`,
-      'evals/own-judge.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/own-judge.eval.ts': `import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 export default defineEval({
   judge: { model: 'anthropic/claude-sonnet-5' },
+  graders: [judge('Did it?', { inputs: { diff: true } })],
   async task(c) {
     await c.send('x')
-    expect(await c.judge('Did it?', { diff: true })).toPass()
   },
 })
 `,
-      'evals/group-judge.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/group-judge.eval.ts': `import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 export default defineEval({
   judge: { model: 'openai/gpt-6-luna', gateway: 'vercel' },
+  graders: [judge('Did it?', { inputs: { diff: true } })],
   async task(c) {
     await c.send('x')
-    expect(await c.judge('Did it?', { diff: true })).toPass()
   },
 })
 `,
@@ -866,13 +844,12 @@ export default defineEval({
         'reeval.config.ts': fakeConfig({
           extra: `profiles: { real: { judge: { model: '${model}' } } },`,
         }),
-        'evals/judged.eval.ts': `import { defineEval, expect } from 'reeval'
+        'evals/judged.eval.ts': `import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 export default defineEval({
+  graders: [judge('Did it?', { inputs: { diff: true } })],
   async task(c) {
-
-  await c.send('x')
-  expect(await c.judge('Did it?', { diff: true })).toPass()
-
+    await c.send('x')
   },
 })
 `,
@@ -1456,12 +1433,12 @@ describe('common mistakes', { concurrency: 4 }, () => {
       [
         'a judge diff option in the config',
         { judge: { model: fakeJudge({ score: 0.9 }), diff: ['src/'] } },
-        /Unknown judge option "diff" in reeval\.config\.ts\. diff is per call: c\.judge\(question, \{ diff \}\)\./,
+        /Unknown judge option "diff" in reeval\.config\.ts\. diff is a judge grader's input: judge\(question, \{ inputs: \{ diff \} \}\)\./,
       ],
       [
         'a judge contents option in the config',
         { judge: { model: fakeJudge({ score: 0.9 }), contents: ['README.md'] } },
-        /Unknown judge option "contents" in reeval\.config\.ts\. contents is per call: c\.judge\(question, \{ contents \}\)\./,
+        /Unknown judge option "contents" in reeval\.config\.ts\. contents is a judge grader's input: judge\(question, \{ inputs: \{ contents \} \}\)\./,
       ],
       [
         'a judge.state in the config',
@@ -1666,9 +1643,11 @@ export default defineEval({
 })
 `,
       'evals/judged.eval.ts': `import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 export default defineEval({
+  graders: [judge('ok?', { inputs: { diff: true } })],
   async task(c) {
- await c.send('x'); await c.judge('ok?', { diff: true }) 
+    await c.send('x')
   },
 })
 `,
@@ -1740,9 +1719,9 @@ export default defineEval({
       }),
     )
     const judged = await runCli(p.dir, ['run', '--config', 'reeval.judge.config.ts', 'judged.eval'])
-    assert.equal(judged.code, 1, judged.stdout + judged.stderr)
+    assert.equal(judged.code, 2, judged.stdout + judged.stderr)
     assert.match(
-      readRun(p.dir).evals[0]?.error?.message ?? '',
+      judged.stderr,
       /Set judge: \{ model: 'typesafe-ai\/jev-1\.14\.0' \} in reeval\.judge\.config\.ts,/,
     )
   })
@@ -1947,7 +1926,8 @@ export const withSkill = defineEnvironment('with-skill', ({ file, mcp, secret, s
   setup: [{ run: 'printf %s "$EXTRA_TOKEN$CHECK_TOKEN" | wc -c > secret-length.txt', timeout: '10s' }],
 }))
 `,
-      'evals/greets.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/greets.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { plain, withSkill } from './envs.ts'
 export default defineEval({
   runs: 1, compare: { control: plain, variants: [withSkill] },
@@ -1956,21 +1936,21 @@ export default defineEval({
   const turn = await c.send('greet')
   const loaded = turn.transcript.some((e) => e.type === 'text' && e.text === 'Loaded skills: house-greeting; mcp: docs')
   const token = (await c.exec('printf %s "$APP_TOKEN"')).stdout
-  expect(token).toBe('s3cret-value-123')
-  expect((await c.exec('printf %s "$MODE"')).stdout).toBe('test')
+  assert.equal(token, 's3cret-value-123')
+  assert.equal((await c.exec('printf %s "$MODE"')).stdout, 'test')
   if (c.attempt.cell.role === 'control') {
-    expect(loaded).toBe(false)
-    expect(await c.readFile('AGENTS.md')).toBeNull()
+    assert.equal(loaded, false)
+    assert.equal(await c.readFile('AGENTS.md'), null)
     throw new Error('the control never knows the house style')
   }
-  expect(loaded).toBe(true)
-  expect(await c.readFile('AGENTS.md')).toBe('Always write tests.')
-  expect(await c.readFile('notes/readme.txt')).toBe('hello')
-  expect(await c.readFile('docs/api.md')).toBe('# API\\n')
-  expect((await c.readFile('secret-length.txt'))?.trim()).toBe('32')
-  expect((await c.exec('printf %s "$FLAVOR"')).stdout).toBe('mint')
-  expect((await c.exec('printf %s "$CHECK_TOKEN"')).stdout).toBe('s3cret-value-123')
-  expect(turn.diff.files.map((f) => f.path)).not.toContain('AGENTS.md')
+  assert.equal(loaded, true)
+  assert.equal(await c.readFile('AGENTS.md'), 'Always write tests.')
+  assert.equal(await c.readFile('notes/readme.txt'), 'hello')
+  assert.equal(await c.readFile('docs/api.md'), '# API\\n')
+  assert.equal((await c.readFile('secret-length.txt'))?.trim(), '32')
+  assert.equal((await c.exec('printf %s "$FLAVOR"')).stdout, 'mint')
+  assert.equal((await c.exec('printf %s "$CHECK_TOKEN"')).stdout, 's3cret-value-123')
+  assert.ok(!(turn.diff.files.map((f) => f.path)).includes('AGENTS.md'))
 
   },
 })
@@ -2072,7 +2052,8 @@ export default defineEval({ environment: broken, timeout: '1s', async task(c) { 
     mkdirSync(join(p.dir, 'evals'))
     writeFileSync(
       join(p.dir, 'evals/loads-it.eval.ts'),
-      `import { defineEnvironment, defineEval, expect } from 'reeval'
+      `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const env = defineEnvironment('remote', ({ skill }) => ({
   sandbox: fakeSandbox(),
@@ -2085,9 +2066,9 @@ export default defineEval({
   environment: env,
   async task(c) {
     const turn = await c.send('x')
-    expect(turn.transcript.some((e) => e.type === 'text' && e.text === 'Loaded skills: house-greeting, house-rules')).toBe(true)
-    expect(await c.readFile('.agents/skills/house-rules/SKILL.md')).toContain('Be nice.')
-    expect(turn.diff.files).toEqual([])
+    assert.equal(turn.transcript.some((e) => e.type === 'text' && e.text === 'Loaded skills: house-greeting, house-rules'), true)
+    assert.ok((await c.readFile('.agents/skills/house-rules/SKILL.md')).includes('Be nice.'))
+    assert.deepEqual(turn.diff.files, [])
   },
 })
 `,
@@ -2109,7 +2090,8 @@ export default defineEval({
   test("a local skill's evals/ and *.eval.ts stay out of the sandbox; a block description parses", async () => {
     const p = await project('skill-hygiene', {
       'reeval.config.ts': fakeConfig(),
-      'evals/staged.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+      'evals/staged.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const env = defineEnvironment('reviewer', ({ skill }) => ({
   sandbox: fakeSandbox(),
@@ -2120,11 +2102,11 @@ export default defineEval({
   async task(c) {
     await c.send('x')
     const md = await c.readFile('.agents/skills/skill-reviewer/SKILL.md')
-    expect(md).toContain(${JSON.stringify(`description: ${JSON.stringify(REVIEWER_DESCRIPTION)}`)})
-    expect(md).toContain('# Skill reviewer')
-    expect(await c.readFile('.agents/skills/skill-reviewer/docs/checklist.md')).toContain('# Checklist')
+    assert.ok(md.includes(${JSON.stringify(`description: ${JSON.stringify(REVIEWER_DESCRIPTION)}`)}))
+    assert.ok(md.includes('# Skill reviewer'))
+    assert.ok((await c.readFile('.agents/skills/skill-reviewer/docs/checklist.md')).includes('# Checklist'))
     const listed = (await c.exec('cd .agents/skills/skill-reviewer && find . -type f | LC_ALL=C sort')).stdout
-    expect(listed.trim().split('\\n')).toEqual(['./SKILL.md', './docs/checklist.md'])
+    assert.deepEqual(listed.trim().split('\\n'), ['./SKILL.md', './docs/checklist.md'])
   },
 })
 `,

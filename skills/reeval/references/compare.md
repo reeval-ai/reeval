@@ -83,21 +83,14 @@ does not layer, inherit or extend. Share setup first (the example is in SKILL.md
   attempt opened, and `context_use` counts its tool calls as `context`, `dependency`
   (`node_modules`, `--help`), `web`, `verify` or `workspace`: a heuristic, read it as counts.
 
-## Labeled checks that discriminate
+## Graders that discriminate
 
-- **Label each requirement** with `expect`'s second argument:
-  `await expect(c, 'exports greet').toHaveFile('greet.js', /export/)`. Every matcher call
-  is recorded (`evals[].attempts[].assertions`; unlabeled ones get `<matcher> <first arg>`).
-  In a compare, keep independent requirements as `expect`, not `expect.require`: a failed
-  `expect.require` ends the attempt, and the checks after it count as not run: a side that never reached a check reads
-  `not run` and the check gets no verdict, so it can't say which arm met it. The result block's
-  check table puts a row per check under each arm (`house greeting  0 of 2  2 of 2`) with the
-  first failure's message, and folds the checks that passed everywhere into `+2 more passed`.
-  After a run, `reeval query "SELECT eval_key, label, verdict FROM check_discrimination WHERE verdict
-  LIKE 'both-%'"` and rework or drop those checks: they measure nothing about the variant.
-  Changing a label changes the eval's fingerprint. Label judges too
-  (`expect(await c.judge(q, { diff: true }), 'Social OAuth').toPass()`): the label replaces the clipped
-  question in judge rates, `reeval show`, `summary.md` and the digest.
+- **Name each requirement** with a grader's `name` option:
+  `hasFile('greet.js', /export/, { name: 'exports greet' })`. In a compare, keep independent
+  requirements as separate graders, not one `required` grader in front of the rest, so each
+  says which arm met it.
+  Changing a name changes the eval's fingerprint. Name judges too
+  (`judge(q, { name: 'social-oauth', inputs: { diff: true } })`).
 
 ## `questions`
 

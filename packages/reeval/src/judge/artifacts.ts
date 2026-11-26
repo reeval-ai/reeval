@@ -52,7 +52,7 @@ export function resolveJudgeArtifacts(
     const data = blobs.get(name)
     if (!data) {
       throw new Error(
-        `c.judge() artifacts names a capture this attempt doesn't have: ${JSON.stringify(name)}`,
+        `judge() artifacts names a capture this attempt doesn't have: ${JSON.stringify(name)}`,
       )
     }
     return {

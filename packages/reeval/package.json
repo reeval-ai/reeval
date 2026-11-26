@@ -165,7 +165,6 @@
     "@opentelemetry/sdk-logs": "3.1.1",
     "@opentelemetry/sdk-metrics": "3.1.1",
     "@opentelemetry/sdk-trace": "3.1.1",
-    "@vitest/expect": "5.1.0",
     "@vitest/utils": "5.1.0",
     "ai": "7.0.161",
     "commander": "15.0.0",

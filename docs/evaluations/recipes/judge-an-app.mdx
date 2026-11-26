@@ -85,7 +85,7 @@ At the end, the block for the evaluation reads its mean score:
 └─ · chat  100%  metric()
 ```
 
-A score below the threshold fails the `renders` grader, and the block prints the score. To see what the judge saw, open the `artifacts/chat.png` file under the run's directory in the `.reeval/runs/` directory. For more information about the outcomes and the tally, see [Read a run's output](/results/output).
+A score below 1 from the `renders` grader lowers the attempt's score, and the block prints it. To see what the judge saw, open the `artifacts/chat.png` file under the run's directory in the `.reeval/runs/` directory. For more information about the outcomes and the tally, see [Read a run's output](/results/output).
 
 </Step>
 </Steps>

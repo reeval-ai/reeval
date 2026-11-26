@@ -20,7 +20,7 @@ import { stubPng } from '../capture/stub.ts'
 import { captureUseSpend, runJourney, type StepShot } from '../capture/use.ts'
 import { debugLog } from '../debug/attempt.ts'
 import { untraced } from '../debug/docker.ts'
-import { getRunContext, SUBJECT } from '../engine/runtime.ts'
+import { getRunContext } from '../engine/runtime.ts'
 import { gatewayScope, resolveModelGateway } from '../gateway/models.ts'
 import { openRouterFallbacks } from '../gateway/openrouter-models.ts'
 import { vertexSettingsIn } from '../gateway/vertex.ts'
@@ -354,7 +354,7 @@ export async function capturePage(
   })
   a.artifactBlobs.set(resolved.name, png)
   keepSteps()
-  const taken: Capture = {
+  return {
     name: resolved.name,
     port: resolved.port,
     path: resolved.path,
@@ -362,8 +362,6 @@ export async function capturePage(
     file,
     ...structuredClone(page),
   }
-  // Names it in a matcher's default label: `toHaveNoPageErrors home`.
-  return Object.defineProperty(taken, SUBJECT, { value: resolved.name })
 }
 
 /** The fake sandbox has no browser: the page's status and final URL from a GET, and no more. */

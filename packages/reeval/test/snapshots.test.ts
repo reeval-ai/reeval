@@ -350,13 +350,14 @@ const WRITES = `{ files: {
   '.env': 'GITHUB_TOKEN=${SECRET}\\n',
 } }`
 
-const evalFile = (options = '', expected = '42') => `import { defineEval, expect } from 'reeval'
+const evalFile = (options = '', expected = '42') => `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   ${options}
   async task(c) {
     await c.send('build it')
     await c.send('and check it')
-    expect(await c.readFile('app/index.js'), 'wrote the app').toContain('${expected}')
+    assert.ok((await c.readFile('app/index.js')).includes('${expected}'), 'wrote the app')
   },
 })
 `

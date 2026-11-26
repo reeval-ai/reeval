@@ -22,8 +22,9 @@ import type {
 
 /**
  * Each cell's checks: every label any attempt of the eval recorded, tallied over the cell's
- * counted attempts (pass or fail). An attempt that counted without reaching a label, because
- * an `expect.require` or a thrown error before it ended the body, counts it `notRun`.
+ * counted attempts (pass or fail), from an older reeval's assertions. An attempt that counted
+ * without reaching a label, because an `expect.require` or a thrown error before it ended the
+ * body, counts it `notRun`.
  */
 export function checkTallies(entry: Pick<EvalEntry, 'attempts' | 'cells'>): void {
   const labels = [

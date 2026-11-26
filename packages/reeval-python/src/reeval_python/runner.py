@@ -21,12 +21,10 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any, BinaryIO, TextIO, cast
 
-from reeval_python._wire import AttemptCall, AttemptCallRecord
-from reeval_python.checks import bind_recorder, escaped_failures, only_assertions
-from reeval_python.context import AttemptContext, SyncAttemptContext
+from reeval_python._wire import AttemptCall
+from reeval_python.context import AttemptContext, SyncAttemptContext, track_calls, unawaited
 from reeval_python.declare import collect_eval_file, get_body, is_async
-from reeval_python.errors import AttemptAborted, EvalError, ReevalAssertionError, ReevalCallError
-from reeval_python.expect import unawaited
+from reeval_python.errors import AttemptAborted, EvalError, ReevalCallError
 
 RUNNER_PROTOCOL = 3
 
@@ -173,7 +171,6 @@ class _Connection:
         self._frames = frames
         self._pending: dict[tuple[str, str], asyncio.Future[dict[str, Any]]] = {}
         self.aborted: dict[str, AttemptAborted] = {}
-        self._records: set[tuple[str, str]] = set()
         self._ended: set[str] = set()
         # Bodies that ended before reeval aborted them: `aborted` holds their refusal of calls.
         self._finished_first: set[str] = set()
@@ -186,7 +183,7 @@ class _Connection:
 
     def finish(self, key: str) -> None:
         """The body is done: a call it left running, or makes later, raises without reaching
-        reeval, and a check made later isn't sent."""
+        reeval."""
         self._ended.add(key)
         if key not in self.aborted:
             self._finished_first.add(key)
@@ -209,26 +206,9 @@ class _Connection:
         if attempt is None or req_id is None:
             return
         key = (str(attempt), str(req_id))
-        if key in self._records:
-            self._records.discard(key)
-            if not msg.get("ok"):
-                error: dict[str, Any] = msg.get("error") or {}
-                text = f"reeval refused a check: {error.get('name')}: {error.get('message')}"
-                self.write({"t": "log", "key": key[0], "stream": "stderr", "text": text})
-            return
         fut = self._pending.pop(key, None)
         if fut is not None and not fut.done():
             fut.set_result(msg)
-
-    def record(self, attempt_id: str, req_id: str, call: AttemptCallRecord) -> None:
-        """Sends a check without waiting for reeval's answer, which only a refusal is shown of."""
-        # A thread that outlived its body checks after the attempt's outcome is settled.
-        if attempt_id in self._ended:
-            return
-        if attempt_id in self.aborted:
-            raise self.aborted[attempt_id]
-        self._records.add((attempt_id, req_id))
-        self.write({"id": req_id, "call": call, "key": attempt_id})
 
     async def request(self, attempt_id: str, req_id: str, call: AttemptCall) -> dict[str, Any]:
         if attempt_id in self.aborted:
@@ -279,7 +259,6 @@ async def _in_thread(fn: Any, *args: Any) -> Any:
 async def _run_body(conn: _Connection, attempt_id: str, body_id: str) -> None:
     _attempt.set(attempt_id)
     fn = get_body(body_id)
-    # One numbering for the body's requests and records (a sync body records from its thread).
     ids = itertools.count(1)
 
     async def send_request(call: AttemptCall) -> dict[str, Any]:
@@ -289,13 +268,9 @@ async def _run_body(conn: _Connection, attempt_id: str, body_id: str) -> None:
     async_ctx = AttemptContext(attempt_id, send_request)
     error: dict[str, Any] | None = None
 
-    def record(call: AttemptCallRecord) -> None:
-        conn.record(attempt_id, str(next(ids)), call)
-
-    bind_recorder(record)
     try:
         if is_async(fn):
-            async_ctx.bind_expect()
+            track_calls()
             result = fn(async_ctx)
             if inspect.isawaitable(result):
                 await result
@@ -303,18 +278,17 @@ async def _run_body(conn: _Connection, attempt_id: str, body_id: str) -> None:
                 raise ReevalCallError(
                     "UsageError",
                     f"the body returned with {len(left)} task(s) it started still running, so "
-                    "their calls and checks were cut short: await each task (asyncio.gather or "
+                    "their calls were cut short: await each task (asyncio.gather or "
                     "a TaskGroup) before the body returns",
                 )
             if never_awaited := unawaited():
                 raise ReevalCallError(
                     "UsageError",
                     f"{never_awaited[0]} was never awaited, so it didn't run: an async body "
-                    "awaits each c call and matcher",
+                    "awaits each c call",
                 )
         else:
             sync_ctx = SyncAttemptContext(async_ctx, loop)
-            sync_ctx.bind_expect()
             result = await _in_thread(fn, sync_ctx)
             if inspect.isgenerator(result) or inspect.isasyncgen(result):
                 raise ReevalCallError(
@@ -343,14 +317,8 @@ async def _run_body(conn: _Connection, attempt_id: str, body_id: str) -> None:
         error = {"name": exc.name, "message": str(exc), "stack": traceback.format_exc()}
     except BaseException as exc:  # noqa: BLE001
         # SystemExit and the like end this body only: the runner serves other attempts too.
-        failures = escaped_failures(exc)
-        # Once reeval has aborted the attempt it has settled it, and refuses the records.
-        with contextlib.suppress(AttemptAborted):
-            for call in failures:
-                record(call)
-        if only_assertions(exc):
-            own = failures if not isinstance(exc, ReevalAssertionError) else []
-            message = "\n".join(c.get("message", "") for c in own) if own else str(exc)
+        if (failed := _failed_asserts(exc)) is not None:
+            message = "\n".join(str(e) or _assert_line(e) for e in failed)
             error = {"name": "AssertionError", "message": message}
         elif isinstance(exc, EvalError):
             error = {"name": "EvalError", "message": exc.reason}
@@ -364,6 +332,28 @@ async def _run_body(conn: _Connection, attempt_id: str, body_id: str) -> None:
     conn.finish(attempt_id)
     _flush(attempt_id)
     conn.done(attempt_id, error)
+
+
+def _failed_asserts(exc: BaseException) -> list[AssertionError] | None:
+    """The failed asserts `exc` is, or a group of nothing else is, or None."""
+    if isinstance(exc, AssertionError):
+        return [exc]
+    if not isinstance(exc, BaseExceptionGroup):
+        return None
+    out: list[AssertionError] = []
+    for sub in cast(BaseExceptionGroup[BaseException], exc).exceptions:
+        failed = _failed_asserts(sub)
+        if failed is None:
+            return None
+        out.extend(failed)
+    return out
+
+
+def _assert_line(exc: AssertionError) -> str:
+    """A bare `assert`'s statement, as written, for a failure with no message of its own."""
+    frames = traceback.extract_tb(exc.__traceback__)
+    line = frames[-1].line if frames else None
+    return line or "assert failed"
 
 
 def _flush(key: str) -> None:

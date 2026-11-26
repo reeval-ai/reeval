@@ -7,9 +7,9 @@
 //     [--platform-wheel <reeval_python-*-<platform>.whl, which carries the binary>]
 //
 // In an empty directory it writes a project with a reeval.yml and a pyproject.toml that depends on
-// the wheel (built from the same commit as the binary). For each Python version it runs three
-// *.eval.py files on the fake harness and sandbox: one judge-free (it also checks the runner's Python is that version),
-// one with the fake judge, and a canary that must fail. Then it runs the project from its .venv
+// the wheel (built from the same commit as the binary). For each Python version it runs two
+// *.eval.py files on the fake harness and sandbox: one that passes (it also checks the runner's
+// Python is that version) and a canary that must fail. Then it runs the project from its .venv
 // with no pyproject.toml, so reeval starts .venv's python rather than uv, and checks that a
 // reeval-python too old for the binary (0.10.0, from PyPI) and a project without reeval-python
 // both stop with how to install it rather than hang. It also runs `uv run reeval`, the SDK's
@@ -81,7 +81,6 @@ agents:
   files: { greet.py: "print(\\"hi\\")\\n" }
   text: I wrote greet.py.${delayMs ? `\n  delayMs: ${delayMs}` : ''}
 sandbox: { kind: fake }
-judge: { model: { kind: fake-judge, score: 1 } }
 timeout: 2m
 target: { kind: regression, threshold: 1 }
 `
@@ -90,34 +89,25 @@ const EVALS = {
 import sys
 from pathlib import Path
 
-from reeval_python import evaluate, expect
+from reeval_python import evaluate
 
 
 @evaluate("greet")
 def greet(c):
     c.send("Write greet.py, which prints hi")
-    expect(c.read_file("greet.py")).to_contain('print("hi")')
+    assert 'print("hi")' in (c.read_file("greet.py") or "")
     ran = c.exec(f"'{Path(sys.executable).as_posix()}' greet.py")
-    expect(ran).to_succeed()
-    expect(ran.stdout.strip()).to_be("hi")
-    expect(f"{sys.version_info[0]}.{sys.version_info[1]}").to_be(os.environ["SMOKE_PYTHON"])
+    assert ran.ok
+    assert ran.stdout.strip() == "hi"
+    assert f"{sys.version_info[0]}.{sys.version_info[1]}" == os.environ["SMOKE_PYTHON"]
 `,
-  'judged.eval.py': `from reeval_python import evaluate
-
-
-@evaluate("judged")
-def judged(c):
-    c.send("Write greet.py, which prints hi")
-    verdict = c.judge("Does greet.py print hi?", contents=["greet.py"])
-    assert verdict.passed, f"judge score {verdict.score}"
-`,
-  'canary.eval.py': `from reeval_python import evaluate, expect
+  'canary.eval.py': `from reeval_python import evaluate
 
 
 @evaluate("canary")
 def canary(c):
     c.send("Write greet.py, which prints hi")
-    expect(c.read_file("missing.py")).to_contain("never written")
+    assert c.read_file("missing.py") is not None, "missing.py was never written"
 `,
 }
 
@@ -168,7 +158,7 @@ function sh(command, args, cwd, env = {}) {
   return { ...r, out }
 }
 const reeval = (cwd, args, env) => sh(binary, args, cwd, env)
-/** The tally on the run's `Done in …` line, e.g. `3 evals · 2 on target · 1 below`. */
+/** The tally on the run's `Done in …` line, e.g. `2 evals · 1 on target · 1 below`. */
 const outcome = (r) =>
   r.out
     .split('\n')
@@ -193,12 +183,12 @@ for (const version of versions) {
   try {
     evals = JSON.parse(plan.stdout).evals.length
   } catch {}
-  check(`Python ${version}: three *.eval.py plan`, plan.status === 0 && evals === 3)
+  check(`Python ${version}: two *.eval.py plan`, plan.status === 0 && evals === 2)
   const run = reeval(dir, ['run'], env)
   check(
-    `Python ${version}: greet and judged pass, the canary fails`,
+    `Python ${version}: greet passes, the canary fails`,
     run.status === 1 &&
-      outcome(run) === '3 evals · 2 on target · 1 below' &&
+      outcome(run) === '2 evals · 1 on target · 1 below' &&
       /(?:^|[├└]─ )✗ canary {2}/m.test(run.out) &&
       /missing\.py|never written/.test(run.out),
   )
@@ -210,7 +200,7 @@ for (const f of ['pyproject.toml', 'uv.lock']) renameSync(join(dir, f), join(dir
 const venv = reeval(dir, ['run'], { SMOKE_PYTHON: last })
 check(
   `Python ${last} from .venv, without uv: the canary fails`,
-  venv.status === 1 && outcome(venv) === '3 evals · 2 on target · 1 below',
+  venv.status === 1 && outcome(venv) === '2 evals · 1 on target · 1 below',
 )
 
 // The SDK's own `reeval` command: it fetches this binary from its release directory, checks it
@@ -241,7 +231,7 @@ const name = basename(positionals[0])
 check(
   `uv run reeval: the SDK downloads ${name}, checks it and runs the evals`,
   shim.status === 1 &&
-    outcome(shim) === '3 evals · 2 on target · 1 below' &&
+    outcome(shim) === '2 evals · 1 on target · 1 below' &&
     shim.out.includes(`downloading ${name}`) &&
     !shim.out.includes('SHA256SUMS only') &&
     existsSync(join(shimCache, 'reeval', 'bin', version, name)),
@@ -332,7 +322,7 @@ if (values['platform-wheel']) {
   check(
     `uv run reeval from ${basename(own)}: its own binary, reeval ${version}, runs the evals, offline`,
     r.status === 1 &&
-      outcome(r) === '3 evals · 2 on target · 1 below' &&
+      outcome(r) === '2 evals · 1 on target · 1 below' &&
       !r.out.includes('downloading') &&
       v.stdout.trim() === version,
   )
@@ -347,7 +337,7 @@ if (values['platform-wheel']) {
     pip.ok &&
       pv.stdout.trim() === version &&
       pr.status === 1 &&
-      outcome(pr) === '3 evals · 2 on target · 1 below',
+      outcome(pr) === '2 evals · 1 on target · 1 below',
   )
 
   const links = pipVenv(

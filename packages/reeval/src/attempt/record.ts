@@ -4,7 +4,6 @@ import { stripVTControlCharacters } from 'node:util'
 import { AgentError, statusCause } from '@reeval/agents'
 import { debugLog } from '../debug/attempt.ts'
 import { allowedHosts, isDirect } from '../egress.ts'
-import type { RawAssertion } from '../engine/runtime.ts'
 import { isTimeout } from '../errors.ts'
 import { isEvalError } from '../eval-error.ts'
 import { expectedBlockedFor } from '../harness/agents.ts'
@@ -29,7 +28,6 @@ import { resourcesLine } from '../view/resources.ts'
 import { messageLine } from '../view/suite.ts'
 import { inferDurations, sumSplits, timeSplit } from '../view/timeline.ts'
 import { turnErrorKind } from '../view/turn-error.ts'
-import { checkFailure } from './assertions.ts'
 import { writeCaptureSidecars } from './capture.ts'
 import { maskedJson } from './observe.ts'
 import type { Attempt } from './state.ts'
@@ -77,70 +75,6 @@ function classify(error: unknown, signal: AbortSignal): { kind: ErrorKind; messa
 
 const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
-const judged = (r: RawAssertion) => /(^|\.)toPass$/.test(r.matcher)
-
-/**
- * Whether `error` is a judge's: one a judge threw, or what a `toPass()` or `.not.toPass()` call
- * failed with. A failing verdict the eval didn't assert, or asserted with `.not.toPass()`, isn't.
- * By message too, since another language's runner hands back its own copy of the error.
- */
-function isJudges(a: Attempt, error: unknown, raw: readonly RawAssertion[]): boolean {
-  const message = messageOf(error)
-  if (a.judgeThrown.has(message)) return true
-  return raw.some(
-    (r) =>
-      r.status !== 'pass' && judged(r) && (r.error === error || messageOf(r.error) === message),
-  )
-}
-
-/** The error the attempt's failed judge calls fail it with once its body is done, if any failed. */
-export function judgeErrorsMessage(a: Attempt): string | undefined {
-  const messages = a.judgeErrors.toSorted((x, y) => x.call - y.call).map((e) => e.message)
-  const [only, ...more] = messages
-  if (!only) return undefined
-  return more.length ? `${more.length + 1} judge calls failed:\n${messages.join('\n')}` : only
-}
-
-/** A matcher's message without the `label: ` its `expect` puts first. */
-const unlabeled = (r: RawAssertion) => {
-  const message = messageOf(r.error)
-  const prefix = r.label === undefined ? '' : `${r.label}: `
-  return message.startsWith(prefix) ? message.slice(prefix.length) : message
-}
-
-/**
- * Whether judge calls the provider couldn't answer (a rate limit, a 5xx, overload, the network,
- * after the retries) are all that failed the attempt: every failed call was transient, and every
- * check that didn't hold is a `toPass()` on one of them, not polled. A verdict that answered, a
- * non-transient judge error (a bad key or model, an input over the provider's limit) or any other
- * check makes it the attempt's own failure. By message, since another language's runner hands back
- * its own copy of the error.
- */
-function judgeOutage(a: Attempt, error: unknown, raw: readonly RawAssertion[]): boolean {
-  if (!a.judgeErrors.length || !a.judgeErrors.every((e) => e.transient)) return false
-  // A judge that threw (no model) is the eval's own mistake.
-  const message = messageOf(error)
-  if (a.judgeThrown.has(message) && message !== judgeErrorsMessage(a)) return false
-  const unanswered = new Set(a.judgeErrors.map((e) => e.matcher))
-  // A poll's tries the judge answered "no" to were retried away, so its last outage hides them.
-  return raw.every(
-    (r) =>
-      r.status === 'pass' ||
-      (judged(r) && !r.matcher.startsWith('poll.') && unanswered.has(unlabeled(r))),
-  )
-}
-
-/**
- * The error that fails the attempt: a judge's gives way to the first other check that didn't hold
- * (an `expect`, or an `expect.require` the eval caught), whichever came first, so the attempt
- * fails as that check.
- */
-export function attemptError(a: Attempt, error: unknown, raw: readonly RawAssertion[]): unknown {
-  if (!isJudges(a, error, raw)) return error
-  const check = raw.find((r) => r.status !== 'pass' && !judged(r))
-  return check ? checkFailure([check]) : error
-}
-
 /** The statuses that say the provider, not the agent or its config, failed a call. */
 const outageStatus = (s: number) => s === 402 || s === 408 || s === 429 || s >= 500
 
@@ -172,17 +106,8 @@ export function reclassifyTimeout(a: Attempt): void {
   }
 }
 
-/**
- * Why the attempt failed, into the record: the eval's own timeout, a cancel, an infra error, or an
- * assertion, which is the judge's when `error`, from `attemptError`, is a judge's. A judge's that
- * only a provider outage caused is an infra error, so `--retry-errors` and `--resume` run it again.
- */
-export function recordFailure(
-  a: Attempt,
-  error: unknown,
-  timedOut: boolean,
-  raw: readonly RawAssertion[],
-): void {
+/** Why the attempt failed, into the record: the eval's own timeout, a cancel, an infra error, or the task's. */
+export function recordFailure(a: Attempt, error: unknown, timedOut: boolean): void {
   const { record } = a
   record.error = timedOut
     ? { kind: 'timeout', message: 'The eval timed out' }
@@ -193,9 +118,6 @@ export function recordFailure(
     record.error.prepare = { class: kind, stage, ref, cause, log, setBy: setBy ?? [] }
   }
   if (error instanceof ProviderStopError && !timedOut) record.error.provider = { ...error.stop }
-  if (record.error.kind === 'assertion' && isJudges(a, error, raw)) {
-    record.error.kind = judgeOutage(a, error, raw) ? 'infra' : 'judge'
-  }
   record.outcome = record.error.kind === 'infra' ? 'infra_error' : 'fail'
 }
 
@@ -241,21 +163,11 @@ function cappedMeta(meta: { [key: string]: JSONValue }): { [key: string]: JSONVa
 const UNIMPORTED =
   "EvalError isn't reeval's: import { EvalError } from 'reeval' to record its reason and meta"
 
-/**
- * What the task threw, into the record, when it failed the attempt as itself: not a failed
- * `expect` the body let through, which its assertion records already hold.
- */
-export function recordTaskFailure(
-  a: Attempt,
-  error: unknown,
-  raw: readonly RawAssertion[],
-  root: string,
-): void {
+/** What the task threw, into the record, when it failed the attempt as itself. */
+export function recordTaskFailure(a: Attempt, error: unknown, root: string): void {
   const { record } = a
   if (record.error?.kind !== 'assertion') return
   const message = messageOf(error)
-  if (raw.some((r) => r.status !== 'pass' && (r.error === error || messageOf(r.error) === message)))
-    return
   const evalError = isEvalError(error)
   const name = error instanceof Error ? error.name : undefined
   const unimported =
@@ -445,32 +357,11 @@ export async function writeRecord(a: Attempt, stagingDir: string, id: string): P
     outcome: record.outcome,
     errorKind: record.error?.kind ?? null,
     ...(record.failure ? { failure: withoutStack(record.failure) } : {}),
-    judgements: record.judgements.map((j) => ({
-      verdict: j.verdict,
-      score: j.score,
-      threshold: j.threshold,
-      question: clip(redactSecrets(j.question), 200),
-    })),
+    judgements: [],
     turnErrors: turnErrors(record.turns.map((t) => t.transcript)),
-    ...failedChecks(record),
     ...(record.error?.prepare
       ? { prepare: { ref: record.error.prepare.ref, stage: record.error.prepare.stage } }
       : {}),
-  }
-}
-
-/** The record's checks that didn't pass, for the terminal; unset when all did. */
-function failedChecks(record: EvalRecord): Pick<EvalMeta, 'failedChecks'> {
-  const failed = (record.assertions ?? []).filter(
-    (x) => x.status !== 'pass' && x.status !== 'not_applicable',
-  )
-  if (!failed.length) return {}
-  return {
-    failedChecks: failed.map((x) => ({
-      label: x.label,
-      ...(x.at ? { at: x.at } : {}),
-      message: clip(x.message?.split('\n')[0] ?? x.reason?.split('\n')[0] ?? '', 500),
-    })),
   }
 }
 

@@ -5,4 +5,4 @@
 {"runner":{"id":"2","call":{"op":"exec","command":"exit 4","retries":1,"interval":0}}}
 {"reeval":{"id":"2","ok":true,"op":"exec","result":{"exitCode":4,"stdout":"","stderr":""}}}
 {"runner":{"type":"done"}}
-{"record":{"outcome":"pass","error":null,"assertions":[],"judgements":[],"checks":[{"command":"test -f .tried || { touch .tried; exit 1; }","exitCode":0,"retries":2,"tries":[{"exitCode":1},{"exitCode":0}]},{"command":"exit 4","exitCode":4,"retries":1,"tries":[{"exitCode":4},{"exitCode":4}]}]}}
+{"record":{"outcome":"pass","error":null,"checks":[{"command":"test -f .tried || { touch .tried; exit 1; }","exitCode":0,"retries":2,"tries":[{"exitCode":1},{"exitCode":0}]},{"command":"exit 4","exitCode":4,"retries":1,"tries":[{"exitCode":4},{"exitCode":4}]}]}}

@@ -17,6 +17,7 @@ import pytest
 
 from reeval_python import (
     AttemptContext,
+    BuiltinGrader,
     define_environment,
     docker,
     evaluate,
@@ -174,6 +175,38 @@ def test_cases_key_their_evals_and_name_their_eval() -> None:
     assert tree["children"][3]["family"] == {"name": "one", "case": 0, "cases": 1}
 
 
+def test_built_in_graders_are_declared_as_data_on_each_case() -> None:
+    graders: list[BuiltinGrader] = [{"builtin": "used-skill", "args": ["x"], "weight": 2}]
+
+    def load() -> None:
+        evaluate("e", {"graders": graders, "runs": 2})(lambda c: None)
+        evaluate("f", {"cases": [{"key": "a"}, {"key": "b"}], "graders": graders})(
+            lambda c, case: None
+        )
+        evaluate("g")(lambda c: None)
+
+    tree = collect_module_tree_sync(load)
+    assert [child.get("graders") for child in tree["children"]] == [graders, graders, graders, None]
+    assert tree["children"][0]["options"] == {"runs": 2}
+
+
+@pytest.mark.parametrize("graders", ["used-skill", [{"args": ["x"]}], [lambda: None]])
+def test_graders_must_be_built_ins_as_data(graders: Any) -> None:
+    def load() -> None:
+        evaluate("e", {"graders": graders})(lambda c: None)
+
+    with pytest.raises(TypeError, match=r"graders in evaluate\('e'\) must be a list of built-in"):
+        collect_module_tree_sync(load)
+
+
+def test_a_group_refuses_graders() -> None:
+    def load() -> None:
+        group("g", {"graders": [{"builtin": "turns"}]}, lambda: None)
+
+    with pytest.raises(TypeError, match=r"group\('g'\) sets graders, which are per eval"):
+        collect_module_tree_sync(load)
+
+
 def test_cases_refuse_a_body_without_the_case_where_it_is_declared() -> None:
     def load() -> None:
         @evaluate("case", {"cases": [{"key": "1"}, {"key": "2"}]})
@@ -191,43 +224,6 @@ def test_an_async_command_is_a_coroutine_that_warns_if_never_awaited() -> None:
     with pytest.warns(RuntimeWarning, match="was never awaited"):
         c.exec("npm install")
         gc.collect()
-
-
-def test_expect_refuses_a_coroutine_and_poll_a_value() -> None:
-    from reeval_python.context import describe
-    from reeval_python.wire import subject_for_matcher
-
-    async def send(call: Any) -> dict[str, Any]:
-        return {"ok": True}
-
-    c = AttemptContext("k1", send)
-    with pytest.raises(TypeError, match="await it first"):
-        subject_for_matcher(c.exec("true"))
-    assert describe(lambda: c.read_file("a.txt")) == {"readFile": "a.txt"}
-    assert describe(lambda: c.exec("npm test")) == {"exec": "npm test"}
-    with pytest.raises(TypeError, match="must return c.read_file"):
-        describe(lambda: "ready")
-    with pytest.raises(TypeError, match="not c.send"):
-        describe(lambda: c.send("hi"))
-
-
-def test_poll_s_function_names_one_read_and_says_what_to_do_with_more() -> None:
-    from reeval_python.context import describe
-
-    async def send(call: Any) -> dict[str, Any]:
-        return {"ok": True}
-
-    c = AttemptContext("k1", send)
-    with pytest.raises(TypeError, match=r"check its contents or output with a matcher.*\.stdout"):
-        describe(lambda: c.exec("cat x").stdout)  # pyright: ignore[reportAttributeAccessIssue]
-    with pytest.raises(TypeError, match="check its contents or output with a matcher"):
-        describe(lambda: c.read_file("a") or c.read_file("b"))
-    with pytest.raises(TypeError, match="check its contents or output with a matcher"):
-        describe(lambda: c.read_file("a") == "x")
-    with pytest.raises(TypeError, match="this one made 2"):
-        describe(lambda: (c.read_file("a"), c.read_file("b")))
-    with pytest.raises(TypeError, match="takes no arguments"):
-        describe(c.read_file)  # pyright: ignore[reportArgumentType]
 
 
 def test_an_eval_declared_twice_is_refused_where_it_is_declared() -> None:

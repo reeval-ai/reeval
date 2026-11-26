@@ -52,8 +52,8 @@
 ## The attempt: `c.send`, `c.exec`, `c.serve`, files
 
 - `await c.send(prompt)` runs one agent turn and returns a `Turn` (`text`, `status`, `diff`,
-  `transcript`). Call it again for multi-turn;
-  `c.judge(q, { on: firstTurn, task: true, output: true })` grades an earlier one.
+  `transcript`). Call it again for multi-turn; a judge's `inputs: { turns: 'all' }` shows every
+  turn.
 - `await c.exec(cmd)` returns `{ exitCode, stdout, stderr }`; `c.exec(cmd, { background: true })`
   starts it without waiting and returns `{ kill() }`. `{ env: { NAME: 'value' } }` sets variables
   for that command only, over the environment's (in the background too); a value named like a
@@ -77,27 +77,28 @@
   `'control'` or `'variant'`.
 - `c.observe(name, value)` records a JSON value about the attempt (which ORM it installed, how many
   files it touched) that affects the score only through a grader that reads it; the run output tallies it per cell and
-  `reeval query attempt_values` lists it. `c.judge()` and questions see it only with
+  `reeval query attempt_values` lists it. Judges and questions see it only with
   `observations: true` (or a list of names). Use it for what you want to count, and
   `observed(name, predicate)` from `reeval/graders` for what must hold.
 
 ## The judge: inputs, input size, errors
 
-- `await c.judge(question, options)`: the judge sees the question and only the inputs the call
-  turns on. Every input is off until the call sets it, and a call needs at least one (`true`, a
-  mode or a non-empty list); there are no defaults, and the config, profile, group and eval
-  `judge` take only `model`, `threshold`, `providerOptions`, `maxConcurrent` and `gateway`.
-  With none, `c.judge()` throws before any model call, and TypeScript refuses it.
+- `judge(question, { inputs })` from `reeval/graders`: the judge sees the question and only the
+  inputs the grader turns on. Every input is off until `inputs` sets it, and a judge needs at
+  least one (`true`, a mode or a non-empty list); there are no defaults, and the config, profile,
+  group and eval `judge` take only `model`, `providerOptions`, `maxConcurrent` and `gateway`.
+  With none, reeval refuses the grader before any model call.
 
   | Input | Shows |
   |---|---|
   | `task: true` | the graded turn's prompt |
-  | `output: true` | the graded turn's final message, or `on`'s value |
+  | `output: true` | the graded turn's final message |
   | `files: true` | `status path` lines for the changed files, under `diff`'s patterns |
   | `diff: true` / `['src/**', '!**/*.test.ts']` | the diff since the eval started (gitignore-style, last match wins) |
   | `contents: ['README.md', 'src/**']` | files whole, changed or not; they leave the diff |
   | `transcript: true` / `'tools'` / `'full'` | the turn's transcript: clipped, tool calls only, everything |
   | `checks: true` / `['npm test']` | `c.exec` results, or those commands' |
+  | `observations: true` / `['orm']` | `c.observe` values, or those names' |
   | `artifacts: true` / `[shot, 'home']` | captures, sent as file parts |
 
   Pick the inputs the question needs, usually one or two: a question about code reads `diff` or
@@ -106,25 +107,19 @@
   the question needs all three. The diff leaves out dependencies, build output (`dist/`,
   `.next/`, top-level `build/` and `out/`), lockfiles, `*.map`, `*.tsbuildinfo` and minified
   files.
-- `on` and `turns` select what `task`, `output`, `transcript` and `diff` read and show nothing alone:
-  `on: turn` grades an earlier turn, `on: value` grades any value as the output (with
-  `output: true`), and `turns: 'all'` adds every turn before the graded one. `judge-input.json`
-  records each call's `stateOptions` (every input, `false` when off) and the `state` it sent.
+- `turns` selects what `task`, `output`, `transcript` and `diff` read and shows nothing alone:
+  `turns: 'all'` adds every turn before the last one.
 - Ask about facts in a captured picture, not whether it "looks great". Jev
   (`typesafe-ai/jev-1.14.0`) takes PNG captures; a provider that cannot take files fails that
   call. Prefer deterministic checks for what can be checked; use the judge for quality, with
   plain yes/no questions that don't name one specific way of doing it.
 - Give the environment a `.gitignore` in `files` (the project's isn't copied in): an agent that
   runs a build otherwise fills the judge's diff with its output. reeval sends every input the
-  call turns on, uncut, and knows no model's limit: a provider error refusing it keeps the
+  grader turns on, uncut, and knows no model's limit: a provider error refusing it keeps the
   provider's wording and adds one line with the input's estimated size, biggest files and the
   inputs that were on, largest first; narrow one, e.g. `{ diff: ['src/'] }`.
-- A failed judge call doesn't throw: `c.judge()` returns `{ verdict: 'error', score: null, error }`,
-  the later judges and checks still run, and the attempt fails as a judge error at the end, or
-  as an infra error (which `--retry-errors` reruns) when the provider never answered and nothing
-  else failed.
-  `expect(await c.judge(q, { diff: true }), name).toPass()` records each judge's result and
-  carries on.
+- A judge grader whose provider fails scores 0 with its `error`, and the other graders still
+  run.
 
 ## Trustworthy evals
 
@@ -183,56 +178,33 @@ outcome, judge the program's output, not the diff: `await c.exec('node app.js')`
 `judge(q, { inputs: { checks: ['node app.js'] } })`. The task's `c.exec` runs in the agent's
 container as the same user, which suits AX evals but isn't a sealed verifier; a grader with `env` runs in a sandbox of its own.
 
-## Matchers
+## Transcript graders
 
-- `await expect(turn).toHaveFile(path, pattern?)`,
-  `await expect(c.exec(cmd)).toSucceed()`, `expect(verdict).toPass()`,
-  `expect(turn).toHaveSearched(query?)` / `toHaveFetched(url?)` (sync; they throw
-  `HarnessCapabilityError` when `turn.unreported` lists web events; a refused
-  search is still a `web-search` with `ok: false`; a call whose result never came has
-  `ok: null`, not `false`), plus Vitest's.
-- Transcript matchers (sync, no `await`): `expect(turn | c).toHaveCalledSkill(name)`,
-  `toHaveCalledMcp(server, tool, input?)`, `toHaveCalledTool(name | RegExp, input?)`,
-  `toHaveRun(command?)`, `toHaveEdited(path?)`, `toHaveSearched(query?)`,
-  `toHaveFetched(url?)`. `.not` is Vitest's. `toHaveRun(string | RegExp)` matches the whole
-  command line, so `/genkit/` passes on `cat genkit.config.ts`; `toHaveRun({ program, args? })`
-  matches the program a segment (split on line breaks, `&&`, `||`, `;`, `|`, `&`) ran, by its
-  name without a directory, after `VAR=x`, `env`, `timeout`, `time`, `exec`, `sudo`, `nohup`,
-  `nice`, `command`, `if`/`then`/`do`, `bash -c`, `npx`, `bunx`, `npm exec`, `pnpm exec`/`dlx`
-  and `yarn dlx`; `args` (joined by spaces) is a substring or RegExp, e.g. `/^add\b/`.
-  `pnpm <bin>` and `npm run` aren't unwrapped, and a run counts even if its call failed.
-  `shellCommands(c | turn | c.turns)` returns those programs to count or filter. `toHaveCalledSkill`
-  is opened or loaded (a `skill` / `Skill` / `load_skill` tool, or a Read/`sed` of
-  `skills/<name>/`, on every harness), not "followed". MCP is `toHaveCalledMcp(server, tool)`
-  (the names in `mcp.<server>`); `toHaveCalledTool('mcp__<server>__<tool>')` is
-  the raw transcript name. After adapters and the normalizer, that string is
-  the same on every harness (stdio; Goose, OpenCode, pi and Codex refuse
-  `mcp.sse`). Use `toHaveEdited` / `toHaveSearched`, not
-  `toHaveCalledTool('edit')` or `'webSearch'`.
-- Budgets: `expect(turn | c).toStayWithin({ tokens: 20_000, toolCalls: 30, duration: '5m' })`
-  (sync) caps the turns' summed tokens, tool calls (a number, or `{ bash: 5 }` per tool) and time.
-  Tokens include subagents. With `tokens`, a harness that reported no usage throws
-  `HarnessCapabilityError` (an error, not a pass). `.not`, an unknown key or a bad limit throws a
-  `TypeError` that ends the attempt as its error, not a failed check. Python:
-  `to_stay_within(tokens=, tool_calls=, duration=)`.
-- Guard files the agent must leave alone with `expect(c).not.toHaveChanged(['test/**',
-  'package.json'])` (sync): it reads the workspace diff, so a shell or subprocess write counts
-  and a read doesn't. Strings are globs (a directory matches everything under it), RegExps work,
-  and a turn means up to that turn. `toHaveEdited` counts the files that changed while the agent
-  ran the turn (a turn only its own), so a shell write counts, but its string matches any path
-  containing it; guard with `toHaveChanged`'s globs. `toHaveEdited()` counts files that appear
-  in the workspace diff. Gitignored files don't appear there, so use `toHaveFile()` to check them.
-- Checks don't stop the eval: a failed `expect` is recorded and the body carries on, so every
-  later check and judge still runs; the attempt fails at its end. Use `expect.require` for gates:
-  its failure ends the body there (`await expect.require(c.exec('npm run build'), 'builds')
-  .toSucceed()`, `expect.require.poll(…)` for one that waits). One the eval catches still fails
-  the attempt, and its error says the eval caught it. Only matcher failures carry on: an error
-  the body throws, a dead sandbox or a timeout ends the attempt. Wait or retry with `expect.poll`
-  (`await expect.poll(() => c.exec(cmd), { timeout: 10_000 }).toSucceed()`), which records one
-  check with its final outcome, not with `expect` in a `try` loop.
-- **Label each requirement** with `expect`'s second argument:
-  `await expect(c, 'exports greet').toHaveFile('greet.js', /export/)`. Every matcher call
-  is recorded (`evals[].attempts[].assertions`; unlabeled ones get `<matcher> <first arg>`).
-  Changing a label changes the eval's fingerprint. Label judges too
-  (`expect(await c.judge(q, { diff: true }), 'Social OAuth').toPass()`): the label replaces the clipped
-  question in judge rates, `reeval show`, `summary.md` and the digest.
+- `usedSkill(name)`, `calledMcp(server, tool)`, `calledTool(name | RegExp, input?)`,
+  `ran(command?)`, `wrote(path?)`, `searched(query?)` and `fetched(url?)`, from
+  `reeval/graders`. `ran(string | RegExp)` matches the whole command line, so `/genkit/` passes
+  on `cat genkit.config.ts`; `ran({ program, args? })` matches the program a segment (split on
+  line breaks, `&&`, `||`, `;`, `|`, `&`) ran, by its name without a directory, after `VAR=x`,
+  `env`, `timeout`, `time`, `exec`, `sudo`, `nohup`, `nice`, `command`, `if`/`then`/`do`,
+  `bash -c`, `npx`, `bunx`, `npm exec`, `pnpm exec`/`dlx` and `yarn dlx`; `args` (joined by
+  spaces) is a substring or RegExp, e.g. `/^add\b/`. `pnpm <bin>` and `npm run` aren't
+  unwrapped, and a run counts even if its call failed. `shellCommands(c | turn | c.turns)`
+  returns those programs to count or filter. `usedSkill` is opened or loaded (a `skill` /
+  `Skill` / `load_skill` tool, or a Read/`sed` of `skills/<name>/`, on every harness), not
+  "followed". MCP is `calledMcp(server, tool)` (the names in `mcp.<server>`);
+  `calledTool('mcp__<server>__<tool>')` is the raw transcript name. After adapters and the
+  normalizer, that string is the same on every harness (stdio; Goose, OpenCode, pi and Codex
+  refuse `mcp.sse`). Use `wrote` / `searched`, not `calledTool('edit')` or `'webSearch'`.
+- Budgets: `withinLimits({ tokens: 20_000, toolCalls: 30, duration: '5m' })` caps the turns'
+  summed tokens, tool calls (a number, or `{ bash: 5 }` per tool) and time. Tokens include
+  subagents.
+- Guard files the agent must leave alone with `notInDiff(['test/**', 'package.json'])`: it reads
+  the workspace diff, so a shell or subprocess write counts and a read doesn't. Strings are globs
+  (a directory matches everything under it) and RegExps work. `wrote` counts the paths the
+  agent's write and edit tool calls touched. Gitignored files don't appear in the diff, so use
+  `hasFile()` to check them.
+- The task fails the attempt when it throws: a plain `assert`, an `EvalError`, a dead sandbox or
+  a timeout ends it there.
+- **Name each requirement** with a grader's `name` option:
+  `hasFile('greet.js', /export/, { name: 'exports greet' })`. Changing a name changes the eval's
+  fingerprint. Name judges too (`judge(q, { name: 'social-oauth', inputs: { diff: true } })`).

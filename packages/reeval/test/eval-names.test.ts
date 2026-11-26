@@ -21,11 +21,12 @@ describe('eval names that hold a secret', () => {
   test('are masked in the record, its files, the terminal and every view', async () => {
     const p = await project('masked-names', {
       'reeval.config.ts': fakeConfig(),
-      'evals/case.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/case.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 const k = (c: string) => 'sk-ant-' + c.repeat(24)
 export default defineEval({
   cases: [{ key: k('b') }],
-  async task() { expect(1).toBe(2) },
+  async task() { assert.equal(1, 2) },
 })
 `,
       'evals/migrates-pgfixture9-schema.eval.ts': `import { defineEval } from 'reeval'

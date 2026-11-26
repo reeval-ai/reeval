@@ -1,5 +1,5 @@
-"""The SDK's calls through a real runner: a check that never ran fails its body, values reach
-reeval as JSON, and an aborted body makes no more calls whatever it catches."""
+"""The SDK's calls through a real runner: a call that never ran fails its body, a body under a
+decorator runs, and an aborted body makes no more calls whatever it catches."""
 
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ EVAL = """
 import contextlib
 import functools
 from reeval_python import evaluate
-from reeval_python.aio import expect
 
 
 def traced(fn):
@@ -32,44 +31,21 @@ def unwrapped(fn):
     return inner
 
 
-@evaluate("sync expect in an async body")
-async def mixes(c):
-    import reeval_python
-    reeval_python.expect(1).to_be(1)
-
-
 @evaluate("forgets an await")
 async def forgets(c):
-    expect(1).to_be(2)
+    c.exec("true")
 
 
 @evaluate("wrapped async")
 @traced
 async def wrapped(c):
-    await expect(await c.exec("true")).to_succeed()
+    assert (await c.exec("true")).ok
 
 
 @evaluate("wrapped without wraps")
 @unwrapped
 async def bare(c):
-    await expect(await c.exec("true")).to_succeed()
-
-
-@evaluate("judges an exec result")
-async def judges(c):
-    result = await c.exec("true")
-    await c.judge("clean?", on=result, output=True)
-    await c.judge("null?", on=None, output=True)
-
-
-@evaluate("judges a set")
-async def judges_a_set(c):
-    await c.judge("set?", on={1, 2}, output=True)
-
-
-@evaluate("judges nothing")
-async def judges_nothing(c):
-    await c.judge("anything?", threshold=0.5, diff=False)
+    assert (await c.exec("true")).ok
 
 
 @evaluate("catches the abort")
@@ -114,25 +90,18 @@ def silent(tmp_path: Path):  # pyright: ignore[reportUnknownParameterType]
     h.kill()
 
 
-def test_a_matcher_never_awaited_fails_the_body(host: Host) -> None:
+def test_a_call_never_awaited_fails_the_body(host: Host) -> None:
     host.start("forgets an await")
     error = host.done()["error"]
     assert error["name"] == "UsageError"
-    assert "to_be() was never awaited" in error["message"]
-    assert host.calls() == []
-
-
-def test_the_sync_expect_in_an_async_body_says_which_to_use(host: Host) -> None:
-    host.start("sync expect in an async body")
-    error = host.done()["error"]
-    assert "use reeval_python.aio's and await the matcher" in error["message"]
+    assert "c.exec() was never awaited" in error["message"]
     assert host.calls() == []
 
 
 def test_an_async_body_under_a_wrapping_decorator_runs(host: Host) -> None:
     host.start("wrapped async")
     assert "error" not in host.done()
-    assert [c["op"] for c in host.calls()] == ["exec", "expect"]
+    assert [c["op"] for c in host.calls()] == ["exec"]
 
 
 def test_a_sync_wrapper_that_returns_a_coroutine_fails_the_body(host: Host) -> None:
@@ -140,36 +109,6 @@ def test_a_sync_wrapper_that_returns_a_coroutine_fails_the_body(host: Host) -> N
     error = host.done()["error"]
     assert error["name"] == "UsageError"
     assert "returned an awaitable" in error["message"]
-
-
-def test_judge_on_an_exec_result_or_none_sends_their_values(host: Host) -> None:
-    host.start("judges an exec result")
-    assert "error" not in host.done()
-    judges = [c for c in host.calls() if c["op"] == "judge"]
-    assert [j["options"]["on"] for j in judges] == [
-        {"value": {"exitCode": 0, "stdout": "", "stderr": ""}},
-        {"value": None},
-    ]
-
-
-def test_judge_on_a_value_that_is_not_json_fails_where_it_was_passed(host: Host) -> None:
-    host.start("judges a set")
-    error = host.done()["error"]
-    assert error["name"] == "TypeError"
-    assert "judge(on=…) takes" in error["message"]
-    assert host.calls() == []
-
-
-def test_judge_that_turns_no_input_on_fails_before_it_reaches_reeval(host: Host) -> None:
-    host.start("judges nothing")
-    error = host.done()["error"]
-    assert error["name"] == "TypeError"
-    assert "shows the judge nothing" in error["message"]
-    assert (
-        "task, output, files, diff, contents, transcript, checks, observations or artifacts"
-        in error["message"]
-    )
-    assert host.calls() == []
 
 
 @pytest.mark.parametrize("body", ["catches the abort", "swallows the abort"])

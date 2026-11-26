@@ -6,10 +6,6 @@ import type { AttemptMeta, EvalMeta, RunContext } from '../types.ts'
 import type { Progress } from '../ui/events.ts'
 import type { DebugLine } from '../view/debug.ts'
 
-import type { RawAssertion } from './expect.ts'
-
-export { attemptRecordings, isUnanswerable, type RawAssertion, SUBJECT } from './expect.ts'
-
 export type TestHandle = {
   file: string
   signal: AbortSignal
@@ -18,15 +14,6 @@ export type TestHandle = {
   progress(progress: Progress): void
   /** Streams a debug line to the main process (for `-v`). Never throws. */
   debug(line: DebugLine): void
-  /**
-   * Waits for the async assertions the eval started but didn't await, and returns the error that
-   * fails the attempt: the first one's failure, or that it wasn't awaited.
-   */
-  unawaited(): Promise<Error | undefined>
-  /** What `expect.assertions` or `expect.hasAssertions` left unmet. */
-  expectError(): Error | undefined
-  /** The attempt's `expect` and `expect.require` matcher calls that have settled, in call order. */
-  assertions(): RawAssertion[]
 }
 
 export type TestMode = 'run' | 'skip' | 'only' | 'todo'

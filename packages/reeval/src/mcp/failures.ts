@@ -189,6 +189,15 @@ async function describeAttempt(
       ? { kind: a.error.kind, message: repeated ? null : clip(a.error.message, 1500) }
       : null,
     failure: a.failure ?? null,
+    failedGrades: (a.grades ?? [])
+      .filter((g) => g.error !== undefined || (g.score !== null && g.score < 1))
+      .map((g) => ({
+        grader: g.grader,
+        kind: g.kind,
+        score: g.score,
+        required: g.required,
+        error: g.error ? clip(g.error, 800) : null,
+      })),
     failedAssertions,
     failedJudgments: a.judgements
       .filter((j) => j.verdict === 'fail')

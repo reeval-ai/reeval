@@ -1,5 +1,6 @@
-import { defineEnvironment, defineEval, expect, regression } from 'reeval'
+import { defineEnvironment, defineEval, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
+import { hasFile, succeeded } from 'reeval/graders'
 
 const greet = "export const greet = (name) => 'Hello, ' + name + '!'\n"
 const ahoy = "export const greet = (name) => 'Ahoy, ' + name + '!'\n"
@@ -22,10 +23,14 @@ const withSkill = defineEnvironment('with-skill', ({ skill }) => ({
 export default defineEval({
   target: regression(),
   agents: [skilled, terse],
+  graders: [
+    hasFile('greet.js', { name: 'writes greet.js' }),
+    succeeded('house greeting', { required: true }),
+    succeeded('exclaims'),
+  ],
   task: async (c) => {
     await c.send('Write greet.js that greets in our house style.')
-    await expect(c, 'writes greet.js').toHaveFile('greet.js')
-    await expect.require(c.exec('grep -q Ahoy greet.js'), 'house greeting').toSucceed()
-    await expect(c.exec('grep -q "!" greet.js'), 'exclaims').toSucceed()
+    await c.exec('grep -q Ahoy greet.js', { label: 'house greeting' })
+    await c.exec('grep -q "!" greet.js', { label: 'exclaims' })
   },
 })

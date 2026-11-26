@@ -21,11 +21,11 @@ Answers are what an evaluation's questions found, such as `won 3 of 4` for each 
 
 Artifacts are what an attempt leaves behind: the files the agent wrote and the diff, from the workspace, and the screenshots `c.capture()` saves in the attempt's `artifacts/` directory, outside it.
 
-**Judge artifacts** are `artifacts` on `c.judge()` and on a question. **Stored artifacts** are `history.artifacts` and `reeval record --artifacts`. For more information about artifacts, see [Workspace](/reference/glossary#workspace).
+**Judge artifacts** are `artifacts` on a `judge` grader's `inputs` and on a question. **Stored artifacts** are `history.artifacts` and `reeval record --artifacts`. For more information about artifacts, see [Workspace](/reference/glossary#workspace).
 
 ## Assertion
 
-An assertion is a named, deterministic pass or fail on what an attempt produced, written with `expect`.
+An assertion is a named, deterministic pass or fail on what an attempt produced, written as a grader.
 
 A [judgment](#judgment) is not an assertion, and neither are the **doctor checks** `reeval doctor` verifies. The **assertion table** is the terminal table of assertions by cell, headed `check`. For more information about assertions, see [Assertions](/evaluations/grading/assertions).
 
@@ -95,7 +95,7 @@ The **harness id** is `id` on a harness, and the **sandbox id** is `id` on a san
 
 ## Judgment
 
-A judgment is an LLM verdict from `c.judge()` on a yes or no question about the agent's work. `toPass()` turns it into a pass or fail; the record stores it in `judgements`. For more information about a judgment, see [Score agent work](/evaluations/grading/judgments).
+A judgment is an LLM score from a `judge` grader on a yes or no question about the agent's work; the record stores it in the attempt's `grades`. For more information about a judgment, see [Score agent work](/evaluations/grading/judgments).
 
 ## Lift
 
@@ -137,7 +137,7 @@ A profile is a named preset that sizes a run, and the run's record stores the pr
 
 A question in `questions` reads across attempts after they end, and never changes an outcome.
 
-A **judge question** is the argument to `c.judge()`. One with `across` is a **pairwise question**. For more information about a question, see [Ask which side did better](/evaluations/grading/questions#ask-which-side-did-better).
+A **judge question** is the first argument to `judge()`. One with `across` is a **pairwise question**. For more information about a question, see [Ask which side did better](/evaluations/grading/questions#ask-which-side-did-better).
 
 ## Record
 
@@ -165,7 +165,7 @@ The task is what the agent is asked to do, sent with `c.send()`. For more inform
 
 ## timeout
 
-`timeout` defaults to `'15m'`. A setup step's `timeout` defaults to `'5m'`. `capture.timeout` defaults to `'60s'`. `startTimeout` limits how long a harness may take to start. `expect.poll`'s `timeout` defaults to 1000 milliseconds.
+`timeout` defaults to `'15m'`. A setup step's `timeout` defaults to `'5m'`. `capture.timeout` defaults to `'60s'`. `startTimeout` limits how long a harness may take to start.
 
 ## Transcript
 
@@ -183,7 +183,7 @@ A variant is an environment in `compare.variants`: the control's setup with the 
 
 ## verdict
 
-A **judge verdict** is `Verdict`, checked with `toPass()`. A **family verdict** is `FamilyVerdict`. A verdict on tool calls, time, or tokens is `EffortVerdict`. An **assertion verdict** is `CheckVerdict`. An **outcome** (`pass`, `fail`, infra error, or `skipped`) is never called a verdict.
+A **judge verdict** is `Verdict`, on an older record. A **family verdict** is `FamilyVerdict`. A verdict on tool calls, time, or tokens is `EffortVerdict`. An **assertion verdict** is `CheckVerdict`. An **outcome** (`pass`, `fail`, infra error, or `skipped`) is never called a verdict.
 
 ## Workspace
 

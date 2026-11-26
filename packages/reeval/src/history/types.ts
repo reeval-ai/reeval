@@ -163,15 +163,15 @@ export type JudgmentRecord = {
   /**
    * `<index>:<sha256(question) prefix>`: the same question at the same place in the evaluation, so a
    * verdict can be followed across runs (and an edited question starts a new series). `<index>`
-   * is the call's place among the attempt's `c.judge()` calls, counting calls that failed,
+   * is the call's place among the attempt's judge calls, counting calls that failed,
    * whichever finishes first.
    */
   key: string
-  /** From `JudgeOptions.label` when set; optional on older records. */
+  /** The label an older reeval's judge call set; optional on older records. */
   label?: string
   /**
-   * The `toPass` assertion label that consumed this verdict, when the attempt linked them; optional
-   * on older records.
+   * The `toPass` assertion label of an older reeval that consumed this verdict, when the attempt
+   * linked them; optional on older records.
    */
   assertion?: string
   /** Transient provider errors retried before this verdict, with the backoff before each retry. */
@@ -381,7 +381,7 @@ export type AttemptRecord = {
    * `reason` and `meta`, or another error's message as `reason` with its class in `name`; `turn`
    * is how many turns it had sent then, and `stack` the error's stack. `error` is the same
    * failure, as `assertion`. Absent when the task didn't throw, or what it threw was a failed
-   * `expect`, a timeout, a cancel or an infra error.
+   * `expect` of an older reeval, a timeout, a cancel or an infra error.
    */
   failure?: AttemptFailure
   /**
@@ -592,7 +592,7 @@ export type AttemptRecord = {
     /** Every try, in order, when it was given `retries`; its log has each try's output. */
     tries?: ExecTry[]
   }>
-  /** Every `expect` and `expect.require` matcher call that settled, in call order; unset with none. */
+  /** An older reeval's `expect` and `expect.require` matcher calls that settled, in call order; unset with none. */
   assertions?: AssertionRecord[]
   /**
    * Files under a dependency directory, such as the `node_modules/` directory or `.venv/`
@@ -626,8 +626,8 @@ export type AttemptRecord = {
    */
   regraded?: string
   /**
-   * In [0, 1]: the scored grades' mean, weighted by `weight`; 0 when the task threw, an `expect`
-   * failed or a required grader scored under 1; 1 when the task returned and nothing scored.
+   * In [0, 1]: the scored grades' mean, weighted by `weight`; 0 when the task threw, an older
+   * reeval's `expect` failed or a required grader scored under 1; 1 when the task returned and nothing scored.
    * `outcome` is `pass` when it reaches the eval's target's threshold (1 without one). Unset on a
    * timeout, a cancel or an infra error. Records from before it read 1 for a pass, 0 for a fail.
    */
@@ -1348,7 +1348,7 @@ export type Stack = {
     threshold: number
     /** Changes when reeval, the AI SDK or the provider adapter (and so the judge prompt) change. */
     version: string
-    /** The config's default judge inputs, every key resolved. Unset when the config names none, which reeval requires: each `c.judge()` call names its own. */
+    /** The config's default judge inputs, every key resolved. Unset when the config names none: each judge grader names its own. */
     state?: ResolvedJudgeStateOptions
   }
   /** Union of every attempt's context files. */

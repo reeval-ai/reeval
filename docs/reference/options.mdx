@@ -219,8 +219,8 @@ For more information about writing rules and placing skills, see [Add project ru
 - **OpenCode:** `stdio` and `http`, written as `{ type: 'local', command: [command, ...args], environment }` or `{ type: 'remote', url, headers, oauth: false }` in OpenCode's configuration. Code Mode is off, so the agent calls the tools directly, and the first prompt waits until every server has connected. reeval refuses an `sse` server at plan time with exit code 2.
 - **Goose:** `stdio` and `http`, written as enabled extensions in the `.config/goose/config.yaml` file under the private home directory `~/.ai-sdk-harness/.harness-bootstrap/goose/home`. A `stdio` server is `cmd`, `args`, and `envs`, and an `http` server is `uri` and `headers`, with type `streamable_http`. Goose keys each extension by dropping whitespace, replacing every character outside letters, digits, `_`, and `-` with `_`, and lower-casing the name. reeval refuses an `sse` server, or two servers that share a key, at plan time with exit code 2.
 - **pi:** `stdio` and `http`, in the `~/.pi/agent/mcp.json` file with direct exposure, so the model and the transcript name each tool `mcp__<server>__<tool>`. reeval escapes `$` and a leading `!` in `env` and header values, so each value reaches the server as written. reeval refuses an `sse` server, or a server name with characters other than letters, digits, `_`, and `-`, at plan time with exit code 2.
-- **fx:** `stdio`, `http`, and `sse`, passed on the ACP `session/new` call: a `stdio` server as `command`, `args`, and `env`, and an `http` or `sse` server as `type`, `url`, and `headers`. fx's `http` and `sse` servers, like its web tools, don't go through the relay. fx names an MCP call `mcp_<server>_<tool>`, which the transcript renames `mcp__<server>__<tool>`, so [`toHaveCalledMcp()`](/reference/matchers#tohavecalledmcp) matches it.
-- **Grok Build:** `stdio`, `http`, and `sse`, passed on the ACP `session/new` call like fx. Grok Build calls a server's tool through its `use_tool` tool, which the transcript names `mcp__<server>__<tool>`, so [`toHaveCalledMcp()`](/reference/matchers#tohavecalledmcp) matches it.
+- **fx:** `stdio`, `http`, and `sse`, passed on the ACP `session/new` call: a `stdio` server as `command`, `args`, and `env`, and an `http` or `sse` server as `type`, `url`, and `headers`. fx's `http` and `sse` servers, like its web tools, don't go through the relay. fx names an MCP call `mcp_<server>_<tool>`, which the transcript renames `mcp__<server>__<tool>`, so the `calledMcp` grader matches it.
+- **Grok Build:** `stdio`, `http`, and `sse`, passed on the ACP `session/new` call like fx. Grok Build calls a server's tool through its `use_tool` tool, which the transcript names `mcp__<server>__<tool>`, so the `calledMcp` grader matches it.
 
 For more information about placing MCP servers, see [Connect MCP servers](/configuration/environments/mcp-servers).
 
@@ -256,7 +256,7 @@ For more information about the attempt fields, see [`AttemptRecord`](/reference/
 
 #### Web search and fetch events
 
-A turn's `unreported` list names the events a harness can't report, and the matchers refuse a turn that lists their event.
+A turn's `unreported` list names the events a harness can't report, and the `searched` and `fetched` graders refuse a turn that lists their event.
 
 - **Cursor:** records both. The SDK's stream leaves those calls out, so reeval recovers them from the stored conversation. A turn reeval can't recover lists the event on `unreported`. A call of any tool that the stream leaves running at the end of the turn takes its result from the stored conversation too, or stays `ok: null` when that has none.
 - **Claude Code:** records both. A `webSearch` call records `query` and `references`, and a `webFetch` or `WebFetch` call records `url`. `ok` is false when a call fails.
@@ -264,11 +264,11 @@ A turn's `unreported` list names the events a harness can't report, and the matc
 - **Codex:** records both, with `unreported` empty. A search stores its text on `query`, and an `open_page` or `find_in_page` action with a URL is a fetch. A web action the turn ends without completing is a search with `ok` false. Codex sends each to `POST api.openai.com/v1/alpha/search` on the brokered key, so the transcript keeps each event under a restricted egress policy.
 - **OpenCode:** records both, with `unreported` empty. A search runs on a hosted MCP server at `mcp.exa.ai`, which needs no key and is one of the harness's automatic egress hosts.
 - **Goose:** records neither, and `unreported` is empty.
-- **pi:** records neither. Its built-in tools are `bash`, `read`, `write`, and `edit`, so the matchers fail on a pi turn.
+- **pi:** records neither. Its built-in tools are `bash`, `read`, `write`, and `edit`, so the `searched` and `fetched` graders fail on a pi turn.
 - **fx:** records both, from fx's `web_search` and `web_fetch` tools. A search stores its text on `query`.
-- **Grok Build:** records searches, which run through its `web_search` tool on xAI's Responses API at `api.x.ai`, one of the harness's automatic egress hosts. It records no fetches, so `toHaveFetched()` fails on a Grok Build turn.
+- **Grok Build:** records searches, which run through its `web_search` tool on xAI's Responses API at `api.x.ai`, one of the harness's automatic egress hosts. It records no fetches, so the `fetched` grader fails on a Grok Build turn.
 
-For more information about the matchers, see [`toHaveSearched()`](/reference/matchers#tohavesearched) and [`toHaveFetched()`](/reference/matchers#tohavefetched). For more information about the automatic hosts, see [Block non-automatic hosts](/configuration/environments/egress#block-non-automatic-hosts).
+For more information about the automatic hosts, see [Block non-automatic hosts](/configuration/environments/egress#block-non-automatic-hosts).
 
 #### OpenCode providers
 
@@ -698,22 +698,14 @@ For more information about the automatic hosts, see [Egress](/configuration/envi
 
 ## `judge`
 
-`judge` is the defaults for `c.judge()`.
+`judge` is the defaults for each `judge` grader.
 
 <Property name="judge" type="JudgeOptions" optional>
-  A profile's `judge` applies under its `defaults.judge`. reeval refuses the inputs, `on`, and `turns` here: each `c.judge()` call sets its own.
+  A profile's `judge` applies under its `defaults.judge`. reeval refuses the inputs and `turns` here: each `judge` grader sets its own.
 </Property>
 
 <Property name="judge.model" type="string | JudgeModel" optional>
   A `'provider/model'` string, or a model object outside the `reeval.config.ts` file.
-</Property>
-
-<Property name="judge.threshold" type="number" optional>
-  The minimum passing score, from 0 to 1. The default is 0.8.
-</Property>
-
-<Property name="judge.label" type="string" optional>
-  A stable label for this judge call in the record and report. When unset, the report derives one from the `toPass` assertion label or the question text.
 </Property>
 
 <Property name="judge.providerOptions" type="Record<string, Record<string, JSONValue>>" optional>

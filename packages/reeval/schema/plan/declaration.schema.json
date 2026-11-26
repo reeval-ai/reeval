@@ -364,10 +364,6 @@
             }
           ]
         },
-        "label": {
-          "description": "Stable label for this judge call in the record and report. When unset, the report derives one from the `toPass` assertion label or the question text.",
-          "type": "string"
-        },
         "maxConcurrent": {
           "description": "The most judge calls to this model's provider at once, across the run.",
           "type": "number"
@@ -396,10 +392,6 @@
               "$ref": "#/$defs/JSONValue"
             }
           }
-        },
-        "threshold": {
-          "description": "Minimum score (0–1) for a `pass` verdict.",
-          "type": "number"
         }
       },
       "required": []
@@ -1192,7 +1184,7 @@
               "$ref": "#/$defs/EnvVars"
             },
             "judge": {
-              "description": "Defaults for `c.judge()`, merged field by field down the cascade.",
+              "description": "Defaults for judge graders, merged field by field down the cascade.",
               "$ref": "#/$defs/ConfigJudgeOptions"
             },
             "pin": {
@@ -1543,7 +1535,7 @@
               ]
             },
             "judge": {
-              "description": "Defaults for `c.judge()`, merged field by field down the cascade.",
+              "description": "Defaults for judge graders, merged field by field down the cascade.",
               "$ref": "#/$defs/ConfigJudgeOptions"
             },
             "pin": {

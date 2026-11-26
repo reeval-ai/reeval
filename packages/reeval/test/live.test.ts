@@ -450,12 +450,13 @@ describe('the studio reads live runs', () => {
 const _HOST = '127.0.0.1:4984'
 
 describe('reeval run keeps its progress file', () => {
-  const evalFile = `import { defineEval, expect } from 'reeval'
+  const evalFile = `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   runs: 3,
   async task(c) {
     await c.send('write hello.txt')
-    await expect(c.exec('test -f hello.txt')).toSucceed()
+    assert.equal((await c.exec('test -f hello.txt')).exitCode, 0)
   },
 })
 `
@@ -466,13 +467,14 @@ export default defineEval({
       'reeval.config.ts': fakeConfig({ harness: agent(0) }),
       'evals/hello.eval.ts': `import { existsSync } from 'node:fs'
 import { setTimeout as sleep } from 'node:timers/promises'
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   runs: 3,
   async task(c) {
     while (!existsSync(new URL(\`../gate-\${c.attempt.n}\`, import.meta.url))) await sleep(20)
     await c.send('write hello.txt')
-    await expect(c.exec('test -f hello.txt')).toSucceed()
+    assert.equal((await c.exec('test -f hello.txt')).exitCode, 0)
   },
 })
 `,
@@ -561,19 +563,21 @@ export default defineEval({
   test('a resume shows the attempts it kept with their outcome and transcript', async () => {
     const p = await project('live-resume', {
       'reeval.config.ts': fakeConfig({ harness: agent(0) }),
-      'evals/kept-pass.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/kept-pass.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('write hello.txt')
-    await expect(c.exec('test -f hello.txt')).toSucceed()
+    assert.equal((await c.exec('test -f hello.txt')).exitCode, 0)
   },
 })
 `,
-      'evals/kept-fail.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/kept-fail.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('write hello.txt')
-    await expect(c.exec('test -f missing.txt')).toSucceed()
+    assert.equal((await c.exec('test -f missing.txt')).exitCode, 0)
   },
 })
 `,

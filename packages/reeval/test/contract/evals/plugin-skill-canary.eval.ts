@@ -1,4 +1,5 @@
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { PLUGIN_PROOF, plugged, trimmed, withFakePlugin } from './probes.ts'
 
 // The probe plugin's skill reaches the agent and it uses it: the proof it writes is only in that
@@ -11,6 +12,6 @@ export default defineEval({
   agents: withFakePlugin,
   tags: ['plugin'],
   task: async (c) => {
-    expect(await trimmed(c.readFile, 'plugin-proof.txt')).toBe(PLUGIN_PROOF)
+    assert.equal(await trimmed(c.readFile, 'plugin-proof.txt'), PLUGIN_PROOF)
   },
 })

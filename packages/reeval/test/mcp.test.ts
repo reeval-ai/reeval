@@ -46,19 +46,21 @@ export default defineConfig({
 `
 
 const evals = {
-  'evals/writes-ok.eval.ts': `import { defineEval, expect } from 'reeval'
+  'evals/writes-ok.eval.ts': `import { defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
 export default defineEval({
+  graders: [hasFile('ok.txt')],
   async task(c) {
     await c.send('go')
-    await expect(c).toHaveFile('ok.txt')
   },
 })
 `,
-  [`evals/also-writes-ok-${PLANTED}.eval.ts`]: `import { defineEval, expect } from 'reeval'
+  [`evals/also-writes-ok-${PLANTED}.eval.ts`]: `import { defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
 export default defineEval({
+  graders: [hasFile('ok.txt')],
   async task(c) {
     await c.send('go')
-    await expect(c).toHaveFile('ok.txt')
   },
 })
 `,
@@ -279,10 +281,10 @@ describe('reeval mcp', () => {
     assert.equal(first.outcome, 'fail')
     assert.equal(first.gated, true)
     assert.deepEqual(
-      (first.failedAssertions as Json[]).map((x) => [x.matcher, x.status]),
-      [['toHaveFile', 'fail']],
+      (first.failedGrades as Json[]).map((x) => [x.grader, x.kind, x.score]),
+      [['has-file:ok.txt', 'builtin', 0]],
     )
-    assert.match(String((first.failedAssertions as Json[])[0]?.message), /ok\.txt/)
+    assert.deepEqual(first.failedAssertions, [], 'an older record lists its failed expect calls')
     const transcript = first.transcript as { lines: number; tail: Json[] }
     assert.ok(transcript.tail.some((l) => l.prompt === 'go'))
     assert.ok(transcript.tail.length <= transcript.lines)

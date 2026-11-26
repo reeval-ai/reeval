@@ -9,7 +9,6 @@ import { stripVTControlCharacters } from 'node:util'
 import { backstops, backstopTimer } from '../src/engine/backstop.ts'
 import { budgetMarker } from '../src/engine/budget.ts'
 import { type CollectedTest, collect, registerTest } from '../src/engine/collector.ts'
-import { expect } from '../src/engine/expect.ts'
 import { loadEvalFile } from '../src/engine/loader.ts'
 import type { WireResult } from '../src/engine/protocol.ts'
 import { type Reporter, routeConsole, runTests, serializeError } from '../src/engine/run.ts'
@@ -85,7 +84,7 @@ describe('runTests', () => {
 
   test('a body that throws fails with its serialized error; one that passes carries its record', async () => {
     const collected = await tests(
-      ['fails', {}, async () => expect.require(1).toBe(2)],
+      ['fails', {}, async () => assert.equal(1, 2)],
       [
         'passes',
         {},
@@ -268,69 +267,6 @@ describe('runTests', () => {
       // Back to the in-process scheduler for the other tests.
       useSchedulerChannel(() => {})
     }
-  })
-
-  test('unawaited assertions, a recorded failure and expect.assertions reach the handle', async () => {
-    let missed: Error | undefined
-    let soft: unknown
-    let counted: Error | undefined
-    const collected = await tests(
-      [
-        'unawaited',
-        {},
-        async (h) => {
-          void expect(Promise.resolve(1)).resolves.toBe(1)
-          missed = await h.unawaited()
-        },
-      ],
-      [
-        'soft',
-        {},
-        async (h) => {
-          expect(1).toBe(2)
-          assert.equal(await h.unawaited(), undefined)
-          soft = h.assertions()[0]?.error
-        },
-      ],
-      [
-        'counted',
-        {},
-        async (h) => {
-          expect.assertions(2)
-          expect(1).toBe(1)
-          counted = h.expectError()
-        },
-      ],
-    )
-    const { reporter } = recorder()
-    await runTests(collected, new Set([0, 1, 2]), {
-      file: '/f',
-      stagingDir: stagingDir(),
-      signal: new AbortController().signal,
-      reporter,
-      onReady: () => {},
-    })
-    assert.match(missed?.message ?? '', /wasn't awaited/)
-    assert.match((soft as Error | undefined)?.message ?? '', /expected 1 to be 2/)
-    assert.match(counted?.message ?? '', /expected number of assertions to be 2, but got 1/)
-  })
-
-  test("each attempt's handle lists its own assertions", async () => {
-    const seen: string[][] = []
-    const body = (n: number) => async (h: TestHandle) => {
-      expect(n, `checks ${n}`).toBe(n)
-      seen[n] = h.assertions().map((x) => x.label ?? '')
-    }
-    const collected = await tests(['one', {}, body(0)], ['two', {}, body(1)])
-    const { reporter } = recorder()
-    await runTests(collected, new Set([0, 1]), {
-      file: '/f',
-      stagingDir: stagingDir(),
-      signal: new AbortController().signal,
-      reporter,
-      onReady: () => {},
-    })
-    assert.deepEqual(seen, [['checks 0'], ['checks 1']])
   })
 
   test('ready runs, skips or fails an attempt; settled hears how each ended', async () => {

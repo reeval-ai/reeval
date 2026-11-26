@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Literal, cast
 
 
@@ -86,39 +86,6 @@ class Turn:
             status=cast(TurnStatus, data.get("status") or "error"),
             model=None if model is None else str(model),
             diff=_diff(data.get("diff")),
-        )
-
-
-VerdictKind = Literal["pass", "fail", "error"]
-
-
-@dataclass(frozen=True, slots=True)
-class Verdict:
-    verdict: VerdictKind
-    # None when the call failed (`verdict` is "error"): the judge answered nothing.
-    score: float | None
-    threshold: float
-    question: str
-    model: str
-    reason: str | None
-    _data: dict[str, Any] = field(repr=False, compare=False)
-
-    @property
-    def passed(self) -> bool:
-        return self.verdict == "pass"
-
-    @classmethod
-    def _from_wire(cls, data: dict[str, Any]) -> Verdict:
-        reasons = (data.get(k) for k in ("reason", "explanation", "rationale"))
-        reason = next((r for r in reasons if isinstance(r, str) and r), None)
-        return cls(
-            verdict=cast(VerdictKind, data.get("verdict", "fail")),
-            score=None if (score := data.get("score")) is None else float(score),
-            threshold=float(data.get("threshold", 0)),
-            question=str(data.get("question") or ""),
-            model=str(data.get("model") or ""),
-            reason=reason,
-            _data=dict(data),
         )
 
 

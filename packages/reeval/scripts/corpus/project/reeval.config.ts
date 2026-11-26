@@ -1,7 +1,7 @@
 // The project `node scripts/corpus/add.ts <name>` records into a new corpus entry: one run that
 // covers what a record can hold (a pooled family with lift, answered and failed pairwise questions,
-// questions asked of each attempt, judges that pass and fail, a failed check, an infra error,
-// todo and skipped evals, tool calls and reasoning, labeled and default-labeled assertions), and
+// questions asked of each attempt, judge graders that pass and fail, a failed grader, an infra
+// error, todo and skipped evals, tool calls and reasoning, named and default-named graders), and
 // a saved analysis. Each is one eval with as few attempts as it needs, so an entry stays small.
 import { defineConfig, defineEnvironment } from 'reeval'
 import { fakeAgent } from 'reeval/agent'

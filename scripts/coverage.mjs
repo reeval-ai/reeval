@@ -48,7 +48,6 @@ const ENGINE = [
   'budget',
   'collector',
   'errors',
-  'expect',
   'files',
   'loader',
   'node',
@@ -63,7 +62,6 @@ const ENGINE = [
 const ENGINE_TESTS = [
   'test/engine-collector.test.ts',
   'test/engine-errors.test.ts',
-  'test/engine-expect.test.ts',
   'test/engine-loader.test.ts',
   'test/engine-node.test.ts',
   'test/engine-pool.test.ts',

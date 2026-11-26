@@ -135,7 +135,8 @@ export default defineEval({
     const p = await project('decide-no-key', {
       'reeval.config.ts': fakeConfig(),
       'evals/a.eval.ts': `
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('go')
@@ -143,7 +144,7 @@ export default defineEval({
     const caught = await c
       .decide({ model: 'anthropic/claude-haiku-4-5', state: 'x', questions })
       .then(() => null, (error) => error.name)
-    expect(caught).toBe('UsageError')
+    assert.equal(caught, 'UsageError')
   },
 })
 `,

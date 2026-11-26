@@ -1,4 +1,5 @@
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { BLOCKED_HOST, closed, reach, trimmed } from './probes.ts'
 
 // Under deny-all the harness's automatic hosts stay open, so the agent works; any other host is
@@ -10,6 +11,6 @@ export default defineEval({
   tags: ['egress'],
   task: async (c) => {
     await c.exec(`${reach(BLOCKED_HOST)} || true`)
-    expect(await trimmed(c.readFile, 'blocked.txt')).toMatch(/^200 /)
+    assert.match(await trimmed(c.readFile, 'blocked.txt'), /^200 /)
   },
 })

@@ -17,4 +17,4 @@
 {"runner":{"id":"8","call":{"op":"writeFile","path":"/etc/app.json","contents":"{}"}}}
 {"reeval":{"id":"8","ok":false,"op":"writeFile","error":{"name":"Error","message":"c.writeFile() takes a workspace-relative path or ~/…, not \"/etc/app.json\""}}}
 {"runner":{"type":"done"}}
-{"record":{"outcome":"pass","error":null,"assertions":[],"judgements":[],"checks":[]}}
+{"record":{"outcome":"pass","error":null,"checks":[]}}

@@ -69,13 +69,13 @@ function pythonEvals(dir: string): void {
   writeFileSync(
     join(dir, 'evals/greet.eval.py'),
     [
-      'from reeval_python import evaluate, expect',
+      'from reeval_python import evaluate',
       '',
       '',
       '@evaluate("greets")',
       'def greets(c):',
       '    c.send("Create greet.py")',
-      '    expect(c.exec("test -f greet.py")).to_succeed()',
+      '    assert c.exec("test -f greet.py").exit_code == 0',
       '',
     ].join('\n'),
   )
@@ -165,7 +165,7 @@ const outcomes = (run: RunRecord) =>
       key: a.key,
       outcome: a.outcome,
       turns: a.turns.map((t) => [t.prompt, t.status, t.text]),
-      assertions: (a.assertions ?? []).map((x) => [x.label, x.status]),
+      grades: (a.grades ?? []).map((g) => [g.grader, g.score]),
     })),
   }))
 
@@ -239,7 +239,7 @@ describe('reeval bundle', () => {
     assert.deepEqual(outcomes(readRun(extracted).run), outcomes(readRun(dir).run))
     const [attempt] = outcomes(readRun(extracted).run)[0]?.attempts ?? []
     assert.equal(attempt?.outcome, 'pass')
-    assert.equal(attempt?.assertions.length, 2)
+    assert.deepEqual(attempt?.grades, [['answers-42', 1]])
     assert.equal(readRun(extracted).run.git, null, 'a bundle made outside git records no commit')
   })
 

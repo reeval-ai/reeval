@@ -32,7 +32,8 @@ const sh = (cwd: string, ...args: string[]) =>
 
 /** A compare whose variant passes `variant` of its tries and whose baseline passes `base`. */
 const compareEval = (runs: number, variant: number, base: number) => `
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 const plain = defineEnvironment('plain', {})
 const marked = defineEnvironment('marked', { files: { 'marker.txt': 'ok\\n' } })
 export default defineEval({
@@ -41,14 +42,15 @@ export default defineEval({
   async task(c) {
     await c.send('go')
     const wins = c.attempt.cell.role === 'variant' ? ${variant} : ${base}
-    expect(c.attempt.n <= wins, 'uses the marker').toBe(true)
+    assert.equal(c.attempt.n <= wins, true, 'uses the marker')
   },
 })
 `
 
 /** An eval of `cases` cases at one run each, where only the variant passes. */
 const familyEval = (cases: number) => `
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 const plain = defineEnvironment('plain', {})
 const marked = defineEnvironment('marked', { files: { 'marker.txt': 'ok\\n' } })
 export default defineEval({
@@ -57,7 +59,7 @@ export default defineEval({
   compare: { control: plain, variants: [marked] },
   async task(c) {
     await c.send('go')
-    expect(c.attempt.cell.role === 'variant', 'uses the marker').toBe(true)
+    assert.equal(c.attempt.cell.role === 'variant', true, 'uses the marker')
   },
 })
 `
@@ -72,23 +74,35 @@ const splitFamilyEval = (cases: number) =>
     .replace('async task(c)', 'async task(c, { key: id })')
     .replace("c.attempt.cell.role === 'variant'", 'Number(id.slice(1)) % 2 === 0')
 
-/** An eval whose check fails on every try but the first. */
-const coinEval = (runs = 3) => `import { defineEval, expect } from 'reeval'
+/** An eval that fails on every try but the first. */
+const coinEval = (runs = 3) => `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   runs: ${runs},
   async task(c) {
     await c.send('go')
-    expect(c.attempt.n, 'lands heads').toBe(1)
+    assert.equal(c.attempt.n, 1, 'lands heads')
   },
 })
 `
 
-const CLEAN_EVAL = `import { defineEval, expect } from 'reeval'
+const CLEAN_EVAL = `import { defineEval } from 'reeval'
 export default defineEval({
   runs: 4,
   async task(c) {
     await c.send('go')
-    expect(1, 'always one').toBe(1)
+  },
+})
+`
+
+/** An eval whose target only reports, whose body throws on every try but the last of 3. */
+const throwingEval = `import { defineEval, metric } from 'reeval'
+export default defineEval({
+  runs: 3,
+  target: metric(),
+  async task(c) {
+    await c.send('go')
+    if (c.attempt.n < 3) throw new Error('no pick file')
   },
 })
 `
@@ -110,7 +124,8 @@ createInterface({ input: process.stdin }).on('line', (line) => {
 
 /** An eval of two turns on an environment whose MCP server `docs` runs `command`. */
 const mcpEval = (name: string, server: string, command: string) => `
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 const docs = defineEnvironment('${name}-docs', ({ file, mcp }) => ({
   files: { 'server.mjs': file('../${server}') },
   mcp: { docs: mcp.stdio(${command}) },
@@ -120,7 +135,7 @@ export default defineEval({
   async task(c) {
     await c.send('look it up')
     await c.send('and again')
-    expect(true, 'answered').toBe(true)
+    assert.equal(true, true, 'answered')
   },
 })
 `
@@ -173,7 +188,7 @@ const remarksBlock = (stdout: string) => {
   for (const raw of stdout.split('\n')) {
     const line = raw.replace(/^[│├└─ ]*/, (m) => ' '.repeat(m.length))
     const indent = line.length - line.trimStart().length
-    const row = /^ {0,3}[✓✗●–○] (.+?) {2}/.exec(line)
+    const row = /^ {0,3}[✓✗●–○·] (.+?) {2}/.exec(line)
     if (row) {
       name = row[1] as string
       heading = -1
@@ -192,6 +207,32 @@ const remarksBlock = (stdout: string) => {
 /** The evals a remarks block names, in order. */
 const namedIn = (block: string | null) =>
   [...(block ?? '').matchAll(/^([^+\n][^:\n]*): /gm)].map((m) => m[1])
+
+/**
+ * The record as an older reeval wrote it for eval `id`: each attempt's one `expect` labeled
+ * `label`, passing where `passed` says, and each cell's tally of it.
+ */
+const withOlderChecks = (
+  record: RunRecord,
+  id: string,
+  label: string,
+  passed: (a: RunRecord['evals'][number]['attempts'][number]) => boolean,
+) => {
+  for (const e of record.evals.filter((x) => x.id === id)) {
+    for (const a of e.attempts) {
+      const status = passed(a) ? 'pass' : 'fail'
+      a.assertions = [{ label, labelled: true, matcher: 'toBe', status, soft: true }]
+    }
+    for (const cell of e.cells) {
+      const mine = e.attempts.filter((a) => a.cell === cell.key)
+      const pass = mine.filter((a) => a.assertions?.[0]?.status === 'pass').length
+      cell.checks = [
+        { label, pass, fail: mine.length - pass, error: 0, notRun: 0, notApplicable: 0 },
+      ]
+    }
+  }
+  return record
+}
 
 /** One fake run of an eval per rule, for the rules to read with a stubbed history. */
 let rulesRecord: Promise<RunRecord> | undefined
@@ -215,26 +256,18 @@ const rules = () => {
       'evals/tft-split.eval.ts': splitFamilyEval(30),
       'evals/clean.eval.ts': CLEAN_EVAL,
       'evals/coin.eval.ts': coinEval(2),
-      'evals/migrates.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/migrates.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('go')
-    expect('psql: Network is unreachable', 'migrated').toBe('ok')
+    assert.equal('psql: Network is unreachable', 'ok', 'migrated')
   },
 })
 `,
-      'evals/observe.eval.ts': `import { defineEval, expect, metric } from 'reeval'
-export default defineEval({
-  runs: 3,
-  target: metric(),
-  async task(c) {
-    await c.send('go')
-    if (c.attempt.n < 3) throw new Error('no pick file')
-    expect(true, 'picked').toBe(true)
-  },
-})
-`,
-      'evals/serves.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+      'evals/observe.eval.ts': throwingEval,
+      'evals/serves.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 const server = defineEnvironment('server', ({ secret }) => ({
   env: { CHECK_TOKEN: secret({ to: 'checks', optional: true }) },
 }))
@@ -243,7 +276,7 @@ export default defineEval({
   environment: server,
   async task(c) {
     await c.send('go')
-    expect(true, 'served').toBe(true)
+    assert.equal(true, true, 'served')
   },
 })
 `,
@@ -255,6 +288,9 @@ export default defineEval({
     const { run } = readRun(p.dir)
     // A fake turn's agent time is scheduling jitter, which four runs a side can separate.
     for (const e of run.evals) for (const a of e.attempts) a.timings.agentMs = 1000
+    withOlderChecks(run, 'clean', 'always one', () => true)
+    withOlderChecks(run, 'coin', 'lands heads', (a) => a.n === 1)
+    withOlderChecks(run, 'observe', 'picked', () => true)
     return run
   })()
   return rulesRecord
@@ -644,14 +680,14 @@ describe('remark thresholds', () => {
     assert.deepEqual(kinds(blocked(), NO_HISTORY), [])
   })
 
-  test('observe-throws: an observed eval that threw outside an expect in more than half its tries', async () => {
+  test('observe-throws: an observed eval that threw in more than half its tries', async () => {
     const record = only(await rules(), 'observe')
     const [remark] = raise(record, NO_HISTORY)
     assert.equal(remark?.kind, 'observe-throws')
     assert.equal(remark?.severity, 'concern')
     assert.equal(
       remark?.text,
-      '2 of 3 tries threw outside an expect, so the eval recorded its own error, not what the agent did: no pick file',
+      '2 of 3 tries threw, so the eval recorded its own error, not what the agent did: no pick file',
     )
     assert.equal(remark?.evidence.length, 2)
     const edit = (change: (a: RunRecord['evals'][number]['attempts'][number]) => void) => {
@@ -669,7 +705,7 @@ describe('remark thresholds', () => {
         a.assertions = [{ ...(a.assertions?.[0] as never), status: 'fail' }]
       }),
       [],
-      'a failed expect is a check, not a throw',
+      "a failed check on an older reeval's record is a check, not a throw",
     )
     const graded = structuredClone(record)
     for (const a of graded.evals[0]?.attempts ?? []) {
@@ -735,35 +771,31 @@ describe('remark thresholds', () => {
 
 describe('remarks in reeval run', () => {
   test('the cap holds back a concern for the next -v run; each prints once', async () => {
-    const coins = ['coin-one', 'coin-two', 'coin-three', 'coin-four']
+    const throwers = ['throws-one', 'throws-two', 'throws-three', 'throws-four']
     const p = await project('remarks-print', {
       'reeval.config.ts': fakeConfig({ harness: '{ turnMs: 1000 }' }),
       'evals/well.eval.ts': compareEval(4, 4, 0),
-      ...Object.fromEntries(coins.map((id) => [`evals/${id}.eval.ts`, coinEval(3)])),
+      ...Object.fromEntries(throwers.map((id) => [`evals/${id}.eval.ts`, throwingEval])),
     })
     const blocks: Array<string | null> = []
     const run = async (...args: string[]) => {
       const r = await runCli(p.dir, ['run', ...args])
-      assert.equal(r.code, 1, r.stdout + r.stderr)
+      assert.equal(r.code, 0, r.stdout + r.stderr)
       blocks.push(remarksBlock(r.stdout))
       return blocks.at(-1) ?? null
     }
-    assert.equal(await run(), null, 'one mixed run is no history yet')
-    assert.doesNotMatch(readRun(p.dir).read('summary.md'), /Remarks:/)
-    assert.equal(await run('-v'), null)
-
     const capped = (await run()) ?? ''
     assert.match(capped, /^\+1 more remark \(-v\)$/m)
     assert.equal(namedIn(capped).length, 3)
-    assert.ok(namedIn(capped).every((n) => coins.includes(n as string)))
+    assert.ok(namedIn(capped).every((n) => throwers.includes(n as string)))
     const marks = remarksOf(p.dir)
-      ?.remarks.filter((r) => r.kind === 'flaky-check')
+      ?.remarks.filter((r) => r.kind === 'observe-throws')
       .map((r) => r.printed)
     assert.deepEqual(marks, [true, true, true, false])
 
     assert.deepEqual(
       namedIn(await run('-v')),
-      coins.filter((c) => !namedIn(capped).includes(c)),
+      throwers.filter((c) => !namedIn(capped).includes(c)),
       'only the concern the cap hid',
     )
     assert.equal(await run('-v'), null, 'every remark has printed')
@@ -774,7 +806,8 @@ describe('remarks in reeval run', () => {
     const p = await project('remarks-once', {
       'reeval.config.ts': fakeConfig({ harness: '{ turnMs: 1000 }' }),
       'evals/skill.eval.ts': compareEval(2, 2, 1),
-      'evals/fixes.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+      'evals/fixes.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 const plain = defineEnvironment('plain', {})
 const marked = defineEnvironment('marked', { files: { 'marker.txt': 'ok\\n' } })
 export default defineEval({
@@ -783,7 +816,7 @@ export default defineEval({
   compare: { control: plain, variants: [marked] },
   async task(c) {
     await c.send('go')
-    expect(c.attempt.cell.role === 'variant' || c.attempt.n === 1, 'uses the marker').toBe(true)
+    assert.equal(c.attempt.cell.role === 'variant' || c.attempt.n === 1, true, 'uses the marker')
   },
 })
 `,
@@ -821,19 +854,19 @@ export default defineEval({
   test("an older reeval's remark, with no printed, counts as printed in the run that raised it", async () => {
     const p = await project('remarks-unmarked', {
       'reeval.config.ts': fakeConfig(),
-      'evals/coin.eval.ts': coinEval(),
+      'evals/throws.eval.ts': throwingEval,
     })
-    for (let i = 0; i < 3; i++) await runCli(p.dir, ['run'])
+    await runCli(p.dir, ['run'])
     assert.deepEqual(
       remarksOf(p.dir)?.remarks.map((r) => r.kind),
-      ['flaky-check'],
+      ['observe-throws'],
     )
     const file = join(readRun(p.dir).dir, 'remarks.json')
     const doc = JSON.parse(readFileSync(file, 'utf8')) as RunRemarks
     for (const r of doc.remarks) delete r.printed
     await writeFile(file, `${JSON.stringify(doc, null, 2)}\n`)
     const later = await runCli(p.dir, ['run', '-v'])
-    assert.equal(later.code, 1, later.stderr)
+    assert.equal(later.code, 0, later.stderr)
     assert.equal(remarksBlock(later.stdout), null)
   })
 
@@ -899,111 +932,6 @@ export default defineEval({
       raise(session, NO_HISTORY)[0]?.text,
       'MCP server docs took 4s to start.',
       'a session harness records its servers on turn 1 only, so there is no turn count',
-    )
-  })
-
-  test('flaky-check after 2 mixed runs and 6 tries; check-never-fails after 5 recorded runs on the default branch', async () => {
-    const p = await project('remarks-history', {
-      '.gitignore': '.reeval/\nnode_modules/\nsandboxes/\n',
-      'reeval.config.ts': fakeConfig(),
-      'evals/clean.eval.ts': CLEAN_EVAL,
-      'evals/steady.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({
-  runs: 3,
-  async task(c) {
-    await c.send('go')
-    expect(1, 'lands heads').toBe(1)
-  },
-})
-`,
-      'evals/coin.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({
-  runs: 3,
-  async task(c) {
-    await c.send('go')
-    expect(c.attempt.n, 'lands heads').toBe(1)
-  },
-})
-`,
-    })
-    sh(p.dir, 'init', '-q', '-b', 'main')
-    sh(p.dir, 'add', '-A')
-    sh(p.dir, 'commit', '-q', '-m', 'init')
-    const history = (runId: string, file: string) => join(p.dir, 'evals/.history', runId, file)
-    const blocks: Array<string | null> = []
-    for (let i = 0; i < 6; i++) {
-      const r = await runCli(p.dir, ['run', '--record', '-v'])
-      assert.equal(r.code, 1, 'a remark never changes the exit code')
-      blocks.push(remarksBlock(r.stdout))
-      if (i === 0) {
-        const runId = recordedRuns(p.dir).at(-1) as string
-        assert.ok(!existsSync(history(runId, 'remarks.json')), 'a run with none writes no file')
-      }
-      if (i === 2) {
-        assert.match(
-          blocks[2]?.split('\n')[0] ?? '',
-          /^coin: "lands heads" passed 2 of 6 tries over 2 runs with nothing changed, so one try can pass or fail it\. Fix at evals\/coin\.eval\.ts:\d*:? make "lands heads" check something every good try does, or raise runs so one try doesn't decide it\.$/,
-        )
-        const summary = readFileSync(history(recordedRuns(p.dir).at(-1) as string, 'summary.md'))
-        // RunReport: concerns under Failures and caveats → Worth knowing (not the CLI Remarks: block).
-        assert.match(
-          summary.toString(),
-          /## coin[\s\S]*Worth knowing[\s\S]*\(concern\) "lands heads" passed/,
-        )
-      }
-    }
-    assert.deepEqual(
-      blocks.map((b) => namedIn(b)),
-      [[], [], ['coin'], [], [], ['clean']],
-      `run k has k-1 runs before it; each prints once\n${blocks.join('\n')}`,
-    )
-    assert.match(
-      blocks[5]?.split('\n')[0] ?? '',
-      /^clean: "always one" passed every try in the last 5 recorded runs \(20 tries\), so it never tells a good result from a bad one\. Fix at evals\/clean\.eval\.ts:\d*:? make "always one" strict enough to fail on a wrong result, or remove it\.$/,
-    )
-    const recorded = recordedRuns(p.dir).at(-1) as string
-    const doc = JSON.parse(readFileSync(history(recorded, 'remarks.json'), 'utf8')) as RunRemarks
-    assert.deepEqual(
-      doc.remarks.filter((r) => r.kind === 'check-never-fails').map((r) => r.firstSeenRun),
-      [recorded],
-    )
-    assert.doesNotMatch(
-      readFileSync(history(recorded, 'summary.md'), 'utf8'),
-      /Remarks:/,
-      'summary.md prints concerns only',
-    )
-    const seventh = await runCli(p.dir, ['run', '-v'])
-    assert.equal(remarksBlock(seventh.stdout), null)
-  })
-
-  test('flaky-check on a case after the first: its cell is looked up by the eval cell over every case', async () => {
-    const p = await project('remarks-cases', {
-      '.gitignore': '.reeval/\nnode_modules/\nsandboxes/\n',
-      'reeval.config.ts': fakeConfig(),
-      'evals/coin.eval.ts': `import { defineEval, expect } from 'reeval'
-export default defineEval({
-  cases: [{ key: 'heads' }, { key: 'tails' }],
-  runs: 3,
-  async task(c, { key: side }) {
-    await c.send('go')
-    expect(side === 'heads' || c.attempt.n === 1, 'lands').toBe(true)
-  },
-})
-`,
-    })
-    sh(p.dir, 'init', '-q', '-b', 'main')
-    sh(p.dir, 'add', '-A')
-    sh(p.dir, 'commit', '-q', '-m', 'init')
-    const blocks: Array<string | null> = []
-    for (let i = 0; i < 3; i++) {
-      const r = await runCli(p.dir, ['run', '--record', '-v'])
-      assert.equal(r.code, 1, r.stdout + r.stderr)
-      blocks.push(remarksBlock(r.stdout))
-    }
-    assert.deepEqual(blocks.map(namedIn), [[], [], ['coin']], blocks.join('\n'))
-    assert.match(
-      blocks[2] ?? '',
-      /^coin: "lands" passed 2 of 6 tries over 2 runs with nothing changed/m,
     )
   })
 

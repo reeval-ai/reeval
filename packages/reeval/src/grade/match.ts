@@ -1,6 +1,6 @@
-// `reeval/graders/match`: the matchers' logic as plain functions of a grader's `c`, each
+// `reeval/graders/match`: the built-in graders' logic as plain functions of a grader's `c`, each
 // returning the grade alone, for a `defineGrader`. reeval's built-in graders grade with them, and
-// `expect`'s matchers find their evidence with the same functions in assert.ts.
+// find their evidence with the same functions in assert.ts.
 import {
   budgetUsed,
   changesIn,

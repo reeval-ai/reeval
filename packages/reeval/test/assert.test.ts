@@ -1,37 +1,32 @@
-// Transcript matchers: pass, fail, .not, every replay skill capture through
-// today's normalizer, and each harness's captured skill use.
+// The evidence the built-in graders read from a transcript: skill, tool, MCP and shell calls,
+// edits, the diff, web events and budgets, every replay capture through today's normalizer, and
+// each harness's captured skill use.
 import assert from 'node:assert/strict'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
 import { SKILL_DIRS } from '@reeval/agents/layouts'
 import {
-  calledMcp,
-  calledSkill,
-  calledTool,
-  changed,
-  edited,
-  fetched,
-  isMisuse,
-  limitsLabel,
-  ran,
+  budgetUsed,
+  changesIn,
+  commandsRun,
+  editedPaths,
+  limitsProblem,
+  mcpCalls,
+  overLimits,
   runMatchLabel,
-  searched,
-  TURN_EDITED,
-  withinLimits,
+  skillCalls,
+  toolCalls as toolCallsIn,
+  webEvents,
 } from '../src/assert.ts'
-import { expect, extendExpect } from '../src/engine/expect.ts'
 import { AGENTS, type AgentKind } from '../src/harness/agents.ts'
 import { normalizeStream } from '../src/harness/transcript.ts'
 import { classifyCall, skillsUsed } from '../src/history/tool-class.ts'
 import { toolTarget } from '../src/history/tool-target.ts'
-import { matchers } from '../src/matchers.ts'
 import type { TranscriptEvent } from '../src/types.ts'
 import { toolCalls } from '../src/view/classify.ts'
 import { transcriptByLine } from '../src/view/model.ts'
 import { testDir } from './support/fixture.ts'
-
-extendExpect(matchers)
 
 const at = { ts: '2026-10-05T12:00:00.000Z', atMs: 0, durationMs: 1 }
 
@@ -62,182 +57,127 @@ const edit = (
   removed: 0,
 })
 
-const turnOf = (
-  transcript: TranscriptEvent[],
-  unreported: Array<'web-search' | 'web-fetch'> = [],
-) => ({
-  transcript,
-  unreported,
-})
+const usedSkill = (transcript: TranscriptEvent[], name: string) =>
+  skillCalls(transcript, name).length > 0
 
-const throws = (fn: () => void, message: RegExp | string) => {
-  assert.throws(fn, (e: Error) => {
-    if (typeof message === 'string') assert.ok(e.message.includes(message), e.message)
-    else assert.match(e.message, message)
-    return true
-  })
-}
+const ranAny = (transcript: TranscriptEvent[], command?: Parameters<typeof commandsRun>[1]) =>
+  commandsRun(transcript, command).hits.length > 0
 
-describe('calledSkill', () => {
-  test('passes on a dedicated load tool by id or name', () => {
-    assert.equal(calledSkill(turnOf([tool('skill', { id: 'foo' })]), 'foo').pass, true)
-    assert.equal(calledSkill(turnOf([tool('Skill', { name: 'foo' })]), 'foo').pass, true)
-    assert.equal(calledSkill(turnOf([tool('load_skill', { name: 'foo' })]), 'foo').pass, true)
+describe('skillCalls', () => {
+  test('finds a dedicated load tool by id or name', () => {
+    assert.equal(usedSkill([tool('skill', { id: 'foo' })], 'foo'), true)
+    assert.equal(usedSkill([tool('Skill', { name: 'foo' })], 'foo'), true)
+    assert.equal(usedSkill([tool('load_skill', { name: 'foo' })], 'foo'), true)
   })
 
-  test('passes when a tool target contains skills/<name>/', () => {
-    const read = turnOf([tool('read', { path: '/home/reeval/.agents/skills/foo/SKILL.md' })])
-    const sed = turnOf([tool('bash', { command: "sed -n '1,40p' ~/.agents/skills/foo/SKILL.md" })])
-    assert.equal(calledSkill(read, 'foo').pass, true)
-    assert.equal(calledSkill(sed, 'foo').pass, true)
+  test('finds a tool whose target contains skills/<name>/', () => {
+    const read = [tool('read', { path: '/home/reeval/.agents/skills/foo/SKILL.md' })]
+    const sed = [tool('bash', { command: "sed -n '1,40p' ~/.agents/skills/foo/SKILL.md" })]
+    assert.equal(usedSkill(read, 'foo'), true)
+    assert.equal(usedSkill(sed, 'foo'), true)
   })
 
-  test('fails naming the skill-like calls it saw', () => {
-    const t = turnOf([
+  test("doesn't count another skill's calls", () => {
+    const t = [
       tool('skill', { id: 'house-greeting' }),
       tool('read', { path: '~/.agents/skills/other/SKILL.md' }),
       tool('bash', { command: 'echo hi' }),
-    ])
-    const r = calledSkill(t, 'foo')
-    assert.equal(r.pass, false)
-    assert.equal(
-      r.message(),
-      'expected skill-like calls matching foo, got ["skill:house-greeting","read ~/.agents/skills/other/SKILL.md"]',
-    )
-  })
-
-  test('expect().not.toHaveCalledSkill is the activation negative', () => {
-    const t = turnOf([tool('skill', { id: 'foo' })])
-    expect(t).toHaveCalledSkill('foo')
-    throws(
-      () => expect(t).not.toHaveCalledSkill('foo'),
-      /expected no skill-like calls matching foo/,
-    )
-    expect(t).not.toHaveCalledSkill('bar')
+    ]
+    assert.equal(usedSkill(t, 'foo'), false)
+    assert.equal(usedSkill(t, 'house-greeting'), true)
   })
 })
 
-describe('calledTool', () => {
+describe('toolCalls', () => {
   test('matches type: tool only, by exact name or RegExp', () => {
-    const t = turnOf([tool('mcp__stamp__house_stamp', { args: {} }), edit('notes.txt')])
-    assert.equal(calledTool(t, 'mcp__stamp__house_stamp').pass, true)
-    assert.equal(calledTool(t, /^mcp__stamp__/).pass, true)
-    assert.equal(calledTool(t, 'edit').pass, false)
-    assert.equal(calledTool(t, 'mcp__stamp__other').pass, false)
+    const t = [tool('mcp__stamp__house_stamp', { args: {} }), edit('notes.txt')]
+    assert.equal(toolCallsIn(t, 'mcp__stamp__house_stamp').length, 1)
+    assert.equal(toolCallsIn(t, /^mcp__stamp__/).length, 1)
+    assert.equal(toolCallsIn(t, 'edit').length, 0)
+    assert.equal(toolCallsIn(t, 'mcp__stamp__other').length, 0)
   })
 
   test('optional input is a substring, RegExp, or object', () => {
-    const t = turnOf([tool('bash', { command: 'echo contract-42' })])
-    assert.equal(calledTool(t, 'bash', 'contract-42').pass, true)
-    assert.equal(calledTool(t, 'bash', /contract-\d+/).pass, true)
-    assert.equal(calledTool(t, 'bash', { command: 'echo contract-42' }).pass, true)
-    assert.equal(calledTool(t, 'bash', { command: /42/ }).pass, true)
-    assert.equal(calledTool(t, 'bash', 'deploy').pass, false)
-  })
-
-  test('fails naming the tools it saw', () => {
-    const t = turnOf([tool('mcp__stamp__house_stamp', {})])
-    const r = calledTool(t, 'mcp__stamp__other')
-    assert.equal(r.pass, false)
-    assert.equal(
-      r.message(),
-      'expected tool calls matching mcp__stamp__other, got ["mcp__stamp__house_stamp"]',
-    )
+    const t = [tool('bash', { command: 'echo contract-42' })]
+    assert.equal(toolCallsIn(t, 'bash', 'contract-42').length, 1)
+    assert.equal(toolCallsIn(t, 'bash', /contract-\d+/).length, 1)
+    assert.equal(toolCallsIn(t, 'bash', { command: 'echo contract-42' }).length, 1)
+    assert.equal(toolCallsIn(t, 'bash', { command: /42/ }).length, 1)
+    assert.equal(toolCallsIn(t, 'bash', 'deploy').length, 0)
   })
 })
 
-describe('calledMcp', () => {
+describe('mcpCalls', () => {
   test('joins server and tool into mcp__<server>__<tool>', () => {
-    const t = turnOf([tool('mcp__stamp__house_stamp', { args: {} }), edit('notes.txt')])
-    assert.equal(calledMcp(t, 'stamp', 'house_stamp').pass, true)
-    assert.equal(calledMcp(t, 'stamp', 'other').pass, false)
-    assert.equal(calledMcp(t, 'other', 'house_stamp').pass, false)
+    const t = [tool('mcp__stamp__house_stamp', { args: {} }), edit('notes.txt')]
+    assert.equal(mcpCalls(t, 'stamp', 'house_stamp').length, 1)
+    assert.equal(mcpCalls(t, 'stamp').length, 1)
+    assert.equal(mcpCalls(t, 'stamp', 'other').length, 0)
+    assert.equal(mcpCalls(t, 'other', 'house_stamp').length, 0)
   })
 
-  test('optional input is the same match as calledTool', () => {
-    const t = turnOf([tool('mcp__stamp__house_stamp', { query: 'contract-42' })])
-    assert.equal(calledMcp(t, 'stamp', 'house_stamp', 'contract-42').pass, true)
-    assert.equal(calledMcp(t, 'stamp', 'house_stamp', /contract-\d+/).pass, true)
-    assert.equal(calledMcp(t, 'stamp', 'house_stamp', { query: 'contract-42' }).pass, true)
-    assert.equal(calledMcp(t, 'stamp', 'house_stamp', { query: /42/ }).pass, true)
-    assert.equal(calledMcp(t, 'stamp', 'house_stamp', 'deploy').pass, false)
-  })
-
-  test('fails listing MCP calls as server/tool', () => {
-    const t = turnOf([tool('mcp__stamp__house_stamp', {}), tool('bash', { command: 'echo hi' })])
-    const r = calledMcp(t, 'stamp', 'other')
-    assert.equal(r.pass, false)
-    assert.equal(r.message(), 'expected MCP calls matching stamp/other, got ["stamp/house_stamp"]')
-  })
-
-  test('expect().not.toHaveCalledMcp is the negative', () => {
-    const t = turnOf([tool('mcp__stamp__house_stamp', {})])
-    expect(t).toHaveCalledMcp('stamp', 'house_stamp')
-    throws(
-      () => expect(t).not.toHaveCalledMcp('stamp', 'house_stamp'),
-      /expected no MCP calls matching stamp\/house_stamp/,
-    )
-    expect(t).not.toHaveCalledMcp('stamp', 'other')
+  test('optional input is the same match as toolCalls', () => {
+    const t = [tool('mcp__stamp__house_stamp', { query: 'contract-42' })]
+    assert.equal(mcpCalls(t, 'stamp', 'house_stamp', 'contract-42').length, 1)
+    assert.equal(mcpCalls(t, 'stamp', 'house_stamp', /contract-\d+/).length, 1)
+    assert.equal(mcpCalls(t, 'stamp', 'house_stamp', { query: 'contract-42' }).length, 1)
+    assert.equal(mcpCalls(t, 'stamp', 'house_stamp', { query: /42/ }).length, 1)
+    assert.equal(mcpCalls(t, 'stamp', 'house_stamp', 'deploy').length, 0)
   })
 })
 
-describe('ran', () => {
+describe('commandsRun', () => {
   test('matches bash or shell, and an optional command', () => {
-    const bash = turnOf([tool('bash', { command: 'echo contract-42' })])
-    const shell = turnOf([tool('shell', { command: 'echo contract-42' })])
-    const other = turnOf([tool('read', { path: 'notes.txt' })])
-    assert.equal(ran(bash).pass, true)
-    assert.equal(ran(shell, /contract-42/).pass, true)
-    assert.equal(ran(bash, 'deploy').pass, false)
-    assert.equal(ran(other).pass, false)
+    const bash = [tool('bash', { command: 'echo contract-42' })]
+    const shell = [tool('shell', { command: 'echo contract-42' })]
+    const other = [tool('read', { path: 'notes.txt' })]
+    assert.equal(ranAny(bash), true)
+    assert.equal(ranAny(shell, /contract-42/), true)
+    assert.equal(ranAny(bash, 'deploy'), false)
+    assert.equal(ranAny(other), false)
   })
 
   test('a string or RegExp still matches the whole command line', () => {
-    const t = turnOf([tool('bash', { command: 'cat genkit.config.ts' })])
-    assert.equal(ran(t, 'genkit').pass, true)
-    assert.equal(ran(t, /genkit/).pass, true)
-    assert.equal(ran(t, { program: 'genkit' }).pass, false)
+    const t = [tool('bash', { command: 'cat genkit.config.ts' })]
+    assert.equal(ranAny(t, 'genkit'), true)
+    assert.equal(ranAny(t, /genkit/), true)
+    assert.equal(ranAny(t, { program: 'genkit' }), false)
   })
 
   test('{ program } matches the program a segment ran, after its wrappers', () => {
-    const t = turnOf([
+    const t = [
       tool('bash', { command: 'cd app && FOO=1 npx -y genkit@latest flow:run x' }),
       tool('shell', { command: 'npm i genkit; ./node_modules/.bin/skills add y' }),
-    ])
-    assert.equal(ran(t, { program: 'genkit' }).pass, true)
-    assert.equal(ran(t, { program: 'genkit', args: /^flow:run\b/ }).pass, true)
-    assert.equal(ran(t, { program: 'genkit', args: 'flow:run x' }).pass, true)
-    assert.equal(ran(t, { program: /^gen/, args: 'x' }).pass, true)
-    assert.equal(ran(t, { program: 'skills', args: /^add\b/ }).pass, true)
-    assert.equal(ran(t, { program: 'genkit', args: /^start\b/ }).pass, false)
-    assert.equal(ran(t, { program: 'npx' }).pass, false)
-    assert.equal(ran(t, { program: 'npm', args: /^i\b/ }).pass, true)
+    ]
+    assert.equal(ranAny(t, { program: 'genkit' }), true)
+    assert.equal(ranAny(t, { program: 'genkit', args: /^flow:run\b/ }), true)
+    assert.equal(ranAny(t, { program: 'genkit', args: 'flow:run x' }), true)
+    assert.equal(ranAny(t, { program: /^gen/, args: 'x' }), true)
+    assert.equal(ranAny(t, { program: 'skills', args: /^add\b/ }), true)
+    assert.equal(ranAny(t, { program: 'genkit', args: /^start\b/ }), false)
+    assert.equal(ranAny(t, { program: 'npx' }), false)
+    assert.equal(ranAny(t, { program: 'npm', args: /^i\b/ }), true)
   })
 
-  test('{ program } fails listing every program run, and .not lists the matching ones', () => {
-    const t = turnOf([tool('bash', { command: 'npm i genkit && npx genkit start' })])
-    assert.equal(
-      ran(t, { program: 'genkit', args: /^flow:run\b/ }).message(),
-      'expected runs of genkit with args matching /^flow:run\\b/, got ["npm i genkit","genkit start"]',
-    )
-    expect(t).toHaveRun({ program: 'genkit' })
-    throws(
-      () => expect(t).not.toHaveRun({ program: 'genkit' }),
-      'expected no runs of genkit, got ["genkit start"]',
-    )
+  test('{ program } lists every program run, and the matching ones', () => {
+    const t = [tool('bash', { command: 'npm i genkit && npx genkit start' })]
+    assert.deepEqual(commandsRun(t, { program: 'genkit' }), {
+      seen: ['npm i genkit', 'genkit start'],
+      hits: ['genkit start'],
+    })
   })
 
   test('{ program } is checked: its keys, its program and its args', () => {
-    const t = turnOf([tool('bash', { command: 'genkit start' })])
-    const misuse = (match: unknown, message: RegExp) =>
+    const t = [tool('bash', { command: 'genkit start' })]
+    const refused = (match: unknown, message: RegExp) =>
       assert.throws(
-        () => ran(t, match as never),
-        (e: Error) => isMisuse(e) && message.test(e.message),
+        () => commandsRun(t, match as never),
+        (e: Error) => e instanceof TypeError && message.test(e.message),
       )
-    misuse({ program: 'genkit', arg: 'start' }, /has no "arg"; .* Did you mean "args"\?/)
-    misuse({ args: 'start' }, /program is a program name or a regular expression/)
-    misuse({ program: '' }, /program is a program name/)
-    misuse({ program: 'genkit', args: ['start'] }, /args is text or a regular expression/)
+    refused({ program: 'genkit', arg: 'start' }, /has no "arg"; .* Did you mean "args"\?/)
+    refused({ args: 'start' }, /program is a program name or a regular expression/)
+    refused({ program: '' }, /program is a program name/)
+    refused({ program: 'genkit', args: ['start'] }, /args is text or a regular expression/)
   })
 
   test('runMatchLabel names the program and its args', () => {
@@ -251,103 +191,44 @@ describe('ran', () => {
   })
 })
 
-describe('edited', () => {
-  const withDiff = (transcript: TranscriptEvent[], ...paths: string[]) => ({
-    ...turnOf(transcript),
-    diff: { patch: '', files: paths.map((path) => ({ path, status: 'added' as const })) },
-  })
-  const heredoc = tool('bash', { command: "cat <<'EOF' > notes.txt\nhello\nEOF" }, '')
-
-  test('matches a file-edit, or a file in the workspace diff', () => {
-    const file = turnOf([edit('notes.txt')])
-    const shell = withDiff([heredoc], 'notes.txt')
-    assert.equal(edited(file, 'notes.txt').pass, true)
-    assert.equal(edited(file).pass, true)
-    assert.equal(edited(shell, 'notes.txt').pass, true)
-    assert.equal(edited(shell).pass, true)
-    assert.equal(edited(file, 'other.txt').pass, false)
-    assert.equal(edited(shell, /^other/).pass, false)
+describe('editedPaths', () => {
+  test('lists the file-edit paths once each, matching a path', () => {
+    const t = [edit('notes.txt'), edit('notes.txt'), edit('a.txt', 'create')]
+    assert.deepEqual(editedPaths(t), ['notes.txt', 'a.txt'])
+    assert.deepEqual(editedPaths(t, /^a/), ['a.txt'])
   })
 
   test("doesn't count a tool that only names the path", () => {
-    const read = withDiff([tool('bash', { command: 'cat notes.txt' }, 'hello')])
-    assert.equal(edited(read, 'notes.txt').pass, false)
-    assert.equal(edited(read).pass, false)
-    assert.equal(edited(turnOf([heredoc]), 'notes.txt').pass, false)
-    expect(read).not.toHaveEdited('notes.txt')
-  })
-
-  test('reads the files the turn changed, not its cumulative diff', () => {
-    const first = { ...withDiff([heredoc], 'notes.txt'), [TURN_EDITED]: ['notes.txt'] }
-    const second = { ...withDiff([], 'notes.txt'), [TURN_EDITED]: [] }
-    expect(first).toHaveEdited('notes.txt')
-    expect(second).not.toHaveEdited('notes.txt')
-    expect({ turns: [first, second] }).toHaveEdited('notes.txt')
-    assert.equal(edited({ turns: [] }).pass, false)
-  })
-
-  test('names the files it saw, once', () => {
-    throws(
-      () => expect(withDiff([edit('notes.txt')], 'notes.txt', 'a.txt')).toHaveEdited('b.txt'),
-      'expected file edits matching b.txt, got ["notes.txt","a.txt"]',
-    )
-    throws(
-      () => expect(withDiff([heredoc], 'notes.txt')).not.toHaveEdited('notes.txt'),
-      'expected no file edits matching notes.txt, got ["notes.txt"]',
-    )
+    const heredoc = tool('bash', { command: "cat <<'EOF' > notes.txt\nhello\nEOF" }, '')
+    assert.deepEqual(editedPaths([tool('bash', { command: 'cat notes.txt' }, 'hello')]), [])
+    assert.deepEqual(editedPaths([heredoc], 'notes.txt'), [])
   })
 })
 
-describe('changed', () => {
-  const diffOf = (...files: Array<[string, 'added' | 'modified' | 'deleted']>) => ({
-    ...turnOf([]),
-    diff: { patch: '', files: files.map(([path, status]) => ({ path, status })) },
-  })
-  const turn = diffOf(['test/greet.test.js', 'modified'], ['src/greet.ts', 'added'])
+describe('changesIn', () => {
+  const files = [
+    { path: 'test/greet.test.js', status: 'modified' as const },
+    { path: 'src/greet.ts', status: 'added' as const },
+  ]
+  const paths = (match?: Parameters<typeof changesIn>[1]) =>
+    changesIn(files, match).map((f) => f.path)
 
   test('matches the diff with globs, directories, RegExps and lists', () => {
-    assert.equal(changed(turn, 'test/**').pass, true)
-    assert.equal(changed(turn, 'test').pass, true)
-    assert.equal(changed(turn, './test/').pass, true)
-    assert.equal(changed(turn, 'src/greet.ts').pass, true)
-    assert.equal(changed(turn, /\.test\.js$/).pass, true)
-    assert.equal(changed(turn, ['tsconfig.json', 'src/*.ts']).pass, true)
-    assert.equal(changed(turn).pass, true)
-    assert.equal(changed(turn, 'greet.ts').pass, false)
-    assert.equal(changed(turn, ['tsconfig.json', 'biome.json']).pass, false)
-    assert.equal(changed(diffOf()).pass, false)
-  })
-
-  test('reads c as of its latest turn, and nothing before one', () => {
-    assert.equal(changed({ turns: [diffOf(), turn] }, 'test/**').pass, true)
-    assert.equal(changed({ turns: [turn, diffOf()] }, 'test/**').pass, false)
-    assert.equal(changed({ turns: [] }).pass, false)
-    expect({ turns: [turn] }).toHaveChanged('src/**')
-  })
-
-  test('names the files it saw', () => {
-    throws(
-      () => expect(turn).not.toHaveChanged('test/**'),
-      'expected no changes to test/**, got ["test/greet.test.js" (modified)]',
-    )
-    throws(
-      () => expect(turn).not.toHaveChanged(['tsconfig.json', /greet/]),
-      'expected no changes to tsconfig.json, /greet/, got ["test/greet.test.js" (modified), "src/greet.ts" (added)]',
-    )
-    throws(
-      () => expect(turn).toHaveChanged('package.json'),
-      'expected changes to package.json, got ["test/greet.test.js" (modified), "src/greet.ts" (added)]',
-    )
-    throws(() => expect(diffOf()).toHaveChanged(), 'expected changes, got none')
-    throws(
-      () => expect({} as never).toHaveChanged('x'),
-      'toHaveChanged() expects a turn from c.send(), or c',
-    )
+    assert.deepEqual(paths('test/**'), ['test/greet.test.js'])
+    assert.deepEqual(paths('test'), ['test/greet.test.js'])
+    assert.deepEqual(paths('./test/'), ['test/greet.test.js'])
+    assert.deepEqual(paths('src/greet.ts'), ['src/greet.ts'])
+    assert.deepEqual(paths(/\.test\.js$/), ['test/greet.test.js'])
+    assert.deepEqual(paths(['tsconfig.json', 'src/*.ts']), ['src/greet.ts'])
+    assert.deepEqual(paths(), ['test/greet.test.js', 'src/greet.ts'])
+    assert.deepEqual(paths('greet.ts'), [])
+    assert.deepEqual(paths(['tsconfig.json', 'biome.json']), [])
+    assert.deepEqual(changesIn([]), [])
   })
 })
 
-describe('searched and fetched', () => {
-  const web = turnOf([
+describe('webEvents', () => {
+  const web: TranscriptEvent[] = [
     {
       ...at,
       type: 'web-fetch',
@@ -362,59 +243,26 @@ describe('searched and fetched', () => {
       query: 'IANA example domain RFC 2606',
       references: 2,
     },
-  ])
+  ]
 
-  test('wrap the existing web matchers, including on c', () => {
-    assert.equal(fetched(web, 'httpbin.org').pass, true)
-    assert.equal(searched(web, /RFC 2606/).pass, true)
-    const c = { turns: [web] }
-    assert.equal(fetched(c, 'httpbin.org').pass, true)
-    expect(c).toHaveFetched('httpbin.org')
+  test('lists the fetches and searches, and those matching', () => {
+    const subject = { transcript: web, unreported: [] }
+    assert.deepEqual(webEvents(subject, 'web-fetch', 'httpbin.org', 'fetched()').hits, [
+      'https://httpbin.org/ip',
+    ])
+    assert.deepEqual(webEvents(subject, 'web-search', /RFC 2606/, 'searched()').hits, [
+      'IANA example domain RFC 2606',
+    ])
   })
 
   test("refuse a turn whose harness doesn't report them", () => {
-    const cursor = turnOf([], ['web-search', 'web-fetch'])
+    const cursor = { transcript: [], unreported: ['web-search' as const, 'web-fetch' as const] }
     assert.throws(
-      () => fetched(cursor, 'httpbin'),
+      () => webEvents(cursor, 'web-fetch', 'httpbin', 'fetched()'),
       (e: Error) => {
         assert.equal(e.name, 'HarnessCapabilityError')
         return true
       },
-    )
-  })
-})
-
-describe('expect matchers', () => {
-  test('throw, and the expect wrappers share the predicates', () => {
-    const t = turnOf([tool('skill', { id: 'foo' })])
-    expect(t).toHaveCalledSkill('foo')
-    throws(() => expect(t).toHaveCalledSkill('bar'), /expected skill-like calls matching bar/)
-    assert.equal(matchers.toHaveCalledSkill(t, 'foo').pass, true)
-    assert.equal(matchers.toHaveCalledSkill(t, 'bar').pass, false)
-    assert.throws(
-      () => expect({} as never).toHaveCalledSkill('foo'),
-      /toHaveCalledSkill\(\) expects a turn from c.send\(\), or c/,
-    )
-    assert.throws(
-      () => expect({} as never).toHaveCalledMcp('stamp', 'house_stamp'),
-      /toHaveCalledMcp\(\) expects a turn from c.send\(\), or c/,
-    )
-  })
-
-  test('reads every turn on c', () => {
-    const first = turnOf([tool('read', { path: '~/.agents/skills/foo/SKILL.md' })])
-    const second = turnOf([tool('mcp__stamp__house_stamp', {})])
-    const c = { turns: [first, second] }
-    expect(c).toHaveCalledSkill('foo')
-    expect(c).toHaveCalledMcp('stamp', 'house_stamp')
-    expect(c).toHaveCalledTool('mcp__stamp__house_stamp')
-    throws(
-      () => expect(first).toHaveCalledMcp('stamp', 'house_stamp'),
-      /expected MCP calls matching stamp\/house_stamp, got none/,
-    )
-    throws(
-      () => expect(first).toHaveCalledTool('mcp__stamp__house_stamp'),
-      /expected tool calls matching mcp__stamp__house_stamp, got \["read"\]/,
     )
   })
 })
@@ -476,11 +324,9 @@ const replay = (harness: string, file: string) => {
     .split('\n')
     .filter(Boolean)
     .map((l) => JSON.parse(l) as { ms: number; part: { type: string; [k: string]: unknown } })
-  return turnOf(
-    normalizeStream(
-      lines.map((l) => ({ ms: l.ms, part: l.part as never })),
-      0,
-    ),
+  return normalizeStream(
+    lines.map((l) => ({ ms: l.ms, part: l.part as never })),
+    0,
   )
 }
 
@@ -499,32 +345,26 @@ describe('replay captures through normalizeStream', () => {
   })
 
   for (const harness of harnesses) {
-    test(`${harness} skill.raw.jsonl: toHaveCalledSkill('contract-probe')`, () => {
+    test(`${harness} skill.raw.jsonl: the contract-probe skill`, () => {
       const t = replay(harness, 'skill.raw.jsonl')
-      expect(t).toHaveCalledSkill('contract-probe')
-      throws(() => expect(t).toHaveCalledSkill('no-such-skill'), /expected skill-like calls/)
+      assert.equal(usedSkill(t, 'contract-probe'), true)
+      assert.equal(usedSkill(t, 'no-such-skill'), false)
     })
 
-    test(`${harness} mcp.raw.jsonl: toHaveCalledMcp('stamp', 'house_stamp')`, () => {
+    test(`${harness} mcp.raw.jsonl: stamp's house_stamp`, () => {
       const t = replay(harness, 'mcp.raw.jsonl')
-      expect(t).toHaveCalledMcp('stamp', 'house_stamp')
-      expect(t).toHaveCalledTool('mcp__stamp__house_stamp')
-      throws(
-        () => expect(t).toHaveCalledMcp('stamp', 'other'),
-        /expected MCP calls matching stamp\/other/,
-      )
-      throws(
-        () => expect(t).toHaveCalledTool('mcp__stamp__other'),
-        /expected tool calls matching mcp__stamp__other/,
-      )
+      assert.ok(mcpCalls(t, 'stamp', 'house_stamp').length > 0)
+      assert.ok(toolCallsIn(t, 'mcp__stamp__house_stamp').length > 0)
+      assert.equal(mcpCalls(t, 'stamp', 'other').length, 0)
+      assert.equal(toolCallsIn(t, 'mcp__stamp__other').length, 0)
     })
 
-    test(`${harness} edit-and-run.raw.jsonl: toHaveRun and toHaveEdited`, () => {
+    test(`${harness} edit-and-run.raw.jsonl: a command and an edit`, () => {
       const t = replay(harness, 'edit-and-run.raw.jsonl')
-      expect(t).toHaveRun(/contract/)
-      expect(t).toHaveRun({ program: 'echo', args: /^contract-/ })
-      expect(t).toHaveEdited('notes.txt')
-      throws(() => expect(t).toHaveRun(/deploy/), /expected shell commands matching \/deploy\//)
+      assert.equal(ranAny(t, /contract/), true)
+      assert.equal(ranAny(t, { program: 'echo', args: /^contract-/ }), true)
+      assert.equal(ranAny(t, /deploy/), false)
+      assert.deepEqual(editedPaths(t, 'notes.txt'), ['notes.txt'])
     })
   }
 })
@@ -618,11 +458,11 @@ describe("every harness's skill use", () => {
       )
     })
 
-    test(`${harness}: toHaveCalledSkill, skill_reads and the context class all see it`, () => {
-      const t = turnOf([tool(use.tool, use.input)])
-      expect(t).toHaveCalledSkill('contract-probe')
-      expect(t).not.toHaveCalledSkill('contract')
-      expect(t).not.toHaveCalledSkill('probe')
+    test(`${harness}: skillCalls, skill_reads and the context class all see it`, () => {
+      const t = [tool(use.tool, use.input)]
+      assert.equal(usedSkill(t, 'contract-probe'), true)
+      assert.equal(usedSkill(t, 'contract'), false)
+      assert.equal(usedSkill(t, 'probe'), false)
       const [call] = toolCalls(
         transcriptByLine(JSON.stringify({ type: 'tool', tool: use.tool, input: use.input })),
       )
@@ -643,24 +483,24 @@ describe("every harness's skill use", () => {
   }
 
   test("Claude Code's plugin skill is <plugin>:<name>", () => {
-    const t = turnOf([tool('Skill', { skill: 'house:contract-probe' })])
-    expect(t).toHaveCalledSkill('contract-probe')
-    expect(t).toHaveCalledSkill('house:contract-probe')
-    expect(t).not.toHaveCalledSkill('house')
+    const t = [tool('Skill', { skill: 'house:contract-probe' })]
+    assert.equal(usedSkill(t, 'contract-probe'), true)
+    assert.equal(usedSkill(t, 'house:contract-probe'), true)
+    assert.equal(usedSkill(t, 'house'), false)
   })
 
   test('a shell command that cds into the skill reads it; one that excludes it does not', () => {
-    const cd = turnOf([tool('bash', { command: 'cd ~/.agents/skills/foo && cat SKILL.md' })])
-    expect(cd).toHaveCalledSkill('foo')
-    expect(cd).not.toHaveCalledSkill('foo-bar')
-    const excluded = turnOf([tool('bash', { command: 'rg -n todo --glob "!skills/foo/**"' })])
-    expect(excluded).not.toHaveCalledSkill('foo')
-    const tested = turnOf([tool('bash', { command: '[ -d ~/.agents/skills/foo ] && echo yes' })])
-    expect(tested).not.toHaveCalledSkill('foo')
+    const cd = [tool('bash', { command: 'cd ~/.agents/skills/foo && cat SKILL.md' })]
+    assert.equal(usedSkill(cd, 'foo'), true)
+    assert.equal(usedSkill(cd, 'foo-bar'), false)
+    const excluded = [tool('bash', { command: 'rg -n todo --glob "!skills/foo/**"' })]
+    assert.equal(usedSkill(excluded, 'foo'), false)
+    const tested = [tool('bash', { command: '[ -d ~/.agents/skills/foo ] && echo yes' })]
+    assert.equal(usedSkill(tested, 'foo'), false)
   })
 })
 
-describe('toStayWithin', () => {
+describe('budgetUsed and overLimits', () => {
   const usage = { input: 900, output: 100, cacheRead: 50, cacheWrite: 0, reasoning: null }
   const budgetTurn = (
     transcript: TranscriptEvent[],
@@ -677,60 +517,45 @@ describe('toStayWithin', () => {
     edit('a.ts'),
   ])
   const two = budgetTurn([tool('bash', { command: 'make' })], 2000)
+  const over = (
+    turns: Parameters<typeof budgetUsed>[0],
+    limits: Parameters<typeof overLimits>[1],
+  ) => {
+    const used = budgetUsed(turns)
+    return overLimits({ ...used, tokens: used.tokens ?? 0 }, limits)
+  }
 
-  test('a turn within each limit passes; over one names it with the figure', () => {
-    assert.equal(
-      withinLimits(one, { tokens: 1050, toolCalls: 3, duration: '1s' }, false).pass,
-      true,
-    )
-    const over = withinLimits(one, { tokens: 1000, toolCalls: { bash: 1, read: 0 } }, false)
-    assert.equal(over.pass, false)
-    assert.equal(
-      over.message(),
-      'went over its budget: tokens 1,050 > 1,000 (subagents included) · bash 2 > 1',
-    )
+  test('a turn within each limit has nothing over; over one names it with the figure', () => {
+    assert.deepEqual(over([one], { tokens: 1050, toolCalls: 3, duration: '1s' }), [])
+    assert.deepEqual(over([one], { tokens: 1000, toolCalls: { bash: 1, read: 0 } }), [
+      'tokens 1,050 > 1,000 (subagents included)',
+      'bash 2 > 1',
+    ])
   })
 
-  test('c sums every turn', () => {
-    const c = { turns: [one, two] }
-    assert.equal(withinLimits(c, { toolCalls: { bash: 3 }, tokens: 2100 }, false).pass, true)
-    assert.equal(
-      withinLimits(c, { toolCalls: { bash: 2 }, duration: '2s' }, false).message(),
-      'went over its budget: bash 3 > 2 · duration 3s > 2s',
+  test('sums every turn', () => {
+    assert.deepEqual(over([one, two], { toolCalls: { bash: 3 }, tokens: 2100 }), [])
+    assert.deepEqual(over([one, two], { toolCalls: { bash: 2 }, duration: '2s' }), [
+      'bash 3 > 2',
+      'duration 3s > 2s',
+    ])
+  })
+
+  test('a null usage has no token figure', () => {
+    assert.equal(budgetUsed([budgetTurn([tool('bash', {})], 10, null)]).tokens, null)
+  })
+
+  test('limitsProblem refuses bad limits', () => {
+    const problem = (limits: unknown) =>
+      limitsProblem(limits, 'withinLimits()', ['tokens', 'toolCalls', 'duration'], 'e.g. …')
+    assert.match(problem({}) ?? '', /needs at least one limit/)
+    assert.match(
+      problem({ toolcalls: 3 }) ?? '',
+      /no limit "toolcalls".*Did you mean "toolCalls"\?/,
     )
-  })
-
-  test('a null usage refuses tokens only', () => {
-    const none = budgetTurn([tool('bash', {})], 10, null)
-    throws(() => withinLimits(none, { tokens: 5 }, false), /can't check tokens/)
-    assert.equal(withinLimits(none, { toolCalls: 1 }, false).pass, true)
-  })
-
-  test('bad limits and .not are misuse TypeErrors', () => {
-    const typeError = (limits: unknown, message: RegExp, not = false) =>
-      assert.throws(
-        () => withinLimits(one, limits, not),
-        (e: Error) => {
-          assert.equal(e.name, 'TypeError')
-          assert.ok(isMisuse(e), 'a misuse, which the attempt records as its error')
-          assert.match(e.message, message)
-          return true
-        },
-      )
-    typeError({}, /needs at least one limit/)
-    typeError({ toolcalls: 3 }, /no limit "toolcalls".*Did you mean "toolCalls"\?/)
-    typeError({ tokens: -1 }, /tokens is a whole number/)
-    typeError({ toolCalls: { bash: 1.5 } }, /toolCalls\.bash is a whole number/)
-    typeError({ duration: 'soon' }, /duration: Invalid duration/)
-    typeError({ tokens: 5 }, /can't be negated/, true)
-  })
-
-  test('the label lists the limits', () => {
-    assert.equal(
-      limitsLabel({ tokens: 200_000, toolCalls: { bash: 10 }, duration: '5m' }),
-      'tokens 200,000, bash 10, duration 5m',
-    )
-    assert.equal(limitsLabel({ toolCalls: 3 }), 'toolCalls 3')
-    assert.equal(limitsLabel({ toolCalls: { bash: 10_000 } }), 'bash 10,000')
+    assert.match(problem({ tokens: -1 }) ?? '', /tokens is a whole number/)
+    assert.match(problem({ toolCalls: { bash: 1.5 } }) ?? '', /toolCalls\.bash is a whole number/)
+    assert.match(problem({ duration: 'soon' }) ?? '', /duration: Invalid duration/)
+    assert.equal(problem({ tokens: 5 }), undefined)
   })
 })

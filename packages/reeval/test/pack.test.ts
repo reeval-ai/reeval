@@ -55,14 +55,18 @@ async function makeApp(dir: string, pkg: string) {
   await writeFile(join(app, 'reeval.config.ts'), fakeConfig().replaceAll("'reeval", `'${pkg}`))
   await writeFile(
     join(app, 'evals/hello.eval.ts'),
-    `import { defineEval, defineGrader, expect } from '${pkg}'
-import { turns } from '${pkg}/graders'
+    `import { defineEval, defineGrader } from '${pkg}'
+import { judge, turns } from '${pkg}/graders'
 import { usage } from '${pkg}/graders/match'
+import { fakeJudge } from '${pkg}/judge'
 export default defineEval({
-  graders: [turns(), defineGrader('one-turn', { grade: (c) => usage(c).turns === 1 })],
+  graders: [
+    turns(),
+    defineGrader('one-turn', { grade: (c) => usage(c).turns === 1 }),
+    judge('Did it say hi?', { inputs: { diff: true }, model: fakeJudge({ score: 1 }) }),
+  ],
   async task(c) {
     await c.send('say hi')
-    expect(await c.judge('Did it say hi?', { diff: true })).toPass()
   },
 })
 `,

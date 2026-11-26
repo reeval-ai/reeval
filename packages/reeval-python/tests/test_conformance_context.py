@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import shutil
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import pytest
 
@@ -33,16 +33,6 @@ def _without_stack(msg: dict[str, Any]) -> dict[str, Any]:
     return {**msg, "error": kept}
 
 
-def _check_site(msg: dict[str, Any], mirror: Path) -> None:
-    """A check's call names its line in the mirror, which the golden can't hold; drop it."""
-    call = msg.get("call")
-    if not isinstance(call, dict) or call.get("op") not in ("expect", "record"):  # pyright: ignore[reportUnknownMemberType]
-        return
-    at = cast(dict[str, Any], call.pop("at"))  # pyright: ignore[reportUnknownMemberType]
-    assert Path(at["file"]).resolve() == mirror.resolve(), at
-    assert isinstance(at["line"], int) and at["line"] > 0, at
-
-
 @pytest.mark.parametrize("mirror", MIRRORS, ids=[m.name for m in MIRRORS])
 def test_context_golden(mirror: Path, tmp_path: Path) -> None:
     case = mirror.name.split(".")[0]
@@ -64,17 +54,12 @@ def test_context_golden(mirror: Path, tmp_path: Path) -> None:
         elif "runner" in line:
             sent = runner.read()
             assert sent.pop("key", None) == "k1"
-            _check_site(sent, tmp_path / rel)
             assert _without_stack(sent) == line["runner"]
     assert runner.finish() == [], "the runner sent nothing after the golden's last line"
 
 
-# JavaScript regular expressions on the wire: Python sends its own patterns ({ matchedBy }).
-NOT_PYTHON = {"expect-regexp"}
-
-
 def test_every_golden_has_a_mirror() -> None:
-    goldens = {p.stem for p in GOLDENS.glob("*.ndjson")} - NOT_PYTHON
+    goldens = {p.stem for p in GOLDENS.glob("*.ndjson")}
     mirrored = {m.name.split(".")[0] for m in MIRRORS}
     assert mirrored == goldens, (
         f"unmirrored {sorted(goldens - mirrored)}, extra {sorted(mirrored - goldens)}"

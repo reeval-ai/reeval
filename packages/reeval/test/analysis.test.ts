@@ -55,7 +55,8 @@ async function compareProject(name: string, runs: number) {
   return project(name, {
     'reeval.config.ts': fakeConfig({ harness: "{ withSkill: { files: { 'ok.txt': 'y' } } }" }),
     'skills/s/SKILL.md': '---\nname: s\ndescription: A skill. Use when testing.\n---\nBody.\n',
-    'evals/c.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+    'evals/c.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
@@ -67,7 +68,7 @@ export default defineEval({
   compare: { control: plain, variants: [skilled] }, runs: ${runs},
   async task(c) {
     await c.send('go')
-    await expect(c).toHaveFile('ok.txt')
+    assert.notEqual(await c.readFile('ok.txt'), null)
   },
 })
 `,
@@ -461,12 +462,13 @@ export default defineEval({
   test('the same change passing and failing its check is caused by the check', async () => {
     const flips = (harness: string) => ({
       'reeval.config.ts': fakeConfig({ harness }),
-      'evals/f.eval.ts': `import { defineEval, expect, metric } from 'reeval'
+      'evals/f.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval, metric } from 'reeval'
 export default defineEval({
   runs: 6, target: metric(0.5),
   async task(c) {
     await c.send('go')
-    expect(c.attempt.n % 2, 'a racy check').toBe(1)
+    assert.equal(c.attempt.n % 2, 1, 'a racy check')
   },
 })
 `,
@@ -689,7 +691,8 @@ describe('effort next to lift', () => {
     const p = await project('effort-summary', {
       'reeval.config.ts': fakeConfig({ harness: "{ withSkill: { files: { 'ok.txt': 'y' } } }" }),
       'skills/s/SKILL.md': '---\nname: s\ndescription: A skill. Use when testing.\n---\nBody.\n',
-      'evals/c.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+      'evals/c.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
@@ -701,7 +704,7 @@ export default defineEval({
   compare: { control: plain, variants: [skilled] }, runs: 2,
   async task(c) {
     await c.send('go')
-    await expect(c).toHaveFile('ok.txt')
+    assert.notEqual(await c.readFile('ok.txt'), null)
   },
 })
 `,
@@ -1353,7 +1356,8 @@ export default defineEval({
         extra: "record: 'always',",
       }),
       'skills/s/SKILL.md': '---\nname: s\ndescription: A skill. Use when testing.\n---\nBody.\n',
-      'evals/c.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+      'evals/c.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
@@ -1365,7 +1369,7 @@ export default defineEval({
   compare: { control: plain, variants: [skilled] }, runs: 2,
   async task(c) {
     await c.send('go')
-    await expect(c).toHaveFile('ok.txt')
+    assert.notEqual(await c.readFile('ok.txt'), null)
   },
 })
 `,
@@ -1941,7 +1945,7 @@ async function studyDigest(name: string, options: StudyOptions = {}) {
 }
 
 describe('a study: several arms, every cell ungated', () => {
-  test('labels and names: judges and checks go by their expect label, and the control by its environment', async () => {
+  test('names: the control goes by its environment, and attempt ids keep the tag', async () => {
     const files = studyFiles()
     const script =
       "node -e \"\\n  const fs = require('fs')\\n  process.exit(fs.statSync('src/App.tsx').size ? 0 : 1)\\n\""
@@ -1952,29 +1956,6 @@ describe('a study: several arms, every cell ungated', () => {
     const p = await project('study-labels', files)
     const run = await runCli(p.dir)
     assert.equal(run.code, 0, run.stdout + run.stderr)
-    const show = await runCli(p.dir, ['show'])
-    // Judges go by their expect labels, a column per arm, the control by its environment.
-    assert.match(
-      show.stdout,
-      /^ {2}check {14}no-skill {2}current-skill {2}new-skill\n {2}Social OAuth {7}3 of 3 {4}0 of 3 {9}3 of 3\n {4}judge score 0\.12 is below 0\.8 for "Does it implement social sign-in\?" \(fake\)$/m,
-      'the control names its judges by their expect labels',
-    )
-    assert.match(show.stdout, /^ {2}MFA {16}0 of 3 /m)
-    assert.doesNotMatch(show.stdout, /…social sign-in|Does it upgrade an…/, 'no clipped question')
-    const summary = readRun(p.dir).read('summary.md')
-    assert.match(
-      summary,
-      /^\| Assertion \| Matcher \| no-skill \| current-skill \| new-skill \| Total \|$/m,
-    )
-    assert.match(
-      summary,
-      /^\| build \| toSucceed \| 3 of 3 \| 3 of 3 \| 3 of 3 \| 9 of 9 \|$/m,
-      'the build check is labeled and scored per arm',
-    )
-    assert.match(
-      summary,
-      /^\| MFA \| Does it implement multi-factor sign-in\? \| 0\.8 \| .* \| 0\.12 \| 0 of 9 \|$/m,
-    )
     const { digest } = await digestOf(p.dir, ['--vs', 'none'])
     const pass = digest.facts.find((f) => f.kind === 'pass@1') as { cells: Array<{ cell: string }> }
     assert.deepEqual(
@@ -1987,32 +1968,13 @@ describe('a study: several arms, every cell ungated', () => {
     )
   })
 
-  test('the digest frames it as a study: criteria say what differs, never-met labels once, evidence for every arm', async () => {
+  test('the digest frames it as a study, with what each arm read and its effort against the control', async () => {
     const { p, digest, text } = await studyDigest('study-digest', {
       instructions: 'Compare both skills against no skill and against each other.',
-      output: `(d) => {
-        const criteria = d.facts.find((f) => f.kind === 'criteria')
-        return { tldr: criteria.rows.map((r) => r.label).join(', ') + ' separates the arms; ' + criteria.neverMet.join(' and ') + ' are never met in any arm.', whatHappened: [{ text: 'Social OAuth separates the arms.', cites: [criteria.id], confidence: 'high' }], results: [], why: [], anomalies: [], actions: [], confidence: { overall: 'medium', why: 'n = 3' } }
-      }`,
+      output: `(d) => ({ tldr: 'A study of ' + d.facts.find((f) => f.kind === 'pass@1').cells.length + ' arms.', whatHappened: [], results: [], why: [], anomalies: [], actions: [], confidence: { overall: 'medium', why: 'n = 3' } })`,
     })
     const d = digest as Digest & { frame: string }
     assert.equal(d.frame, 'study')
-    const criteria = digest.facts.find((f) => f.kind === 'criteria')
-    assert.deepEqual(criteria?.rows, [
-      {
-        label: 'Social OAuth',
-        cells: {
-          'no-skill (control)': '3/3 · 0.94',
-          'current-skill': '0/3 · 0.12',
-          'new-skill': '3/3 · 0.94',
-        },
-      },
-    ])
-    assert.deepEqual(criteria?.neverMet, ['Anonymous upgrade', 'MFA'])
-    assert.deepEqual(criteria?.alwaysMet, ['build', 'Email sign-in'])
-    const judge = digest.facts.find((f) => f.kind === 'judge')
-    assert.equal(judge?.verdicts, 36)
-    assert.equal(judge?.failures, undefined, 'which labels failed where is in criteria')
     const use = digest.facts.find((f) => f.kind === 'context-use') as
       | { cells: Array<{ cell: string; perAttempt: Record<string, string> }> }
       | undefined
@@ -2034,35 +1996,6 @@ describe('a study: several arms, every cell ungated', () => {
       assert.doesNotMatch(v.agentS ?? '', /^0 vs 0 /, 'two sub-50 ms medians have no ratio')
       assert.deepEqual(Object.keys(v.separated ?? {}).slice(0, 2), ['tools', 'agentS'])
     }
-    const current = digest.attempts['r1/auth/current-skill#1']
-    assert.deepEqual(
-      [current?.checks, current?.failed, current?.judges, current?.execs],
-      [
-        '2/5',
-        ['Social OAuth', 'Anonymous upgrade', 'MFA'],
-        { 'Email sign-in': 0.94, 'Social OAuth': 0.12, 'Anonymous upgrade': 0.12, MFA: 0.12 },
-        1,
-      ],
-    )
-    const failures = digest.facts.filter((f) => f.kind === 'failure')
-    assert.deepEqual(
-      failures.map((f) => f.attempt),
-      ['r1/auth/control#1', 'r1/auth/current-skill#1', 'r1/auth/new-skill#1'],
-      'one failure per arm, not eight from the first',
-    )
-    assert.deepEqual(failures[1]?.failed, ['Social OAuth', 'Anonymous upgrade', 'MFA'])
-    assert.deepEqual(
-      digest.evidence.filter((e) => e.ref.startsWith('attempt:')).map((e) => e.ref),
-      [
-        'attempt:r1/auth/control#1',
-        'attempt:r1/auth/current-skill#1',
-        'attempt:r1/auth/new-skill#1',
-      ],
-      'evidence for every arm, the current skill failing the label that separates it',
-    )
-    assert.ok(
-      digest.evidence[1]?.lines.includes('judge Social OAuth: Does it implement social sign-in?'),
-    )
     assert.match(text, /This run is a study: every cell is ungated/)
     assert.ok(
       text.indexOf('## Project instructions') < text.indexOf('## How reeval decided'),
@@ -2070,10 +2003,7 @@ describe('a study: several arms, every cell ungated', () => {
     )
     const analyzed = await runCli(p.dir, ['analyze', '--vs', 'none'])
     assert.equal(analyzed.code, 0, analyzed.stderr)
-    assert.match(
-      analyzed.stdout,
-      /Social OAuth separates the arms; Anonymous upgrade and MFA are never met in any arm\./,
-    )
+    assert.match(analyzed.stdout, /A study of 3 arms\./)
   })
 
   test('canary: the same arms with gated variants are not a study', async () => {
@@ -2097,25 +2027,10 @@ test('the prompt and rules say a study compares arms, and a label no arm meets e
 })
 
 describe('contrasts: each pair of arms, variant against variant too', () => {
-  test('show and summary.md set every arm side by side, the run names the arm a check failed on, and reeval query contrasts and the digest every pair', async () => {
+  test('reeval query contrasts and the digest set every pair of arms side by side', async () => {
     const p = await project('study-contrasts', studyFiles())
     const run = await runCli(p.dir)
     assert.equal(run.code, 0, run.stdout + run.stderr)
-    // Every attempt misses MFA, so pass can't tell the arms apart; the check matrix does.
-    const matrix = (indent: number) =>
-      new RegExp(
-        `^ {${indent}}check {14}no-skill {2}current-skill {2}new-skill\n {${indent}}Social OAuth {7}3 of 3 {4}0 of 3 {9}3 of 3$`,
-        'm',
-      )
-    // The run prints show's matrix under its tree: the check failed on current-skill only.
-    assert.match(run.stdout, matrix(5))
-    assert.match((await runCli(p.dir, ['show'])).stdout, matrix(2))
-    const summary = readRun(p.dir).read('summary.md')
-    assert.match(
-      summary,
-      /^\| Assertion \| Matcher \| no-skill \| current-skill \| new-skill \| Total \|$/m,
-    )
-    assert.match(summary, /^\| Social OAuth \| toPass \| 3 of 3 \| 0 of 3 \| 3 of 3 \| 6 of 9 \|$/m)
     const rows = await query(
       p.dir,
       'SELECT a_environment, b_environment, a_pass, b_pass, pass_verdict, discriminating, checks FROM contrasts',
@@ -2131,9 +2046,9 @@ describe('contrasts: each pair of arms, variant against variant too', () => {
         r.checks,
       ]),
       [
-        ['current-skill', 'no-skill', 0, 0, 'noise', 'Social OAuth', 5],
-        ['new-skill', 'no-skill', 0, 0, 'noise', null, 5],
-        ['new-skill', 'current-skill', 0, 0, 'noise', 'Social OAuth', 5],
+        ['current-skill', 'no-skill', 0, 0, 'noise', null, 0],
+        ['new-skill', 'no-skill', 0, 0, 'noise', null, 0],
+        ['new-skill', 'current-skill', 0, 0, 'noise', null, 0],
       ],
     )
     const { digest } = await digestOf(p.dir, ['--vs', 'none'])
@@ -2147,9 +2062,9 @@ describe('contrasts: each pair of arms, variant against variant too', () => {
         (f.checks as Row[]).map((k) => k.label),
       ]),
       [
-        ['current-skill', 'no-skill (control)', '0/3 vs 0/3', 'within noise', ['Social OAuth']],
+        ['current-skill', 'no-skill (control)', '0/3 vs 0/3', 'within noise', []],
         ['new-skill', 'no-skill (control)', '0/3 vs 0/3', 'within noise', []],
-        ['new-skill', 'current-skill', '0/3 vs 0/3', 'within noise', ['Social OAuth']],
+        ['new-skill', 'current-skill', '0/3 vs 0/3', 'within noise', []],
       ],
     )
     assert.equal(
@@ -2168,7 +2083,6 @@ describe('contrasts: each pair of arms, variant against variant too', () => {
     assert.deepEqual(await query(p.dir, 'SELECT * FROM contrasts'), [])
     const { digest } = await digestOf(p.dir, ['--vs', 'none'])
     assert.equal(digest.facts.filter((f) => f.kind === 'contrast').length, 0)
-    assert.equal(digest.facts.filter((f) => f.kind === 'checks').length, 1)
   })
 })
 

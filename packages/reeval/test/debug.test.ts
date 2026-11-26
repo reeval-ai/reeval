@@ -34,7 +34,9 @@ function attemptDir(root: string, name: string): string {
 const read = (path: string) => readFileSync(path, 'utf8')
 
 const script = "{ script: [[{ exec: 'echo from-the-agent' }, { write: { 'out.txt': 'hi\\n' } }]] }"
-const passing = `import { defineEnvironment, defineEval, expect } from 'reeval'
+const passing = `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 import { fakeSandbox } from 'reeval/sandbox'
 const env = defineEnvironment('traced', {
   sandbox: fakeSandbox(),
@@ -43,18 +45,19 @@ const env = defineEnvironment('traced', {
 })
 export default defineEval({
   environment: env,
+  graders: [judge('Did it write out.txt?', { inputs: { diff: true } })],
   async task(c) {
     await c.send('write out.txt')
-    await expect(c.exec('test -f out.txt')).toSucceed()
-    expect(await c.judge('Did it write out.txt?', { diff: true })).toPass()
+    assert.equal((await c.exec('test -f out.txt')).exitCode, 0)
   },
 })
 `
-const failing = `import { defineEval, expect } from 'reeval'
+const failing = `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('write out.txt')
-    expect((await c.exec('test -f missing.txt')).exitCode).toBe(0)
+    assert.equal((await c.exec('test -f missing.txt')).exitCode, 0)
   },
 })
 `
@@ -87,7 +90,7 @@ describe('verbosity', () => {
     assert.match(r.stdout, / env {7}setup 1\/1 \$ echo set-up > setup\.txt → exit 0 · \d+m?s$/m)
     assert.match(r.stdout, / harness {3}tool shell called: \$ echo from-the-agent$/m)
     assert.match(r.stdout, / check {5}\$ test -f out\.txt → exit 0 · \d+m?s$/m)
-    assert.match(r.stdout, / judge {5}fake · \d+m?s · score 0\.90 ≥ 0\.8 · pass · reason: /m)
+    assert.match(r.stdout, / judge {5}fake · \d+m?s · true · P 0\.90$/m)
     assert.match(
       r.stdout,
       / teardown {2}record \.reeval\/runs\/\S+\.json · artifacts .* · debug \.reeval\/debug\//m,
@@ -261,12 +264,13 @@ describe('local debug data', () => {
         .replace('export default defineConfig({', 'export default defineConfig(({ secret }) => ({')
         .replace(/\}\)\n$/, '}))\n')
         .replace('judge:', "env: { LEAKY: secret.fromEnv('REEVAL_DEBUG_LEAKY') },\n  judge:"),
-      'evals/leaks.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/leaks.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('print it')
     const r = await c.exec(${JSON.stringify(leak)})
-    expect(r.exitCode).toBe(0)
+    assert.equal(r.exitCode, 0)
   },
 })
 `,
@@ -295,7 +299,8 @@ export default defineEval({
     const DSN = 'dsn_7c1d9ab04e4f2a6b8c'
     const p = await project('debug-redact-declared', {
       'reeval.config.ts': fakeConfig(),
-      'evals/b.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+      'evals/b.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const env = defineEnvironment('sentry', ({ secret }) => ({
   sandbox: fakeSandbox(),
@@ -307,7 +312,7 @@ export default defineEval({
     const dsn = (await c.exec('printenv SENTRY_DSN')).stdout.trim()
     console.log('logged', dsn)
     console.error('warned', dsn)
-    expect(dsn).toBe('wrong')
+    assert.equal(dsn, 'wrong')
   },
 })
 `,
@@ -326,7 +331,7 @@ export default defineEval({
         )
       }
       // The canary: the failure is on screen with the value masked, so a leak would show.
-      assert.match(screen, /expected '\[REDACTED\]' to be 'wrong'/, `${ui}: ${screen}`)
+      assert.match(screen, /\+ '\[REDACTED\]'/, `${ui}: ${screen}`)
       if (ui === 'plain') assert.match(screen, /stdout \| logged \[REDACTED\]/)
     }
   })
@@ -366,13 +371,14 @@ export default defineEval({ async task() {} })
       'reeval.config.ts': fakeConfig({
         harness: `{ script: [[{ exec: ${JSON.stringify(search)} }]] }`,
       }),
-      'evals/searches.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/searches.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('search')
     const tail = (process.env.REEVAL_DEBUG_PROVIDER_API_KEY ?? '').slice(-12)
     const r = await c.exec(\`echo searching for \${tail}; grep -rlsF -e '\${tail}' . || true\`)
-    expect(r.exitCode).toBe(0)
+    assert.equal(r.exitCode, 0)
   },
 })
 `,
@@ -406,7 +412,8 @@ export default defineEval({
     const config = `Authorization: ${AUTH}\nX-Request-Source: ${SOURCE}\n`
     const p = await project('debug-redact-mcp-header', {
       'reeval.config.ts': fakeConfig({ harness: "{ script: [[{ exec: 'cat mcp-config.txt' }]] }" }),
-      'evals/prints.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+      'evals/prints.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const env = defineEnvironment('headers', ({ mcp }) => ({
   sandbox: fakeSandbox(),
@@ -421,7 +428,7 @@ export default defineEval({
   environment: env,
   async task(c) {
     const turn = await c.send('print them')
-    expect(turn.text).toBe('Done.')
+    assert.equal(turn.text, 'Done.')
   },
 })
 `,

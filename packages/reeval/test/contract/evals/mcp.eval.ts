@@ -1,4 +1,5 @@
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { MCP_LOG, prompts, stamped, toolNames, withFakeMcp } from './probes.ts'
 
 // The environment's stdio MCP server is started in the sandbox and the agent calls its tool: the
@@ -10,7 +11,10 @@ export default defineEval({
   tags: ['mcp'],
   task: async (c) => {
     const turn = await c.send(prompts.mcp)
-    expect((await c.readFile(MCP_LOG)) ?? '').toContain('tools/call')
-    expect(toolNames(turn)).toContain('mcp__stamp__house_stamp')
+    assert.ok(
+      ((await c.readFile(MCP_LOG)) ?? '').includes('tools/call'),
+      'the MCP server logged a tools/call',
+    )
+    assert.ok(toolNames(turn).includes('mcp__stamp__house_stamp'))
   },
 })

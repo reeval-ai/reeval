@@ -669,19 +669,6 @@ const versionedRepo = (dir: string) => {
 
 const workspaceOf = (run: RunRecord) => run.environments.find((e) => e.workspace)?.workspace
 
-/** The first judge call's recorded input, of the eval `name`'s first attempt. */
-const judgeInputOf = (run: RunRecord, runDir: string, name = 'lands') => {
-  const path = run.evals.find((e) => e.name === name)?.attempts[0]?.files.judgeInput?.path
-  assert.ok(path, `${name} recorded its judge input`)
-  const [input] = JSON.parse(readFileSync(join(runDir, path), 'utf8'))
-  return input as {
-    stateOptions?: Record<string, unknown>
-    state: Record<string, unknown>
-    dropped?: string[]
-    artifacts?: Array<{ name: string; path: string; mediaType: string; bytes: number }>
-  }
-}
-
 /** An eval's first attempt's first grade, a judge grader's. */
 const judgeGradeOf = (run: RunRecord, name = 'lands') => {
   const grade = run.evals.find((e) => e.name === name)?.attempts[0]?.grades?.[0]
@@ -1338,6 +1325,24 @@ export const features: Feature[] = [
     record: ({ runDir }) => assert.equal(filesContaining(runDir, TOKEN), ''),
   },
   {
+    dir: 'secrets/grade-masked',
+    tiers: ['fake'],
+    env: 'tokens',
+    hostEnv: { REEVAL_FIXTURE_TOKEN: TOKEN },
+    canary: /: thrower errored: bad \[REDACTED\]$/,
+    record: ({ run, project, runDir, stdout }) => {
+      const grades = landed(run)?.grades?.map((g) => [g.grader, g.grade, g.error])
+      assert.deepEqual(grades, [
+        ['value', 'token [REDACTED]', undefined],
+        ['from-exec', '[REDACTED]', undefined],
+        ['thrower', undefined, 'bad [REDACTED]'],
+      ])
+      assert.equal(filesContaining(runDir, TOKEN), '')
+      assert.equal(filesContaining(join(project, '.reeval'), TOKEN), '')
+      assert.ok(!stdout.includes(TOKEN), 'the terminal output has the token')
+    },
+  },
+  {
     dir: 'secrets/file-sandbox-agent-sees-value',
     tiers: ['fake', 'docker'],
     env: 'keys',
@@ -1411,10 +1416,10 @@ export const features: Feature[] = [
     tiers: ['fake', 'docker'],
     env: 'tokens',
     hostEnv: { REEVAL_FIXTURE_TOKEN: TOKEN, REEVAL_FIXTURE_AGENT_VALUE: AGENT_VALUE },
-    canary: /expected '\[REDACTED\]' to be '\[REDACTED\]'/,
+    canary: zeroBy('sees-redacted'),
     record: ({ run, project, runDir }) => {
-      const sent = JSON.parse(readFileSync(join(project, 'judge-saw-lands.json'), 'utf8'))
-      assert.deepEqual(judgeInputOf(run, runDir).state, sent, 'judge-input.json is what was sent')
+      assert.ok(existsSync(join(project, 'judge-saw-lands.json')), 'the judge was called')
+      assert.equal(judgeGradeOf(run).score, 1)
       assert.equal(filesContaining(runDir, TOKEN), '')
       assert.equal(filesContaining(runDir, AGENT_VALUE), '')
     },
@@ -1937,7 +1942,7 @@ export const features: Feature[] = [
     dir: 'secrets/exec-env-masked',
     tiers: ['fake', 'docker'],
     env: 'plain',
-    canary: /expected '\[REDACTED\]' to be 'not the token'/,
+    canary: /\+ '\[REDACTED\]'\n- 'not the token'/,
     record: ({ project, runDir, stdout }) => {
       const token = ['exec', 'env', '7f3a9c', '41d2b8'].join('-')
       assert.equal(filesContaining(runDir, token), '')
@@ -1945,93 +1950,6 @@ export const features: Feature[] = [
       assert.ok(!stdout.includes(token), 'the terminal output has the token')
       // Twin: the same search finds what was left in its place.
       assert.notEqual(filesContaining(runDir, '[REDACTED]'), '')
-    },
-  },
-  {
-    dir: 'secrets/expect-message-masked',
-    tiers: ['fake', 'docker'],
-    env: 'plain',
-    canary: /expected 'nope \[REDACTED\]' to be '\[REDACTED\]'/,
-    async record({ project, stdout, tier }) {
-      // The stretches a failed matcher's message kept of each before it was cut to 40 characters.
-      const kept = [
-        ['ghp_A1b2C3d4E5f6G7h8', 'I9j0K1l2M3n4O5p6Q7r8'].join('').slice(4, 30),
-        ['correct', 'horse', 'battery', 'staple', 'and', 'more'].join('-'),
-      ]
-      const env = { CURSOR_AGENT: '1', REEVAL_FIXTURE_SANDBOX: tier }
-      const agent = await runCli(project, ['run', '--events'], { env })
-      assert.equal(agent.code, 1, agent.stdout + agent.stderr)
-      assert.match(agent.stdout, /expected 'nope \[REDACTED\]' to be '\[REDACTED\]'/)
-      for (const part of kept) {
-        for (const fragment of [part.slice(0, 8), part.slice(-8)]) {
-          assert.ok(!stdout.includes(fragment), `the output has ${fragment}`)
-          assert.ok(!agent.stdout.includes(fragment), `the agent output has ${fragment}`)
-          assert.equal(filesContaining(join(project, '.reeval'), fragment), '', fragment)
-        }
-      }
-      // Twin: the same search finds what was left in their place, the event stream's included.
-      assert.match(filesContaining(join(project, '.reeval', 'events'), '[REDACTED]'), /\.ndjson/)
-    },
-  },
-  {
-    dir: 'secrets/expect-instance-masked',
-    tiers: ['fake', 'docker'],
-    env: 'plain',
-    canary: /expected TokenError: \[REDACTED\] to be null/,
-    async record({ project, run, stdout, tier }) {
-      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
-      assert.match(
-        JSON.stringify(canary?.assertions),
-        /expected Holder\{ held: '\[REDACTED\]' \} to be null/,
-      )
-      assert.match(
-        JSON.stringify(canary?.assertions),
-        /expected AxiosLike: Request failed with \[REDACTED\] to be null/,
-      )
-      // The stretches a failed matcher's message kept of each before it was cut to 40 characters.
-      const kept = [
-        ['ghp_A1b2C3d4E5f6G7h8', 'I9j0K1l2M3n4O5p6Q7r8'].join('').slice(4, 30),
-        ['correct', 'horse', 'battery', 'staple', 'and', 'more'].join('-'),
-      ]
-      const env = { CURSOR_AGENT: '1', REEVAL_FIXTURE_SANDBOX: tier }
-      const agent = await runCli(project, ['run', '--events'], { env })
-      assert.equal(agent.code, 1, agent.stdout + agent.stderr)
-      assert.match(agent.stdout, /expected TokenError: \[REDACTED\] to be null/)
-      for (const part of kept) {
-        for (const fragment of [part.slice(0, 8), part.slice(-8)]) {
-          assert.ok(!stdout.includes(fragment), `the output has ${fragment}`)
-          assert.ok(!agent.stdout.includes(fragment), `the agent output has ${fragment}`)
-          assert.equal(filesContaining(join(project, '.reeval'), fragment), '', fragment)
-        }
-      }
-      // Twin: the same search finds what was left in their place, the event stream's included.
-      assert.match(filesContaining(join(project, '.reeval', 'events'), '[REDACTED]'), /\.ndjson/)
-    },
-  },
-  {
-    dir: 'secrets/matcher-output-masked',
-    tiers: ['fake', 'docker'],
-    env: 'plain',
-    canary: /--- stderr ---\n\[REDACTED\] w+\n--- stdout ---\n\[REDACTED\] w+/,
-    async record({ project, stdout, tier }) {
-      // The stretches of each that a 2000-character tail would have kept, cutting before masking.
-      const kept = [
-        ['ghp_A1b2C3d4E5f6G7h8', 'I9j0K1l2M3n4O5p6Q7r8'].join('').slice(-29),
-        ['horse', 'battery', 'staple', 'and', 'more', 'words'].join('-').slice(-29),
-      ]
-      const env = { CURSOR_AGENT: '1', REEVAL_FIXTURE_SANDBOX: tier }
-      const agent = await runCli(project, ['run', '--events'], { env })
-      assert.equal(agent.code, 1, agent.stdout + agent.stderr)
-      assert.match(agent.stdout, /\[REDACTED\] w/)
-      for (const part of kept) {
-        for (const fragment of [part.slice(0, 8), part.slice(-8)]) {
-          assert.ok(!stdout.includes(fragment), `the output has ${fragment}`)
-          assert.ok(!agent.stdout.includes(fragment), `the agent output has ${fragment}`)
-          assert.equal(filesContaining(join(project, '.reeval'), fragment), '', fragment)
-        }
-      }
-      // Twin: the same search finds what was left in their place, the event stream's included.
-      assert.match(filesContaining(join(project, '.reeval', 'events'), '[REDACTED]'), /\.ndjson/)
     },
   },
   {
@@ -2086,25 +2004,21 @@ export const features: Feature[] = [
     tiers: ['fake', 'docker'],
     env: 'leaky',
     hostEnv: { REEVAL_FIXTURE_LEAKY: LEAKY },
-    canary: /not to contain '\[REDACTED\]'/,
+    canary: /leak\.txt holds \[REDACTED\]/,
     async record({ project, runDir, tier }) {
       const env = { REEVAL_FIXTURE_LEAKY: LEAKY, REEVAL_FIXTURE_SANDBOX: tier }
       const recorded = await runCli(project, ['record'], { env })
       assert.equal(recorded.code, 0, recorded.stdout + recorded.stderr)
       const site = join(project, 'site')
       await writeStudioResponses(studioSource(project), site)
-      const [judgeInput, ...more] = filesNamed(runDir, 'judge-input.json')
-      assert.ok(judgeInput && more.length === 0, 'one judge call')
-      const input = JSON.parse(readFileSync(judgeInput, 'utf8')) as Array<{
-        state: { diff?: { $ref?: string } }
-      }>
-      assert.equal(input[0]?.state.diff?.$ref, 'diff.patch', 'the judge saw the diff')
-      const judged = join(dirname(judgeInput), 'diff.patch')
+      const judgeSaw = join(project, 'judge-saw.json')
+      const sent = JSON.parse(readFileSync(judgeSaw, 'utf8')) as { diff?: string }
+      assert.match(sent.diff ?? '', /leak\.txt/, 'the judge saw the diff')
       for (const [where, paths] of [
         ['the run', [runDir]],
         ['the history folder', [join(project, 'evals', '.history')]],
         ['the studio', [site]],
-        ['the judge input', [judgeInput, judged]],
+        ['what the judge was sent', [judgeSaw]],
       ] as const) {
         for (const form of leakyForms()) {
           const hits = paths.map((p) => filesContaining(p, form)).join('')
@@ -2921,48 +2835,6 @@ export const features: Feature[] = [
         await archive.close()
       }
       assert.equal(existsSync(join(project, 'evals/.history', `${runId}.zip`)), false)
-    },
-  },
-  {
-    dir: 'compare/check-not-run',
-    tiers: ['fake'],
-    env: 'marked',
-    cells: ['plain', 'marked'],
-    lands: {
-      outcome: 'pass',
-      error: { kind: 'assertion', message: /has the marker: expected file marker\.txt to exist/ },
-    },
-    landsPass: ['marked'],
-    canary: /has the marker: expected (file )?marker\.txt/,
-    record: ({ run }) => {
-      const lands = run.evals.find((e) => e.name === 'lands')
-      assert.deepEqual(
-        lands?.attempts.map((a) => a.assertions?.map((x) => x.label)),
-        [['has the marker'], ['has the marker', 'reached']],
-        'the control never reaches its second check',
-      )
-      const variant = lands?.cells.find((c) => c.role === 'variant')
-      assert.deepEqual(variant?.checks, [
-        {
-          label: 'has the marker',
-          pass: 1,
-          fail: 0,
-          error: 0,
-          notRun: 0,
-          notApplicable: 0,
-          control: { pass: 0, fail: 1, error: 0, notRun: 0, notApplicable: 0 },
-          verdict: 'discriminates',
-        },
-        {
-          label: 'reached',
-          pass: 1,
-          fail: 0,
-          error: 0,
-          notRun: 0,
-          notApplicable: 0,
-          control: { pass: 0, fail: 0, error: 0, notRun: 1, notApplicable: 0 },
-        },
-      ])
     },
   },
   {
@@ -3892,24 +3764,6 @@ export const features: Feature[] = [
     canarySaw: { status: 'error' },
   },
   {
-    dir: 'judge/unread-turn-error',
-    tiers: ['fake'],
-    env: 'plain',
-    lands: {
-      outcome: 'infra_error',
-      error: {
-        kind: 'infra',
-        message: /^Turn 0 ended with an error: 503 Service Unavailable: overloaded/,
-      },
-    },
-    canary: /expected 'error' to be 'completed'/,
-    record: ({ run }) => {
-      const lands = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      assert.equal(lands?.turnStatusRead, false, "c.judge() doesn't read the turn's status")
-      assert.equal(lands?.judgements?.length, 1, 'the judge still ran')
-    },
-  },
-  {
     dir: 'env/setup-order',
     tiers: ['fake', 'docker'],
     env: 'ordered',
@@ -3956,27 +3810,6 @@ export const features: Feature[] = [
         'dist/ (1 file): build output',
         'public/vendor.js: minified, a line of 1616 characters',
       ]),
-  },
-  {
-    dir: 'judge/outage-is-infra',
-    tiers: ['fake'],
-    env: 'app',
-    lands: {
-      outcome: 'infra_error',
-      error: {
-        kind: 'infra',
-        message: /^judge failed for "Did the agent write the app\?" \(fake\): rate limit exceeded$/,
-      },
-    },
-    canary: /expected 'error' to be 'pass'/,
-    record: ({ run, runDir }) => {
-      const input = judgeInputOf(run, runDir) as { error?: string }
-      assert.equal(
-        input.error,
-        'rate limit exceeded',
-        "an outage gets no hint about the input's size",
-      )
-    },
   },
   {
     dir: 'judge/decide',
@@ -4066,19 +3899,6 @@ export const features: Feature[] = [
     canary: zeroBy('summary-clear'),
   },
   {
-    dir: 'judge/no-input',
-    tiers: ['fake'],
-    env: 'no-input-app',
-    canary:
-      /expected \[Function\] to not throw an error but 'Error: c\.judge\(\) shows the judge noth/,
-    record: ({ run }) =>
-      assert.deepEqual(
-        run.evals.map((e) => e.attempts[0]?.judgements.length),
-        [0, 0],
-        'no judge call reached a model',
-      ),
-  },
-  {
     dir: 'judge/input-transcript',
     tiers: ['fake'],
     env: 'transcript-app',
@@ -4106,33 +3926,6 @@ export const features: Feature[] = [
         judgeGradeOf(run).reads.observations?.map((o) => o.name),
         ['orm'],
       ),
-  },
-  {
-    dir: 'assert/labeled',
-    tiers: ['fake', 'docker'],
-    env: 'plain',
-    canary: /writes the marker: expected marker\.txt to match \/nope\//,
-    record: ({ run }) => {
-      const recorded = (name: string) =>
-        run.evals
-          .find((e) => e.name === name)
-          ?.attempts[0]?.assertions?.map(({ durationMs, ...x }) => {
-            assert.equal(typeof durationMs, 'number', 'an async matcher is timed')
-            return x
-          })
-      assert.deepEqual(recorded('lands'), [
-        {
-          label: 'writes the marker',
-          labelled: true,
-          matcher: 'toHaveFile',
-          status: 'pass',
-          soft: true,
-          at: 'evals/lands.eval.ts:9',
-          target: 'marker.txt ok',
-        },
-      ])
-      assert.equal(recorded('canary')?.[0]?.status, 'fail')
-    },
   },
   {
     dir: 'history/observe',
@@ -4688,36 +4481,6 @@ export const features: Feature[] = [
     },
   },
   {
-    dir: 'assert/soft-default',
-    tiers: ['fake', 'docker'],
-    env: 'plain',
-    lands: {
-      outcome: 'fail',
-      error: { kind: 'assertion', message: /^gate: expected command to succeed, exit code 3/ },
-    },
-    canary: /carried on past a failed expect/,
-    record: ({ run, stdout }) => {
-      const lands = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      assert.deepEqual(
-        lands?.assertions?.map((x) => [x.label, x.status, x.soft, x.at]),
-        [
-          ['says nope', 'fail', true, 'evals/lands.eval.ts:10'],
-          ['is the second', 'fail', true, 'evals/lands.eval.ts:11'],
-          ['writes the marker', 'pass', true, 'evals/lands.eval.ts:12'],
-          ['gate', 'fail', false, 'evals/lands.eval.ts:13'],
-        ],
-        'every failed expect is recorded, and nothing runs after the failed expect.require',
-      )
-      const entry = entryOf(stdout, 'lands')
-      for (const [label, line] of [
-        ['says nope', 10],
-        ['is the second', 11],
-        ['gate', 13],
-      ])
-        assert.match(entry, new RegExp(`^ +"${label}": .+ · evals/lands\\.eval\\.ts:${line}$`, 'm'))
-    },
-  },
-  {
     dir: 'assert/exec-env',
     tiers: ['fake', 'docker'],
     env: 'plain',
@@ -4748,34 +4511,6 @@ export const features: Feature[] = [
       assert.equal(canary?.retries, undefined, 'a check without retries records no tries')
       assert.equal(canary?.tries, undefined)
     },
-  },
-  {
-    dir: 'assert/exec-result-sync',
-    tiers: ['fake', 'docker'],
-    env: 'plain',
-    canary: /builds: expected command to succeed, exit code 1\n--- stderr ---\nbroken/,
-    record: ({ run }) => {
-      const recorded = (name: string) =>
-        run.evals.find((e) => e.name === name)?.attempts[0]?.assertions
-      assert.deepEqual(recorded('lands'), [
-        {
-          label: 'toSucceed echo built',
-          labelled: false,
-          matcher: 'toSucceed',
-          status: 'pass',
-          soft: true,
-          at: 'evals/lands.eval.ts:9',
-        },
-      ])
-      assert.equal(recorded('canary')?.[0]?.status, 'fail')
-    },
-  },
-  {
-    dir: 'assert/unawaited-matcher',
-    tiers: ['fake', 'docker'],
-    env: 'plain',
-    canary:
-      /expect\(…\)\.toHaveFile\(\) at evals\/canary\.eval\.ts:9 wasn't awaited\. Its check is async: write `await expect\(…\)\.toHaveFile\(\)`\./,
   },
   {
     dir: 'assert/called-skill',
@@ -4866,30 +4601,6 @@ export const features: Feature[] = [
     tiers: ['fake'],
     env: 'plain',
     canary: zeroBy('wrote:other.txt'),
-  },
-  {
-    dir: 'assert/edited-shell',
-    tiers: ['fake', 'docker'],
-    env: 'plain',
-    canary: /expected file edits matching other\.txt, got \["notes\.txt"\]/,
-  },
-  {
-    dir: 'assert/edited-read-only',
-    tiers: ['fake', 'docker'],
-    env: 'notes',
-    canary: /expected file edits matching notes\.txt, got none/,
-  },
-  {
-    dir: 'assert/edited-per-turn',
-    tiers: ['fake', 'docker'],
-    env: 'plain',
-    canary: /expected file edits matching notes\.txt, got none/,
-  },
-  {
-    dir: 'assert/edited-eval-writes',
-    tiers: ['fake', 'docker'],
-    env: 'notes',
-    canary: /expected file edits matching notes\.txt, got none/,
   },
   {
     dir: 'assert/changed',
@@ -6096,15 +5807,16 @@ export const features: Feature[] = [
     dir: 'output/none',
     tiers: ['fake'],
     env: '-',
-    canary: /second try: expected 1 to be 2/,
+    canary: /second try\n\n1 !== 2/,
     record: ({ stdout }) => {
       assert.equal(entryOf(stdout, 'lands').trim(), '✓ lands  1/1 run at 100%  regression(1)')
       assert.equal(
         entryOf(stdout, 'canary'),
         [
           '✗ canary  0/1 run at 100%  regression(1)',
-          '  #1  0%  "second try" failed',
-          '    expected 1 to be 2 // Object.is equality · evals/canary.eval.ts:6',
+          '  #1  0%  second try 1 !== 2',
+          '    before the first turn',
+          '    at task (evals/canary.eval.ts:7:21)',
         ].join('\n'),
       )
       assert.match(stdout, /\nDone in \S+ · 2 evals · 1 on target · 1 below\n/)
@@ -6175,13 +5887,16 @@ export const features: Feature[] = [
     tiers: ['fake'],
     env: 'marked',
     cells: ['plain', 'marked'],
-    lands: { outcome: 'pass', error: { kind: 'assertion', message: /has the marker/ } },
+    lands: {
+      outcome: 'pass',
+      error: { kind: 'assertion', message: zeroBy('has-file:marker.txt') },
+    },
     landsPass: ['marked'],
-    canary: /has the marker: expected (file )?marker\.txt/,
+    canary: zeroBy('has-file:marker.txt'),
     record: ({ stdout }) => {
       assert.match(
         entryOf(stdout, 'lands'),
-        /✓ lands {2}1\/1 run at 100% {2}regression\(1\)\n +arm +pass\n +plain +0 of 1\n +marked +1 of 1 {2}helped\n +check +plain +marked\n +has the marker +0 of 1 +1 of 1\n/,
+        /✓ lands {2}1\/1 run at 100% {2}regression\(1\)\n +arm +pass\n +plain +0 of 1\n +error {2}score 0\.00 below 1: has-file:marker\.txt scored 0\.00\n +marked +1 of 1 {2}helped\n/,
       )
       assert.match(
         entryOf(stdout, 'lands'),
@@ -6189,9 +5904,9 @@ export const features: Feature[] = [
       )
       assert.match(entryOf(stdout, 'canary'), /^ +marked +0 of 1 {2}same$/m)
       assert.doesNotMatch(
-        stdout.replaceAll(' at 100%', '').replace(/^ +#\S+ {2}\d+% /gm, ''),
+        stdout.replaceAll(' at 100%', '').replace(/^ +#\S+ {2}\d+% .*$/gm, ''),
         /%|pass@1/,
-        'only a case row reads a score',
+        'only an attempt row reads a score',
       )
     },
   },
@@ -6199,13 +5914,13 @@ export const features: Feature[] = [
     dir: 'output/harness',
     tiers: ['fake'],
     env: '-',
-    canary: /writes out\.txt: expected file out\.txt to exist/,
+    canary: zeroBy('has-file:out.txt'),
     evals: {
       lands: { outcome: 'pass', attempts: ['writer/-/fake#1', 'copier/-/fake#1'] },
       canary: {
         outcome: 'fail',
         attempts: ['writer/-/fake#1', 'idler/-/fake#1'],
-        error: { kind: 'assertion', message: /writes out\.txt: expected file out\.txt to exist/ },
+        error: { kind: 'assertion', message: zeroBy('has-file:out.txt') },
         clean: ['writer/-/fake#1'],
       },
     },
@@ -6213,7 +5928,7 @@ export const features: Feature[] = [
       assert.equal(entryOf(stdout, 'lands').trim(), '✓ lands  2/2 runs at 100%  regression(1)')
       assert.match(
         entryOf(stdout, 'canary'),
-        /✗ canary {2}1\/2 runs at 100%, worst 0% {2}regression\(1\)\n +idler {2}0% {2}"writes out\.txt" failed\n +expected file out\.txt to exist · evals\/canary\.eval\.ts:9$/,
+        /✗ canary {2}1\/2 runs at 100%, worst 0% {2}regression\(1\)\n +idler {2}0% {2}has-file:out\.txt 0%$/,
       )
     },
   },
@@ -6221,7 +5936,7 @@ export const features: Feature[] = [
     dir: 'output/both',
     tiers: ['fake'],
     env: 'marked',
-    canary: /has the marker: expected (file )?marker\.txt/,
+    canary: zeroBy('has-file:marker.txt'),
     evals: {
       lands: {
         outcome: 'pass',
@@ -6231,7 +5946,7 @@ export const features: Feature[] = [
           'copier/plain/fake#1',
           'copier/marked/fake#1',
         ],
-        error: { kind: 'assertion', message: /has the marker: expected file marker\.txt to exist/ },
+        error: { kind: 'assertion', message: zeroBy('has-file:marker.txt') },
         clean: ['writer/marked/fake#1', 'copier/marked/fake#1'],
       },
       canary: {
@@ -6242,20 +5957,19 @@ export const features: Feature[] = [
           'copier/plain/fake#1',
           'copier/marked/fake#1',
         ],
-        error: { kind: 'assertion', message: /has the marker: expected (file )?marker\.txt/ },
+        error: { kind: 'assertion', message: zeroBy('has-file:marker.txt') },
       },
     },
     record: ({ stdout }) => {
       const lands = entryOf(stdout, 'lands')
       assert.match(
         lands,
-        /✓ lands {2}2\/2 runs at 100% {2}regression\(1\)\n {2}writer\n +arm +pass\n +plain +0 of 1\n +marked +1 of 1 {2}helped\n/,
+        /✓ lands {2}2\/2 runs at 100% {2}regression\(1\)\n {2}writer\n +arm +pass\n +plain +0 of 1\n +error {2}score 0\.00 below 1: has-file:marker\.txt scored 0\.00\n +marked +1 of 1 {2}helped\n/,
       )
       assert.match(
         lands,
-        /\n {2}copier\n +arm +pass\n +plain +0 of 1\n +marked +1 of 1 {2}helped\n/,
+        /\n {2}copier\n +arm +pass\n +plain +0 of 1\n +error {2}score 0\.00 below 1: has-file:marker\.txt scored 0\.00\n +marked +1 of 1 {2}helped\n/,
       )
-      assert.match(lands, /^ +has the marker +0 of 1 +1 of 1$/m)
       assert.match(
         lands,
         /\n +Worth knowing: 1 run per side; set runs: 4 at evals\/lands\.eval\.ts to confirm these differences\.$/,
@@ -6266,13 +5980,13 @@ export const features: Feature[] = [
     dir: 'output/cases',
     tiers: ['fake'],
     env: '-',
-    canary: /is red: expected 'green' to be 'red'/,
+    canary: /is red\n\n'green' !== 'red'/,
     evals: {
       lands: { outcome: 'pass', attempts: ['fake/-/fake#red#1', 'fake/-/fake#blue#1'] },
       canary: {
         outcome: 'fail',
         attempts: ['fake/-/fake#red#1', 'fake/-/fake#green#1'],
-        error: { kind: 'assertion', message: /is red: expected 'green' to be 'red'/ },
+        error: { kind: 'assertion', message: /is red\n\n'green' !== 'red'/ },
         clean: ['fake/-/fake#red#1'],
       },
     },
@@ -6280,27 +5994,9 @@ export const features: Feature[] = [
       assert.match(stdout, /✓ lands {2}2\/2 runs at 100% {2}regression\(1\)\n\n/)
       assert.match(
         stdout,
-        /✗ canary {2}1\/2 runs at 100%, worst 0% {2}regression\(1\)\n +#green {2}0% {2}"is red" failed\n +expected 'green' to be 'red'/,
+        /✗ canary {2}1\/2 runs at 100%, worst 0% {2}regression\(1\)\n +#green {2}0% {2}is red 'green' !== 'red'\n +before the first turn\n +at task \(evals\/canary\.eval\.ts:8:21\)/,
       )
       assert.match(stdout, /\nDone in \S+ · 2 evals · 1 on target · 1 below\n/)
-    },
-  },
-  {
-    dir: 'output/not-run',
-    tiers: ['fake'],
-    env: 'marked',
-    cells: ['plain', 'marked'],
-    lands: { outcome: 'pass', error: { kind: 'assertion', message: /has the marker/ } },
-    landsPass: ['marked'],
-    canary: /reached: expected 'control' to be 'variant'/,
-    canaryCells: ['plain'],
-    record: ({ stdout }) => {
-      assert.doesNotMatch(
-        entryOf(stdout, 'lands'),
-        /"reached"/,
-        "a check the baseline never reached didn't fail",
-      )
-      assert.match(entryOf(stdout, 'canary'), /^ +#1 +0% +"reached" failed/m)
     },
   },
   {
@@ -6344,76 +6040,25 @@ export const features: Feature[] = [
     },
   },
   {
-    dir: 'output/zero-counted',
-    tiers: ['fake'],
-    env: 'broken',
-    cells: ['plain', 'broken'],
-    lands: {
-      outcome: 'infra_error',
-      error: { kind: 'infra', message: /^setup step 1\/1 "touch ran" in environment broken/ },
-    },
-    landsPass: ['plain'],
-    canaryCells: ['plain', 'working'],
-    canary: /is the control: expected 'variant' to be 'control'/,
-    canaryPass: ['plain'],
-    args: ['--json'],
-    record: ({ runDir, stdout }) => {
-      const suite = JSON.parse(stdout) as SuiteResult
-      const checks = (name: string, environment: string) =>
-        suite.files
-          .flatMap((f) => f.evals)
-          .find((e) => e.name === name)
-          ?.cells?.find((c) => c.environment === environment)
-          ?.checks.map((k) => [k.label, k.outcome.status])
-      assert.deepEqual(checks('lands', 'broken'), [
-        ['runs true', 'not run'],
-        ['is the control', 'not run'],
-      ])
-      // The canary: a variant whose attempt counted reads its checks' counts.
-      assert.deepEqual(checks('canary', 'working'), [
-        ['runs true', 'ran'],
-        ['is the control', 'ran'],
-      ])
-      const summary = readFileSync(join(runDir, 'summary.md'), 'utf8')
-      assert.match(
-        blockOf(summary, 'lands'),
-        /### Assertions by arm[\s\S]*\| runs true \| toSucceed \| 1 of 1 \| 0 of 1 \|[\s\S]*\| is the control \| toBe \| 1 of 1 \| n\/a \|/,
-      )
-      assert.match(
-        blockOf(summary, 'canary'),
-        /### Assertions by arm[\s\S]*\| runs true \| toSucceed \| 2 of 2 \| 2 of 2 \|/,
-      )
-      assert.doesNotMatch(blockOf(summary, 'canary'), /not run/)
-    },
-  },
-  {
     dir: 'python-sdk/hello',
     tiers: ['fake', 'docker', 'real'],
     env: '-',
-    canary: /expected.*to succeed/i,
+    canary: /missing-greet\.py exists/,
     args: ['--output-logs', 'errors-only'],
     prepare: (dir) => syncPythonFixtureProject(dir),
     record: ({ run, stdout }) => {
       const [lands] = run.evals.find((e) => e.name === 'lands')?.attempts ?? []
-      assert.deepEqual(
-        lands?.assertions?.map(({ label, labelled: labeled }) => [label, labeled]),
-        [
-          ['assert c.exec("test -f greet.py").ok', false],
-          ['assert node_check.ok', false],
-          ['assert verdict.passed', false],
-        ],
-        'each plain assert in a Python body is a check, passing ones too',
-      )
+      assert.equal(lands?.outcome, 'pass', 'the plain asserts in a Python body hold')
       const [canary] = run.evals.find((e) => e.name === 'canary')?.attempts ?? []
-      assert.deepEqual(
-        canary?.assertions?.map(({ label, status }) => [label, status]),
-        [['toSucceed test -f missing-greet.py', 'fail']],
-        "a Python body's expect lands in its record",
+      assert.equal(
+        canary?.failure?.reason,
+        'missing-greet.py exists',
+        "a Python body's failed assert is its attempt's failure",
       )
       assert.deepEqual(
         canary?.checks.map((c) => c.command),
         ['test -f missing-greet.py'],
-        'the command expect checks runs once',
+        'the command the assert reads runs once',
       )
       assert.match(
         stdout,
@@ -6427,13 +6072,13 @@ export const features: Feature[] = [
     tiers: ['fake'],
     env: '-',
     args: ['--concurrency', '1'],
-    canary: /expected.*to succeed/i,
+    canary: /zombie\.txt exists/,
     evals: {
       lands: { outcome: 'pass', attempts: ['fake/-/fake#1'] },
       canary: {
         outcome: 'fail',
         attempts: ['fake/-/fake#1'],
-        error: { kind: 'assertion', message: /expected.*to succeed/i },
+        error: { kind: 'assertion', message: /zombie\.txt exists/ },
       },
       'times out': {
         outcome: 'fail',
@@ -6454,42 +6099,29 @@ export const features: Feature[] = [
     },
   },
   {
-    dir: 'python-sdk/caught-checks',
+    dir: 'python-sdk/caught-asserts',
     tiers: ['fake'],
     env: '-',
-    canary: /missing file: expected.*to succeed/i,
+    canary: /missing file/,
     evals: {
-      'caught expect': {
-        outcome: 'fail',
-        attempts: ['fake/-/fake#1'],
-        error: {
-          kind: 'assertion',
-          message:
-            /^missing file: expected.*to succeed[\s\S]*\(the eval caught this failed check, which still fails the attempt; to wait or retry, use expect\.poll\)$/,
-        },
-      },
       'assert retries': { outcome: 'pass', attempts: ['fake/-/fake#1'] },
       canary: {
         outcome: 'fail',
         attempts: ['fake/-/fake#1'],
-        error: { kind: 'assertion', message: /missing file: expected.*to succeed/i },
+        error: { kind: 'assertion', message: /^missing file$/ },
       },
     },
     prepare: (dir) => syncPythonFixtureProject(dir),
     record: ({ run }) => {
-      const assertions = (name: string) =>
-        run.evals
-          .find((e) => e.name === name)
-          ?.attempts[0]?.assertions?.map(({ label, status }) => [label, status])
+      const [retries] = run.evals.find((e) => e.name === 'assert retries')?.attempts ?? []
       assert.deepEqual(
-        assertions('caught expect'),
-        [['missing file', 'fail']],
-        'a failed expect.require the body catches is a failed check, recorded with its own message',
-      )
-      assert.deepEqual(
-        assertions('assert retries'),
-        [['assert c.exec("test -f ready.txt").ok', 'pass']],
-        'a plain assert the body catches records nothing',
+        retries?.checks.map((c) => [c.command, c.exitCode]),
+        [
+          ['test -f ready.txt', 1],
+          ['touch ready.txt', 0],
+          ['test -f ready.txt', 0],
+        ],
+        'a plain assert the body catches fails nothing, and the loop tries again',
       )
     },
   },
@@ -6497,13 +6129,13 @@ export const features: Feature[] = [
     dir: 'python-sdk/declared-skip',
     tiers: ['fake'],
     env: '-',
-    canary: /ran: expected 'ran' to be 'skipped'/,
+    canary: /ran: 'ran' is not 'skipped'/,
     evals: {
       lands: { outcome: 'pass', attempts: ['fake/-/fake#1'] },
       canary: {
         outcome: 'fail',
         attempts: ['fake/-/fake#1'],
-        error: { kind: 'assertion', message: /ran: expected 'ran' to be 'skipped'/ },
+        error: { kind: 'assertion', message: /ran: 'ran' is not 'skipped'/ },
       },
       parked: { outcome: 'skipped', attempts: ['fake/-/fake#1'] },
       shelved: { outcome: 'skipped', attempts: ['fake/-/fake#1'] },

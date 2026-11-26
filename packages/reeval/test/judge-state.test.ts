@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { judgeProblem, NO_JUDGE_INPUT } from '../src/contract/judge.ts'
+import { judgeProblem } from '../src/contract/judge.ts'
 import { withInputSize } from '../src/judge/size.ts'
 import { type Draft, stateOf } from '../src/judge/state.ts'
 import { mergeJudge, resolveStateOptions } from '../src/judge/state-options.ts'
@@ -105,75 +105,30 @@ test("a call's inputs resolve every key, off unless it turns it on", () => {
     checks: false,
   })
   assert.deepEqual(resolveStateOptions({ diff: true, turns: 'all' }).turns, 'all')
-  assert.deepEqual(mergeJudge({ threshold: 0.7 }, { threshold: 0.9 }), { threshold: 0.9 })
-  assert.deepEqual(mergeJudge({ threshold: 0.7, model: 'google/g' }, { model: 'openai/o' }), {
-    threshold: 0.7,
+  assert.deepEqual(mergeJudge({ maxConcurrent: 2 }, { maxConcurrent: 4 }), { maxConcurrent: 4 })
+  assert.deepEqual(mergeJudge({ maxConcurrent: 2, model: 'google/g' }, { model: 'openai/o' }), {
+    maxConcurrent: 2,
     model: 'openai/o',
   })
 })
 
-test('judge options keep the inputs to the call, and a call names at least one', () => {
+test('judge options leave the inputs to a judge grader', () => {
   const loc = { at: 'options', where: 'evals/a.eval.ts › lands' } as const
   assert.equal(
     judgeProblem({ diff: ['src/'] }, loc),
-    'Unknown judge option "diff" in evals/a.eval.ts › lands. diff is per call: c.judge(question, { diff }).',
+    `Unknown judge option "diff" in evals/a.eval.ts › lands. diff is a judge grader's input: judge(question, { inputs: { diff } }).`,
   )
   assert.equal(
-    judgeProblem({ thresold: 0.5 }, loc),
-    'Unknown judge option "thresold" in evals/a.eval.ts › lands. Did you mean "threshold"?',
+    judgeProblem({ gatewy: 'vercel' }, loc),
+    'Unknown judge option "gatewy" in evals/a.eval.ts › lands. Did you mean "gateway"?',
   )
   assert.equal(
     judgeProblem({ on: 'x' }, loc),
-    'Unknown judge option "on" in evals/a.eval.ts › lands. on is per call: c.judge(question, { on }).',
+    'Unknown judge option "on" in evals/a.eval.ts › lands.',
   )
   assert.equal(
     judgeProblem({ state: { diff: true } }, loc),
     'Unknown judge option "state" in evals/a.eval.ts › lands.',
-  )
-  assert.equal(judgeProblem({ output: true, on: 'x', artifacts: [] }, { at: 'call' }), undefined)
-  assert.equal(judgeProblem({ on: 'x', artifacts: [] }, { at: 'call' }), NO_JUDGE_INPUT)
-  assert.equal(judgeProblem({}, { at: 'call' }), NO_JUDGE_INPUT)
-  assert.equal(judgeProblem({ threshold: 0.5, diff: false }, { at: 'call' }), NO_JUDGE_INPUT)
-  assert.equal(
-    judgeProblem({ threshold: 2, maxConcurrent: 0 }, { at: 'call' }),
-    'c.judge() threshold must be between 0 and 1 (got 2)',
-  )
-  assert.equal(
-    judgeProblem({ maxConcurrent: 0 }, { at: 'call' }),
-    'c.judge() maxConcurrent must be a whole number of at least 1 (got 0)',
-  )
-  assert.equal(
-    judgeProblem({ artifacts: 'form' }, { at: 'call' }),
-    'c.judge() artifacts must be true or a list of capture handles or names (got "form")',
-  )
-  assert.equal(
-    judgeProblem({ model: { kind: 'fake-judge', score: () => 1 }, task: true }, { at: 'call' }),
-    undefined,
-  )
-  assert.equal(
-    judgeProblem({ contnets: ['a'] }, { at: 'call' }),
-    'Unknown judge option "contnets" in c.judge(). Did you mean "contents"?',
-  )
-  assert.equal(
-    judgeProblem({ diff: true, turns: 'first' }, { at: 'call' }),
-    `c.judge() turns must be 'last' or 'all' (got "first")`,
-  )
-  assert.equal(
-    judgeProblem({ diff: [] }, { at: 'call' }),
-    'c.judge() diff must be true, false or a non-empty list of patterns (got [])',
-  )
-  assert.equal(
-    judgeProblem({ contents: ['**', '!dist/'], checks: true }, { at: 'call' }),
-    undefined,
-  )
-  assert.equal(judgeProblem({ transcript: { subagents: false } }, { at: 'call' }), undefined)
-  assert.equal(
-    judgeProblem({ transcript: { agent: false, subagents: false } }, { at: 'call' }),
-    'c.judge() transcript shows the judge no transcript; use transcript: false',
-  )
-  assert.equal(
-    judgeProblem({ transcript: { detail: 'all' } }, { at: 'call' }),
-    `c.judge() transcript must be true, false, 'tools', 'full' or { detail, agent, subagents } (got {"detail":"all"})`,
   )
 })
 

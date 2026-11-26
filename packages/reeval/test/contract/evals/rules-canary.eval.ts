@@ -1,4 +1,5 @@
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { RULES_WORD, ruled, trimmed } from './probes.ts'
 
 // The agent reads the environment's rules (AGENTS.md or CLAUDE.md) without being told where they
@@ -8,6 +9,6 @@ import { RULES_WORD, ruled, trimmed } from './probes.ts'
 export default defineEval({
   environment: ruled,
   task: async (c) => {
-    expect(await trimmed(c.readFile, 'codeword.txt')).toBe(RULES_WORD)
+    assert.equal(await trimmed(c.readFile, 'codeword.txt'), RULES_WORD)
   },
 })

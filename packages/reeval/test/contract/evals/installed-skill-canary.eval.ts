@@ -1,4 +1,5 @@
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { INSTALLED_PROOF, installed, trimmed } from './probes.ts'
 
 // A skill a setup step installed, not the environment's `skills`, is the agent's to use: the
@@ -8,6 +9,6 @@ import { INSTALLED_PROOF, installed, trimmed } from './probes.ts'
 export default defineEval({
   environment: installed,
   task: async (c) => {
-    expect(await trimmed(c.readFile, 'installed-proof.txt')).toBe(INSTALLED_PROOF)
+    assert.equal(await trimmed(c.readFile, 'installed-proof.txt'), INSTALLED_PROOF)
   },
 })

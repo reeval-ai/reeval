@@ -1,4 +1,5 @@
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { prompts, SKILL_PROOF, skilled, trimmed } from './probes.ts'
 
 // The skill is placed where this harness's agent reads it, and the agent uses it: the proof it
@@ -7,6 +8,6 @@ export default defineEval({
   environment: skilled,
   task: async (c) => {
     await c.send(prompts.skill)
-    expect(await trimmed(c.readFile, 'skill-proof.txt')).toBe(SKILL_PROOF)
+    assert.equal(await trimmed(c.readFile, 'skill-proof.txt'), SKILL_PROOF)
   },
 })
