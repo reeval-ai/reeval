@@ -59,6 +59,7 @@
   "claudeCode commands not a list": "UsageError: claudeCode({ commands }) lists the command prefixes the agent may run, e.g. ['npm test'] (got \"npm test\")",
   "claudeCode commands without bash in tools": "UsageError: claudeCode()'s commands run in its bash tool, so tools must include bash",
   "claudeCode commands with a shell operator": "UsageError: claudeCode()'s commands prefix \"npm test && rm -rf .\" has a shell operator; each is one plain command",
+  "pi commands prefix with a trailing space": "UsageError: pi()'s commands prefix \"npm test \" is empty or has spaces around it",
   "opencode write without edit": "UsageError: opencode() keeps write and edit only together; tools has write",
   "pi webSearch": "UsageError: pi() has no webSearch tool to keep; its tools are 'read', 'write', 'edit', 'bash', 'grep', 'glob'",
   "claudeCode every option": null,

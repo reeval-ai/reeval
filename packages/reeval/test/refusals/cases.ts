@@ -887,6 +887,10 @@ export const CASES: Record<string, Case[]> = {
       'claudeCode commands with a shell operator',
       any(claudeCode, { model: 'sonnet', commands: ['npm test && rm -rf .'] }),
     ],
+    [
+      'pi commands prefix with a trailing space',
+      any(pi, { model: 'google/g', commands: ['npm test '] }),
+    ],
     ['opencode write without edit', any(opencode, { model: 'anthropic/m', tools: ['write'] })],
     ['pi webSearch', any(pi, { model: 'google/g', tools: ['bash', 'webSearch'] })],
     [

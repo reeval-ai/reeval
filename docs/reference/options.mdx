@@ -147,7 +147,7 @@ Every factory takes these options beside `model`, except `systemPrompt`, `tools`
 </Property>
 
 <Property name="commands" type="string[]" optional>
-  `claudeCode()`, `opencode()`, and `pi()`. The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the harness refuses every other. A prefix has no shell operators. `claudeCode()` and `pi()` refuse any command with one, and `opencode()` runs a chained command only when each part is allowed. reeval refuses it beside a `tools` without `bash`.
+  `claudeCode()`, `opencode()`, and `pi()`. The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the harness refuses every other. A prefix has no shell operators. `claudeCode()` and `pi()` refuse any command with one, and `opencode()` runs a chained command only when each part is allowed. An allowed command still runs what it runs, such as a script the agent wrote. reeval refuses it beside a `tools` without `bash`.
 </Property>
 
 <Property name="maxConcurrent" type="number" optional>

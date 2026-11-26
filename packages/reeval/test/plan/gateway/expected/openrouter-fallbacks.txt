@@ -14,7 +14,7 @@ greets  claude-code:claude-haiku-5-5/-/docker      control  ungated  ×1  gatewa
 pinned  b/-/docker                                 control  ungated  ×1  gateway: b → direct · gateway: openrouter() fallbacks on: reeval's own calls may fail over to another upstream provider; the harnesses' calls take OpenRouter's own routing
 excluded: —
 image docker · claude-code · 1 evals
-  base  reeval-sandbox:claude-code-1.0.176-patch.d3dce4bb  (reeval's image: pulled or built when missing or when its key changed)
+  base  reeval-sandbox:claude-code-1.0.176-patch.3b2ddb94  (reeval's image: pulled or built when missing or when its key changed)
 image docker · codex · 1 evals
   base  reeval-sandbox:codex-0.1.14  (reeval's image: pulled or built when missing or when its key changed)
 image docker · goose · 1 evals

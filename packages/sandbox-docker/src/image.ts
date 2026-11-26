@@ -45,7 +45,7 @@ export const HARNESS_PACKAGES: Record<
   'claude-code': {
     name: '@ai-sdk/harness-claude-code',
     version: '1.0.176',
-    patch: 'd3dce4bb',
+    patch: '3b2ddb94',
   },
   antigravity: {
     name: '@reeval/harness-antigravity',

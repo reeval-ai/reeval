@@ -1,12 +1,15 @@
 diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
-index 2aceefb94d9f7b05454bdcaed8cbe1c583a032c1..6836850cb5f46bdf20a8c9d80508e97b5bb2accc 100644
+index 2aceefb94d9f7b05454bdcaed8cbe1c583a032c1..bd08a2b3a1a41ba81040a71b74fc252133824c6b 100644
 --- a/dist/bridge/index.mjs
 +++ b/dist/bridge/index.mjs
-@@ -1,3 +1,4 @@
+@@ -1,5 +1,6 @@
 +// Modified by Invertase with patches/@ai-sdk__harness-claude-code@1.0.176.patch; see THIRD_PARTY_NOTICES.md.
  import { appendFile, lstat, mkdir, realpath, writeFile } from "node:fs/promises";
- import { existsSync, readFileSync } from "node:fs";
+-import { existsSync, readFileSync } from "node:fs";
++import { existsSync, readFileSync, realpathSync } from "node:fs";
  import { randomUUID } from "node:crypto";
+ import { argv, env, pid, stdout } from "node:process";
+ import { WebSocketServer } from "ws";
 @@ -732,7 +733,8 @@ function createEmitStreamEvent({ state, emit, emitWarning, emitTerminalError, on
  	let streamStarted = false;
  	return (msg) => {
@@ -44,7 +47,7 @@ index 2aceefb94d9f7b05454bdcaed8cbe1c583a032c1..6836850cb5f46bdf20a8c9d80508e97b
  			total: u.output_tokens ?? 0,
  			text: u.output_tokens ?? 0
  		}
-@@ -1915,6 +1925,31 @@ async function runTurn(start, turn) {
+@@ -1915,6 +1925,33 @@ async function runTurn(start, turn) {
  			toolUseId
  		})
  	});
@@ -67,16 +70,18 @@ index 2aceefb94d9f7b05454bdcaed8cbe1c583a032c1..6836850cb5f46bdf20a8c9d80508e97b
 +			"MultiEdit",
 +			"NotebookEdit"
 +		].includes(input?.tool_name)) {
-+			const root = path.resolve(workdir);
-+			const target = path.resolve(root, String(toolInput.file_path ?? toolInput.notebook_path ?? ""));
-+			if (!target.startsWith(`${root}${path.sep}`) || path.relative(root, target).split(path.sep).includes(".claude")) return reevalDecision("deny", "Only files in the workspace, outside .claude, may be written");
++			const file = String(toolInput.file_path ?? toolInput.notebook_path ?? "");
++			const real = (p) => existsSync(p) || path.dirname(p) === p ? realpathSync(p) : path.join(real(path.dirname(p)), path.basename(p));
++			const root = realpathSync(path.resolve(workdir));
++			const target = real(path.resolve(root, file));
++			if (file.startsWith("~") || !target.startsWith(`${root}${path.sep}`) || path.relative(root, target).split(path.sep).some((part) => part.startsWith(".claude") || part === ".mcp.json")) return reevalDecision("deny", "Only files in the workspace, outside Claude Code's own settings, may be written");
 +		}
 +		return reevalDecision("allow");
 +	};
  	const queryArgs = {
  		prompt: queryInput.input,
  		options: {
-@@ -1926,12 +1961,12 @@ async function runTurn(start, turn) {
+@@ -1926,12 +1963,12 @@ async function runTurn(start, turn) {
  			...start.forwardSubagentText !== void 0 ? { forwardSubagentText: start.forwardSubagentText } : {},
  			...start.env !== void 0 ? { env: {
  				...env,
@@ -91,7 +96,7 @@ index 2aceefb94d9f7b05454bdcaed8cbe1c583a032c1..6836850cb5f46bdf20a8c9d80508e97b
  			thinking: start.thinking,
  			...start.effort !== void 0 ? { effort: start.effort } : {},
  			...start.responseFormat?.type === "json" && start.responseFormat.schema != null ? { outputFormat: {
-@@ -1940,7 +1975,10 @@ async function runTurn(start, turn) {
+@@ -1940,7 +1977,10 @@ async function runTurn(start, turn) {
  			} } : {},
  			includePartialMessages: true,
  			hooks: {
@@ -103,7 +108,7 @@ index 2aceefb94d9f7b05454bdcaed8cbe1c583a032c1..6836850cb5f46bdf20a8c9d80508e97b
  					matcher: "AskUserQuestion",
  					hooks: [questionPreToolUseHook],
  					...start.questionTimeoutMs !== void 0 ? { timeout: Math.ceil(start.questionTimeoutMs / 1e3) } : {}
-@@ -1952,6 +1990,11 @@ async function runTurn(start, turn) {
+@@ -1952,6 +1992,11 @@ async function runTurn(start, turn) {
  			},
  			...start.resumeSessionId ?? lastClaudeSessionId ? { resume: start.resumeSessionId ?? lastClaudeSessionId } : start.continue === true || !turn.firstTurn ? { continue: true } : {},
  			...permissionOptions,
@@ -115,7 +120,7 @@ index 2aceefb94d9f7b05454bdcaed8cbe1c583a032c1..6836850cb5f46bdf20a8c9d80508e97b
  			...Object.keys(settings).length > 0 ? { settings } : {},
  			mcpServers,
  			cwd: workdir,
-@@ -1972,6 +2015,7 @@ async function runTurn(start, turn) {
+@@ -1972,6 +2017,7 @@ async function runTurn(start, turn) {
  	};
  	let turnUsage;
  	let totalCostUsd;
@@ -123,7 +128,7 @@ index 2aceefb94d9f7b05454bdcaed8cbe1c583a032c1..6836850cb5f46bdf20a8c9d80508e97b
  	let deferredDecision;
  	const requestDeferredApproval = (call) => {
  		for (const droppedToolUseId of deferredToolUseIds) {
-@@ -2079,7 +2123,10 @@ async function runTurn(start, turn) {
+@@ -2079,7 +2125,10 @@ async function runTurn(start, turn) {
  			if (type === "result" && msg.terminal_reason === "tool_deferred" && msg.deferred_tool_use?.id != null) {
  				const harnessUsage = mapUsage(msg.usage ?? msg.message?.usage);
  				if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
@@ -135,7 +140,7 @@ index 2aceefb94d9f7b05454bdcaed8cbe1c583a032c1..6836850cb5f46bdf20a8c9d80508e97b
  				deferredToolUseId = msg.deferred_tool_use.id;
  				requestDeferredApproval({
  					toolUseId: msg.deferred_tool_use.id,
-@@ -2100,7 +2147,10 @@ async function runTurn(start, turn) {
+@@ -2100,7 +2149,10 @@ async function runTurn(start, turn) {
  					}
  					const harnessUsage = mapUsage(msg.usage ?? msg.message?.usage);
  					if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
@@ -147,7 +152,7 @@ index 2aceefb94d9f7b05454bdcaed8cbe1c583a032c1..6836850cb5f46bdf20a8c9d80508e97b
  					if (start.responseFormat?.type === "json" && msg.structured_output !== void 0) {
  						const id = randomUUID();
  						emit({
-@@ -2161,6 +2211,7 @@ async function runTurn(start, turn) {
+@@ -2161,6 +2213,7 @@ async function runTurn(start, turn) {
  		totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
  		...totalCostUsd !== void 0 || lastClaudeSessionId !== void 0 ? { harnessMetadata: { "claude-code": {
  			...totalCostUsd !== void 0 ? { costUsd: totalCostUsd } : {},
@@ -216,18 +221,19 @@ index b9d020f904e691b72cbc62786822a6772d213174..d629e47b02daf468b3aacd79154532a6
  }
  
 diff --git a/src/bridge/index.ts b/src/bridge/index.ts
-index 70595bf9f01bf84ae6585b1c6eb08e1401d303c8..87f922a222ebff23cc988cc098d1563a2a845019 100644
+index 70595bf9f01bf84ae6585b1c6eb08e1401d303c8..9b60de318a65d307df8b9b35f9f926e057bad8ff 100644
 --- a/src/bridge/index.ts
 +++ b/src/bridge/index.ts
-@@ -15,6 +15,7 @@ import {
+@@ -15,6 +15,8 @@ import {
  import { createCompactionLatch } from './compaction-latch';
  import type { StartMessage } from '../claude-code-bridge-protocol';
  import { randomUUID } from 'node:crypto';
++import { existsSync, realpathSync } from 'node:fs';
 +import path from 'node:path';
  import { argv, env as procEnv, stdout } from 'node:process';
  
  /*
-@@ -551,6 +552,16 @@ function nativeToolRequiresApproval(input: {
+@@ -551,6 +553,16 @@ function nativeToolRequiresApproval(input: {
    return kind === 'edit' || kind === 'bash';
  }
  
@@ -244,7 +250,7 @@ index 70595bf9f01bf84ae6585b1c6eb08e1401d303c8..87f922a222ebff23cc988cc098d1563a
  async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
    const emit: Emit = msg => turn.emit(msg as BridgeEvent);
  
-@@ -773,6 +784,69 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -773,6 +785,75 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
        clearWaitingOnHostInput({ state: streamEventState, toolUseId }),
    });
  
@@ -260,7 +266,7 @@ index 70595bf9f01bf84ae6585b1c6eb08e1401d303c8..87f922a222ebff23cc988cc098d1563a
 +    : [];
 +  // With commands set, the shell tools (Bash, Monitor) run only a listed
 +  // command with no shell operators, and the file tools write only in the
-+  // workspace, outside .claude, so no write widens the rules next turn.
++  // workspace, outside Claude Code's own settings, so no write widens the rules next turn.
 +  const reevalDecision = (
 +    permissionDecision: 'allow' | 'deny',
 +    permissionDecisionReason?: string,
@@ -293,18 +299,24 @@ index 70595bf9f01bf84ae6585b1c6eb08e1401d303c8..87f922a222ebff23cc988cc098d1563a
 +        String(input?.tool_name),
 +      )
 +    ) {
-+      const root = path.resolve(workdir);
-+      const target = path.resolve(
-+        root,
-+        String(toolInput.file_path ?? toolInput.notebook_path ?? ''),
-+      );
++      const file = String(toolInput.file_path ?? toolInput.notebook_path ?? '');
++      const real = (p: string): string =>
++        existsSync(p) || path.dirname(p) === p
++          ? realpathSync(p)
++          : path.join(real(path.dirname(p)), path.basename(p));
++      const root = realpathSync(path.resolve(workdir));
++      const target = real(path.resolve(root, file));
 +      if (
++        file.startsWith('~') ||
 +        !target.startsWith(`${root}${path.sep}`) ||
-+        path.relative(root, target).split(path.sep).includes('.claude')
++        path
++          .relative(root, target)
++          .split(path.sep)
++          .some(part => part.startsWith('.claude') || part === '.mcp.json')
 +      ) {
 +        return reevalDecision(
 +          'deny',
-+          'Only files in the workspace, outside .claude, may be written',
++          "Only files in the workspace, outside Claude Code's own settings, may be written",
 +        );
 +      }
 +    }
@@ -314,7 +326,7 @@ index 70595bf9f01bf84ae6585b1c6eb08e1401d303c8..87f922a222ebff23cc988cc098d1563a
    const queryArgs = {
      prompt: queryInput.input,
      options: {
-@@ -790,15 +864,18 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -790,15 +871,18 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
        ...(start.forwardSubagentText !== undefined
          ? { forwardSubagentText: start.forwardSubagentText }
          : {}),
@@ -337,7 +349,7 @@ index 70595bf9f01bf84ae6585b1c6eb08e1401d303c8..87f922a222ebff23cc988cc098d1563a
        thinking: start.thinking,
        ...(start.effort !== undefined ? { effort: start.effort } : {}),
        ...(start.responseFormat?.type === 'json' &&
-@@ -819,6 +896,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -819,6 +903,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
            ...(permissionMode === 'allow-all'
              ? []
              : [{ hooks: [approvalPreToolUseHook] }]),
@@ -347,7 +359,7 @@ index 70595bf9f01bf84ae6585b1c6eb08e1401d303c8..87f922a222ebff23cc988cc098d1563a
            {
              matcher: 'AskUserQuestion',
              hooks: [questionPreToolUseHook],
-@@ -859,6 +939,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -859,6 +946,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
            ? { continue: true }
            : {}),
        ...permissionOptions,
@@ -361,7 +373,7 @@ index 70595bf9f01bf84ae6585b1c6eb08e1401d303c8..87f922a222ebff23cc988cc098d1563a
        ...(Object.keys(settings).length > 0 ? { settings } : {}),
        mcpServers,
        cwd: workdir,
-@@ -889,6 +976,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -889,6 +983,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
    };
    let turnUsage: Record<string, unknown> | undefined;
    let totalCostUsd: number | undefined;
@@ -369,7 +381,7 @@ index 70595bf9f01bf84ae6585b1c6eb08e1401d303c8..87f922a222ebff23cc988cc098d1563a
  
    /*
     * Claude Code ended the turn at a call that needs host approval. Every other
-@@ -1047,6 +1135,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -1047,6 +1142,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
          if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
          if (typeof msg.total_cost_usd === 'number') {
            totalCostUsd = msg.total_cost_usd;
@@ -377,7 +389,7 @@ index 70595bf9f01bf84ae6585b1c6eb08e1401d303c8..87f922a222ebff23cc988cc098d1563a
          }
          deferredToolUseId = msg.deferred_tool_use.id;
          requestDeferredApproval({
-@@ -1082,6 +1171,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -1082,6 +1178,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
            if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
            if (typeof msg.total_cost_usd === 'number') {
              totalCostUsd = msg.total_cost_usd;
@@ -385,7 +397,7 @@ index 70595bf9f01bf84ae6585b1c6eb08e1401d303c8..87f922a222ebff23cc988cc098d1563a
            }
            if (
              start.responseFormat?.type === 'json' &&
-@@ -1169,6 +1259,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -1169,6 +1266,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
            harnessMetadata: {
              'claude-code': {
                ...(totalCostUsd !== undefined ? { costUsd: totalCostUsd } : {}),

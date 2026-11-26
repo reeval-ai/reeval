@@ -34,7 +34,8 @@ export type HarnessOptions<Tool extends ToolName = ToolName> = {
    * The shell commands the agent may run, as prefixes: a command runs when it is one of them or
    * starts with one and a space, and the harness refuses every other. A prefix has no shell
    * operators: Claude Code and pi refuse any command with one, and OpenCode runs a chained
-   * command only when each part is allowed.
+   * command only when each part is allowed. An allowed command still runs what it runs, such as
+   * a script the agent wrote.
    */
   commands?: string[]
 }
@@ -101,6 +102,10 @@ export function optionProblem(
     if (kept.length > 0 && kept.length < group.length) {
       return `${name} keeps ${group.join(' and ')} only together; tools has ${kept.join(', ')}`
     }
+  }
+  const padded = options.commands?.find((c) => c === '' || c.trim() !== c)
+  if (padded !== undefined) {
+    return `${name}'s commands prefix ${JSON.stringify(padded)} is empty or has spaces around it`
   }
   const operator = options.commands?.find((c) => SHELL_OPERATORS.test(c))
   if (operator !== undefined) {

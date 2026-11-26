@@ -76,6 +76,12 @@ const OPENCODE_FILTERED_TOOLS = [
 
 const deny = (action: string) => ({ action, resource: '*', effect: 'deny' })
 
+/**
+ * The files an edit could widen `commands` from, since OpenCode reloads a config it finds
+ * changed: its config and `.opencode` directory, in the workspace or the home's `.config`.
+ */
+const OPENCODE_CONFIG_FILES = ['*opencode.json*', '*.opencode/*', '*.config/opencode/*']
+
 /** The permission rules `tools` and `commands` add, in order: the last match wins. */
 function toolRules({ tools, commands }: OpenCodeConfigOptions) {
   const kept = new Set<string>(tools?.map((t) => OPENCODE_NATIVE_TOOLS[t]))
@@ -88,6 +94,11 @@ function toolRules({ tools, commands }: OpenCodeConfigOptions) {
             { action: 'shell', resource: prefix, effect: 'allow' },
             { action: 'shell', resource: `${prefix} *`, effect: 'allow' },
           ]),
+          ...OPENCODE_CONFIG_FILES.map((resource) => ({
+            action: 'edit',
+            resource,
+            effect: 'deny',
+          })),
         ]
       : []),
   ]

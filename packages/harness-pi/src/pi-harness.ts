@@ -232,22 +232,26 @@ export const PI_NATIVE_TOOLS = {
 
 /**
  * The extension that blocks every bash command but `prefixes`, and every write or edit outside
- * the workspace, as pi's `tool_call` hook: no tool can rewrite what the next turn loads.
+ * the workspace or into its `.pi` (project settings pi trusts, such as a shell command prefix), as
+ * pi's `tool_call` hook: no tool can rewrite what the next turn loads.
  */
 export const piCommandGate = (
   prefixes: readonly string[],
-) => `import { relative, resolve } from 'node:path'
+) => `import { existsSync, realpathSync } from 'node:fs'
+import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 const prefixes = ${JSON.stringify(prefixes)}
 const allowed = (command) => {
   const c = command.trim()
   if (/[;&|\`$()<>\\n\\r\\\\]/.test(c)) return false
   return prefixes.some((p) => c === p || c.startsWith(p + ' '))
 }
+const real = (path) =>
+  existsSync(path) || dirname(path) === path ? realpathSync(path) : join(real(dirname(path)), basename(path))
 const inWorkspace = (path) => {
   const p = String(path ?? '').replace(/^@/, '')
   if (p.startsWith('~')) return false
-  const r = relative(process.cwd(), resolve(p))
-  return r !== '' && r !== '..' && !r.startsWith('../')
+  const r = relative(realpathSync(process.cwd()), real(resolve(p)))
+  return r !== '' && r !== '..' && !r.startsWith('..' + sep) && !r.split(sep).includes('.pi')
 }
 export default function (pi) {
   pi.on('tool_call', (event) => {
@@ -255,7 +259,7 @@ export default function (pi) {
       return { block: true, reason: 'Command not allowed: only ' + prefixes.join(', ') }
     }
     if ((event.toolName === 'write' || event.toolName === 'edit') && !inWorkspace(event.input?.path)) {
-      return { block: true, reason: 'Only files in the workspace may be written' }
+      return { block: true, reason: 'Only files in the workspace, outside .pi, may be written' }
     }
   })
 }

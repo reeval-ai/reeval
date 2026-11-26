@@ -82,7 +82,7 @@ test('the config turns off updates, sharing and the tools an eval has no use for
   assert.equal('mcp' in config, false)
 })
 
-test("systemPrompt replaces the build agent's; tools and commands deny by name, last match winning", () => {
+test("systemPrompt replaces the build agent's; tools and commands deny by name, last match winning, and commands its config's edits", () => {
   const config = openCodeConfig({
     model: 'anthropic/claude-haiku-4-5',
     systemPrompt: 'You are Zorblax.',
@@ -105,6 +105,9 @@ test("systemPrompt replaces the build agent's; tools and commands deny by name, 
     rule('shell'),
     rule('shell', 'allow', 'echo ok'),
     rule('shell', 'allow', 'echo ok *'),
+    ...['*opencode.json*', '*.opencode/*', '*.config/opencode/*'].map((f) =>
+      rule('edit', 'deny', f),
+    ),
   ])
 })
 

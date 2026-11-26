@@ -142,7 +142,15 @@ test('the command gate runs a listed prefix alone or with arguments, and writes 
     hook({ toolName, input: { path } }) === undefined
   assert.equal(writes('write', 'src/a.ts'), true)
   assert.equal(writes('edit', `${process.cwd()}/a.ts`), true)
-  for (const path of ['../a.ts', '/etc/x', '~/.pi/agent/x', '@~/x', '.']) {
+  for (const path of [
+    '../a.ts',
+    '/etc/x',
+    '~/.pi/agent/x',
+    '@~/x',
+    '.',
+    '.pi/settings.json',
+    'a/.pi/x',
+  ]) {
     assert.equal(writes('write', path), false, path)
     assert.equal(writes('edit', path), false, path)
   }
