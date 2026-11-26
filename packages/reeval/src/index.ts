@@ -13,10 +13,23 @@ export {
 export type { EvalErrorOptions } from './eval-error.ts'
 export { EvalError } from './eval-error.ts'
 export { defineEval } from './evaluate.ts'
+export { defineGrader, defineGraders } from './grade/define.ts'
+export type {
+  Grader,
+  GraderArtifact,
+  GraderContext,
+  GraderData,
+  GraderGroupSpec,
+  GraderHelpers,
+  GraderList,
+  GraderSpec,
+  GraderTurn,
+} from './grade/types.ts'
 export type {
   AttemptRecord,
   CellRecord,
   EvalEntry,
+  ExecLine,
   FamilyRecord,
   RunRecord,
 } from './history/types.ts'
@@ -65,6 +78,9 @@ export type {
   ExecEnv,
   ExecResult,
   ExecRetry,
+  GradeFingerprint,
+  GradeReads,
+  GradeRecord,
   HarnessData as AgentsData,
   HarnessEdit as AgentEdit,
   HarnessOption as AgentsOption,

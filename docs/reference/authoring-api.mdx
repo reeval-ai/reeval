@@ -25,13 +25,13 @@ export default defineEval({
 
 The eval's id is its file path under the eval root without `.eval.ts`, such as `shoehorn/build-only-fields`. Results and history list that id first.
 
-<Property name="spec" type="EvalOptions & { task: EvalFn | CaseFn<T> }" required>
+<Property name="spec" type="EvalOptions & { task: EvalFn | CaseFn<T>; graders?: Grader[] }" required>
   A plain object of eval options plus `task`, the body called once per attempt. With `cases`, `task` is `(c, item) => Promise<void>`. `environments` is not accepted; use `environment`, one environment or a list.
 </Property>
 
 `skip: true` or `skip: 'reason'` declares without running; the plan lists a string reason. TypeScript eval files have no `.only` or `.todo`.
 
-reeval refuses, with exit code 2, no default export, a default export that is not a `defineEval` result, more than one `defineEval` call in one file, a missing `task`, `skip` that is not `true`, `false`, or a non-empty string, `environments` on the eval, `where` without `cases`, and two eval files whose ids differ only in a masked secret.
+reeval refuses, with exit code 2, no default export, a default export that is not a `defineEval` result, more than one `defineEval` call in one file, a missing `task`, `skip` that is not `true`, `false`, or a non-empty string, `environments` on the eval, `where` without `cases`, `graders` that is not a list of `defineGrader()` results or names two graders alike, and two eval files whose ids differ only in a masked secret.
 
 For more information about `EvalOptions` and the type of each key, see [Options reference](/reference/options).
 
@@ -150,6 +150,14 @@ The returned `Environment` is a frozen object with the following fields.
 </Property>
 
 For more information about `EnvironmentSpec`, `EnvironmentHelpers`, each field's type, and how `extendEnvironment()` merges each field, see [Environment fields](/reference/environment-helpers#environmentspec) and [extend](/reference/environment-helpers#extend).
+
+## `defineGrader()`
+
+`defineGrader(name, spec)` defines a grader for an eval's `graders`: its `grade` function reads the attempt once the task returns, and its grade scores the attempt.
+
+## `defineGraders()`
+
+`defineGraders(names, spec)` defines graders that share one `grade` call per attempt, each scoring its grade with its own `score` function.
 
 ## `defineConfig()`
 

@@ -148,7 +148,6 @@ export async function readKeptFiles(
     JSON.parse((await readRef(runDir, workspaceManifest)).toString('utf8')),
     workspaceManifest.path,
   )
-  const byPath = new Map(manifest.files.map((f) => [f.path, f]))
   const archive = refFile(runDir, workspace)
   const check = async () => {
     let hash = await sha256File(archive).catch((error) => {
@@ -169,6 +168,19 @@ export async function readKeptFiles(
       throw new HistoryError(`${workspace.path} changed since the run wrote it`)
     }
   }
+  return keptFiles(manifest, archive, check)
+}
+
+/**
+ * A kept workspace from its manifest and its archive's path; `check` runs once, before the first
+ * file is read from it.
+ */
+export function keptFiles(
+  manifest: WorkspaceManifest,
+  archive: string,
+  check: () => Promise<void> = async () => {},
+): KeptFiles {
+  const byPath = new Map(manifest.files.map((f) => [f.path, f]))
   let checked: Promise<void> | undefined
   return {
     manifest,

@@ -353,6 +353,48 @@
           },
           "required": ["meta", "name", "reason", "stack", "turn"]
         },
+        "grades": {
+          "description": "Each of the attempt's grades, in the eval's order; absent when no grader ran.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": ["string", "null"]
+              },
+              "grade": {
+                "type": ["string", "null"]
+              },
+              "grader": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "const": "code"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "score": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "weight": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": ["error", "grade", "grader", "kind", "required", "score", "weight"]
+          }
+        },
         "harness": {
           "type": "string"
         },
@@ -410,6 +452,12 @@
         },
         "reclassified": {
           "type": "boolean"
+        },
+        "score": {
+          "description": "`AttemptRecord.score`; absent when it has none.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         },
         "tokens": {
           "$ref": "#/$defs/Figure"

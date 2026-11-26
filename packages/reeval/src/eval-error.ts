@@ -34,7 +34,7 @@ export class EvalError extends Error {
       if (typeof meta !== 'object' || meta === null || Array.isArray(meta)) {
         throw new TypeError('EvalError meta takes a JSON object, such as { exitCode: 1 }')
       }
-      const problem = notJson(meta, '', new Set())
+      const problem = notJson(meta)
       if (problem) throw new TypeError(`EvalError meta takes JSON: ${problem}`)
       this.meta = meta
     }

@@ -18,6 +18,7 @@ import type {
   ExcludedPair,
   ExecTry,
   FileChange,
+  GradeRecord,
   JudgeArtifactRef,
   KeptWorkspace,
   McpStartup,
@@ -603,6 +604,18 @@ export type AttemptRecord = {
    * value; unset without any. They annotate: `outcome` never depends on them.
    */
   observations?: Observation[]
+  /**
+   * Each of the eval's `graders`, in the order the eval lists them; unset when it has none or none
+   * ran. They run once the task returns, never after a throw, a timeout, a cancel or an infra
+   * error.
+   */
+  grades?: GradeRecord[]
+  /**
+   * In [0, 1]: the scored grades' mean, weighted by `weight`; 0 when the task threw, an `expect`
+   * failed or a required grader scored under 1; 1 when the task returned and nothing scored.
+   * `outcome` is `pass` only at 1. Unset on a timeout, a cancel or an infra error.
+   */
+  score?: number
 }
 
 export type EvalEntry = {

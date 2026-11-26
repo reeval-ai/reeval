@@ -4050,6 +4050,72 @@ export const features: Feature[] = [
     },
   },
   {
+    dir: 'grade/code-graders',
+    tiers: ['fake', 'docker'],
+    env: 'plain',
+    canary: /^score 0\.75 below 1: answers-41 scored 0\.00$/,
+    record: ({ run }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      assert.equal(attempt?.score, 1)
+      assert.deepEqual(
+        attempt?.grades?.map((g) => [g.grader, g.kind, g.grade, g.score, g.error]),
+        [
+          ['answers-42', 'code', true, 1, undefined],
+          ['masked', 'code', true, 1, undefined],
+          ['observed', 'code', 1, 1, undefined],
+          ['ran', 'code', 'export const answer = 42\n', 1, undefined],
+          ['turns', 'code', 1, null, undefined],
+        ],
+      )
+      const [answers, masked, observed] = attempt?.grades ?? []
+      assert.deepEqual(
+        answers?.reads.files?.map((f) => f.path),
+        ['src/app.js'],
+      )
+      assert.match(masked?.reads.files?.[0]?.sha256 ?? '', /^[0-9a-f]{64}$/)
+      assert.deepEqual(observed?.reads.observations, [
+        { name: 'lines', sha256: sha256(JSON.stringify(1)) },
+      ])
+      assert.match(answers?.fingerprint.digest ?? '', /^[0-9a-f]{64}$/)
+      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      assert.equal(canary?.score, 0.75)
+      assert.equal(
+        canary?.grades?.find((g) => g.grader === 'masked')?.fingerprint.digest,
+        masked?.fingerprint.digest,
+        'the same grader on another eval has the same fingerprint',
+      )
+    },
+  },
+  {
+    dir: 'grade/score',
+    tiers: ['fake'],
+    env: 'plain',
+    lands: {
+      outcome: 'fail',
+      error: { kind: 'assertion', message: /^score 0\.75 below 1: tests scored 0\.00$/ },
+    },
+    canary: /^score 0\.00 below 1: tests scored 0\.00; strict \(required\) scored 0\.50$/,
+    record: ({ run }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      assert.equal(attempt?.score, 0.75)
+      assert.deepEqual(
+        attempt?.grades?.map((g) => [g.grader, g.group, g.score, g.weight, g.required]),
+        [
+          ['builds', ['builds', 'tests'], 1, 3, false],
+          ['tests', ['builds', 'tests'], 0, 1, false],
+          ['ignored', undefined, 0, 0, false],
+          ['note', undefined, null, 1, false],
+        ],
+      )
+      const [builds, tests] = attempt?.grades ?? []
+      assert.deepEqual(builds?.grade, { built: true, passed: 0 }, "the group's one grade")
+      assert.deepEqual(tests?.grade, builds?.grade)
+      assert.notEqual(builds?.scoreDigest, tests?.scoreDigest, 'each scores it its own way')
+      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      assert.equal(canary?.score, 0)
+    },
+  },
+  {
     dir: 'assert/soft-default',
     tiers: ['fake', 'docker'],
     env: 'plain',

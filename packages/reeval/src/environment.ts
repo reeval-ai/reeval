@@ -115,12 +115,18 @@ export const isEnvironment = (value: unknown): value is Environment =>
 
 // reeval's own files, so a stack trace's first frame outside them is the file that called us.
 // Compiled, all of reeval's code is one module at the root of the executable's filesystem.
-const OWN_DIRS = COMPILED
+export const OWN_DIRS = COMPILED
   ? [join(PACKAGE_DIR, sep)]
   : ['src', 'dist'].map((dir) => join(PACKAGE_DIR, dir, sep))
 
 /** The directory of the file that called into reeval, from the stack; relative paths resolve here. */
 export function callerDir(): string | undefined {
+  const file = callerFile()
+  return file === undefined ? undefined : dirname(file)
+}
+
+/** The file outside reeval that called into it, from the stack. */
+export function callerFile(): string | undefined {
   const limit = Error.stackTraceLimit
   Error.stackTraceLimit = 30
   const stack = new Error().stack ?? ''
@@ -134,7 +140,7 @@ export function callerDir(): string | undefined {
     const file = normalize(match[1].startsWith('file://') ? fileURLToPath(match[1]) : match[1])
     if (OWN_DIRS.some((d) => file.startsWith(d)) || file.includes(`${sep}node_modules${sep}`))
       continue
-    return dirname(file)
+    return file
   }
   return undefined
 }

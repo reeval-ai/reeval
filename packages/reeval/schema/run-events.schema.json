@@ -814,6 +814,13 @@
         "files": {
           "$ref": "#/$defs/AttemptFiles"
         },
+        "grades": {
+          "description": "Each of the eval's `graders`, in the order the eval lists them; unset when it has none or none ran. They run once the task returns, never after a throw, a timeout, a cancel or an infra error.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GradeRecord"
+          }
+        },
         "id": {
           "description": "`<cell key>#<n>`, or `<cell key>#<case>#<n>` on an eval with `cases`: unique in its evaluation.",
           "type": "string"
@@ -871,6 +878,10 @@
         "sandboxBase": {
           "description": "The saved image an attempt on `boat()` ran in: the snapshot its VM started from and the image its container ran. Absent in other sandboxes, and in attempts that didn't reach their sandbox.",
           "$ref": "#/$defs/SandboxBase"
+        },
+        "score": {
+          "description": "In [0, 1]: the scored grades' mean, weighted by `weight`; 0 when the task threw, an `expect` failed or a required grader scored under 1; 1 when the task returned and nothing scored. `outcome` is `pass` only at 1. Unset on a timeout, a cancel or an infra error.",
+          "type": "number"
         },
         "secretWarnings": {
           "description": "Each brokered secret whose placeholder the attempt sent where its value isn't swapped in, once per host and reason; absent when there's none. The egress gateway reads a request's headers, path and query for it, on a connection it decrypts or plain HTTP.",
@@ -4519,6 +4530,180 @@
       },
       "required": ["kind", "model"]
     },
+    "GradeFingerprint": {
+      "description": "What makes two grades of the same attempt comparable: equal digests, the same grade.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "description": "sha256 of the grader's name, its `files` and its `grade` function, with the local modules of the file it's defined in.",
+          "type": "string"
+        },
+        "data": {
+          "description": "sha256 of the `data` files' content; unset without `data`.",
+          "type": "string"
+        },
+        "digest": {
+          "description": "sha256 over the other parts.",
+          "type": "string"
+        },
+        "revision": {
+          "description": "The grader's `revision`, when set.",
+          "type": "number"
+        }
+      },
+      "required": ["code", "digest"]
+    },
+    "GradeReads": {
+      "description": "The attempt's observations, captures and kept files a grader read, by content hash.",
+      "type": "object",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string"
+              }
+            },
+            "required": ["name", "sha256"]
+          }
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string"
+              }
+            },
+            "required": ["path", "sha256"]
+          }
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string"
+              }
+            },
+            "required": ["name", "sha256"]
+          }
+        }
+      },
+      "required": []
+    },
+    "GradeRecord": {
+      "description": "One grader's result on an attempt, from a `defineGrader` grader in the eval's `graders`.",
+      "type": "object",
+      "properties": {
+        "durationMs": {
+          "type": "number"
+        },
+        "error": {
+          "description": "Why it has no grade: `grade` threw or timed out, or its grade or score wasn't valid.",
+          "type": "string"
+        },
+        "fingerprint": {
+          "$ref": "#/$defs/GradeFingerprint"
+        },
+        "grade": {
+          "description": "What `grade` returned, masked; unset when the grader errored.",
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/JSONValue"
+              }
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "object",
+              "properties": {},
+              "required": [],
+              "additionalProperties": {
+                "$ref": "#/$defs/JSONValue"
+              }
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "grader": {
+          "description": "The grader's name, unique in its eval.",
+          "type": "string"
+        },
+        "group": {
+          "description": "Every name of the `defineGraders` group whose one `grade` call this came from.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "kind": {
+          "description": "What the grader is: `code` runs its `grade` function on the host.",
+          "const": "code"
+        },
+        "reads": {
+          "description": "What the grader read from the attempt, by content hash, in first-read order.",
+          "$ref": "#/$defs/GradeReads"
+        },
+        "required": {
+          "description": "Whether a score under 1 (or an error) makes the attempt's score 0.",
+          "type": "boolean"
+        },
+        "score": {
+          "description": "In [0, 1]: `score(grade)`, or 1 or 0 for a boolean grade, or 0 when the grader errored; null for a grade that has no score, which is recorded only.",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "scoreDigest": {
+          "description": "sha256 of the `score` function and the local modules of the file it's defined in; unset without one.",
+          "type": "string"
+        },
+        "weight": {
+          "description": "Its share of the attempt's score; 0 records only.",
+          "type": "number"
+        }
+      },
+      "required": [
+        "durationMs",
+        "fingerprint",
+        "grader",
+        "kind",
+        "reads",
+        "required",
+        "score",
+        "weight"
+      ]
+    },
     "GrokBuildHarnessDescriptor": {
       "description": "xAI's Grok Build through `@reeval/harness-grok-build` (`grok agent stdio`), made by `grokBuild()`. It runs xAI models on an xAI API key and reports each turn's tokens.",
       "type": "object",
@@ -6010,6 +6195,37 @@
             }
           },
           "required": ["at", "fileEdits", "kind", "ms", "status", "tools", "turn"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "at": {
+              "type": "number"
+            },
+            "error": {
+              "type": "string"
+            },
+            "grader": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "grade-end"
+            },
+            "ms": {
+              "type": "number"
+            },
+            "score": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          },
+          "required": ["at", "grader", "kind", "ms", "score"]
         },
         {
           "type": "object",

@@ -1,5 +1,5 @@
 import { dirname } from 'node:path'
-import { runAttempt } from './attempt/index.ts'
+import { type Grading, runAttempt } from './attempt/index.ts'
 import { bestOfCell } from './best-of.ts'
 import { caseEvalName, caseKeys } from './cases.ts'
 import { declarationProblem } from './contract/declaration.ts'
@@ -30,6 +30,7 @@ import {
 import { UsageError } from './errors.ts'
 import { badEvalId, fileEvalId, legacyCaseEvalName } from './eval-id.ts'
 import { bodyHash, caseJson } from './eval-source.ts'
+import { type GraderDef, graderList } from './grade/define.ts'
 import { evalId, relativeFile } from './ids.ts'
 import { environmentInputs } from './inputs.ts'
 import { isObjectLike } from './object.ts'
@@ -326,8 +327,9 @@ function register(
   hint = '',
   givenFamily?: DeclaredFamily,
   named: Named = {},
+  grading?: Grading,
 ): void {
-  prepare(mode, given, own, fn, source, hint, givenFamily, undefined, named).commit()
+  prepare(mode, given, own, fn, source, hint, givenFamily, undefined, named, grading).commit()
 }
 
 /** How a one-eval file's eval is named in messages, and why it's skipped. */
@@ -346,6 +348,7 @@ function prepare(
   givenFamily?: DeclaredFamily,
   where?: CaseWhere,
   named: Named = {},
+  grading?: Grading,
 ): Prepared {
   const name = shownName(
     'eval',
@@ -435,7 +438,11 @@ function prepare(
           return before ? before() : true
         }
       }
-      registerTest(testName, test, spec ? (handle) => runAttempt(spec, fn, handle) : async () => {})
+      registerTest(
+        testName,
+        test,
+        spec ? (handle) => runAttempt(spec, fn, handle, grading) : async () => {},
+      )
     }
   }
   return { planned, commit }
@@ -493,6 +500,7 @@ function registerCases(
   skipReason?: string,
   base?: string,
   legacyCaseNames = false,
+  graders?: GraderDef[],
 ): void {
   const { cases, where: pick, ...rest } = written
   if (!Array.isArray(cases)) {
@@ -530,7 +538,8 @@ function registerCases(
       ? legacyCaseEvalName(name, keys[i] as string)
       : caseEvalName(name, keys[i] as string)
     const named = { ...(label ? { label: label(key) } : {}), ...(skipReason ? { skipReason } : {}) }
-    return prepare(mode, member, own, run, source, '', family, picks, named)
+    const grading = graders && { graders, item }
+    return prepare(mode, member, own, run, source, '', family, picks, named, grading)
   })
   if (pick) applyWhere(where, shownKeys, prepared)
   for (const p of prepared) p.commit()
@@ -596,7 +605,13 @@ const definedEvals = (): object[] => {
 }
 
 /** Spec keys that aren't eval options. */
-type SpecOnly = { task?: unknown; skip?: unknown; environment?: unknown; environments?: unknown }
+type SpecOnly = {
+  task?: unknown
+  skip?: unknown
+  environment?: unknown
+  environments?: unknown
+  graders?: unknown
+}
 
 /**
  * One eval: an eval file's default export. Its id is the file's path from the evals root without
@@ -644,7 +659,9 @@ export function declareDefault(file: string, module: unknown): void {
   const id = fileEvalId(config.include, rel)
   const bad = badEvalId(id)
   if (bad) throw new UsageError(bad)
-  const { task, skip, environment, environments, ...rest } = value as SpecOnly & EvalOptions
+  const { task, skip, environment, environments, graders, ...rest } = value as SpecOnly &
+    EvalOptions
+  const defs = graders === undefined ? undefined : graderList(graders, rel)
   if (typeof task !== 'function') {
     throw new UsageError(
       `its eval has no task. Give defineEval the eval's body, e.g. task: async (c) => { … }.`,
@@ -671,7 +688,7 @@ export function declareDefault(file: string, module: unknown): void {
     const label = (key: string) => `${rel} case "${key}"`
     const fn = task as CaseFn<unknown>
     const written = options as EvalOptions & CaseOptions<unknown>
-    registerCases(mode, id, written, fn, rel, label, skipReason, base)
+    registerCases(mode, id, written, fn, rel, label, skipReason, base, false, defs)
     return
   }
   if ('where' in options) {
@@ -682,7 +699,8 @@ export function declareDefault(file: string, module: unknown): void {
   const fn = task as EvalFn
   const source = { body: bodyHash(fn, rel, file) }
   const named = { label: rel, ...(skipReason ? { skipReason } : {}) }
-  register(mode, id, withPaths(options, rel, base), fn, source, '', undefined, named)
+  const grading = defs && { graders: defs, item: { key: '' } }
+  register(mode, id, withPaths(options, rel, base), fn, source, '', undefined, named, grading)
 }
 
 /**

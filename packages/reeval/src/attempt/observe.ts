@@ -13,11 +13,15 @@ const MAX_DEPTH = 64
 
 const at = (path: string) => (path ? ` at ${path}` : '')
 
-/** Why `value` isn't JSON, naming where, or undefined. */
+/**
+ * Why `value` isn't JSON, naming where, or undefined. With `omitted`, an object's member that's
+ * `undefined` is left out, as `JSON.stringify` leaves it.
+ */
 export function notJson(
   value: unknown,
-  path: string,
-  seen: Set<object>,
+  path = '',
+  omitted = false,
+  seen = new Set<object>(),
   depth = 0,
 ): string | undefined {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return undefined
@@ -34,9 +38,11 @@ export function notJson(
   seen.add(value)
   const entries = Array.isArray(value)
     ? Array.from(value, (v, i) => [`${path}[${i}]`, v] as const)
-    : Object.entries(value).map(([k, v]) => [path ? `${path}.${k}` : k, v] as const)
+    : Object.entries(value).flatMap(([k, v]) =>
+        omitted && v === undefined ? [] : [[path ? `${path}.${k}` : k, v] as const],
+      )
   for (const [p, v] of entries) {
-    const problem = notJson(v, p, seen, depth + 1)
+    const problem = notJson(v, p, omitted, seen, depth + 1)
     if (problem) return problem
   }
   seen.delete(value)
@@ -47,7 +53,7 @@ export function notJson(
  * `value` with each number whose digits are a secret's masked too: `redactValue` leaves numbers
  * as they are, but an observed value goes to a judge's or question's model as it's recorded.
  */
-function maskNumbers(value: JSONValue): JSONValue {
+export function maskNumbers(value: JSONValue): JSONValue {
   if (typeof value === 'number') {
     return redactSecrets(String(value)) === String(value) ? value : REDACTED
   }
@@ -104,7 +110,7 @@ export function observer(a: Attempt): AttemptContext['observe'] {
     if (a.signal.aborted) {
       throw new UsageError(`c.observe("${name}") came after the attempt timed out or was canceled`)
     }
-    const problem = notJson(value, '', new Set())
+    const problem = notJson(value)
     if (problem) throw new UsageError(`c.observe("${name}") takes JSON: ${problem}`)
     const masked = maskedJson(value as JSONValue)
     a.record.observations ??= []
