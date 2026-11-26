@@ -30,9 +30,12 @@ type SharedOptions = {
  * one is given (the reasoning eval's), and with `options` (the option evals').
  */
 export const contractHarness = (effort?: string, on?: string, options: SharedOptions = {}) => {
-  // Each harness's factory takes only the options it enforces: the evals that set one are left
-  // out of a row whose harness doesn't, so the cast never reaches a factory that refuses it.
-  const e = { ...(effort ? { effort } : {}), ...options } as { effort?: string }
+  // reeval checks every eval file's agents before --tag leaves any out, so the harness gets only
+  // the options its row enforces (REEVAL_CONTRACT_OPTIONS); the evals that set another are left
+  // out of that row by tag.
+  const takes = (process.env.REEVAL_CONTRACT_OPTIONS ?? '').split(',')
+  const kept = Object.fromEntries(Object.entries(options).filter(([key]) => takes.includes(key)))
+  const e = { ...(effort ? { effort } : {}), ...kept } as { effort?: string }
   const model = on || defaultModel
   switch (process.env.REEVAL_CONTRACT_HARNESS) {
     case 'cursor':

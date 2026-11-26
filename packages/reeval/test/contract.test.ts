@@ -318,10 +318,13 @@ export const behaviors: Behavior[] = [
     async check(ran, row) {
       const a = optionAttempt(ran, row, 'tools', 'notes', /^\[tools=bash\]$/)
       const catalog = await catalogOf(row)
-      const called = trajectoryOf(ran, a).flatMap((e) => (e.type === 'tool' ? [e.tool] : []))
+      // A call the harness refused (`ok: false`, "no such tool") is the filter working.
+      const called = trajectoryOf(ran, a).flatMap((e) =>
+        e.type === 'tool' && e.ok !== false ? [e.tool] : [],
+      )
       assert.ok(called.length > 0, 'tools: no tool call')
       const other = called.filter((t) => catalog.tools.get(t) !== 'bash')
-      assert.deepEqual(other, [], `tools: ['bash'] called ${other.join(', ')}`)
+      assert.deepEqual(other, [], `tools: ['bash'] ran ${other.join(', ')}`)
     },
   },
   {
@@ -942,6 +945,7 @@ for (const row of harnesses) {
         const cli = await runCli(p.dir, args, {
           env: {
             ...rowEnv(row),
+            REEVAL_CONTRACT_OPTIONS: optionsOf(row).join(','),
             // Kept for the format check and the replay captures; the files are small.
             REEVAL_RAW_TRAJECTORY: '1',
             REEVAL_CONTRACT_KEY_TARGETS: scanTargets(keyOf(row) ?? `no key ${Date.now()}`),
