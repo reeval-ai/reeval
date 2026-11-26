@@ -270,7 +270,15 @@ describe('grades and scores', () => {
       [defineGrader('map', { grade: () => new Map() as never }), /isn't JSON: /],
       [defineGrader('nan', { grade: () => Number.NaN }), /isn't JSON: /],
       [
-        defineGrader('slow', { timeout: '50ms', grade: () => new Promise<boolean>(() => {}) }),
+        defineGrader('slow', {
+          timeout: '50ms',
+          // Pending work holds the event loop, which the timeout's unref'd timer doesn't on Node 22.16.
+          grade: (c) =>
+            new Promise<boolean>(() => {
+              const held = setInterval(() => {}, 1000)
+              c.signal.addEventListener('abort', () => clearInterval(held))
+            }),
+        }),
         /grade timed out after 50ms/,
       ],
       [defineGrader('big', { grade: () => 'x'.repeat(70_000) }), /over the 65536 a grade may be/],
@@ -457,7 +465,15 @@ describe('graders with env', () => {
     const hangs: SandboxStarter = (_env, _timeout, _waiting, held) =>
       new Promise((_resolve, reject) => {
         const signal = held()
-        signal.addEventListener('abort', () => reject(signal.reason), { once: true })
+        const hold = setInterval(() => {}, 1000)
+        signal.addEventListener(
+          'abort',
+          () => {
+            clearInterval(hold)
+            reject(signal.reason)
+          },
+          { once: true },
+        )
       })
     const [r] = await runGraders(
       defs(g),

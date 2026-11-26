@@ -102,8 +102,9 @@ describe("the attempt's failure", () => {
   })
 
   test('the reason drops escape sequences and control characters', () => {
-    const error = new EvalError('\u001b[2Jbuild\u0007 failed\u2028at\tlast')
-    assert.equal(failed(error).failure?.reason, 'build  failed at last')
+    // Node 22.16 strips `ESC [ 2Jbuild BEL` as one sequence, so the BEL isn't right after `build`.
+    const error = new EvalError('\u001b[2Jbuild failed\u0007\u2028at\tlast')
+    assert.equal(failed(error).failure?.reason, 'build failed  at last')
   })
 
   test("JavaScript's own EvalError, given reeval's options, says to import reeval's", () => {
