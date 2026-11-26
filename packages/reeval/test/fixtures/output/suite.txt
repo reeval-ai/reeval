@@ -1,32 +1,32 @@
-· adds-a-button-that-builds                2/3 cases hit 100% (pass@1)  capability(1)
+· adds-a-button-that-builds                mean 67% · 2/3 cases hit 100% (pass@1)   capability(1)
     #double  0%  the build fails
       button: double
       exitCode: 1
       after turn 1
-✓ choose                                   83% ≥ 80%                    metric(0.8)
+✓ choose                                   83% ≥ 80%                                metric(0.8)
 
-✗ explains-why-greet-js-fails              67% < 80%                    metric(0.8)
+✗ explains-why-greet-js-fails              67% < 80%                                metric(0.8)
     #1  83%  judge "How clearly does the answer name the root cause?" 50%
     #2  50%  names-the-root-cause 0%, judge "How clearly does the answer name the root cause?" 50%
   observed         answer  the name is null 1 · Docker is down 1
 
-✗ greets-in-french                         0/1 run at 100%              regression(1)
+✗ greets-in-french                         mean 0% · 0/1 run at 100%                regression(1)
     #1  0%  greet.js has no French greeting
       file: greet.js
       exitCode: 1
       after turn 1
 – greets-in-klingon                        skipped
 
-· greets-in-the-house-style-2              4/4 cases hit 100% (pass@1)  capability(1)
+· greets-in-the-house-style-2              mean 100% · 4/4 cases hit 100% (pass@1)  capability(1)
   arm              pass            vs control
   plain            0 of 4
   with-skill       4 of 4  helped  "house greeting" +100 pts
 
-✗ greets-in-the-house-style-on-each-agent  1/2 runs at 100%, worst 0%   regression(1)
+✗ greets-in-the-house-style-on-each-agent  mean 50% · 1/2 runs at 100%, worst 0%    regression(1)
     terse  0%  "house greeting" failed
       expected command to succeed, exit code 1 · evals/greets-in-the-house-style-on-each-agent.eval.ts:28
 
-✗ greets-in-the-house-style                4/8 runs at 100%, worst 0%   regression(1)
+✗ greets-in-the-house-style                mean 50% · 4/8 runs at 100%, worst 0%    regression(1)
     #1–4 · with-doc  0%  "house greeting" failed
       expected command to succeed, exit code 1 · evals/greets-in-the-house-style.eval.ts:21
   arm              pass            vs control
@@ -45,7 +45,7 @@
 
 – greets-in-welsh                          skipped
 
-· greets-once                              100%                         metric()
+· greets-once                              100%                                     metric()
   arm              pass            vs control
   plain            0 of 4
   with-skill       4 of 4  helped  "house greeting" +100 pts
@@ -53,7 +53,7 @@
   house greeting   0 of 4  4 of 4
     expected command to succeed, exit code 1
 
-✗ keeps-the-plain-greeting                 0/4 runs at 100%, worst 0%   regression(1)
+✗ keeps-the-plain-greeting                 mean 0% · 0/4 runs at 100%, worst 0%     regression(1)
     #1–4  0%  "says hello" failed
       expected command to succeed, exit code 1 · evals/keeps-the-plain-greeting.eval.ts:21
   arm              pass                   vs control
@@ -66,7 +66,7 @@
   plain            1      <0.1s
   with-skill       1      <0.1s
 
-· learns-the-house-style-from-the-skill    50%                          metric()
+· learns-the-house-style-from-the-skill    50%                                      metric()
   learner
     arm             pass            vs control
     plain           0 of 4
@@ -82,12 +82,12 @@
     house greeting  0 of 4  0 of 4
       expected command to succeed, exit code 1
 
-· reads-the-fixture-repo                   0%                           metric()
+· reads-the-fixture-repo                   0%                                       metric()
     #1  0%  the fixture repo is missing
       after turn 1
       at task (evals/reads-the-fixture-repo.eval.ts:9:13)
-· starts-its-sandbox                       infra error                  regression(1)
+· starts-its-sandbox                       infra error                              regression(1)
     #1  infra error  the fake sandbox fell over
-✓ writes-greet-js                          1/1 run at 100%              regression(1)
+✓ writes-greet-js                          mean 100% · 1/1 run at 100%              regression(1)
 
 15 evals · 2 on target · 5 below · 5 report only · 1 infra error · 2 skipped

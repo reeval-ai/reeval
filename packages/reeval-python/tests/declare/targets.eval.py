@@ -1,4 +1,4 @@
-from reeval_python import capability, define_environment, evaluate, metric, regression
+from reeval_python import capability, define_environment, evaluate, regression
 
 base = define_environment("base", {"env": {"MODE": "base"}})
 skilled = base.extend("skilled", {"env": {"MODE": "skilled"}})
@@ -16,8 +16,10 @@ async def capability_reports(c): ...
 async def capable(c): ...
 
 
-@evaluate("cases metric", {"cases": [{"key": "chat"}, {"key": "rag"}], "target": metric(0.8)})
-async def cases_metric(c, case): ...
+@evaluate(
+    "cases regression", {"cases": [{"key": "chat"}, {"key": "rag"}], "target": regression(0.8)}
+)
+async def cases_regression(c, case): ...
 
 
 @evaluate(
@@ -29,7 +31,7 @@ async def compare_regression(c): ...
 
 @evaluate(
     "compare reports",
-    {"compare": {"control": base, "variants": [skilled]}, "target": metric(), "runs": 4},
+    {"compare": {"control": base, "variants": [skilled]}, "target": capability(), "runs": 4},
 )
 async def compare_reports(c): ...
 

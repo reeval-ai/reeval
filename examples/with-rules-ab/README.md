@@ -32,7 +32,7 @@ control:
 
 ```text
 with-rules-ab.eval.ts
-  · with-rules-ab  100%  metric()
+  · with-rules-ab  mean 100% · 4/4 runs at 100% (pass@4)  capability(1)
     arm              pass
     short-rules      0 of 4
       error  score 0.50 below 1: has-file:CHANGELOG.md scored 0.00 (4 runs)

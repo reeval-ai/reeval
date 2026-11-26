@@ -28,7 +28,7 @@ each grader that scored below 1, here with the fake agent's `multiply` changed t
 
 ```text
 with-checks.eval.ts
-  · with-checks  67%  metric()
+  · with-checks  mean 67% · 0/1 run at 100% (pass@1)  capability(1)
     #1  67%  succeeded:node --test 0%
 ```
 

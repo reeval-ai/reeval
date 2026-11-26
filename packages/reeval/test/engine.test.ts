@@ -39,7 +39,7 @@ describe('engine', () => {
     })
     const r = await runCli(p.dir)
     assert.equal(r.code, 0, r.stderr)
-    assert.match(r.stdout, /^└─ ✓ math {2}1\/1 run at 100% {2}regression\(1\)$/m)
+    assert.match(r.stdout, /^└─ ✓ math {2}mean 100% · 1\/1 run at 100% {2}regression\(1\)$/m)
     assert.match(r.stdout, /^Done in \S+ · 1 eval · 1 on target$/m)
     assert.match(
       r.stdout,
@@ -78,7 +78,7 @@ describe('engine', () => {
     assert.equal(r.code, 1)
     assert.match(
       r.stdout,
-      /^└─ ✗ math {2}0\/1 run at 100% {2}regression\(1\)\n {5}#1 {2}0% {2}expected 1 to be 2\n {7}before the first turn$/m,
+      /^└─ ✗ math {2}mean 0% · 0\/1 run at 100% {2}regression\(1\)\n {5}#1 {2}0% {2}expected 1 to be 2\n {7}before the first turn$/m,
     )
     assert.doesNotMatch(r.stdout + r.stderr, /vitest/i)
     const [e] = readRun(p.dir).evals
@@ -120,12 +120,12 @@ export default defineEval({ async task() {} })
     })
     const byPath = await runCli(p.dir, ['run', 'a.eval.ts'])
     assert.equal(byPath.code, 0)
-    assert.match(byPath.stdout, /^└─ ✓ a +1\/1 run at 100% +regression\(1\)$/m)
+    assert.match(byPath.stdout, /^└─ ✓ a +mean 100% · 1\/1 run at 100% +regression\(1\)$/m)
     assert.doesNotMatch(byPath.stdout, /named thing/)
 
     const byName = await runCli(p.dir, ['run', 'named-thing'])
     assert.equal(byName.code, 0)
-    assert.match(byName.stdout, /^└─ ✓ named-thing +1\/1 run at 100% +regression\(1\)$/m)
+    assert.match(byName.stdout, /^└─ ✓ named-thing +mean 100% · 1\/1 run at 100% +regression\(1\)$/m)
     assert.doesNotMatch(byName.stdout, / ✓ a /)
 
     const { runId } = readRun(p.dir).run
@@ -809,7 +809,7 @@ export default defineEval({
       ],
     )
     assert.match(r.stdout, /^\[agent#1 fake\] ▶ agent$/m)
-    assert.match(r.stdout, /^└─ ✓ agent {2}1\/1 run at 100% {2}regression\(1\)$/m)
+    assert.match(r.stdout, /^└─ ✓ agent {2}mean 100% · 1\/1 run at 100% {2}regression\(1\)$/m)
   })
 
   test('--log-order, --log-prefix and --output-logs shape what reeval run prints', async () => {
@@ -920,14 +920,14 @@ export default defineEval({
       [
         '',
         'evals/agent.eval.ts',
-        '  ✗ agent  0/1 run at 100%  regression(1)',
+        '  ✗ agent  mean 0% · 0/1 run at 100%  regression(1)',
         '    #1  0%  not ok',
         '      after turn 1',
         '      at task (evals/agent.eval.ts:8:11)',
         '    Snapshot: <path>',
         '',
         'evals/passes.eval.ts',
-        '  ✓ passes  1/1 run at 100%  regression(1)',
+        '  ✓ passes  mean 100% · 1/1 run at 100%  regression(1)',
         '',
       ],
     )
@@ -1290,12 +1290,12 @@ export default defineEval({
   },
 })
 `,
-      'evals/studied.eval.ts': `import { defineEval, metric } from 'reeval'
+      'evals/studied.eval.ts': `import { capability, defineEval } from 'reeval'
 import { hasFile } from 'reeval/graders'
 import { plain, skilled } from './compare-env.ts'
 export default defineEval({
   compare: { control: plain, variants: [skilled] },
-  target: metric(),
+  target: capability(),
   graders: [hasFile('nope.txt')],
   runs: 2,
   async task(c) {
@@ -1308,7 +1308,7 @@ export default defineEval({
     // The control's two failures don't fail it: only the gated variant's 2 of 2 gate.
     assert.match(
       r.stdout,
-      /evals\/compared\.eval\.ts\n└─ ✓ compared {2}2\/2 runs at 100% {2}regression\(1\)$/m,
+      /evals\/compared\.eval\.ts\n└─ ✓ compared {2}mean 100% · 2\/2 runs at 100% {2}regression\(1\)$/m,
     )
     assert.match(
       r.stdout,
@@ -1316,13 +1316,16 @@ export default defineEval({
     )
     assert.match(
       r.stdout,
-      /evals\/repeated\.eval\.ts\n└─ ✗ repeated {2}3\/4 runs at 100%, worst 0% {2}regression\(1\)\n {5}#4 {2}0%/,
+      /evals\/repeated\.eval\.ts\n└─ ✗ repeated {2}mean \d+% · 3\/4 runs at 100%, worst 0% {2}regression\(1\)\n {5}#4 {2}0%/,
     )
-    // Nothing gates a study, so it reads ·, never ✓ beside 0%.
-    assert.match(r.stdout, /evals\/studied\.eval\.ts\n└─ · studied {2}0% {2}metric\(\)$/m)
+    // A target that only reports reads ·, never ✓ beside 0%.
     assert.match(
       r.stdout,
-      /studied {2}0% {2}metric\(\)\n {5}arm +pass\n {5}plain +0 of 2\n {7}error .*\n {5}skilled +0 of 2 {2}same$/m,
+      /evals\/studied\.eval\.ts\n└─ · studied {2}mean 0% · 0\/2 runs at 100% \(pass@2\) {2}capability\(1\)$/m,
+    )
+    assert.match(
+      r.stdout,
+      /studied {2}mean 0% · 0\/2 runs at 100% \(pass@2\) {2}capability\(1\)\n {5}#1–2 {2}0% {2}has-file:nope\.txt 0%\n {5}arm +pass\n {5}plain +0 of 2\n {7}error .*\n {5}skilled +0 of 2 {2}same$/m,
     )
   })
 

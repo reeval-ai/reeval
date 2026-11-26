@@ -29,7 +29,7 @@ between them:
 
 ```text
 with-many-agents.eval.ts
-  · with-many-agents  100%  metric()
+  · with-many-agents  mean 100% · 2/2 runs at 100% (pass@2)  capability(1)
     fake-quick    100%
     fake-careful  100%
 ```

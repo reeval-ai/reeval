@@ -379,7 +379,7 @@ describe('canaries: the verdicts flip when the data does', () => {
     type C = { fingerprint: string; fingerprintParts: FingerprintParts }
     const config = (target: string) => fakeConfig({ extra: `runs: 2, target: ${target},` })
     const p = await project('canary-gate', {
-      'reeval.config.ts': config('metric(0.5)'),
+      'reeval.config.ts': config('capability()'),
       'evals/g.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
@@ -410,7 +410,7 @@ export default defineEval({
     assert.deepEqual(drift, [{ changed: 'gate', noise: 0, real_changed: 'gate' }])
     assert.deepEqual(
       (await query(p.dir, 'SELECT fp_gate FROM cells ORDER BY run_id')).map((c) => c.fp_gate),
-      [null, 'passRate 0.5', null],
+      [null, 'any', null],
     )
     assert.deepEqual(
       await query(p.dir, "SELECT factor FROM factor_effects WHERE tier = 'observed'"),
@@ -426,9 +426,9 @@ export default defineEval({
   test('mixed outcomes over enough comparable attempts are flaky, caused by the agent', async () => {
     const p = await project('canary-flaky', {
       'reeval.config.ts': fakeConfig(),
-      'evals/f.eval.ts': `import { defineEval, metric } from 'reeval'
+      'evals/f.eval.ts': `import { capability, defineEval } from 'reeval'
 export default defineEval({
-  runs: 6, target: metric(0.5),
+  runs: 6, target: capability(),
   async task(c) {
     await c.send('go')
     if (c.attempt.n % 2 === 0) throw new Error('every other attempt fails')
@@ -444,9 +444,9 @@ export default defineEval({
   test('mixed outcomes one attempt short of the minimum are mixed, not flaky', async () => {
     const p = await project('canary-mixed', {
       'reeval.config.ts': fakeConfig(),
-      'evals/f.eval.ts': `import { defineEval, metric } from 'reeval'
+      'evals/f.eval.ts': `import { capability, defineEval } from 'reeval'
 export default defineEval({
-  runs: 5, target: metric(0.4),
+  runs: 5, target: capability(),
   async task(c) {
     await c.send('go')
     if (c.attempt.n % 2 === 0) throw new Error('every other attempt fails')
@@ -463,9 +463,9 @@ export default defineEval({
     const flips = (harness: string) => ({
       'reeval.config.ts': fakeConfig({ harness }),
       'evals/f.eval.ts': `import assert from 'node:assert/strict'
-import { defineEval, metric } from 'reeval'
+import { capability, defineEval } from 'reeval'
 export default defineEval({
-  runs: 6, target: metric(0.5),
+  runs: 6, target: capability(),
   async task(c) {
     await c.send('go')
     assert.equal(c.attempt.n % 2, 1, 'a racy check')
@@ -1446,9 +1446,9 @@ export default defineEval({
       prompt: string,
       runs: number,
       failFrom: number,
-    ) => `import { defineEval, metric } from 'reeval'
+    ) => `import { capability, defineEval } from 'reeval'
 export default defineEval({
-  runs: ${runs}, target: metric(0.5),
+  runs: ${runs}, target: capability(),
   async task(c) {
     await c.send(${JSON.stringify(prompt)})
     if (c.attempt.n >= ${failFrom}) throw new Error('counted miss')
@@ -1517,7 +1517,7 @@ export default defineEval({
     assert.equal((await runCli(p.dir)).code, 0)
     writeFileSync(
       join(p.dir, 'evals/c.eval.ts'),
-      `import { defineEval, metric } from 'reeval'
+      `import { defineEval } from 'reeval'
 export default defineEval({
   runs: 1,
   async task(c) {

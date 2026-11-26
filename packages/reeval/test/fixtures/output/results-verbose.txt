@@ -1,9 +1,9 @@
-✗ explains-why-greet-js-fails  67% < 80%        metric(0.8)
+✗ explains-why-greet-js-fails  67% < 80%                    metric(0.8)
     #1  83%  judge "How clearly does the answer name the root cause?" 50%
     #2  50%  names-the-root-cause 0%, judge "How clearly does the answer name the root cause?" 50%
   observed         answer  the name is null 1 · Docker is down 1
 
-✗ greets-in-french             0/1 run at 100%  regression(1)
+✗ greets-in-french             mean 0% · 0/1 run at 100%    regression(1)
     #1  0%  greet.js has no French greeting
       file: greet.js
       exitCode: 1
@@ -11,13 +11,13 @@
       at task (evals/greets-in-french.eval.ts:15:15)
 – greets-in-klingon            skipped
 – greets-in-welsh              skipped
-· reads-the-fixture-repo       0%               metric()
+· reads-the-fixture-repo       0%                           metric()
     #1  0%  the fixture repo is missing
       after turn 1
       at task (evals/reads-the-fixture-repo.eval.ts:9:13)
-· starts-its-sandbox           infra error      regression(1)
+· starts-its-sandbox           infra error                  regression(1)
     #1  infra error  the fake sandbox fell over
-✓ writes-greet-js              1/1 run at 100%  regression(1)
+✓ writes-greet-js              mean 100% · 1/1 run at 100%  regression(1)
     #1  100%
 
 7 evals · 1 on target · 2 below · 1 report only · 1 infra error · 2 skipped

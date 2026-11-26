@@ -193,15 +193,15 @@ describe('an eval with cases in a record from before it was one entry', () => {
 })
 
 describe('reeval compare of an eval with cases', () => {
-  test('names a case that flipped under the rate that still gates the eval', async () => {
+  test('names the case that regressed in an eval that only reports', async () => {
     const p = await project('compare-rated-case', {
       'reeval.config.ts': fakeConfig(),
       'evals/e.eval.ts': `import assert from 'node:assert/strict'
-import { defineEval, metric } from 'reeval'
+import { capability, defineEval } from 'reeval'
 const bad = process.env.BAD ?? ''
 export default defineEval({
   cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }, { key: 'd' }, { key: 'e' }],
-  target: metric(0.7),
+  target: capability(),
   async task(c, { key: k }) {
     await c.send(k)
     assert.notEqual(k, bad, 'ok')
@@ -215,8 +215,8 @@ export default defineEval({
     const [a, b] = recordedRuns(p.dir)
     const cmp = await runCli(p.dir, ['compare', a ?? '', b ?? ''])
     assert.equal(cmp.code, 0, cmp.stdout + cmp.stderr)
-    assert.match(cmp.stdout, /1 case now fails · 1 same$/m)
-    assert.match(cmp.stdout, /^ {2}now fails +e$/m, 'the tally counts it, so a block names it')
+    assert.match(cmp.stdout, /^1 regressed$/m)
+    assert.match(cmp.stdout, /^ {2}regressed +e$/m, 'the eval regressed, and its block names the case')
   })
 })
 
@@ -265,7 +265,7 @@ export default defineEval({
     assert.equal(r.code, 1, r.stdout + r.stderr)
     assert.match(
       r.stdout,
-      /^└─ ✗ e {2}2\/3 cases hit 100% \(pass@2\) {2}capability\(1, \{ blocking: true \}\)$/m,
+      /^└─ ✗ e {2}mean \d+% · 2\/3 cases hit 100% \(pass@2\) {2}capability\(1, \{ blocking: true \}\)$/m,
     )
     assert.doesNotMatch(r.stdout, /runs at 100% \(pass@6\)/, 'canary: not pooled over the cases')
     assert.match(r.stdout, /^ {5}#c +0% +ok false !== true \(2 of 2 runs\)$/m)

@@ -291,7 +291,7 @@ export default defineEval({
       first.out,
       /^No earlier recorded run to compare \S+ with, so every eval is new\.$/m,
     )
-    assert.match(first.out, /^✓ flips {2}1\/1 run at 100% {2}regression\(1\)$/m)
+    assert.match(first.out, /^✓ flips {2}mean 100% · 1\/1 run at 100% {2}regression\(1\)$/m)
     assert.match(first.out, /^1 new eval \(1 on target\)$/m)
     assert.equal((await compareCode('--fail-on-regression')).code, 0)
     assert.equal(JSON.parse((await compareCode('--json')).out).base, null)
@@ -301,7 +301,7 @@ export default defineEval({
     assert.match(newFailing.out, /^1 new eval \(1 below\)$/m)
     assert.match(
       (await compareCode('--md')).out,
-      /^# flips\n[\s\S]*\*\*0\/1 run at 100%\*\*/m,
+      /^# flips\n[\s\S]*\*\*mean 0% · 0\/1 run at 100%\*\*/m,
       'compare --md with no base is the head RunReport',
     )
 
@@ -445,13 +445,14 @@ export default defineEval({
     const config = (target: string) =>
       fakeConfig({ harness: harness(), extra: `runs: 2, target: ${target},` })
     const p = await gitProject('compare-gate', {
-      'reeval.config.ts': config('metric(0.5)'),
+      'reeval.config.ts': config('capability(1, { blocking: true })'),
       'evals/flaky.eval.ts': `import assert from 'node:assert/strict'
 import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('go')
-    assert.equal(process.env.REEVAL_TEST_BREAK || c.attempt.n === 2 ? 'miss' : 'ok', 'ok')
+    const miss = process.env.REEVAL_TEST_BREAK || (c.attempt.n === 2 && !process.env.REEVAL_TEST_STEADY)
+    assert.equal(miss ? 'miss' : 'ok', 'ok')
   },
 })
 `,
@@ -470,6 +471,7 @@ export default defineEval({
     const row = async () =>
       (JSON.parse((await runCli(p.dir, ['compare', '--json'])).stdout).rows as Row[])[0]
     const setGate = (gate: string) => writeFile(join(p.dir, 'reeval.config.ts'), config(gate))
+    const steady = { env: { REEVAL_TEST_STEADY: '1' } }
 
     assert.equal((await runCli(p.dir, ['run', '--record'])).code, 0, 'one pass in two is enough')
 
@@ -479,7 +481,7 @@ export default defineEval({
     assert.equal(tightened.code, 0, `only the gate explains the flip\n${tightened.out}`)
     assert.match(
       tightened.out,
-      /^gate changed {5}flaky\n {2}gate +passRate 0\.5 → all {2}base would fail under it\n {2}base +\S+ {2}pass\n {2}head +\S+ {2}fail$/m,
+      /^gate changed {5}flaky\n {2}gate +any → all {2}base would fail under it\n {2}base +\S+ {2}pass\n {2}head +\S+ {2}fail$/m,
     )
     assert.match(tightened.out, /^1 gate changed$/m)
     const { perCell: _, ...tightenedRow } = (await row()) as Row & { perCell?: unknown }
@@ -489,7 +491,7 @@ export default defineEval({
       base: 'pass',
       head: 'fail',
       changes: ['gate changed'],
-      gate: { base: 'passRate 0.5', head: 'all', rescored: 'fail' },
+      gate: { base: 'any', head: 'all', rescored: 'fail' },
       scores: {
         base: { meanScore: 0.5, passAtK: 1, passHatK: 0 },
         head: { meanScore: 0.5, passAtK: 1, passHatK: 0 },
@@ -497,20 +499,21 @@ export default defineEval({
     })
 
     // Canary: base would still pass under head's looser gate, so head failing it is a regression.
-    await setGate('metric(0.3)')
+    assert.equal((await runCli(p.dir, ['run', '--record'], steady)).code, 0)
+    await setGate('capability(1, { blocking: true })')
     assert.equal((await runCli(p.dir, ['run'], { env: { REEVAL_TEST_BREAK: '1' } })).code, 1)
     const regressed = await compareCode()
     assert.equal(regressed.code, 1, regressed.out)
     assert.match(
       regressed.out,
-      /^ {2}gate +passRate 0\.5 → passRate 0\.3 {2}base would still pass under it$/m,
+      /^ {2}gate +all → any {2}base would still pass under it$/m,
     )
     assert.deepEqual((await row())?.gate?.rescored, 'pass')
     assert.equal((await row())?.status, 'regressed')
 
     // Twin: the same gate as base has no gate change to name.
-    await setGate('metric(0.5)')
-    assert.equal((await runCli(p.dir)).code, 0)
+    await setGate('regression()')
+    assert.equal((await runCli(p.dir, ['run'], steady)).code, 0)
     assert.equal((await compareCode()).code, 0)
     const same = await row()
     assert.deepEqual([same?.status, same?.changes, same?.gate], ['same', undefined, undefined])
@@ -558,7 +561,7 @@ export default defineEval({
     const rows = async () =>
       JSON.parse((await runCli(p.dir, ['compare', '--json'])).stdout).rows as Row[]
     assert.equal((await runCli(p.dir, ['run', '--record'])).code, 0)
-    await writeFile(join(p.dir, 'reeval.config.ts'), config('metric(0.5)'))
+    await writeFile(join(p.dir, 'reeval.config.ts'), config('capability(1, { blocking: true })'))
 
     assert.equal((await runCli(p.dir)).code, 0)
     const [same] = await rows()
@@ -576,7 +579,7 @@ export default defineEval({
     assert.equal(shown.code, 0, `nothing regressed\n${shown.stdout}`)
     assert.match(
       shown.stdout,
-      /^ {2}same {13}ada\n {4}gate +all → passRate 0\.5 {2}base would still pass under it$/m,
+      /^ {2}same {13}ada\n {4}gate +all → any {2}base would still pass under it$/m,
       'a gate change is named even where the outcome held',
     )
 
@@ -975,7 +978,7 @@ export default defineEval({ async task() { assert.equal('this config', 'never ru
     // Twin: the parent's config, found from its own tree or named with --config, runs its eval.
     const parent = await runCli(join(p.dir, 'evals'))
     assert.equal(parent.code, 1, parent.stdout + parent.stderr)
-    assert.match(parent.stdout, /^└─ ✗ parent {2}0\/1 run at 100% {2}regression\(1\)$/m)
+    assert.match(parent.stdout, /^└─ ✗ parent {2}mean 0% · 0\/1 run at 100% {2}regression\(1\)$/m)
     const named = await runCli(lib, ['run', '--config', '../../../../reeval.config.ts'])
     assert.equal(named.code, 1, named.stdout + named.stderr)
     assert.deepEqual(

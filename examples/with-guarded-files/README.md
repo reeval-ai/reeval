@@ -31,7 +31,7 @@ only the guard catches it, and the attempt scores 0:
 
 ```text
 with-guarded-files.eval.ts
-  · with-guarded-files  0%  metric()
+  · with-guarded-files  mean 0% · 0/1 run at 100% (pass@1)  capability(1)
     #1  0%  not-in-diff:package.json,package-lock.json 0% (required)
 ```
 

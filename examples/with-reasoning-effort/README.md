@@ -28,7 +28,7 @@ one profile you need.
 
 ```text
 with-reasoning-effort.eval.ts
-  · with-reasoning-effort  100%  metric()
+  · with-reasoning-effort  mean 100% · 2/2 runs at 100% (pass@2)  capability(1)
     fake[effort=low]   100%
     fake[effort=high]  100%
 ```

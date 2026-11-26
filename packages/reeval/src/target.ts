@@ -47,11 +47,12 @@ export function targetGate(target: Target, bestOf: boolean): CellGate {
 
 /**
  * The target a record from before targets ran under, from its cells' gates: `'all'` is
- * `regression()`, `{ passRate }` is a mean-score `metric`, and none gated is the default.
+ * `regression()`, `{ passRate }` is a mean-score `metric`, and none gated is a `metric` that only
+ * reported.
  */
 export function targetOfGates(gates: CellGate[]): RecordedTarget {
   const gate = gates.find((g) => g !== 'none')
-  if (gate === undefined) return DEFAULT_TARGET
+  if (gate === undefined) return { kind: 'metric' }
   if (gate === 'all') return regression()
   if (gate === 'any') return capability(1, { blocking: true })
   return { kind: 'metric', threshold: gate.passRate }

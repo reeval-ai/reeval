@@ -1,4 +1,4 @@
-import { metric } from 'reeval'
+import { regression } from 'reeval'
 import { evaluate } from 'reeval/legacy'
 import { base, skilled } from '../../../plan/compare/evals/envs.ts'
 
@@ -12,7 +12,7 @@ evaluate(
   'with choices',
   {
     runs: 2,
-    target: metric(0.5),
+    target: regression(0.5),
     questions: [
       {
         question: 'Did the agent run the tests first?',

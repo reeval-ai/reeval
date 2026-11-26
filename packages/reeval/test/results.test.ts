@@ -551,8 +551,8 @@ describe('targets', () => {
     assert.deepEqual(targetOfGates(['all', 'all']), regression())
     assert.deepEqual(targetOfGates(['none', { passRate: 0.7 }]), { kind: 'metric', threshold: 0.7 })
     assert.deepEqual(targetOfGates(['any']), capability(1, { blocking: true }))
-    assert.deepEqual(targetOfGates(['none', 'none']), capability())
-    assert.deepEqual(targetOfGates([]), capability())
+    assert.deepEqual(targetOfGates(['none', 'none']), { kind: 'metric' })
+    assert.deepEqual(targetOfGates([]), { kind: 'metric' })
     assert.equal(blocks(targetOfGates(['none'])), false, 'an ungated record only reported')
   })
 

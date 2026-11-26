@@ -74,15 +74,15 @@ export default defineEval({
     assert.match(r.stdout, /^\[writes#2 bad\] ▶ writes-ok$/m)
     assert.match(
       r.stdout,
-      /evals\/writes-ok\.eval\.ts\n└─ ✗ writes-ok {2}2\/4 runs at 100%, worst 0% {2}regression\(1\)\n {5}#1–2 · bad {2}0% {2}has-file:ok\.txt 0%\n/,
+      /evals\/writes-ok\.eval\.ts\n└─ ✗ writes-ok {2}mean \d+% · 2\/4 runs at 100%, worst 0% {2}regression\(1\)\n {5}#1–2 · bad {2}0% {2}has-file:ok\.txt 0%\n/,
     )
     assert.match(r.stdout, /^Done in \S+ · 1 eval · 1 below$/m)
     const thirds = await project('matrix-thirds', {
       'reeval.config.ts': config('', `fakeAgent({ id: 'one' })`),
-      'evals/two-of-three.eval.ts': `import { defineEval, metric } from 'reeval'
+      'evals/two-of-three.eval.ts': `import { capability, defineEval } from 'reeval'
 export default defineEval({
   runs: 3,
-  target: metric(0.5),
+  target: capability(),
   async task(c) {
     await c.send('go')
     if (c.attempt.n === 2) throw new Error('the second attempt fails')
@@ -94,8 +94,8 @@ export default defineEval({
     assert.equal(rounded.code, 0, rounded.stdout + rounded.stderr)
     assert.match(
       rounded.stdout,
-      /✓ two-of-three {2}67% ≥ 50% {2}metric\(0\.5\)$/m,
-      'a mean rounds down, never up to its threshold',
+      /· two-of-three {2}mean 67% · 2\/3 runs at 100% \(pass@3\) {2}capability\(1\)$/m,
+      'the mean shows beside pass@k',
     )
     const { run, evals } = readRun(p.dir)
     assert.equal(run.summary.attempts, 4)
@@ -282,7 +282,7 @@ export default defineEval({
     assert.equal(r.code, 0, r.stdout + r.stderr)
     // The family is one row, its arms pooled over the cases.
     const pooled =
-      /✓ writes-ok {2}6\/6 runs at 100% {2}regression\(1\)\n[│ ]+arm +pass\n[│ ]+base +0 of 6\n[│ ]+skilled +6 of 6 {2}helped\n/
+      /✓ writes-ok {2}mean 100% · 6\/6 runs at 100% {2}regression\(1\)\n[│ ]+arm +pass\n[│ ]+base +0 of 6\n[│ ]+skilled +6 of 6 {2}helped\n/
     assert.match(r.stdout, pooled)
     assert.doesNotMatch(r.stdout, /Failed cases/, 'every case passed')
     assert.match(
@@ -380,7 +380,7 @@ export default defineEval({
     assert.equal(r.code, 1, r.stdout + r.stderr)
     assert.match(
       r.stdout,
-      /✗ writes-ok {2}6\/6 runs at 100% {2}regression\(1\)\n[│ ]+arm +pass\n[│ ]+base +0 of 6\n[│ ]+skilled +6 of 6 {2}helped, not by minLift 60\n/,
+      /✗ writes-ok {2}mean 100% · 6\/6 runs at 100% {2}regression\(1\)\n[│ ]+arm +pass\n[│ ]+base +0 of 6\n[│ ]+skilled +6 of 6 {2}helped, not by minLift 60\n/,
     )
     assert.doesNotMatch(r.stdout, /Failed cases/, 'every case passed on its own')
     assert.match(
@@ -445,7 +445,7 @@ export default defineEval({
     assert.match(r.stdout, /^ {2}➜ {2}Scope: +1 eval file · 1 eval · 2 cells · 4 attempts$/m)
     // A successful compare reads as one: the control's expected misses aren't failures.
     const block =
-      /✓ writes-ok {2}2\/2 runs at 100% {2}regression\(1\)\n[│ ]+arm +pass\n[│ ]+base +0 of 2\n[│ ]+error {2}score 0\.00 below 1: has-file:ok\.txt scored 0\.00 \(2 runs\)\n[│ ]+skilled +2 of 2 {2}helped\n/
+      /✓ writes-ok {2}mean 100% · 2\/2 runs at 100% {2}regression\(1\)\n[│ ]+arm +pass\n[│ ]+base +0 of 2\n[│ ]+error {2}score 0\.00 below 1: has-file:ok\.txt scored 0\.00 \(2 runs\)\n[│ ]+skilled +2 of 2 {2}helped\n/
     assert.match(r.stdout, block)
     assert.match(r.stdout, /^Done in \S+ · 1 eval · 1 on target$/m)
 
@@ -579,20 +579,17 @@ describe('targets', () => {
   }`
   const flakyFile = (
     target: string,
-  ) => `import { capability, defineEval, metric, regression } from 'reeval'
+  ) => `import { capability, defineEval, regression } from 'reeval'
 export default defineEval({
   runs: 5${target},
   ${flakyTask},
 })
 `
 
-  test('each target gates the mean score, pass^k or pass@k', async () => {
+  test('each target gates pass^k or pass@k, and the mean shows under each', async () => {
     const p = await project('targets', {
-      'reeval.config.ts': fakeConfig(),
+      'reeval.config.ts': fakeConfig({ extra: 'target: undefined,' }),
       'evals/default.eval.ts': flakyFile(''),
-      'evals/at-08.eval.ts': flakyFile(', target: metric(0.8)'),
-      'evals/at-09.eval.ts': flakyFile(', target: metric(0.9)'),
-      'evals/reports.eval.ts': flakyFile(', target: metric()'),
       'evals/any-one.eval.ts': flakyFile(', target: capability(1, { blocking: true })'),
       'evals/every-one.eval.ts': flakyFile(', target: regression()'),
     })
@@ -620,32 +617,35 @@ export default defineEval({
           'pass',
           'pass',
         ],
-        ['at-08', { kind: 'metric', threshold: 0.8 }, { passRate: 0.8 }, scores, 'pass', 'pass'],
-        ['at-09', { kind: 'metric', threshold: 0.9 }, { passRate: 0.9 }, scores, 'fail', 'fail'],
-        ['default', { kind: 'regression', threshold: 1 }, 'all', scores, 'fail', 'fail'],
+        [
+          'default',
+          { kind: 'capability', threshold: 1, blocking: false },
+          'any',
+          scores,
+          'pass',
+          'pass',
+        ],
         ['every-one', { kind: 'regression', threshold: 1 }, 'all', scores, 'fail', 'fail'],
-        ['reports', { kind: 'metric' }, 'none', scores, 'fail', 'pass'],
       ],
     )
     assert.deepEqual(evals[0]?.scores, scores, "the eval's scores are its target cells'")
-    assert.match(r.stdout, /✓ at-08 +80% ≥ 80% +metric\(0\.8\)$/m)
-    assert.match(r.stdout, /✗ at-09 +80% < 90% +metric\(0\.9\)$/m)
     assert.match(
       r.stdout,
-      /✓ any-one +4\/5 runs at 100% \(pass@5\) +capability\(1, \{ blocking: true \}\)$/m,
+      /✓ any-one +mean 80% · 4\/5 runs at 100% \(pass@5\) +capability\(1, \{ blocking: true \}\)$/m,
     )
-    assert.match(r.stdout, /· reports +80% +metric\(\)$/m)
-    assert.match(r.stdout, /^Done in \S+ · 6 evals · 2 on target · 3 below · 1 report only$/m)
+    assert.match(r.stdout, /· default +mean 80% · 4\/5 runs at 100% \(pass@5\) +capability\(1\)$/m)
+    assert.match(r.stdout, /✗ every-one +mean 80% · 4\/5 runs at 100%, worst 0% +regression\(1\)$/m)
+    assert.match(r.stdout, /^Done in \S+ · 3 evals · 1 on target · 1 below · 1 report only$/m)
   })
 
   test('a config-level target applies to every eval', async () => {
     const p = await project('config-target', {
-      'reeval.config.ts': fakeConfig({ extra: 'target: metric(0.8),' }),
+      'reeval.config.ts': fakeConfig({ extra: 'target: capability(1, { blocking: true }),' }),
       'evals/steady.eval.ts': flakyFile(''),
     })
     const r = await runCli(p.dir)
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    assert.deepEqual(readRun(p.dir).evals[0]?.cells[0]?.gate, { passRate: 0.8 })
+    assert.deepEqual(readRun(p.dir).evals[0]?.cells[0]?.gate, 'any')
   })
 
   test("a capability target that doesn't block reads fail without failing the run", async () => {
@@ -663,7 +663,7 @@ export default defineEval({
     const r = await runCli(p.dir)
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.equal(readRun(p.dir).evals[0]?.outcome, 'fail')
-    assert.match(r.stdout, /^└─ · never {2}0\/2 runs at 100% \(pass@2\) {2}capability\(1\)$/m)
+    assert.match(r.stdout, /^└─ · never {2}mean 0% · 0\/2 runs at 100% \(pass@2\) {2}capability\(1\)$/m)
     // Canary: the same target set to block fails the run.
     writeFileSync(
       join(p.dir, 'reeval.config.ts'),
@@ -674,12 +674,12 @@ export default defineEval({
 
   test("in CI, the plan names the evals whose target can't fail it", async () => {
     const p = await project('ci-target', {
-      'reeval.config.ts': fakeConfig({ extra: 'target: metric(),' }),
+      'reeval.config.ts': fakeConfig({ extra: 'target: capability(),' }),
       'evals/reports.eval.ts': flakyFile(''),
       'evals/blocks.eval.ts': flakyFile(', target: regression(0.8)'),
     })
     const hint =
-      /Hint: +1 eval can't fail CI \([^)]+\): its target only reports; set target: regression\(\) \(or metric\(0\.8\), capability\(1, \{ blocking: true \}\)\) in the eval or the config to fail on a miss$/m
+      /Hint: +1 eval can't fail CI \([^)]+\): its target only reports; set target: regression\(\) \(or capability\(1, \{ blocking: true \}\)\) in the eval or the config to fail on a miss$/m
     const ci = await runCli(p.dir, ['run', '--dry-run'], { env: { CI: 'true' } })
     assert.equal(ci.code, 0, ci.stdout + ci.stderr)
     assert.match(ci.stdout, hint)

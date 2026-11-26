@@ -29,7 +29,7 @@ punctuation, so one of the three hidden tests fails:
 
 ```text
 with-hidden-tests.eval.ts
-  · with-hidden-tests  67%  metric()
+  · with-hidden-tests  mean 67% · 0/1 run at 100% (pass@1)  capability(1)
     #1  67%  hidden-tests 67%
 ```
 
