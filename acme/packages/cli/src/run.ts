@@ -1,6 +1,6 @@
 import { isAcmeError } from '@acme/core'
 import { CommanderError } from 'commander'
-import { createProgram, type ProgramDeps } from './program.ts'
+import { createProgram, jsonMode, type ProgramDeps } from './program.ts'
 
 /**
  * Runs the CLI and returns its exit code: 0 for success, 1 for an API or runtime error, 2 for a
@@ -18,8 +18,8 @@ export async function run(argv: string[], deps: ProgramDeps): Promise<number> {
     if (error instanceof CommanderError) return error.exitCode === 0 ? 0 : 2
     if (isAcmeError(error)) {
       deps.stderr(
-        program.opts<{ json?: boolean }>().json === true
-          ? `${JSON.stringify({ error: { code: error.code, message: error.message } }, null, 2)}\n`
+        jsonMode(program)
+          ? `${JSON.stringify(error.toEnvelope(), null, 2)}\n`
           : `error: ${error.code}: ${error.message}\n`,
       )
       return 1

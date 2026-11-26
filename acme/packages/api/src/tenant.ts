@@ -15,7 +15,7 @@ export class AcmeTenant extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env)
     this.store = createDurableStore(ctx.storage.kv)
-    this.#app = createApp({ storeForKey: () => this.store, clock: () => new Date() })
+    this.#app = createApp({ storeForKey: () => this.store })
   }
 
   /** Serves one request with the app, on this object's store. */

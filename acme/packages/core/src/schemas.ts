@@ -14,6 +14,9 @@ export type OrderStatus = z.infer<typeof OrderStatusSchema>
 /** The longest free string an input takes. */
 export const MAX_STRING_LENGTH = 255
 
+/** A time as an ISO 8601 UTC string, such as `2026-01-01T00:00:00.000Z`. */
+const timestamp = z.string().describe('ISO 8601 UTC time')
+
 /** An id taken from a path or a tool argument. */
 export const IdSchema = z.string().min(1).max(MAX_STRING_LENGTH)
 
@@ -53,8 +56,8 @@ export const CartSchema = z.object({
   id: z.string(),
   items: z.array(CartItemSchema),
   subtotalCents: z.number().int().nonnegative(),
-  createdAt: z.iso.datetime(),
-  updatedAt: z.iso.datetime(),
+  createdAt: timestamp,
+  updatedAt: timestamp,
 })
 /** A cart with its priced items and subtotal. */
 export type Cart = z.infer<typeof CartSchema>
@@ -69,8 +72,8 @@ export const OrderSchema = z.object({
   discountCents: z.number().int().nonnegative(),
   totalCents: z.number().int().nonnegative(),
   couponCode: z.string().nullable(),
-  createdAt: z.iso.datetime(),
-  updatedAt: z.iso.datetime(),
+  createdAt: timestamp,
+  updatedAt: timestamp,
 })
 /** An order. */
 export type Order = z.infer<typeof OrderSchema>
@@ -79,15 +82,13 @@ export type Order = z.infer<typeof OrderSchema>
  * A coupon. `percent` takes `value` percent off the subtotal, rounded down. `fixed` takes `value`
  * cents off. A null `expiresAt` never expires.
  */
-export const CouponSchema = z.object({
-  code: z.string(),
-  type: z.enum(['percent', 'fixed']),
-  value: z.number().int().positive(),
-  minSubtotalCents: z.number().int().nonnegative(),
-  expiresAt: z.iso.datetime().nullable(),
-})
-/** A coupon. */
-export type Coupon = z.infer<typeof CouponSchema>
+export interface Coupon {
+  code: string
+  type: 'percent' | 'fixed'
+  value: number
+  minSubtotalCents: number
+  expiresAt: string | null
+}
 
 /**
  * Builds the schema of one page of a list. `nextCursor` is null on the last page.
@@ -105,11 +106,6 @@ export interface Page<T> {
 }
 
 const limit = z.number().int().min(1).max(PAGE_LIMIT.max)
-const textLimit = z
-  .string()
-  .regex(/^[0-9]+$/, 'Expected an integer in decimal digits, such as 10')
-  .transform(Number)
-  .pipe(limit)
 const cursor = z.string().max(MAX_STRING_LENGTH)
 
 /**
@@ -124,11 +120,6 @@ export const ProductListInputSchema = z.strictObject({
 })
 /** Input of `products.list`. */
 export type ProductListInput = z.infer<typeof ProductListInputSchema>
-
-/** `ProductListInputSchema` for a query string, where `limit` arrives as text. */
-export const ProductListQuerySchema = ProductListInputSchema.extend({
-  limit: textLimit.optional(),
-})
 
 /** Input of `carts.addItem`. Adding a product already in the cart adds to its quantity. */
 export const AddCartItemInputSchema = z.strictObject({
@@ -153,7 +144,7 @@ export const CreateOrderInputSchema = z.strictObject({
   cartId: IdSchema,
   paymentToken: z.string().min(1).max(MAX_STRING_LENGTH),
   couponCode: z.string().min(1).max(MAX_STRING_LENGTH).optional(),
-  idempotencyKey: z.string().min(1).max(255).optional(),
+  idempotencyKey: z.string().min(1).max(MAX_STRING_LENGTH).optional(),
 })
 /** Input of `orders.create`. */
 export type CreateOrderInput = z.infer<typeof CreateOrderInputSchema>
@@ -170,22 +161,17 @@ export const OrderListInputSchema = z.strictObject({
 /** Input of `orders.list`. */
 export type OrderListInput = z.infer<typeof OrderListInputSchema>
 
-/** `OrderListInputSchema` for a query string, where `limit` arrives as text. */
-export const OrderListQuerySchema = OrderListInputSchema.extend({
-  limit: textLimit.optional(),
-})
-
 /** Result of `reset`. */
-export const ResetResultSchema = z.object({ ok: z.literal(true) })
-/** Result of `reset`. */
-export type ResetResult = z.infer<typeof ResetResultSchema>
+export interface ResetResult {
+  ok: true
+}
 
 /** What one tenant stores for a cart. Prices are looked up when the cart is read. */
 export const StoredCartSchema = z.object({
   id: z.string(),
   items: z.array(z.object({ productId: z.string(), quantity: z.number().int().positive() })),
-  createdAt: z.iso.datetime(),
-  updatedAt: z.iso.datetime(),
+  createdAt: timestamp,
+  updatedAt: timestamp,
 })
 /** What one tenant stores for a cart. */
 export type StoredCart = z.infer<typeof StoredCartSchema>

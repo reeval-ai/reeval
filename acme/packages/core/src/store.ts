@@ -39,3 +39,16 @@ export function createMemoryStore(initial: TenantState = seedState()): Store {
     },
   }
 }
+
+/** Gives each API key its own memory store, holding the seed data when the key is first seen. */
+export function memoryStoresByKey(): (apiKey: string) => Store {
+  const stores = new Map<string, Store>()
+  return (apiKey) => {
+    let store = stores.get(apiKey)
+    if (!store) {
+      store = createMemoryStore()
+      stores.set(apiKey, store)
+    }
+    return store
+  }
+}

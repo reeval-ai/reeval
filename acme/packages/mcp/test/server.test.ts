@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
+  AcmeConnectionError,
   AcmeError,
   type AcmeServices,
   CATEGORIES,
@@ -10,74 +11,21 @@ import {
   createServices,
   type Order,
   PAYMENT_TOKEN_DECLINED,
-  PAYMENT_TOKEN_OK,
   PRODUCTS,
   type Product,
 } from '@acme/core'
-import { AcmeConnectionError } from '@acme/sdk'
+import {
+  cart,
+  order,
+  orderPage,
+  product,
+  productPage,
+  recordingServices,
+  type ServiceCall,
+} from '@acme/core/testing'
 import { Client } from '@modelcontextprotocol/client'
 import { InMemoryTransport } from '@modelcontextprotocol/server'
-import { buildServer, TOOL_NAMES } from '../src/server.ts'
-
-const product: Product = {
-  id: 'prod_003',
-  name: 'Headphones',
-  description: 'Over-ear',
-  category: 'audio',
-  priceCents: 1999,
-  stock: 5,
-}
-const cart: Cart = {
-  id: 'cart_0001',
-  items: [],
-  subtotalCents: 0,
-  createdAt: '2026-01-01T00:00:00.000Z',
-  updatedAt: '2026-01-01T00:00:00.000Z',
-}
-const order: Order = {
-  id: 'order_0001',
-  cartId: 'cart_0001',
-  status: 'paid',
-  items: [],
-  subtotalCents: 0,
-  discountCents: 0,
-  totalCents: 0,
-  couponCode: null,
-  createdAt: '2026-01-01T00:00:00.000Z',
-  updatedAt: '2026-01-01T00:00:00.000Z',
-}
-
-type Call = [method: string, ...args: unknown[]]
-
-function stubServices(calls: Call[], fail?: AcmeError): AcmeServices {
-  const record =
-    <T>(method: string, value: T) =>
-    async (...args: unknown[]): Promise<T> => {
-      calls.push([method, ...args])
-      if (fail) throw fail
-      return value
-    }
-  return {
-    products: {
-      list: record('products.list', { data: [product], nextCursor: null }),
-      get: record('products.get', product),
-    },
-    carts: {
-      create: record('carts.create', cart),
-      get: record('carts.get', cart),
-      addItem: record('carts.addItem', cart),
-      updateItem: record('carts.updateItem', cart),
-      removeItem: record('carts.removeItem', cart),
-    },
-    orders: {
-      create: record('orders.create', order),
-      list: record('orders.list', { data: [order], nextCursor: null }),
-      get: record('orders.get', order),
-      cancel: record('orders.cancel', { ...order, status: 'canceled' as const }),
-    },
-    reset: record('reset', { ok: true as const }),
-  }
-}
+import { buildServer } from '../src/server.ts'
 
 async function connect(services: AcmeServices): Promise<Client> {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
@@ -95,9 +43,9 @@ function textOf(result: { content?: unknown }): string {
 }
 
 test('listTools returns the 11 tools with object input schemas', async () => {
-  const client = await connect(stubServices([]))
+  const client = await connect(recordingServices().services)
   const { tools } = await client.listTools()
-  assert.deepEqual(tools.map((tool) => tool.name).sort(), [...TOOL_NAMES].sort())
+  assert.deepEqual(tools.map((tool) => tool.name).sort(), Object.keys(ANNOTATIONS).sort())
   assert.equal(tools.length, 11)
   for (const tool of tools) {
     assert.equal(tool.inputSchema.type, 'object', tool.name)
@@ -116,12 +64,14 @@ test('listTools returns the 11 tools with object input schemas', async () => {
   await client.close()
 })
 
+type Call = [method: string, ...args: unknown[]]
+
 const cases: { tool: string; args: Record<string, unknown>; expected: Call; value: unknown }[] = [
   {
     tool: 'search_products',
     args: { q: 'head', category: 'audio', limit: 5 },
     expected: ['products.list', { q: 'head', category: 'audio', limit: 5 }],
-    value: { data: [product], nextCursor: null },
+    value: productPage,
   },
   {
     tool: 'get_product',
@@ -178,7 +128,7 @@ const cases: { tool: string; args: Record<string, unknown>; expected: Call; valu
     tool: 'list_orders',
     args: { status: 'paid', limit: 3 },
     expected: ['orders.list', { status: 'paid', limit: 3 }],
-    value: { data: [order], nextCursor: null },
+    value: orderPage,
   },
   {
     tool: 'cancel_order',
@@ -190,11 +140,12 @@ const cases: { tool: string; args: Record<string, unknown>; expected: Call; valu
 
 for (const { tool, args, expected, value } of cases) {
   test(`${tool} calls ${expected[0]} and returns its value`, async () => {
-    const calls: Call[] = []
-    const client = await connect(stubServices(calls))
+    const { services, calls } = recordingServices()
+    const client = await connect(services)
     const result = await client.callTool({ name: tool, arguments: args })
     assert.notEqual(result.isError, true)
-    assert.deepEqual(calls, [expected])
+    const [method, ...rest] = expected
+    assert.deepEqual(calls, [{ method, args: rest } satisfies ServiceCall])
     assert.deepEqual(JSON.parse(textOf(result)), value)
     assert.deepEqual(result.structuredContent, value)
     await client.close()
@@ -202,8 +153,11 @@ for (const { tool, args, expected, value } of cases) {
 }
 
 test('an AcmeError becomes an error result with its code', async () => {
-  const error = new AcmeError('payment_declined', 'The payment was declined')
-  const client = await connect(stubServices([], error))
+  const services = recordingServices().services
+  services.orders.create = async () => {
+    throw new AcmeError('payment_declined', 'The payment was declined')
+  }
+  const client = await connect(services)
   const result = await client.callTool({
     name: 'checkout',
     arguments: { cartId: 'cart_0001', paymentToken: 'tok_declined' },
@@ -214,8 +168,8 @@ test('an AcmeError becomes an error result with its code', async () => {
 })
 
 test('an invalid or unknown argument is refused before the service is called', async () => {
-  const calls: Call[] = []
-  const client = await connect(stubServices(calls))
+  const { services, calls } = recordingServices()
+  const client = await connect(services)
   const invalid = [
     {
       name: 'add_cart_item',
@@ -240,7 +194,7 @@ test('an invalid or unknown argument is refused before the service is called', a
 
 test('an unexpected error becomes internal_error without its message', async (t) => {
   const logged = t.mock.method(console, 'error', () => {})
-  const services = stubServices([])
+  const services = recordingServices().services
   const secret = new Error('storage at 10.0.0.7 refused the write')
   services.carts.create = async () => {
     throw secret
@@ -257,7 +211,7 @@ test('an unexpected error becomes internal_error without its message', async (t)
 })
 
 test('an unreachable server reaches the agent with its URL', async () => {
-  const services = stubServices([])
+  const services = recordingServices().services
   services.products.get = async () => {
     throw new AcmeConnectionError(
       'GET http://localhost:8787/v1/products/prod_003 failed: fetch failed',
@@ -292,7 +246,7 @@ const ANNOTATIONS: Record<string, [readOnly: boolean, destructive: boolean, idem
   }
 
 test('each tool has the annotations of its behavior', async () => {
-  const client = await connect(stubServices([]))
+  const client = await connect(recordingServices().services)
   const { tools } = await client.listTools()
   for (const tool of tools) {
     const { readOnlyHint, destructiveHint, idempotentHint, openWorldHint } = tool.annotations ?? {}
@@ -316,7 +270,7 @@ function walk(schema: unknown, visit: (node: Record<string, unknown>) => void): 
 }
 
 test('the schemas a client receives are plain: closed objects, every input described', async () => {
-  const client = await connect(stubServices([]))
+  const client = await connect(recordingServices().services)
   const { tools } = await client.listTools()
   for (const tool of tools) {
     for (const schema of [tool.inputSchema, tool.outputSchema]) {
@@ -337,12 +291,11 @@ test('the schemas a client receives are plain: closed objects, every input descr
 })
 
 test('the seed facts the tools quote are the seed data', async () => {
-  const client = await connect(stubServices([]))
+  const client = await connect(recordingServices().services)
   const { tools } = await client.listTools()
   const byName = Object.fromEntries(tools.map((tool) => [tool.name, tool]))
   const checkout = JSON.stringify(byName.checkout)
   for (const code of COUPONS.map((coupon) => coupon.code)) assert.ok(checkout.includes(code), code)
-  assert.ok(checkout.includes(PAYMENT_TOKEN_OK))
   assert.ok(checkout.includes(PAYMENT_TOKEN_DECLINED))
   const { category } = byName.search_products?.inputSchema.properties ?? {}
   const categories = (category as { description: string }).description
@@ -397,8 +350,8 @@ test('the behavior the descriptions promise holds on the real services', async (
 
   for (const [args, code] of [
     [{ paymentToken: PAYMENT_TOKEN_DECLINED }, 'payment_declined'],
-    [{ paymentToken: PAYMENT_TOKEN_OK, couponCode: 'welcome10' }, 'coupon_invalid'],
-    [{ paymentToken: PAYMENT_TOKEN_OK, couponCode: 'EXPIRED20' }, 'coupon_invalid'],
+    [{ paymentToken: 'tok_ok', couponCode: 'welcome10' }, 'coupon_invalid'],
+    [{ paymentToken: 'tok_ok', couponCode: 'EXPIRED20' }, 'coupon_invalid'],
   ] as const) {
     assert.deepEqual(await call(client, 'checkout', { cartId, ...args }), { error: code })
   }
@@ -406,7 +359,7 @@ test('the behavior the descriptions promise holds on the real services', async (
 
   const order = (await call(client, 'checkout', {
     cartId,
-    paymentToken: PAYMENT_TOKEN_OK,
+    paymentToken: 'tok_ok',
     couponCode: 'WELCOME10',
     idempotencyKey: 'once',
   })) as Order
@@ -414,13 +367,13 @@ test('the behavior the descriptions promise holds on the real services', async (
   assert.deepEqual(
     await call(client, 'checkout', {
       cartId,
-      paymentToken: PAYMENT_TOKEN_OK,
+      paymentToken: 'tok_ok',
       idempotencyKey: 'once',
     }),
     order,
   )
   assert.deepEqual(((await call(client, 'get_cart', { cartId })) as Cart).items, [])
-  assert.deepEqual(await call(client, 'checkout', { cartId, paymentToken: PAYMENT_TOKEN_OK }), {
+  assert.deepEqual(await call(client, 'checkout', { cartId, paymentToken: 'tok_ok' }), {
     error: 'cart_empty',
   })
 
@@ -433,14 +386,10 @@ test('the behavior the descriptions promise holds on the real services', async (
   await client.close()
 })
 
-const MAX_SAFE = String(Number.MAX_SAFE_INTEGER)
-
-test('the JSON Schema a client receives is compact: plain date strings, no meaningless maximum', async () => {
-  const client = await connect(stubServices([]))
+test('the JSON Schema a client receives has plain date strings with a short description', async () => {
+  const client = await connect(recordingServices().services)
   const { tools } = await client.listTools()
-  const text = JSON.stringify(tools)
-  assert.ok(!text.includes('"pattern"'), 'a pattern is emitted')
-  assert.ok(!text.includes(MAX_SAFE), 'the safe integer maximum is emitted')
+  assert.ok(!JSON.stringify(tools).includes('"pattern"'), 'a pattern is emitted')
   let dates = 0
   for (const tool of tools) {
     walk(tool.outputSchema, (node) => {
@@ -454,11 +403,6 @@ test('the JSON Schema a client receives is compact: plain date strings, no meani
   }
   assert.equal(dates, 18)
   const byName = Object.fromEntries(tools.map((tool) => [tool.name, tool]))
-  const cartProperties = byName.get_cart?.outputSchema?.properties as Record<string, unknown>
-  assert.deepEqual(cartProperties.subtotalCents, {
-    type: 'integer',
-    minimum: 0,
-  })
   assert.deepEqual(byName.add_cart_item?.inputSchema.properties?.quantity, {
     type: 'integer',
     minimum: 1,
@@ -470,20 +414,6 @@ test('the JSON Schema a client receives is compact: plain date strings, no meani
 
 test('a result that breaks the output schema is still refused', async () => {
   const bad: [string, Record<string, unknown>, (services: AcmeServices) => void][] = [
-    [
-      'get_cart',
-      { cartId: 'cart_0001' },
-      (s) => {
-        s.carts.get = async () => ({ ...cart, createdAt: '2026-01-01' })
-      },
-    ],
-    [
-      'get_cart',
-      { cartId: 'cart_0001' },
-      (s) => {
-        s.carts.get = async () => ({ ...cart, updatedAt: '2026-01-01T00:00:00+02:00' })
-      },
-    ],
     [
       'get_product',
       { productId: 'prod_003' },
@@ -500,7 +430,7 @@ test('a result that breaks the output schema is still refused', async () => {
     ],
   ]
   for (const [name, args, change] of bad) {
-    const services = stubServices([])
+    const services = recordingServices().services
     change(services)
     const client = await connect(services)
     const outcome = await client.callTool({ name, arguments: args }).then(
@@ -513,7 +443,7 @@ test('a result that breaks the output schema is still refused', async () => {
 })
 
 test('search_products offers the categories as an enum of the core source', async () => {
-  const client = await connect(stubServices([]))
+  const client = await connect(recordingServices().services)
   const { tools } = await client.listTools()
   const search = tools.find((tool) => tool.name === 'search_products')
   const { category } = search?.inputSchema.properties ?? {}

@@ -6,9 +6,6 @@
   "bin": {
     "acme": "./dist/bin.mjs"
   },
-  "exports": {
-    ".": "./src/index.ts"
-  },
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit",

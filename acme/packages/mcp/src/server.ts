@@ -3,54 +3,53 @@ import {
   AddCartItemInputSchema,
   CATEGORIES,
   CartSchema,
+  COUPONS,
+  type Coupon,
   CreateOrderInputSchema,
   IdSchema,
+  isAcmeConnectionError,
   isAcmeError,
+  MAX_ITEM_QUANTITY,
+  MAX_STRING_LENGTH,
   OrderListInputSchema,
   OrderSchema,
+  PAGE_LIMIT,
+  PAYMENT_TOKEN_DECLINED,
   ProductListInputSchema,
   ProductSchema,
   pageSchema,
   UpdateCartItemInputSchema,
 } from '@acme/core'
-import type { CallToolResult, StandardSchemaWithJSON } from '@modelcontextprotocol/server'
+import type { CallToolResult } from '@modelcontextprotocol/server'
 import { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
-
-/** The names of the tools `buildServer` registers. */
-export const TOOL_NAMES = [
-  'search_products',
-  'get_product',
-  'create_cart',
-  'get_cart',
-  'add_cart_item',
-  'update_cart_item',
-  'remove_cart_item',
-  'checkout',
-  'get_order',
-  'list_orders',
-  'cancel_order',
-] as const
-
-/** The name of one tool of the acme MCP server. */
-export type ToolName = (typeof TOOL_NAMES)[number]
 
 const cartId = IdSchema.describe('Cart id from create_cart, such as "cart_0001".')
 const orderId = IdSchema.describe('Order id from checkout or list_orders, such as "order_0001".')
 const productId = IdSchema.describe('Product id from search_products, such as "prod_003".')
 const CURSOR = 'nextCursor of the previous page. Omit it for the first page.'
-const LIMIT = 'Items for each page, 1 to 50. Defaults to 10.'
+const LIMIT = `Items for each page, 1 to ${PAGE_LIMIT.max}. Defaults to ${PAGE_LIMIT.default}.`
+const PAGE_SIZE = `${PAGE_LIMIT.default} by default and at most ${PAGE_LIMIT.max} for each page`
+const QUANTITY = `1 to ${MAX_ITEM_QUANTITY}`
 
-const ProductPageSchema = compact(pageSchema(ProductSchema))
-const OrderPageSchema = compact(pageSchema(OrderSchema))
-const CompactCartSchema = compact(CartSchema)
-const CompactOrderSchema = compact(OrderSchema)
-const CompactProductSchema = compact(ProductSchema)
+const ProductPageSchema = pageSchema(ProductSchema)
+const OrderPageSchema = pageSchema(OrderSchema)
 
 const READ_ONLY = { readOnlyHint: true, destructiveHint: false, openWorldHint: false } as const
 const WRITE = { readOnlyHint: false, destructiveHint: false, openWorldHint: false } as const
 
 const MONEY = 'Money is integer cents in USD (1999 is $19.99).'
+
+function couponText({ code, type, value, minSubtotalCents, expiresAt }: Coupon): string {
+  // Every coupon with an expiry expired before any clock this service runs on.
+  if (expiresAt !== null) return `"${code}" is expired`
+  const off = type === 'percent' ? `${value}% off` : `${value} cents off`
+  const minimum = minSubtotalCents > 0 ? ` a subtotal of at least ${minSubtotalCents}` : ''
+  return `"${code}" takes ${off}${minimum}`
+}
+
+const COUPON_TEXTS = COUPONS.map(couponText)
+const COUPONS_TEXT = `${COUPON_TEXTS.slice(0, -1).join(', ')}, and ${COUPON_TEXTS.at(-1)}`
 
 /**
  * Builds the acme MCP server. Every tool calls only `services`, so the same server runs over stdio
@@ -66,7 +65,7 @@ export function buildServer(services: AcmeServices): McpServer {
     {
       title: 'Search products',
       description: [
-        'Lists products of the acme catalog, 10 by default and at most 50 for each page, ordered by id.',
+        `Lists products of the acme catalog, ${PAGE_SIZE}, ordered by id.`,
         'Filter by text with `q` and by `category`.',
         'Returns { data: Product[], nextCursor }. Pass nextCursor as `cursor` for the next page; it is null on the last page.',
         'A Product has id, name, description, category, priceCents and stock. A product with stock 0 cannot be bought.',
@@ -100,7 +99,7 @@ export function buildServer(services: AcmeServices): McpServer {
         'Errors: not_found for an unknown product id.',
       ].join(' '),
       inputSchema: z.strictObject({ productId }),
-      outputSchema: CompactProductSchema,
+      outputSchema: ProductSchema,
       annotations: { ...READ_ONLY, idempotentHint: true },
     },
     ({ productId }) => respond(() => services.products.get(productId)),
@@ -116,7 +115,7 @@ export function buildServer(services: AcmeServices): McpServer {
         'Each call creates a new cart, so calling it twice gives two carts.',
       ].join(' '),
       inputSchema: z.strictObject({}),
-      outputSchema: CompactCartSchema,
+      outputSchema: CartSchema,
       annotations: { ...WRITE, idempotentHint: false },
     },
     () => respond(() => services.carts.create()),
@@ -134,7 +133,7 @@ export function buildServer(services: AcmeServices): McpServer {
         'Errors: not_found for an unknown cart id.',
       ].join(' '),
       inputSchema: z.strictObject({ cartId }),
-      outputSchema: CompactCartSchema,
+      outputSchema: CartSchema,
       annotations: { ...READ_ONLY, idempotentHint: true },
     },
     ({ cartId }) => respond(() => services.carts.get(cartId)),
@@ -145,19 +144,19 @@ export function buildServer(services: AcmeServices): McpServer {
     {
       title: 'Add a product to a cart',
       description: [
-        'Adds `quantity` (1 to 99) of a product to a cart and returns the updated cart.',
+        `Adds \`quantity\` (${QUANTITY}) of a product to a cart and returns the updated cart.`,
         'Adding a product that is already in the cart adds to its quantity; use update_cart_item to set the quantity instead.',
         'Stock is checked at checkout, not here.',
-        'A cart line holds at most 99: an add that would take it past 99 changes nothing and fails with invalid_request, such as "invalid_request: quantity: cart cart_0001 would hold 100 of prod_003, the most is 99".',
+        `A cart line holds at most ${MAX_ITEM_QUANTITY}: an add that would take it past ${MAX_ITEM_QUANTITY} changes nothing and fails with invalid_request, such as "invalid_request: quantity: cart cart_0001 would hold ${MAX_ITEM_QUANTITY + 1} of prod_003, the most is ${MAX_ITEM_QUANTITY}".`,
         'Errors: not_found for an unknown cart or product.',
         'Chain: create_cart, then add_cart_item for each product, then checkout.',
       ].join(' '),
       inputSchema: z.strictObject({
         cartId,
         productId,
-        quantity: AddCartItemInputSchema.shape.quantity.describe('How many to add, 1 to 99.'),
+        quantity: AddCartItemInputSchema.shape.quantity.describe(`How many to add, ${QUANTITY}.`),
       }),
-      outputSchema: CompactCartSchema,
+      outputSchema: CartSchema,
       annotations: { ...WRITE, idempotentHint: false },
     },
     ({ cartId, ...input }) => respond(() => services.carts.addItem(cartId, input)),
@@ -168,16 +167,18 @@ export function buildServer(services: AcmeServices): McpServer {
     {
       title: 'Set the quantity of a cart item',
       description: [
-        'Sets the quantity (1 to 99) of a product already in a cart and returns the updated cart.',
+        `Sets the quantity (${QUANTITY}) of a product already in a cart and returns the updated cart.`,
         'Use remove_cart_item to take a product out.',
         'Errors: not_found for an unknown cart or a product that is not in the cart.',
       ].join(' '),
       inputSchema: z.strictObject({
         cartId,
         productId,
-        quantity: UpdateCartItemInputSchema.shape.quantity.describe('The new quantity, 1 to 99.'),
+        quantity: UpdateCartItemInputSchema.shape.quantity.describe(
+          `The new quantity, ${QUANTITY}.`,
+        ),
       }),
-      outputSchema: CompactCartSchema,
+      outputSchema: CartSchema,
       annotations: { ...WRITE, idempotentHint: true },
     },
     ({ cartId, productId, ...input }) =>
@@ -193,7 +194,7 @@ export function buildServer(services: AcmeServices): McpServer {
         'Errors: not_found for an unknown cart or a product that is not in the cart.',
       ].join(' '),
       inputSchema: z.strictObject({ cartId, productId }),
-      outputSchema: CompactCartSchema,
+      outputSchema: CartSchema,
       annotations: { ...WRITE, destructiveHint: true, idempotentHint: true },
     },
     ({ cartId, productId }) => respond(() => services.carts.removeItem(cartId, productId)),
@@ -207,7 +208,7 @@ export function buildServer(services: AcmeServices): McpServer {
         'Turns a cart into an order with status "paid", takes the stock and empties the cart. Returns the order:',
         'id, cartId, status, items, subtotalCents, discountCents, totalCents, couponCode, createdAt, updatedAt.',
         MONEY,
-        'Coupons: "WELCOME10" takes 10% off, "SAVE5" takes 500 cents off a subtotal of at least 5000, and "EXPIRED20" is expired.',
+        `Coupons: ${COUPONS_TEXT}.`,
         'Pass an `idempotencyKey` to make a retry safe: a repeated key returns the first order and creates nothing.',
         'Errors: not_found (unknown cart), cart_empty, insufficient_stock, coupon_invalid (unknown or expired code, or minimum spend not met), payment_declined.',
         'A failed checkout changes nothing, so fix the cause (for example update_cart_item, another couponCode or none) and call checkout again.',
@@ -216,16 +217,16 @@ export function buildServer(services: AcmeServices): McpServer {
       inputSchema: CreateOrderInputSchema.extend({
         cartId,
         paymentToken: CreateOrderInputSchema.shape.paymentToken.describe(
-          '"tok_ok" succeeds; "tok_declined" is declined with payment_declined.',
+          `"${PAYMENT_TOKEN_DECLINED}" is declined with payment_declined; any other token, such as "tok_ok", succeeds.`,
         ),
         couponCode: CreateOrderInputSchema.shape.couponCode.describe(
           'Optional coupon code, exact and case-sensitive, such as "WELCOME10".',
         ),
         idempotencyKey: CreateOrderInputSchema.shape.idempotencyKey.describe(
-          'Any unique string for this checkout, up to 255 characters. Reuse it only to retry the same checkout.',
+          `Any unique string for this checkout, up to ${MAX_STRING_LENGTH} characters. Reuse it only to retry the same checkout.`,
         ),
       }),
-      outputSchema: CompactOrderSchema,
+      outputSchema: OrderSchema,
       annotations: { ...WRITE, idempotentHint: false },
     },
     (input) => respond(() => services.orders.create(input)),
@@ -241,7 +242,7 @@ export function buildServer(services: AcmeServices): McpServer {
         'Errors: not_found for an unknown order id.',
       ].join(' '),
       inputSchema: z.strictObject({ orderId }),
-      outputSchema: CompactOrderSchema,
+      outputSchema: OrderSchema,
       annotations: { ...READ_ONLY, idempotentHint: true },
     },
     ({ orderId }) => respond(() => services.orders.get(orderId)),
@@ -252,7 +253,7 @@ export function buildServer(services: AcmeServices): McpServer {
     {
       title: 'List orders',
       description: [
-        'Lists orders ordered by id, 10 by default and at most 50 for each page. Filter with `status`.',
+        `Lists orders ordered by id, ${PAGE_SIZE}. Filter with \`status\`.`,
         'Returns { data: Order[], nextCursor }. Pass nextCursor as `cursor` for the next page; it is null on the last page.',
         'Errors: invalid_request for a cursor that is not the id of an order, whatever its status.',
       ].join(' '),
@@ -277,53 +278,13 @@ export function buildServer(services: AcmeServices): McpServer {
         'Canceling twice fails the second time.',
       ].join(' '),
       inputSchema: z.strictObject({ orderId }),
-      outputSchema: CompactOrderSchema,
+      outputSchema: OrderSchema,
       annotations: { ...WRITE, destructiveHint: true, idempotentHint: true },
     },
     ({ orderId }) => respond(() => services.orders.cancel(orderId)),
   )
 
   return server
-}
-
-/**
- * The schema with the JSON Schema that clients receive made compact: a date-time is a plain string
- * with a description, and an integer loses the safe-integer maximum. Validation stays the schema's.
- */
-function compact<S extends StandardSchemaWithJSON>(
-  schema: S,
-): StandardSchemaWithJSON<
-  StandardSchemaWithJSON.InferInput<S>,
-  StandardSchemaWithJSON.InferOutput<S>
-> {
-  const standard = schema['~standard']
-  return {
-    '~standard': {
-      ...standard,
-      jsonSchema: {
-        input: (options) => compactJson(standard.jsonSchema.input(options)),
-        output: (options) => compactJson(standard.jsonSchema.output(options)),
-      },
-    },
-  }
-}
-
-function compactJson<T>(node: T): T {
-  if (Array.isArray(node)) {
-    for (const item of node) compactJson(item)
-  } else if (typeof node === 'object' && node !== null) {
-    const record = node as Record<string, unknown>
-    if (record.type === 'string' && record.format === 'date-time') {
-      delete record.format
-      delete record.pattern
-      record.description ??= 'ISO 8601 UTC time'
-    }
-    if (record.type === 'integer' && record.maximum === Number.MAX_SAFE_INTEGER) {
-      delete record.maximum
-    }
-    for (const value of Object.values(record)) compactJson(value)
-  }
-  return node
 }
 
 async function respond<T extends object>(call: () => Promise<T>): Promise<CallToolResult> {
@@ -335,9 +296,7 @@ async function respond<T extends object>(call: () => Promise<T>): Promise<CallTo
     }
   } catch (error) {
     if (isAcmeError(error)) return failure(`${error.code}: ${error.message}`)
-    // The stdio bin's SDK throws this for an unreachable server; its message names only the URL.
-    if (error instanceof Error && error.name === 'AcmeConnectionError')
-      return failure(error.message)
+    if (isAcmeConnectionError(error)) return failure(error.message)
     console.error(error)
     return failure('internal_error: Internal server error')
   }

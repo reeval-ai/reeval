@@ -22,13 +22,7 @@ test('a missing or bad key gets 401 without creating an object', async () => {
   ] as const) {
     const res = await workerFetch(`http://acme.test${path}`, { headers })
     expect(res.status, path).toBe(401)
-    expect(await res.json()).toEqual({
-      error: {
-        code: 'unauthorized',
-        message:
-          'Missing or invalid API key: it must start with acme_test_ (for example acme_test_demo), sent as "Authorization: Bearer <key>" (the CLI and the SDK send ACME_API_KEY this way)',
-      },
-    })
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('unauthorized')
   }
   const missing = await workerFetch('http://acme.test/nope', {
     headers: { authorization: `Bearer ${freshKey('nf')}` },

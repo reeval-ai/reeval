@@ -6,18 +6,6 @@ import { fileURLToPath } from 'node:url'
 
 const bin = fileURLToPath(new URL('../dist/node.mjs', import.meta.url))
 
-function freePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = createServer()
-    server.once('error', reject)
-    server.listen(0, () => {
-      const address = server.address()
-      const port = typeof address === 'object' && address ? address.port : 0
-      server.close(() => resolve(port))
-    })
-  })
-}
-
 function listening(child: ChildProcess): Promise<string> {
   return new Promise((resolve, reject) => {
     let out = ''
@@ -49,15 +37,15 @@ function envWithout(...names: string[]): NodeJS.ProcessEnv {
 }
 
 test('the built acme-server answers /health, enforces auth and stops on SIGTERM', async () => {
-  const port = await freePort()
   const child = spawn(process.execPath, [bin], {
-    env: { ...envWithout('HOST'), PORT: String(port) },
+    env: { ...envWithout('HOST'), PORT: '0' },
     stdio: ['ignore', 'pipe', 'inherit'],
   })
   const exited = exitOf(child)
   try {
     const line = await listening(child)
-    assert.equal(line, `acme-server listening on http://127.0.0.1:${port}`)
+    const port = /^acme-server listening on http:\/\/127\.0\.0\.1:(\d+)$/.exec(line)?.[1]
+    assert.ok(port, line)
 
     const health = await fetch(`http://localhost:${port}/health`)
     assert.equal(health.status, 200)

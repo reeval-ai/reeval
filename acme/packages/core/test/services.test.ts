@@ -6,6 +6,7 @@ import {
   createMemoryStore,
   createServices,
   isAcmeError,
+  PRODUCTS,
   seedState,
 } from '../src/index.ts'
 
@@ -570,14 +571,6 @@ test('invalid_request: a free string over 255 characters', async () => {
   )
 })
 
-test('createServices requires a clock', () => {
-  // @ts-expect-error the clock is required
-  assert.throws(() => createServices(createMemoryStore()), {
-    name: 'TypeError',
-    message: 'createServices needs a clock, such as () => new Date()',
-  })
-})
-
 test('a returned value is a copy of the stored state', async () => {
   const { acme } = setup()
   const cartId = await cartWith(acme, 'prod_003', 2)
@@ -638,10 +631,22 @@ test('orders.create checks coupon expiry against the injected clock', async () =
   assert.equal((await rejection(at('2020-01-01T00:00:00.000Z'))).code, 'coupon_invalid')
 })
 
-test('orders.cancel returns the stock of every line', async () => {
+test('the seeded paid order holds its stock, and canceling it restores the catalog stock', async () => {
   const { acme } = setup()
+  const stock = async (id: string) => (await acme.products.get(id)).stock
+  const catalog = (id: string) => PRODUCTS.find((product) => product.id === id)?.stock
+  assert.deepEqual([await stock('prod_001'), await stock('prod_008')], [24, 48])
+  assert.equal(await stock('prod_013'), catalog('prod_013'))
   await acme.orders.cancel('order_0001')
-  assert.equal((await acme.products.get('prod_001')).stock, 26)
-  assert.equal((await acme.products.get('prod_008')).stock, 52)
-  assert.equal((await acme.products.get('prod_013')).stock, 35)
+  for (const id of ['prod_001', 'prod_008', 'prod_013']) {
+    assert.equal(await stock(id), catalog(id), id)
+  }
+})
+
+test('the seeded orders name carts that do not exist', async () => {
+  const { acme } = setup()
+  for (const id of ['order_0001', 'order_0002']) {
+    const { cartId } = await acme.orders.get(id)
+    assert.equal((await rejection(acme.carts.get(cartId))).code, 'not_found', cartId)
+  }
 })

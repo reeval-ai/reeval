@@ -2,10 +2,11 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { AcmeServices } from '@acme/core'
 import { AcmeError } from '@acme/core'
-import { exec, stubServices } from './helpers.ts'
+import { recordingServices } from '@acme/core/testing'
+import { exec } from './helpers.ts'
 
 function failing(error: unknown): () => AcmeServices {
-  const { services } = stubServices()
+  const { services } = recordingServices()
   const fail = async () => {
     throw error
   }

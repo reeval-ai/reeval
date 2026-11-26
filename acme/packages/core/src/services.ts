@@ -85,7 +85,8 @@ export interface OrderService {
 
 /**
  * The one contract of acme: the HTTP routes, the SDK and the MCP tools all have these operations.
- * Every error is an `AcmeError`.
+ * Every error is an `AcmeError`, except that an implementation over the network, such as the SDK,
+ * throws an `AcmeConnectionError` when no usable response arrives.
  */
 export interface AcmeServices {
   products: ProductService
@@ -103,9 +104,6 @@ export interface AcmeServices {
  * @param clock - The source of time.
  */
 export function createServices(store: Store, clock: Clock): AcmeServices {
-  if (typeof clock !== 'function') {
-    throw new TypeError('createServices needs a clock, such as () => new Date()')
-  }
   const now = () => clock().toISOString()
 
   return {

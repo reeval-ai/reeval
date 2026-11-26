@@ -55,6 +55,30 @@ export function isAcmeError(value: unknown): value is AcmeError {
 }
 
 /**
+ * Thrown when no usable acme response arrived: the network failed, or the response was not JSON
+ * or not the error envelope. An error the server reported is an `AcmeError` instead.
+ */
+export class AcmeConnectionError extends Error {
+  /** The HTTP status, when a response arrived. */
+  readonly status: number | undefined
+
+  /**
+   * @param message - A message for a person.
+   * @param options - The HTTP `status` of the response, if any, and the underlying `cause`.
+   */
+  constructor(message: string, options: { status?: number; cause?: unknown } = {}) {
+    super(message, options.cause === undefined ? undefined : { cause: options.cause })
+    this.name = 'AcmeConnectionError'
+    this.status = options.status
+  }
+}
+
+/** Whether a value is an `AcmeConnectionError`, also across copies of this package. */
+export function isAcmeConnectionError(value: unknown): value is AcmeConnectionError {
+  return value instanceof Error && value.name === 'AcmeConnectionError'
+}
+
+/**
  * Turns a failed zod parse into an `invalid_request` error.
  *
  * @param error - The zod error.

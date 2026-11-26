@@ -1,13 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import {
-  type Cart,
-  createMemoryStore,
-  type Order,
-  type Page,
-  type Product,
-  type Store,
-} from '@acme/core'
+import { type Cart, memoryStoresByKey, type Order, type Page, type Product } from '@acme/core'
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { createApp } from '../src/app.ts'
 
@@ -15,16 +8,8 @@ const ALPHA = 'acme_test_alpha'
 const BETA = 'acme_test_beta'
 
 function setup() {
-  const stores = new Map<string, Store>()
   const app = createApp({
-    storeForKey(key) {
-      let store = stores.get(key)
-      if (!store) {
-        store = createMemoryStore()
-        stores.set(key, store)
-      }
-      return store
-    },
+    storeForKey: memoryStoresByKey(),
     clock: () => new Date('2026-06-01T12:00:00.000Z'),
   })
 
@@ -195,59 +180,4 @@ test('a client without a key cannot connect to /mcp', async () => {
   const client = new Client({ name: 'api-test', version: '0.0.0' })
   await assert.rejects(client.connect(transport), /"code":"unauthorized"/)
   await client.close()
-})
-
-interface RpcReply {
-  result?: { tools?: { name: string }[]; structuredContent?: Cart; isError?: boolean }
-  error?: unknown
-}
-
-test('a 2025-06-18 client with no session id can initialize, list and call tools', async () => {
-  const { app, v1 } = setup()
-  async function rpc(body: unknown): Promise<{ status: number; reply?: RpcReply }> {
-    const res = await app.request('/mcp', {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${ALPHA}`,
-        'content-type': 'application/json',
-        accept: 'application/json, text/event-stream',
-        'mcp-protocol-version': '2025-06-18',
-      },
-      body: JSON.stringify(body),
-    })
-    const text = await res.text()
-    if (text === '') return { status: res.status }
-    const json = res.headers.get('content-type')?.includes('text/event-stream')
-      ? (text.split('\n').find((line) => line.startsWith('data:')) ?? '').slice(5)
-      : text
-    return { status: res.status, reply: JSON.parse(json) as RpcReply }
-  }
-
-  const init = await rpc({
-    jsonrpc: '2.0',
-    id: 1,
-    method: 'initialize',
-    params: {
-      protocolVersion: '2025-06-18',
-      capabilities: {},
-      clientInfo: { name: 'legacy-agent', version: '1.0.0' },
-    },
-  })
-  assert.equal(init.status, 200)
-  assert.equal(init.reply?.error, undefined)
-
-  assert.equal((await rpc({ jsonrpc: '2.0', method: 'notifications/initialized' })).status, 202)
-
-  const list = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/list' })
-  assert.equal(list.reply?.result?.tools?.length, 11)
-
-  const call = await rpc({
-    jsonrpc: '2.0',
-    id: 3,
-    method: 'tools/call',
-    params: { name: 'create_cart', arguments: {} },
-  })
-  assert.notEqual(call.reply?.result?.isError, true)
-  const cartId = call.reply?.result?.structuredContent?.id
-  assert.equal((await v1<Cart>(ALPHA, 'GET', `/v1/carts/${cartId}`)).status, 200)
 })

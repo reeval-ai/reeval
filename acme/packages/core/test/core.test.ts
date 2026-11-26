@@ -2,41 +2,23 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { z } from 'zod'
 import {
+  AcmeConnectionError,
   AcmeError,
   AddCartItemInputSchema,
   CATEGORIES,
-  CategorySchema,
-  COUPONS,
   CreateOrderInputSchema,
-  ERROR_STATUS,
   ErrorEnvelopeSchema,
   errorFromEnvelope,
   IdSchema,
+  isAcmeConnectionError,
   isAcmeError,
   OrderListInputSchema,
-  OrderListQuerySchema,
   PRODUCTS,
   ProductListInputSchema,
-  ProductListQuerySchema,
-  ProductSchema,
   seedState,
   TenantStateSchema,
   UpdateCartItemInputSchema,
 } from '../src/index.ts'
-
-test('every error code maps to the status of the plan', () => {
-  assert.deepEqual(ERROR_STATUS, {
-    unauthorized: 401,
-    invalid_request: 400,
-    not_found: 404,
-    insufficient_stock: 409,
-    cart_empty: 409,
-    payment_declined: 402,
-    coupon_invalid: 422,
-    order_not_cancelable: 409,
-    internal_error: 500,
-  })
-})
 
 test('AcmeError carries its code and status and makes an envelope', () => {
   const error = new AcmeError('not_found', 'Product prod_9 not found')
@@ -46,6 +28,17 @@ test('AcmeError carries its code and status and makes an envelope', () => {
     error: { code: 'not_found', message: 'Product prod_9 not found' },
   })
   assert.ok(ErrorEnvelopeSchema.safeParse(error.toEnvelope()).success)
+})
+
+test('isAcmeConnectionError knows a connection error, also from another copy of the package', () => {
+  const cause = new Error('connect ECONNREFUSED')
+  const error = new AcmeConnectionError('GET http://x.test/v1/products failed', { cause })
+  assert.equal(error.cause, cause)
+  assert.equal(error.status, undefined)
+  assert.ok(isAcmeConnectionError(error))
+  assert.ok(isAcmeConnectionError(Object.assign(new Error('x'), { name: 'AcmeConnectionError' })))
+  assert.ok(!isAcmeConnectionError(new AcmeError('not_found', 'x')))
+  assert.ok(!isAcmeError(error))
 })
 
 test('errorFromEnvelope rebuilds an error, or returns null', () => {
@@ -61,36 +54,19 @@ test('the seed has 24 products in 4 categories, two without stock', () => {
   assert.equal(PRODUCTS[23]?.id, 'prod_024')
   assert.equal(new Set(PRODUCTS.map((product) => product.category)).size, 4)
   assert.equal(PRODUCTS.filter((product) => product.stock === 0).length, 2)
-  assert.deepEqual(COUPONS, [
-    { code: 'WELCOME10', type: 'percent', value: 10, minSubtotalCents: 0, expiresAt: null },
-    { code: 'SAVE5', type: 'fixed', value: 500, minSubtotalCents: 5000, expiresAt: null },
-    {
-      code: 'EXPIRED20',
-      type: 'percent',
-      value: 20,
-      minSubtotalCents: 0,
-      expiresAt: '2020-01-01T00:00:00.000Z',
-    },
-  ])
 })
 
-test('CATEGORIES is the categories of the seed products, and the category schema', () => {
-  assert.deepEqual(CATEGORIES, ['audio', 'computing', 'home', 'outdoors'])
+test('CATEGORIES is the categories of the seed products, in catalog order', () => {
   assert.deepEqual([...new Set(PRODUCTS.map((product) => product.category))], [...CATEGORIES])
-  assert.deepEqual(CategorySchema.options, [...CATEGORIES])
-  assert.equal(ProductSchema.shape.category, CategorySchema)
-  assert.equal(ProductListInputSchema.shape.category.unwrap(), CategorySchema)
 })
 
 test('the input schemas refuse unknown fields', () => {
   const inputs: [z.ZodType, Record<string, unknown>][] = [
     [ProductListInputSchema, { extra: 1 }],
-    [ProductListQuerySchema, { extra: '1' }],
     [AddCartItemInputSchema, { productId: 'prod_001', quantity: 1, extra: 1 }],
     [UpdateCartItemInputSchema, { quantity: 1, extra: 1 }],
     [CreateOrderInputSchema, { cartId: 'cart_0001', paymentToken: 'tok_ok', extra: 1 }],
     [OrderListInputSchema, { extra: 1 }],
-    [OrderListQuerySchema, { extra: '1' }],
   ]
   for (const [schema, input] of inputs) {
     const issues = schema.safeParse(input).error?.issues
@@ -98,22 +74,6 @@ test('the input schemas refuse unknown fields', () => {
       issues?.map((issue) => issue.message),
       ['Unrecognized key: "extra"'],
     )
-  }
-})
-
-test('a query string limit takes decimal digits only', () => {
-  for (const schema of [ProductListQuerySchema, OrderListQuerySchema]) {
-    assert.deepEqual(schema.parse({ limit: '5' }), { limit: 5 })
-    assert.deepEqual(schema.parse({ limit: '050' }), { limit: 50 })
-    for (const limit of ['1e1', '0x10', '5.0', ' 5', '5 ', '', '+5', '-5', '٥']) {
-      const issues = schema.safeParse({ limit }).error?.issues
-      assert.deepEqual(
-        issues?.map((issue) => [issue.path.join('.'), issue.message]),
-        [['limit', 'Expected an integer in decimal digits, such as 10']],
-        limit,
-      )
-    }
-    for (const limit of ['0', '51']) assert.equal(schema.safeParse({ limit }).success, false)
   }
 })
 

@@ -45,33 +45,33 @@ export const COUPONS: readonly Coupon[] = [
   },
 ]
 
-/** Payment token that succeeds. */
-export const PAYMENT_TOKEN_OK = 'tok_ok'
-
-/** Payment token that is declined. Any other token succeeds. */
+/** The payment token that is declined. Any other token, such as `tok_ok`, succeeds. */
 export const PAYMENT_TOKEN_DECLINED = 'tok_declined'
 
 /** The time of the seeded orders. */
 export const SEED_TIME = '2026-01-01T00:00:00.000Z'
 
 /**
- * A fresh copy of the state every tenant starts with, and that `reset` returns to: full stock, a
- * `paid` order (`order_0001`) and a `shipped` order (`order_0002`), and no carts.
+ * A fresh copy of the state every tenant starts with, and that `reset` returns to: a `paid` order
+ * (`order_0001`), a `shipped` order (`order_0002`) and no carts.
+ *
+ * The stock is the catalog stock less what the `paid` order holds, so canceling it restores the
+ * catalog stock. The catalog stock is counted after the `shipped` order left, so that order takes
+ * none. The seeded orders name carts (`cart_seed_1`, `cart_seed_2`) that do not exist.
  */
 export function seedState(): TenantState {
-  return {
-    carts: {},
-    orders: {
-      order_0001: seedOrder('order_0001', 'cart_seed_1', 'paid', [
-        ['prod_001', 1],
-        ['prod_008', 2],
-      ]),
-      order_0002: seedOrder('order_0002', 'cart_seed_2', 'shipped', [['prod_013', 1]]),
-    },
-    stock: Object.fromEntries(PRODUCTS.map((product) => [product.id, product.stock])),
-    counters: { cart: 0, order: 2 },
-    idempotency: {},
+  const orders = {
+    order_0001: seedOrder('order_0001', 'cart_seed_1', 'paid', [
+      ['prod_001', 1],
+      ['prod_008', 2],
+    ]),
+    order_0002: seedOrder('order_0002', 'cart_seed_2', 'shipped', [['prod_013', 1]]),
   }
+  const stock = Object.fromEntries(PRODUCTS.map((product) => [product.id, product.stock]))
+  for (const item of orders.order_0001.items) {
+    stock[item.productId] = (stock[item.productId] ?? 0) - item.quantity
+  }
+  return { carts: {}, orders, stock, counters: { cart: 0, order: 2 }, idempotency: {} }
 }
 
 function p(

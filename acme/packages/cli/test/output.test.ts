@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { AcmeServices } from '@acme/core'
+import { cart, order, recordingServices } from '@acme/core/testing'
 import { money } from '../src/format.ts'
-import { cart, exec, order, stubServices } from './helpers.ts'
+import { exec } from './helpers.ts'
 
 async function execWith(change: (services: AcmeServices) => void, argv: string[]) {
-  const { services } = stubServices()
+  const { services } = recordingServices()
   change(services)
   return exec(argv, () => services)
 }

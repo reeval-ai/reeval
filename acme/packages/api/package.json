@@ -6,9 +6,6 @@
   "bin": {
     "acme-server": "./dist/node.mjs"
   },
-  "exports": {
-    ".": "./src/index.ts"
-  },
   "scripts": {
     "build": "tsdown",
     "types": "wrangler types",

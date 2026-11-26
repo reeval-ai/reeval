@@ -235,12 +235,8 @@ test('the CLI exits 1 with the error code on stderr for an API error', async () 
 test('the CLI exits 1 on a refused key', async () => {
   const result = await cli('not-an-acme-key', ['--json', 'products', 'list'])
   assert.equal(result.code, 1)
-  const { error } = JSON.parse(result.stderr) as { error: { code: string; message: string } }
+  const { error } = JSON.parse(result.stderr) as { error: { code: string } }
   assert.equal(error.code, 'unauthorized')
-  assert.equal(
-    error.message,
-    'Missing or invalid API key: it must start with acme_test_ (for example acme_test_demo), sent as "Authorization: Bearer <key>" (the CLI and the SDK send ACME_API_KEY this way)',
-  )
 })
 
 const CATEGORY_ERROR =

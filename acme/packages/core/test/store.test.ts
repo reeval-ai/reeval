@@ -2,9 +2,11 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { seedState } from '../src/seed.ts'
 import { createMemoryStore } from '../src/store.ts'
-import { storeConformance } from '../src/testing.ts'
+import { storeConformanceCases } from '../src/testing.ts'
 
-storeConformance('memory store', () => createMemoryStore(), test)
+for (const testCase of storeConformanceCases) {
+  test(`memory store: ${testCase.name}`, () => testCase.run(() => createMemoryStore()))
+}
 
 test('memory store: a transaction whose result cannot be copied persists nothing', async () => {
   const store = createMemoryStore()

@@ -1,4 +1,6 @@
+import type { Cart, Order, Page, Product } from './schemas.ts'
 import { seedState } from './seed.ts'
+import type { AcmeServices } from './services.ts'
 import type { Store } from './store.ts'
 
 /** Makes a store holding the seed state. */
@@ -10,7 +12,10 @@ export interface ConformanceCase {
   run(makeStore: MakeStore): Promise<void>
 }
 
-/** The checks every `Store` passes. Plain functions, so any test runner can run them. */
+/**
+ * The checks every `Store` passes. Each is a plain function, so `node:test` and vitest register them
+ * alike: `for (const c of storeConformanceCases) test(c.name, () => c.run(makeStore))`.
+ */
 export const storeConformanceCases: ConformanceCase[] = [
   {
     name: 'a new store holds the seed state',
@@ -119,21 +124,92 @@ export const storeConformanceCases: ConformanceCase[] = [
   },
 ]
 
+/** The product every stub service returns. */
+export const product: Product = {
+  id: 'prod_003',
+  name: 'Headphones',
+  description: 'Over-ear',
+  category: 'audio',
+  priceCents: 1250,
+  stock: 7,
+}
+
+/** The cart every stub service returns. */
+export const cart: Cart = {
+  id: 'cart_0001',
+  items: [
+    {
+      productId: 'prod_003',
+      name: 'Headphones',
+      unitPriceCents: 1250,
+      quantity: 2,
+      lineTotalCents: 2500,
+    },
+  ],
+  subtotalCents: 2500,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:01.000Z',
+}
+
+/** The order every stub service returns, but `orders.cancel`, which returns it canceled. */
+export const order: Order = {
+  id: 'order_0001',
+  cartId: 'cart_0001',
+  status: 'paid',
+  items: cart.items,
+  subtotalCents: 2500,
+  discountCents: 250,
+  totalCents: 2250,
+  couponCode: 'WELCOME10',
+  createdAt: '2026-01-01T00:00:02.000Z',
+  updatedAt: '2026-01-01T00:00:02.000Z',
+}
+
+/** The page of products every stub service returns. */
+export const productPage: Page<Product> = { data: [product], nextCursor: 'prod_003' }
+
+/** The page of orders every stub service returns. */
+export const orderPage: Page<Order> = { data: [order], nextCursor: null }
+
+/** One call a stub service received, such as `{ method: 'carts.get', args: ['cart_0001'] }`. */
+export interface ServiceCall {
+  method: string
+  args: unknown[]
+}
+
 /**
- * Registers every conformance case with a test runner.
- *
- * @param name - The name of the store under test.
- * @param makeStore - Makes a store holding the seed state, fresh for each case.
- * @param test - The runner's `test` function.
+ * A stub `AcmeServices` that records each call in `calls` and answers with the fixtures above.
+ * Replace a method on `services` to make it answer otherwise or throw.
  */
-export function storeConformance(
-  name: string,
-  makeStore: MakeStore,
-  test: (name: string, fn: () => Promise<void>) => void,
-): void {
-  for (const testCase of storeConformanceCases) {
-    test(`${name}: ${testCase.name}`, () => testCase.run(makeStore))
+export function recordingServices(): { services: AcmeServices; calls: ServiceCall[] } {
+  const calls: ServiceCall[] = []
+  const record =
+    <T>(method: string, result: T) =>
+    async (...args: unknown[]): Promise<T> => {
+      calls.push({ method, args })
+      return result
+    }
+  const services: AcmeServices = {
+    products: {
+      list: record('products.list', productPage),
+      get: record('products.get', product),
+    },
+    carts: {
+      create: record('carts.create', cart),
+      get: record('carts.get', cart),
+      addItem: record('carts.addItem', cart),
+      updateItem: record('carts.updateItem', cart),
+      removeItem: record('carts.removeItem', cart),
+    },
+    orders: {
+      create: record('orders.create', order),
+      list: record('orders.list', orderPage),
+      get: record('orders.get', order),
+      cancel: record('orders.cancel', { ...order, status: 'canceled' as const }),
+    },
+    reset: record('reset', { ok: true as const }),
   }
+  return { services, calls }
 }
 
 function expectEqual(actual: unknown, expected: unknown): void {

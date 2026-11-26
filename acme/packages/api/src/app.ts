@@ -6,8 +6,8 @@ import {
   CreateOrderInputSchema,
   createServices,
   invalidRequest,
-  OrderListQuerySchema,
-  ProductListQuerySchema,
+  OrderListInputSchema,
+  ProductListInputSchema,
   type Store,
   UpdateCartItemInputSchema,
 } from '@acme/core'
@@ -16,7 +16,7 @@ import { type AuthInfo, createMcpHandler } from '@modelcontextprotocol/server'
 import { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
-import type { z } from 'zod'
+import { z } from 'zod'
 
 /** The dependencies of the app. */
 export interface AcmeAppDeps {
@@ -31,13 +31,20 @@ export interface AcmeEnv {
   Variables: { services: AcmeServices }
 }
 
-const UNAUTHORIZED_MESSAGE =
-  'Missing or invalid API key: it must start with acme_test_ (for example acme_test_demo), sent as "Authorization: Bearer <key>" (the CLI and the SDK send ACME_API_KEY this way)'
-
 const BEARER_PATTERN = /^bearer +(\S+)$/i
 const KEY_PATTERN = /^acme_test_[A-Za-z0-9._~+/-]+=*$/
 const MAX_KEY_LENGTH = 256
 const MAX_BODY_BYTES = 64 * 1024
+
+const UNAUTHORIZED_MESSAGE = `Missing or invalid API key: send "Authorization: Bearer <key>" with a key of at most ${MAX_KEY_LENGTH} characters that is acme_test_ and then one or more letters, digits or the characters . _ ~ + / - (optionally ending in = padding), such as acme_test_demo; the CLI and the SDK send ACME_API_KEY this way`
+
+const queryLimit = z
+  .string()
+  .regex(/^[0-9]+$/, 'Expected an integer in decimal digits, such as 10')
+  .transform(Number)
+  .pipe(ProductListInputSchema.shape.limit.unwrap())
+const ProductListQuerySchema = ProductListInputSchema.extend({ limit: queryLimit.optional() })
+const OrderListQuerySchema = OrderListInputSchema.extend({ limit: queryLimit.optional() })
 
 /**
  * Reads the tenant key from the `Authorization` header.
@@ -148,6 +155,7 @@ export function createApp(deps: AcmeAppDeps): Hono<AcmeEnv> {
   app.all('/mcp', async (c) => {
     const apiKey = tenantKeyFrom(c.req.raw)
     if (apiKey === null) throw new AcmeError('unauthorized', UNAUTHORIZED_MESSAGE)
+    // The tenant key rides in `authInfo.token` to the MCP server factory above.
     const authInfo: AuthInfo = { token: apiKey, clientId: 'acme', scopes: [] }
     return mcp.fetch(c.req.raw, { authInfo })
   })
@@ -178,10 +186,14 @@ async function readJson(request: Request): Promise<Record<string, unknown>> {
   } catch {
     throw new AcmeError('invalid_request', 'The request body is not valid JSON')
   }
-  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+  if (!isJsonObject(body)) {
     throw new AcmeError('invalid_request', 'The request body must be a JSON object')
   }
-  return Object.fromEntries(Object.entries(body))
+  return body
+}
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 async function readBody<T>(request: Request, schema: z.ZodType<T>): Promise<T> {

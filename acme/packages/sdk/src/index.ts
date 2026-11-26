@@ -1,4 +1,5 @@
 import {
+  AcmeConnectionError,
   type AcmeServices,
   type AddCartItemInput,
   type Cart,
@@ -22,7 +23,6 @@ export type {
   Cart,
   CartItem,
   CartService,
-  Coupon,
   CreateOrderInput,
   ErrorCode,
   ErrorEnvelope,
@@ -37,7 +37,7 @@ export type {
   ResetResult,
   UpdateCartItemInput,
 } from '@acme/core'
-export { AcmeError, isAcmeError } from '@acme/core'
+export { AcmeConnectionError, AcmeError, isAcmeError } from '@acme/core'
 
 const DEFAULT_BASE_URL = 'http://localhost:8787'
 const DEFAULT_TIMEOUT_MS = 30_000
@@ -57,25 +57,6 @@ export interface AcmeOptions {
    * `AcmeConnectionError`. Defaults to 30000. 0 disables the timeout.
    */
   timeoutMs?: number
-}
-
-/**
- * Thrown when no usable acme response arrived: the network failed, or the response was not JSON
- * or not the error envelope. An error the server reported is an `AcmeError` instead.
- */
-export class AcmeConnectionError extends Error {
-  /** The HTTP status, when a response arrived. */
-  readonly status: number | undefined
-
-  /**
-   * @param message - A message for a person.
-   * @param options - The HTTP `status` of the response, if any, and the underlying `cause`.
-   */
-  constructor(message: string, options: { status?: number; cause?: unknown } = {}) {
-    super(message, options.cause === undefined ? undefined : { cause: options.cause })
-    this.name = 'AcmeConnectionError'
-    this.status = options.status
-  }
 }
 
 type Query = Record<string, string | number | undefined>
@@ -136,37 +117,36 @@ export class Acme implements AcmeServices {
     }
     this.#timeoutMs = timeoutMs
 
-    const request = <T>(method: string, path: string, options?: RequestOptions) =>
-      this.#request<T>(method, path, options)
-
     // Inputs are sent whole, unknown fields included, so the server refuses those fields.
     this.products = {
       list: (input?: ProductListInput) =>
-        request<Page<Product>>('GET', '/products', { query: { ...input } }),
-      get: (id) => request<Product>('GET', `/products/${seg(id)}`),
+        this.#request<Page<Product>>('GET', '/products', { query: { ...input } }),
+      get: (id) => this.#request<Product>('GET', `/products/${seg(id)}`),
     }
 
     this.carts = {
-      create: () => request<Cart>('POST', '/carts'),
-      get: (id) => request<Cart>('GET', `/carts/${seg(id)}`),
+      create: () => this.#request<Cart>('POST', '/carts'),
+      get: (id) => this.#request<Cart>('GET', `/carts/${seg(id)}`),
       addItem: (cartId: string, input: AddCartItemInput) =>
-        request<Cart>('POST', `/carts/${seg(cartId)}/items`, { body: input }),
+        this.#request<Cart>('POST', `/carts/${seg(cartId)}/items`, { body: input }),
       updateItem: (cartId: string, productId: string, input: UpdateCartItemInput) =>
-        request<Cart>('PATCH', `/carts/${seg(cartId)}/items/${seg(productId)}`, { body: input }),
+        this.#request<Cart>('PATCH', `/carts/${seg(cartId)}/items/${seg(productId)}`, {
+          body: input,
+        }),
       removeItem: (cartId, productId) =>
-        request<Cart>('DELETE', `/carts/${seg(cartId)}/items/${seg(productId)}`),
+        this.#request<Cart>('DELETE', `/carts/${seg(cartId)}/items/${seg(productId)}`),
     }
 
     this.orders = {
       create: ({ idempotencyKey, ...body }: CreateOrderInput) =>
-        request<Order>('POST', '/orders', {
+        this.#request<Order>('POST', '/orders', {
           body,
           headers: idempotencyKey === undefined ? {} : { 'Idempotency-Key': idempotencyKey },
         }),
       list: (input?: OrderListInput) =>
-        request<Page<Order>>('GET', '/orders', { query: { ...input } }),
-      get: (id) => request<Order>('GET', `/orders/${seg(id)}`),
-      cancel: (id) => request<Order>('POST', `/orders/${seg(id)}/cancel`),
+        this.#request<Page<Order>>('GET', '/orders', { query: { ...input } }),
+      get: (id) => this.#request<Order>('GET', `/orders/${seg(id)}`),
+      cancel: (id) => this.#request<Order>('POST', `/orders/${seg(id)}/cancel`),
     }
   }
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { createMemoryStore, type Store } from '@acme/core'
+import { memoryStoresByKey } from '@acme/core'
 import { serve } from '@hono/node-server'
 import { createApp } from './app.ts'
 
@@ -11,18 +11,7 @@ if (!/^[0-9]+$/.test(portText) || port > 65535) {
 }
 const hostname = process.env.HOST || '127.0.0.1'
 
-const stores = new Map<string, Store>()
-const app = createApp({
-  storeForKey(apiKey) {
-    let store = stores.get(apiKey)
-    if (!store) {
-      store = createMemoryStore()
-      stores.set(apiKey, store)
-    }
-    return store
-  },
-  clock: () => new Date(),
-})
+const app = createApp({ storeForKey: memoryStoresByKey() })
 
 const server = serve({ fetch: app.fetch, port, hostname }, (info) => {
   const host = info.family === 'IPv6' ? `[${info.address}]` : info.address

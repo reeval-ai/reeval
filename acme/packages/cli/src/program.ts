@@ -1,4 +1,11 @@
-import { type AcmeServices, MAX_ITEM_QUANTITY, PAGE_LIMIT } from '@acme/core'
+import {
+  type AcmeServices,
+  MAX_ITEM_QUANTITY,
+  type OrderListInput,
+  PAGE_LIMIT,
+  PAYMENT_TOKEN_DECLINED,
+  type ProductListInput,
+} from '@acme/core'
 import { Command, InvalidArgumentError } from 'commander'
 import * as format from './format.ts'
 
@@ -6,14 +13,19 @@ import * as format from './format.ts'
 export interface ProgramDeps {
   /** Builds the services on first use, so `--help` works with no API key. */
   services: () => AcmeServices
-  /** Receives the normal output, newline included. */
+  /** Receives the normal output and the help asked for, newline included. */
   stdout: (text: string) => void
-  /** Receives help, usage errors and diagnostics, newline included. */
+  /** Receives usage errors, with the help they show, and diagnostics, newline included. */
   stderr: (text: string) => void
 }
 
 const LIMIT_HELP = `page size, 1 to ${PAGE_LIMIT.max} (default ${PAGE_LIMIT.default})`
 const CURSOR_HELP = 'the "next cursor" line of the previous page'
+
+/** Whether `--json` is set on the program `createProgram` built. */
+export function jsonMode(program: Command): boolean {
+  return program.opts<{ json?: boolean }>().json === true
+}
 
 function integer(text: string): number {
   if (!/^-?\d+$/.test(text)) throw new InvalidArgumentError('not an integer')
@@ -33,11 +45,9 @@ export function createProgram(deps: ProgramDeps): Command {
     .configureOutput({ writeOut: deps.stdout, writeErr: deps.stderr })
     .configureHelp({ showGlobalOptions: true })
 
-  const json = () => program.opts<{ json?: boolean }>().json === true
-
   async function emit<T>(result: Promise<T>, render: (value: T) => string): Promise<void> {
     const value = await result
-    deps.stdout(`${json() ? JSON.stringify(value, null, 2) : render(value)}\n`)
+    deps.stdout(`${jsonMode(program) ? JSON.stringify(value, null, 2) : render(value)}\n`)
   }
 
   const services = () => deps.services()
@@ -50,7 +60,9 @@ export function createProgram(deps: ProgramDeps): Command {
     .option('--category <name>', 'only this category')
     .option('--limit <n>', LIMIT_HELP, integer)
     .option('--cursor <c>', CURSOR_HELP)
-    .action((options) => emit(services().products.list(options), format.productList))
+    .action((options: ProductListInput) =>
+      emit(services().products.list(options), format.productList),
+    )
   products
     .command('get')
     .description('show a product')
@@ -97,7 +109,10 @@ export function createProgram(deps: ProgramDeps): Command {
     .command('create')
     .description('check out a cart')
     .requiredOption('--cart <id>', 'the cart to check out')
-    .requiredOption('--payment-token <t>', 'tok_ok succeeds, tok_declined is declined')
+    .requiredOption(
+      '--payment-token <t>',
+      `${PAYMENT_TOKEN_DECLINED} is declined, any other token (such as tok_ok) succeeds`,
+    )
     .option('--coupon <code>', 'a coupon code')
     .option(
       '--idempotency-key <k>',
@@ -123,7 +138,7 @@ export function createProgram(deps: ProgramDeps): Command {
     .option('--status <s>', 'paid, shipped or canceled')
     .option('--limit <n>', LIMIT_HELP, integer)
     .option('--cursor <c>', CURSOR_HELP)
-    .action((options) => emit(services().orders.list(options), format.orderList))
+    .action((options: OrderListInput) => emit(services().orders.list(options), format.orderList))
   orders
     .command('get')
     .description('show an order')

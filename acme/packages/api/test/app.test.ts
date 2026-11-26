@@ -1,26 +1,15 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { createMemoryStore, type Store } from '@acme/core'
+import { memoryStoresByKey } from '@acme/core'
 import { createApp, tenantKeyFrom } from '../src/app.ts'
 
 const KEY = 'acme_test_alpha'
 const UNAUTHORIZED =
-  'Missing or invalid API key: it must start with acme_test_ (for example acme_test_demo), sent as "Authorization: Bearer <key>" (the CLI and the SDK send ACME_API_KEY this way)'
+  'Missing or invalid API key: send "Authorization: Bearer <key>" with a key of at most 256 characters that is acme_test_ and then one or more letters, digits or the characters . _ ~ + / - (optionally ending in = padding), such as acme_test_demo; the CLI and the SDK send ACME_API_KEY this way'
 const FIXED = new Date('2026-06-01T12:00:00.000Z')
 
 function setup() {
-  const stores = new Map<string, Store>()
-  const app = createApp({
-    storeForKey(key) {
-      let store = stores.get(key)
-      if (!store) {
-        store = createMemoryStore()
-        stores.set(key, store)
-      }
-      return store
-    },
-    clock: () => FIXED,
-  })
+  const app = createApp({ storeForKey: memoryStoresByKey(), clock: () => FIXED })
   async function call(
     method: string,
     path: string,
@@ -122,15 +111,17 @@ test('a 401 on /v1 carries a Bearer challenge', async () => {
   assert.equal(res.headers.get('www-authenticate'), 'Bearer')
 })
 
-test('the 401 message says what a key looks like and how to send it', async () => {
+test('the 401 message states the key rule and how to send it', async () => {
   const { app } = setup()
   for (const path of ['/v1/products', '/mcp']) {
-    const res = await app.request(path, {
-      method: 'POST',
-      headers: { authorization: 'Bearer sk_live_x' },
-    })
-    assert.equal(res.status, 401, path)
-    assert.deepEqual(await res.json(), { error: { code: 'unauthorized', message: UNAUTHORIZED } })
+    for (const key of ['sk_live_x', 'acme_test_a:b', 'acme_test_']) {
+      const res = await app.request(path, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${key}` },
+      })
+      assert.equal(res.status, 401, `${path} ${key}`)
+      assert.deepEqual(await res.json(), { error: { code: 'unauthorized', message: UNAUTHORIZED } })
+    }
   }
 })
 
@@ -231,7 +222,7 @@ test('a free string or id over 255 characters gives 400', async () => {
 test('limit in a query string takes decimal digits only', async () => {
   const { call } = setup()
   for (const path of ['/v1/products', '/v1/orders']) {
-    for (const limit of ['1e1', '0x10', '5.0', '%205', '']) {
+    for (const limit of ['1e1', '0x10', '5.0', '%205', '5%20', '', '%2B5', '-5', '%D9%A5']) {
       const res = await call('GET', `${path}?limit=${limit}`)
       assert.equal(res.status, 400, `${path} ${limit}`)
       assert.deepEqual(res.body.error, {
@@ -243,6 +234,8 @@ test('limit in a query string takes decimal digits only', async () => {
   const five = await call('GET', '/v1/products?limit=5')
   assert.equal(five.status, 200)
   assert.equal(five.body.data.length, 5)
+  assert.equal((await call('GET', '/v1/orders?limit=050')).status, 200)
+  assert.equal((await call('GET', '/v1/orders?limit=51')).status, 400)
 })
 
 test('a body over 64 KiB gives 413 invalid_request', async () => {

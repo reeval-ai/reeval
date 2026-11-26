@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { cart, exec, order, orderPage, product, productPage } from './helpers.ts'
+import { cart, order, orderPage, product, productPage } from '@acme/core/testing'
+import { exec } from './helpers.ts'
 
 const calls = [
   {
@@ -129,7 +130,7 @@ const calls = [
     name: 'orders cancel',
     argv: ['orders', 'cancel', 'order_0001'],
     call: { method: 'orders.cancel', args: ['order_0001'] },
-    data: order,
+    data: { ...order, status: 'canceled' },
   },
   { name: 'reset', argv: ['reset'], call: { method: 'reset', args: [] }, data: { ok: true } },
 ]
