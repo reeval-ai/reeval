@@ -13,27 +13,22 @@ from stdio_host import Host
 from reeval_python.wire import json_value
 
 EVAL = """
-from reeval_python import aio, evaluate, expect
+from reeval_python import evaluate
 
 
-@evaluate("nan subject")
-async def nan_subject(c):
-    await aio.expect(float("nan")).to_equal(1)
+@evaluate("nan observation")
+async def nan_observation(c):
+    await c.observe("score", float("nan"))
 
 
-@evaluate("infinite argument")
-async def infinite_argument(c):
-    await aio.expect(1).to_equal(float("inf"))
+@evaluate("infinite state")
+async def infinite_state(c):
+    await c.decide({"score": float("inf")}, {"good": {"question": "is it good?"}})
 
 
-@evaluate("nan judge value")
-async def nan_judge_value(c):
-    await c.judge("is it good?", output=True, on=float("nan"))
-
-
-@evaluate("nan sync soft check")
-def nan_sync_soft(c):
-    expect(1).to_equal(float("-inf"))
+@evaluate("nan sync observation")
+def nan_sync_observation(c):
+    c.observe("scores", [float("-inf")])
 """
 
 
@@ -54,10 +49,9 @@ def host(tmp_path: Path):  # pyright: ignore[reportUnknownParameterType]
 @pytest.mark.parametrize(
     ("body", "says"),
     [
-        ("nan subject", "expect() takes the attempt, a turn, c.exec(…), c.read_file(…) or a JSON"),
-        ("infinite argument", "isn't JSON"),
-        ("nan judge value", "judge(on=…) takes a turn, an ExecResult, a Verdict or a JSON value"),
-        ("nan sync soft check", "isn't JSON"),
+        ("nan observation", "c.observe('score', …) takes a JSON value"),
+        ("infinite state", "c.decide()'s state is a string, a JSON object or parts"),
+        ("nan sync observation", "c.observe('scores', …) takes a JSON value"),
     ],
 )
 def test_a_nan_or_infinity_fails_the_call_that_passed_it(host: Host, body: str, says: str) -> None:

@@ -1,7 +1,6 @@
 from reeval_python import evaluate
-from reeval_python.aio import expect
 
 
 @evaluate("sync-async")
 async def sync_async(c):
-    await expect(await c.exec("echo sync-async-ok")).to_succeed()
+    assert (await c.exec("echo sync-async-ok")).ok

@@ -18,15 +18,13 @@ from reeval_python.environment import (
     plugin,
     tart,
 )
-from reeval_python.errors import EvalError, ReevalAssertionError, ReevalCallError
-from reeval_python.expect import Expectation, expect
+from reeval_python.errors import EvalError, ReevalCallError
 from reeval_python.options import (
     BestOf,
     Case,
     CaseOptions,
     EvalOptions,
     JudgeDefaults,
-    JudgeOptions,
 )
 from reeval_python.target import Target, capability, metric, regression
 from reeval_python.types import (
@@ -37,7 +35,6 @@ from reeval_python.types import (
     ExecResult,
     FileChange,
     Turn,
-    Verdict,
 )
 
 __all__ = [
@@ -55,25 +52,20 @@ __all__ = [
     "CaseOptions",
     "EvalOptions",
     "ExecResult",
-    "Expectation",
     "FakeHarness",
     "FakeJudge",
     "FileChange",
     "JudgeDefaults",
-    "JudgeOptions",
     "Plugin",
     "PluginBuild",
-    "ReevalAssertionError",
     "ReevalCallError",
     "SyncAttemptContext",
     "Target",
     "TartSandbox",
     "Turn",
-    "Verdict",
     "define_environment",
     "docker",
     "evaluate",
-    "expect",
     "fake_harness",
     "capability",
     "fake_judge",

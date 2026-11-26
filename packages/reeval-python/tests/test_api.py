@@ -193,43 +193,6 @@ def test_an_async_command_is_a_coroutine_that_warns_if_never_awaited() -> None:
         gc.collect()
 
 
-def test_expect_refuses_a_coroutine_and_poll_a_value() -> None:
-    from reeval_python.context import describe
-    from reeval_python.wire import subject_for_matcher
-
-    async def send(call: Any) -> dict[str, Any]:
-        return {"ok": True}
-
-    c = AttemptContext("k1", send)
-    with pytest.raises(TypeError, match="await it first"):
-        subject_for_matcher(c.exec("true"))
-    assert describe(lambda: c.read_file("a.txt")) == {"readFile": "a.txt"}
-    assert describe(lambda: c.exec("npm test")) == {"exec": "npm test"}
-    with pytest.raises(TypeError, match="must return c.read_file"):
-        describe(lambda: "ready")
-    with pytest.raises(TypeError, match="not c.send"):
-        describe(lambda: c.send("hi"))
-
-
-def test_poll_s_function_names_one_read_and_says_what_to_do_with_more() -> None:
-    from reeval_python.context import describe
-
-    async def send(call: Any) -> dict[str, Any]:
-        return {"ok": True}
-
-    c = AttemptContext("k1", send)
-    with pytest.raises(TypeError, match=r"check its contents or output with a matcher.*\.stdout"):
-        describe(lambda: c.exec("cat x").stdout)  # pyright: ignore[reportAttributeAccessIssue]
-    with pytest.raises(TypeError, match="check its contents or output with a matcher"):
-        describe(lambda: c.read_file("a") or c.read_file("b"))
-    with pytest.raises(TypeError, match="check its contents or output with a matcher"):
-        describe(lambda: c.read_file("a") == "x")
-    with pytest.raises(TypeError, match="this one made 2"):
-        describe(lambda: (c.read_file("a"), c.read_file("b")))
-    with pytest.raises(TypeError, match="takes no arguments"):
-        describe(c.read_file)  # pyright: ignore[reportArgumentType]
-
-
 def test_an_eval_declared_twice_is_refused_where_it_is_declared() -> None:
     def load() -> None:
         def body(c: Any) -> None: ...

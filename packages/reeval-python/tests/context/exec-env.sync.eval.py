@@ -1,11 +1,11 @@
-from reeval_python import evaluate, expect
+from reeval_python import evaluate
+
+WAIT = "while [ ! -s who.txt ]; do sleep 0.05; done; cat who.txt"
 
 
 @evaluate("exec-env")
 def exec_env(c):
     c.exec('printf %s "$GREETING"', env={"GREETING": "hello"})
     c.exec('printf %s "$WHO" > who.txt', background=True, env={"WHO": "background"})
-    expect.poll(lambda: c.read_file("who.txt"), interval=0.05, timeout=10).to_be("background")
-    expect.poll(
-        lambda: c.exec('test "$WHO" = polled', env={"WHO": "polled"}), timeout=10
-    ).to_succeed()
+    assert c.exec(WAIT).stdout == "background"
+    assert c.exec('test "$WHO" = own', env={"WHO": "own"}).ok

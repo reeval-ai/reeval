@@ -1,4 +1,4 @@
-"""Asserts through the runner: what reaches reeval as `record` calls, and what a failure says."""
+"""Asserts through the runner: a plain `assert` keeps Python's semantics; what a failure says."""
 
 from __future__ import annotations
 
@@ -111,94 +111,50 @@ def _host(tmp_path: Path, **kwargs: bool) -> Host:
     return Host(tmp_path, EVALS, **kwargs)
 
 
-def _records(host: Host) -> list[dict[str, object]]:
-    """The record calls, less each one's `at` (its file and line), which test_checks covers."""
-    return [{k: v for k, v in c.items() if k != "at"} for c in host.calls() if c["op"] == "record"]
-
-
-def test_an_async_body_records_awaited_compares_and_its_traceback_ends_in_the_eval(
-    tmp_path: Path,
-) -> None:
+def test_an_async_body_fails_with_its_asserts_message_and_traceback(tmp_path: Path) -> None:
     host = _host(tmp_path)
     try:
         host.start("awaits")
         error = host.done()["error"]
-        assert _records(host) == [
-            {"op": "record", "matcher": "assert", "subject": "await two() == 2", "status": "pass"},
-            {
-                "op": "record",
-                "matcher": "assert",
-                "subject": "await two() == 3",
-                "message": "two is three: assert 2 == 3",
-                "status": "fail",
-            },
-        ]
         assert error["name"] == "AssertionError"
-        assert error["message"] == "two is three: assert 2 == 3"
+        assert error["message"] == "two is three"
         stack = error["stack"].strip().splitlines()
-        assert "x.eval.py" in stack[-3], stack
-        assert stack[-1] == "AssertionError: two is three: assert 2 == 3"
-        assert "checks.py" not in error["stack"]
+        frames = [line for line in stack if line.lstrip().startswith("File ")]
+        assert "x.eval.py" in frames[-1], stack
+        assert stack[-1] == "AssertionError: two is three"
+        assert host.calls() == []
     finally:
         host.kill()
 
 
-def test_a_helper_modules_assert_is_recorded_by_its_test(tmp_path: Path) -> None:
+def test_a_bare_assert_fails_with_its_statement(tmp_path: Path) -> None:
     host = _host(tmp_path)
     try:
         host.start("helper")
         assert host.done()["error"]["message"] == "assert n % 2 == 0"
-        assert _records(host) == [
-            {
-                "op": "record",
-                "matcher": "assert",
-                "subject": "n % 2 == 0",
-                "status": "fail",
-                "message": "assert n % 2 == 0",
-            }
-        ]
     finally:
         host.kill()
 
 
-def test_a_failure_the_body_catches_is_not_recorded(tmp_path: Path) -> None:
+def test_a_failure_the_body_catches_does_not_fail_it(tmp_path: Path) -> None:
     host = _host(tmp_path)
     try:
         host.start("retries")
         assert "error" not in host.done()
-        assert _records(host) == [
-            {"op": "record", "matcher": "assert", "subject": "n == 2", "status": "pass"},
-        ]
     finally:
         host.kill()
 
 
-def test_an_assert_whose_message_raised_is_recorded_when_its_error_escapes(
-    tmp_path: Path,
-) -> None:
+def test_an_assert_whose_message_raised_fails_with_that_error(tmp_path: Path) -> None:
     host = _host(tmp_path)
     try:
         host.start("message raises")
         assert host.done()["error"]["name"] == "ZeroDivisionError"
-        assert [(c["subject"], c["status"]) for c in _records(host)] == [("False", "fail")]
     finally:
         host.kill()
 
 
-def test_a_refused_record_is_shown_in_the_attempts_log(tmp_path: Path) -> None:
-    host = _host(tmp_path, answer=False)
-    try:
-        host.start("awaits")
-        record = host.wait(lambda m: m.get("call", {}).get("op") == "record")
-        refusal = {"name": "UsageError", "message": "no such matcher"}
-        host.send({"id": record["id"], "key": "k1", "ok": False, "op": "record", "error": refusal})
-        host.wait(lambda m: m.get("t") == "log")
-        assert host.logs() == ["reeval refused a check: UsageError: no such matcher"]
-    finally:
-        host.kill()
-
-
-def test_an_aborted_body_records_nothing_more(tmp_path: Path) -> None:
+def test_an_aborted_body_sends_nothing_more(tmp_path: Path) -> None:
     host = _host(tmp_path)
     try:
         host.start("after abort")
@@ -229,37 +185,33 @@ def test_an_eval_file_in_another_encoding_loads(tmp_path: Path) -> None:
         host.kill()
 
 
-def test_every_failure_in_a_task_group_is_recorded_and_the_attempt_fails(tmp_path: Path) -> None:
+def test_a_task_group_of_failed_asserts_fails_with_each(tmp_path: Path) -> None:
     host = _host(tmp_path)
     try:
         host.start("task group")
         error = host.done()["error"]
-        assert [(c["subject"], c["status"]) for c in _records(host)] == [
-            ("n == 2", "fail"),
-            ("n == 2", "fail"),
-        ]
         assert error["name"] == "AssertionError"
-        assert error["message"] == "assert 1 == 2\nassert 3 == 2"
+        assert error["message"] == "assert n == 2\nassert n == 2"
     finally:
         host.kill()
 
 
-def test_a_task_group_with_an_error_records_its_failures_and_errors(tmp_path: Path) -> None:
+def test_a_task_group_with_an_error_fails_with_the_group(tmp_path: Path) -> None:
     host = _host(tmp_path)
     try:
         host.start("task group with an error")
         assert host.done()["error"]["name"] == "ExceptionGroup"
-        assert [(c["subject"], c["status"]) for c in _records(host)] == [("n == 2", "fail")]
     finally:
         host.kill()
 
 
-def test_a_failure_an_error_was_raised_from_is_recorded(tmp_path: Path) -> None:
+def test_an_error_raised_from_a_failed_assert_is_the_failure(tmp_path: Path) -> None:
     host = _host(tmp_path)
     try:
         host.start("chained")
-        assert host.done()["error"]["name"] == "RuntimeError"
-        assert [(c["subject"], c["status"]) for c in _records(host)] == [("1 == 2", "fail")]
+        error = host.done()["error"]
+        assert error["name"] == "RuntimeError"
+        assert "AssertionError" in error["stack"]
     finally:
         host.kill()
 
@@ -271,18 +223,17 @@ def test_a_body_that_fails_after_its_abort_still_ends(tmp_path: Path) -> None:
         host.wait(lambda m: m.get("call", {}).get("op") == "exec")
         host.abort("k1")
         assert host.done()["error"]["name"] == "AssertionError"
-        assert _records(host) == []
         assert "never retrieved" not in host.stderr
     finally:
         host.kill()
 
 
-def test_a_thread_that_outlives_its_body_records_nothing(tmp_path: Path) -> None:
+def test_a_thread_that_outlives_its_body_sends_nothing(tmp_path: Path) -> None:
     host = _host(tmp_path)
     try:
         host.start("leaves a thread")
         assert "error" not in host.done()
         time.sleep(0.6)
-        assert _records(host) == []
+        assert host.calls() == []
     finally:
         host.kill()

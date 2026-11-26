@@ -20,7 +20,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast, overload
 
 from reeval_python import _wire as w
-from reeval_python.checks import ASSERT_HOOK, check, compile_eval
 from reeval_python.environment import Environment
 from reeval_python.options import CaseOptions, EvalOptions
 from reeval_python.wire import options_to_wire
@@ -637,11 +636,10 @@ def collect_eval_file(path: Path) -> w.DeclarationTree:
         if spec is None:
             raise ImportError(f"can't load {path}")
         module = importlib.util.module_from_spec(spec)
-        module.__dict__[ASSERT_HOOK] = check
         source = importlib.util.decode_source(path.read_bytes())
         sys.modules[name] = module
         try:
-            exec(compile_eval(source, str(path)), module.__dict__)  # noqa: S102
+            exec(compile(source, str(path), "exec", dont_inherit=True), module.__dict__)  # noqa: S102
         except BaseException:
             sys.modules.pop(name, None)
             raise
