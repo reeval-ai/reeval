@@ -9,8 +9,8 @@ const fakeFile = (path: string) =>
 
 export default defineConfig({
   include: ['*.eval.ts'],
-  // A scripted agent that applies ./fake-agent's patch to the checkout with git, so the checks
-  // run without keys or Docker.
+  // A scripted agent that applies ./fake-agent's patch to the checkout with git, so the eval
+  // runs without keys.
   agents: fakeAgent({
     script: [
       [

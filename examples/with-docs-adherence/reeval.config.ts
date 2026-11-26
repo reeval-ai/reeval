@@ -11,7 +11,7 @@ const fakeFile = (path: string) =>
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that copies ./fake-agent's files into the workspace, and a judge with a
-  // fixed score, so the checks run without keys or Docker.
+  // fixed score, so the graders run without keys or Docker.
   agents: fakeAgent({
     files: {
       'src/notes.js': fakeFile('src/notes.js'),

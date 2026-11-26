@@ -19,7 +19,7 @@ pnpm eval
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check: a plain button without the skill, the brand's blue one with it.
+grader has something to grade: a plain button without the skill, the brand's blue one with it.
 The fake sandbox saves a 1×1 placeholder for each screenshot, and a fake analysis model votes from
 the diffs. `pnpm eval --profile docker` runs the same fake agent in Docker, where Chrome takes the
 real screenshots, still with no keys. `pnpm eval --profile claude-code` runs it on Claude Code, and
@@ -33,13 +33,15 @@ one profile you need.
 **What to look at:** the question's tally under the eval:
 
 ```text
-pass             adds a sign-up button
-  arm              pass
-  site             4 of 4
-  brand            4 of 4
-  question  Which Sign up button is blue with white text and rounded corners?
-    site           won 0 of 8
-    brand          won 8 of 8
+with-capture-compare.eval.ts
+  · with-capture-compare  100%  metric()
+    arm              pass
+    site             4 of 4
+    brand            4 of 4  same
+    Question: Which Sign up button is blue with white text and rounded corners?
+      site   won 0 of 8
+      brand  won 8 of 8
+    …
 ```
 
 Each pair is asked twice, with the sides swapped. With `analysis.model: 'anthropic/claude-sonnet-5'`
@@ -60,7 +62,7 @@ the capture each side sent:
 
 | File | What it is |
 |---|---|
-| [`with-capture-compare.eval.ts`](./with-capture-compare.eval.ts) | The eval: the compare, its question on `home`, the check and the screenshot |
+| [`with-capture-compare.eval.ts`](./with-capture-compare.eval.ts) | The eval: the compare, its question on `home`, the grader and the screenshot |
 | [`project/`](./project) | The site the agent starts from: `index.html` and `server.js` |
 | [`skills/brand/`](./skills/brand) | The variant's skill: the brand's button style |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace, with and without the skill |

@@ -16,7 +16,7 @@ pnpm reeval run --tag smoke
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check. `pnpm eval --profile claude-code --tag smoke` runs the smoke eval
+graders have something to grade. `pnpm eval --profile claude-code --tag smoke` runs the smoke eval
 on Claude Code, and `--profile <name>` on any other agent in
 [`examples/profiles.ts`](../profiles.ts). A profile's `tags` add to `--tag`, and only one profile
 applies at a time, so the `smoke` profile runs on the fake agent.
@@ -31,10 +31,10 @@ one profile you need.
 …
   ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 attempt
 …
-with-tags.eval.ts
-└─ ✓ adds multiply  1 of 1 run passed
+adds-multiply.eval.ts
+  · adds-multiply  100%  metric()
 
-Done in 1s · 1 passed
+Done in 18s · 1 eval · 1 report only
 ```
 
 `pnpm reeval run --tag '!slow' --dry-run` and `pnpm reeval run --profile smoke --dry-run` plan the
@@ -42,7 +42,8 @@ same slice; `pnpm eval` runs both evals.
 
 | File | What it is |
 |---|---|
-| [`with-tags.eval.ts`](./with-tags.eval.ts) | Two evals, tagged `smoke` and `slow` |
+| [`adds-multiply.eval.ts`](./adds-multiply.eval.ts) | The eval tagged `smoke` |
+| [`adds-a-tested-divide.eval.ts`](./adds-a-tested-divide.eval.ts) | The eval tagged `slow` |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, a `smoke` profile, and the real agents from `../profiles.ts` |

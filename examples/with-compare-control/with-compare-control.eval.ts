@@ -1,4 +1,5 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
+import { hasFile, succeeded } from 'reeval/graders'
 
 const math = defineEnvironment('math', ({ directory }) => ({ files: directory('./project') }))
 const withTesting = math.extendEnvironment('testing', ({ skill }) => ({
@@ -7,10 +8,9 @@ const withTesting = math.extendEnvironment('testing', ({ skill }) => ({
 
 export default defineEval({
   compare: { control: math, variants: [withTesting] },
+  graders: [succeeded('node --test'), hasFile('test/math.test.js', /multiply\(/)],
   task: async (c) => {
     await c.send('Add a multiply(a, b) function to src/math.js.')
-
-    await expect(c.exec('node --test'), 'tests pass').toSucceed()
-    await expect(c, 'multiply has a test').toHaveFile('test/math.test.js', /multiply\(/)
+    await c.exec('node --test')
   },
 })

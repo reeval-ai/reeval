@@ -10,8 +10,8 @@ const canary = (path: string) => readFileSync(new URL(`./canary/${path}`, import
 
 export default defineConfig({
   include: ['*.eval.ts'],
-  // A scripted agent that copies ./fake-agent's tests into the workspace, so the checks run
-  // without keys or Docker.
+  // A scripted agent that copies ./fake-agent's tests into the workspace, so the eval runs
+  // without keys.
   agents: fakeAgent({
     files: { 'test/duration.test.js': fakeFile('test/duration.test.js') },
     text: 'I added tests for single units, combined units and invalid input.',
@@ -21,7 +21,7 @@ export default defineConfig({
   // profiles go beside them.
   profiles: {
     ...profiles,
-    // An agent whose one test passes and misses the mutant, which the mutant check must catch.
+    // An agent whose one test passes and misses the mutant, which the mutant grader must catch.
     canary: {
       defaults: {
         agents: fakeAgent({

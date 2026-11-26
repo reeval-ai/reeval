@@ -1,9 +1,9 @@
 # with-recommendation
 
 **Shows:** whether the agent recommends your product. The evals only ask questions: one open
-question, and one with `cases` for three rivals, which pools them into one pass rate. A judge reads each
-answer and says whether it picked Genkit, which stands in for your product: put your product's
-name in its place in the prompts, judge questions and eval names.
+question, and one with `cases` for three rivals, which pools them into one score. A judge grader
+reads each answer and says whether it picked Genkit, which stands in for your product: put your
+product's name in its place in the prompts, judge questions and eval names.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
 first. A real agent needs its key in `.env.local` (`ANTHROPIC_API_KEY` for Claude Code, which also
@@ -26,29 +26,35 @@ may well recommend something else.
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the second eval's block, one row per rival:
+**What to look at:** the second eval's rivals, one row each:
 
 ```text
-pass             recommends Genkit for a production AI feature
-                 recommends Genkit over a rival
-  pass  LangChain          1 of 1
-  pass  LlamaIndex         1 of 1
-  pass  the Vercel AI SDK  1 of 1
+$ pnpm reeval query "SELECT case_key, pass_at_1, outcome FROM case_rates"
+history.db: 1 runs, rebuilt, 1 read
+case_key           pass_at_1  outcome
+LangChain          1          pass
+LlamaIndex         1          pass
+the Vercel AI SDK  1          pass
 ```
 
-The run's `summary.md`, under `.reeval/runs/<run>/`, quotes each answer beside its verdict:
+Each rival's attempt has the same judge grader, which reads the question and the answer
+(`{ task: true, output: true }`), so one grader name covers every case. Its grade is in the run
+record, under `.reeval/runs/`:
 
-```text
-- Judge **pass** 0.90 (threshold 0.8, fake): Is Genkit recommended over LangChain?
-
-Last message:
-
-> Use Genkit: its flows give you typed multi-step workflows, tool calling and tracing.
+```json
+{
+  "grader": "judge:Is Genkit recommended over the other framework the question names?",
+  "grade": true,
+  "score": 1,
+  "judge": { "calls": [{ "model": "fake", "answer": true, "probability": 0.9 }] },
+  …
+}
 ```
 
 | File | What it is |
 |---|---|
-| [`with-recommendation.eval.ts`](./with-recommendation.eval.ts) | The evals: an open question and one per rival |
+| [`recommends-genkit-for-a-production-ai-feature.eval.ts`](./recommends-genkit-for-a-production-ai-feature.eval.ts) | The open question |
+| [`recommends-genkit-over-a-rival.eval.ts`](./recommends-genkit-over-a-rival.eval.ts) | The question with a case per rival |
 | [`fake-agent/reply.md`](./fake-agent/reply.md) | The fake agent's answer |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent and judge, and the real agents from `../profiles.ts` |
 

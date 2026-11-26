@@ -1,8 +1,8 @@
 # with-code-review
 
 **Shows:** a review that finds a planted bug and changes nothing. `page()` in `src/page.js` is off
-by one; the agent reviews `src/` and replies. `not.toHaveChanged()` with no paths fails on any
-edit, and a judge reads the reply (the call turns on `output`, the agent's final message)
+by one; the agent reviews `src/` and replies. A required `notInDiff('**')` scores any edit 0, and
+a required judge grader reads the reply (its inputs turn on `output`, the agent's final message)
 to say whether it found the bug.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
@@ -18,7 +18,7 @@ pnpm eval
 **Real or fake agent:** `pnpm eval` runs a fake agent and a fake judge with a fixed score, with no
 keys or Docker. A review writes no files, so the fake agent replies with the review in
 [`fake-agent/review.md`](./fake-agent/review.md), to mimic what an agent would produce, so the
-checks have something to check. `pnpm eval --profile claude-code` runs the same eval on
+graders have something to grade. `pnpm eval --profile claude-code` runs the same eval on
 Claude Code, with a real judge, and `--profile <name>` on any other agent in
 [`examples/profiles.ts`](../profiles.ts).
 
@@ -30,17 +30,17 @@ one profile you need.
 reporting it:
 
 ```text
-fail             finds the planted bug without editing
-  no edits         failed
-    expected no changes, got ["src/page.js" (modified)]
+with-code-review.eval.ts
+  ✗ with-code-review  0/1 run at 100%  regression(1)
+    #1  0%  not-in-diff:** 0% (required)
 ```
 
 | File | What it is |
 |---|---|
-| [`with-code-review.eval.ts`](./with-code-review.eval.ts) | The eval: the review, the no-edits guard and a judge on the reply |
+| [`with-code-review.eval.ts`](./with-code-review.eval.ts) | The eval: the review, the no-edits guard and a judge grader on the reply |
 | [`project/`](./project) | The code the agent reviews: `src/page.js` with the bug, and `src/search.js` |
 | [`fake-agent/review.md`](./fake-agent/review.md) | The fake agent's reply |
 | [`canary/`](./canary) | What the `canary` profile's agent writes instead: the fix |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent and judge, the canary, and the real agents from `../profiles.ts` |
 
-`toHaveChanged` is in the [Matchers](../../docs/reference/matchers.mdx) reference.
+`graders` is in the [Options](../../docs/reference/options.mdx#graders) reference.

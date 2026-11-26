@@ -16,7 +16,7 @@ pnpm eval
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check; here it writes the changelog entry only when it's given the
+graders have something to grade; here it writes the changelog entry only when it's given the
 skill. `pnpm eval --profile claude-code` runs the same compare on Claude Code, and
 `--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts).
 
@@ -24,26 +24,23 @@ skill. `pnpm eval --profile claude-code` runs the same compare on Claude Code, a
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the result block's arms and the check that tells them apart:
+**What to look at:** the result block's arms and the grader that tells them apart:
 
 ```text
-pass             records the change in the changelog
-  arm              pass
-  math             0 of 4
-  changelog        4 of 4  helped
-  check            math    changelog
-  changelog entry  0 of 4  4 of 4
-    expected file CHANGELOG.md to exist
-  +1 more passed
-…
+with-skill-lift.eval.ts
+  ✓ with-skill-lift  100% ≥ 75%  metric(0.75)
+    arm              pass
+    math             0 of 4
+      error  score 0.50 below 0.75: has-file:CHANGELOG.md scored 0.00 (4 runs)
+    changelog        4 of 4  helped
 ```
 
-Only the variant gates, so the control's misses don't fail the run. After a run,
+The target holds the variant only, so the control's misses don't fail the run. After a run,
 `pnpm reeval query lift` lists the lift and its 95% interval.
 
 | File | What it is |
 |---|---|
-| [`with-skill-lift.eval.ts`](./with-skill-lift.eval.ts) | The eval: the control, the variant and two checks |
+| [`with-skill-lift.eval.ts`](./with-skill-lift.eval.ts) | The eval: the control, the variant and two graders |
 | [`skills/changelog/SKILL.md`](./skills/changelog/SKILL.md) | The skill under test |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |

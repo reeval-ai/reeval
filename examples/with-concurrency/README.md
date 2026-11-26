@@ -16,7 +16,7 @@ pnpm eval
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check; here each turn takes two seconds, as a stand-in for an agent's
+graders have something to grade; here each turn takes two seconds, as a stand-in for an agent's
 work. `pnpm eval --profile claude-code` runs the same eval on Claude Code, and `--profile <name>`
 on any other agent in [`examples/profiles.ts`](../profiles.ts). With a real agent each attempt is
 a Docker container, so the Docker VM's CPUs and memory bound how many help.
@@ -28,35 +28,35 @@ one profile you need.
 **What to look at:** the plan's estimate and the wall time, at four and then at one:
 
 ```text
-REEVAL v0.17.2
+REEVAL v0.31.0
 
-  ➜  Run:       20261101T221836Z_…
-  ➜  Harness:   fake
+  ➜  Run:       20261126T080738Z_…
+  ➜  Agent:     fake
   ➜  Sandbox:   fake
   ➜  Scope:     1 eval file · 1 eval · 1 cell · 8 attempts
-  ➜  Est. Time: ~4s (concurrency: 4) · ~17s (serial)
-  ➜  Record:    .reeval/runs/20261101T221836Z_….json
+  ➜  Est. Time: ~2s (concurrency: 4) · ~8s (serial)
+  ➜  Record:    .reeval/runs/20261126T080738Z_….json
 
   ◆  Running...
 
 with-concurrency.eval.ts
-└─ ✓ adds a tested multiply function  8 of 8 runs passed
+  ✓ with-concurrency  100% ≥ 75%  metric(0.75)
 
-Done in 7s · 1 passed
+Done in 12s · 1 eval · 1 on target
 ```
 
 ```text
 $ pnpm reeval run --concurrency 1
 …
 with-concurrency.eval.ts
-└─ ✓ adds a tested multiply function  8 of 8 runs passed
+  ✓ with-concurrency  100% ≥ 75%  metric(0.75)
 
-Done in 18s · 1 passed
+Done in 28s · 1 eval · 1 on target
 ```
 
 | File | What it is |
 |---|---|
-| [`with-concurrency.eval.ts`](./with-concurrency.eval.ts) | The eval: one prompt, two checks, eight runs and a mean-score target |
+| [`with-concurrency.eval.ts`](./with-concurrency.eval.ts) | The eval: one prompt, two graders, eight runs and a mean-score target |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The slow fake agent, `concurrency`, and the real agents from `../profiles.ts` |

@@ -2,8 +2,8 @@
 
 **Shows:** bumping a dependency across a breaking change. The package formats receipts with
 `strfmt` 1.4.0; 2.0.0 swaps `%s` for named `{name}` placeholders. The agent moves the import to
-2.0.0 and adapts the call sites, and the eval checks `package.json`, runs `npm test` and guards the
-tests and `vendor/` with `not.toHaveChanged`.
+2.0.0 and adapts the call sites, and the graders check `package.json` and the task's `npm test`,
+and guard the tests and `vendor/` with a required `notInDiff`.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
 first. A real agent needs its key in `.env.local` (`ANTHROPIC_API_KEY` for Claude Code), Docker,
@@ -17,7 +17,7 @@ pnpm eval
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check. `pnpm eval --profile claude-code` runs the same eval on
+graders have something to grade. `pnpm eval --profile claude-code` runs the same eval on
 Claude Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts).
 
 Both versions of `strfmt` are vendored in [`project/vendor/`](./project/vendor) and picked by
@@ -28,19 +28,20 @@ seed its lockfile and add `setup: ['npm ci']` to the environment.
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** an agent that bumps the version and leaves the call sites alone fails on the
-tests, while the version check passes:
+**What to look at:** an agent that bumps the version and leaves the call sites alone scores 0 on
+the tests, while the version grader passes (`pnpm eval -v`):
 
 ```text
-fail             upgrades strfmt across its breaking change
-  toSucceed npm test  failed
-    expected command to succeed, exit code 1
-  +1 more passed
+[dependency#1 fake] 08:14:26 check     grade has-file:package.json score 1 (4ms)
+[dependency#1 fake] 08:14:26 check     grade succeeded:npm test score 0 (3ms)
+[dependency#1 fake] 08:14:26 check     grade not-in-diff:test/**,vendor/** score 1 (3ms)
+…
+  · with-dependency-upgrade  67%  metric()
 ```
 
 | File | What it is |
 |---|---|
-| [`with-dependency-upgrade.eval.ts`](./with-dependency-upgrade.eval.ts) | The eval: the upgrade and three checks |
+| [`with-dependency-upgrade.eval.ts`](./with-dependency-upgrade.eval.ts) | The eval: the upgrade and three graders |
 | [`project/`](./project) | The package the agent starts from, with both `strfmt` versions in `vendor/` |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace: the new import and call sites |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, and the real agents from `../profiles.ts` |

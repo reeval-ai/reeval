@@ -18,7 +18,7 @@ pnpm eval
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check. In CI, the `pr` profile is Claude Code's from
+graders have something to grade. In CI, the `pr` profile is Claude Code's from
 [`examples/profiles.ts`](../profiles.ts) with one attempt per cell and a budget; locally,
 `pnpm eval --profile pr` runs the same, and `--profile <name>` runs any other agent in that file.
 
@@ -34,11 +34,22 @@ CI=1 pnpm reeval run --dry-run
 ```
 
 ```text
-plan  run … · profile pr (auto: CI is set) · 1 eval · 1 cell · 1 attempt · ~3m 00s serial · budget 20 attempts ✓
-eval                                                           harnesses  variants  runs  attempts  notes
-with-github-pr-gate.eval.ts › adds a tested multiply function  1          —         1     1
-images  1 sandbox image: 1 to build
-  + docker · claude-code  to build: base, not built yet
+REEVAL v0.31.0  dry run
+
+  ➜  Run:       20261126T080732Z_…
+  ➜  Profile:   pr (auto: CI is set)
+  ➜  Agent:     claude-code:claude-sonnet-5 (effort: medium)
+  ➜  Sandbox:   docker
+  ➜  Judge:     anthropic/claude-sonnet-5
+  ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 attempt (budget: 20 ✓)
+  ➜  Est. Time: ~3m 00s (serial)
+
+eval                 agents  variants  runs  attempts  target         notes
+with-github-pr-gate  1       —         1     1         regression(1)
+  grader 1/2  has-file:src/math.js · built-in · weight 1
+  grader 2/2  succeeded:node --test · built-in · weight 1
+images  1 sandbox image: 1 ready
+  ✓ docker · claude-code  ready
 …
 ```
 
@@ -50,7 +61,7 @@ the [Run evaluations in CI](../../docs/evaluations/runs/ci.mdx) page does it eve
 
 | File | What it is |
 |---|---|
-| [`with-github-pr-gate.eval.ts`](./with-github-pr-gate.eval.ts) | The eval: one prompt, two labeled checks |
+| [`with-github-pr-gate.eval.ts`](./with-github-pr-gate.eval.ts) | The eval: one prompt, two graders |
 | [`workflow.yml`](./workflow.yml) | The GitHub Actions workflow to copy into `.github/workflows/` |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |

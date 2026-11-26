@@ -17,7 +17,7 @@ pnpm eval
 
 **Real or fake agent:** `pnpm eval` runs a fake agent in Docker, with no keys. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check; before that, one shell step reads the skill's `SKILL.md` and
+graders have something to grade; before that, one shell step reads the skill's `SKILL.md` and
 not its reference. `pnpm eval --profile claude-code` runs the same eval on Claude Code, and
 `--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts).
 
@@ -57,7 +57,7 @@ context  1      cat ~/.agents/skills/jsdoc/SKILL.md
 
 | File | What it is |
 |---|---|
-| [`with-skill-reads.eval.ts`](./with-skill-reads.eval.ts) | The eval: an environment with the skill, and one check |
+| [`with-skill-reads.eval.ts`](./with-skill-reads.eval.ts) | The eval: an environment with the skill, and one grader |
 | [`skills/jsdoc/`](./skills/jsdoc) | The skill: `SKILL.md` and `references/tags.md` |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |

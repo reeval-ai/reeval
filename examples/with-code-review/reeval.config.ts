@@ -12,7 +12,7 @@ const canary = (path: string) => readFileSync(new URL(`./canary/${path}`, import
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that replies with ./fake-agent's review and edits nothing, and a judge with
-  // a fixed score, so the checks run without keys or Docker.
+  // a fixed score, so the graders run without keys or Docker.
   agents: fakeAgent({ text: fakeFile('review.md') }),
   sandbox: fakeSandbox(),
   judge: { model: fakeJudge({ score: 0.9 }) },

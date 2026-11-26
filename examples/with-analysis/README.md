@@ -19,7 +19,7 @@ pnpm reeval analyze
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check. `pnpm eval --profile claude-code` runs the same eval on
+graders have something to grade. `pnpm eval --profile claude-code` runs the same eval on
 Claude Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts).
 A profile can't set `analysis`, so for a real analysis set `analysis.model` in
 [`reeval.config.ts`](./reeval.config.ts) to a model such as `'anthropic/claude-sonnet-5'`.
@@ -31,7 +31,7 @@ one profile you need.
 **What to look at:** `pnpm reeval analyze` on the run `pnpm eval` wrote:
 
 ```text
-analysis 20261026T104855Z_…
+analysis 20261126T080940Z_…
 
 TL;DR (medium)  The agent adds a tested multiply on every try.
 
@@ -43,7 +43,7 @@ Suggested actions
 
 Confidence: medium. A few attempts, on a fake agent.
 
-fake-analysis · analysis-v11 · digest v12 · 0 in / 0 out tokens · 0s · 1 citations checked, 0 invalid, 0 dropped · …
+fake-analysis · analysis-v14 · digest v15 · 0 in / 0 out tokens · 0s · 1 citations checked, 0 invalid, 0 dropped · …
 ```
 
 Every sentence cites a fact (`[F1]`); reeval drops one that cites nothing, or a count its facts
@@ -51,7 +51,7 @@ don't hold, before it prints, whether a real model or the fake wrote it.
 
 | File | What it is |
 |---|---|
-| [`with-analysis.eval.ts`](./with-analysis.eval.ts) | The eval: one prompt, three checks |
+| [`with-analysis.eval.ts`](./with-analysis.eval.ts) | The eval: one prompt, three graders |
 | [`fake-analysis.ts`](./fake-analysis.ts) | The fake analysis model's `reeval analyze` answer |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |

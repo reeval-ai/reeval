@@ -1,4 +1,5 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
+import { hasFile, judge, succeeded } from 'reeval/graders'
 
 // The agent starts from ./project, with the team's conventions seeded beside it in docs/.
 const notes = defineEnvironment('notes', ({ directory, file }) => ({
@@ -7,13 +8,15 @@ const notes = defineEnvironment('notes', ({ directory, file }) => ({
 
 export default defineEval({
   environment: notes,
+  graders: [
+    hasFile('src/notes.js', /export function deleteNote/, { required: true }),
+    succeeded('node --test'),
+    judge('Does deleteNote, and its tests, follow every rule in docs/conventions.md?', {
+      inputs: { contents: ['src/notes.js', 'test/notes.test.js', 'docs/**'] },
+    }),
+  ],
   task: async (c) => {
     await c.send('Add a deleteNote(id) handler to src/notes.js, following docs/conventions.md.')
-
-    await expect(c).toHaveFile('src/notes.js', /export function deleteNote/)
-    await expect(c.exec('node --test')).toSucceed()
-    const question = 'Does deleteNote, and its tests, follow every rule in docs/conventions.md?'
-    const contents = ['src/notes.js', 'test/notes.test.js', 'docs/**']
-    expect(await c.judge(question, { contents })).toPass()
+    await c.exec('node --test')
   },
 })

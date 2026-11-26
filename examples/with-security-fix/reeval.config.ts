@@ -9,8 +9,8 @@ const fakeFile = (path: string) =>
 
 export default defineConfig({
   include: ['*.eval.ts'],
-  // A scripted agent that copies ./fake-agent's fix into the workspace, so the checks run
-  // without keys or Docker.
+  // A scripted agent that copies ./fake-agent's fix into the workspace, so the eval runs
+  // without keys.
   agents: fakeAgent({
     files: { 'src/users.js': fakeFile('src/users.js') },
     text: 'findUser() binds the name as a parameter now instead of building the SQL from it.',

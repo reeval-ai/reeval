@@ -2,7 +2,7 @@
 
 **Shows:** failing a variant that doesn't clearly help. `minLift: 0.2` fails the variant cell
 unless the lower bound of its lift's 95% interval is above +20 points. The agent adds
-`multiply(a, b)`, with and without a `jsdoc` skill, and a check looks for its JSDoc block.
+`multiply(a, b)`, with and without a `jsdoc` skill, and a grader looks for its JSDoc block.
 `target: metric(0.75)` lets each arm miss one of its four tries.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
@@ -17,7 +17,7 @@ pnpm eval
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check; here it writes the JSDoc block only when it has the skill.
+graders have something to grade; here it writes the JSDoc block only when it has the skill.
 `pnpm eval --profile claude-code` runs the same compare on Claude Code, and `--profile <name>` on
 any other agent in [`examples/profiles.ts`](../profiles.ts).
 
@@ -28,13 +28,12 @@ one profile you need.
 **What to look at:** the skill helps every time, and its interval clears the bar:
 
 ```text
-pass             documents the new function
-  arm              pass
-  math             0 of 4
-  jsdoc            4 of 4  helped
-  check            math    jsdoc
-  JSDoc block      0 of 4  4 of 4
-    expected src/math.js to match /\*\/\s*export function multiply/
+with-min-lift.eval.ts
+  ✓ with-min-lift  100% ≥ 75%  metric(0.75)
+    arm              pass
+    math             0 of 4
+      error  score 0.00 below 0.75: has-file:src/math.js scored 0.00 (4 runs)
+    jsdoc            4 of 4  helped
 ```
 
 `pnpm reeval query "SELECT variant, points, lo, hi, min_lift, outcome FROM lift"` has the
@@ -50,12 +49,14 @@ Raise the bar to `minLift: 0.5` and the same attempts fail the run, which exits 
 side can't show a lift that sure; more runs narrow the interval:
 
 ```text
-fail             documents the new function
-  arm              pass
-  math             0 of 4
-  jsdoc            4 of 4  helped, not by minLift 50
-  …
-1 fail
+with-min-lift.eval.ts
+  ✗ with-min-lift  100% ≥ 75%  metric(0.75)
+    arm              pass
+    math             0 of 4
+      error  score 0.00 below 0.75: has-file:src/math.js scored 0.00 (4 runs)
+    jsdoc            4 of 4  helped, not by minLift 50
+    …
+Done in 2s · 1 eval · 1 below
 ```
 
 The target gates the variant cells only; the control reports. `minLift` needs a target that can

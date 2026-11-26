@@ -17,7 +17,7 @@ pnpm eval
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check. `pnpm eval --profile claude-code` runs the same eval on
+graders have something to grade. `pnpm eval --profile claude-code` runs the same eval on
 Claude Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts).
 One profile applies at a time, so `pr` and `nightly` size the fake agent's runs.
 
@@ -34,47 +34,53 @@ pnpm reeval run --dry-run --profile nightly
 ```
 
 ```text
-REEVAL v0.17.2  dry run
+REEVAL v0.31.0  dry run
 
-  ➜  Run:       20261101T222107Z_…
-  ➜  Harness:   fake
+  ➜  Run:       20261126T080338Z_…
+  ➜  Agent:     fake
   ➜  Sandbox:   fake
   ➜  Scope:     1 eval file · 1 eval · 1 cell · 2 attempts
-  ➜  Est. Time: ~1s (concurrency: 4) · ~2s (serial)
+  ➜  Est. Time: ~207ms (concurrency: 4) · ~413ms (serial)
 
-eval                                                     harnesses  variants  runs  attempts  notes
-with-profiles.eval.ts › adds a tested multiply function  1          —         2     2
+eval           agents  variants  runs  attempts  target        notes
+with-profiles  1       —         2     2         metric(0.75)
+  grader 1/2  has-file:src/math.js · built-in · weight 1
+  grader 2/2  succeeded:node --test · built-in · weight 1
 
-REEVAL v0.17.2  dry run
+REEVAL v0.31.0  dry run
 
-  ➜  Run:       20261101T222108Z_…
+  ➜  Run:       20261126T080344Z_…
   ➜  Profile:   pr (auto: CI is set)
-  ➜  Harness:   fake
+  ➜  Agent:     fake
   ➜  Sandbox:   fake
   ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 attempt (budget: 10 ✓)
-  ➜  Est. Time: ~1s (serial)
+  ➜  Est. Time: ~207ms (serial)
 
-eval                                                     harnesses  variants  runs  attempts  notes
-with-profiles.eval.ts › adds a tested multiply function  1          —         1     1         runs 2 → 1 (profile pr)
+eval           agents  variants  runs  attempts  target        notes
+with-profiles  1       —         1     1         metric(0.75)  runs 2 → 1 (profile pr)
+  grader 1/2  has-file:src/math.js · built-in · weight 1
+  grader 2/2  succeeded:node --test · built-in · weight 1
 
-REEVAL v0.17.2  dry run
+REEVAL v0.31.0  dry run
 
-  ➜  Run:       20261101T222108Z_…
+  ➜  Run:       20261126T080353Z_…
   ➜  Profile:   nightly
-  ➜  Harness:   fake
+  ➜  Agent:     fake
   ➜  Sandbox:   fake
   ➜  Scope:     1 eval file · 1 eval · 1 cell · 4 attempts (budget: 2h)
-  ➜  Est. Time: ~1s (concurrency: 4) · ~4s (serial)
+  ➜  Est. Time: ~207ms (concurrency: 4) · ~826ms (serial)
 
-eval                                                     harnesses  variants  runs  attempts  notes
-with-profiles.eval.ts › adds a tested multiply function  1          —         4     4
+eval           agents  variants  runs  attempts  target        notes
+with-profiles  1       —         4     4         metric(0.75)
+  grader 1/2  has-file:src/math.js · built-in · weight 1
+  grader 2/2  succeeded:node --test · built-in · weight 1
 ```
 
 The `Profile:` line says which profile applied and why, and the notes say what its `limit` changed.
 
 | File | What it is |
 |---|---|
-| [`with-profiles.eval.ts`](./with-profiles.eval.ts) | The eval: one prompt, two checks, no `runs` of its own |
+| [`with-profiles.eval.ts`](./with-profiles.eval.ts) | The eval: one prompt, two graders, no `runs` of its own |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, `pr` and `nightly`, and the real agents from `../profiles.ts` |

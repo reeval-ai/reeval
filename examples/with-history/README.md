@@ -17,7 +17,7 @@ pnpm eval
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check. `pnpm eval --profile claude-code` runs the same eval on
+graders have something to grade. `pnpm eval --profile claude-code` runs the same eval on
 Claude Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts).
 
 **Copying it out of the repo:** `reeval.config.ts` imports `../profiles.ts`. Copy
@@ -29,9 +29,11 @@ one profile you need.
 ends with the line that records it:
 
 ```text
-1 fail
+with-history.eval.ts
+  ✗ with-history  0/1 run at 100%  regression(1)
+    #1  50%  succeeded:node --test 0%
 …
-recorded history/20261024T145534Z_….json + 4 artifact files in history/20261024T145534Z_…/ (16.2 KB). Commit it with git.
+recorded history/20261126T080701Z_….json + 10 artifact files in history/20261126T080701Z_…/ (124.5 KB). Commit it with git.
 ```
 
 Then read the two runs back:
@@ -42,31 +44,29 @@ pnpm reeval compare
 ```
 
 ```text
-2 runs, oldest → newest: 20261024T145533Z_… … 20261024T145534Z_…
+2 runs, oldest → newest: 20261126T080651Z_… (214e9d4) … 20261126T080701Z_… (214e9d4)
 
-  ✓¦✗    1/2  with-history.eval.ts › adds a tested multiply function
+  ✓¦✗    1/2  with-history
 
-✓ pass  ✗ fail  ! infra error  ↓ skipped  · not run  ¦ eval or stack changed
+✓ pass  ✗ fail  ! infra error  ↓ skipped  ○ ran  · not run  ¦ eval or stack changed
 
-can't compare    adds a tested multiply function
-  changed          harness config
-  base             20261024T145533Z_…  pass
-  head             20261024T145534Z_…  fail
-  tests pass       failed
-    expected command to succeed, exit code 1
-  +1 more passed
+can't compare    with-history
+  changed          agent config
+  base             20261126T080651Z_…  pass
+  head             20261126T080701Z_…  fail
+    #1  50%  succeeded:node --test 0%
 
 1 can't compare
 ```
 
-The fake agent's files are part of its harness config, so `reeval compare` names what changed
+The fake agent's files are part of its agent config, so `reeval compare` names what changed
 instead of calling the failure a regression, and `reeval history` marks the change with `¦`. A
 real agent that fails with nothing changed reads `regressed`, and
 `pnpm reeval compare --fail-on-regression` exits 1 on it.
 
 | File | What it is |
 |---|---|
-| [`with-history.eval.ts`](./with-history.eval.ts) | The eval: one prompt, two labeled checks |
+| [`with-history.eval.ts`](./with-history.eval.ts) | The eval: one prompt, two graders and a `regression(1)` target |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, `record` and `history`, and the real agents from `../profiles.ts` |

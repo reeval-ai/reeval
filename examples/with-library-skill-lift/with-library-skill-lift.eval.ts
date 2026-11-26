@@ -1,4 +1,5 @@
-import { defineEnvironment, defineEval, expect, metric } from 'reeval'
+import { defineEnvironment, defineEval, metric } from 'reeval'
+import { hasFile } from 'reeval/graders'
 
 // The page in ./project is the control; the variant adds Anthropic's published brand-guidelines
 // skill, fetched from its repository at a pinned commit.
@@ -17,14 +18,15 @@ export default defineEval({
   compare: { control: page, variants: [withSkill] },
   runs: 4,
   target: metric(0.75),
+  graders: [
+    hasFile('index.html', /href="styles\.css"/),
+    hasFile('styles.css', /#d97757/i, { name: 'brand-orange' }),
+    hasFile('styles.css', /Poppins[\s\S]*Lora|Lora[\s\S]*Poppins/, { name: 'brand-fonts' }),
+  ],
   task: async (c) => {
     await c.send(
       "Give index.html Anthropic's look: write styles.css with Anthropic's brand colors and " +
         'fonts, and link it from index.html.',
     )
-
-    await expect(c, 'links styles.css').toHaveFile('index.html', /href="styles\.css"/)
-    await expect(c, 'brand orange').toHaveFile('styles.css', /#d97757/i)
-    await expect(c, 'brand fonts').toHaveFile('styles.css', /Poppins[\s\S]*Lora|Lora[\s\S]*Poppins/)
   },
 })

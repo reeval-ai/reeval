@@ -18,7 +18,7 @@ pnpm eval
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check; here its `multiply` adds, so the tests fail and the run exits 1.
+graders have something to grade; here its `multiply` adds, so the tests fail and the run exits 1.
 `pnpm eval --profile claude-code` runs the same eval on Claude Code, and `--profile <name>` on any
 other agent in [`examples/profiles.ts`](../profiles.ts).
 
@@ -28,29 +28,27 @@ one profile you need. Keep `.mcp.json` and `.cursor/mcp.json` at your project's 
 `reeval.config.ts`.
 
 **What to look at:** after the run, ask your agent "why did the last reeval run fail?". It calls
-the `failures` tool, which answers with each failed check, its log and the transcript's tail
-(trimmed here):
+the `failures` tool, which answers with each failed attempt, its failing command's log and the
+transcript's tail (trimmed here):
 
 ```json
 {
-  "runId": "20261024T145925Z_nogit_cursor-agent_6pmv",
+  "runId": "20261126T080948Z_214e9d4_cursor-agent_mkja",
   "summary": { "evals": 1, "attempts": 1, "pass": 0, "fail": 1, … },
   "attempts": [
     {
-      "eval": "with-reeval-mcp.eval.ts › adds a tested multiply function",
+      "eval": "with-reeval-mcp",
       "cell": "fake/math/fake",
       "outcome": "fail",
-      "failedAssertions": [
-        {
-          "label": "toSucceed node --test",
-          "message": "expected command to succeed, exit code 1\n…  actual: 5\n…"
-        }
-      ],
+      "error": {
+        "kind": "assertion",
+        "message": "score 0.67 below 1: succeeded:node --test scored 0.00"
+      },
       "failedChecks": [
         {
           "command": "node --test",
           "exitCode": 1,
-          "logTail": "…not ok 2 - multiply\n…    5 !== 6\n…"
+          "logTail": "$ node --test\nexit 1\n…✖ multiply…\n…  5 !== 6\n…"
         }
       ],
       "changedFiles": ["modified src/math.js", "modified test/math.test.js"],
@@ -67,7 +65,7 @@ a reeval run, use the `reeval` MCP server's `failures` tool first" makes it reac
 
 | File | What it is |
 |---|---|
-| [`with-reeval-mcp.eval.ts`](./with-reeval-mcp.eval.ts) | The eval: one prompt, three checks |
+| [`with-reeval-mcp.eval.ts`](./with-reeval-mcp.eval.ts) | The eval: one prompt, three graders and a `regression()` target |
 | [`.mcp.json`](./.mcp.json) | Starts `reeval mcp` for Claude Code |
 | [`.cursor/mcp.json`](./.cursor/mcp.json) | Starts `reeval mcp` for Cursor, on this directory's config |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |

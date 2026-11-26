@@ -1,4 +1,5 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
+import { hasFile, succeeded } from 'reeval/graders'
 
 // Two rules files for the same project. Each lands where the agent reads its rules (AGENTS.md,
 // or CLAUDE.md for Claude Code).
@@ -12,10 +13,9 @@ const detailedRules = math.extendEnvironment('detailed-rules', ({ file }) => ({
 
 export default defineEval({
   compare: { control: shortRules, variants: [detailedRules] },
+  graders: [succeeded('node --test'), hasFile('CHANGELOG.md', /## Unreleased\s+- feat: /)],
   task: async (c) => {
     await c.send('Add a multiply(a, b) function to src/math.js.')
-
-    await expect(c.exec('node --test'), 'tests pass').toSucceed()
-    await expect(c, 'changelog entry').toHaveFile('CHANGELOG.md', /## Unreleased\s+- feat: /)
+    await c.exec('node --test')
   },
 })

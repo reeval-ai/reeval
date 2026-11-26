@@ -18,7 +18,7 @@ pnpm reeval studio
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check. `pnpm eval --profile claude-code --record` runs the same eval on
+graders have something to grade. `pnpm eval --profile claude-code --record` runs the same eval on
 Claude Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts).
 The studio shows every run, whichever agent ran it.
 
@@ -38,7 +38,7 @@ Unrecorded runs from `.reeval/runs/` show there too, unless you add `--no-scratc
 
 | File | What it is |
 |---|---|
-| [`with-studio.eval.ts`](./with-studio.eval.ts) | The eval: one prompt, three checks |
+| [`with-studio.eval.ts`](./with-studio.eval.ts) | The eval: one prompt, three graders |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, and the real agents from `../profiles.ts` |

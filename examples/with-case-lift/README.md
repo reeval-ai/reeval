@@ -17,7 +17,7 @@ pnpm eval
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check; here it writes every case's function, with JSDoc blocks only
+graders have something to grade; here it writes every case's function, with JSDoc blocks only
 when it has the skill. `pnpm eval --profile claude-code` runs the same eval on Claude Code, and
 `--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts).
 
@@ -25,29 +25,27 @@ when it has the skill. `pnpm eval --profile claude-code` runs the same eval on C
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** no case says more than `1 of 1`, but `all cases` reads `helped`.
-`pnpm eval -v` prints the pooled interval:
+**What to look at:** each case runs once a side, but the arms pool all six into `helped`.
+`pnpm eval -v` prints each case's score and the pooled interval:
 
 ```text
-                 documents a function
-  pass  subtract
-    arm            pass
-    math           0 of 1
-    jsdoc          1 of 1
-…
-  pass  all cases
-    arm            pass
-    math           0 of 6
-    jsdoc          6 of 6  helped
-      jsdoc: 6 paired cases, 95% interval +45…+100
+with-case-lift.eval.ts
+  ✓ with-case-lift  6/6 runs at 100%  regression(1)
+    #subtract  100%
+    #multiply  100%
+    …
+    arm              pass
+    math             0 of 6
+    jsdoc            6 of 6  helped
+      paired over 6 cases, 95% interval +45…+100 points
 ```
 
-After a run, `pnpm reeval query family_lift` has the same lift as a row, with its method
+After a run, `pnpm reeval query case_lift` has the same lift as a row, with its method
 (`newcombe-paired`), its `min_lift` and the eval's pooled outcome.
 
 | File | What it is |
 |---|---|
-| [`with-case-lift.eval.ts`](./with-case-lift.eval.ts) | The eval: six cases, one compare with `minLift` |
+| [`with-case-lift.eval.ts`](./with-case-lift.eval.ts) | The eval: six cases, one compare with `minLift`, and a grader that reads each case's function |
 | [`skills/jsdoc/SKILL.md`](./skills/jsdoc/SKILL.md) | The skill under test |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace, without and with the skill |
