@@ -236,6 +236,19 @@ test('with-compare-questions, whose question picked the variant 4 of 4, names th
     config,
     readFileSync(config, 'utf8').replace('fakeAgent({', 'fakeAgent({ turnMs: 1000,'),
   )
+  // The hidden-test grader runs on the fake sandbox, so the run needs no Docker.
+  const file = join(dir, 'with-compare-questions.eval.ts')
+  const source = readFileSync(file, 'utf8')
+  assert.match(source, /env: docker\(\),/)
+  writeFileSync(
+    file,
+    source
+      .replace(
+        "import { docker } from 'reeval/sandbox'",
+        "import { fakeSandbox } from 'reeval/sandbox'",
+      )
+      .replace('env: docker(),', "env: fakeSandbox(), egress: 'allow-all',"),
+  )
   const run = await runCli(dir, ['run', '--ui', 'plain', '-v'], { timeoutMs: 300_000 })
   assert.equal(run.code, 0, run.stdout + run.stderr)
   assert.match(
