@@ -1,4 +1,5 @@
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { notes, trimmed } from './probes.ts'
 
 // The agent edits a file and runs a command, and the transcript has both: an edit of notes.txt
@@ -9,6 +10,6 @@ import { notes, trimmed } from './probes.ts'
 export default defineEval({
   environment: notes,
   task: async (c) => {
-    expect(await trimmed(c.readFile, 'notes.txt')).toBe('status: final')
+    assert.equal(await trimmed(c.readFile, 'notes.txt'), 'status: final')
   },
 })

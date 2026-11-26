@@ -1,4 +1,5 @@
-import { defineEval, expect, type Turn } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval, type Turn } from 'reeval'
 import {
   delegatedTo,
   PLUGIN_AGENT,
@@ -25,6 +26,6 @@ export default defineEval({
   agents: withFakePlugin,
   tags,
   task: async (c) => {
-    expect(delegated(await c.send(prompts.pluginAgent))).not.toEqual([])
+    assert.notDeepEqual(delegated(await c.send(prompts.pluginAgent)), [])
   },
 })

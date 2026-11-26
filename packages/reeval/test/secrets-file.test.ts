@@ -30,7 +30,8 @@ import type { AgentHarnessDescriptor, EnvironmentInput } from '../src/types.ts'
 import { fakeConfig, project, readRun, runCli, tempDir } from './helpers.ts'
 
 const evalFile = (env: string, body = '') => `
-import { defineEval, expect, defineEnvironment } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval, defineEnvironment } from 'reeval'
 const keys = defineEnvironment('keys', ({ secret }) => ({ env: ${env} }))
 export default defineEval({
   environment: keys,
@@ -56,7 +57,7 @@ describe('REEVAL_SECRETS_FILE', () => {
     const r = await withFile(
       "{ API_KEY: secret.fromEnv('API_KEY') }",
       { version: 1, secrets: { API_KEY: { mode: 'readable', value: 'from-the-file-1234' } } },
-      "expect(process.env.API_KEY).toBe('from-the-file-1234')",
+      "assert.equal(process.env.API_KEY, 'from-the-file-1234')",
       { API_KEY: 'from-the-environment' },
     )
     assert.equal(r.code, 0, r.stdout + r.stderr)

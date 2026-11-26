@@ -1,7 +1,7 @@
 // reeval's own model calls through openrouter() on real OpenRouter (contract.yml, when a dispatch
 // names an *-openrouter row): the decision-model judge and the analysis model, on the fake harness
-// so no agent spends anything. Checks what OpenRouter says about each call (the served model, the
-// upstream provider and the cost), never the model's wording, and never retries. Skipped unless
+// so no agent spends anything. Checks what OpenRouter says about each call (the served model and the
+// cost), never the model's wording, and never retries. Skipped unless
 // REEVAL_TEST_REAL=1; asked for, it fails naming OPENROUTER_API_KEY when that isn't set.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -41,10 +41,11 @@ export default defineConfig({ target: regression(),
 })
 `,
     'evals/greet.eval.ts': `import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 export default defineEval({
+  graders: [judge('Does the workspace have a greet.js that greets by name?', { inputs: { task: true, diff: true } })],
   async task(c) {
     await c.send('Create greet.js exporting greet(name), which returns "Hello, <name>!".')
-    await c.judge('Does the workspace have a greet.js that greets by name?', { task: true, diff: true })
   },
 })
 `,
@@ -60,20 +61,17 @@ export default defineEval({
   ) as ShapeSchema
   assert.deepEqual(validate(schema, run), [], 'the record fits its schema')
 
-  const judgment = run.evals[0]?.attempts[0]?.judgements?.[0]
-  assert.ok(judgment, `no judgment recorded\n${r.stdout}\n${r.stderr}`)
-  t.diagnostic(
-    `${judgment.resolvedModel} on ${judgment.upstream} · $${judgment.costUsd} · score ${judgment.score}`,
-  )
+  const grade = run.evals[0]?.attempts[0]?.grades?.[0]
+  const judgment = grade?.judge?.calls?.[0]
+  assert.ok(judgment, `no judge call recorded\n${r.stdout}\n${r.stderr}`)
+  t.diagnostic(`${judgment.resolvedModel} · $${judgment.costUsd} · score ${grade?.score}`)
   assert.equal(judgment.model, OPENROUTER_JUDGE_MODEL)
   assert.equal(judgment.gateway, 'openrouter')
   assert.ok(judgment.resolvedModel, 'OpenRouter names the model that served the judge')
-  assert.ok(judgment.upstream, 'OpenRouter names the upstream provider that served the judge')
   assert.ok(
     typeof judgment.costUsd === 'number' && judgment.costUsd >= 0,
     `the judge's cost: ${judgment.costUsd}`,
   )
-  assert.match(r.stdout, /judge served by \S/, "the output names the judge's upstream")
 
   const analyze = await runCli(p.dir, ['analyze', run.runId, '--json'], {
     env: { OPENROUTER_API_KEY: key },

@@ -1,4 +1,5 @@
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { planted, scan } from './probes.ts'
 
 // After a real turn (the harness has authenticated), the harness's real key is nowhere in the
@@ -10,6 +11,6 @@ export default defineEval({
   environment: planted,
   task: async (c) => {
     const found = await scan(c.exec, process.env.REEVAL_CONTRACT_PLANTED_TARGETS ?? '[]')
-    expect(found.hits).toEqual([])
+    assert.deepEqual(found.hits, [])
   },
 })

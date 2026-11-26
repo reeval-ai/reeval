@@ -78,7 +78,9 @@ export const newSkill = noSkill.extendEnvironment('new-skill', ({ skill }) => ({
   skills: [skill.local('../skills/fui-new')],
 }))
 `,
-    'evals/auth.eval.ts': `import { defineEval, expect, regression } from 'reeval'
+    'evals/auth.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval, regression } from 'reeval'
+import { judge } from 'reeval/graders'
 import { fakeJudge } from 'reeval/judge'
 import { currentSkill, newSkill, noSkill } from './environments.ts'
 const RUBRIC: Array<[string, string, RegExp | null]> = [
@@ -104,12 +106,12 @@ export default defineEval({
     },
   ],
   runs: ${options.runs ?? 3},
+  graders: RUBRIC.map(([name, q, has]) =>
+    judge(q, { name: name.toLowerCase().replaceAll(' ', '-'), inputs: { diff: true }, model: judgeOf(has) }),
+  ),
   async task(c) {
     await c.send('Ship a complete authentication experience for this app.')
-    await expect(c.exec('test -s src/App.tsx'), 'build').toSucceed()
-    for (const [name, q, has] of RUBRIC) {
-      expect(await c.judge(q, { model: judgeOf(has), diff: true }), name).toPass()
-    }
+    assert.equal((await c.exec('test -s src/App.tsx')).exitCode, 0, 'build')
   },
 })
 `,

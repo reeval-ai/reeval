@@ -1,4 +1,5 @@
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { contractHarness } from '../harness.ts'
 import { notes, prompts, trimmed } from './probes.ts'
 
@@ -12,6 +13,6 @@ export default defineEval({
   tags: ['effort'],
   task: async (c) => {
     await c.send(prompts.editAndRun)
-    expect(await trimmed(c.readFile, 'notes.txt')).toBe('status: final')
+    assert.equal(await trimmed(c.readFile, 'notes.txt'), 'status: final')
   },
 })

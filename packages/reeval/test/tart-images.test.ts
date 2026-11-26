@@ -158,11 +158,12 @@ export default defineConfig({
   egress: 'allow-all',
 })
 `
-const EVAL = `import { defineEval, expect } from 'reeval'
+const EVAL = `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 
 export default defineEval({
   async task(c) {
-  expect((await c.exec('printf ok')).stdout).toBe('ok')
+  assert.equal((await c.exec('printf ok')).stdout, 'ok')
   },
 })
 `
@@ -295,13 +296,14 @@ describe('tart() images before the run', {
     const p = await project('tart-images-mixed-short', {
       'reeval.config.ts': CONFIG,
       'evals/vm.eval.ts': EVAL,
-      'evals/in-docker.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/in-docker.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
 
 export default defineEval({
   sandbox: docker(),
   async task() {
-  expect(1).toBe(1)
+  assert.equal(1, 1)
   },
 })
 `,
@@ -436,13 +438,14 @@ export default defineEval({
     const p = await project('tart-images-mixed', {
       'reeval.config.ts': CONFIG,
       'evals/vm.eval.ts': EVAL,
-      'evals/in-docker.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/in-docker.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
 
 export default defineEval({
   sandbox: docker(),
   async task() {
-  expect(1).toBe(1)
+  assert.equal(1, 1)
   },
 })
 `,

@@ -72,7 +72,9 @@ const RUN = '20260924T220414Z_f7e1b53_elliot-hesp_k3f9'
 
 // A real history: three recorded runs of the fake agent (pass, fail, a control and a variant ×
 // two runs, with a compare question) and one scratch run.
-const evalFile = `import { defineEnvironment, defineEval, expect } from 'reeval'
+const evalFile = `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
@@ -87,10 +89,10 @@ export default defineEval({
         runs: 2,
       }
     : {}),
+  graders: [judge('Did it write hello.txt?', { inputs: { diff: true } })],
   async task(c) {
     await c.send('write hello.txt')
-    await expect(c.exec('test -f hello.txt')).toSucceed()
-    expect(await c.judge('Did it write hello.txt?', { diff: true })).toPass()
+    assert.equal((await c.exec('test -f hello.txt')).exitCode, 0)
   },
 })
 `
@@ -138,7 +140,8 @@ before(async () => {
 })
 
 describe('run outcome and activity, as the CLI has them', () => {
-  const skilled = `import { defineEnvironment, defineEval, expect } from 'reeval'
+  const skilled = `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
 const plain = defineEnvironment('plain', { sandbox })
@@ -151,7 +154,7 @@ export default defineEval({
   runs: 1, compare,
   async task(c) {
     await c.send('write ok.txt')
-    await expect(c.exec('test -f ok.txt')).toSucceed()
+    assert.equal((await c.exec('test -f ok.txt')).exitCode, 0)
   },
 })
 `
@@ -421,8 +424,8 @@ describe('view-models over a real history', () => {
         r.judgeRates.map((k) => [k.label, k.pass, k.counted, k.lift?.points ?? null]),
       ]),
       [
-        [null, [['Did it write…', 2, 2, null]]],
-        [null, [['Did it write…', 2, 2, 0]]],
+        [null, []],
+        [null, []],
       ],
     )
   })
@@ -743,7 +746,7 @@ describe('view-models over a real history', () => {
     )
   })
 
-  test('compare flags the regression and its judge-score delta', () => {
+  test('compare flags the regression', () => {
     const [base, head] = headers as [HistoryEntry, HistoryEntry]
     const view = compareView(base, head, {
       base: records.get(base.runId),
@@ -752,7 +755,7 @@ describe('view-models over a real history', () => {
     assert.equal(view.counts.regressed, 1)
     assert.deepEqual(
       view.rows.map((r) => [r.status, r.basePassAt1, r.headPassAt1, r.baseScore, r.headScore]),
-      [['regressed', 1, 0, 0.9, 0.2]],
+      [['regressed', 1, 0, null, null]],
     )
   })
 
@@ -1529,19 +1532,21 @@ describe('studio data server', () => {
         harness: agent,
         extra: "history: { artifacts: 'evidence' },",
       }),
-      'evals/hello.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/hello.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('write hello.txt')
-    await expect(c.exec('test -f hello.txt')).toSucceed()
+    assert.equal((await c.exec('test -f hello.txt')).exitCode, 0)
   },
 })
 `,
-      'evals/writes-bye.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/writes-bye.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('write bye.txt')
-    await expect(c.exec('test -f bye.txt')).toSucceed()
+    assert.equal((await c.exec('test -f bye.txt')).exitCode, 0)
   },
 })
 `,

@@ -119,7 +119,7 @@ describe('a judge grader', () => {
     assert.deepEqual([no.grade, no.score], [false, 0])
   })
 
-  test("shows the stored attempt as c.judge() would, masked, with the eval's model", async () => {
+  test("shows the judge the stored attempt, masked, with the eval's model", async () => {
     const { inputs, asked } = attempt({}, fakeJudge())
     const r = await grade(
       defineGrader('all', {

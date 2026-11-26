@@ -313,13 +313,14 @@ export default defineConfig({
 })
 `,
       'evals/trace.ts': TRACE,
-      'evals/a.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/a.eval.ts': `import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 import { traced } from './trace.ts'
 export default defineEval({
   runs: 5,
+  graders: [judge('ok?', { inputs: { diff: true } })],
   async task(c) {
     await traced(\`a#\${c.attempt.n}\`, () => c.send('go'))
-    expect(await c.judge('ok?', { diff: true })).toPass()
   },
 })
 `,

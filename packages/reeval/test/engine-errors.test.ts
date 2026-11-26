@@ -15,12 +15,12 @@ mkdirSync(join(root, 'evals'), { recursive: true })
 writeFileSync(
   file,
   [
-    "import { defineEval, expect } from 'reeval'",
-    '',
+    "import assert from 'node:assert/strict'",
+    "import { defineEval } from 'reeval'",
     'export default defineEval({',
     '  async task() {',
     '\tconst value = 1',
-    '    expect(value).toBe(2)',
+    '    assert.equal(value, 2)',
     '  },',
     '})',
     '//# sourceMappingURL=data:application/json;base64,e30=',
@@ -73,7 +73,7 @@ describe('formatError', () => {
         ' ❯ evals/a.eval.ts:6:17',
         '      4|   async task() {',
         '      5|  const value = 1',
-        '      6|     expect(value).toBe(2)',
+        '      6|     assert.equal(value, 2)',
         '       |                 ^',
         '      7|   },',
         '      8| })',
@@ -144,7 +144,7 @@ describe('formatError', () => {
         codeFrame: '1| x',
         stack: stack(`${file}:5:3`),
       }),
-      `SyntaxError: bad\n1| x\n\n ❯ evals/a.eval.ts:5:3\n      3| export default defineEval({\n      4|   async task() {\n      5|  const value = 1\n       |   ^\n      6|     expect(value).toBe(2)\n      7|   },\n`,
+      `SyntaxError: bad\n1| x\n\n ❯ evals/a.eval.ts:5:3\n      3| export default defineEval({\n      4|   async task() {\n      5|  const value = 1\n       |   ^\n      6|     assert.equal(value, 2)\n      7|   },\n`,
     )
     assert.equal(plain({ name: 'E', message: 'm', frame: '> 1 | x' }), 'E: m\n> 1 | x')
     const caused = plain({

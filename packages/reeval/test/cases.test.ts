@@ -196,14 +196,15 @@ describe('reeval compare of an eval with cases', () => {
   test('names a case that flipped under the rate that still gates the eval', async () => {
     const p = await project('compare-rated-case', {
       'reeval.config.ts': fakeConfig(),
-      'evals/e.eval.ts': `import { defineEval, expect, metric } from 'reeval'
+      'evals/e.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval, metric } from 'reeval'
 const bad = process.env.BAD ?? ''
 export default defineEval({
   cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }, { key: 'd' }, { key: 'e' }],
   target: metric(0.7),
   async task(c, { key: k }) {
     await c.send(k)
-    expect(k, 'ok').not.toBe(bad)
+    assert.notEqual(k, bad, 'ok')
   },
 })
 `,
@@ -224,20 +225,21 @@ describe('reeval run prints an eval with cases', () => {
     const keys = Array.from({ length: 12 }, (_, i) => `q${i + 1}`)
     const p = await project('cases-compact-count', {
       'reeval.config.ts': fakeConfig(),
-      'evals/e.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/e.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   cases: ${JSON.stringify(keys.map((key) => ({ key })))},
   runs: 2,
   async task(c, { key: k }) {
     await c.send(k)
-    expect(Number(k.slice(1)) > 10, 'ok').toBe(true)
+    assert.equal(Number(k.slice(1)) > 10, true, 'ok')
   },
 })
 `,
     })
     const r = await runCli(p.dir, ['run', '--ui', 'plain'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
-    assert.match(r.stdout, /^ {5}#q8 +0% +"ok" failed$/m)
+    assert.match(r.stdout, /^ {5}#q8 +0% +ok false !== true \(2 of 2 runs\)$/m)
     assert.doesNotMatch(r.stdout, /#q9 /)
     assert.match(r.stdout, /^ {5}\+2 more cases \(-v\)$/m)
     assert.doesNotMatch(r.stdout, /#q1[12] /, 'a case at 100% has no row')
@@ -246,14 +248,15 @@ export default defineEval({
   test('a capability over cases reads the cases that hit, as the record and reeval query judge it', async () => {
     const p = await project('cases-capability', {
       'reeval.config.ts': fakeConfig(),
-      'evals/e.eval.ts': `import { capability, defineEval, expect } from 'reeval'
+      'evals/e.eval.ts': `import assert from 'node:assert/strict'
+import { capability, defineEval } from 'reeval'
 export default defineEval({
   cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }],
   runs: 2,
   target: capability(1, { blocking: true }),
   async task(c, { key: k }) {
     await c.send(k)
-    expect(k === 'a' || (k === 'b' && c.attempt.n === 1), 'ok').toBe(true)
+    assert.equal(k === 'a' || (k === 'b' && c.attempt.n === 1), true, 'ok')
   },
 })
 `,
@@ -265,7 +268,7 @@ export default defineEval({
       /^└─ ✗ e {2}2\/3 cases hit 100% \(pass@2\) {2}capability\(1, \{ blocking: true \}\)$/m,
     )
     assert.doesNotMatch(r.stdout, /runs at 100% \(pass@6\)/, 'canary: not pooled over the cases')
-    assert.match(r.stdout, /^ {5}#c +0% +"ok" failed$/m)
+    assert.match(r.stdout, /^ {5}#c +0% +ok false !== true \(2 of 2 runs\)$/m)
     assert.equal(readRun(p.dir).run.evals[0]?.outcome, 'fail')
     const q = await runCli(p.dir, ['query', 'SELECT outcome, pass_at_k FROM evals', '--json'])
     assert.equal(q.code, 0, q.stdout + q.stderr)
@@ -277,7 +280,8 @@ export default defineEval({
   test('-v on a compare over cases prints the paired lift once, not a difference per case', async () => {
     const p = await project('cases-paired-stats', {
       'reeval.config.ts': fakeConfig(),
-      'evals/e.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+      'evals/e.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 const app = defineEnvironment('app', { env: { SKILL: '' } })
 const skilled = app.extend('skilled', { env: { SKILL: 'yes' } })
 export default defineEval({
@@ -285,7 +289,7 @@ export default defineEval({
   compare: { control: app, variants: [skilled] },
   async task(c) {
     await c.send('go')
-    expect((await c.exec('printf %s "$SKILL"')).stdout, 'skill').toBe('yes')
+    assert.equal((await c.exec('printf %s "$SKILL"')).stdout, 'yes', 'skill')
   },
 })
 `,

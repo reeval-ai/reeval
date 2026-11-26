@@ -1,77 +1,49 @@
-// The attempt host: the `judge` call's wire `JudgeOn` reaches `c.judge` as the turn or the value
-// it names, as a TypeScript eval passes `on`, a `decide` call's capture and inputs parts reach
-// `c.decide` as `c.part` and `c.state` make them, and a turn the attempt doesn't have, or a
-// request it can't check, is a usage error.
+// The attempt host: a `decide` call's capture and inputs parts reach `c.decide` as `c.part` and
+// `c.state` make them, and a turn the attempt doesn't have, or a request it can't check, is a
+// usage error.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { AttemptRequest } from '../src/contract/attempt.ts'
 import { replyToAttempt } from '../src/language-runner/attempt-host.ts'
-import type { AttemptContext, JudgeCallOptions, Turn } from '../src/types.ts'
-
-const verdict = { verdict: 'pass', score: 1, threshold: 0.8, question: 'q', model: 'fake' }
-
-function attempt(turns: Turn[]) {
-  const asked: (JudgeCallOptions | undefined)[] = []
-  const c = {
-    turns,
-    judge: async (_question: string, options?: JudgeCallOptions) => {
-      asked.push(options)
-      return verdict
-    },
-  } as unknown as AttemptContext
-  const judge = (options?: Record<string, unknown>) =>
-    replyToAttempt(c, [], new Map(), {
-      id: '1',
-      call: { op: 'judge', question: 'q', ...(options ? { options } : {}) },
-    } as AttemptRequest)
-  return { asked, judge }
-}
+import type { AttemptContext, Turn } from '../src/types.ts'
 
 const first = { prompt: 'one', text: 'One.' } as Turn
 const second = { prompt: 'two', text: 'Two.' } as Turn
 
-test('judge on a value grades the value itself', async () => {
-  const { asked, judge } = attempt([first])
-  for (const value of ['Hello, Ada!', null, { exitCode: 0, stdout: 'ok' }, [1, 2]]) {
-    assert.deepEqual(await judge({ on: { value }, threshold: 0.5 }), {
-      id: '1',
-      ok: true,
-      op: 'judge',
-      verdict,
-    })
-    assert.deepEqual(asked.pop(), { on: value, threshold: 0.5 })
-  }
-})
-
-test('judge on a turn grades that turn of the attempt', async () => {
-  const { asked, judge } = attempt([first, second])
-  await judge({ on: { turn: 0 } })
-  assert.equal(asked.pop()?.on, first)
-  await judge({ diff: true })
-  assert.deepEqual(asked.pop(), { diff: true })
-})
-
-test("judge on a turn the attempt doesn't have is a usage error", async () => {
-  const { asked, judge } = attempt([first])
-  assert.deepEqual(await judge({ on: { turn: 1 } }), {
+test("a decide whose inputs are on a turn the attempt doesn't have is a usage error", async () => {
+  let decided = 0
+  const decide = (turns: Turn[]) =>
+    replyToAttempt(
+      {
+        turns,
+        state: async () => [],
+        decide: async () => void decided++,
+      } as unknown as AttemptContext,
+      new Map(),
+      {
+        id: '1',
+        call: {
+          op: 'decide',
+          model: 'typesafe-ai/jev',
+          state: [{ type: 'inputs', diff: true, on: { turn: 1 } }],
+          questions: { done: { type: 'boolean', instructions: 'Done?' } },
+        },
+      } as AttemptRequest,
+    )
+  assert.deepEqual(await decide([first]), {
     id: '1',
     ok: false,
-    op: 'judge',
-    error: { name: 'UsageError', message: "c.judge()'s on is turn 1, but the attempt has 1 turn" },
+    op: 'decide',
+    error: { name: 'UsageError', message: "c.state()'s on is turn 1, but the attempt has 1 turns" },
   })
-  assert.equal(asked.length, 0, 'the judge never ran')
-  const none = attempt([])
-  assert.equal(
-    ((await none.judge({ on: { turn: 0 } })) as { error: { message: string } }).error.message,
-    "c.judge()'s on is turn 0, but the attempt has 0 turns",
-  )
+  assert.equal(decided, 0, 'the model never ran')
 })
 
 test('a value too deep to check is a usage error, not a lost reply', async () => {
   const c = {} as AttemptContext
   let value: unknown = 1
   for (let i = 0; i < 200_000; i++) value = [value]
-  const reply = await replyToAttempt(c, [], new Map(), {
+  const reply = await replyToAttempt(c, new Map(), {
     id: '1',
     call: { op: 'observe', name: 'deep', value },
   } as AttemptRequest)
@@ -99,7 +71,7 @@ test("decide makes its state's capture and inputs parts as c.part and c.state do
       }
     },
   } as unknown as AttemptContext
-  const reply = await replyToAttempt(c, [], new Map(), {
+  const reply = await replyToAttempt(c, new Map(), {
     id: '1',
     call: {
       op: 'decide',

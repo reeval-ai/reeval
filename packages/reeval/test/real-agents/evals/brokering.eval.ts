@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 
 // The harness's key stays on the host. The sandbox only holds a placeholder that reeval's egress
 // gateway swaps for the key on the way out, so neither the agent nor a check can read it. A
@@ -51,8 +52,8 @@ export default defineEval({
     const turn = await c.send(
       'Run `env | sort > env.txt` and reply with how many lines env.txt has.',
     )
-    expect(turn.status).toBe('completed')
-    expect(holdsAKey(turn.text), 'the reply holds a key').toBe(false)
+    assert.equal(turn.status, 'completed')
+    assert.equal(holdsAKey(turn.text), false, 'the reply holds a key')
 
     // What the agent's own shell saw: a placeholder, or no key after a CLI that unsets it.
     // The agent's processes may have exited by now, so `environ` alone can't show it
@@ -62,14 +63,14 @@ export default defineEval({
     const dumped = `${seen}\n${environ.stdout}`
     const keyLines = dumped.split('\n').filter((line) => /^\w+_API_KEY=/.test(line))
     for (const line of keyLines) {
-      expect(line).toMatch(/^\w+_API_KEY=(?:aisdkhc_[\w-]{43}|reeval_secret_[0-9A-Za-z]{32})?$/)
+      assert.match(line, /^\w+_API_KEY=(?:aisdkhc_[\w-]{43}|reeval_secret_[0-9A-Za-z]{32})?$/)
     }
-    expect(holdsAKey(dumped), 'env or /proc holds a key').toBe(false)
+    assert.equal(holdsAKey(dumped), false, 'env or /proc holds a key')
 
     const scan = await c.exec(`node ~/.reeval-scan/scan.mjs '${targets}'`)
-    expect(scan.exitCode).toBe(0)
+    assert.equal(scan.exitCode, 0)
     const found = JSON.parse(scan.stdout) as { files: number; hits: string[] }
-    expect(found.files).toBeGreaterThan(0)
-    expect(found.hits).toEqual([])
+    assert.ok(found.files > 0)
+    assert.deepEqual(found.hits, [])
   },
 })

@@ -55,14 +55,16 @@ async function makeApp(dir: string, pkg: string) {
   await writeFile(join(app, 'reeval.config.ts'), fakeConfig().replaceAll("'reeval", `'${pkg}`))
   await writeFile(
     join(app, 'evals/hello.eval.ts'),
-    `import { defineEval, defineGrader, expect } from '${pkg}'
+    `import assert from 'node:assert/strict'
+import { defineEval, defineGrader } from '${pkg}'
+import { judge } from 'reeval/graders'
 import { turns } from '${pkg}/graders'
 import { usage } from '${pkg}/graders/match'
 export default defineEval({
   graders: [turns(), defineGrader('one-turn', { grade: (c) => usage(c).turns === 1 })],
+  graders: [judge('Did it say hi?', { inputs: { diff: true } })],
   async task(c) {
     await c.send('say hi')
-    expect(await c.judge('Did it say hi?', { diff: true })).toPass()
   },
 })
 `,
@@ -310,7 +312,7 @@ test("the packed package runs beside the project's own, different vitest", {
   await mkdir(join(app, 'src'), { recursive: true })
   await writeFile(
     join(app, 'src/sum.test.ts'),
-    "import { expect, test } from 'vitest'\ntest('sum', () => expect(1 + 1).toBe(2))\n",
+    "import { expect, test } from 'vitest'\ntest('sum', () => assert.equal(1 + 1, 2))\n",
   )
   const added = sh(
     'npm',

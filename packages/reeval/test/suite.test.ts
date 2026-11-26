@@ -451,7 +451,8 @@ describe('reeval run --json', () => {
   test('prints the suite result as the only stdout, and the progress on stderr', async () => {
     const p = await project('suite-json', {
       'reeval.config.ts': fakeConfig({ harness: `{ files: { 'hello.txt': 'hi\\n' } }` }),
-      'evals/hello.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+      'evals/hello.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 const plain = defineEnvironment('plain', {})
 const bye = defineEnvironment('bye', { files: { 'bye.txt': 'bye' } })
 export default defineEval({
@@ -460,9 +461,9 @@ export default defineEval({
     console.log('a log line from the eval')
     process.stdout.write('a direct write\\n')
     await c.send('write hello.txt')
-    await expect(c.exec('test -f hello.txt'), 'hello.txt exists').toSucceed()
-    await expect.require(c.exec('test -f bye.txt'), 'has bye.txt').toSucceed()
-    await expect(c.exec('false'), 'fails after').toSucceed()
+    assert.equal((await c.exec('test -f hello.txt')).exitCode, 0, 'hello.txt exists')
+    assert.equal((await c.exec('test -f bye.txt')).exitCode, 0, 'has bye.txt')
+    assert.equal((await c.exec('false')).exitCode, 0, 'fails after')
   },
 })
 `,
@@ -485,20 +486,13 @@ export default defineEval({
     })
     const e = s.files[0]?.evals[0]
     assert.equal(e?.across, 'change')
-    const status = (environment: string) =>
-      e?.cells
-        ?.find((c) => c.environment === environment)
-        ?.checks.map((k) => [k.label, k.outcome.status])
-    assert.deepEqual(status('plain'), [
-      ['hello.txt exists', 'ran'],
-      ['has bye.txt', 'ran'],
-      ['fails after', 'not run'],
-    ])
-    assert.deepEqual(status('bye'), [
-      ['hello.txt exists', 'ran'],
-      ['has bye.txt', 'ran'],
-      ['fails after', 'ran'],
-    ])
+    assert.deepEqual(
+      e?.cells?.map((c) => [c.environment, c.outcome]),
+      [
+        ['plain', 'fail'],
+        ['bye', 'fail'],
+      ],
+    )
     const shown = await runCli(p.dir, ['show', '--json'])
     assert.equal(JSON.parse(shown.stdout).kind, 'reeval-run', 'reeval show --json is the record')
   })

@@ -1,4 +1,5 @@
-import { defineEval, expect } from 'reeval'
+import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { genkit } from './environments.ts'
 
 // The Gemini key is brokered (see environments.ts): the agent's request carries a
@@ -13,11 +14,11 @@ export default defineEval({
         'curl -s -o /dev/null -w "%{http_code}" -H "x-goog-api-key: $GEMINI_API_KEY" ' +
         'https://generativelanguage.googleapis.com/v1beta/models',
     )
-    expect(turn.status).toBe('completed')
-    expect((await c.exec('printenv GEMINI_API_KEY')).stdout).toMatch(/^reeval_secret_/)
+    assert.equal(turn.status, 'completed')
+    assert.match((await c.exec('printenv GEMINI_API_KEY')).stdout, /^reeval_secret_/)
     const status = await c.exec(
       'curl -s -o /dev/null -w "%{http_code}" -H "x-goog-api-key: $GEMINI_API_KEY" https://generativelanguage.googleapis.com/v1beta/models',
     )
-    expect(status.stdout).toBe('200')
+    assert.equal(status.stdout, '200')
   },
 })
