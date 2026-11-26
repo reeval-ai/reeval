@@ -1,9 +1,11 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { resume } from './env.ts'
 
 export default defineEval({
   environment: resume,
+  graders: [observed('marker.txt', (marker) => marker === 'resume')],
   task: async (c) => {
-    expect(await c.readFile('marker.txt')).toBe('resume')
+    c.observe('marker.txt', await c.readFile('marker.txt'))
   },
 })

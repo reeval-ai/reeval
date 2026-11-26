@@ -1,10 +1,12 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { staged, vendored } from './env.ts'
 
 // Must fail: the other vendored tarball's greeting isn't what 1.2.3 holds.
 export default defineEval({
   environment: vendored,
+  graders: [observed<string>('SKILL.md', (text) => text.includes('Hello there, <name>.'))],
   task: async (c) => {
-    expect(await c.readFile(staged)).toContain('Hello there, <name>.')
+    c.observe('SKILL.md', await c.readFile(staged))
   },
 })

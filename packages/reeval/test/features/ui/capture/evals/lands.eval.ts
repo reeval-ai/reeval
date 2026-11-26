@@ -1,13 +1,18 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { ui } from './env.ts'
 
 export default defineEval({
   environment: ui,
+  graders: [
+    observed<{ path: string; name: string; bytes: number }>(
+      'home',
+      (shot) => shot.path === 'artifacts/home.png' && shot.name === 'home' && shot.bytes > 0,
+    ),
+  ],
   task: async (c) => {
     const server = await c.serve('node server.mjs')
-    const home = await c.capture(server, { name: 'home' })
-    expect(home.file.path).toBe('artifacts/home.png')
-    expect(home.name).toBe('home')
-    expect(home.file.bytes).toBeGreaterThan(0)
+    const shot = await c.capture(server, { name: 'home' })
+    c.observe('home', { path: shot.file.path, name: shot.name, bytes: shot.file.bytes })
   },
 })

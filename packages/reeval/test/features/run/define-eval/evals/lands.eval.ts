@@ -1,9 +1,11 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 
 // one export default defineEval per file
 export default defineEval({
-  async task(c) {
+  graders: [observed('api', (api) => api === 'define-eval')],
+  task: async (c) => {
     await c.send('ok')
-    expect((await c.exec('printf define-eval')).stdout.trim(), 'api').toBe('define-eval')
+    c.observe('api', (await c.exec('printf define-eval')).stdout.trim())
   },
 })

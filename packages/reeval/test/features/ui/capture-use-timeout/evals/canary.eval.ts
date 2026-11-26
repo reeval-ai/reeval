@@ -1,10 +1,13 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { fakeInstructions } from 'reeval/testing'
 import { ui } from './env.ts'
 
+// Lands fails on the unfinished instruction; this expects another wording.
 export default defineEval({
-  environment: ui,
   capture: { timeout: '10s' },
+  environment: ui,
+  graders: [observed<string>('error', (message) => message === 'still loading')],
   task: async (c) => {
     const server = await c.serve('node server.mjs')
     try {
@@ -13,8 +16,7 @@ export default defineEval({
         instructions: fakeInstructions([[{ type: 'click', x: 1, y: 1 }]]),
       })
     } catch (error) {
-      // Lands fails on the unfinished instruction; this expects another wording.
-      expect((error as Error).message).toBe('still loading')
+      c.observe('error', (error as Error).message)
     }
   },
 })

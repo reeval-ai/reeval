@@ -1,8 +1,10 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 
 // Must fail: the one fail the tally counts.
 export default defineEval({
+  graders: [observed('attempt', (n) => n === 2)],
   task: async (c) => {
-    expect(c.attempt.n, 'second try').toBe(2)
+    c.observe('attempt', c.attempt.n)
   },
 })

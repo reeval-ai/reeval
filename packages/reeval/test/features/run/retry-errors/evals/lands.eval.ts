@@ -1,10 +1,12 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { retry } from './env.ts'
 
 export default defineEval({
   environment: retry,
+  graders: [observed('marker.txt', (marker) => marker === 'retry')],
   task: async (c) => {
     await c.send('Say done.')
-    expect(await c.readFile('marker.txt')).toBe('retry')
+    c.observe('marker.txt', await c.readFile('marker.txt'))
   },
 })

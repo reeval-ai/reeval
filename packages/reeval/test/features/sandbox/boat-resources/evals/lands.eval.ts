@@ -1,10 +1,12 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { observed } from 'reeval/graders'
 import { BURN, vm } from './env.ts'
 
 // The burn runs in a container on the VM, whose readings the record's resources report.
 export default defineEval({
   environment: vm,
+  graders: [observed<number>('cpus', (cpus) => cpus >= 1)],
   task: async (c) => {
-    expect(Number((await c.exec(BURN)).stdout)).toBeGreaterThanOrEqual(1)
+    c.observe('cpus', Number((await c.exec(BURN)).stdout))
   },
 })

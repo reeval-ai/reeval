@@ -55,6 +55,7 @@ import { fakeJudge } from '../src/judge.ts'
 import { runLabels, runPrefix } from '../src/sandbox/boat.ts'
 import { installId } from '../src/sandbox/id-part.ts'
 import { vmPrefix } from '../src/sandbox/tart.ts'
+import type { JSONValue } from '../src/types.ts'
 import type { RunEventLine } from '../src/view/events.ts'
 import type { SuiteResult } from '../src/view/suite.ts'
 import { liveSandboxes, project, readRun, runCli, spawnTool } from './helpers.ts'
@@ -120,6 +121,13 @@ type Feature = {
   canaryCells?: string[]
   /** What the canary's failure says: proof it failed on the check, not on setup. */
   canary: RegExp | ((tier: Tier) => RegExp)
+  /**
+   * What the canary's first failed attempt observed, by name: proof the check saw the wrong value
+   * rather than nothing. See `sawMatches` for how each value matches.
+   */
+  canarySaw?: Record<string, Saw>
+  /** What the canary's first failed attempt's graders returned, by grader name, matched as `canarySaw`. */
+  canaryGraded?: Record<string, Saw>
   /** The canary's environment, when it needs another one; defaults to `env`. */
   canaryEnv?: string
   /** Canary cell environments that must pass. The other canary attempts must match `canary`. */
@@ -596,6 +604,33 @@ const fakeTarts = new Map<string, string>()
 /** The `lands` eval's first attempt. */
 const landed = (run: RunRecord) => run.evals.find((e) => e.name === 'lands')?.attempts[0]
 
+/** The canary eval's first failed attempt, else its first. */
+const canaryAttempt = (run: RunRecord) => {
+  const attempts = run.evals.find((e) => e.name === 'canary')?.attempts ?? []
+  return attempts.find((a) => a.outcome === 'fail') ?? attempts[0]
+}
+
+/**
+ * What a canary saw: a RegExp matches a string, or another value's JSON; a function is a predicate;
+ * a plain object matches an object key by key (keys it leaves out are free); anything else is
+ * deep-equal.
+ */
+type Saw = JSONValue | RegExp | ((saw: JSONValue | undefined) => boolean) | { [key: string]: Saw }
+
+const sawMatches = (saw: JSONValue | undefined, want: Saw, what: string): void => {
+  if (want instanceof RegExp) {
+    assert.match(typeof saw === 'string' ? saw : String(JSON.stringify(saw)), want, what)
+  } else if (typeof want === 'function') {
+    assert.ok(want(saw), `${what}: ${JSON.stringify(saw)}`)
+  } else if (want !== null && typeof want === 'object' && !Array.isArray(want)) {
+    assert.ok(
+      saw !== null && typeof saw === 'object' && !Array.isArray(saw),
+      `${what}: ${JSON.stringify(saw)} is an object`,
+    )
+    for (const [key, w] of Object.entries(want)) sawMatches(saw[key], w, `${what}.${key}`)
+  } else assert.deepEqual(saw, want, what)
+}
+
 const skills = (run: RunRecord) => run.environments.flatMap((e) => e.skills)
 const plugins = (run: RunRecord) => run.environments.flatMap((e) => e.plugins ?? [])
 const envFiles = (run: RunRecord) => run.environments.flatMap((e) => e.files.map((f) => f.path))
@@ -683,6 +718,12 @@ const TART_HARNESSES = [
 ] as const satisfies readonly BakedHarness[]
 /** A regex for exactly `text`. */
 const literally = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+/** A canary's failure when its one grader, `grader`, scored 0 against the threshold `below`. */
+const zeroBy = (grader: string, below = 1) =>
+  new RegExp(
+    `^score 0\\.00 below ${literally(String(below))}: ${literally(grader)}(?: \\(required\\))? scored 0\\.00$`,
+  )
+
 /** The `agentCli` a Dockerfile built on each harness's image records. */
 const AGENT_CLI: Partial<Record<BakedHarness, RegExp>> = {
   antigravity: new RegExp(`^${literally(ANTIGRAVITY_CLI_VERSION)}$`),
@@ -718,7 +759,7 @@ export const features: Feature[] = [
     dir: 'skills/setup-installed',
     tiers: ['fake', 'docker'],
     env: 'installed',
-    canary: /expected skill-like calls matching house-farewell/,
+    canary: zeroBy('used-skill:house-farewell'),
     record: async ({ run, project, tier }) => {
       assert.deepEqual(skills(run), [], 'reeval placed no skill')
       const r = await runCli(project, [
@@ -745,7 +786,8 @@ export const features: Feature[] = [
     dir: 'skills/workspace-placement',
     tiers: ['fake', 'docker'],
     env: 'greeting',
-    canary: /expected \[ '' \] to deeply equal \[ '\.\/SKILL\.md', '\.\/docs\/tone\.md' \]/,
+    canary: zeroBy('observed:staged-files'),
+    canarySaw: { 'staged-files': [''] },
     record: ({ run }) =>
       assert.deepEqual(
         skills(run).map((s) => [s.name, s.placement, s.source]),
@@ -756,13 +798,13 @@ export const features: Feature[] = [
     dir: 'skills/workspace-content',
     tiers: ['fake', 'docker'],
     env: 'greeting',
-    canary: /to contain 'license: MIT'/,
+    canary: zeroBy('observed:SKILL.md'),
   },
   {
     dir: 'skills/exclude-default',
     tiers: ['fake', 'docker'],
     env: 'greeting',
-    canary: /to include '\.\/evals\/prompts\.md'/,
+    canary: zeroBy('observed:staged-files'),
     record: ({ run }) =>
       assert.deepEqual(skills(run)[0]?.excluded, ['.history/', 'evals/', 'greets.eval.ts']),
   },
@@ -770,14 +812,15 @@ export const features: Feature[] = [
     dir: 'skills/exclude-custom',
     tiers: ['fake', 'docker'],
     env: 'greeting',
-    canary: /to not include '\.\/evals\/prompts\.md'/,
+    canary: zeroBy('observed:staged-files'),
     record: ({ run }) => assert.deepEqual(skills(run)[0]?.excluded, ['drafts/', 'notes.tmp']),
   },
   {
     dir: 'skills/git-ref',
     tiers: ['fake', 'docker'],
     env: 'greeting-v1',
-    canary: /to contain 'Hello there, <name>\.'/,
+    canary: zeroBy('observed:SKILL.md'),
+    canarySaw: { 'SKILL.md': /Ahoy, <name>!/ },
     prepare(dir) {
       const repo = join(dir, 'repo')
       const commit = (version: string) => {
@@ -801,7 +844,8 @@ export const features: Feature[] = [
     dir: 'workspace/git-subpath',
     tiers: ['fake', 'docker'],
     env: 'app-v1',
-    canary: /expected .*Hello.* to contain .*Ahoy/,
+    canary: zeroBy('observed:greet.js'),
+    canarySaw: { 'greet.js': /Hello/ },
     prepare: versionedRepo,
     record: ({ run, project }) => {
       const repo = join(project, 'repo')
@@ -832,7 +876,8 @@ export const features: Feature[] = [
     dir: 'workspace/init',
     tiers: ['fake', 'docker'],
     env: 'with-git',
-    canary: /expected '1\\n' to be '2\\n'/,
+    canary: zeroBy('observed:git'),
+    canarySaw: { git: '1\n' },
     prepare: versionedRepo,
     record: ({ run }) => assert.equal(workspaceOf(run)?.init, true),
   },
@@ -840,7 +885,8 @@ export const features: Feature[] = [
     dir: 'workspace/token',
     tiers: ['fake', 'docker'],
     env: 'private',
-    canary: /expected .*Hello.* to contain 'Ahoy'/,
+    canary: zeroBy('observed:greet.js'),
+    canarySaw: { 'greet.js': /Hello/ },
     prepare: versionedRepo,
     hostEnv: (dir) => ({
       REEVAL_GIT_HTTP: gitHttp.serve(dir),
@@ -860,7 +906,7 @@ export const features: Feature[] = [
     dir: 'workspace/token-sandbox-env',
     tiers: ['docker'],
     env: 'private',
-    canary: /to contain '/,
+    canary: zeroBy('observed:token-in-sandbox'),
     prepare: versionedRepo,
     hostEnv: (dir) => ({
       REEVAL_GIT_HTTP: gitHttp.serve(dir),
@@ -880,7 +926,8 @@ export const features: Feature[] = [
           /^Workspace git\("\.\.\/repo#v9"\): the repository has no ref "v9" \(a branch, tag or commit SHA\)\.\n\(the workspace git\("\.\.\/repo#v9"\), set by environment missing, failed to prepare before the run started; every attempt that needs it fails with this\)$/,
       },
     },
-    canary: /expected .*Hello.* to contain 'Ahoy'/,
+    canary: zeroBy('observed:greet.js'),
+    canarySaw: { 'greet.js': /Hello/ },
     prepare: versionedRepo,
     record: ({ run }) => {
       const prepare = run.evals.flatMap((e) => e.attempts).find((a) => a.error?.prepare)
@@ -899,7 +946,8 @@ export const features: Feature[] = [
     dir: 'workspace/files-over-repo',
     tiers: ['fake', 'docker'],
     env: 'patched',
-    canary: /to contain 'Hello'/,
+    canary: zeroBy('observed:greet.js'),
+    canarySaw: { 'greet.js': /Howdy/ },
     prepare: versionedRepo,
     record: ({ run }) => assert.deepEqual(envFiles(run), ['greet.js']),
   },
@@ -907,7 +955,8 @@ export const features: Feature[] = [
     dir: 'workspace/setup-in-repo',
     tiers: ['fake', 'docker'],
     env: 'built',
-    canary: /expected 'v1\\n' to be 'v2\\n'/,
+    canary: zeroBy('observed:seen-by-setup.txt'),
+    canarySaw: { 'seen-by-setup.txt': 'v1\n' },
     prepare: versionedRepo,
     record: ({ run, project }) =>
       assert.equal(workspaceOf(run)?.commit, git(join(project, 'repo'), 'rev-parse', 'v1')),
@@ -916,7 +965,8 @@ export const features: Feature[] = [
     dir: 'skills/git-skills-dir',
     tiers: ['fake', 'docker'],
     env: 'skills-dir',
-    canary: /to contain 'Hello there, <name>\.'/,
+    canary: zeroBy('observed:SKILL.md'),
+    canarySaw: { 'SKILL.md': /Ahoy, <name>!/ },
     prepare(dir) {
       const repo = join(dir, 'repo')
       cpSync(join(dir, 'skill-repo'), repo, { recursive: true })
@@ -934,7 +984,8 @@ export const features: Feature[] = [
     dir: 'skills/registry-version',
     tiers: ['fake', 'docker'],
     env: 'registry-v1',
-    canary: /to contain 'Hello there, <name>\.'/,
+    canary: zeroBy('observed:SKILL.md'),
+    canarySaw: { 'SKILL.md': /Ahoy, <name>!/ },
     prepare(dir) {
       const repo = join(dir, 'registry/acme/skills.git')
       const commit = (version: string) => {
@@ -972,7 +1023,8 @@ export const features: Feature[] = [
     dir: 'skills/npm-package',
     tiers: ['fake', 'docker'],
     env: 'npm-1.2.3',
-    canary: /to contain 'Hello there, <name>\.'/,
+    canary: zeroBy('observed:SKILL.md'),
+    canarySaw: { 'SKILL.md': /Ahoy, <name>!/ },
     prepare: (dir) => publish(join(dir, 'packages')),
     hostEnv: (dir) => ({
       npm_config_registry: npmRegistry.url,
@@ -991,7 +1043,8 @@ export const features: Feature[] = [
     dir: 'skills/npm-local-path',
     tiers: ['fake', 'docker'],
     env: 'npm-vendored',
-    canary: /to contain 'Hello there, <name>\.'/,
+    canary: zeroBy('observed:SKILL.md'),
+    canarySaw: { 'SKILL.md': /Ahoy, <name>!/ },
     prepare(dir) {
       const vendor = join(dir, 'vendor')
       mkdirSync(vendor)
@@ -1010,7 +1063,8 @@ export const features: Feature[] = [
     dir: 'plugins/local-lands',
     tiers: ['fake', 'docker'],
     env: 'review',
-    canary: /expected '' to contain 'Review the working tree\.'/,
+    canary: zeroBy('observed:review.md'),
+    canarySaw: { 'review.md': '' },
     record: ({ run }) => {
       const [p] = plugins(run)
       assert.deepEqual(
@@ -1036,7 +1090,8 @@ export const features: Feature[] = [
     dir: 'plugins/only-skills',
     tiers: ['fake', 'docker'],
     env: 'review',
-    canary: /expected '' to contain 'Review the diff for the house style\.'/,
+    canary: zeroBy('observed:reviewer.md'),
+    canarySaw: { 'reviewer.md': '' },
     record: ({ run }) => {
       assert.deepEqual(
         skills(run).map((s) => [s.name, s.placement, s.plugin]),
@@ -1053,7 +1108,8 @@ export const features: Feature[] = [
     dir: 'plugins/build-layer',
     tiers: ['docker'],
     env: 'built',
-    canary: /expected '' to contain 'built on linux as uid 0'/,
+    canary: zeroBy('observed:built.txt'),
+    canarySaw: { 'built.txt': '' },
     record: ({ run }) => {
       const [p] = plugins(run)
       assert.equal(p?.name, 'built')
@@ -1065,7 +1121,8 @@ export const features: Feature[] = [
     dir: 'plugins/marketplace-build',
     tiers: ['docker'],
     env: 'built',
-    canary: /expected '' to contain 'built from the acme-tools marketplace'/,
+    canary: zeroBy('observed:built.txt'),
+    canarySaw: { 'built.txt': '' },
     prepare(dir) {
       const repo = join(dir, 'repo')
       cpSync(join(dir, 'market-repo'), repo, { recursive: true })
@@ -1092,7 +1149,8 @@ export const features: Feature[] = [
     dir: 'plugins/git-ref',
     tiers: ['fake', 'docker'],
     env: 'review-v1',
-    canary: /expected '' to contain 'Review the diff for the house style\.'/,
+    canary: zeroBy('observed:reviewer.md'),
+    canarySaw: { 'reviewer.md': '' },
     prepare(dir) {
       const repo = join(dir, 'repo')
       const commit = (version: string) => {
@@ -1117,7 +1175,8 @@ export const features: Feature[] = [
     dir: 'plugins/marketplace-entry',
     tiers: ['fake', 'docker'],
     env: 'review-entry',
-    canary: /expected '' to contain 'Lint the tree for the house style\.'/,
+    canary: zeroBy('observed:lint.md'),
+    canarySaw: { 'lint.md': '' },
     prepare(dir) {
       const repo = join(dir, 'repo')
       cpSync(join(dir, 'market-repo'), repo, { recursive: true })
@@ -1146,7 +1205,8 @@ export const features: Feature[] = [
     dir: 'plugins/npm-package',
     tiers: ['fake', 'docker'],
     env: 'review-1.2.3',
-    canary: /expected '' to contain 'SessionStart'/,
+    canary: zeroBy('observed:hooks.json'),
+    canarySaw: { 'hooks.json': '' },
     prepare: (dir) => publish(join(dir, 'packages')),
     hostEnv: (dir) => ({
       npm_config_registry: npmRegistry.url,
@@ -1177,14 +1237,15 @@ export const features: Feature[] = [
           /^only: \["house-greting"\] not found in local:skills \(found: house-farewell, house-greeting\)$/,
       },
     },
-    canary:
-      /expected \[ 'house-greeting' \] to deeply equal \[ 'house-farewell', 'house-greeting' \]/,
+    canary: zeroBy('observed:staged-skills'),
+    canarySaw: { 'staged-skills': ['house-greeting'] },
   },
   {
     dir: 'skills/harness-placement',
     tiers: ['fake', 'docker', 'real'],
     env: 'greeting',
-    canary: /expected '' to contain 'Greet people with "Ahoy, <name>!"\.'/,
+    canary: zeroBy('observed:shell-output'),
+    canarySaw: { 'shell-output': '' },
     record: ({ run, tier }) => {
       assert.deepEqual(
         skills(run).map((s) => [s.name, s.placement]),
@@ -1248,7 +1309,8 @@ export const features: Feature[] = [
     tiers: ['fake', 'docker'],
     env: 'tokens',
     hostEnv: { REEVAL_FIXTURE_TOKEN: TOKEN },
-    canary: /expected 'unset\\n' to be '\[REDACTED\]\\n'/,
+    canary: zeroBy('observed:agent-sees-checks-value'),
+    canarySaw: { 'agent-saw': 'unset\n' },
     record: ({ runDir }) => assert.equal(filesContaining(runDir, TOKEN), ''),
   },
   {
@@ -1256,7 +1318,8 @@ export const features: Feature[] = [
     tiers: ['fake', 'docker'],
     env: 'tokens',
     hostEnv: { REEVAL_FIXTURE_TOKEN: TOKEN },
-    canary: /expected '\[REDACTED\]' to be ''/,
+    canary: zeroBy('observed:checks-saw-nothing'),
+    canarySaw: { 'checks-saw': '[REDACTED]' },
     record: ({ runDir }) => assert.equal(filesContaining(runDir, TOKEN), ''),
   },
   {
@@ -1267,7 +1330,8 @@ export const features: Feature[] = [
       ...secretsFile(dir, { API_KEY: { mode: 'sandbox', value: TOKEN } }),
       REEVAL_FIXTURE_TOKEN: TOKEN,
     }),
-    canary: /expected '\[REDACTED\]' to match/,
+    canary: zeroBy('observed:sees-placeholder'),
+    canarySaw: { 'agent-saw': '[REDACTED]' },
     record: ({ project, runDir }) => {
       assert.equal(existsSync(join(project, SECRETS_JSON)), false, 'reeval deleted the file')
       assert.equal(filesContaining(runDir, TOKEN), '')
@@ -1278,7 +1342,8 @@ export const features: Feature[] = [
     tiers: ['fake'],
     env: 'keys',
     hostEnv: (dir) => secretsFile(dir, { API_KEY: { mode: 'sandbox', value: TOKEN } }),
-    canary: /expected true to be false/,
+    canary: zeroBy('observed:reads-placeholder'),
+    canarySaw: { 'reads-placeholder': true },
     record: ({ runDir }) => assert.equal(filesContaining(runDir, TOKEN), ''),
   },
   {
@@ -1293,7 +1358,8 @@ export const features: Feature[] = [
         OTHER_KEY: { mode: 'brokered', hosts: ['api.example.com'], value: AGENT_VALUE },
       }),
     }),
-    canary: /expected 'reeval_secret_[0-9A-Za-z]+…' to be '\[REDACTED\]'/,
+    canary: zeroBy('observed:key'),
+    canarySaw: { key: /^reeval_secret_/ },
     record: ({ run, project }) => {
       const key = landed(run)?.key ?? ''
       const expected = [
@@ -1343,7 +1409,8 @@ export const features: Feature[] = [
     tiers: ['fake', 'docker', 'podman'],
     env: 'keys',
     hostEnv: { REEVAL_FIXTURE_TOKEN: TOKEN },
-    canary: /expected 'reeval_secret_[0-9A-Za-z]+…' to be '\[REDACTED\]'/,
+    canary: zeroBy('observed:key-is-host-value'),
+    canarySaw: { 'agent-saw': /^reeval_secret_[0-9A-Za-z]+$/ },
     record: ({ run, runDir }) => {
       assert.deepEqual(landed(run)?.env.brokered, ['API_KEY'])
       assert.equal(filesContaining(runDir, TOKEN), '')
@@ -1360,7 +1427,8 @@ export const features: Feature[] = [
       BOAT_API_KEY: boatApi.key,
       REEVAL_SANDBOX_LABELS: 'sweep-job=job_42',
     }),
-    canary: /expected 'reeval' to be 'user'/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': /^\["reeval"/ },
     record: ({ run }) => {
       boatCleanedUp(run)
       const prefix = runPrefix(boat(), run.runId)
@@ -1383,7 +1451,8 @@ export const features: Feature[] = [
       REEVAL_EVENTS_HEARTBEAT: '1s',
     }),
     args: ['--events-file', 'events.ndjson'],
-    canary: /expected 'held' to be 'released'/,
+    canary: zeroBy('observed:hold'),
+    canarySaw: { hold: 'held' },
     record: ({ run, project }) => {
       boatCleanedUp(run)
       const machine = run.evals.find((e) => e.name === 'lands')?.attempts[0]?.resources?.machine.id
@@ -1405,7 +1474,8 @@ export const features: Feature[] = [
     tiers: ['docker'],
     env: 'vm',
     ...onFakeBoat,
-    canary: /expected \d+ to be \+0/,
+    canary: zeroBy('observed:cpus'),
+    canarySaw: { cpus: (cpus) => typeof cpus === 'number' && cpus > 0 },
     record: ({ run }) => {
       boatCleanedUp(run)
       const r = run.evals.find((e) => e.name === 'lands')?.attempts[0]?.resources
@@ -1438,7 +1508,8 @@ export const features: Feature[] = [
       BOAT_API_KEY: boatApi.key,
       REEVAL_FIXTURE_TOKEN: TOKEN,
     }),
-    canary: /expected 'reeval_secret_[0-9A-Za-z]+…' to be '\[REDACTED\]'/,
+    canary: zeroBy('observed:key-is-host-value'),
+    canarySaw: { 'agent-saw': /^reeval_secret_[0-9A-Za-z]+$/ },
     record: ({ run, runDir }) => {
       assert.deepEqual(landed(run)?.env.brokered, ['API_KEY'])
       assert.equal(filesContaining(runDir, TOKEN), '')
@@ -1450,7 +1521,8 @@ export const features: Feature[] = [
     tiers: ['docker'],
     env: 'vm',
     ...onFakeBoat,
-    canary: /expected '\d+' to be '0'/,
+    canary: zeroBy('observed:left'),
+    canarySaw: { left: /^[1-9]\d*$/ },
     record: ({ run }) => boatCleanedUp(run),
   },
   {
@@ -1463,7 +1535,8 @@ export const features: Feature[] = [
       boatApi.refuseStarts(1, { namePrefix: 'pool-' })
     },
     args: ['--concurrency', '1'],
-    canary: /expected 'home-clean' to be 'home-dirty'/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': /^\["home-clean"/ },
     record: ({ run, runDir }) => {
       const sandbox = createBoat({ prefix: 'pool' })()
       const prefix = runPrefix(sandbox, run.runId)
@@ -1491,7 +1564,8 @@ export const features: Feature[] = [
     tiers: ['docker'],
     env: 'vm',
     ...onFakeBoat,
-    canary: /expected 'reeval' to be 'user'/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': /^\["reeval"/ },
     record: ({ run }) => {
       assert.equal(boatCreates(run), 1, 'both attempts ran at once on one machine')
       boatCleanedUp(run)
@@ -1515,7 +1589,8 @@ export const features: Feature[] = [
     prepare: () => buildSshVmImage(['boat', 'boat-docker']),
     sandbox: `docker${installId(['echo baked-by-boat-image > /etc/reeval-recipe'])}`,
     hostEnv: () => ({ BOAT_BASE_URL: boatApi.url, BOAT_API_KEY: boatApi.key, ...egressEnv() }),
-    canary: /expected '200 exit=0' to match/,
+    canary: zeroBy('observed:direct'),
+    canarySaw: { direct: '200 exit=0' },
     record: ({ run }) => {
       boatCleanedUp(run)
       const attempt = landed(run)
@@ -1555,7 +1630,8 @@ export const features: Feature[] = [
       ...egressEnv(),
     }),
     prepare: () => buildSshVmImage(['boat', 'boat-docker']),
-    canary: /expected '200 exit=0' to match/,
+    canary: zeroBy('observed:direct'),
+    canarySaw: { direct: '200 exit=0' },
     record: ({ run }) => {
       const prefix = runPrefix(CLOUD_VM, run.runId)
       assert.deepEqual(
@@ -1595,13 +1671,14 @@ export const features: Feature[] = [
       REEVAL_VM_TOKEN: vmService.token,
     }),
     prepare: () => buildSshVmImage(['boat', 'boat-docker']),
-    canary: /expected \{ .*'root\\n'.* \} to match object/s,
+    canary: zeroBy('observed:shell-output'),
+    canarySaw: { 'shell-output': 'root\n' },
     evals: {
       lands: { outcome: 'pass', attempts: ['fake/-/docker#1', 'fake/-/docker#2'] },
       canary: {
         outcome: 'fail',
         attempts: ['fake/-/docker#1'],
-        error: { kind: 'assertion', message: /to match object/ },
+        error: { kind: 'assertion', message: zeroBy('observed:shell-output') },
       },
     },
     record: ({ run }) => {
@@ -1636,7 +1713,8 @@ export const features: Feature[] = [
       REEVAL_VM_TOKEN: vmService.token,
     }),
     prepare: () => buildSshVmImage(['boat', 'boat-docker']),
-    canary: /expected '' to contain 'built on linux as uid 0'/,
+    canary: zeroBy('observed:built.txt'),
+    canarySaw: { 'built.txt': '' },
     record: ({ run }) => {
       const [p] = plugins(run)
       assert.equal(p?.name, 'built')
@@ -1650,7 +1728,8 @@ export const features: Feature[] = [
     tiers: ['docker'],
     env: 'vm',
     ...onFakeCloud,
-    canary: /expected 'reeval' to be 'user'/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': /^\["reeval"/ },
     record: ({ run, project }) => {
       cloudCleanedUp(run, project)
       const r = run.evals.find((e) => e.name === 'lands')?.attempts[0]?.resources
@@ -1666,7 +1745,8 @@ export const features: Feature[] = [
     tiers: ['docker'],
     env: 'vm',
     ...onFakeCloud,
-    canary: /expected 'reeval' to be 'user'/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': /^\["reeval"/ },
     record: ({ run, project }) => {
       assert.equal(
         boatCreates(run, CLOUD_VM, dockerBoatApi),
@@ -1688,7 +1768,8 @@ export const features: Feature[] = [
     tiers: ['docker'],
     env: 'vm',
     ...onFakeDaytona,
-    canary: /expected 'reeval' to be 'user'/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': /^\["reeval"/ },
     record: ({ run }) => {
       daytonaCleanedUp(run)
       for (const s of daytonaCreated(run)) {
@@ -1703,7 +1784,8 @@ export const features: Feature[] = [
     env: 'vm',
     ...onFakeDaytona,
     sandbox: 'docker:debian:bookworm-slim+cd073bbf',
-    canary: /expected 'reeval(-s1)?' to be 'root'/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': /^\["reeval(-s1)?"/ },
     record: ({ run, project }) => {
       const recipe = daytona({
         from: 'debian:bookworm-slim',
@@ -1735,14 +1817,16 @@ export const features: Feature[] = [
     env: 'image',
     canaryEnv: 'stock',
     ...onFakeDaytona,
-    canary: /expected \[ '' \] to deeply equal/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': [''] },
   },
   {
     dir: 'sandbox/daytona-resources',
     tiers: ['docker'],
     env: 'vm',
     ...onFakeDaytona,
-    canary: /expected \d+ to be \+0/,
+    canary: zeroBy('observed:cpus'),
+    canarySaw: { cpus: (cpus) => typeof cpus === 'number' && cpus > 0 },
     record: ({ run }) => {
       daytonaCleanedUp(run)
       const r = run.evals.find((e) => e.name === 'lands')?.attempts[0]?.resources
@@ -1774,7 +1858,8 @@ export const features: Feature[] = [
       daytonaApi.refuseStarts(1, { namePrefix: 'pool-' })
     },
     args: ['--concurrency', '1'],
-    canary: /expected 'home-clean' to be 'home-dirty'/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': /^\["home-clean"/ },
     record: ({ run }) => {
       const sandbox = createDaytona({ prefix: 'pool' })()
       assert.ok(
@@ -1790,7 +1875,8 @@ export const features: Feature[] = [
     tiers: ['docker'],
     env: 'vm',
     ...onFakeDaytona,
-    canary: /expected 'reeval(-s1)?' to be 'user'/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': /^\["reeval(-s1)?"/ },
     record: ({ run }) => {
       assert.equal(daytonaCreated(run).length, 1, 'both attempts ran at once on one machine')
       daytonaCleanedUp(run)
@@ -1809,7 +1895,8 @@ export const features: Feature[] = [
     tiers: ['fake', 'docker'],
     env: 'keys',
     hostEnv: { REEVAL_FIXTURE_TOKEN: TOKEN },
-    canary: /expected 'reeval_secret_[0-9A-Za-z]+…' to be '\[REDACTED\]'/,
+    canary: zeroBy('observed:sees-host-value'),
+    canarySaw: { 'checks-saw': /^reeval_secret_[0-9A-Za-z]+$/ },
     record: ({ run, runDir }) => {
       assert.deepEqual(landed(run)?.env, {
         vars: [],
@@ -1825,7 +1912,8 @@ export const features: Feature[] = [
     tiers: ['fake', 'docker'],
     env: 'keys',
     hostEnv: { REEVAL_FIXTURE_TOKEN: TOKEN },
-    canary: /expected 'Bearer reeval_secret_[0-9A-Za-z]+…' to be 'Bearer \[REDACTED\]'/,
+    canary: zeroBy('observed:sees-host-value'),
+    canarySaw: { 'command-saw': /^Bearer reeval_secret_[0-9A-Za-z]+$/ },
     record: ({ runDir }) => {
       assert.equal(filesContaining(runDir, TOKEN), '')
     },
@@ -1937,7 +2025,8 @@ export const features: Feature[] = [
     env: 'unbrokered',
     canaryEnv: 'brokered',
     hostEnv: { REEVAL_FIXTURE_TOKEN: TOKEN },
-    canary: /expected 'placeholder' to be 'value'/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': 'placeholder' },
     record: ({ run, runDir, stdout }) => {
       const byCommand = (a: { command: string }, b: { command: string }) =>
         a.command.localeCompare(b.command)
@@ -1962,7 +2051,8 @@ export const features: Feature[] = [
     tiers: ['docker'],
     env: 'finishes',
     hostEnv: { REEVAL_FIXTURE_TOKEN: TOKEN },
-    canary: /expected '' to be 'value'/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': '' },
     record: ({ run, stdout }) => {
       assert.ok(landed(run)?.files.setupLog, 'the setup step ran')
       assert.equal(landed(run)?.setupProcesses, undefined)
@@ -1973,7 +2063,8 @@ export const features: Feature[] = [
     dir: 'secrets/cursor-session-tokens',
     tiers: ['real'],
     env: 'plain',
-    canary: /expected '' to match \/\^reeval_secret_\//,
+    canary: zeroBy('observed:signature'),
+    canarySaw: { signature: '' },
   },
   {
     dir: 'secrets/redaction-coverage',
@@ -2014,13 +2105,14 @@ export const features: Feature[] = [
     dir: 'secrets/masked-eval-names',
     tiers: ['fake'],
     env: 'plain',
-    canary: /gets the case masked: expected '\[REDACTED\]' to be '\[REDACTED\]'/,
+    canary: zeroBy('observed:gets-the-case-masked'),
+    canarySaw: { 'gets-the-key': true },
     evals: {
       lands: { outcome: 'pass', attempts: ['fake/plain/fake#[REDACTED]#1'] },
       canary: {
         outcome: 'fail',
         attempts: ['fake/plain/fake#[REDACTED]#1'],
-        error: { kind: 'assertion', message: /gets the case masked/ },
+        error: { kind: 'assertion', message: zeroBy('observed:gets-the-case-masked') },
       },
     },
     async record({ run, project, runDir, stdout }) {
@@ -2056,7 +2148,8 @@ export const features: Feature[] = [
     tiers: ['fake', 'docker'],
     env: 'pins',
     hostEnv: { REEVAL_FIXTURE_PIN: '1234', REEVAL_FIXTURE_PLACEHOLDER: 'null' },
-    canary: /expected '\[REDACTED\]\\n\[REDACTED\]\\n' to be '\[REDACTED\]\\n'/,
+    canary: zeroBy('observed:checks-saw-values'),
+    canarySaw: { 'checks-saw': '[REDACTED]\n[REDACTED]\n' },
     async record({ run, project, runDir }) {
       const attempt = landed(run)
       assert.equal(attempt?.error, null)
@@ -2430,14 +2523,16 @@ export const features: Feature[] = [
     tiers: ['docker', 'podman'],
     env: 'plain',
     canaryEnv: 'rooted',
-    canary: /expected '0 00000000000000cf \/ 0' to be '10001 0000000000000000 \/ 10001'/,
+    canary: zeroBy('observed:ids'),
+    canarySaw: { ids: '0 00000000000000cf / 0' },
   },
   {
     dir: 'sandbox/kvm-device',
     tiers: ['docker'],
     env: 'kvm',
     canaryEnv: 'plain',
-    canary: /expected 'refused' to be 'opened'/,
+    canary: zeroBy('observed:kvm'),
+    canarySaw: { kvm: 'refused' },
     hostDevice: '/dev/kvm',
   },
   {
@@ -2447,7 +2542,8 @@ export const features: Feature[] = [
     tiers: ['docker', 'podman'],
     env: 'placed',
     canaryEnv: 'unmasked',
-    canary: /expected \[ '777 out', '666 out\/log' \] to deeply equal \[\]/,
+    canary: zeroBy('observed:writable'),
+    canarySaw: { writable: ['777 out', '666 out/log'] },
     prepare: (dir) => {
       mkdirSync(join(dir, 'bin'))
       for (const engine of ['docker', 'podman']) {
@@ -2461,19 +2557,25 @@ export const features: Feature[] = [
     dir: 'sandbox/podman-bridge',
     tiers: ['podman'],
     env: 'bridged',
-    canary: /expected \[\] to have a length of 1 but got \+0/,
+    canary: zeroBy('observed:addresses'),
+    canarySaw: {
+      addresses: (a) =>
+        Array.isArray(a) && a.length > 0 && !a.some((x) => String(x).startsWith('10.0.2.')),
+    },
   },
   {
     dir: 'sandbox/no-unshare',
     tiers: ['docker', 'podman'],
     env: 'plain',
-    canary: /expected 'unshare: unshare failed: Operation no…' to be 'exit=0'/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': /^unshare: unshare failed: Operation not permitted/ },
   },
   {
     dir: 'sandbox/read-before-send',
     tiers: ['fake', 'docker'],
     env: 'notes',
-    canary: /expected 'from the environment\\n' to be 'from the agent\\n'/,
+    canary: zeroBy('observed:notes.txt'),
+    canarySaw: { 'notes.txt': 'from the environment\n' },
     record: ({ run }) => {
       const [attempt] = run.evals.find((e) => e.name === 'lands')?.attempts ?? []
       assert.deepEqual(attempt?.turns, [], 'no turn was sent')
@@ -2484,7 +2586,8 @@ export const features: Feature[] = [
     dir: 'sandbox/concurrent-first-use',
     tiers: ['fake', 'docker'],
     env: 'notes',
-    canary: /expected 'written' to be 'from the agent\\n'/,
+    canary: zeroBy('observed:marker.txt'),
+    canarySaw: { 'marker.txt': 'written' },
     record: ({ run }) => {
       const [attempt] = run.evals.find((e) => e.name === 'lands')?.attempts ?? []
       assert.deepEqual(
@@ -2497,41 +2600,45 @@ export const features: Feature[] = [
     dir: 'sandbox/write-file',
     tiers: ['fake', 'docker', 'podman'],
     env: 'greeting',
-    canary: /to deeply equal \[ 'greet\.js', 'notes\.md' \]/,
+    canary: zeroBy('observed:diff'),
   },
   {
     dir: 'sandbox/write-file-edit',
     tiers: ['fake', 'docker'],
     env: 'greeting',
-    canary: /expected \[ 'modified', 'modified' \] to deeply equal \[ 'added', 'modified' \]/,
+    canary: zeroBy('observed:statuses'),
+    canarySaw: { statuses: ['modified', 'modified'] },
   },
   {
     dir: 'sandbox/snapshot-no-history',
     tiers: ['fake', 'docker'],
     env: 'seeded',
-    canary: /expected 'pre-seed content in: nowhere' not to be 'pre-seed content in: nowhere'/,
+    canary: zeroBy('observed:probe'),
+    canarySaw: { probe: 'pre-seed content in: nowhere' },
   },
   {
     dir: 'sandbox/snapshot-unreadable',
     tiers: ['docker', 'podman'],
     env: 'plain',
     canaryEnv: 'rooted',
-    canary: /expected 'read' to be 'refused'/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': 'read' },
   },
   {
     dir: 'sandbox/diff-private-file',
     tiers: ['fake', 'docker'],
     env: 'plain',
     posixModes: true,
-    canary:
-      /expected \[ 'added \.token', 'added private\/key' \] to deeply equal \[ 'added \.token' \]/,
+    canary: zeroBy('observed:diff'),
+    canarySaw: { diff: ['added .token', 'added private/key'] },
   },
   {
     dir: 'sandbox/login-shell-path',
     tiers: ['docker'],
     env: 'plain',
     canaryEnv: 'stock',
-    canary: /expected '' to be '\/opt\/reeval-fixture\/bin\/reeval-fixtur…'/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': '' },
     prepare: (dir) =>
       execFileSync(
         'docker',
@@ -2544,22 +2651,24 @@ export const features: Feature[] = [
     tiers: ['docker'],
     env: 'plain',
     canaryEnv: 'stock',
-    canary: /expected '' to be '\/opt\/reeval-fixture\/bin\/reeval-fixtur…'/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': '' },
   },
   {
     dir: 'sandbox/limits',
     tiers: ['docker', 'podman'],
     env: 'plain',
     canaryEnv: 'unlimited',
-    canary:
-      /expected '4294967296\\n\d+ 100000\\n1024\\n' to be '536870912\\n100000 100000\\n256\\n'/,
+    canary: zeroBy('observed:limits'),
+    canarySaw: { limits: /^4294967296\n\d+ 100000\n1024\n$/ },
   },
   {
     dir: 'sandbox/swap',
     tiers: ['docker'],
     env: 'plain',
     canaryEnv: 'doubled',
-    canary: /expected '536870912\\n' to be '268435456\\n'/,
+    canary: zeroBy('observed:swap'),
+    canarySaw: { swap: '536870912\n' },
   },
   {
     dir: 'sandbox/oom-is-infra',
@@ -2573,7 +2682,7 @@ export const features: Feature[] = [
           /^out of memory: \d+ process(es)? killed at the 128m limit \(\+128m swap\); raise (docker|podman)\(\{ memory \}\)$/,
       },
     },
-    canary: /expected command to succeed, exit code 137/,
+    canary: zeroBy('succeeded:kill'),
     record: ({ run }) => {
       const [lands, canary] = ['lands', 'canary'].map(
         (name) => run.evals.find((e) => e.name === name)?.attempts[0]?.error,
@@ -2587,7 +2696,8 @@ export const features: Feature[] = [
     dir: 'sandbox/resources',
     tiers: ['docker', 'podman'],
     env: 'busy',
-    canary: /expected [01] to be greater than or equal to 2/,
+    canary: zeroBy('observed:cpu-seconds'),
+    canarySaw: { 'cpu-seconds': /^[01]$/ },
     record: ({ run, tier }) => {
       const [lands, canary] = ['lands', 'canary'].map(
         (name) => run.evals.find((e) => e.name === name)?.attempts[0]?.resources,
@@ -2623,7 +2733,8 @@ export const features: Feature[] = [
     dir: 'sandbox/resources-hidden',
     tiers: ['docker', 'podman'],
     env: 'watched',
-    canary: /expected 'none' to be 'killed'/,
+    canary: zeroBy('observed:sampler'),
+    canarySaw: { sampler: 'none' },
     record: ({ run }) => {
       // The sampler ran while the check looked for it.
       const r = run.evals.find((e) => e.name === 'lands')?.attempts[0]?.resources
@@ -4786,7 +4897,8 @@ export const features: Feature[] = [
     dir: 'ui/capture',
     tiers: ['fake', 'docker'],
     env: 'ui',
-    canary: /expected 'artifacts\/home\.png' to be 'artifacts\/wrong\.png'/,
+    canary: zeroBy('observed:home'),
+    canarySaw: { home: { path: 'artifacts/home.png' } },
     record: ({ run, runDir, tier }) => {
       const art = landed(run)?.files.artifacts?.[0]
       assert.ok(art, 'files.artifacts names the PNG')
@@ -4809,8 +4921,7 @@ export const features: Feature[] = [
     tiers: ['docker'],
     env: 'ui',
     args: ['-v'],
-    canary:
-      /expected no page errors at capture "home" at \/sign-up, got 2 page errors: Uncaught Error: late failure$/m,
+    canary: zeroBy('no-page-errors:home'),
     record: ({ run, runDir, stdout }) => {
       const art = landed(run)?.files.artifacts?.[0]
       assert.equal(art?.capture?.status, 200)
@@ -4841,7 +4952,7 @@ export const features: Feature[] = [
     dir: 'ui/capture-loud',
     tiers: ['docker'],
     env: 'ui',
-    canary: /expected capture "loud" at \/ to have page errors/,
+    canary: zeroBy('has-page-errors'),
     record: ({ run, runDir }) => {
       const art = landed(run)?.files.artifacts?.[0]
       assert.equal(art?.capture?.pageErrors, undefined)
@@ -4855,7 +4966,7 @@ export const features: Feature[] = [
     dir: 'ui/capture-status',
     tiers: ['fake', 'docker'],
     env: 'ui',
-    canary: /expected capture "old" at \/login to answer 200, got 404/,
+    canary: zeroBy('page-status:old'),
     record: ({ run, runDir, stdout }) => {
       const art = landed(run)?.files.artifacts?.[0]
       assert.equal(art?.capture?.status, 404)
@@ -4870,7 +4981,8 @@ export const features: Feature[] = [
     dir: 'ui/capture-concurrent',
     tiers: ['fake', 'docker'],
     env: 'ui',
-    canary: /expected 'artifacts\/home\.png' to be 'artifacts\/wrong\.png'/,
+    canary: zeroBy('observed:home'),
+    canarySaw: { home: { path: 'artifacts/home.png' } },
     record: ({ run, runDir, tier }) => {
       const arts = landed(run)?.files.artifacts ?? []
       assert.equal(arts.length, 2, 'both concurrent captures land')
@@ -4900,31 +5012,36 @@ export const features: Feature[] = [
         message: /nothing listening on port 59999/,
       },
     },
-    canary: /expected 'nothing listening on port 59999' to be 'port is closed'/,
+    canary: zeroBy('observed:error'),
+    canarySaw: { error: 'nothing listening on port 59999' },
   },
   {
     dir: 'ui/background-compound',
     tiers: ['fake', 'docker'],
     env: 'plain',
-    canary: /expected 'started' to be 'stopped'/,
+    canary: zeroBy('observed:bg.txt'),
+    canarySaw: { 'bg.txt': 'started' },
   },
   {
     dir: 'ui/serve-redirect',
     tiers: ['fake', 'docker'],
     env: 'ui',
-    canary: /expected 'listening on \d+' to be 'listening on 1'/,
+    canary: zeroBy('observed:served.log'),
+    canarySaw: { 'served.log': { line: /^listening on \d+$/ } },
   },
   {
     dir: 'ui/serve-kill',
     tiers: ['fake', 'docker'],
     env: 'ui',
-    canary: /expected 'down' to be 'up'/,
+    canary: zeroBy('observed:probe'),
+    canarySaw: { probe: 'down' },
   },
   {
     dir: 'ui/serve-own-port',
     tiers: ['docker', 'podman'],
     env: 'ui',
-    canary: /expected 'vite' to be 'reads PORT'/,
+    canary: zeroBy('observed:probe'),
+    canarySaw: { probe: 'vite' },
     record: ({ run }) => {
       const [serve, ...more] = landed(run)?.serves ?? []
       assert.ok(serve, 'serves names the c.serve call')
@@ -4945,8 +5062,8 @@ export const features: Feature[] = [
     sandbox: 'tart:macos-sequoia-base:15.6',
     posixModes: true,
     loopback: true,
-    canary:
-      /expected 'ghcr\.io\/cirruslabs\/macos-sequoia-base…' to be 'ghcr\.io\/cirruslabs\/macos-sequoia-base…'/,
+    canary: zeroBy('observed:image'),
+    canarySaw: { image: 'ghcr.io/cirruslabs/macos-sequoia-base:15.6' },
     hostEnv: (dir) => {
       const fake = fakeTart(['ghcr.io/cirruslabs/macos-sequoia-base:15.6'])
       fakeTarts.set(dir, fake.dir)
@@ -4970,7 +5087,8 @@ export const features: Feature[] = [
     sandbox: 'tart:macos-sequoia-base:15.6',
     posixModes: true,
     loopback: true,
-    canary: /expected 'reeval_fake_[^']*' to be '[^']+'/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': /^\["reeval_fake_/ },
     hostEnv: (dir) => {
       const fake = fakeTart(['ghcr.io/cirruslabs/macos-sequoia-base:15.6'])
       fakeTarts.set(dir, fake.dir)
@@ -4996,7 +5114,8 @@ export const features: Feature[] = [
     sandbox: 'tart:macos-sequoia-base:15.6',
     posixModes: true,
     loopback: true,
-    canary: /expected '\/[^']*' to match/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': /^\["\// },
     hostEnv: (dir) => {
       const image = 'ghcr.io/cirruslabs/macos-sequoia-base:15.6'
       const fake = fakeTartHosts({
@@ -5032,7 +5151,8 @@ export const features: Feature[] = [
     sandbox: 'tart:macos-sequoia-base:15.6',
     posixModes: true,
     loopback: true,
-    canary: /expected '\/[^']*' to match \/\\\/hosts\\\/small/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': /^\["\/(?![^"]*\/hosts\/small\/)/ },
     hostEnv: (dir) => {
       const image = 'ghcr.io/cirruslabs/macos-sequoia-base:15.6'
       const fake = fakeTartHosts({
@@ -5061,7 +5181,8 @@ export const features: Feature[] = [
     sandbox: 'tart:macos-sequoia-base:15.6',
     posixModes: true,
     loopback: true,
-    canary: /expected '\/[^']*' to match \/\\\/hosts\\\/full/,
+    canary: zeroBy('observed:pwd'),
+    canarySaw: { pwd: /\/hosts\/free\/vms\// },
     hostEnv: (dir) => {
       const image = 'ghcr.io/cirruslabs/macos-sequoia-base:15.6'
       const fake = fakeTartHosts({ full: { images: [image], limit: 0 }, free: { images: [image] } })
@@ -5085,7 +5206,8 @@ export const features: Feature[] = [
     sandbox: 'tart:macos-sequoia-base:15.6',
     posixModes: true,
     loopback: true,
-    canary: /expected 'baked' to be 'here'/,
+    canary: zeroBy('observed:agent-saw'),
+    canarySaw: { 'agent-saw': /^\["baked"/ },
     hostEnv: (dir) => {
       const fake = fakeTart(['ghcr.io/cirruslabs/macos-sequoia-base:15.6'])
       fakeTarts.set(dir, fake.dir)
@@ -5111,7 +5233,8 @@ export const features: Feature[] = [
     sandbox: 'tart:macos-sequoia-base:latest',
     posixModes: true,
     loopback: true,
-    canary: /expected 'own port' to be 'reads PORT'/,
+    canary: zeroBy('observed:probe'),
+    canarySaw: { probe: 'own port' },
     hostEnv: (dir) => {
       const fake = fakeTart(['ghcr.io/cirruslabs/macos-sequoia-base:latest'])
       fakeTarts.set(dir, fake.dir)
@@ -5143,7 +5266,8 @@ export const features: Feature[] = [
     dir: 'ui/serve-reads-port',
     tiers: ['fake', 'docker', 'podman'],
     env: 'ui',
-    canary: /expected 'main' to be 'side'/,
+    canary: zeroBy('observed:probe'),
+    canarySaw: { probe: 'main' },
     record: ({ run }) => {
       const serve = landed(run)?.serves?.[0]
       assert.ok(serve, 'serves names the c.serve call')
@@ -5163,7 +5287,8 @@ export const features: Feature[] = [
           /c\.serve\("node server\.mjs"\) listens on ports 4173 and 5173, and not on PORT \(\d+\)\. It printed http:\/\/localhost:5173\/\. Pass the one it serves on: c\.serve\("node server\.mjs", 5173\)/,
       },
     },
-    canary: /expected 'c\.serve\("node server\.mjs"\) listens on…' to be 'picked one'/,
+    canary: zeroBy('observed:error'),
+    canarySaw: { error: /^c\.serve\("node server\.mjs"\) listens on/ },
     record: ({ run }) => assert.equal(landed(run)?.serves, undefined),
   },
   {
@@ -5178,7 +5303,8 @@ export const features: Feature[] = [
           /c\.serve\("node server\.mjs preview \$PORT", (\d+)\): port \1 was already in use before c\.serve started \(a server the agent left running\?\), so the checks would reach that server, not this command's\. Stop it first, or drop the port to serve on PORT/,
       },
     },
-    canary: /expected 'c\.serve\("node server\.mjs preview \$POR…' to be 'served'/,
+    canary: zeroBy('observed:error'),
+    canarySaw: { error: /^c\.serve\("node server\.mjs preview \$POR/ },
     record: ({ run }) =>
       assert.deepEqual(
         landed(run)?.serves?.map((s) => s.command),
@@ -5197,7 +5323,8 @@ export const features: Feature[] = [
           /c\.serve\("node server\.mjs"\) exited before it listened on .*\. Its last output:\n[\s\S]*Error: Cannot find module vite/,
       },
     },
-    canary: /expected 'c\.serve\("node server\.mjs"\) exited bef…' to be 'served'/,
+    canary: zeroBy('observed:error'),
+    canarySaw: { error: /^c\.serve\("node server\.mjs"\) exited bef/ },
   },
   {
     dir: 'ui/capture-browser-false',
@@ -5210,7 +5337,8 @@ export const features: Feature[] = [
         message: /c\.capture\(\) is refused: capture\.browser is false/,
       },
     },
-    canary: /expected 'c\.capture\(\) is refused: capture\.brows…' to match \/skipped\//,
+    canary: zeroBy('observed:error'),
+    canarySaw: { error: /^c\.capture\(\) is refused: capture\.browser is false/ },
     record: ({ run }) => {
       assert.equal(landed(run)?.files.artifacts, undefined)
     },
@@ -5227,7 +5355,8 @@ export const features: Feature[] = [
         message: /c\.capture\(\) is refused: REEVAL_CAPTURE_BROWSER=0/,
       },
     },
-    canary: /expected 'c\.capture\(\) is refused: REEVAL_CAPTUR…' to match \/skipped\//,
+    canary: zeroBy('observed:error'),
+    canarySaw: { error: /^c\.capture\(\) is refused: REEVAL_CAPTURE_BROWSER=0/ },
     record: ({ run }) => {
       assert.equal(landed(run)?.files.artifacts, undefined)
     },
@@ -5237,7 +5366,8 @@ export const features: Feature[] = [
     tiers: ['fake', 'docker'],
     env: 'plain',
     hostEnv: (dir) => ({ XDG_CACHE_HOME: join(dir, '.cache') }),
-    canary: /expected null to be 'present'/,
+    canary: zeroBy('observed:missing.txt'),
+    canarySaw: { 'missing.txt': null },
     record: ({ project }) => {
       const cache = join(project, '.cache', 'reeval')
       assert.equal(existsSync(join(cache, 'chrome-headless-shell')), false)
@@ -5247,7 +5377,8 @@ export const features: Feature[] = [
     dir: 'ui/capture-wait-idle',
     tiers: ['fake', 'docker'],
     env: 'ui',
-    canary: /expected 'artifacts\/home\.png' to be 'artifacts\/wrong\.png'/,
+    canary: zeroBy('observed:home'),
+    canarySaw: { home: { path: 'artifacts/home.png' } },
     record: ({ run, runDir, tier }) => {
       const art = landed(run)?.files.artifacts?.[0]
       assert.ok(art, 'files.artifacts names the PNG')
@@ -5275,7 +5406,8 @@ export const features: Feature[] = [
           /c\.capture\(\) timed out on loading the page with wait: "idle": it used all of its 5s timeout/,
       },
     },
-    canary: /expected 'c\.capture\(\) timed out on loading the …' to be 'still loading'/,
+    canary: zeroBy('observed:error'),
+    canarySaw: { error: /^c\.capture\(\) timed out on loading the / },
     record: ({ run }) => {
       assert.equal(landed(run)?.files.artifacts, undefined)
     },
@@ -5284,7 +5416,8 @@ export const features: Feature[] = [
     dir: 'ui/capture-use',
     tiers: ['fake'],
     env: 'ui',
-    canary: /expected 'artifacts\/after-submit\.png' to be 'artifacts\/wrong\.png'/,
+    canary: zeroBy('observed:after-submit'),
+    canarySaw: { 'after-submit': { path: 'artifacts/after-submit.png' } },
     record: ({ run, runDir }) => {
       const art = landed(run)?.files.artifacts?.[0]
       assert.ok(art, 'files.artifacts names the PNG')
@@ -5303,7 +5436,8 @@ export const features: Feature[] = [
     args: ['--profile', 'vision'],
     // The plan checks the judge's key; the fake sandbox drives no journey, so it's never sent.
     hostEnv: { GOOGLE_GENERATIVE_AI_API_KEY: 'fixture-key' },
-    canary: /expected 'artifacts\/journey\.png' to be 'artifacts\/wrong\.png'/,
+    canary: zeroBy('observed:journey'),
+    canarySaw: { journey: { path: 'artifacts/journey.png' } },
     record: ({ run }) => {
       const art = landed(run)?.files.artifacts?.[0]
       assert.ok(art, 'files.artifacts names the PNG')
@@ -5314,7 +5448,8 @@ export const features: Feature[] = [
     dir: 'ui/capture-full-page',
     tiers: ['fake', 'docker'],
     env: 'ui',
-    canary: /expected 'full-page' to deeply equal \{ width: 1280, height: 720 \}/,
+    canary: zeroBy('observed:tall'),
+    canarySaw: { tall: { viewport: 'full-page' } },
     record: ({ run, runDir, tier }) => {
       const art = landed(run)?.files.artifacts?.[0]
       assert.ok(art, 'files.artifacts names the PNG')
@@ -5333,7 +5468,8 @@ export const features: Feature[] = [
     dir: 'ui/capture-use-click',
     tiers: ['docker'],
     env: 'ui',
-    canary: /expected 'no' to be 'yes'/,
+    canary: zeroBy('observed:state'),
+    canarySaw: { state: 'no' },
     record: ({ run }) => {
       const art = landed(run)?.files.artifacts?.[0]
       assert.ok(art)
@@ -5346,7 +5482,8 @@ export const features: Feature[] = [
     tiers: ['docker', 'podman'],
     env: 'ui',
     hostEnv: egressEnv,
-    canary: /expected '' to be 'host,ip,name,refused,v6,ws'/,
+    canary: zeroBy('observed:state'),
+    canarySaw: { state: '' },
     record: ({ run }) => {
       const [api, page] = landed(run)?.serves ?? []
       assert.equal(api?.port, 9099)
@@ -5357,7 +5494,8 @@ export const features: Feature[] = [
     dir: 'ui/capture-use-wait',
     tiers: ['docker'],
     env: 'ui',
-    canary: /expected 'no' to be 'yes'/,
+    canary: zeroBy('observed:state'),
+    canarySaw: { state: 'no' },
     record: ({ run }) => {
       assert.deepEqual(landed(run)?.files.artifacts?.[0]?.capture?.instructions, [
         'fake[0]',
@@ -5370,7 +5508,8 @@ export const features: Feature[] = [
     tiers: ['docker'],
     env: 'ui',
     hostEnv: () => ({ ANTHROPIC_API_KEY: 'fixture-key', ANTHROPIC_BASE_URL: scriptedVision.url }),
-    canary: /expected 'ada@example\.com' to be 'nobody'/,
+    canary: zeroBy('observed:state'),
+    canarySaw: { state: 'ada@example.com' },
     record: ({ run }) => {
       const art = landed(run)?.files.artifacts?.[0]
       assert.deepEqual(art?.capture?.use, { model: 'anthropic/scripted-vision', moves: 5 })
@@ -5395,7 +5534,8 @@ export const features: Feature[] = [
           /c\.capture\(\) instruction 1 of 1 "Open the menu" repeated click \{"x":600,"y":600\} on the page background 5 times and nothing changed/,
       },
     },
-    canary: /expected 'c\.capture\(\) instruction 1 of 1 "Open …' to be 'still open'/,
+    canary: zeroBy('observed:error'),
+    canarySaw: { error: /^c\.capture\(\) instruction 1 of 1 "Open / },
     record: () => {
       assert.ok(
         scriptedVision.prompts.some((p) =>
@@ -5417,7 +5557,8 @@ export const features: Feature[] = [
           /c\.capture\(\) timed out on "fake\[0\]" \(instruction 1 of 1, after 1 move\): it used all of its 10s timeout\. Raise timeout on the call or capture\.timeout\./,
       },
     },
-    canary: /expected 'c\.capture\(\) timed out on "fake\[0\]" \(i…' to be 'still loading'/,
+    canary: zeroBy('observed:error'),
+    canarySaw: { error: /^c\.capture\(\) timed out on "fake\[0\]"/ },
     record: ({ run, runDir }) => {
       const [step, ...rest] = landed(run)?.files.artifacts ?? []
       assert.equal(rest.length, 0, 'no PNG of the capture itself')
@@ -5441,7 +5582,8 @@ export const features: Feature[] = [
     dir: 'ui/capture-use-scroll',
     tiers: ['docker'],
     env: 'ui',
-    canary: /expected 'no' to be 'yes'/,
+    canary: zeroBy('observed:state'),
+    canarySaw: { state: 'no' },
     record: ({ run }) => {
       const art = landed(run)?.files.artifacts?.[0]
       assert.deepEqual(art?.capture?.use, { model: 'fake', moves: 2 })
@@ -5451,7 +5593,8 @@ export const features: Feature[] = [
     dir: 'ui/capture-use-final',
     tiers: ['docker'],
     env: 'ui',
-    canary: /expected 'no' to be 'yes'/,
+    canary: zeroBy('observed:state'),
+    canarySaw: { state: 'no' },
     record: ({ run, runDir }) => {
       const [capture, step] = landed(run)?.files.artifacts ?? []
       assert.deepEqual(capture?.capture?.use, { model: 'fake', moves: 1 })
@@ -5464,13 +5607,14 @@ export const features: Feature[] = [
     dir: 'run/define-eval',
     tiers: ['fake'],
     env: 'fake',
-    canary: /expected 'define-eval' to be 'not-define-eval'/,
+    canary: zeroBy('observed:api'),
+    canarySaw: { api: 'define-eval' },
     evals: {
       lands: { outcome: 'pass', attempts: ['fake/-/fake#1'] },
       canary: {
         outcome: 'fail',
         attempts: ['fake/-/fake#1'],
-        error: { kind: 'assertion', message: /expected 'define-eval' to be 'not-define-eval'/ },
+        error: { kind: 'assertion', message: zeroBy('observed:api') },
       },
     },
   },
@@ -5478,13 +5622,14 @@ export const features: Feature[] = [
     dir: 'run/cases',
     tiers: ['fake'],
     env: 'cases',
-    canary: /expected 'ahoy' to be 'hello'/,
+    canary: zeroBy('word'),
+    canarySaw: { word: 'ahoy' },
     evals: {
       lands: { outcome: 'pass', attempts: ['fake/cases/fake#ahoy#1'] },
       canary: {
         outcome: 'fail',
         attempts: ['fake/cases/fake#hello#1'],
-        error: { kind: 'assertion', message: /expected 'ahoy' to be 'hello'/ },
+        error: { kind: 'assertion', message: zeroBy('word') },
       },
     },
     record: ({ run }) => {
@@ -5503,7 +5648,7 @@ export const features: Feature[] = [
     dir: 'run/cases-rate',
     tiers: ['fake'],
     env: 'rate',
-    canary: /passes its case: expected 'c' not to be 'c'/,
+    canary: zeroBy('passes-its-case', 0.7),
     evals: Object.fromEntries(
       (['lands', 'canary'] as const).map((name) => [
         name,
@@ -5512,7 +5657,7 @@ export const features: Feature[] = [
           attempts: ['a', 'b', 'c'].map((key) => `fake/rate/fake#${key}#1`),
           error: {
             kind: 'assertion' as const,
-            message: /passes its case: expected 'c' not to be 'c'/,
+            message: zeroBy('passes-its-case', name === 'lands' ? 0.6 : 0.7),
           },
           clean: ['fake/rate/fake#a#1', 'fake/rate/fake#b#1'],
         },
@@ -5540,15 +5685,23 @@ export const features: Feature[] = [
       )
       assert.match(
         stdout,
-        /✗ canary {2}67% < 70% {2}metric\(0\.7\)\n +#c {2}0% {2}"passes its case" failed\n/,
+        /✗ canary {2}67% < 70% {2}metric\(0\.7\)\n +#c {2}0% {2}passes-its-case 0%\n/,
       )
       assert.deepEqual(rates('lands'), [[0.667, 0.6, 'pass']], 'the rate over the cases clears 0.6')
       assert.deepEqual(rates('canary'), [[0.667, 0.7, 'fail']], 'and is below 0.7')
       const summary = readFileSync(join(runDir, 'summary.md'), 'utf8')
-      assert.match(summary, /\| \[lands\]\(#lands\) \|[\s\S]*\| 67% passed \|/)
-      assert.match(summary, /\| \[canary\]\(#canary\) \|[\s\S]*\| 67% passed \|/)
-      assert.match(summary, /^## lands[\s\S]*\*\*67% passed\*\*/m)
-      assert.match(summary, /^## canary[\s\S]*\*\*67% passed\*\*/m)
+      for (const [name, below] of [
+        ['canary', '0\\.7'],
+        ['lands', '0\\.6'],
+      ])
+        assert.match(
+          summary,
+          new RegExp(
+            `^## ${name}\\n[\\s\\S]*?\\| score 0\\.00 below ${below}: passes-its-case scored 0\\.00 \\| n/a \\| 1 of 3 \\|`,
+            'm',
+          ),
+          'the failed case is in its eval',
+        )
     },
   },
   {
@@ -5556,13 +5709,14 @@ export const features: Feature[] = [
     tiers: ['fake'],
     env: 'next-app',
     args: ['--trait', 'stack=next'],
-    canary: /runs on next: expected 'vite' to be 'next'/,
+    canary: zeroBy('observed:stack'),
+    canarySaw: { stack: 'vite' },
     evals: {
       lands: { outcome: 'pass', attempts: ['fake/next-app/fake#1'] },
       canary: {
         outcome: 'fail',
         attempts: ['fake/next-app/fake#1', 'fake/vite-app/fake#1'],
-        error: { kind: 'assertion', message: /expected 'vite' to be 'next'/ },
+        error: { kind: 'assertion', message: zeroBy('observed:stack') },
         clean: ['fake/next-app/fake#1'],
       },
     },
@@ -5580,7 +5734,8 @@ export const features: Feature[] = [
     dir: 'run/where',
     tiers: ['fake'],
     env: 'next-app',
-    canary: /runs on its own stack: expected 'next' to be 'vite'/,
+    canary: zeroBy('runs-on-its-own-stack'),
+    canarySaw: { stack: 'next' },
     evals: {
       lands: {
         outcome: 'pass',
@@ -5593,7 +5748,7 @@ export const features: Feature[] = [
           'fake/next-app/fake#vite#1',
           'fake/vite-app/fake#vite#1',
         ],
-        error: { kind: 'assertion', message: /expected 'next' to be 'vite'/ },
+        error: { kind: 'assertion', message: zeroBy('runs-on-its-own-stack') },
         clean: ['fake/next-app/fake#next#1', 'fake/vite-app/fake#vite#1'],
       },
     },
@@ -5633,7 +5788,8 @@ export const features: Feature[] = [
     tiers: ['fake'],
     env: 'hidden',
     canaryEnv: 'leaked',
-    canary: /the trait is hidden: expected '[^']*leak\.txt[^']*' to be '0'/,
+    canary: zeroBy('observed:trait-found'),
+    canarySaw: { 'trait-found': /leak\.txt/ },
     record: ({ run }) => {
       const lands = run.evals.find((e) => e.name === 'lands')
       assert.deepEqual(
@@ -5647,9 +5803,10 @@ export const features: Feature[] = [
     dir: 'run/target-metric',
     tiers: ['fake'],
     env: 'observe',
-    lands: { outcome: 'pass', error: { kind: 'assertion', message: /picks postgres/ } },
+    lands: { outcome: 'pass', error: { kind: 'assertion', message: zeroBy('observed:pick') } },
     landsPass: [],
-    canary: /picks postgres: expected 'sqlite' to be 'postgres'/,
+    canary: zeroBy('observed:pick'),
+    canarySaw: { pick: 'sqlite' },
     record: ({ run, stdout }) => {
       const lands = run.evals.find((e) => e.name === 'lands')
       assert.deepEqual(
@@ -5679,18 +5836,19 @@ export const features: Feature[] = [
     dir: 'run/target-capability',
     tiers: ['fake'],
     env: '-',
-    canary: /lands on the third try/,
+    canary: zeroBy('observed:attempt'),
+    canarySaw: { attempt: 1 },
     evals: {
       lands: {
         outcome: 'pass',
         attempts: ['fake/-/fake#1', 'fake/-/fake#2'],
-        error: { kind: 'assertion', message: /lands on the second try: expected 1 to be 2/ },
+        error: { kind: 'assertion', message: zeroBy('observed:attempt') },
         clean: ['fake/-/fake#2'],
       },
       canary: {
         outcome: 'fail',
         attempts: ['fake/-/fake#1', 'fake/-/fake#2'],
-        error: { kind: 'assertion', message: /lands on the third try: expected \d to be 3/ },
+        error: { kind: 'assertion', message: zeroBy('observed:attempt') },
       },
     },
     record: ({ run }) => {
@@ -5706,7 +5864,8 @@ export const features: Feature[] = [
     dir: 'run/snapshots',
     tiers: ['fake', 'docker'],
     env: 'snapshots',
-    canary: /expected 'export const built = true\\n' to be 'something else'/,
+    canary: zeroBy('built.js'),
+    canaryGraded: { 'built.js': 'export const built = true\n' },
     record: ({ run, project }) => {
       const at = (path: string | null | undefined) =>
         join(project, '.reeval', 'runs', run.runId, ...(path ?? '').split('/'))
@@ -5730,7 +5889,8 @@ export const features: Feature[] = [
     dir: 'run/snapshot-turns',
     tiers: ['fake', 'docker'],
     env: 'snapshot-turns',
-    canary: /expected 'export const built = true\\n' to be 'something else'/,
+    canary: zeroBy('built.js'),
+    canaryGraded: { 'built.js': 'export const built = true\n' },
     record: ({ run, project }) => {
       const at = (path: string | null | undefined) =>
         join(project, '.reeval', 'runs', run.runId, ...(path ?? '').split('/'))
@@ -5765,7 +5925,7 @@ export const features: Feature[] = [
     tiers: ['fake', 'docker'],
     env: 'notes',
     args: ['-v'],
-    canary: /to deeply equal \[\]/,
+    canary: zeroBy('observed:diff-files'),
     record: ({ run, stdout }) => {
       const attempt = landed(run)
       assert.equal(attempt?.activity.fileEdits, 0, 'the shell write is no edit tool call')
@@ -5787,7 +5947,7 @@ export const features: Feature[] = [
     env: '-',
     prepare: seedModelsDev,
     hostEnv: (dir) => ({ XDG_CACHE_HOME: join(dir, '.cache'), REEVAL_PRICES: '' }),
-    canary: /expected null not to be null/,
+    canary: zeroBy('tokens'),
     evals: {
       lands: {
         outcome: 'pass',
@@ -5796,7 +5956,7 @@ export const features: Feature[] = [
       canary: {
         outcome: 'fail',
         attempts: ['silent/-/fake#1'],
-        error: { kind: 'assertion', message: /expected null not to be null/ },
+        error: { kind: 'assertion', message: zeroBy('tokens') },
         clean: [],
       },
     },
@@ -5831,18 +5991,19 @@ export const features: Feature[] = [
     dir: 'run/best-of',
     tiers: ['fake'],
     env: 'best-of',
-    canary: /expected 'ahoy' to be 'hello'/,
+    canary: zeroBy('observed:word'),
+    canarySaw: { word: 'ahoy' },
     evals: {
       lands: {
         outcome: 'pass',
         attempts: ['fake/best-of/fake#1', 'fake/best-of/fake#2', 'fake/best-of/fake#3'],
-        error: { kind: 'assertion', message: /expected 'ahoy' to be 'hello'/ },
+        error: { kind: 'assertion', message: zeroBy('observed:word') },
         clean: ['fake/best-of/fake#1', 'fake/best-of/fake#3'],
       },
       canary: {
         outcome: 'fail',
         attempts: ['fake/best-of/fake#1', 'fake/best-of/fake#2', 'fake/best-of/fake#3'],
-        error: { kind: 'assertion', message: /expected 'ahoy' to be 'hello'/ },
+        error: { kind: 'assertion', message: zeroBy('observed:word') },
         clean: ['fake/best-of/fake#3'],
       },
     },
@@ -5897,7 +6058,8 @@ export const features: Feature[] = [
     dir: 'output/events',
     tiers: ['fake'],
     env: '-',
-    canary: /second try: expected 1 to be 2/,
+    canary: zeroBy('observed:attempt'),
+    canarySaw: { attempt: 1 },
     args: ['--events-file', 'out/events.ndjson'],
     async record({ run, project, stdout }) {
       const file = join(project, 'out', 'events.ndjson')
@@ -5922,9 +6084,12 @@ export const features: Feature[] = [
     tiers: ['fake'],
     env: 'marked',
     cells: ['plain', 'marked'],
-    lands: { outcome: 'pass', error: { kind: 'assertion', message: /has the marker/ } },
+    lands: {
+      outcome: 'pass',
+      error: { kind: 'assertion', message: zeroBy('has-file:marker.txt') },
+    },
     landsPass: [],
-    canary: /has the marker: expected (file )?marker\.txt/,
+    canary: zeroBy('has-file:marker.txt'),
     args: ['--json'],
     async record({ project, runDir, stdout }) {
       const suite = JSON.parse(stdout) as SuiteResult
@@ -6091,7 +6256,8 @@ export const features: Feature[] = [
       outcome: 'infra_error',
       error: { kind: 'infra', message: /^setup step 1\/1 "touch ran" in environment missing/ },
     },
-    canary: /second try: expected 1 to be 2/,
+    canary: zeroBy('observed:attempt'),
+    canarySaw: { attempt: 1 },
     record: ({ stdout }) => {
       assert.match(
         entryOf(stdout, 'lands'),
@@ -6104,7 +6270,8 @@ export const features: Feature[] = [
     dir: 'output/run-error',
     tiers: ['fake'],
     env: '-',
-    canary: /second try: expected 1 to be 2/,
+    canary: zeroBy('observed:attempt'),
+    canarySaw: { attempt: 1 },
     args: ['--json'],
     record: ({ run, runDir, stdout }) => {
       const message = 'stray rejection outside the evals'
@@ -6305,7 +6472,8 @@ export const features: Feature[] = [
     tiers: ['fake'],
     env: 'resume',
     args: ['--resume'],
-    canary: /expected 'resume' to be 'new-run'/,
+    canary: zeroBy('observed:marker.txt'),
+    canarySaw: { 'marker.txt': 'resume' },
     prepare: (dir) => writeStoppedStaging(dir, SEEDED_RUN_ID),
     record: ({ run, project }) => {
       assert.equal(run.runId, SEEDED_RUN_ID)
@@ -6317,7 +6485,8 @@ export const features: Feature[] = [
     tiers: ['fake'],
     env: 'retry',
     args: ['--retry-errors'],
-    canary: /expected 'retry' to be 'errored'/,
+    canary: zeroBy('observed:marker.txt'),
+    canarySaw: { 'marker.txt': 'retry' },
     prepare: async (dir) => {
       const r = await runCli(dir, ['run'], {
         env: { REEVAL_FIXTURE_OUTAGE: '1', REEVAL_FIXTURE_SANDBOX: 'fake' },
@@ -6547,6 +6716,15 @@ function fixtureTests(tiers: Tier[], pick: (f: Feature) => boolean = () => true)
             },
           },
         })
+        const failed = canaryAttempt(run)
+        for (const [name, want] of Object.entries(f.canarySaw ?? {})) {
+          const saw = failed?.observations?.find((o) => o.name === name)?.value
+          sawMatches(saw, want, `the canary's ${name}`)
+        }
+        for (const [name, want] of Object.entries(f.canaryGraded ?? {})) {
+          const grade = failed?.grades?.find((g) => g.grader === name)?.grade
+          sawMatches(grade, want, `the canary's ${name} grade`)
+        }
         await f.record?.({ run, project: p.dir, runDir, tier, stdout: r.stdout })
         assert.deepEqual(liveSandboxes(p), [], 'every sandbox is removed')
         if (tier !== 'fake') await containersGone(run.runId, cliOf(tier))
