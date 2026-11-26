@@ -42,12 +42,16 @@ import {
 import { openArchive } from '../src/archive/index.ts'
 import { pngSize, stubPng } from '../src/capture/stub.ts'
 import { hasFile, inDiff, notInDiff } from '../src/grade/builtins.ts'
+import type { GradeInputs } from '../src/grade/context.ts'
 import { type GraderDef, graderDef } from '../src/grade/define.ts'
+import { judge } from '../src/grade/judge-grader.ts'
 import { runGraders } from '../src/grade/run.ts'
 import { fakeBrokering } from '../src/harness/agents.ts'
 import { readTrajectory } from '../src/history/trajectory.ts'
 import type { RunRecord } from '../src/history/types.ts'
 import { sha256 } from '../src/ids.ts'
+import { askJudge } from '../src/judge/index.ts'
+import { fakeJudge } from '../src/judge.ts'
 import { runLabels, runPrefix } from '../src/sandbox/boat.ts'
 import { installId } from '../src/sandbox/id-part.ts'
 import { vmPrefix } from '../src/sandbox/tart.ts'
@@ -3721,6 +3725,24 @@ export const features: Feature[] = [
     },
   },
   {
+    dir: 'judge/unread-turn-error',
+    tiers: ['fake'],
+    env: 'plain',
+    lands: {
+      outcome: 'infra_error',
+      error: {
+        kind: 'infra',
+        message: /^Turn 0 ended with an error: 503 Service Unavailable: overloaded/,
+      },
+    },
+    canary: /expected 'error' to be 'completed'/,
+    record: ({ run }) => {
+      const lands = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      assert.equal(lands?.turnStatusRead, false, "c.judge() doesn't read the turn's status")
+      assert.equal(lands?.judgements?.length, 1, 'the judge still ran')
+    },
+  },
+  {
     dir: 'env/setup-order',
     tiers: ['fake', 'docker'],
     env: 'ordered',
@@ -4361,6 +4383,148 @@ export const features: Feature[] = [
           ['page-status:old', 404, 1, 'old'],
           ['no-page-errors:home', 0, 1, 'home'],
         ],
+      )
+    },
+  },
+  {
+    dir: 'grade/judge-boolean',
+    tiers: ['fake', 'docker'],
+    env: 'plain',
+    canary: /^score 0\.50 below 1: says-41 scored 0\.00$/,
+    record: ({ run }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      assert.equal(attempt?.score, 1)
+      const [grade] = attempt?.grades ?? []
+      assert.deepEqual(
+        [grade?.grader, grade?.kind, grade?.grade, grade?.score, grade?.scoreDigest],
+        ['judge:Does src/app.js export answer?', 'judge', true, 1, undefined],
+        "a yes/no question's grade is the answer, and yes scores 1",
+      )
+      assert.deepEqual(grade?.judge?.calls, [{ model: 'fake', answer: true, probability: 0.9 }])
+      assert.deepEqual(
+        grade?.reads.files?.map((f) => f.path),
+        ['src/app.js'],
+        'contents reads the kept workspace',
+      )
+      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      assert.equal(
+        canary?.grades?.[0]?.fingerprint.digest,
+        grade?.fingerprint.digest,
+        'the same judge grader on another eval has the same fingerprint',
+      )
+    },
+  },
+  {
+    dir: 'grade/judge-labels',
+    tiers: ['fake'],
+    env: 'plain',
+    canary: /^score 0\.50 below 1: harsh scored 0\.50$/,
+    record: ({ run }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      assert.equal(attempt?.score, 1)
+      assert.deepEqual(
+        attempt?.grades?.map((g) => [g.grader, g.grade, g.score]),
+        [
+          ['judge:How readable is the change?', ['good', 'good'], 1],
+          ['judge:What tone does the reply take?', 'terse', null],
+        ],
+        'one answer per model, and answers with no score record only',
+      )
+      const [readable, tone] = attempt?.grades ?? []
+      assert.match(readable?.scoreDigest ?? '', /^[0-9a-f]{64}$/, 'the score map is digested apart')
+      assert.equal(tone?.scoreDigest, undefined)
+      assert.deepEqual(
+        readable?.judge?.calls?.map((c) => c.answer),
+        ['good', 'good'],
+      )
+      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      assert.deepEqual(canary?.grades?.[0]?.grade, ['good', 'poor'])
+      assert.equal(canary?.grades?.[0]?.score, 0.5, "the mean of each model's answer's score")
+    },
+  },
+  {
+    dir: 'grade/judge-reference',
+    tiers: ['fake'],
+    env: 'plain',
+    canary: /^score 0\.00 below 1: matches-reference scored 0\.00$/,
+    evals: {
+      lands: { outcome: 'pass', attempts: ['fake/plain/fake#answer#1'] },
+      canary: {
+        outcome: 'fail',
+        attempts: ['fake/plain/fake#answer#1'],
+        error: {
+          kind: 'assertion',
+          message: /^score 0\.00 below 1: matches-reference scored 0\.00$/,
+        },
+      },
+    },
+    record: ({ run }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      const [grade] = attempt?.grades ?? []
+      const [missed] = canary?.grades ?? []
+      assert.equal(grade?.grade, true, "the case's reference matches the attempt")
+      assert.equal(grade?.judge?.reference?.files, 1)
+      assert.match(grade?.fingerprint.reference ?? '', /^[0-9a-f]{64}$/)
+      assert.equal(grade?.judge?.reference?.digest, grade?.fingerprint.reference)
+      assert.notEqual(
+        missed?.fingerprint.reference,
+        grade?.fingerprint.reference,
+        "each case's reference is its own part of the fingerprint",
+      )
+      assert.equal(grade?.fingerprint.code, missed?.fingerprint.code)
+      assert.deepEqual(
+        grade?.reads.files?.map((f) => f.path),
+        ['src/app.js'],
+        'the diff against the reference reads the kept workspace',
+      )
+    },
+  },
+  {
+    dir: 'grade/judge-builtins',
+    tiers: ['fake'],
+    env: 'plain',
+    canary: /^score 0\.50 below 1: judge:Does the change touch test\/\? scored 0\.00$/,
+    record: async ({ run, runDir }) => {
+      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      assert.equal(attempt?.score, 1)
+      const live = attempt?.grades?.map((g) => [g.grader, g.kind, g.grade, g.score])
+      assert.deepEqual(
+        live,
+        [
+          ['turns', 'builtin', 1, null],
+          ['judge:Does the change add two files under node_modules/?', 'judge', true, 1],
+          ['in-diff:src/**', 'builtin', ['src/retry.ts'], 1],
+          ['has-file:src/retry.ts', 'builtin', true, 1],
+        ],
+        "the config's built-in, then the eval's judge grader and built-ins",
+      )
+      const twoDependencyFiles = judge('Does the change add two files under node_modules/?', {
+        inputs: { files: true },
+        model: fakeJudge({
+          score: (state) =>
+            JSON.stringify(state).includes('changed node_modules/ (2 files)') ? 0.9 : 0.1,
+        }),
+      })
+      const graders = [twoDependencyFiles, inDiff('src/**'), hasFile('src/retry.ts')].map(
+        (g) => graderDef(g) as GraderDef,
+      )
+      const stored: GradeInputs | undefined = attempt && {
+        case: { key: '' },
+        turns: [],
+        skills: [],
+        trajectory: await readTrajectory(runDir, attempt),
+        judge: {
+          ask: (q, a, state, model, signal) => askJudge(q, a, state, { model }, signal),
+        },
+      }
+      const regraded = stored && (await runGraders(graders, stored, new AbortController().signal))
+      assert.deepEqual(
+        regraded?.map((g) => [g.grader, g.kind, g.grade, g.score, g.fingerprint.digest]),
+        attempt?.grades
+          ?.slice(1)
+          .map((g) => [g.grader, g.kind, g.grade, g.score, g.fingerprint.digest]),
+        'a regrade from the stored record gives the live grades, the judge seeing the same files',
       )
     },
   },

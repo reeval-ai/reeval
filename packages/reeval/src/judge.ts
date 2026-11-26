@@ -3,16 +3,20 @@
 import type { FakeAnalysisModel, FakeJudgeModel } from './types.ts'
 
 /**
- * A judge that returns `score` without calling a model, for tests and dry runs. `score` can be a
- * function of the state the judge would see (per group, eval or call; the config takes a number).
+ * A judge that returns `score` without calling a model, for tests and dry runs, and `answer` to a
+ * judge grader with `answers`. Either can be a function of the state the judge would see (per
+ * group, eval, call or grader; the config takes a number).
  */
 export const fakeJudge = ({
   score = 1,
+  answer,
 }: {
   score?: FakeJudgeModel['score']
+  answer?: FakeJudgeModel['answer']
 } = {}): FakeJudgeModel => ({
   kind: 'fake-judge',
   score,
+  ...(answer !== undefined ? { answer } : {}),
 })
 
 /**

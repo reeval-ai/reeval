@@ -89,9 +89,14 @@ function judgeModelRefusal(
   return undefined
 }
 
-export async function scoreWithModel(
+/**
+ * Asks `question` of the model: yes or no, or with `answers`, one of them. `probability` is the
+ * model's for yes, or for the answer it chose.
+ */
+export async function decideWithModel(
   model: Exclude<JudgeModel, { kind: 'fake-judge' }>,
   question: string,
+  answers: readonly string[] | undefined,
   state: JudgeState,
   providerOptions: JudgeOptions['providerOptions'],
   signal: AbortSignal,
@@ -99,7 +104,8 @@ export async function scoreWithModel(
   fallbacks = false,
   vertex?: VertexSettings,
 ): Promise<{
-  score: number
+  answer: boolean | string
+  probability: number | undefined
   resolvedModel: string | undefined
   upstream?: string
   costUsd?: number
@@ -109,7 +115,15 @@ export async function scoreWithModel(
   const result = await decide({
     model: resolved,
     state,
-    questions: { answer: { type: 'boolean', instructions: question } },
+    questions: {
+      answer: answers
+        ? {
+            type: 'choice',
+            instructions: question,
+            criteria: Object.fromEntries(answers.map((a) => [a, a])),
+          }
+        : { type: 'boolean', instructions: question },
+    },
     providerOptions,
     abortSignal: signal,
     // reeval retries itself, with longer backoff, and records each retry with the verdict.
@@ -118,15 +132,18 @@ export async function scoreWithModel(
     const refusal = typeof model === 'string' && judgeModelRefusal(model, gateway, error)
     throw refusal ? new Error(refusal, { cause: error }) : error
   })
-  const { answers, usage, warnings, response, providerMetadata } = result
+  const { usage, warnings, response, providerMetadata } = result
   debugTrace(
     'judge',
     'provider-response',
-    { answers, usage, warnings, response, providerMetadata },
+    { answers: result.answers, usage, warnings, response, providerMetadata },
     'judge provider response',
   )
+  const answer = result.answers.answer
   return {
-    score: result.answers.answer.probability,
+    ...(answer.type === 'choice'
+      ? { answer: answer.choice, probability: answer.probabilities?.[answer.choice] }
+      : { answer: answer.probability >= 0.5, probability: answer.probability }),
     resolvedModel: result.response?.modelId,
     usage: usage ? tokenUsage(usage) : null,
     ...(gateway === 'openrouter' ? openRouterBilling(providerMetadata) : {}),

@@ -185,7 +185,7 @@ async function attemptBody(
     a.report({ kind: 'sandbox' })
     const where = `${id} [${attemptId(spec.cell.key, spec.n)}]`
     await a.timed('setupMs', () => prepareEnvironment(a, config.root, runId, where, testSignal))
-    if (grading?.graders.some((g) => g.run.env)) {
+    if (grading?.graders.some((g) => g.run.kind === 'code' && g.run.env)) {
       await checkGraderImages(grading.graders.map((g) => g.run))
     }
     clock = evalTimer(spec.timeoutMs)

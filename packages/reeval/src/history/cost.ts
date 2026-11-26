@@ -52,7 +52,15 @@ function attemptCost(a: AttemptRecord): CostUsd | undefined {
   return total
 }
 
-function judgmentCost(j: JudgmentRecord, pricer: Pricer | null): CostUsd | undefined {
+type JudgeCall = Pick<JudgmentRecord, 'cost' | 'costUsd' | 'usage' | 'model' | 'resolvedModel'>
+
+/** A judge grader's calls, which count toward the attempt's judge cost as `c.judge()`'s do. */
+const graderCalls = (a: AttemptRecord): JudgeCall[] =>
+  (a.grades ?? []).flatMap((g) => g.judge?.calls ?? [])
+
+const judgeCalls = (a: AttemptRecord): JudgeCall[] => [...a.judgements, ...graderCalls(a)]
+
+function judgmentCost(j: JudgeCall, pricer: Pricer | null): CostUsd | undefined {
   if (j.cost) return j.cost
   if (j.costUsd) return { usd: j.costUsd, basis: 'reported', source: 'openrouter' }
   return estimate(j.usage, j.resolvedModel ?? j.model, pricer, j.usage ? [j.usage] : [])
@@ -63,7 +71,7 @@ export function needsPricing(record: RunRecord): boolean {
   return record.evals.some((e) =>
     e.attempts.some(
       (a) =>
-        unpricedTurns(a.turns) || a.judgements.some((j) => !j.cost && !j.costUsd && used(j.usage)),
+        unpricedTurns(a.turns) || judgeCalls(a).some((j) => !j.cost && !j.costUsd && used(j.usage)),
     ),
   )
 }
@@ -82,7 +90,15 @@ export function priceRecord(record: RunRecord, pricer: Pricer | null): RunRecord
         const cost = judgmentCost(j, pricer)
         return cost ? { ...j, cost } : j
       })
-      const withTurns = { ...a, turns, judgements: judgments }
+      const grades = a.grades?.map((g) => {
+        if (!g.judge?.calls) return g
+        const calls = g.judge.calls.map((c) => {
+          const cost = judgmentCost(c, pricer)
+          return cost ? { ...c, cost } : c
+        })
+        return { ...g, judge: { ...g.judge, calls } }
+      })
+      const withTurns = { ...a, turns, judgements: judgments, ...(grades ? { grades } : {}) }
       const cost = attemptCost(withTurns)
       const out = cost ? { ...withTurns, cost } : withTurns
       attempts.push(out)
@@ -110,7 +126,7 @@ export function priceRecord(record: RunRecord, pricer: Pricer | null): RunRecord
 function totals(attempts: AttemptRecord[]): { agent?: CostTotal; judge?: CostTotal } | undefined {
   const agent = sumCosts(attempts.map((a) => ({ cost: a.cost, used: used(a.usage) })))
   const judge = sumCosts(
-    attempts.flatMap((a) => a.judgements.map((j) => ({ cost: j.cost, used: used(j.usage) }))),
+    attempts.flatMap((a) => judgeCalls(a).map((j) => ({ cost: j.cost, used: used(j.usage) }))),
   )
   if (!agent && !judge) return undefined
   return { ...(agent ? { agent } : {}), ...(judge ? { judge } : {}) }

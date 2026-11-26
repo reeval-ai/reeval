@@ -13,6 +13,7 @@ import { gatewayScope, resolveModelGateway } from '../gateway/models.ts'
 import { openRouterBilling } from '../gateway/openrouter-models.ts'
 import { sha256 } from '../ids.ts'
 import { isCaptureHandle } from '../judge/artifacts.ts'
+import { draftState } from '../judge/draft.ts'
 import { checkModelString, gatewaySettings, RECOMMENDED_JUDGE_MODEL } from '../judge/index.ts'
 import { isTransient } from '../judge/retry.ts'
 import { stateOf } from '../judge/state.ts'
@@ -34,7 +35,7 @@ import type {
 } from '../types.ts'
 import { tokenUsage } from '../usage.ts'
 import { sandboxFor } from './checks.ts'
-import { draftState } from './judge.ts'
+import { judgeTurns } from './judge.ts'
 import { observedHere, observedName } from './observe.ts'
 import type { Attempt } from './state.ts'
 
@@ -346,15 +347,15 @@ export function stateBuilder(
     }
     const turn = subject ?? NO_TURN
     const { draft } = await draftState({
-      turns: a.turns,
-      records: a.record.turns,
-      subject: turn,
+      ...judgeTurns(a, turn),
       output: turn.text,
+      diff: turn.diff,
       wanted,
       checks: a.record.checks,
       observations: a.record.observations,
       readFile,
       listFiles: async () => workspaceFiles(await sandboxFor(a, 'c.state()'), a.signal),
+      who: 'c.state()',
     })
     return [{ type: 'json', value: redactValue(stateOf(draft)) }]
   }

@@ -10,6 +10,8 @@ import type {
   FileChange,
   HostFile,
   JSONValue,
+  JudgeInputs,
+  JudgeModel,
   SandboxDescriptor,
   TurnData,
 } from '../types.ts'
@@ -114,6 +116,53 @@ export type GraderSpec<C = unknown, G extends JSONValue = JSONValue> = {
   timeout?: Duration
 }
 
+/** A judge grader's gold answer: text, a `file()`, or files by path from `directory()`. */
+export type JudgeReference = string | HostFile | Record<string, HostFile>
+
+/** What a judge grader shows the judge: `c.judge()`'s inputs, read from the stored attempt. */
+export type JudgeGraderInputs = JudgeInputs & {
+  /** `'all'`: every turn under `turns`, each with its task, output and transcript. Default `'last'`. */
+  turns?: 'last' | 'all'
+  /**
+   * How the judge sees `reference`: `'whole'` (the default) shows each reference file in full,
+   * `'diff'` a unified diff from each to the attempt's file at its path. Text shows whole.
+   */
+  reference?: 'whole' | 'diff'
+}
+
+/** What a judge grader asks, and of what. */
+export type JudgeSpec<C = unknown> = {
+  question: string
+  /** The answers it picks from; the grade is the chosen one. Without them the grade is yes or no. */
+  answers?: readonly string[]
+  /** What the judge sees; at least one input. */
+  inputs: JudgeGraderInputs
+  /** Shown only to the judge, read on the host; per case as a function of the attempt's case. */
+  reference?: JudgeReference | ((item: Case<C>) => JudgeReference)
+  /** The judge's model; the eval's or config's `judge.model` by default. */
+  model?: JudgeModel
+  /** Several models, each answering: the grade is their answers in this order. */
+  models?: readonly JudgeModel[]
+}
+
+/** What `defineGrader` takes for a grader its judge grades. */
+export type JudgeGraderSpec<C = unknown> = {
+  judge: JudgeSpec<C>
+  /**
+   * Each answer's score in [0, 1] (`true` and `false` for a yes/no question, which score 1 and 0
+   * without it); with several models, the mean of theirs. Without it, answers have no score.
+   */
+  score?: Record<string, number>
+  /** Its share of the attempt's score. Default 1; 0 records only. */
+  weight?: number
+  /** A score under 1 (or an error) makes the attempt's score 0. Default false. */
+  required?: boolean
+  /** Bump to mark a change the judge spec and reference don't show. */
+  revision?: number
+  /** How long the judge may take. Default `'5m'`. */
+  timeout?: Duration
+}
+
 /** What `defineGraders` takes: one `grade` whose grade each named grader scores. */
 export type GraderGroupSpec<
   Name extends string,
@@ -135,8 +184,11 @@ declare const caseType: unique symbol
 
 /** A grader for an eval's `graders`: from `defineGrader`, `defineGraders` or `reeval/graders`. */
 export type Grader<C = unknown> = {
-  /** `code` from `defineGrader` or `defineGraders`, `builtin` from `reeval/graders`. */
-  readonly kind: 'code' | 'builtin'
+  /**
+   * `code` from `defineGrader` or `defineGraders`, `judge` from `defineGrader`'s `judge` or
+   * `reeval/graders`' `judge()`, `builtin` from `reeval/graders`' others.
+   */
+  readonly kind: 'code' | 'judge' | 'builtin'
   readonly name: string
   /** Only for type checking: the cases the grader can read. */
   readonly [caseType]?: (item: Case<C>) => void

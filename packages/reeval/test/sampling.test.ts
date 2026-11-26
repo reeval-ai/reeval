@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, test } from 'node:test'
 import { callAnalysisModel, type ResolvedAnalysisModel } from '../src/analysis/model.ts'
 import type { PairAttempt } from '../src/compare/pairs.ts'
 import { answerQuestion } from '../src/compare/questions.ts'
-import { scoreWithModel } from '../src/judge/model.ts'
+import { decideWithModel } from '../src/judge/model.ts'
 
 const MODEL = 'anthropic/claude-sonnet-5.5'
 const SAMPLING = ['temperature', 'topP', 'topK', 'top_p', 'top_k']
@@ -82,9 +82,10 @@ describe('sampling parameters on anthropic/* models', () => {
 
   test('the judge', async () => {
     await assert.rejects(
-      scoreWithModel(
+      decideWithModel(
         MODEL,
         'Is it done?',
+        undefined,
         { messages: [] } as never,
         undefined,
         AbortSignal.timeout(10_000),

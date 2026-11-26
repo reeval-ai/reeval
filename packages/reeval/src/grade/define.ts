@@ -6,6 +6,8 @@ import { parseDuration } from '../duration.ts'
 import { unenforceable } from '../egress.ts'
 import { callerFile, DefinitionError, helpersFor, isHostFile, toPath } from '../environment.ts'
 import { UsageError } from '../errors.ts'
+import { canonicalJson } from '../eval-source.ts'
+import { sha256 } from '../ids.ts'
 import { isObjectLike } from '../object.ts'
 import type {
   EgressPolicy,
@@ -16,7 +18,15 @@ import type {
 } from '../types.ts'
 import type { BuiltinDef } from './builtins.ts'
 import { functionDigest } from './digest.ts'
-import type { Grader, GraderContext, GraderGroupSpec, GraderHelpers, GraderSpec } from './types.ts'
+import { type JudgeRun, judgeRunOf, judgeScore, judgeScoreOf } from './judge.ts'
+import type {
+  Grader,
+  GraderContext,
+  GraderGroupSpec,
+  GraderHelpers,
+  GraderSpec,
+  JudgeGraderSpec,
+} from './types.ts'
 
 export const GRADER = Symbol.for('reeval.grader')
 
@@ -33,14 +43,19 @@ const KEYS = [
   'revision',
   'timeout',
 ]
+const JUDGE_KEYS = ['judge', 'score', 'weight', 'required', 'revision', 'timeout']
 const DEFAULT_TIMEOUT = '5m'
 const ENV_KINDS = ['docker', 'fake']
 
 /** A grader's `env`: the sandbox `grade` runs in, and its network. */
 export type GraderEnv = { sandbox: SandboxDescriptor; egress: PlannedEgress }
 
+/** What a grader runs once per attempt: its `grade` call, or its judge's question. */
+export type GradeRun = CodeRun | JudgeRun
+
 /** One `grade` call per attempt, which a `defineGraders` group's members share. */
-export type GradeRun = {
+export type CodeRun = {
+  kind: 'code'
   grade: (c: GraderContext) => unknown
   /** Every member's name: one for `defineGrader`. */
   names: string[]
@@ -71,13 +86,28 @@ export function graderDef(value: unknown): GraderDef | undefined {
 
 type Input<S> = S | ((helpers: GraderHelpers) => S)
 
-function specOf<S>(input: Input<S>, where: string, base: string): Record<string, unknown> {
+function specOf<S>(
+  input: Input<S>,
+  where: string,
+  base: string,
+  judgeAllowed = false,
+): Record<string, unknown> {
   const spec =
     typeof input === 'function' ? (input as (h: GraderHelpers) => S)(pick(helpersFor(base))) : input
   if (!isObjectLike(spec) || Array.isArray(spec)) {
     throw new DefinitionError(
       `${where} takes a spec, e.g. { grade: (c) => … } (got ${typeof spec})`,
     )
+  }
+  if ('judge' in spec && judgeAllowed) {
+    if ('grade' in spec) throw new DefinitionError(`${where} takes grade or judge, not both`)
+    const unknown = Object.keys(spec).filter((k) => !JUDGE_KEYS.includes(k))
+    if (unknown.length) {
+      throw new DefinitionError(
+        `${where} doesn't take ${unknown.join(', ')}. A judge grader takes ${JUDGE_KEYS.join(', ')}.`,
+      )
+    }
+    return spec
   }
   const unknown = Object.keys(spec).filter((k) => !KEYS.includes(k))
   if (unknown.length) {
@@ -104,19 +134,10 @@ export function checkName(name: unknown, where: string): asserts name is string 
   }
 }
 
-function runOf(
+function extrasOf(
   spec: Record<string, unknown>,
-  names: string[],
   where: string,
-  file: string | undefined,
-  base: string,
-): GradeRun {
-  const files = spec.files ?? []
-  if (!Array.isArray(files) || files.some((f) => typeof f !== 'string' || !f)) {
-    throw new DefinitionError(
-      `files in ${where} must be a list of globs of workspace files, e.g. files: ['package.json', 'src/**'] (got ${JSON.stringify(files)})`,
-    )
-  }
+): { revision?: number; timeoutMs: number } {
   if (
     spec.revision !== undefined &&
     !(Number.isInteger(spec.revision) && (spec.revision as number) >= 0)
@@ -131,15 +152,35 @@ function runOf(
   } catch (error) {
     throw new DefinitionError(`timeout in ${where}: ${(error as Error).message}`)
   }
+  return {
+    ...(spec.revision !== undefined ? { revision: spec.revision as number } : {}),
+    timeoutMs,
+  }
+}
+
+function runOf(
+  spec: Record<string, unknown>,
+  names: string[],
+  where: string,
+  file: string | undefined,
+  base: string,
+): CodeRun {
+  const files = spec.files ?? []
+  if (!Array.isArray(files) || files.some((f) => typeof f !== 'string' || !f)) {
+    throw new DefinitionError(
+      `files in ${where} must be a list of globs of workspace files, e.g. files: ['package.json', 'src/**'] (got ${JSON.stringify(files)})`,
+    )
+  }
+  const extras = extrasOf(spec, where)
   const env = envOf(spec.env, spec.egress, where)
   return {
-    grade: spec.grade as GradeRun['grade'],
+    kind: 'code',
+    grade: spec.grade as CodeRun['grade'],
     names,
     files: files as string[],
     data: dataOf(spec.data, where, base),
+    ...extras,
     ...(env ? { env } : {}),
-    ...(spec.revision !== undefined ? { revision: spec.revision as number } : {}),
-    timeoutMs,
     gradeDigest: functionDigest(spec.grade as () => unknown, file, `grade in ${where}`),
   }
 }
@@ -167,7 +208,7 @@ function envOf(env: unknown, egress: unknown, where: string): GraderEnv | undefi
   return { sandbox, egress: planned }
 }
 
-function dataOf(data: unknown, where: string, base: string): GradeRun['data'] {
+function dataOf(data: unknown, where: string, base: string): CodeRun['data'] {
   if (data === undefined) return {}
   const usage = `data in ${where} must be an object of host files, e.g. data: { baseline: file('baseline.json') }`
   if (!isObjectLike(data) || Array.isArray(data)) throw new DefinitionError(usage)
@@ -214,7 +255,33 @@ export function requiredOf(value: unknown, where: string): boolean {
 }
 
 function grader(def: GraderDef): Grader {
-  return Object.freeze({ kind: 'code' as const, name: def.name, [GRADER]: def })
+  return Object.freeze({ kind: def.run.kind, name: def.name, [GRADER]: def })
+}
+
+/** A judge grader's definition from its checked spec. */
+export function judgeGrader(
+  name: string,
+  s: Record<string, unknown>,
+  where: string,
+  base: string,
+): Grader {
+  const run = judgeRunOf(s.judge, [name], where, extrasOf(s, where), base)
+  const table =
+    judgeScoreOf(s.score, run.answers, where) ?? (run.answers ? undefined : { true: 1, false: 0 })
+  const required = requiredOf(s.required, where)
+  if (required && !table) {
+    throw new DefinitionError(
+      `${where} is required but its answers have no score. Give each answer one, e.g. score: { ${run.answers?.map((a) => `${JSON.stringify(a)}: …`).join(', ')} }`,
+    )
+  }
+  return grader({
+    name,
+    run,
+    ...(table ? { score: judgeScore(table) } : {}),
+    ...(s.score !== undefined ? { scoreDigest: sha256(canonicalJson(table ?? {})) } : {}),
+    weight: weightOf(s.weight, where),
+    required,
+  })
 }
 
 /**
@@ -229,12 +296,14 @@ function grader(def: GraderDef): Grader {
 // biome-ignore lint/suspicious/noExplicitAny: a grader typed by its case alone takes any grade, as G can't be inferred once C is given
 export function defineGrader<C = unknown, G extends JSONValue = any>(
   name: string,
-  spec: Input<GraderSpec<C, G>>,
+  spec: Input<GraderSpec<C, G> | JudgeGraderSpec<C>>,
 ): Grader<C> {
   const where = `defineGrader("${name}")`
   checkName(name, 'defineGrader')
   const file = callerFile()
-  const s = specOf(spec, where, file ? dirname(file) : process.cwd())
+  const base = file ? dirname(file) : process.cwd()
+  const s = specOf(spec, where, base, true)
+  if ('judge' in s) return judgeGrader(name, s, where, base)
   if (s.score !== undefined && typeof s.score !== 'function') {
     throw new DefinitionError(`score in ${where} must be a function from the grade to [0, 1]`)
   }

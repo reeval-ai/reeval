@@ -343,13 +343,26 @@ type Prepared = { planned: PlannedEval; commit: () => void }
 
 /** A grader's `env` runs on this machine, so a run that places its sandboxes elsewhere refuses it. */
 function refuseOffMachineGraders(grading: Grading | undefined, run: RunContext, where: string) {
-  const grader = grading?.graders.find((g) => g.run.env)
+  const grader = grading?.graders.find((g) => g.run.kind === 'code' && g.run.env)
   if (!grader) return
   const provider = run.profile?.provider ?? run.config.provider
   if (!provider && run.placement !== 'cloud') return
   const elsewhere = provider ? `on ${provider.kind}()` : 'in the cloud'
   throw new UsageError(
     `defineGrader("${grader.name}") on ${where} has env, whose sandbox runs on this machine, and this run's sandboxes are ${elsewhere}. A grader's env doesn't run there yet: run it without ${provider ? 'provider' : 'the cloud'}, or drop env.`,
+  )
+}
+
+/** Refuses a judge grader with no model of its own on an attempt whose eval has no judge model. */
+function checkJudgeModels(
+  grading: Grading,
+  tests: NonNullable<ReturnType<typeof planEval>['tests']>,
+  where: string,
+): void {
+  const unmodeled = grading.graders.find((g) => g.run.kind === 'judge' && !g.run.models)
+  if (!unmodeled || tests.every((t) => !t.spec || t.spec.judge.model !== undefined)) return
+  throw new UsageError(
+    `${where}: judge grader ${unmodeled.name} has no model. Set judge: { model: 'typesafe-ai/jev-1.14.0' } in ${getRunContext().config.file}, on the group or eval, or give the grader model.`,
   )
 }
 
@@ -421,6 +434,7 @@ function prepare(
       ...(run.placement && { target: run.placement }),
     },
   )
+  if (grading && planned.tests) checkJudgeModels(grading, planned.tests, named.label ?? name)
   if (planned.tests) {
     const note = maskedNote([...groupStack.map((g) => g.given), given])
     if (note) {
@@ -428,10 +442,10 @@ function prepare(
     }
     const listed = graders.map((g) => ({
       name: g.name,
-      kind: g.builtin ? ('builtin' as const) : ('code' as const),
+      kind: g.builtin ? ('builtin' as const) : g.run.kind,
       weight: g.weight,
       required: g.required,
-      ...(g.builtin && !g.score && g.builtin.kind !== 'observed'
+      ...(!g.score && (g.run.kind === 'judge' || (g.builtin && g.builtin.kind !== 'observed'))
         ? { recordsOnly: true as const }
         : {}),
     }))
@@ -443,7 +457,9 @@ function prepare(
     if (!planned.tests) return
     const bestOfCells = new Map<string, ReturnType<typeof bestOfCell>>()
     const graderSandboxes = [...new Set(grading?.graders.map((g) => g.run))].flatMap((run) =>
-      run.env ? [{ grader: run.names[0] as string, sandbox: run.env.sandbox }] : [],
+      run.kind === 'code' && run.env
+        ? [{ grader: run.names[0] as string, sandbox: run.env.sandbox }]
+        : [],
     )
     for (const { name: testName, spec, ...options } of planned.tests) {
       const { cell, n, bestOf } = options.attempt

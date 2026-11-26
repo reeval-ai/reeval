@@ -1,6 +1,7 @@
 {
   "graders: not a list": "UsageError: graders in reeval.config.ts must be a list of reeval/graders' built-ins, e.g. graders: [noPageErrors('home')] (got string)",
   "graders: a defineGrader grader": "UsageError: graders in reeval.config.ts takes reeval/graders' built-ins: passes is a defineGrader grader, which goes in an eval's graders.",
+  "graders: a judge grader": "UsageError: graders in reeval.config.ts takes reeval/graders' built-ins: judge:Q? is a judge grader, which goes in an eval's graders.",
   "graders: a score function": "UsageError: graders in reeval.config.ts: turns has a function (score or a predicate), which a config's graders can't carry to every eval. Give it in the eval's graders.",
   "graders: an unknown built-in": "UsageError: graders in reeval.config.ts takes reeval/graders' built-ins, or one as data such as { builtin: 'used-skill', args: ['http-retries'] } (got {\"builtin\":\"lints\"})",
   "graders: a built-in named like a prototype key": "UsageError: graders in reeval.config.ts takes reeval/graders' built-ins, or one as data such as { builtin: 'used-skill', args: ['http-retries'] } (got {\"builtin\":\"toString\"})",

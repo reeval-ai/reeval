@@ -2017,13 +2017,13 @@
       "type": "object",
       "properties": {
         "kind": {
-          "enum": ["builtin", "code"]
+          "enum": ["builtin", "code", "judge"]
         },
         "name": {
           "type": "string"
         },
         "recordsOnly": {
-          "description": "A built-in whose grade has no score: it records the grade and counts for nothing.",
+          "description": "A built-in or judge grader whose grade has no score: it records the grade and counts for nothing.",
           "const": true
         },
         "required": {

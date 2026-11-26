@@ -3,7 +3,6 @@ import { INPUT_KEYS, inputsOn, judgeProblem, NO_JUDGE_INPUT } from '../contract/
 import { debugLog, debugTrace } from '../debug/attempt.ts'
 import { workspaceFiles } from '../diff.ts'
 import { getRunContext, SUBJECT } from '../engine/runtime.ts'
-import { globFilter } from '../environment.ts'
 import { gatewayScope, resolveModelGateway } from '../gateway/models.ts'
 import {
   artifactRefsOf,
@@ -12,13 +11,12 @@ import {
   filePartsOf,
   resolveJudgeArtifacts,
 } from '../judge/artifacts.ts'
+import { type DraftSource, draftState } from '../judge/draft.ts'
 import { judgeModelName, runJudge } from '../judge/index.ts'
-import { judgeDiff } from '../judge/patch.ts'
 import { isApiError, isTransient, type RetriedError } from '../judge/retry.ts'
 import { overTokenLimit, withInputSize } from '../judge/size.ts'
-import { type Draft, type DraftTurn, stateOf } from '../judge/state.ts'
+import { stateOf } from '../judge/state.ts'
 import { mergeJudge, resolveStateOptions } from '../judge/state-options.ts'
-import { transcriptForJudge } from '../judge/transcript.ts'
 import { judgeFailedMessage } from '../matchers.ts'
 import { redactSecrets, redactValue } from '../redact.ts'
 import { withLease } from '../scheduler/client.ts'
@@ -30,13 +28,32 @@ import type {
   JudgeCallOptions,
   JudgeFailure,
   JudgeInput,
-  ResolvedJudgeStateOptions,
+  JudgeModel,
+  JudgeOptions,
   Turn,
   Verdict,
 } from '../types.ts'
 import { sandboxFor } from './checks.ts'
 import { observedHere, observedName } from './observe.ts'
 import type { Attempt } from './state.ts'
+
+/**
+ * The attempt's turns as the judge's state draws them, and the graded one's index; a subject the
+ * attempt didn't send is drafted alone.
+ */
+export function judgeTurns(a: Attempt, subject: Turn): { turns: DraftSource[]; subject: number } {
+  // By name: spreading a turn reads its `status` getter, which marks the turn's error as read.
+  const byName = (turn: Turn, i: number): DraftSource => ({
+    prompt: turn.prompt,
+    text: turn.text,
+    transcript: turn.transcript,
+    subagents: a.record.turns[i]?.subagents,
+  })
+  const at = a.turns.indexOf(subject)
+  return at >= 0
+    ? { turns: a.turns.map(byName), subject: at }
+    : { turns: [byName(subject, -1)], subject: 0 }
+}
 
 const noJudgeModel = (configFile: string) =>
   `c.judge() has no model. Set judge: { model: 'typesafe-ai/jev-1.14.0' } in ${configFile}, ` +
@@ -52,110 +69,6 @@ function judgeOn(turns: readonly Turn[], on: Turn | JSONValue): JudgeOn {
   return { value: on as JSONValue }
 }
 
-const workspacePath = (path: string) => path.replace(/^\.\//, '')
-
-/** A `contents` entry that names one file rather than matching many. */
-const isExactPath = (entry: string) => !entry.startsWith('!') && !/[*?[\]{}]/.test(entry)
-
-type StateSources = {
-  turns: readonly Turn[]
-  /** The record's turns, one per turn in `turns`, for each turn's subagents. */
-  records: Attempt['record']['turns']
-  subject: Turn
-  output: JSONValue
-  wanted: ResolvedJudgeStateOptions
-  checks: Attempt['record']['checks']
-  observations: Attempt['record']['observations']
-  readFile: (path: string) => Promise<string | null>
-  listFiles: () => Promise<string[]>
-}
-
-/**
- * The judge's state for the inputs the call turned on: the graded turn's task and output (or every turn's),
- * its changed files and diff as `judgeDiff` shows them, files whole, `c.exec` results and the
- * transcript.
- */
-export async function draftState(src: StateSources): Promise<{ draft: Draft; dropped: string[] }> {
-  const { subject, wanted } = src
-  const at = src.turns.indexOf(subject)
-  const graded = wanted.turns === 'all' && at >= 0 ? src.turns.slice(0, at + 1) : [subject]
-  const runs = (turn: Turn) => src.records[src.turns.indexOf(turn)]?.subagents
-  const turns: DraftTurn[] = graded.map((turn) => ({
-    ...(wanted.task ? { task: turn.prompt } : {}),
-    ...(wanted.output ? { output: turn === subject ? src.output : turn.text } : {}),
-    ...(wanted.transcript
-      ? {
-          transcript: transcriptForJudge(turn.transcript, wanted.transcript, runs(turn)).join('\n'),
-        }
-      : {}),
-  }))
-  const contents = await filesWhole(wanted.contents, src)
-  const shown = judgeDiff(subject.diff, {
-    ...(Array.isArray(wanted.diff) ? { patterns: wanted.diff } : {}),
-    ...(contents ? { inFull: new Set(Object.keys(contents)) } : {}),
-  })
-  const checks = checksShown(wanted.checks, src.checks)
-  const observations = observationsShown(wanted.observations, src.observations)
-  const draft: Draft = {
-    all: wanted.turns === 'all',
-    turns,
-    ...(wanted.files ? { files: shown.files } : {}),
-    ...(wanted.diff !== false ? { diff: shown.patch } : {}),
-    ...(contents ? { contents } : {}),
-    ...(checks ? { checks } : {}),
-    ...(observations ? { observations } : {}),
-  }
-  return { draft, dropped: wanted.diff !== false ? shown.dropped : [] }
-}
-
-/** Exact paths (`null` when missing) and every workspace file the patterns match, in path order. */
-async function filesWhole(
-  entries: readonly string[],
-  src: Pick<StateSources, 'readFile' | 'listFiles'>,
-): Promise<Record<string, string | null> | undefined> {
-  if (!entries.length) return undefined
-  const exact = entries.filter(isExactPath).map(workspacePath)
-  const matches = globFilter(entries.map(workspacePath))
-  const matched = entries.some((e) => !isExactPath(e))
-    ? (await src.listFiles()).filter((path) => matches(path))
-    : []
-  const paths = [...new Set([...exact, ...matched])].sort()
-  const contents: Record<string, string | null> = {}
-  for (const path of paths) {
-    const text = await src.readFile(path)
-    contents[path] = text?.includes('\u0000') ? '[reeval: dropped binary file]' : text
-  }
-  return contents
-}
-
-function checksShown(
-  which: ResolvedJudgeStateOptions['checks'],
-  ran: Attempt['record']['checks'],
-): Draft['checks'] {
-  if (which === false) return undefined
-  if (which !== true) {
-    const missing = which.find((command) => !ran.some((r) => r.command === command))
-    if (missing !== undefined) {
-      throw new Error(
-        `c.judge() checks names a command this attempt hasn't run: ${JSON.stringify(missing)}`,
-      )
-    }
-  }
-  return ran
-    .filter((r) => which === true || which.includes(r.command))
-    .map(({ command, exitCode, stdout, stderr }) => ({ command, exitCode, stdout, stderr }))
-}
-
-function observationsShown(
-  which: ResolvedJudgeStateOptions['observations'],
-  observed: Attempt['record']['observations'] = [],
-): Draft['observations'] {
-  if (!which) return undefined
-  return Object.fromEntries(
-    observed.filter((o) => which === true || which.includes(o.name)).map((o) => [o.name, o.value]),
-  )
-}
-
 /**
  * Where `order` goes among `calls`, which are in ascending order: calls finish in any order, but
  * what they record stays in the order they were made.
@@ -163,6 +76,34 @@ function observationsShown(
 function placeFor(calls: readonly number[], order: number): number {
   const after = calls.findIndex((c) => c > order)
   return after < 0 ? calls.length : after
+}
+
+/**
+ * Runs `judge` with `options` routed through the gateway the run's list picks for its model, under
+ * the model's provider's concurrency lease, as the attempt's judge time.
+ */
+export function onJudge<T>(
+  a: Attempt,
+  options: JudgeOptions & { model: JudgeModel },
+  judge: (routed: Omit<JudgeOptions, 'maxConcurrent'> & { model: JudgeModel }) => Promise<T>,
+): Promise<T> {
+  const { maxConcurrent, ...judgeOptions } = options
+  const { config, profile } = getRunContext()
+  const scope = gatewayScope(config, profile)
+  const gateway = resolveModelGateway(options.model, judgeOptions.gateway, scope, 'judge model')
+  const { gateway: _pin, ...unpinned } = judgeOptions
+  // The list's entry, so the judge gets its settings (OpenRouter's fallbacks,
+  // Vertex's project and regions).
+  const entry = gateway && scope.gateways.find((g) => g.kind === gateway)
+  const routed = gateway ? { ...unpinned, gateway: entry || gateway } : unpinned
+  const provider = judgeModelName(options.model).split('/')[0]
+  return a.timed('judgeMs', () =>
+    withLease(
+      maxConcurrent ? { [`judge:${provider}`]: maxConcurrent } : {},
+      () => judge(routed),
+      a.signal,
+    ),
+  )
 }
 
 /**
@@ -218,7 +159,6 @@ export function judgeCaller(
       a.judgeThrown.add(message)
       throw new Error(message)
     }
-    const { maxConcurrent, ...judgeOptions } = options
     const output = on && 'value' in on ? on.value : subject.text
     const unobserved = Array.isArray(call.observations)
       ? call.observations.find((n) => !observedHere(a, n))
@@ -229,15 +169,15 @@ export function judgeCaller(
       )
     }
     const { draft, dropped } = await draftState({
-      turns: a.turns,
-      records: a.record.turns,
-      subject,
+      ...judgeTurns(a, subject),
       output,
+      diff: subject.diff,
       wanted,
       checks: a.record.checks,
       observations: a.record.observations,
       readFile,
       listFiles: async () => workspaceFiles(await sandboxFor(a, 'c.judge()'), a.signal),
+      who: 'c.judge()',
     })
     const name = judgeModelName(model)
     // Masked as the record will be, so judge-input.json is what the model was sent.
@@ -303,22 +243,9 @@ export function judgeCaller(
       }
     }
 
-    const provider = name.split('/')[0]
     try {
-      const { config, profile } = getRunContext()
-      const scope = gatewayScope(config, profile)
-      const gateway = resolveModelGateway(model, judgeOptions.gateway, scope, 'judge model')
-      const { gateway: _pin, ...unpinned } = judgeOptions
-      // The list's entry, so the judge gets its settings (OpenRouter's fallbacks,
-      // Vertex's project and regions).
-      const entry = gateway && scope.gateways.find((g) => g.kind === gateway)
-      const routed = gateway ? { ...unpinned, gateway: entry || gateway } : unpinned
-      const { verdict, retries, usage } = await a.timed('judgeMs', () =>
-        withLease(
-          maxConcurrent ? { [`judge:${provider}`]: maxConcurrent } : {},
-          () => runJudge(question, decide, { ...routed, model, threshold: atLeast }, a.signal),
-          a.signal,
-        ),
+      const { verdict, retries, usage } = await onJudge(a, { ...options, model }, (routed) =>
+        runJudge(question, decide, { ...routed, threshold: atLeast }, a.signal),
       )
       const recorded = refs.length ? { ...verdict, artifacts: refs } : verdict
       const { judgements: judgments } = a.record

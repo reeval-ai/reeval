@@ -309,6 +309,21 @@ export function gatewaySettings(entry: GatewayName | GatewayDescriptor | undefin
   return { gateway, fallbacks, vertex }
 }
 
+/** One model's answer to a judge question, and what the call cost. */
+export type JudgeAnswer = {
+  /** Yes or no, or with `answers`, the one it chose. */
+  answer: boolean | string
+  /** The model's probability of yes, or of the answer it chose; unset when it gives none. */
+  probability?: number
+  model: string
+  resolvedModel?: string
+  gateway?: GatewayName
+  upstream?: string
+  costUsd?: number
+  retries: JudgeRetry[]
+  usage: TokenUsage | null
+}
+
 /** Transient provider errors (429, 5xx, "high demand") are retried with backoff and recorded. */
 export async function runJudge(
   question: string,
@@ -317,52 +332,86 @@ export async function runJudge(
   signal: AbortSignal,
   retry: RetryPolicy = JUDGE_RETRY,
 ): Promise<JudgeResult> {
-  const { model, threshold } = options
-  const { gateway, fallbacks, vertex } = gatewaySettings(options.gateway)
-  let score: number
-  let resolvedModel: string | undefined
-  let billing: { upstream?: string; costUsd?: number } = {}
-  let retries: JudgeRetry[] = []
-  let usage: TokenUsage | null = null
-  if (isFakeJudge(model)) {
-    score = typeof model.score === 'function' ? model.score(state) : model.score
-  } else {
-    if (typeof model === 'string') {
-      const problem = checkModelString(model)
-      if (problem) throw new Error(problem)
-    }
-    const { scoreWithModel } = await import('./model.ts')
-    const scored = await withRetries(
-      () =>
-        scoreWithModel(
-          model,
-          redactSecrets(question),
-          state,
-          options.providerOptions,
-          signal,
-          gateway,
-          fallbacks,
-          vertex,
-        ),
-      retry,
-      signal,
-    )
-    const { score: scoredAt, resolvedModel: served, usage: used, ...billed } = scored.value
-    score = scoredAt
-    resolvedModel = served
-    usage = used
-    billing = billed
-    retries = scored.retries
-  }
+  const { threshold } = options
+  const {
+    probability,
+    retries,
+    usage,
+    answer: _answer,
+    ...called
+  } = await askJudge(question, undefined, state, options, signal, retry)
+  const score = probability ?? 0
   const verdict: Verdict = {
     verdict: score >= threshold ? 'pass' : 'fail',
     score,
     threshold,
     question,
-    model: judgeModelName(model),
-    ...(resolvedModel ? { resolvedModel } : {}),
-    ...(gateway && typeof model === 'string' ? { gateway } : {}),
-    ...billing,
+    ...called,
   }
   return { verdict, retries, usage }
+}
+
+/**
+ * Asks the judge `question` about `state`: yes or no, or with `answers`, one of them. A fake
+ * judge answers yes when its score is at least 0.5, and picks its `answer`.
+ */
+export async function askJudge(
+  question: string,
+  answers: readonly string[] | undefined,
+  state: JudgeState,
+  options: Required<Pick<JudgeOptions, 'model'>> & JudgeOptions,
+  signal: AbortSignal,
+  retry: RetryPolicy = JUDGE_RETRY,
+): Promise<JudgeAnswer> {
+  const { model } = options
+  const { gateway, fallbacks, vertex } = gatewaySettings(options.gateway)
+  const named = {
+    model: judgeModelName(model),
+    ...(gateway && typeof model === 'string' ? { gateway } : {}),
+  }
+  if (isFakeJudge(model)) {
+    if (answers) {
+      const answer = typeof model.answer === 'function' ? model.answer(state) : model.answer
+      if (answer === undefined || !answers.includes(answer)) {
+        throw new Error(
+          `fakeJudge() answered ${JSON.stringify(answer)}, not one of ${answers.map((a) => JSON.stringify(a)).join(', ')}. Give it answer.`,
+        )
+      }
+      return { answer, ...named, retries: [], usage: null }
+    }
+    const score = typeof model.score === 'function' ? model.score(state) : model.score
+    return { answer: score >= 0.5, probability: score, ...named, retries: [], usage: null }
+  }
+  if (typeof model === 'string') {
+    const problem = checkModelString(model)
+    if (problem) throw new Error(problem)
+  }
+  const { decideWithModel } = await import('./model.ts')
+  const decided = await withRetries(
+    () =>
+      decideWithModel(
+        model,
+        redactSecrets(question),
+        answers,
+        state,
+        options.providerOptions,
+        signal,
+        gateway,
+        fallbacks,
+        vertex,
+      ),
+    retry,
+    signal,
+  )
+  const { answer, probability, resolvedModel, usage, ...billing } = decided.value
+  return {
+    answer,
+    ...(probability !== undefined ? { probability } : {}),
+    model: named.model,
+    ...(resolvedModel ? { resolvedModel } : {}),
+    ...(named.gateway ? { gateway: named.gateway } : {}),
+    ...billing,
+    retries: decided.retries,
+    usage,
+  }
 }

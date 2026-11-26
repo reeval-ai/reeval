@@ -24,6 +24,10 @@ export type {
   GraderList,
   GraderSpec,
   GraderTurn,
+  JudgeGraderInputs,
+  JudgeGraderSpec,
+  JudgeReference,
+  JudgeSpec,
 } from './grade/types.ts'
 export type {
   AttemptRecord,

@@ -401,6 +401,7 @@ function make(
   const def: GraderDef = {
     name,
     run: {
+      kind: 'code',
       grade: (c) => spec.grade(c, args),
       names: [name],
       files: spec.files?.(args) ?? [],

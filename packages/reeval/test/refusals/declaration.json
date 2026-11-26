@@ -47,6 +47,8 @@
   "graders: not a list": "UsageError: graders in evals/graders-not-a-list.eval.ts must be a list of defineGrader results, e.g. graders: [noNewDeps] (got object)",
   "graders: not a grader": "UsageError: graders in evals/graders-not-a-grader.eval.ts must be a list of defineGrader results, e.g. graders: [noNewDeps] (item 2 isn't one)",
   "graders: two named alike": "UsageError: graders in evals/graders-two-named-alike.eval.ts has two graders named passes. Give each grader of an eval its own name.",
+  "graders: a judge grader is accepted on the eval's judge model": null,
+  "graders: a judge grader with no model": "UsageError: evals/graders-a-judge-grader-with-no-model.eval.ts: judge grader judge:Q? has no model. Set judge: { model: 'typesafe-ai/jev-1.14.0' } in reeval.config.ts, on the group or eval, or give the grader model.",
   "graders: a list is accepted": null,
   "builtin: no main argument": "DefinitionError: calledTool() takes the tool's name, a string or a regular expression (got )",
   "builtin: an unknown option": "DefinitionError: usedSkill() doesn't take wieght. A built-in grader takes name, weight, required, score.",

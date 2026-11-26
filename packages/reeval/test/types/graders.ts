@@ -1,6 +1,8 @@
 // Compile-time checks of `graders`, run by `pnpm typecheck` (tsconfig.json here): a grader's case
 // type has to fit the eval's cases, its grade is typed from `grade`, and `score` takes that grade.
 // An unused `@ts-expect-error` fails the build too.
+
+import { judge } from '../../src/graders.ts'
 import {
   defineEval,
   defineGrader,
@@ -92,3 +94,24 @@ defineGraders<{ input: string }>()(['a'], {
 })
 // @ts-expect-error the case type goes on defineGraders<C>(), not beside the names
 defineGraders<{ input: string }>(['a'], { grade: () => 1, score: { a: () => 1 } })
+
+const judged = defineGrader<{ solution: string }>('judged', ({ directory }) => ({
+  judge: {
+    question: 'Does it match?',
+    answers: ['yes', 'partly', 'no'],
+    inputs: { diff: true, reference: 'diff' },
+    reference: (item) => directory(`refs/${item.solution}`),
+  },
+  score: { yes: 1, partly: 0.5, no: 0 },
+}))
+defineEval({
+  cases: [{ key: 'a', solution: 'x' }],
+  graders: [judged, judge('Is it readable?', { inputs: { contents: ['src/**'] } })],
+  task: async () => {},
+})
+// @ts-expect-error the reference reads case.solution, which an eval without cases doesn't have
+defineEval({ graders: [judged], task: async () => {} })
+judge('Q?', {
+  // @ts-expect-error inputs.reference is whole or diff
+  inputs: { reference: 'all' },
+})

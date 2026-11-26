@@ -67,6 +67,7 @@ function inputs(files: Record<string, string> = {}): GradeInputs {
       decisions: [],
       workspace: entries.length ? keptFiles(manifest, archiveFile(archive)) : null,
       changedFiles: [],
+      diff: { patch: '', files: [] },
     },
     skills: [],
   }
@@ -532,7 +533,7 @@ describe('defineGrader', () => {
     [() => defineGrader('x', {} as never), /needs grade, a function/],
     [
       () => defineGrader('x', { grade: () => true, judge: 1 } as never),
-      /doesn't take judge\. A grader takes grade, score/,
+      /takes grade or judge, not both/,
     ],
     [
       () => defineGrader('x', { grade: () => true, weight: -1 }),

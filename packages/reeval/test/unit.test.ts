@@ -85,7 +85,7 @@ import {
   resolveJudgeArtifacts,
 } from '../src/judge/artifacts.ts'
 import { checkModelString, judgeCredentials, judgeRoute, runJudge } from '../src/judge/index.ts'
-import { scoreWithModel } from '../src/judge/model.ts'
+import { decideWithModel } from '../src/judge/model.ts'
 import { changedFilesForJudge, judgeDiff, patchForJudge } from '../src/judge/patch.ts'
 import { backoffMs, isApiError, isTransient } from '../src/judge/retry.ts'
 import { overTokenLimit, withInputSize } from '../src/judge/size.ts'
@@ -1606,9 +1606,10 @@ test('a judge model its route answers only with a decision model fails in a sent
         )
   Object.assign(process.env, keys)
   const score = (model: string, gateway: 'direct' | 'vercel') =>
-    scoreWithModel(
+    decideWithModel(
       model,
       'q?',
+      undefined,
       [{ type: 'text', text: 'x' }],
       undefined,
       new AbortController().signal,
@@ -1657,14 +1658,15 @@ test('TypeSafe Jev takes c.judge artifacts as a multipart image upload', async (
   }
   process.env.TYPESAFE_AI_API_KEY = 'ts-test'
   try {
-    const { score, resolvedModel } = await scoreWithModel(
+    const { answer, probability, resolvedModel } = await decideWithModel(
       'typesafe-ai/jev-1.14.0',
       'Does the form have a submit button?',
+      undefined,
       state,
       undefined,
       new AbortController().signal,
     )
-    assert.equal(score, 0.9)
+    assert.deepEqual([answer, probability], [true, 0.9])
     assert.equal(resolvedModel, 'jev-1.14.0')
   } finally {
     globalThis.fetch = realFetch
