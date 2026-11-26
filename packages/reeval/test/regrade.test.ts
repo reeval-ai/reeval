@@ -547,6 +547,54 @@ export default defineEval({ graders: [inDiff('out.txt', { required: ${a} }), has
     )
   })
 
+  test('recomputes a code grader on an attempt that ran in no environment', async () => {
+    const p = await project('regrade-no-environment', {
+      '.gitignore': '.reeval/\nnode_modules/\nsandboxes/\n',
+      'reeval.config.ts': fakeConfig({ harness, extra: "history: { artifacts: 'all' }," }).replace(
+        "environments: defineEnvironment('fake', {}),",
+        '',
+      ),
+      'evals/graders.ts': graders(),
+      'evals/one.eval.ts': evalFile(),
+    })
+    sh(p.dir, 'init', '-q', '-b', 'main')
+    sh(p.dir, 'add', '-A')
+    sh(p.dir, 'commit', '-q', '-m', 'init')
+    await cli(p.dir, ['run', '--record'])
+    const [file] = readdirSync(join(p.dir, HISTORY)).filter((n) => n.endsWith('.json'))
+    const record = JSON.parse(readFileSync(join(p.dir, HISTORY, file ?? ''), 'utf8'))
+    assert.deepEqual(record.environments, [], 'the run declared no environment')
+
+    await writeFile(join(p.dir, 'evals/graders.ts'), graders('goodbye'))
+    const out = await cli(p.dir, ['regrade', '-y'])
+    assert.doesNotMatch(out, /environment record is missing/)
+    assert.match(out, /says {2,}1\/1 → 0\/1 passed/)
+    assert.deepEqual(actions(regradeFiles(p.dir)[0]), [
+      ['says', 'recomputed'],
+      ['key', 'recomputed'],
+    ])
+    assert.match(await cli(p.dir, ['show']), /says scored 0\.00/)
+    const grades = JSON.parse(await cli(p.dir, ['show', '--json'])).evals[0].attempts[0].grades
+    const says = grades.find((g: { grader: string }) => g.grader === 'says')
+    assert.deepEqual([says?.grade, says?.score], [false, 0])
+  })
+
+  test("marks a code grader inputs missing when the attempt's environment record is gone", async () => {
+    const p = await recorded('regrade-environment-gone', { artifacts: 'all' })
+    const [file] = readdirSync(join(p.dir, HISTORY)).filter((n) => n.endsWith('.json'))
+    const path = join(p.dir, HISTORY, file ?? '')
+    const record = JSON.parse(readFileSync(path, 'utf8'))
+    assert.equal(record.environments.length, 1)
+    await writeFile(path, JSON.stringify({ ...record, environments: [] }))
+    await writeFile(join(p.dir, 'evals/graders.ts'), graders('goodbye'))
+    const out = await cli(p.dir, ['regrade', '--yes'])
+    assert.match(
+      out,
+      /says {2,}inputs missing {2,}skip 1 {2,}the attempt's environment record is missing/,
+    )
+    assert.deepEqual(regradeFiles(p.dir), [])
+  })
+
   test('analyze and query read the regraded outcome', async () => {
     const p = await recorded('regrade-readers', { artifacts: 'all' })
     await writeFile(join(p.dir, 'evals/graders.ts'), graders('goodbye'))
