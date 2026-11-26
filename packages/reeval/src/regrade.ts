@@ -267,6 +267,7 @@ type Kept = {
   /** A tool event or subagent text the record cut, which the live graders saw whole. */
   cut: boolean
   workspace: boolean
+  /** The skills the attempt's environment placed: none when it ran in none, null when its record is gone. */
   skills: string[] | null
   /** Every foreground `c.exec`'s result is readable: none ran, or `execs.jsonl` was kept. */
   execs: boolean
@@ -314,6 +315,11 @@ async function keptOf(dir: string, record: RunRecord, entry: EvalEntry, a: Attem
   }
   const cell = entry.cells.find((c) => c.key === a.cell)
   const env = record.environments.find((e) => e.digest === cell?.environmentDigest)
+  const skills = env
+    ? env.skills.map((s) => s.name)
+    : cell && cell.environmentDigest === null
+      ? []
+      : null
   const execs = !a.checks.length || !!a.files.execs
   const decisions = !a.decisionUse || !!a.files.decisions
   return {
@@ -321,7 +327,7 @@ async function keptOf(dir: string, record: RunRecord, entry: EvalEntry, a: Attem
     ...(bad ? { bad } : {}),
     cut,
     workspace: !!a.files.workspace,
-    skills: env ? env.skills.map((s) => s.name) : null,
+    skills,
     execs,
     decisions,
     observations: new Set(
