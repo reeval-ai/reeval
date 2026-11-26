@@ -21,12 +21,25 @@ const snapshotEnv = (sandbox: Sandbox) =>
   ' GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null'
 
 /**
- * A shell command, run in the workspace, that writes the paths of its files git doesn't ignore to
- * `list`, NUL-separated and relative to it, leaving out those under a directory named in `exclude`.
+ * A shell command, run in the workspace, that writes `archive`: a gzipped tar of its files git
+ * doesn't ignore, leaving out those under a directory named in `exclude`. It needs only git (no
+ * tar), and builds the tree in an index of its own, so the diff's stays as it was. The git dir's
+ * own attributes outrank the workspace's, so its `export-ignore` can't hide a file.
  */
-export const keptFilesCommand = (sandbox: Sandbox, list: string, exclude: readonly string[]) => {
+export const keptArchiveCommand = (
+  sandbox: Sandbox,
+  archive: string,
+  exclude: readonly string[],
+) => {
   const pathspecs = ['.', ...exclude.map((d) => `:(exclude,glob)**/${d}/**`)].map(shellQuote)
-  return `${snapshotEnv(sandbox)} && ${GIT} add -A && ${GIT} ls-files -z -- ${pathspecs.join(' ')} > ${list}`
+  const index = 'GIT_INDEX_FILE="$GIT_DIR/kept-index"'
+  return (
+    `${snapshotEnv(sandbox)} && mkdir -p "$GIT_DIR/info" && ` +
+    `printf '* -export-ignore -export-subst\\n' > "$GIT_DIR/info/attributes" && ` +
+    `rm -f "$GIT_DIR/kept-index" && ${index} ${GIT} add -A -- ${pathspecs.join(' ')} && ` +
+    `tree=$(${index} ${GIT} write-tree) && rm -f "$GIT_DIR/kept-index" && ` +
+    `${GIT} archive --format=tar.gz -o ${archive} "$tree"`
+  )
 }
 
 /** Points HEAD at a commit of `$tree` with no parent, then drops every object nothing reaches. */

@@ -8,6 +8,7 @@ import { gunzipSync, gzipSync } from 'node:zlib'
 import { extractTar, OPAQUE_OUTPUT, readTar, type TarEntry, writeTar } from '@reeval/sandbox-docker'
 import { shellQuote } from '@reeval/sandbox-docker/process'
 import { debugLog } from '../debug/attempt.ts'
+import { asText, scanBytes } from '../history/secret-scan.ts'
 import { recordFileName } from '../ids.ts'
 import { findSecrets, redactSecrets } from '../redact.ts'
 import type { Sandbox } from '../sandbox/index.ts'
@@ -51,15 +52,34 @@ const SIZE_MARK = '--reeval-size--'
 
 const excluded = (path: string) => path.split('/').some((part) => EXCLUDED_DIRS.includes(part))
 
-const utf8 = new TextDecoder('utf-8', { fatal: true })
+/** What becomes of one archive entry: kept (masked or not), dropped, or under an excluded directory. */
+export type Cleaned =
+  | { kept: TarEntry; masked: boolean }
+  | { dropped: string }
+  | { excluded: string }
 
-function asText(data: Buffer): string | null {
-  if (data.subarray(0, 8192).includes(0)) return null
-  try {
-    return utf8.decode(data)
-  } catch {
-    return null
+/**
+ * One entry of the sandbox's archive as it's kept: secret-looking values masked in a text file,
+ * and dropped where masking can't reach (a binary or UTF-16 file the secret scan finds one in, or
+ * a secret in its path).
+ */
+export function cleanEntry(e: TarEntry): Cleaned {
+  if (excluded(e.path)) {
+    const parts = e.path.split('/')
+    const at = parts.findIndex((p) => EXCLUDED_DIRS.includes(p))
+    return { excluded: redactSecrets(`${parts.slice(0, at + 1).join('/')}/`) }
   }
+  if (findSecrets(e.path).length || (e.type === 'symlink' && findSecrets(e.target).length)) {
+    return { dropped: redactSecrets(e.path) }
+  }
+  if (e.type !== 'file') return { kept: e, masked: false }
+  const text = asText(e.data)
+  if (text === null) {
+    return scanBytes(e.path, e.data).length ? { dropped: e.path } : { kept: e, masked: false }
+  }
+  const clean = redactSecrets(text)
+  if (clean === text) return { kept: e, masked: false }
+  return { kept: { ...e, data: Buffer.from(clean) }, masked: true }
 }
 
 /** The sandbox's archive, with the excluded directories gone and secret-looking values masked. */
@@ -74,31 +94,12 @@ export function cleanArchive(tar: Buffer): {
   const dropped: string[] = []
   const left = new Set<string>()
   for (const e of readTar(tar)) {
-    if (excluded(e.path)) {
-      const parts = e.path.split('/')
-      const at = parts.findIndex((p) => EXCLUDED_DIRS.includes(p))
-      left.add(redactSecrets(`${parts.slice(0, at + 1).join('/')}/`))
-      continue
-    }
-    if (findSecrets(e.path).length || (e.type === 'symlink' && findSecrets(e.target).length)) {
-      dropped.push(redactSecrets(e.path))
-      continue
-    }
-    if (e.type !== 'file') {
-      entries.push(e)
-      continue
-    }
-    const text = asText(e.data)
-    if (text === null) {
-      if (findSecrets(e.data.toString('latin1')).length) dropped.push(e.path)
-      else entries.push(e)
-      continue
-    }
-    const clean = redactSecrets(text)
-    if (clean === text) entries.push(e)
+    const c = cleanEntry(e)
+    if ('excluded' in c) left.add(c.excluded)
+    else if ('dropped' in c) dropped.push(c.dropped)
     else {
-      masked.push(e.path)
-      entries.push({ ...e, data: Buffer.from(clean) })
+      entries.push(c.kept)
+      if (c.masked) masked.push(c.kept.path)
     }
   }
   return { entries, masked, dropped, excluded: [...left] }
@@ -108,8 +109,8 @@ const tarCommand = (workdir: string) => {
   const flags = EXCLUDED_DIRS.map((d) => `--exclude=${shellQuote(d)}`).join(' ')
   return `cd ${shellQuote(workdir)} && COPYFILE_DISABLE=1 tar -cf - ${flags} . 2>/dev/null`
 }
-export const GZIP = 'if command -v gzip >/dev/null 2>&1; then gzip -c; else cat; fi'
-export const NEEDS_TAR =
+const GZIP = 'if command -v gzip >/dev/null 2>&1; then gzip -c; else cat; fi'
+const NEEDS_TAR =
   "command -v tar >/dev/null 2>&1 || { echo 'the sandbox has no tar' >&2; exit 127; }"
 
 export const listed = (paths: string[]) => paths.slice(0, LISTED)
