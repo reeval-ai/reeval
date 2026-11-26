@@ -517,6 +517,7 @@ function registerCases(
   // Keys as they're shown and recorded: in the plan's notes and the pairs `where` leaves out.
   const shownKeys = keys.map((k) => redactSecrets(k))
   const own = withPaths(rest as EvalOptions, where, base)
+  checkOptions(own, where)
   const file = collectingFile()
   const body = bodyHash(fn, where, file)
   const prepared = (cases as Case[]).map((item, i) => {

@@ -28,7 +28,7 @@
   "cases: a string case": "UsageError: cases[0] in evals/cases-a-string-case.eval.ts is \"a\": a case is an object with a key, e.g. { key: 'users', \u2026 }.",
   "cases: an empty key": "UsageError: cases[0] in evals/cases-an-empty-key.eval.ts has the key \"\": a case key is 1\u201380 characters, with no surrounding whitespace, #, \u203a or control characters.",
   "cases: an empty list": "UsageError: cases in evals/cases-an-empty-list.eval.ts is an empty list. Give at least one case.",
-  "cases: caseKey is not an option": "UsageError: Unknown option \"caseKey\" in evals/cases-casekey-is-not-an-option.eval.ts case \"a\".",
+  "cases: caseKey is not an option": "UsageError: Unknown option \"caseKey\" in evals/cases-casekey-is-not-an-option.eval.ts.",
   "cases: keys accepted": null,
   "cases: not a list": "UsageError: cases in evals/cases-not-a-list.eval.ts must be a list (got string), e.g. cases: [{ key: 'users' }, { key: 'posts' }].",
   "cases: two cases with one key": "UsageError: cases[0] and cases[1] in evals/cases-two-cases-with-one-key.eval.ts have the same key \"a\". Each case needs its own key.",
