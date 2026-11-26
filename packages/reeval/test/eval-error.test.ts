@@ -10,10 +10,10 @@ import { errorFrom } from '../src/language-runner/transport.ts'
 import type { EvalRecord } from '../src/types.ts'
 import { fakeConfig, project, readRun, runCli } from './helpers.ts'
 
-function failed(error: unknown, raw: unknown[] = [], turns = 1) {
+function failed(error: unknown, turns = 1) {
   const record = { error: { kind: 'assertion', message: String(error) } } as EvalRecord
   const a = { record, turns: Array(turns).fill({}) } as unknown as Attempt
-  recordTaskFailure(a, error, raw as never, '/project')
+  recordTaskFailure(a, error, '/project')
   return record
 }
 
@@ -59,7 +59,7 @@ describe("the attempt's failure", () => {
       meta: { exitCode: 2, token: `ghp_${'a'.repeat(36)}` },
     })
     error.stack = 'EvalError: the build\nfails\n    at task (/project/evals/a.eval.ts:3:9)'
-    const record = failed(error, [], 2)
+    const record = failed(error, 2)
     assert.deepEqual(record.failure, {
       kind: 'task',
       reason: 'the build fails',
@@ -72,7 +72,7 @@ describe("the attempt's failure", () => {
 
   test('a plain error records its message on one line, clipped, with its class', () => {
     const error = new TypeError(`x is ${'undefined '.repeat(40)}`)
-    const record = failed(error, [], 0)
+    const record = failed(error, 0)
     assert.equal(record.failure?.name, 'TypeError')
     assert.equal(record.failure?.turn, 0)
     assert.equal(record.failure?.meta, undefined)
@@ -115,12 +115,11 @@ describe("the attempt's failure", () => {
     )
   })
 
-  test('a failed expect.require the task let through is no failure: its assertion holds it', () => {
+  test("an attempt whose error isn't the task's has no task failure", () => {
     const error = new Error('expected 1 to be 2')
-    assert.equal(failed(error, [{ status: 'fail', error }]).failure, undefined)
-    const judge = { error: { kind: 'judge', message: 'x' } } as EvalRecord
-    recordTaskFailure({ record: judge, turns: [] } as unknown as Attempt, error, [], '/project')
-    assert.equal(judge.failure, undefined)
+    const infra = { error: { kind: 'infra', message: 'x' } } as EvalRecord
+    recordTaskFailure({ record: infra, turns: [] } as unknown as Attempt, error, '/project')
+    assert.equal(infra.failure, undefined)
   })
 
   test('prints the reason, meta and turn, is recorded and queryable', async () => {

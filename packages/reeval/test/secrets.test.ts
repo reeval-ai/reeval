@@ -8,13 +8,11 @@ import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import { describe, test } from 'node:test'
 import { docker, type Substitution } from '@reeval/sandbox-docker'
-import { assertionRecords } from '../src/attempt/assertions.ts'
-import { recordFailure, stagedRecordJson, turnErrors, writeRecord } from '../src/attempt/record.ts'
+import { recordFailure, stagedRecordJson, turnErrors } from '../src/attempt/record.ts'
 import { type Attempt, type AttemptSpec, createAttempt } from '../src/attempt/state.ts'
 import { AttemptDebug, withDebug } from '../src/debug/attempt.ts'
 import '../src/debug/docker.ts'
 import { cursorMcpServers } from '@reeval/agents'
-import type { RawAssertion } from '../src/engine/runtime.ts'
 import { type BrokeredSecret, resolveEnvironment } from '../src/environment/resolve.ts'
 import {
   applied,
@@ -1878,7 +1876,7 @@ describe('masking before shortening', () => {
         signal: new AbortController().signal,
         judgeThrown: new Set(),
       } as unknown as Attempt
-      recordFailure(a, new Error(message), false, [])
+      recordFailure(a, new Error(message), false)
       assert.match(a.record.error?.message ?? '', /characters cut/)
       assert.match(a.record.error?.message ?? '', /password=\[RED/)
       assert.doesNotMatch(a.record.error?.message ?? '', /password=corr/)
@@ -1892,23 +1890,6 @@ describe('masking before shortening', () => {
       const [line] = turnErrors([[{ type: 'error', message } as TranscriptEvent]])
       assert.match(line ?? '', /=\[REDACTED\]/)
       assert.doesNotMatch(line ?? '', /=corr/)
-    }),
-  )
-
-  test(
-    "an assertion's label and message are masked before they're clipped",
-    withSecret(() => {
-      const [x] = assertionRecords([
-        {
-          matcher: 'toBe',
-          args: [`${'x'.repeat(40)}=${secret}`],
-          status: 'fail',
-          soft: false,
-          error: new Error(`${'x'.repeat(1017)}=${secret}`),
-        } as unknown as RawAssertion,
-      ])
-      assert.match(`${x?.label} ${x?.message}`, /=\[RED.*=\[RED/)
-      assert.doesNotMatch(`${x?.label} ${x?.message}`, /=corr/)
     }),
   )
 
@@ -2125,26 +2106,6 @@ describe('redacting the strings in a value', () => {
     assert.equal(out.token, '[REDACTED]')
     assert.equal(out.self, cycle)
   })
-})
-
-test("an attempt's judge question is masked before its meta clips it to 200 characters", async () => {
-  const token = ['ghp_A1b2C3d4E5f6G7h8', 'I9j0K1l2M3n4O5p6Q7r8'].join('')
-  const record = {
-    outcome: 'fail',
-    error: null,
-    turns: [],
-    judgements: [{ question: `${'x'.repeat(180)}${token}` }],
-  }
-  const empty = new Map()
-  const attempt = {
-    record,
-    spec: { cell: { key: 'c' }, n: 1 },
-    artifactBlobs: empty,
-    stepBlobs: empty,
-    capturePages: empty,
-  }
-  const meta = await writeRecord(attempt as never, tempDir('judge-question'), 'e')
-  assert.equal(meta.judgements[0]?.question, `${'x'.repeat(180)}[REDACTED]`)
 })
 
 test("a fake agent's failed bootstrap quotes its output's end masked before it's cut", async () => {
