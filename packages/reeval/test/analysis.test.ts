@@ -2003,10 +2003,7 @@ describe('a study: several arms, every cell ungated', () => {
     )
     const analyzed = await runCli(p.dir, ['analyze', '--vs', 'none'])
     assert.equal(analyzed.code, 0, analyzed.stderr)
-    assert.match(
-      analyzed.stdout,
-      /A study of 3 arms\./,
-    )
+    assert.match(analyzed.stdout, /A study of 3 arms\./)
   })
 
   test('canary: the same arms with gated variants are not a study', async () => {

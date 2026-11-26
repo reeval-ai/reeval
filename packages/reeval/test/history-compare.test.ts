@@ -796,10 +796,7 @@ export default defineEval({
     // Canary: a real pass → fail in the same interrupted head still regresses and fails the check.
     await interrupted({ REEVAL_TEST_BREAK: '1' })
     const regressed = await compareCode('--fail-on-regression')
-    assert.match(
-      regressed.out,
-      /^regressed {8}flips\n(.*\n){2} {2}error {12}returns ok\b/m,
-    )
+    assert.match(regressed.out, /^regressed {8}flips\n(.*\n){2} {2}error {12}returns ok\b/m)
     assert.match(regressed.out, /^can't compare {4}slow$/m)
     assert.match(regressed.out, /^1 regressed · 1 can't compare$/m)
     assert.equal(regressed.code, 1, regressed.out)

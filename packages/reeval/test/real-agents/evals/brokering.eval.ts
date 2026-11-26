@@ -1,5 +1,5 @@
-import { createHash } from 'node:crypto'
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { defineEnvironment, defineEval } from 'reeval'
 
 // The harness's key stays on the host. The sandbox only holds a placeholder that reeval's egress

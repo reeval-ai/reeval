@@ -2185,10 +2185,7 @@ export const inventory: InventoryFeature[] = [
     area: 'Judges and matchers',
     name: '`ran({ program, args? })` and `shellCommands()`: the program each shell segment ran, after env assignments, `timeout`, `sudo` and package runners',
     fixtures: ['assert/ran-program'],
-    unit: [
-      'reeval/test/shell-commands.test.ts',
-      'reeval/test/assert.test.ts',
-    ],
+    unit: ['reeval/test/shell-commands.test.ts', 'reeval/test/assert.test.ts'],
   },
   {
     id: 'assert.changed',

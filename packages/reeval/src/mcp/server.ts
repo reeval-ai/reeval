@@ -54,11 +54,11 @@ const VIEW_ROWS: Record<string, string> = {
     'eval per run (an eval with cases is one, with how many): outcome, target, pass@1, mean score, pass@k and pass^k, branch, PR and fingerprint',
   verdict_flips: 'judge question per cell whose pass rate changed from its previous run',
   check_discrimination:
-    'check (an older reeval\'s expect label) per variant cell per run: its passes, failures and not-run on both sides, and whether it discriminates (both-pass and both-fail checks measure nothing)',
+    "check (an older reeval's expect label) per variant cell per run: its passes, failures and not-run on both sides, and whether it discriminates (both-pass and both-fail checks measure nothing)",
   check_rates:
-    'check (an older reeval\'s expect label) per cell per run, control and variant alike: harness, environment, role, passes, failures, errors, not-run and rate = pass / (pass + fail), null when none',
+    "check (an older reeval's expect label) per cell per run, control and variant alike: harness, environment, role, passes, failures, errors, not-run and rate = pass / (pass + fail), null when none",
   check_streaks:
-    'check (an older reeval\'s expect label) per cell, comparable fingerprint and branch over recorded runs: how many newest runs in a row it passed with no fail (on a variant, on both sides), their tries, and the run that ended the streak',
+    "check (an older reeval's expect label) per cell, comparable fingerprint and branch over recorded runs: how many newest runs in a row it passed with no fail (on a variant, on both sides), their tries, and the run that ended the streak",
 }
 
 const READ_ONLY = {

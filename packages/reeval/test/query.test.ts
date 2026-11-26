@@ -17,8 +17,8 @@ import {
   skillUses,
 } from '../src/history/tool-class.ts'
 import { toolTarget } from '../src/history/tool-target.ts'
-import { statementCount, usesRunParameter } from '../src/query.ts'
 import type { AttemptRecord, RunRecord } from '../src/history/types.ts'
+import { statementCount, usesRunParameter } from '../src/query.ts'
 import { toolCalls } from '../src/view/classify.ts'
 import { harnessLabel, type TranscriptLine } from '../src/view/model.ts'
 import { baseEnv, fakeConfig, pkgRoot, project, readRun, runCli } from './helpers.ts'
