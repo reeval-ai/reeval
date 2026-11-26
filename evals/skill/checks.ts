@@ -1,22 +1,55 @@
-import type { AttemptContext } from 'reeval'
+import type { AttemptContext, GraderContext } from 'reeval'
 
+/** What the graders read of `reeval run --dry-run --json`. */
 type Plan = {
   totals: { evals: number; cells: number; attempts: number }
   evals: {
-    cells: { role: string; environment: string; runs: number }[]
-    questions?: { question: string; shows: string[] }[]
+    target: { kind: string; blocking?: boolean }
+    cells: { role: string; environment: string }[]
+    graders: { name: string; kind: string }[]
+    questions: { question: string; across: string[]; shows: string[] }[]
   }[]
 }
 
-/** `reeval run --dry-run --json` in the agent's project, parsed; `plan` is null when it fails. */
+/**
+ * Runs `reeval run --dry-run --json` in the agent's project, labeled `dry-run`, and observes what
+ * the graders read of it as `plan`: null when it fails.
+ */
 export async function dryRun(c: AttemptContext) {
-  const r = await c.exec('./node_modules/.bin/reeval run --dry-run --json')
+  const r = await c.exec('./node_modules/.bin/reeval run --dry-run --json', { label: 'dry-run' })
   let plan: Plan | null = null
   try {
-    plan = r.exitCode === 0 ? (JSON.parse(r.stdout) as Plan) : null
+    if (r.exitCode === 0) {
+      const { totals, evals } = JSON.parse(r.stdout) as Omit<Plan, 'evals'> & {
+        evals: (Omit<Plan['evals'][number], 'questions'> & {
+          questions?: Plan['evals'][0]['questions']
+        })[]
+      }
+      plan = {
+        totals: { evals: totals.evals, cells: totals.cells, attempts: totals.attempts },
+        evals: evals.map((e) => ({
+          target: e.target,
+          cells: e.cells.map(({ role, environment }) => ({ role, environment })),
+          graders: e.graders.map(({ name, kind }) => ({ name, kind })),
+          questions: (e.questions ?? []).map(({ question, across, shows }) => ({
+            question,
+            across,
+            shows,
+          })),
+        })),
+      }
+    }
   } catch {}
-  return { exitCode: r.exitCode, plan }
+  c.observe('plan', plan)
 }
 
-export const typechecks = './node_modules/.bin/tsc -p .'
-export const runsOnFake = './node_modules/.bin/reeval run --ui plain'
+/** The task's `plan` observation; null when the project didn't plan. */
+export const planOf = (c: GraderContext) => c.observation('plan') as Plan | null
+
+/** `tsc -p .` in the agent's project, labeled `typechecks`. */
+export const typecheck = (c: AttemptContext) =>
+  c.exec('./node_modules/.bin/tsc -p .', { label: 'typechecks' })
+
+/** `reeval run` on the project's fake config, labeled `passes-on-the-fake-config`. */
+export const runOnFake = (c: AttemptContext) =>
+  c.exec('./node_modules/.bin/reeval run --ui plain', { label: 'passes-on-the-fake-config' })

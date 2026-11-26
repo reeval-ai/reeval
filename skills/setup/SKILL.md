@@ -129,9 +129,10 @@ Each eval:
   file the task is about (`src/projectId.ts`) so a check can read it, but not the files a rule
   decides (where the test goes): check those with a glob or the one path the rule allows.
 - **Deterministic checks first:** a file's content, a command's exit code, a script that imports
-  the agent's code. Label each requirement with `expect(x, 'label')`; a failed one is recorded and the eval carries on. Add a judge
-  (`c.judge`) only for what no check can see, with the inputs its question reads
-  (`{ diff: ['src/**'] }`, `{ output: true }`), and then add `judge:` to the config.
+  the agent's code. Make each requirement its own grader in `graders` (`hasFile`, `succeeded`, …
+  from `reeval/graders`); a failed one is recorded and the others still run. Add a `judge()` grader
+  only for what no check can see, with the inputs its question reads
+  (`{ inputs: { diff: true } }`, `{ inputs: { output: true } }`), and then add `judge:` to the config.
 - **A name that states the question:** `stores invoice totals in cents with the billing skill`,
   not `billing test`. The results and `reeval analyze` read in its terms.
 - **Small:** leave `runs` unset: a compare runs 4 a cell (8 attempts), the fewest for a lift
@@ -214,6 +215,7 @@ pass             stores invoice totals in cents with the billing skill
   skill. Say so, and suggest a harder task or a more specific rule from the skill next.
 - A check that fails every attempt on both arms is more often a broken check than a hard task.
   Open one attempt's `diff.patch` before you say the agent can't do it.
-- Exit 0 means every gated cell passed; only the variant is gated in a compare.
+- Exit 0 means no eval missed a blocking target (the default `metric()` never blocks); only the
+  variant is gated in a compare.
 - Details: `.reeval/runs/<run>/summary.md`, each attempt's `transcript.jsonl` and `diff.patch`;
   `npx reeval studio` browses them; `npx reeval query effort` compares tools, time and tokens.

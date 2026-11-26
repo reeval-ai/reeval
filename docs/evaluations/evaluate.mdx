@@ -3,7 +3,7 @@ title: "Evaluate"
 description: "Declare an evaluation that gives an agent one task and checks the outcome."
 ---
 
-Declare each evaluation in its own `*.eval.ts` file with `defineEval()`: a task for the agent and the assertions that check the outcome. For the definition, see [Evaluation](/reference/glossary#evaluation).
+Declare each evaluation in its own `*.eval.ts` file with `defineEval()`: a task for the agent and the graders that check the outcome. For the definition, see [Evaluation](/reference/glossary#evaluation).
 
 reeval loads every `*.eval.ts` and `*.eval.py` file under the `evals/` folder. The example evaluation adds a feature to `sindresorhus/camelcase`, a real npm package, checked out at a release tag.
 
@@ -12,11 +12,12 @@ reeval loads every `*.eval.ts` and `*.eval.py` file under the `evals/` folder. T
 <Steps>
 <Step title="Name the question">
 
-The eval's id is its file path under the eval root without `.eval.ts`, such as `camelcase/separators`. Results lead with the id, so you know what a pass means before reading any assertion. In the `evals/camelcase/separators.eval.ts` file, declare the evaluation:
+The eval's id is its file path under the eval root without `.eval.ts`, such as `camelcase/separators`. Results lead with the id, so you know what a pass means before reading any grader. In the `evals/camelcase/separators.eval.ts` file, declare the evaluation:
 
 ```ts title="evals/camelcase/separators.eval.ts"
-import { readFileSync } from 'node:fs'
-import { defineEnvironment, defineEval, expect } from '{{ pkg }}'
+import { defineEnvironment, defineEval, defineGrader } from '{{ pkg }}'
+import { hasFile, succeeded } from '{{ pkg }}/graders'
+import { docker } from '{{ pkg }}/sandbox'
 
 const camelcase = defineEnvironment('camelcase', ({ git }) => ({
   workspace: git('github:sindresorhus/camelcase', {
@@ -24,13 +25,26 @@ const camelcase = defineEnvironment('camelcase', ({ git }) => ({
     init: true,
   }),
 }))
-const hidden = readFileSync(
-  new URL('./hidden/separators.test.js', import.meta.url),
-  'utf8',
-)
+
+const separators = defineGrader('separators-work', ({ file }) => ({
+  env: docker(),
+  required: true,
+  files: ['index.js', 'package.json'],
+  data: { test: file('./hidden/separators.test.js') },
+  grade: async (c) => {
+    await c.sandbox.writeFile('separators.test.js', c.data.test as string)
+    const run = await c.sandbox.exec('node --test separators.test.js')
+    return run.exitCode === 0
+  },
+}))
 
 export default defineEval({
   environment: camelcase,
+  graders: [
+    succeeded('node --test'),
+    hasFile('readme.md', /separators/),
+    separators,
+  ],
   task: async (c) => {
     await c.send(
       'Add a separators option to camelCase: a string of extra characters ' +
@@ -38,14 +52,7 @@ export default defineEval({
         "is 'fooBar'. Add tests to test.js and document it in readme.md. " +
         'Run the tests with node --test.',
     )
-
-    await expect(c.exec('node --test'), "the repo's tests pass").toSucceed()
-    await expect(c).toHaveFile('readme.md', /separators/)
-    await c.writeFile('separators.test.js', hidden)
-    await expect(
-      c.exec('node --test separators.test.js'),
-      'the option works',
-    ).toSucceed()
+    await c.exec('node --test')
   },
 })
 ```
@@ -55,14 +62,14 @@ A path such as `camelcase/test-2` says nothing about what passed. Moving an eval
 </Step>
 <Step title="Write one prompt">
 
-Ask for the outcome you want in `c.send()`. The assertions then decide whether the harness reached it.
+Ask for the outcome you want in `c.send()`. The graders then decide whether the harness reached it.
 
-Name the files the task is about, such as `test.js` and `readme.md`. Leave out the hidden test: the evaluation writes `separators.test.js` only after the harness finishes, so a pass shows the option works on cases the harness never saw.
+Name the files the task is about, such as `test.js` and `readme.md`. Leave out the hidden test: the `separators-work` grader runs `separators.test.js` in a sandbox of its own after the harness finishes, so a pass shows the option works on cases the harness never saw.
 
 </Step>
 <Step title="Check the outcome">
 
-Each `expect` line is an assertion. The label, such as `'the option works'`, names the assertion's row in the result. For more information about every kind of assertion, see [Assertions](/evaluations/grading/assertions).
+Each entry in `graders` is a grader. Its name, such as `separators-work`, names its row in the result. For more information about every kind of assertion, see [Assertions](/evaluations/grading/assertions).
 
 To measure a change, such as a skill, replace `environment` with `compare`. For more information about the control, the variant, and the effect, see [Measure lift against a control](/results/compare/lift).
 

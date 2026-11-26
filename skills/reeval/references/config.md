@@ -121,9 +121,9 @@ ids as `anthropic/…`, never `openrouter/…` or `vercel/…`.
   pin a language-model judge to `gateway: 'direct'`. Always a provider prefix.
   With a `gateway` list set, a judge model takes the first listed gateway that serves it, and only
   that gateway's key.
-- Imports: `reeval` (`defineConfig`, `defineEnvironment`, `group`, `evaluate`,
-  `expect`, `DEFAULT_EGRESS_ALLOW`, `DEFAULT_SKILL_EXCLUDE`, types), `/harness`, `/gateway`
-  (`direct`, `vercel`), `/sandbox`
+- Imports: `reeval` (`defineConfig`, `defineEnvironment`, `defineEval`, `defineGrader`, `EvalError`,
+  `expect`, `metric`, `regression`, `capability`, `DEFAULT_EGRESS_ALLOW`, `DEFAULT_SKILL_EXCLUDE`, types), `/agent`,
+  `/graders` (the built-in graders and `judge`), `/gateway` (`direct`, `vercel`), `/sandbox`
   (`docker`, `fakeSandbox`), `/judge` (`fakeJudge`, `RECOMMENDED_JUDGE_MODEL`,
   `DEFAULT_THRESHOLD`). There is no `test`, `describe`, `baseline`, `secret` or `skill` export.
 

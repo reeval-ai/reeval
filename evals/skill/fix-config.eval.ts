@@ -1,6 +1,7 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval, defineGrader } from 'reeval'
+import { notInDiff, succeeded } from 'reeval/graders'
 import { channels, PREAMBLE, project } from './channels.ts'
-import { dryRun, runsOnFake } from './checks.ts'
+import { dryRun, planOf, runOnFake } from './checks.ts'
 
 const task =
   PREAMBLE +
@@ -11,19 +12,28 @@ const task =
 
 export default defineEval({
   compare: channels(project('notes', 'fix-config')),
+  graders: [
+    succeeded('dry-run', { name: 'reeval-run-dry-run-exits-0' }),
+    defineGrader('plans-2-cells-and-6-attempts', {
+      grade: (c) => {
+        const totals = planOf(c)?.totals
+        return totals?.evals === 1 && totals.cells === 2 && totals.attempts === 6
+      },
+    }),
+    defineGrader('with-docs-is-the-variant', {
+      grade: (c) =>
+        planOf(c)?.evals[0]?.cells.find((cell) => cell.role === 'variant')?.environment ===
+        'with-docs',
+    }),
+    succeeded('passes-on-the-fake-config'),
+    notInDiff('docs/**', { name: 'leaves-docs-alone' }),
+    defineGrader('names-the-judge-inputs', {
+      grade: (c) => /inputs/i.test(c.turns.at(-1)?.text ?? ''),
+    }),
+  ],
   task: async (c) => {
-    const turn = await c.send(task)
-    const { exitCode, plan } = await dryRun(c)
-    expect(exitCode, 'reeval run --dry-run exits 0').toBe(0)
-    expect(plan?.totals, 'plans 2 cells and 6 attempts').toMatchObject({
-      evals: 1,
-      cells: 2,
-      attempts: 6,
-    })
-    const variant = plan?.evals[0]?.cells.find((cell) => cell.role === 'variant')
-    expect(variant?.environment, 'with-docs is the variant').toBe('with-docs')
-    await expect(c.exec(runsOnFake), 'passes on the fake config').toSucceed()
-    expect(c, 'leaves docs/ alone').not.toHaveChanged(['docs/**'])
-    expect(turn.text, 'names the missing await').toMatch(/await/i)
+    await c.send(task)
+    await dryRun(c)
+    await runOnFake(c)
   },
 })

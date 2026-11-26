@@ -10,11 +10,17 @@ An SDK test seeds the SDK into the workspace, asks the harness to build with it,
 <Steps>
 <Step title="Write the evaluation">
 
-Create the `evals/sdk.eval.ts` file with the environment, the task, the check script and a judge.
+Create the `evals/sdk.eval.ts` file with the environment, the task, a grader that runs the check script and a judge.
 
 ```ts title="evals/sdk.eval.ts"
-import { readFileSync } from 'node:fs'
-import { defineEnvironment, defineEval, expect } from '{{ pkg }}'
+import {
+  defineEnvironment,
+  defineEval,
+  defineGrader,
+  regression,
+} from '{{ pkg }}'
+import { judge } from '{{ pkg }}/graders'
+import { docker } from '{{ pkg }}/sandbox'
 
 // An empty package with the Acme SDK seeded into vendor/acme.
 const app = defineEnvironment('acme-app', ({ directory }) => ({
@@ -23,32 +29,43 @@ const app = defineEnvironment('acme-app', ({ directory }) => ({
     ...directory('./acme-sdk', { into: 'vendor/acme' }),
   },
 }))
-const checkClient = readFileSync(
-  new URL('./hidden/check-client.mjs', import.meta.url), 'utf8',
-)
+
+const checkClient = defineGrader('check-client', ({ file }) => ({
+  env: docker(),
+  required: true,
+  files: ['src/**', 'vendor/**', 'package.json'],
+  data: { check: file('./hidden/check-client.mjs') },
+  grade: async (c) => {
+    await c.sandbox.writeFile('check-client.mjs', c.data.check as string)
+    const { exitCode, stderr } = await c.sandbox.exec('node check-client.mjs')
+    return { exitCode, stderr }
+  },
+  score: (grade) => (grade.exitCode === 0 ? 1 : 0),
+}))
 
 export default defineEval({
   environment: app,
+  target: regression(),
+  graders: [
+    checkClient,
+    judge('Does forecast() use client.retry rather than its own loop?', {
+      inputs: { contents: ['src/forecast.js'] },
+    }),
+  ],
   task: async (c) => {
-  await c.send(
-    'Write src/forecast.js exporting forecast(city), which resolves to ' +
-      'the temperature in Celsius from the Acme SDK in vendor/acme (see ' +
-      'its README.md), with the key in ACME_API_KEY. The API sometimes ' +
-      'answers 503; retry those.',
-  )
-
-  await c.writeFile('check-client.mjs', checkClient)
-  await expect(c.exec('node check-client.mjs')).toSucceed()
-  expect(await c.judge(
-    'Does forecast() use client.retry rather than its own loop?',
-    { contents: ['src/forecast.js'] },
-  )).toPass()
+    await c.send(
+      'Write src/forecast.js exporting forecast(city), which resolves to ' +
+        'the temperature in Celsius from the Acme SDK in vendor/acme (see ' +
+        'its README.md), with the key in ACME_API_KEY. The API sometimes ' +
+        'answers 503; retry those.',
+    )
+  },
 })
 ```
 
 `directory('./acme-sdk', { into: 'vendor/acme' })` copies the SDK and its `README.md` into the workspace. For more information about seeding files, see [Place files](/configuration/environments/files).
 
-`c.writeFile` adds `check-client.mjs` after the harness finishes, so the harness never sees it. The script runs `forecast()` against a stand-in API that answers `503` once. The judge asks the one question a command can't answer. For more information about judgments, see [Judge agent work](/evaluations/grading/judgments).
+The `check-client` grader runs `check-client.mjs` in a sandbox of its own after the harness finishes, so the harness never sees it. The script runs `forecast()` against a stand-in API that answers `503` once. The judge asks the one question a command can't answer. For more information about judgments, see [Judge agent work](/evaluations/grading/judgments).
 
 </Step>
 <Step title="Run the evaluation">
@@ -64,23 +81,21 @@ The run needs an API key for the harness and for the judge. For more information
 </Step>
 <Step title="Read the outcome">
 
-When both assertions pass, the block for `uses the Acme SDK correctly` is one line. A `forecast()` that calls the SDK without retrying fails the check script.
+When both graders pass, the block for `sdk` is one line. A `forecast()` that calls the SDK without retrying fails the check script.
 
 ```text
-fail             uses the Acme SDK correctly
-  toSucceed node check-client.mjs  failed
-    expected command to succeed, exit code 1
+└─ ✗ sdk  0/1 run at 100%  regression(1)
+     #1  0%  check-client 0% (required)
 ```
 
-The attempt's `checks/1.log`, under `.reeval/runs/<run>/`, has the command's output.
+The `check-client` grade in the run record, `.reeval/runs/<run>.json`, has the command's `stderr`.
 
 ```text
-$ node check-client.mjs
-exit 1
 …
 AcmeError: Acme API answered 503
-    at Object.weather (file:///…/work/vendor/acme/index.js:15:24)
-    at async forecast (file:///…/work/src/forecast.js:5:11)
+    at Object.weather (file:///reeval/workspace/vendor/acme/index.js:15:24)
+    at async forecast (file:///reeval/workspace/src/forecast.js:5:21)
+…
 ```
 
 For more information about outcome words, see [Read the outcomes](/results/output#read-the-outcomes).

@@ -14,6 +14,6 @@ reeval's word in code and messages.
 | lift (variant mean score − control mean score, 95% interval) | treatment effect, delta, uplift |
 | target (how a cell's attempts decide its outcome) | `regression()` is pass^k, `capability()` pass@k, `metric(t)` a mean-score threshold; epoch reducer (Inspect), quality gate |
 | pass@1 (passes over passes and fails; `pass_at_1` in `reeval query`) | success rate, resolve rate (SWE-bench) |
-| checks, judge (`expect`, `c.exec`, `c.judge`) | grader, verifier, scorer, evaluator |
+| graders, judge (`defineGrader`, `reeval/graders`, `judge()`) | verifier, scorer, evaluator, check |
 | transcript (`transcript.jsonl`) | trajectory, trace |
 | effort (measured tool calls, agent time, tokens, cost) | efficiency |

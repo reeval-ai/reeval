@@ -8,17 +8,15 @@ description: "defineEval, defineEnvironment, and defineConfig declare evaluation
 `defineEval(spec)` declares one evaluation. Each `*.eval.ts` file holds exactly one eval and exports it as the default:
 
 ```ts title="evals/shoehorn/build-only-fields.eval.ts"
-import { defineEval, expect } from '{{ pkg }}'
-import { plain, shared } from './shared.ts'
+import { defineEval } from '{{ pkg }}'
+import { hasFile } from '{{ pkg }}/graders'
+import { shared } from './shared.ts'
 
 export default defineEval({
   ...shared,
+  graders: [hasFile('src/user.test.ts', /fromPartial(<\w+>)?\(/)],
   task: async (c) => {
     await c.send('Add a Vitest test for getUserId in src/user.test.ts.')
-    await expect(c, 'uses fromPartial').toHaveFile(
-      'src/user.test.ts',
-      /fromPartial(<\w+>)?\(/,
-    )
   },
 })
 ```

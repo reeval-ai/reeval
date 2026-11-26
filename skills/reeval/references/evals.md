@@ -76,10 +76,10 @@
   `c.attempt.cell.role` is
   `'control'` or `'variant'`.
 - `c.observe(name, value)` records a JSON value about the attempt (which ORM it installed, how many
-  files it touched) that never affects pass or fail; the run output tallies it per cell and
+  files it touched) that affects the score only through a grader that reads it; the run output tallies it per cell and
   `reeval query attempt_values` lists it. `c.judge()` and questions see it only with
-  `observations: true` (or a list of names). Use it for what you want to count, `expect` for what
-  must hold.
+  `observations: true` (or a list of names). Use it for what you want to count, and
+  `observed(name, predicate)` from `reeval/graders` for what must hold.
 
 ## The judge: inputs, input size, errors
 
@@ -156,8 +156,8 @@ export default defineConfig({
 
 ```bash
 npx reeval image build --profile oracle   # once: the eval's images
-npx reeval run --profile oracle           # every check passes, exit 0
-npx reeval run --profile canary           # the checks you meant fail, exit 1
+npx reeval run --profile oracle           # every eval scores 100%
+npx reeval run --profile canary           # the graders you meant miss
 ```
 
 - Set `defaults.agents`, never `defaults.sandbox`: the environment's `docker()` (image,
@@ -175,13 +175,13 @@ npx reeval run --profile canary           # the checks you meant fail, exit 1
   exit code: its row in the result block shows its count (`plain  0 of 4`).
 
 Keep grading out of the
-agent's reach: place hidden tests after the turn with `c.writeFile`, so the agent never sees
+agent's reach: run hidden tests in a `defineGrader` with `env: docker()` and `data`, so the agent never sees
 them, seed tests in `files` only when the agent should see them, and guard seeded files
-with `expect(await c.readFile(path)).toBe(original)` or `expect(c).not.toHaveChanged(path)`.
+with `notInDiff(path, { required: true })`.
 When the behavior is the
-outcome, judge the program's output, not the diff:
-`c.judge(q, { on: (await c.exec('node app.js')).stdout, output: true })`. Checks run in the agent's
-container as the same user, which suits AX evals but isn't a sealed verifier.
+outcome, judge the program's output, not the diff: `await c.exec('node app.js')` in the task and
+`judge(q, { inputs: { checks: ['node app.js'] } })`. The task's `c.exec` runs in the agent's
+container as the same user, which suits AX evals but isn't a sealed verifier; a grader with `env` runs in a sandbox of its own.
 
 ## Matchers
 

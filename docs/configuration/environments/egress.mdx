@@ -10,7 +10,8 @@ The `egress` option sets which hosts the sandbox can reach. The default is `'pro
 In the `evals/egress.eval.ts` file, set `egress` to `'deny-all'` on an environment:
 
 ```ts title="evals/egress.eval.ts"
-import { defineEnvironment, defineEval, expect } from '{{ pkg }}'
+import { defineEnvironment, defineEval } from '{{ pkg }}'
+import { hasFile } from '{{ pkg }}/graders'
 
 const offline = defineEnvironment('offline', {
   files: {
@@ -23,9 +24,9 @@ export const getUserId = (req: Request) => req.params.id
 
 export default defineEval({
   environment: offline,
+  graders: [hasFile('src/user.test.ts')],
   task: async (c) => {
     await c.send('Add a Vitest test for getUserId in src/user.test.ts.')
-    await expect(c, 'writes the test').toHaveFile('src/user.test.ts')
   },
 })
 ```

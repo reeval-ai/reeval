@@ -54,13 +54,13 @@ An unset variable ends the attempt as an infrastructure error. For more informat
 
 ## Check the agent called the server
 
-`toHaveCalledMcp` passes when the transcript has a call named `mcp__<server>__<tool>`. Pass the server name, the tool name the server advertises, and `c` or the turn that `c.send` returns:
+The `calledMcp` grader from `{{ pkg }}/graders` passes when the transcript has a call named `mcp__<server>__<tool>`. Pass the server name and the tool name the server advertises:
 
 ```ts
-expect(turn).toHaveCalledMcp('releases', 'latest_version')
+graders: [calledMcp('releases', 'latest_version')],
 ```
 
-To match the tool input, pass a string, a regular expression, or an object as the third argument. For more information about the arguments, see [the `toHaveCalledMcp` matcher](/reference/matchers#tohavecalledmcp). For a complete control and variant evaluation of a server, see [Measure MCP servers](/evaluations/recipes/measure-mcp-servers). For a runnable project, see [`with-mcp`](https://github.com/reeval-ai/reeval/tree/main/examples/with-mcp).
+To match the tool input, pass a string, a regular expression, or an object as the second argument of `calledTool('mcp__releases__latest_version', input)`. For more information about the arguments, see [the `toHaveCalledMcp` matcher](/reference/matchers#tohavecalledmcp). For a complete control and variant evaluation of a server, see [Measure MCP servers](/evaluations/recipes/measure-mcp-servers). For a runnable project, see [`with-mcp`](https://github.com/reeval-ai/reeval/tree/main/examples/with-mcp).
 
 ## Troubleshooting
 

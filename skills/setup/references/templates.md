@@ -28,22 +28,30 @@ export const withSkill = plain.extendEnvironment('with-billing-skill', ({ skill 
 
 ```ts
 // evals/invoice-amounts.eval.ts
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
 import { plain, withSkill } from './environments.ts'
 
 const migration = 'migrations/001_invoices.sql'
 
 export default defineEval({
   compare: { control: plain, variants: [withSkill] },
+  graders: [
+    hasFile(migration, /create table[^;]*invoices/i, {
+      name: 'creates-invoices',
+    }),
+    hasFile(migration, /\btotal\w*_cents\s+(big)?int/i, {
+      name: 'total-in-cents',
+    }),
+    hasFile(migration, /\bcurrency\w*\s+(char|varchar)\s*\(\s*3/i, {
+      name: 'currency',
+    }),
+  ],
   task: async (c) => {
     await c.send(
       `Write ${migration}: a Postgres migration creating an invoices table ` +
         'with a customer id, an issue date and the invoice total.',
     )
-    const sql = ((await c.readFile(migration)) ?? '').toLowerCase()
-    expect(sql, 'creates invoices').toMatch(/create table[^;]*invoices/)
-    expect(sql, 'total in integer cents').toMatch(/\btotal\w*_cents\s+(big)?int/)
-    expect(sql, 'a currency column').toMatch(/\bcurrency\w*\s+(char|varchar)\s*\(\s*3/)
   },
 })
 ```
@@ -89,8 +97,8 @@ import { cursor, fakeAgent } from 'reeval/agent'
 ```
 
 `npx reeval run --profile canary invoice` and `--profile oracle` run them in the
-real Docker sandbox with no keys (after `npx reeval image build`): the canary must exit 1 and
-the oracle 0. Name the eval (`invoice` matches its name): the fake agent writes these files for
+real Docker sandbox with no keys (after `npx reeval image build`): the canary must score under
+100% and the oracle 100%. Name the eval (`invoice` matches its name): the fake agent writes these files for
 every eval, so with a second eval, give it its own `canary-<name>` and `oracle-<name>`. One of
 each per eval is plenty; a check that runs the project's own tests needs neither.
 
@@ -112,11 +120,16 @@ export const repo = defineEnvironment('repo', ({ directory }) => ({
 
 ```ts
 // evals/slugify.eval.ts
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { succeeded } from 'reeval/graders'
 import { repo } from './environments.ts'
 
 export default defineEval({
   environment: repo,
+  graders: [
+    succeeded('hidden test', { required: true }),
+    succeeded('npm test'),
+  ],
   task: async (c) => {
     await c.send('Add slugify(text) to src/strings.ts and export it from src/index.ts.')
     await c.writeFile(
@@ -125,8 +138,10 @@ export default defineEval({
         "import { test, expect } from 'vitest'\n" +
         "test('slugify', () => expect(slugify('Hello, World!')).toBe('hello-world'))\n",
     )
-    await expect(c.exec('npx vitest run test/slugify.hidden.test.ts'), 'hidden test').toSucceed()
-    await expect(c.exec('npm test'), 'existing tests').toSucceed()
+    await c.exec('npx vitest run test/slugify.hidden.test.ts', {
+      label: 'hidden test',
+    })
+    await c.exec('npm test')
   },
 })
 ```
@@ -171,16 +186,20 @@ export const withRules = repo.extendEnvironment('with-agents-md', ({ file }) => 
 
 ```ts
 // evals/deploy-region.eval.ts
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { inDiff, succeeded } from 'reeval/graders'
 import { repo, withRules } from './environments.ts'
 
 export default defineEval({
   compare: { control: repo, variants: [withRules] },
+  graders: [
+    inDiff('CHANGELOG.md'),
+    inDiff('src/**/*.test.ts'),
+    succeeded('npx tsc --noEmit'),
+  ],
   task: async (c) => {
     await c.send('`acme deploy` should stop with a clear error when no region is set.')
-    expect(c, 'a CHANGELOG.md entry').toHaveChanged('CHANGELOG.md')
-    expect(c, 'a test beside the code').toHaveChanged('src/**/*.test.ts')
-    await expect(c.exec('npx tsc --noEmit'), 'compiles').toSucceed()
+    await c.exec('npx tsc --noEmit')
   },
 })
 ```
@@ -193,7 +212,7 @@ export default defineEval({
   across models and harnesses.
 - The prompt asks for the change, never for a changelog line or a test: that's what the rules
   file should add.
-- `toHaveChanged` reads the attempt's diff, so it needs no oracle; a `compiles` check needs
+- `inDiff` reads the attempt's diff, so it needs no oracle; a `compiles` check needs
   none either.
 
 ## C. A subject you researched
@@ -231,7 +250,8 @@ export const withZodSkill = zod.extendEnvironment('with-zod-skill', ({ skill }) 
 
 ```ts
 // evals/zod-email.eval.ts
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { hasFile, succeeded } from 'reeval/graders'
 import { withZodSkill, zod } from './environments.ts'
 
 const accepts = `node -e "import('./user.js').then(({ User }) => {
@@ -242,11 +262,13 @@ const accepts = `node -e "import('./user.js').then(({ User }) => {
 
 export default defineEval({
   compare: { control: zod, variants: [withZodSkill] },
+  graders: [
+    succeeded('validates emails'),
+    hasFile('user.js', /z\.email\(/, { name: 'uses-z-email' }),
+  ],
   task: async (c) => {
     await c.send('Create user.js exporting a zod schema User with a required email field.')
-    await expect(c.exec(accepts), 'validates emails').toSucceed()
-    const src = (await c.readFile('user.js')) ?? ''
-    expect(src, 'uses z.email()').toMatch(/z\.email\(/)
+    await c.exec(accepts, { label: 'validates emails' })
   },
 })
 ```

@@ -15,8 +15,9 @@ To measure a change on each agent instead, add `compare` ([the `compare.agents` 
 In the `evals/stream.eval.ts` file, list the agents in `agents` and give each agent four attempts with `runs`:
 
 ```ts title="evals/stream.eval.ts"
-import { defineEval, expect } from '{{ pkg }}'
+import { defineEval, regression } from '{{ pkg }}'
 import { claudeCode, codex, cursor } from '{{ pkg }}/agent'
+import { hasFile } from '{{ pkg }}/graders'
 
 export default defineEval({
   pin: ['agents'],
@@ -26,21 +27,21 @@ export default defineEval({
     codex({ model: 'gpt-5.6-luna' }),
   ],
   runs: 4,
+  target: regression(),
+  graders: [
+    hasFile('package.json', /"ai"/, { name: 'adds-the-ai-package' }),
+    hasFile('src/stream.ts', /streamText\(/, { name: 'uses-streamText' }),
+  ],
   task: async (c) => {
     await c.send(
       'Add src/stream.ts with a streamChat(prompt) function that ' +
         'streams a reply with Vercel AI SDK.',
     )
-    await expect(c, 'adds the ai package').toHaveFile('package.json', /"ai"/)
-    await expect(c, 'uses streamText').toHaveFile(
-      'src/stream.ts',
-      /streamText\(/,
-    )
   },
 })
 ```
 
-Each agent runs the same prompt and assertions as its own cell. For more information about the harness factories, see [Pick a harness](/configuration/agents#pick-a-harness). For more information about each harness's key, see [Harness behavior](/reference/options#harness-behavior). To plan the cells without starting one, see [Preview the plan](/evaluations/runs/running#preview-the-plan).
+Each agent runs the same prompt and graders as its own cell. For more information about the harness factories, see [Pick a harness](/configuration/agents#pick-a-harness). For more information about each harness's key, see [Harness behavior](/reference/options#harness-behavior). To plan the cells without starting one, see [Preview the plan](/evaluations/runs/running#preview-the-plan).
 
 </Step>
 <Step title="Run the evaluation">
@@ -67,7 +68,7 @@ fail             streams with Vercel AI SDK
     +1 more passed
 ```
 
-Here `codex:gpt-5.6-luna` failed `adds the ai package` in one attempt, so it fails the evaluation. For more information about the rows and gating, see [Read the result](/results/compare/lift#read-the-result).
+Here `codex:gpt-5.6-luna` failed `adds-the-ai-package` in one attempt, and `target: regression()` needs every attempt to pass, so it fails the evaluation. For more information about the rows and gating, see [Read the result](/results/compare/lift#read-the-result).
 
 </Step>
 <Step title="Read the effort per agent">

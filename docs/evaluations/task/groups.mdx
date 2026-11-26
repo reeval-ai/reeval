@@ -12,39 +12,35 @@ Export shared options from one module. In the `evals/shared.ts` file, give both 
 ```ts title="evals/shared.ts"
 import { plain } from './environments.ts'
 
-export const shared = { environment: plain, tags: ['smoke'] as const }
+export const shared = { environment: plain, tags: ['smoke'] }
 ```
 
 Each eval gets its own file and spreads `shared`:
 
 ```ts title="evals/shoehorn/build-only-fields.eval.ts"
-import { defineEval, expect } from '{{ pkg }}'
+import { defineEval } from '{{ pkg }}'
+import { hasFile } from '{{ pkg }}/graders'
 import { shared } from '../shared.ts'
 
 export default defineEval({
   ...shared,
+  graders: [hasFile('src/user.test.ts', /fromPartial(<\w+>)?\(/)],
   task: async (c) => {
     await c.send('Add a Vitest test for getUserId in src/user.test.ts.')
-    await expect(c, 'uses fromPartial').toHaveFile(
-      'src/user.test.ts',
-      /fromPartial(<\w+>)?\(/,
-    )
   },
 })
 ```
 
 ```ts title="evals/shoehorn/mock-services.eval.ts"
-import { defineEval, expect } from '{{ pkg }}'
+import { defineEval } from '{{ pkg }}'
+import { hasFile } from '{{ pkg }}/graders'
 import { shared } from '../shared.ts'
 
 export default defineEval({
   ...shared,
+  graders: [hasFile('src/billing.test.ts', /fromPartial(<\w+>)?\(/)],
   task: async (c) => {
     await c.send('Add a Vitest test for chargeCard in src/billing.test.ts.')
-    await expect(c, 'uses fromPartial').toHaveFile(
-      'src/billing.test.ts',
-      /fromPartial(<\w+>)?\(/,
-    )
   },
 })
 ```
@@ -56,7 +52,7 @@ A helper can spread another helper and add its own fields. In the `evals/billing
 ```ts title="evals/billing-shared.ts"
 import { shared } from './shared.ts'
 
-export const billing = { ...shared, tags: [...shared.tags, 'billing'] as const }
+export const billing = { ...shared, tags: [...shared.tags, 'billing'] }
 ```
 
 The billing evaluation spreads `billing` and keeps `shared`'s `plain` environment and `smoke` tag.

@@ -101,7 +101,7 @@ no hidden default harness or include.
 | Exit code | Means |
 |---|---|
 | 0 | Pass, and `--dry-run` |
-| 1 | A gated failure |
+| 1 | An eval missed a blocking target |
 | 2 | A usage or config error, including a filter that matches nothing |
 | 3 | An infra error, such as a sandbox that failed to start, a harness key the API rejected or a turn the provider stopped |
 | 130, 143 | Ctrl-C, SIGTERM |
