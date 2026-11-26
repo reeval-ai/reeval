@@ -25,8 +25,8 @@ Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../p
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the result block when the agent skips the tests. Here the fake agent's
-script has no `exec` step:
+**What to look at:** `pnpm eval -v`'s result block when the agent skips the tests. Here the
+fake agent's script has no `exec` step:
 
 ```text
 with-transcript-matchers.eval.ts

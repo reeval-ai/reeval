@@ -25,8 +25,8 @@ fake judge is set on the grader, so it answers under every profile too.
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the result block when the wiring is wrong. Here `contents` names
-`README.mdx`, so the README never reaches the judge and it says no:
+**What to look at:** `pnpm eval -v`'s result block when the wiring is wrong. Here `contents`
+names `README.mdx`, so the README never reaches the judge and it says no:
 
 ```text
 with-fake-judge.eval.ts

@@ -25,12 +25,14 @@ Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../p
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** change the eval to `egress: 'proxy'` (the default) and the connection fails:
+**What to look at:** change the eval to `egress: 'proxy'` (the default) and `pnpm eval -v` shows
+the connection fail:
 
 ```text
 with-egress-allow-all.eval.ts
   · with-egress-allow-all  0%  metric()
     #1  0%  succeeded:bash banner.sh 0%, observed:banner 0%
+    …
 ```
 
 The attempt's `execs.jsonl` has the run's stderr: `github.com: Temporary failure in name

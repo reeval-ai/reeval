@@ -43,6 +43,7 @@ with-checks-and-gates.eval.ts
       stderr: …/src/math.js:2 SyntaxError: Unexpected end of input …
       after turn 1
       at task (with-checks-and-gates.eval.ts:25:13)
+    …
 ```
 
 Each grade, with its grader's name, is in the run record's `grades`.

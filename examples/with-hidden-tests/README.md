@@ -24,8 +24,8 @@ Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../p
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the result block. Here the fake agent's `slugify` keeps punctuation, so one of
-the three hidden tests fails:
+**What to look at:** `pnpm eval -v`'s result block. Here the fake agent's `slugify` keeps
+punctuation, so one of the three hidden tests fails:
 
 ```text
 with-hidden-tests.eval.ts
