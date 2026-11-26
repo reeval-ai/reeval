@@ -67,18 +67,35 @@ function abortable<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
   })
 }
 
+/**
+ * A signal that aborts after `ms`, as `AbortSignal.timeout`'s does, but whose timer holds the
+ * process open until `clear()`, so a grader awaiting a promise that never settles still times
+ * out where nothing else keeps the process alive (`reeval regrade`).
+ */
+function heldTimeout(ms: number) {
+  const controller = new AbortController()
+  const timer = setTimeout(
+    () =>
+      controller.abort(
+        new DOMException('The operation was aborted due to timeout', 'TimeoutError'),
+      ),
+    ms,
+  )
+  return { signal: controller.signal, clear: () => clearTimeout(timer) }
+}
+
 async function runOnce(run: GradeRun, inputs: GradeInputs, signal: AbortSignal): Promise<Ran> {
   return run.kind === 'judge' ? runJudge(run, inputs, signal) : runCode(run, inputs, signal)
 }
 
 async function runJudge(run: JudgeRun, inputs: GradeInputs, signal: AbortSignal): Promise<Ran> {
   const started = performance.now()
-  const timeout = AbortSignal.timeout(run.timeoutMs)
+  const timeout = heldTimeout(run.timeoutMs)
   const reads = readsOf()
   try {
     const { error, ...ran } = await abortable(
-      runJudgeGrader(run, inputs, reads, AbortSignal.any([signal, timeout])),
-      AbortSignal.any([signal, timeout]),
+      runJudgeGrader(run, inputs, reads, AbortSignal.any([signal, timeout.signal])),
+      AbortSignal.any([signal, timeout.signal]),
     )
     return {
       ...ran,
@@ -87,19 +104,21 @@ async function runJudge(run: JudgeRun, inputs: GradeInputs, signal: AbortSignal)
       durationMs: performance.now() - started,
     }
   } catch (error) {
-    const why = timeout.aborted
+    const why = timeout.signal.aborted
       ? `judge timed out after ${formatDuration(run.timeoutMs)}`
       : message(error)
     return { error: why, reads: reads.reads(), durationMs: performance.now() - started }
+  } finally {
+    timeout.clear()
   }
 }
 
 async function runCode(run: CodeRun, inputs: GradeInputs, signal: AbortSignal): Promise<Ran> {
   const startedAt = performance.now()
-  let timeout: AbortSignal | undefined
+  let timeout: ReturnType<typeof heldTimeout> | undefined
   const timed = () => {
-    timeout ??= AbortSignal.timeout(run.timeoutMs)
-    return AbortSignal.any([signal, timeout])
+    timeout ??= heldTimeout(run.timeoutMs)
+    return AbortSignal.any([signal, timeout.signal])
   }
   let reads: GradeReads = {}
   let data: string | undefined
@@ -135,11 +154,12 @@ async function runCode(run: CodeRun, inputs: GradeInputs, signal: AbortSignal): 
     return { ...asGrade(value), ...ended() }
   } catch (error) {
     if (error instanceof SandboxFailure) throw error.infra
-    const why = timeout?.aborted
+    const why = timeout?.signal.aborted
       ? `grade timed out after ${formatDuration(run.timeoutMs)}`
       : message(error)
     return { error: why, ...ended() }
   } finally {
+    timeout?.clear()
     await box?.close().catch(() => {})
   }
 }

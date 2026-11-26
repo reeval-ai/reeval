@@ -356,6 +356,27 @@ export default defineEval({ graders: [parsed], task: async (c) => void (await c.
     )
   })
 
+  test('times out a code grader that never settles and keeps the stored grade', async () => {
+    const waits = (body: string) => `import { defineGrader } from 'reeval'
+export const waits = defineGrader('waits', { timeout: '200ms', grade: () => ${body} })
+`
+    const p = await setup('regrade-hangs', {
+      artifacts: 'all',
+      graders: waits('true'),
+      evalSrc: `import { defineEval } from 'reeval'
+import { waits } from './graders.ts'
+export default defineEval({ graders: [waits], task: async (c) => void (await c.send('hi')) })
+`,
+    })
+    await writeFile(join(p.dir, 'evals/graders.ts'), waits('new Promise(() => {})'))
+    const out = await runCli(p.dir, ['regrade', '--yes'])
+    assert.equal(out.code, 1, out.stdout + out.stderr)
+    assert.match(out.stdout, /1 grade failed\b/)
+    assert.match(out.stdout, /waits on .+: grade timed out after 200ms$/m)
+    const stored = JSON.parse(await cli(p.dir, ['show', '--json'])).evals[0].attempts[0].grades[0]
+    assert.deepEqual([stored.score, stored.error], [1, undefined])
+  })
+
   test('keeps the stored grade and fails when a judge errors or has no model', async () => {
     const quality = (question: string) => `import { defineGrader } from 'reeval'
 export const quality = defineGrader('quality', { judge: { question: '${question}', inputs: { output: true } } })
