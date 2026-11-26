@@ -34,7 +34,8 @@ function makeRepo(dir: string) {
 async function withEval(env: string, body = "await c.exec('true')", harness?: string) {
   const p = await project('workspace', {
     'reeval.config.ts': fakeConfig(harness ? { harness } : {}),
-    'evals/works-on-the-repo.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+    'evals/works-on-the-repo.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const env = defineEnvironment('app', ({ git }) => ({ sandbox: fakeSandbox(), ${env} }))
 export default defineEval({
@@ -202,7 +203,7 @@ export default defineEval({
     try {
       const p = await withEval(
         "workspace: git(process.env.REEVAL_TEST_GIT_URL as string, { ref: 'v1', path: 'app', token: 'REEVAL_TEST_GIT_TOKEN' })",
-        "expect(await c.readFile('greet.js')).toContain('Hello')",
+        "assert.ok((await c.readFile('greet.js')).includes('Hello'))",
       )
       const url = `${server.serve(p.dir)}/repo`
       const good = await runCli(p.dir, ['run'], {
@@ -246,7 +247,8 @@ export default defineEval({
       'reeval.config.ts': fakeConfig({
         harness: `{ script: [[{ exec: 'echo x > NOTES.md && git add -A && git -c user.name=a -c user.email=a@b commit -qm notes' }]] }`,
       }),
-      'evals/commits-in-the-repo.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+      'evals/commits-in-the-repo.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const env = defineEnvironment('app', ({ git }) => ({
   sandbox: fakeSandbox(),
@@ -257,10 +259,10 @@ export default defineEval({
   environment: env,
   runs: 2,
   async task(c) {
-  expect((await c.exec('git status --porcelain')).stdout).toBe('?? app/extra.js\\n')
-  expect((await c.exec('git rev-parse HEAD')).stdout.trim()).toBe(process.env.EXPECTED_HEAD)
+  assert.equal((await c.exec('git status --porcelain')).stdout, '?? app/extra.js\\n')
+  assert.equal((await c.exec('git rev-parse HEAD')).stdout.trim(), process.env.EXPECTED_HEAD)
   const turn = await c.send('x')
-  expect(turn.diff.files).toEqual([{ path: 'NOTES.md', status: 'added' }])
+  assert.deepEqual(turn.diff.files, [{ path: 'NOTES.md', status: 'added' }])
   },
 })
 `,
@@ -303,7 +305,7 @@ export default defineEval({
   test('a pinned SHA reruns offline from the cache, with the same commit and tree', async () => {
     const p = await withEval(
       "workspace: git('../repo', { ref: process.env.PIN, path: 'app' })",
-      "expect(await c.readFile('greet.js')).toContain('Hello')",
+      "assert.ok((await c.readFile('greet.js')).includes('Hello'))",
     )
     const sha = git(p.repo, 'rev-parse', 'v1')
     const env = { PIN: sha }
@@ -336,7 +338,8 @@ export default defineEval({
       'reeval.config.ts': fakeConfig({
         harness: `{ script: [[{ write: { 'app/greet.js': "export const greeting = 'Hi'\\n", 'NOTES.md': 'x' } }]] }`,
       }),
-      'evals/edits-the-repo.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+      'evals/edits-the-repo.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const base = defineEnvironment('base', ({ git }) => ({
   sandbox: fakeSandbox(),
@@ -346,14 +349,15 @@ export default defineEval({
   environment: base,
   async task(c) {
   const turn = await c.send('x')
-  expect(turn.diff.files).toEqual([
+  assert.deepEqual(turn.diff.files, [
     { path: 'NOTES.md', status: 'added' },
     { path: 'app/greet.js', status: 'modified' },
   ])
   },
 })
 `,
-      'evals/in-the-subdirectory.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+      'evals/in-the-subdirectory.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const base = defineEnvironment('base', ({ git }) => ({
   sandbox: fakeSandbox(),
@@ -363,7 +367,7 @@ const sub = base.extendEnvironment('sub', ({ git }) => ({ workspace: git('../rep
 export default defineEval({
   environment: sub,
   async task(c) {
-  expect(await c.readFile('greet.js')).toContain('Hello')
+  assert.ok((await c.readFile('greet.js')).includes('Hello'))
   },
 })
 `,

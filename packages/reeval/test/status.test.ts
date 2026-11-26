@@ -15,22 +15,24 @@ export const marked = defineEnvironment('marked', { files: { 'marker.txt': 'ok\\
 
 const EVALS = {
   'evals/envs.ts': ENVS,
-  'evals/passes.eval.ts': `import { defineEval, expect } from 'reeval'
+  'evals/passes.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('go')
-    expect(1, 'one').toBe(1)
+    assert.equal(1, 1, 'one')
   },
 })
 `,
-  'evals/two-checks-fail.eval.ts': `import { defineEval, expect, metric } from 'reeval'
+  'evals/two-checks-fail.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval, metric } from 'reeval'
 export default defineEval({
   runs: 2,
   target: metric(0.5),
   async task(c) {
     await c.send('go')
-    if (c.attempt.n === 1) expect(1, 'first check').toBe(2)
-    else expect('a', 'second check').toBe('b')
+    if (c.attempt.n === 1) assert.equal(1, 2, 'first check')
+    else assert.equal('a', 'b', 'second check')
   },
 })
 `,
@@ -42,23 +44,25 @@ export default defineEval({
   },
 })
 `,
-  'evals/compares.eval.ts': `import { defineEval, expect } from 'reeval'
+  'evals/compares.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { marked, plain } from './envs.ts'
 export default defineEval({
   runs: 1,
   compare: { control: plain, variants: [marked] },
   async task(c) {
     await c.send('go')
-    expect(c.attempt.cell.role === 'variant', 'uses the marker').toBe(true)
+    assert.equal(c.attempt.cell.role === 'variant', true, 'uses the marker')
   },
 })
 `,
-  'evals/colors.eval.ts': `import { defineEval, expect } from 'reeval'
+  'evals/colors.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   cases: [{ key: 'red' }, { key: 'green' }, { key: 'blue' }],
   async task(c, { key: id }) {
     await c.send('go')
-    expect(id, 'is green').toBe('green')
+    assert.equal(id, 'green', 'is green')
   },
 })
 `,
@@ -137,7 +141,8 @@ test('the status list: one line a pass, and a sentence for each way an eval went
   )
 })
 
-const FASTER = `import { defineEnvironment, defineEval, expect } from 'reeval'
+const FASTER = `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 const plain = defineEnvironment('plain', {})
 const marked = defineEnvironment('marked', {})
 
@@ -145,7 +150,7 @@ export default defineEval({
   runs: 4, compare: { control: plain, variants: [marked] },
   async task(c) {
     for (let i = 0; i < (c.attempt.cell.role === 'variant' ? 1 : 5); i++) await c.send('go')
-    expect(1, 'one').toBe(1)
+    assert.equal(1, 1, 'one')
   },
 })
 `
@@ -196,7 +201,8 @@ test('a compare whose effort holds prints its comparison, which every reader sha
   )
 })
 
-const IDENTICAL = `import { defineEnvironment, defineEval, expect } from 'reeval'
+const IDENTICAL = `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 const plain = defineEnvironment('plain', {})
 const marked = defineEnvironment('marked', { files: { 'marker.txt': 'ok\\n' } })
 
@@ -204,7 +210,7 @@ export default defineEval({
   runs: 4, compare: { control: plain, variants: [marked] },
   async task(c) {
     await c.send('go')
-    expect(1, 'one').toBe(1)
+    assert.equal(1, 1, 'one')
   },
 })
 `
@@ -291,14 +297,15 @@ export default defineConfig({
   sandbox: fakeSandbox(),
 })
 `,
-    'evals/c.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+    'evals/c.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 const plain = defineEnvironment('plain', {})
 const marked = defineEnvironment('marked', { files: { 'marker.txt': 'ok\\n' } })
 export default defineEval({
   runs: 1, compare: { control: plain, variants: [marked] },
   async task(c) {
     await c.send('go')
-    expect(c.attempt.cell.key.startsWith('left/'), 'on left').toBe(true)
+    assert.equal(c.attempt.cell.key.startsWith('left/'), true, 'on left')
   },
 })
 `,
@@ -322,14 +329,15 @@ export default defineEval({
 test('under -v a judged check reads as its judge score, marked (leans), not again as its pass rate', async () => {
   const p = await project('status-judged-lean', {
     'reeval.config.ts': fakeConfig(),
-    'evals/c.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+    'evals/c.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 const plain = defineEnvironment('plain', {})
 const marked = defineEnvironment('marked', { files: { 'marker.txt': 'ok\\n' } })
 export default defineEval({
   runs: 1, compare: { control: plain, variants: [marked] },
   async task(c) {
     await c.send('go')
-    expect(c.attempt.cell.role === 'variant', 'tidy').toBe(true)
+    assert.equal(c.attempt.cell.role === 'variant', true, 'tidy')
   },
 })
 `,

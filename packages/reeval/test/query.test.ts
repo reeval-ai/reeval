@@ -50,14 +50,15 @@ export const skilled = defineEnvironment('skilled', ({ skill }) => ({
   skills: [skill.local('../skills/house-greeting')],
 }))
 `,
-      'evals/greets.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/greets.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { plain, skilled } from './envs.ts'
 export default defineEval({
   compare: { control: plain, variants: [skilled] },
   runs: 3,
   async task(c) {
     await c.send('go')
-    await expect(c).toHaveFile('ok.txt')
+    assert.notEqual(await c.readFile('ok.txt'), null)
   },
 })
 `,
@@ -107,12 +108,13 @@ export default defineEval({
   test('an eval with cases is one eval_trend row, its cases in cases with verdict family', async () => {
     const p = await project('query-trend-verdict', {
       'reeval.config.ts': fakeConfig(),
-      'evals/rated.eval.ts': `import { defineEval, expect, metric } from 'reeval'
+      'evals/rated.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval, metric } from 'reeval'
 export default defineEval({
   cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }],
   target: metric(0.6),
   async task(_c, { key: k }) {
-    expect(k, 'not c').not.toBe('c')
+    assert.notEqual(k, 'c', 'not c')
   },
 })
 `,
@@ -178,7 +180,8 @@ export default defineEval({ skip: true, async task() {} })
           "{ files: { 'ok.txt': 'y' }, withSkill: { files: { 'ok.txt': 'y', 'styled.txt': 'Ahoy' } } }",
       }),
       'skills/house/SKILL.md': skill('house'),
-      'evals/greets.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/greets.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { defineEnvironment } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox()
@@ -192,8 +195,8 @@ export default defineEval({
   runs: 2,
   async task(c) {
     await c.send('go')
-    await expect(c, 'writes ok.txt').toHaveFile('ok.txt')
-    await expect(c, 'house style').toHaveFile('styled.txt', /Ahoy/)
+    assert.notEqual(await c.readFile('ok.txt'), null, 'writes ok.txt')
+    assert.match((await c.readFile('styled.txt')) ?? '', /Ahoy/, 'house style')
   },
 })
 `,
@@ -238,13 +241,14 @@ export default defineEval({
     const p = await project('query-check-streaks', {
       '.gitignore': '.reeval/\nnode_modules/\nsandboxes/\n',
       'reeval.config.ts': fakeConfig(),
-      'evals/steady.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/steady.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   runs: 2,
   async task(c) {
     await c.send('go')
-    expect(1, 'always one').toBe(1)
-    expect(process.env.FLIP, 'flips').toBeUndefined()
+    assert.equal(1, 1, 'always one')
+    assert.equal(process.env.FLIP, undefined, 'flips')
   },
 })
 `,
@@ -847,14 +851,15 @@ export default defineEval({
   })
 
   test("factor_effects pools a variant across one run's evals, however the evals changed between runs", async () => {
-    const evalBody = (prompt: string, id: string) => `import { defineEval, expect } from 'reeval'
+    const evalBody = (prompt: string, id: string) => `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { plain, skilled } from './pool-envs.ts'
 export default defineEval({
   compare: { control: plain, variants: [skilled] },
   runs: 2,
   async task(c) {
     await c.send('${prompt}')
-    await expect(c).toHaveFile('ok.txt')
+    assert.notEqual(await c.readFile('ok.txt'), null)
   },
 })
 `
@@ -905,14 +910,15 @@ export const skilled = defineEnvironment('skilled', ({ skill }) => ({
         harness: `{ script: [[{ exec: 'if test -f ~/.agents/skills/s/SKILL.md; then echo y > ok.txt; fi' }]] }`,
       }),
       'skills/s/SKILL.md': skill('s'),
-      'evals/writes.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/writes.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { plain, skilled } from './pool-envs.ts'
 export default defineEval({
   compare: { control: plain, variants: [skilled] },
   runs: 2,
   async task(c) {
     await c.send('go')
-    await expect(c).toHaveFile('ok.txt')
+    assert.notEqual(await c.readFile('ok.txt'), null)
   },
 })
 `,
@@ -1090,12 +1096,13 @@ export default defineEval({
   },
 })
 `,
-      'evals/judged.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/judged.eval.ts': `import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 import { prompt } from './helpers.ts'
 export default defineEval({
+  graders: [judge('Is it fine?', { inputs: { diff: true } })],
   async task(c) {
     await c.send(prompt)
-    expect(await c.judge('Is it fine?', { diff: true })).toPass()
   },
 })
 `,

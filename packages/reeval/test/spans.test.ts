@@ -14,11 +14,12 @@ import { RunTrace, traceIdOf } from '../src/trace/run.ts'
 import { parseSpans, type RunSpan } from '../src/view/spans.ts'
 import { fakeConfig, project, readRun, runCli, tempDir } from './helpers.ts'
 
-const evalFile = `import { defineEval, expect } from 'reeval'
+const evalFile = `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('write hello.txt')
-    expect(1).toBe(1)
+    assert.equal(1, 1)
   },
 })
 `
@@ -245,7 +246,8 @@ export default defineEval({
       'reeval.config.ts': fakeConfig({
         harness: `{ bootstrap: 'env > harness-env.txt', files: { 'hello.txt': 'hi\\n' } }`,
       }),
-      'evals/a.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
+      'evals/a.eval.ts': `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 const setup = defineEnvironment('setup', { setup: ['env > setup-env.txt'] })
 export default defineEval({
   environment: setup,
@@ -253,15 +255,15 @@ export default defineEval({
     await c.send('write hello.txt')
     const own = await c.exec('env')
     const extra = await c.exec('env', { env: { OTEL_EXPORTER_OTLP_HEADERS: 'x=y', KEPT: 'yes' } })
-    expect(extra.stdout).toContain('KEPT=yes')
+    assert.ok(extra.stdout.includes('KEPT=yes'))
     for (const seen of [
       own.stdout,
       extra.stdout,
       await c.readFile('setup-env.txt'),
       await c.readFile('~/harness-env.txt'),
     ]) {
-      expect(seen).toContain('PATH=')
-      expect(seen).not.toMatch(/OTEL_/i)
+      assert.ok(seen.includes('PATH='))
+      assert.doesNotMatch(seen, /OTEL_/i)
     }
   },
 })
@@ -293,7 +295,8 @@ export default defineEval({
     const p = await project('spans-otlp-masked', {
       '.gitignore': '.reeval/\nnode_modules/\nsandboxes/\n',
       'reeval.config.ts': fakeConfig({ harness: `{ files: { 'hello.txt': 'hi\\n' } }` }),
-      'evals/a.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/a.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('write hello.txt')
@@ -304,7 +307,7 @@ export default defineEval({
     console.log(process.env.REEVAL_OTEL_EXPORTER_OTLP_HEADERS)
     c.observe('tokens', tokens.join(','))
     c.observe('headers', String(process.env.OTEL_EXPORTER_OTLP_HEADERS))
-    expect(process.env.OTEL_EXPORTER_OTLP_HEADERS).toBe('nope')
+    assert.equal(process.env.OTEL_EXPORTER_OTLP_HEADERS, 'nope')
   },
 })
 `,
@@ -348,12 +351,13 @@ export default defineEval({
     const collector = await startCollector(t)
     const p = await project('spans-otlp-live', {
       'reeval.config.ts': fakeConfig({ harness, extra: 'runs: 2, concurrency: 1,' }),
-      'evals/a.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/a.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('write hello.txt')
     await new Promise((r) => setTimeout(r, 1500))
-    expect(1).toBe(1)
+    assert.equal(1, 1)
   },
 })
 `,
@@ -389,11 +393,12 @@ export default defineEval({
   test('a failed attempt is an error span with its outcome, and the run goes on', async () => {
     const p = await project('spans-fail', {
       'reeval.config.ts': fakeConfig({ harness }),
-      'evals/fails.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/fails.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('write hello.txt')
-    expect(1).toBe(2)
+    assert.equal(1, 2)
   },
 })
 `,

@@ -27,32 +27,36 @@ const sh = (cwd: string, ...args: string[]) =>
   execFileSync('git', args, { cwd, env: GIT_ENV, encoding: 'utf8' }).trim()
 
 const HISTORY = 'evals/.history'
-const agent = `import { defineEval, expect } from 'reeval'
+const agent = `import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
 export default defineEval({
+  graders: [judge('Did it write hello.txt?', { inputs: { diff: true } })],
   async task(c) {
     await c.send('write hello.txt')
-    expect(await c.judge('Did it write hello.txt?', { diff: true })).toPass()
   },
 })
 `
-const failing = `import { defineEval, expect } from 'reeval'
+const failing = `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('write hello.txt')
-    await expect(c.exec('exit 4')).toSucceed()
+    assert.equal((await c.exec('exit 4')).exitCode, 0)
   },
 })
 `
-const logged = `import { defineEval, expect } from 'reeval'
+const logged = `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('write hello.txt')
-    await expect(c.exec('echo ok')).toSucceed()
+    assert.equal((await c.exec('echo ok')).exitCode, 0)
   },
 })
 `
 /** An eval whose environment has a setup step, so its attempt writes setup.log and checks/1.log. */
-const setUp = (command: string) => `import { defineEnvironment, defineEval, expect } from 'reeval'
+const setUp = (command: string) => `import assert from 'node:assert/strict'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const environment = defineEnvironment('set-up', {
   sandbox: fakeSandbox({ dir: new URL('../sandboxes', import.meta.url) }),
@@ -62,7 +66,7 @@ export default defineEval({
   environment,
   async task(c) {
     await c.send('write hello.txt')
-    await expect(c.exec('${command}')).toSucceed()
+    assert.equal((await c.exec('${command}')).exitCode, 0)
   },
 })
 `
@@ -162,10 +166,6 @@ describe('recording runs into evals/.history', () => {
       summary,
       /^\| <a id="attempt-[a-z0-9-]+"><\/a>A1 \| agent \| fake \| fake \| pass \|/m,
     )
-    assert.match(summary, /^## Judgments$/m)
-    assert.match(summary, /Did it write hello\.txt/)
-    const [input] = JSON.parse(recorded.read(e.trial.files.judgeInput?.path ?? ''))
-    assert.deepEqual(input.state.diff.$ref, 'diff.patch', 'the judge input points at diff.patch')
     assert.equal(sh(p.dir, 'status', '--porcelain'), '?? evals/.history/', 'plain files for git')
 
     assert.equal(readFileSync(join(p.dir, HISTORY, '.gitignore'), 'utf8'), HISTORY_GITIGNORE)
@@ -570,7 +570,8 @@ describe('recording runs into evals/.history', () => {
     await rm(join(p.dir, 'evals/canary.eval.ts'))
     await writeFile(
       join(p.dir, 'evals/mixed.eval.ts'),
-      `import { defineEval, expect } from 'reeval'
+      `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { baseline, variant } from './env.ts'
 
 export default defineEval({
@@ -582,7 +583,7 @@ export default defineEval({
     const server = await c.serve('node server.mjs')
     await c.capture(server, { name: 'aside' })
     await c.capture(server, { name: 'landing' })
-    expect(c.attempt.n, 'first try').toBe(1)
+    assert.equal(c.attempt.n, 1, 'first try')
   },
 })
 `,
@@ -602,7 +603,8 @@ export default defineEval({
     )
     await writeFile(
       join(p.dir, 'evals/lifted.eval.ts'),
-      `import { defineEval, expect } from 'reeval'
+      `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 import { baseline, variant } from './env.ts'
 
 export default defineEval({
@@ -610,7 +612,7 @@ export default defineEval({
   compare: { control: baseline, variants: [variant], minLift: 0.6 },
   async task(c) {
     await c.send('write the page')
-    expect(c.attempt.cell.role === 'variant' || c.attempt.n === 1, 'passes').toBe(true)
+    assert.equal(c.attempt.cell.role === 'variant' || c.attempt.n === 1, true, 'passes')
   },
 })
 `,
@@ -691,13 +693,14 @@ export default defineEval({
 
   test("'failures' keeps a passing attempt's diff beside a failure of its own case only", async () => {
     const p = await gitProject('record-cases-diff', {
-      'evals/cased.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/cased.eval.ts': `import assert from 'node:assert/strict'
+import { defineEval } from 'reeval'
 export default defineEval({
   cases: [{ key: 'a' }, { key: 'b' }],
   runs: 2,
   async task(c, { key: k }) {
     await c.send(k)
-    expect(k === 'a' && c.attempt.n === 1, 'first a fails').toBe(false)
+    assert.equal(k === 'a' && c.attempt.n === 1, false, 'first a fails')
   },
 })
 `,
@@ -734,7 +737,7 @@ export default defineEval({
     assert.ok(
       fail?.trial.checks[0]?.log && existsSync(join(recorded.dir, fail.trial.checks[0].log.path)),
     )
-    assert.ok(pass?.trial.judgements.length, 'verdicts stay in the record')
+    assert.ok(pass?.trial.grades?.length, 'grades stay in the record')
 
     const scratch = readRun(p.dir).run.runId
     await runCli(p.dir, ['run', 'agent.eval'])
@@ -993,16 +996,20 @@ export default defineEval({
       'evals/agent.eval.ts': agent,
       'reeval.config.ts': fakeConfig({
         harness: harness(),
-        judge: `{ model: 'google/gemini-2.5-flash', threshold: 0.5 }`,
+        judge: `{ model: 'google/gemini-2.5-flash' }`,
         extra: `profiles: {
-    ci: { judge: { model: fakeJudge({ score: 0.9 }) }, defaults: { judge: { threshold: 0.8 } } },
+    ci: { judge: { model: fakeJudge({ score: 0.9 }) } },
   },`,
       }),
     })
     const r = await runCli(withProfile.dir, ['run', '--profile', 'ci'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const { run } = readRun(withProfile.dir)
-    assert.equal(run.evals[0]?.attempts[0]?.judgements[0]?.threshold, 0.8, 'the profile judged')
+    assert.equal(
+      run.evals[0]?.attempts[0]?.grades?.[0]?.judge?.calls[0]?.model,
+      'fake',
+      'the profile judged',
+    )
     assert.deepEqual(
       { model: run.stack.judge.model, threshold: run.stack.judge.threshold },
       { model: 'fake', threshold: 0.8 },
@@ -1016,7 +1023,7 @@ export default defineEval({
       'evals/agent.eval.ts': agent,
       'reeval.config.ts': fakeConfig({
         harness: harness(),
-        judge: '{ model: fakeJudge({ score: 0.9 }), threshold: 0.8 }',
+        judge: '{ model: fakeJudge({ score: 0.9 }) }',
       }),
     })
     assert.equal((await runCli(direct.dir)).code, 0)
