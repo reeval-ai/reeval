@@ -2,7 +2,7 @@
 // declare/ case's TypeScript eval file must record its expected.json, and that tree, declared in
 // place of the file, must plan the plan case's existing snapshot. A context/ script's requests go
 // to reeval's attempt host on a real attempt through the reference runner (conformance/runner.ts),
-// and reeval's answers, the attempt's record and what each judge call graded must be the script's.
+// and reeval's answers and the attempt's record must be the script's.
 // Every message fits the attempt protocol's Zod schemas and its JSON Schema.
 // REEVAL_UPDATE_SNAPSHOTS=1 rewrites the goldens; review the diff.
 import assert from 'node:assert/strict'
@@ -23,14 +23,11 @@ import type { ShapeSchema } from '../scripts/schema/generate.ts'
 import { validate } from '../scripts/schema/validate.ts'
 import { resolveConfig } from '../src/config.ts'
 import {
-  assertionRecordSchema,
   attemptAbortSchema,
   attemptDoneProblem,
   attemptReplySchema,
   attemptRequestProblem,
   attemptStartProblem,
-  judgeFailureSchema,
-  verdictSchema,
 } from '../src/contract/attempt.ts'
 import { declarationProblem } from '../src/contract/declaration.ts'
 import type { DeclarationTree, DeclaredNode } from '../src/declaration.ts'
@@ -332,7 +329,7 @@ ${extra}  async task(c) {
 `
 }
 
-/** What reeval and the runner said, with each expect's record from the run record. */
+/** What reeval and the runner said, with the attempt's record from the run record. */
 const answered = new Map<string, Line[]>()
 
 function checkMessage(line: Line, where: string, requests: Map<string, string>): void {
@@ -363,15 +360,8 @@ function checkMessage(line: Line, where: string, requests: Map<string, string>):
       assert.deepEqual(validate(reply, m), [], where)
       assert.equal(requests.get(m.id as string), m.op, `${where}: answers request ${m.id}`)
     }
-  } else if (line.record) {
-    const { assertions = [], judgements: judgments = [] } = line.record as {
-      assertions?: unknown[]
-      judgements?: Array<Record<string, unknown>>
-    }
-    for (const a of assertions) assert.ok(assertionRecordSchema.safeParse(a).success, where)
-    for (const { retries: _, ...j } of judgments)
-      assert.ok(verdictSchema.or(judgeFailureSchema).safeParse(j).success, where)
-  } else assert.ok(line.case, `${where}: a line is a header, runner, reeval or record`)
+  } else
+    assert.ok(line.case || line.record, `${where}: a line is a header, runner, reeval or record`)
 }
 
 describe('context goldens', () => {
@@ -395,33 +385,12 @@ describe('context goldens', () => {
       assert.ok(existsSync(out), `${name}: the runner wrote nothing\n${r.stdout}${r.stderr}`)
       const entry = evals.find((e) => e.id === name || e.name === name)
       assert.ok(entry, `${name}: no eval in the run record`)
-      const {
-        outcome,
-        error,
-        assertions = [],
-        judgements: judgments,
-        checks,
-        files,
-        observations,
-      } = entry.trial
-      type Graded = { question: string; state: { task?: string; output?: unknown } }
-      const inputs: Graded[] = files.judgeInput ? JSON.parse(entry.read(files.judgeInput.path)) : []
+      const { outcome, error, checks, observations } = entry.trial
       const lines = parse(readFileSync(out, 'utf8'))
       lines.push({
         record: {
           outcome,
           error,
-          assertions,
-          judgements: judgments.map(({ key: _, ...j }) => j),
-          ...(inputs.length
-            ? {
-                graded: inputs.map(({ question, state: { task, output } }) => ({
-                  question,
-                  ...(task === undefined ? {} : { task }),
-                  output,
-                })),
-              }
-            : {}),
           checks: checks.map(({ command, exitCode, retries, tries }) => ({
             command,
             exitCode,
@@ -451,17 +420,15 @@ describe('context goldens', () => {
     })
   }
 
-  test('the scripts cover every call, background, poll, an error reply and the lifecycle', () => {
+  test('the scripts cover every call, background, an error reply and the lifecycle', () => {
     const lines = contextCases.flatMap(readScript)
     const calls = lines.flatMap((l) =>
       l.runner?.call ? [l.runner.call as Record<string, unknown>] : [],
     )
     const ops = new Set(calls.map((c) => c.op))
-    for (const op of ['send', 'exec', 'kill', 'readFile', 'writeFile', 'expect', 'judge', 'decide'])
+    for (const op of ['send', 'exec', 'kill', 'readFile', 'writeFile', 'observe', 'decide'])
       assert.ok(ops.has(op), op)
     assert.ok(calls.some((c) => c.op === 'exec' && c.background))
-    assert.ok(calls.some((c) => c.op === 'expect' && c.poll))
-    assert.ok(calls.some((c) => c.op === 'expect' && c.soft))
     assert.ok(calls.some((c) => c.op === 'writeFile' && c.encoding === 'base64'))
     assert.ok(lines.some((l) => l.reeval?.ok === false))
     for (const type of ['start', 'abort'])

@@ -5,4 +5,4 @@
 {"runner":{"id":"2","call":{"op":"decide","state":[{"type":"text","text":"Did the agent write greet.js?"},{"type":"inputs","diff":true}],"questions":{"done":{"type":"boolean","instructions":"Is greet.js written?"}}}}}
 {"reeval":{"id":"2","ok":false,"op":"decide","error":{"name":"UsageError","message":"c.decide() has no model. Set decide: { model: 'typesafe-ai/jev-1.14.0' } in reeval.config.ts, or pass { model } to this call."}}}
 {"runner":{"type":"done"}}
-{"record":{"outcome":"pass","error":null,"assertions":[],"judgements":[],"checks":[]}}
+{"record":{"outcome":"pass","error":null,"checks":[]}}

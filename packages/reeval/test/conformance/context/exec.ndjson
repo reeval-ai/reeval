@@ -11,4 +11,4 @@
 {"runner":{"id":"5","call":{"op":"kill","handle":"h1"}}}
 {"reeval":{"id":"5","ok":true,"op":"kill"}}
 {"runner":{"type":"done"}}
-{"record":{"outcome":"pass","error":null,"assertions":[],"judgements":[],"checks":[{"command":"echo hello","exitCode":0},{"command":"echo oops >&2; exit 3","exitCode":3}]}}
+{"record":{"outcome":"pass","error":null,"checks":[{"command":"echo hello","exitCode":0},{"command":"echo oops >&2; exit 3","exitCode":3}]}}

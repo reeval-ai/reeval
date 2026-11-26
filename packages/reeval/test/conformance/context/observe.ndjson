@@ -11,4 +11,4 @@
 {"runner":{"id":"5","call":{"op":"observe","name":"dep-count","value":2}}}
 {"reeval":{"id":"5","ok":true,"op":"observe"}}
 {"runner":{"type":"done"}}
-{"record":{"outcome":"pass","error":null,"assertions":[],"judgements":[],"checks":[],"observations":[{"name":"orm","value":"drizzle","turn":1,"sha256":"e5b5e6758a8032614a3458b8fe0db465f033ede20f3e1aab1c3fad16c4268e08"},{"name":"deps","value":["drizzle-orm","pg"],"turn":1,"sha256":"e639f2b3cdae5ac095f26118eeff0ed9f24a889b3af5d33760aba4a341d66b38"},{"name":"dep-count","value":2,"turn":1,"sha256":"d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"}]}}
+{"record":{"outcome":"pass","error":null,"checks":[],"observations":[{"name":"orm","value":"drizzle","turn":1,"sha256":"e5b5e6758a8032614a3458b8fe0db465f033ede20f3e1aab1c3fad16c4268e08"},{"name":"deps","value":["drizzle-orm","pg"],"turn":1,"sha256":"e639f2b3cdae5ac095f26118eeff0ed9f24a889b3af5d33760aba4a341d66b38"},{"name":"dep-count","value":2,"turn":1,"sha256":"d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"}]}}

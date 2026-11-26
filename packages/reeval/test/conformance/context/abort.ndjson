@@ -4,4 +4,4 @@
 {"reeval":{"type":"abort","reason":"timeout","message":"Eval timed out after 1s"}}
 {"reeval":{"id":"1","ok":false,"op":"exec","error":{"name":"TimeoutError","message":"Eval timed out after 1s"}}}
 {"runner":{"type":"done","error":{"name":"TimeoutError","message":"Eval timed out after 1s"}}}
-{"record":{"outcome":"fail","error":{"kind":"timeout","message":"The eval timed out"},"assertions":[],"judgements":[],"checks":[]}}
+{"record":{"outcome":"fail","error":{"kind":"timeout","message":"The eval timed out"},"checks":[]}}

@@ -33,7 +33,7 @@ Each line is one JSON object:
 | `{"case", "about", "options"}` | The header: the eval's name, what it covers and its options |
 | `{"reeval": …}` | reeval to the runner: `attempt-start`, `attempt-abort` or a reply (`attempt-reply`) |
 | `{"runner": …}` | The runner to reeval: a request (`attempt-request`) or `attempt-done` |
-| `{"record": …}` | The attempt's record afterwards: outcome, error, assertions, judgments and checks, and `graded`: each judge call's question with the task and output it graded (`judge-input.json`'s `state`) |
+| `{"record": …}` | The attempt's record afterwards: outcome, error, checks and observations |
 
 The shapes are in `src/contract/attempt.ts`, with JSON Schemas in `schema/protocol/`. The test runs
 every script as one eval of a fake-harness, fake-sandbox project: `runner.ts` hands each request to
@@ -48,8 +48,8 @@ lines in between. The `record` line is what reeval concludes from those messages
 ## Updating
 
 `REEVAL_UPDATE_SNAPSHOTS=1` rewrites `expected.json` and each script's `reeval` and `record`
-lines from the code, keeping the header and `runner` lines. Review the diff. A change to matcher
-labels, judge options or a reply's shape shows up here and is regenerated the same way.
+lines from the code, keeping the header and `runner` lines. Review the diff. A change to a reply's
+shape shows up here and is regenerated the same way.
 
 To add a context case, write a header and `runner` lines in a new `context/<case>.ndjson`, then
 run the update. To add a declare case, add `declare/<case>/case.json` naming a plan case's eval
