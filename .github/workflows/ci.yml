@@ -38,6 +38,9 @@ env:
   # The PRs' and merge queue's tier: `light` or `full`. Set the CI_PR_TIER repository variable
   # (Settings → Secrets and variables → Actions → Variables) to switch without a commit.
   PR_TIER: ${{ vars.CI_PR_TIER || 'light' }}
+  # The example-*.test.ts runs that need Docker: the unit shards skip them and the docker job's
+  # `sandbox 1/2` leg runs only them, so between the two every example test runs once.
+  DOCKER_EXAMPLES: 'copied out of the repo runs in Docker$'
 
 concurrency:
   # github.workflow is the caller's when release.yml or ci-full.yml calls this, so those runs don't
@@ -173,6 +176,9 @@ jobs:
                 packages/reeval/src/egress.ts | \
                 packages/reeval/test/features/* | \
                 packages/reeval/test/docker* | \
+                examples/* | \
+                packages/reeval/test/example-* | \
+                packages/reeval/test/support/examples.ts | \
                 packages/reeval/test/sandbox-* | \
                 packages/reeval/test/contract* | \
                 packages/reeval/test/e2e-real* | \
@@ -332,7 +338,7 @@ jobs:
         run: |
           shopt -s extglob
           node --test --test-timeout=600000 --experimental-strip-types --no-warnings \
-            --test-shard=${{ matrix.shard }} \
+            --test-shard=${{ matrix.shard }} --test-skip-pattern="$DOCKER_EXAMPLES" \
             test/!(features|docker|docker-antigravity|store-minio|studio|pack|contract|e2e-real|questions-real|openrouter-real).test.ts
       - if: ${{ !cancelled() && env.NODE_V8_COVERAGE != '' }}
         uses: ./.github/actions/upload-coverage
@@ -419,10 +425,11 @@ jobs:
           - package: 'reeval'
             part: fixtures 2/2
             run: node --test --experimental-strip-types --no-warnings --test-skip-pattern="$FIXTURES" test/features.test.ts
-          # test/docker.test.ts: the image builds from a from, a dockerfile or a moving tag, then the rest.
+          # test/docker.test.ts: the image builds from a from, a dockerfile or a moving tag, and the
+          # examples that need Docker (the unit shards skip them), then the rest.
           - package: 'reeval'
             part: sandbox 1/2
-            run: node --test --experimental-strip-types --no-warnings --test-name-pattern="$IMAGE_BUILDS" test/docker.test.ts
+            run: node --test --experimental-strip-types --no-warnings --test-name-pattern="$IMAGE_BUILDS" test/docker.test.ts && node --test --experimental-strip-types --no-warnings --test-name-pattern="$DOCKER_EXAMPLES" test/example-*.test.ts
           - package: 'reeval'
             part: sandbox 2/2
             run: node --test --experimental-strip-types --no-warnings --test-skip-pattern="$IMAGE_BUILDS" test/docker.test.ts

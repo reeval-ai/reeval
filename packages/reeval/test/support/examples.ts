@@ -2,11 +2,13 @@
 // node --test shards by file, and every example plans under a dozen profiles, so those files each
 // take a quarter of the table.
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { cpSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { mkdir, symlink } from 'node:fs/promises'
 import { availableParallelism } from 'node:os'
 import { isAbsolute, join, relative } from 'node:path'
 import { test } from 'node:test'
+import { DEFAULT_IMAGE } from '@reeval/sandbox-docker'
 import { pkgRoot, readRun, runCli, tempDir } from '../helpers.ts'
 
 export const examples = join(pkgRoot, '../../examples')
@@ -29,10 +31,16 @@ export type Plan = { harness: string[]; sandbox: string[] }
 
 export type Example = {
   /**
-   * Each cell's attempt outcomes once it has run on the fake agent, sorted; or, for an example
-   * that is only planned, what running it needs (a key, Docker, Chrome or the network).
+   * Each cell's attempt outcomes once it has run on the fake agent, sorted (an install layer's
+   * cell as `docker+<install>`); or, for an example that is only planned, what running it needs
+   * (a key, Docker with a key or the network, Podman, Chrome).
    */
   run: Record<string, string[]> | { needs: string }
+  /**
+   * Running it needs Docker and reeval's image, so its run is its own test, which skips without
+   * them (fails under `REEVAL_TEST_REQUIRE_DOCKER=1`) and which CI's Docker tier runs.
+   */
+  docker?: true
   /** What it plans with no profile; default the fake agent in the fake sandbox. */
   plain?: Plan
   /**
@@ -143,7 +151,8 @@ export const EXAMPLES: Record<string, Example> = {
   },
   'with-fake-agent': { run: { 'fake/math/fake': pass(1) } },
   'with-oracle-canary': {
-    run: { needs: 'Docker' },
+    run: { 'fake/math/docker': pass(1) },
+    docker: true,
     plain: fakeInDocker,
     profiles: { canary: fakeInDocker },
   },
@@ -161,9 +170,21 @@ export const EXAMPLES: Record<string, Example> = {
   'with-plugin': { run: { 'fake/acme-math/fake': pass(1) } },
 
   // Sandboxes
-  'with-docker-install': { run: { needs: 'Docker' }, ...ownSandbox('docker+<install>') },
-  'with-dockerfile': { run: { needs: 'Docker' }, ...ownSandbox('docker:sqlite') },
-  'with-python-image': { run: { needs: 'Docker' }, ...ownSandbox('python') },
+  'with-docker-install': {
+    run: { 'fake/jq/docker+<install>': pass(1) },
+    docker: true,
+    ...ownSandbox('docker+<install>'),
+  },
+  'with-dockerfile': {
+    run: { 'fake/shop/docker:sqlite': pass(1) },
+    docker: true,
+    ...ownSandbox('docker:sqlite'),
+  },
+  'with-python-image': {
+    run: { 'fake/python/python': pass(1) },
+    docker: true,
+    ...ownSandbox('python'),
+  },
   'with-dart': {
     run: { needs: 'Docker, or BOAT_API_KEY or DAYTONA_API_KEY' },
     ...ownSandbox('docker:dart:3.5'),
@@ -173,16 +194,28 @@ export const EXAMPLES: Record<string, Example> = {
     },
   },
   'with-podman': { run: { needs: 'Podman' }, ...ownSandbox('podman') },
-  'with-resource-limits': { run: { needs: 'Docker' }, plain: fakeInDocker },
+  'with-resource-limits': {
+    run: { 'fake/small/docker': pass(1) },
+    docker: true,
+    plain: fakeInDocker,
+  },
 
   // Secrets and egress
   'with-brokered-secret': {
     run: { needs: 'Docker and GOOGLE_GENERATIVE_AI_API_KEY' },
     plain: fakeInDocker,
   },
-  'with-secret-for-checks': { run: { needs: 'Docker' }, plain: fakeInDocker },
+  'with-secret-for-checks': {
+    run: { 'fake/e2e/docker': pass(1) },
+    docker: true,
+    plain: fakeInDocker,
+  },
   'with-strict-secrets': { run: { needs: 'Docker and the network' }, plain: fakeInDocker },
-  'with-egress-deny-all': { run: { needs: 'Docker' }, plain: fakeInDocker },
+  'with-egress-deny-all': {
+    run: { 'fake/math/docker': pass(1) },
+    docker: true,
+    plain: fakeInDocker,
+  },
   'with-egress-allowlist': { run: { needs: 'Docker and the network' }, plain: fakeInDocker },
   'with-egress-allow-all': { run: { needs: 'Docker and the network' }, plain: fakeInDocker },
 
@@ -205,7 +238,11 @@ export const EXAMPLES: Record<string, Example> = {
   },
   'with-case-lift': { run: { 'fake/math/fake': fail(6), 'fake/jsdoc/fake': pass(6) } },
   'with-effort': { run: { 'fake/math/fake': pass(4), 'fake/project-layout/fake': pass(4) } },
-  'with-skill-reads': { run: { needs: 'Docker' }, plain: fakeInDocker },
+  'with-skill-reads': {
+    run: { 'fake/jsdoc/docker': pass(1) },
+    docker: true,
+    plain: fakeInDocker,
+  },
 
   // Web UIs
   'with-capture': { run: { 'fake/site/fake': pass(1) }, profiles: { docker: fakeInDocker } },
@@ -335,9 +372,16 @@ function expected(e: Example): Record<string, Plan> {
   return { '': e.plain ?? fakePlan, ...Object.fromEntries(shared), ...e.profiles }
 }
 
-/** Plans and, where it's key-free, runs `name` copied out of the repo, against its row. */
+/** Plans and, where it's key-free and needs no Docker, runs `name` copied out of the repo. */
 export async function checkExample(name: string, e: Example): Promise<void> {
   const dir = await copyOut(name)
+  await planExample(name, e, dir)
+  if ('needs' in e.run || e.docker) return
+  await runExample(dir, e, e.run)
+}
+
+/** Plans `dir`, a copy of `name`, under every profile, against its row. */
+async function planExample(name: string, e: Example, dir: string): Promise<void> {
   const want = expected(e)
   const got = await pooled(
     Object.keys(want).map((p) => () => planOf(dir, p, e.env)),
@@ -349,34 +393,67 @@ export async function checkExample(name: string, e: Example): Promise<void> {
     assert.deepEqual(files, wantFiles, `${name} --profile ${p || '(none)'}`)
     assert.deepEqual(plan, want[p], `${name} --profile ${p || '(none)'}`)
   })
-  if ('needs' in e.run) return
+}
+
+/** Runs `dir` with no profile and checks each cell's outcomes against `want`. */
+async function runExample(dir: string, e: Example, want: Record<string, string[]>): Promise<void> {
   const run = await runCli(dir, ['run'], { timeoutMs: 300_000, env: e.env })
   const ran: Record<string, string[]> = {}
   for (const a of readRun(dir).evals.flatMap((x) => x.attempts)) {
-    ran[a.cell] = [...(ran[a.cell] ?? []), a.outcome].sort()
+    const cell = a.cell.replace(/\/docker\+[0-9a-f]+$/, '/docker+<install>')
+    ran[cell] = [...(ran[cell] ?? []), a.outcome].sort()
   }
   if (!e.flaky) {
     assert.equal(run.code, e.exit ?? 0, run.stdout + run.stderr)
-    assert.deepEqual(ran, e.run, run.stdout)
+    assert.deepEqual(ran, want, run.stdout)
     return
   }
   assert.ok([0, 1].includes(run.code), run.stdout + run.stderr)
   const counts = (r: Record<string, string[]>) =>
     Object.fromEntries(Object.entries(r).map(([cell, outcomes]) => [cell, outcomes.length]))
-  assert.deepEqual(counts(ran), counts(e.run), run.stdout)
+  assert.deepEqual(counts(ran), counts(want), run.stdout)
   for (const outcome of Object.values(ran).flat()) assert.match(outcome, /^(pass|fail)$/)
 }
 
-/** The `shard`th of `of` slices of the table, each example a test. */
+/** Whether this machine's Docker has reeval's image, which the Docker examples' runs need. */
+function dockerReady(): boolean {
+  try {
+    execFileSync('docker', ['image', 'inspect', DEFAULT_IMAGE], { stdio: 'ignore' })
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * The `shard`th of `of` slices of the table, each example a test, and each Docker example's run
+ * another, named `… runs in Docker` (ci.yml's `DOCKER_EXAMPLES` picks them for the Docker tier).
+ */
 export function exampleTests(shard: number, of: number): void {
-  const names = Object.keys(EXAMPLES).sort()
-  for (const [i, name] of names.entries()) {
-    if (i % of !== shard - 1) continue
+  const names = Object.keys(EXAMPLES)
+    .sort()
+    .filter((_, i) => i % of === shard - 1)
+  const docker = names.some((n) => EXAMPLES[n]?.docker) && {
+    skip:
+      !dockerReady() &&
+      process.env.REEVAL_TEST_REQUIRE_DOCKER !== '1' &&
+      `needs Docker and ${DEFAULT_IMAGE}`,
+    timeout: 600_000,
+  }
+  for (const name of names) {
     const e = EXAMPLES[name] as Example
-    const what =
-      'needs' in e.run ? `plans (running it needs ${e.run.needs})` : 'plans and runs key-free'
+    const what = e.docker
+      ? 'plans (running it needs Docker)'
+      : 'needs' in e.run
+        ? `plans (running it needs ${e.run.needs})`
+        : 'plans and runs key-free'
     test(`examples/${name} copied out of the repo ${what}`, { timeout: 600_000 }, () =>
       checkExample(name, e),
+    )
+    if (!e.docker || !docker || 'needs' in e.run) continue
+    const want = e.run
+    test(`examples/${name} copied out of the repo runs in Docker`, docker, async () =>
+      runExample(await copyOut(name), e, want),
     )
   }
 }
