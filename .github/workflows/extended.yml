@@ -54,9 +54,10 @@ jobs:
           save-cache: ${{ github.ref == 'refs/heads/main' }}
       - name: reeval (every test file but the fixture, Docker, studio, pack and real-agent ones)
         working-directory: packages/reeval
+        # On Node 22.16 an example-*, plan or options test file can take over 600s.
         run: |
           shopt -s extglob
-          node --test --test-timeout=600000 --experimental-strip-types --no-warnings \
+          node --test --test-timeout=900000 --experimental-strip-types --no-warnings \
             --test-shard=${{ matrix.shard }} \
             test/!(features|docker|docker-antigravity|store-minio|studio|pack|contract|e2e-real|questions-real|openrouter-real).test.ts
       - name: sandbox-docker (without containers) and the harness packages
