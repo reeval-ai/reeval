@@ -14,6 +14,7 @@ import {
   catalogAdapter,
   type HarnessSpec,
 } from './harnesses.ts'
+import { optionProblem } from './options.ts'
 import { type OutOptions, OutWriter } from './out/index.ts'
 import type { OutSession } from './out/types.ts'
 import { ROUTES } from './routes/index.ts'
@@ -291,6 +292,8 @@ async function within<T>(promise: PromiseLike<T>, ms: number): Promise<{ value: 
  */
 export function agent(options: AgentOptions): Agent {
   const { harness } = options
+  const unsupported = optionProblem(harness.kind, harness)
+  if (unsupported) throw new AgentError(unsupported)
   const entry: HarnessCatalogEntry = HARNESSES[harness.kind]
   const layout = LAYOUTS[harness.kind]
   const workDir = options.workDir ?? '.'
@@ -447,6 +450,8 @@ export function agent(options: AgentOptions): Agent {
           })),
         signal,
         log,
+        ...(harness.instructions !== undefined ? { instructions: harness.instructions } : {}),
+        ...(harness.tools ? { tools: harness.tools } : {}),
         ...(options.traffic ? { traffic: options.traffic } : {}),
         authHint,
         ...(options.workspace ? { workspace: options.workspace } : {}),

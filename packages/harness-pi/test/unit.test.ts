@@ -18,6 +18,7 @@ import {
   type PiHarnessSettings,
   type PiMcpServer,
   type PiModelInfo,
+  piCommandGate,
 } from '../src/pi-harness.ts'
 import { PROBED_VERSION } from '../src/pi-provider-table.ts'
 import { type PiProvider, piProvider } from '../src/pi-providers.ts'
@@ -93,6 +94,49 @@ test('effort is --thinking', () => {
     provider: 'google',
   })
   assert.match(command, / --model 'gemini-3\.8-flash' --thinking 'high' --session-id /)
+})
+
+test('systemPrompt, tools and commands are --system-prompt, --tools and the gate extension', () => {
+  const command = buildPiCommand({
+    cli: '/h/pi',
+    workDir: '/w',
+    promptFile: '/d/p.txt',
+    model: undefined,
+    sessionId: 'abc',
+    sessionDir: '/s',
+    mcp: true,
+    systemPromptFile: '/d/system-prompt.txt',
+    tools: ['bash', 'find', 'ls'],
+    extensions: ['/d/commands.mjs'],
+    provider: 'google',
+  })
+  assert.match(
+    command,
+    / --no-extensions -e builtin:mcp -e '\/d\/commands\.mjs' --tools 'bash,find,ls' --system-prompt "\$\(cat '\/d\/system-prompt\.txt'\)" --provider /,
+  )
+})
+
+test('the command gate runs a listed prefix alone or with arguments, and blocks the rest', async () => {
+  const gate = await import(
+    `data:text/javascript,${encodeURIComponent(piCommandGate(['echo ok', 'npm test']))}`
+  )
+  let hook: (event: { toolName: string; input: { command?: string } }) => unknown = () => {}
+  gate.default({ on: (_: string, h: typeof hook) => (hook = h) })
+  const blocked = (command: string) => hook({ toolName: 'bash', input: { command } }) !== undefined
+  for (const ok of ['echo ok', 'echo ok hi', 'npm test -- --watch=false']) {
+    assert.equal(blocked(ok), false, ok)
+  }
+  for (const no of [
+    'ls /',
+    'echo okay',
+    'echo ok && ls',
+    'echo ok; ls',
+    'echo ok $(ls)',
+    'echo ok > f',
+  ]) {
+    assert.equal(blocked(no), true, no)
+  }
+  assert.equal(hook({ toolName: 'read', input: {} }), undefined)
 })
 
 test('env and header values are escaped so pi reads them literally', () => {

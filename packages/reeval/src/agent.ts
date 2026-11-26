@@ -18,6 +18,7 @@ import type {
   HarnessDescriptor,
   OpenCodeHarnessDescriptor,
   PiHarnessDescriptor,
+  SharedOption,
 } from './types.ts'
 
 /** A factory's options: the descriptor's, with `gateway` pinned by name or by its helper. */
@@ -157,6 +158,27 @@ export const grokBuild = (
   options: Options<GrokBuildHarnessDescriptor>,
 ): GrokBuildHarnessDescriptor => make('grok-build', options)
 
+/** The shared options every agent in `A` takes, each as narrow as the narrowest agent's. */
+export type SharedOptions<A extends HarnessDescriptor> = {
+  [K in keyof A & SharedOption]?: (A extends unknown ? (value: A[K]) => void : never) extends (
+    value: infer Each,
+  ) => void
+    ? Each
+    : never
+}
+
+/**
+ * `agents`, each with `options` set: a matrix whose cells differ only by harness. `options` holds
+ * what every one of them can enforce; another option, or a tool one of them has no tool for, is
+ * refused, naming the harness.
+ */
+export function withOptions<const A extends readonly HarnessDescriptor[]>(
+  agents: A,
+  options: SharedOptions<A[number]>,
+): A {
+  return agents.map(({ kind, ...rest }) => make(kind, { ...rest, ...options })) as unknown as A
+}
+
 /** A fake agent that writes canned files and replies with canned text. For tests and dry runs. */
 export const fakeAgent = (options: Options<FakeHarnessDescriptor> = {}): FakeHarnessDescriptor =>
   make('fake', options)
@@ -174,6 +196,8 @@ export type {
   GooseHarnessDescriptor as GooseAgent,
   GrokBuildHarnessDescriptor as GrokBuildAgent,
   HarnessDescriptor as Agent,
+  HarnessOptions,
   OpenCodeHarnessDescriptor as OpenCodeAgent,
   PiHarnessDescriptor as PiAgent,
+  ToolName,
 } from './types.ts'

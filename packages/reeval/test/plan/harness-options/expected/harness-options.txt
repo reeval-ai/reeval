@@ -1,0 +1,17 @@
+no profile · 1 evals · 5 cells · 5 attempts
+e  claude-code:claude-sonnet-5[tools=read+bash][commands=d451cef4]/-/docker  control  ungated  ×1  effort medium
+   opencode:claude-sonnet-5[tools=read+bash][commands=d451cef4]/-/docker     control  ungated  ×1  effort medium
+   pi:claude-sonnet-5[tools=read+bash][commands=d451cef4]/-/docker           control  ungated  ×1  effort medium
+   codex:gpt-5.6-luna[systemPrompt=344070f0]/-/docker                        control  ungated  ×1  effort medium
+   goose:gemini-3.8-flash[instructions=f6f345ce]/-/docker                    control  ungated  ×1  effort medium
+excluded: —
+image docker · claude-code · 1 evals
+  base  reeval-sandbox:claude-code-1.0.176-patch.881d1055  (reeval's image: pulled or built when missing or when its key changed)
+image docker · opencode · 1 evals
+  base  reeval-sandbox:opencode-0.2.16  (reeval's image: pulled or built when missing or when its key changed)
+image docker · pi · 1 evals
+  base  reeval-sandbox:pi-0.2.10  (reeval's image: pulled or built when missing or when its key changed)
+image docker · codex · 1 evals
+  base  reeval-sandbox:codex-0.1.14  (reeval's image: pulled or built when missing or when its key changed)
+image docker · goose · 1 evals
+  base  reeval-sandbox:goose-0.1.17  (reeval's image: pulled or built when missing or when its key changed)

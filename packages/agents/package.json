@@ -28,6 +28,10 @@
       "types": "./dist/catalog/skill-dirs.d.ts",
       "default": "./dist/catalog/skill-dirs.js"
     },
+    "./options": {
+      "types": "./dist/options.d.ts",
+      "default": "./dist/options.js"
+    },
     "./usage": {
       "types": "./dist/usage.d.ts",
       "default": "./dist/usage.js"

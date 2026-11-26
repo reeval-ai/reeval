@@ -10,6 +10,7 @@ import {
   type HarnessSpec,
   type PlacedPlugin,
 } from '@reeval/agents'
+import { HARNESS_OPTIONS, type SharedOption } from '@reeval/agents/options'
 import { WORKSPACE_DIR } from '@reeval/sandbox-docker'
 import { runnerOf } from '../environment/runner.ts'
 import { brokerToken } from '../environment/token.ts'
@@ -51,19 +52,25 @@ export function agentSandboxProblem(agent: Agent, sandbox: SandboxDescriptor): s
   return `The ${agent.name} harness can't run in the ${sandboxKind(sandbox).provider(sandbox)} sandbox, which ${lacks.join(' and ')}: ${fix ? `set sandbox: ${fix} for this eval, or ` : ''}use fakeAgent() with fakeSandbox()`
 }
 
-/** The core's spec of a harness descriptor: which agent, on which model. */
+/** The core's spec of a harness descriptor: which agent, on which model, with which options. */
 export function harnessSpec(descriptor: AgentHarnessDescriptor): HarnessSpec {
   const { kind, model, effort } = descriptor
+  const options = Object.fromEntries(
+    HARNESS_OPTIONS.flatMap((key) => {
+      const value = (descriptor as Partial<Record<SharedOption, unknown>>)[key]
+      return value === undefined ? [] : [[key, value]]
+    }),
+  )
   if (kind === 'cursor') {
     return {
       kind,
       model,
       ...(effort ? { effort } : {}),
       ...(descriptor.params ? { params: descriptor.params } : {}),
+      ...options,
     }
   }
-  if (kind === 'claude-code') return { kind, model, ...(effort ? { effort } : {}) }
-  return { kind, model, ...(effort ? { effort } : {}) } as HarnessSpec
+  return { kind, model, ...(effort ? { effort } : {}), ...options } as HarnessSpec
 }
 
 /**

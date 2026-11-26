@@ -4,6 +4,13 @@
 // `_SameAsSchema`.
 
 import type { AgentKind } from '@reeval/agents'
+import {
+  HARNESS_OPTIONS,
+  OPTION_SUPPORT,
+  optionProblem,
+  type SharedOption,
+  TOOL_NAMES,
+} from '@reeval/agents/options'
 import { z } from 'zod'
 import { MAX_TIMER_MS, TIMER_LIMIT } from '../duration.ts'
 import type {
@@ -42,9 +49,19 @@ const PROVIDER_MODEL = /^[\w.-]+\/[\w.-]+$/
 /** A pi model id, `<provider>/<model>`: the model's own id may have slashes (`huggingface/moonshotai/Kimi-K2.6`). */
 const PI_MODEL = /^[\w.-]+\/\S+$/
 
+/** The shared options' schemas, for the kinds that take each. */
+const OPTION_SHAPE = {
+  instructions: nonEmpty().optional(),
+  systemPrompt: nonEmpty().optional(),
+  tools: z.array(z.enum(TOOL_NAMES)).min(1).optional(),
+  commands: z.array(nonEmpty()).min(1).optional(),
+}
+const INSTRUCTIONS = { instructions: OPTION_SHAPE.instructions }
+
 export const cursorHarnessSchema = z.strictObject({
   kind: z.literal('cursor'),
   gateway: gatewayNameSchema.optional(),
+  ...INSTRUCTIONS,
   model: z.string().min(1),
   params: z.record(z.string(), z.string()).optional(),
   effort: nonEmpty().optional(),
@@ -60,6 +77,7 @@ export const claudeCodeEffortSchema = z.enum(CLAUDE_CODE_EFFORTS)
 export const claudeCodeHarnessSchema = z.strictObject({
   kind: z.literal('claude-code'),
   gateway: gatewayNameSchema.optional(),
+  ...OPTION_SHAPE,
   model: z.string().min(1),
   effort: claudeCodeEffortSchema.optional(),
   id: nonEmpty().optional(),
@@ -70,6 +88,7 @@ export const claudeCodeHarnessSchema = z.strictObject({
 export const antigravityHarnessSchema = z.strictObject({
   kind: z.literal('antigravity'),
   gateway: gatewayNameSchema.optional(),
+  ...INSTRUCTIONS,
   model: z.string().min(1),
   effort: nonEmpty().optional(),
   id: nonEmpty().optional(),
@@ -80,6 +99,7 @@ export const antigravityHarnessSchema = z.strictObject({
 export const opencodeHarnessSchema = z.strictObject({
   kind: z.literal('opencode'),
   gateway: gatewayNameSchema.optional(),
+  ...OPTION_SHAPE,
   model: z.string().min(1),
   effort: nonEmpty().optional(),
   id: nonEmpty().optional(),
@@ -90,6 +110,7 @@ export const opencodeHarnessSchema = z.strictObject({
 export const gooseHarnessSchema = z.strictObject({
   kind: z.literal('goose'),
   gateway: gatewayNameSchema.optional(),
+  ...INSTRUCTIONS,
   model: z.string().regex(PROVIDER_MODEL),
   effort: nonEmpty().optional(),
   id: nonEmpty().optional(),
@@ -100,6 +121,7 @@ export const gooseHarnessSchema = z.strictObject({
 export const fxHarnessSchema = z.strictObject({
   kind: z.literal('fx'),
   gateway: gatewayNameSchema.optional(),
+  ...INSTRUCTIONS,
   model: z.string().min(1),
   effort: nonEmpty().optional(),
   id: nonEmpty().optional(),
@@ -110,6 +132,8 @@ export const fxHarnessSchema = z.strictObject({
 export const piHarnessSchema = z.strictObject({
   kind: z.literal('pi'),
   gateway: gatewayNameSchema.optional(),
+  ...OPTION_SHAPE,
+  tools: z.array(z.enum(OPTION_SUPPORT.pi.tools)).min(1).optional(),
   model: z.string().regex(PI_MODEL),
   effort: nonEmpty().optional(),
   id: nonEmpty().optional(),
@@ -120,6 +144,8 @@ export const piHarnessSchema = z.strictObject({
 export const codexHarnessSchema = z.strictObject({
   kind: z.literal('codex'),
   gateway: gatewayNameSchema.optional(),
+  ...INSTRUCTIONS,
+  systemPrompt: OPTION_SHAPE.systemPrompt,
   model: z.string().regex(BARE_MODEL),
   effort: nonEmpty().optional(),
   id: nonEmpty().optional(),
@@ -130,6 +156,7 @@ export const codexHarnessSchema = z.strictObject({
 export const grokBuildHarnessSchema = z.strictObject({
   kind: z.literal('grok-build'),
   gateway: gatewayNameSchema.optional(),
+  ...INSTRUCTIONS,
   model: z.string().regex(BARE_MODEL),
   effort: nonEmpty().optional(),
   id: nonEmpty().optional(),
@@ -301,7 +328,15 @@ const MODEL: Partial<Record<HarnessDescriptor['kind'], (v: unknown) => string>> 
 const SCRIPT_EXAMPLE = "script: [[{ exec: 'cat notes.txt' }, { reply: 'done' }]]"
 
 /** The order the factories have always checked in, so the first refusal stays the same. */
-const ORDER = ['kind', 'model', 'params', 'effort', 'script', 'layout']
+const ORDER = ['kind', 'model', 'params', 'effort', ...HARNESS_OPTIONS, 'script', 'layout']
+
+/** The factories that take `option`, as messages list them. */
+const takers = (option: SharedOption) => {
+  const names = (Object.keys(OPTION_SUPPORT) as AgentKind[])
+    .filter((k) => (OPTION_SUPPORT[k].options as readonly string[]).includes(option))
+    .map((k) => `${FACTORY[k]}()`)
+  return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+}
 
 function explain(kind: HarnessDescriptor['kind']) {
   const factory = FACTORY[kind]
@@ -309,6 +344,9 @@ function explain(kind: HarnessDescriptor['kind']) {
     const options = value as Record<string, unknown>
     if (issue.code === 'unrecognized_keys' && issue.path.length === 0) {
       const key = issue.keys[0] as string
+      if ((HARNESS_OPTIONS as readonly string[]).includes(key)) {
+        return `${factory}() doesn't take ${key}: that harness can't enforce it. ${key} works on ${takers(key as SharedOption)}`
+      }
       const near = closest(key, Object.keys(SCHEMAS[kind].shape))
       return `Unknown ${factory}() option "${key}".${near ? ` Did you mean "${near}"?` : ''}`
     }
@@ -341,7 +379,24 @@ function explain(kind: HarnessDescriptor['kind']) {
     if (key === 'layout') {
       return `fakeAgent({ layout }) is one of ${FAKE_LAYOUTS.map((l) => `'${l}'`).join(', ')} (got ${got(v)})`
     }
-    if (key === 'id') return `${factory}({ id }) must be a non-empty string (got ${got(v)})`
+    if (key === 'id' || key === 'instructions' || key === 'systemPrompt') {
+      return `${factory}({ ${key} }) must be a non-empty string (got ${got(v)})`
+    }
+    if (key === 'tools' && kind !== 'fake') {
+      const tools: readonly string[] =
+        (OPTION_SUPPORT[kind] as { tools?: readonly string[] }).tools ?? []
+      const names = tools.map((t) => `'${t}'`).join(', ')
+      const missing =
+        Array.isArray(v) &&
+        v.find(
+          (t) => typeof t === 'string' && TOOL_NAMES.includes(t as never) && !tools.includes(t),
+        )
+      if (missing) return `${factory}() has no ${missing} tool to keep; its tools are ${names}`
+      return `${factory}({ tools }) lists the built-in tools to keep by their common names, some of ${names} (got ${got(v)})`
+    }
+    if (key === 'commands') {
+      return `${factory}({ commands }) lists the command prefixes the agent may run, e.g. ['npm test'] (got ${got(v)})`
+    }
     if (key === 'gateway') {
       return `${factory}({ gateway }) names a gateway in the config's gateway list: ${GATEWAY_NAMES.map((g) => `'${g}'`).join(' or ')} (got ${got(v)})`
     }
@@ -465,6 +520,10 @@ export function harnessProblem(value: HarnessDescriptor): string | undefined {
     refusal(SCHEMAS[value.kind], value, explain(value.kind), {
       order: ORDER,
       skip: ['maxConcurrent', 'startTimeout'],
-    }) ?? effortProblem(value)
+    }) ??
+    effortProblem(value) ??
+    (value.kind === 'fake'
+      ? undefined
+      : optionProblem(value.kind, value, `${FACTORY[value.kind]}()`))
   )
 }

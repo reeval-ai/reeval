@@ -39,6 +39,8 @@ export const OPENAI_API_URL = 'https://api.openai.com/v1'
 export const CODEX_HOME_DIR = '.codex'
 /** Global rules, which Codex loads before the workspace's; `instructions` go here. */
 export const CODEX_INSTRUCTIONS_FILE = `${CODEX_HOME_DIR}/AGENTS.md`
+/** The prompt that replaces Codex's own (`model_instructions_file`), under the sandbox home. */
+export const CODEX_SYSTEM_PROMPT_FILE = `${CODEX_HOME_DIR}/system-prompt.md`
 /** Where harness-placed skills go, under the sandbox home: Codex's user skill directory. */
 export const CODEX_HOME_SKILLS_DIR = '.agents/skills'
 /** The repo skill directory Codex reads, from the working directory up to the repo root. */
@@ -150,6 +152,8 @@ export type CodexHarnessSettings = {
    * `max`, `ultra`, …). Written into `config.toml`.
    */
   readonly effort?: string
+  /** Replaces Codex's base instructions (`model_instructions_file`); its rules are still added. */
+  readonly systemPrompt?: string
 }
 
 const count = z.number().optional()
@@ -211,6 +215,8 @@ export function buildCodexConfig(options: {
   effort?: string
   plugins?: boolean
   provider?: CodexProvider
+  /** The file whose prompt replaces Codex's own. */
+  systemPromptFile?: string
 }): string {
   const provider = options.provider ?? OPENAI_PROVIDER
   const config: Record<string, TomlValue> = {
@@ -220,6 +226,7 @@ export function buildCodexConfig(options: {
     // Without it, a Responses call asks for no summary and its reasoning comes back encrypted
     // only; the summary is written apart from the reasoning, which it leaves as it is.
     model_reasoning_summary: 'auto',
+    ...(options.systemPromptFile ? { model_instructions_file: options.systemPromptFile } : {}),
     model_provider: CODEX_PROVIDER_ID,
     model_providers: {
       [CODEX_PROVIDER_ID]: {
@@ -359,12 +366,21 @@ async function startSession(
     sessionId: options.sessionId,
   })
   const plugins = settings.plugins ?? []
+  const systemPromptFile = posix.join(home, CODEX_SYSTEM_PROMPT_FILE)
+  if (settings.systemPrompt !== undefined) {
+    await sandbox.writeTextFile({
+      path: systemPromptFile,
+      content: settings.systemPrompt,
+      abortSignal,
+    })
+  }
   await sandbox.writeTextFile({
     path: posix.join(home, CODEX_HOME_DIR, 'config.toml'),
     content: buildCodexConfig({
       ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
       ...(settings.effort ? { effort: settings.effort } : {}),
       ...(plugins.length ? { plugins: true } : {}),
+      ...(settings.systemPrompt !== undefined ? { systemPromptFile } : {}),
       provider,
     }),
     abortSignal,

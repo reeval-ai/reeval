@@ -206,7 +206,46 @@ export type PiHarnessSettings = {
    * carry.
    */
   readonly vertex?: PiVertex
+  /** Replaces pi's system prompt (`--system-prompt`); its rules and skills are still added. */
+  readonly systemPrompt?: string
+  /** The only built-in tools pi keeps, by the AI SDK's common names (`--tools`); MCP tools stay. */
+  readonly tools?: readonly PiTool[]
+  /**
+   * The command prefixes pi's bash tool may run: a command runs when it is one of them or starts
+   * with one and a space, and has no shell operator; every other one is blocked.
+   */
+  readonly commands?: readonly string[]
 }
+
+/** The common tool names pi has a built-in tool for. */
+export type PiTool = keyof typeof PI_NATIVE_TOOLS
+
+/** pi's built-in tools for each common tool name. */
+export const PI_NATIVE_TOOLS = {
+  read: ['read'],
+  write: ['write'],
+  edit: ['edit'],
+  bash: ['bash'],
+  grep: ['grep'],
+  glob: ['find', 'ls'],
+} as const
+
+/** The extension that blocks every bash command but `prefixes`, as pi's `tool_call` hook. */
+export const piCommandGate = (
+  prefixes: readonly string[],
+) => `const prefixes = ${JSON.stringify(prefixes)}
+const allowed = (command) => {
+  const c = command.trim()
+  if (/[;&|\`$()<>\\n\\\\]/.test(c)) return false
+  return prefixes.some((p) => c === p || c.startsWith(p + ' '))
+}
+export default function (pi) {
+  pi.on('tool_call', (event) => {
+    if (event.toolName !== 'bash' || allowed(String(event.input?.command ?? ''))) return
+    return { block: true, reason: 'Command not allowed: only ' + prefixes.join(', ') }
+  })
+}
+`
 
 export type PiVertex = {
   readonly project: string
@@ -303,6 +342,12 @@ export function buildPiCommand(options: {
   sessionDir: string
   mcp?: boolean
   thinking?: string
+  /** A file holding the system prompt, `--system-prompt`. */
+  systemPromptFile?: string
+  /** pi's built-in tools to keep, `--tools`. */
+  tools?: readonly string[]
+  /** Extension files to load, `-e`. */
+  extensions?: readonly string[]
   /** The pi provider, `--provider`. */
   provider: string
   /** A command that must succeed before pi starts, such as writing its models.json. */
@@ -313,6 +358,11 @@ export function buildPiCommand(options: {
     ...(options.before ? [`${options.before} &&`] : []),
     `exec ${shellQuote(options.cli)} --mode json -p --offline --approve --no-extensions`,
     ...(options.mcp ? ['-e builtin:mcp'] : []),
+    ...(options.extensions ?? []).map((file) => `-e ${shellQuote(file)}`),
+    ...(options.tools ? [`--tools ${shellQuote(options.tools.join(','))}`] : []),
+    ...(options.systemPromptFile
+      ? [`--system-prompt "$(cat ${shellQuote(options.systemPromptFile)})"`]
+      : []),
     `--provider ${shellQuote(options.provider)}`,
     ...(options.model ? [`--model ${shellQuote(options.model)}`] : []),
     ...(options.thinking ? [`--thinking ${shellQuote(options.thinking)}`] : []),
@@ -462,6 +512,22 @@ async function startSession(
       abortSignal,
     })
   }
+  const systemPromptFile = posix.join(dataDir, 'system-prompt.txt')
+  if (settings.systemPrompt !== undefined) {
+    await sandbox.writeTextFile({
+      path: systemPromptFile,
+      content: settings.systemPrompt,
+      abortSignal,
+    })
+  }
+  const gateFile = posix.join(dataDir, 'commands.mjs')
+  if (settings.commands) {
+    await sandbox.writeTextFile({
+      path: gateFile,
+      content: piCommandGate(settings.commands),
+      abortSignal,
+    })
+  }
   let turns = 0
   let running: { kill(): PromiseLike<void> } | undefined
   let ended = false
@@ -518,6 +584,9 @@ async function startSession(
         sessionDir: posix.join(home, PI_AGENT_DIR, 'sessions'),
         mcp,
         ...(settings.effort ? { thinking: settings.effort } : {}),
+        ...(settings.systemPrompt !== undefined ? { systemPromptFile } : {}),
+        ...(settings.tools ? { tools: settings.tools.flatMap((t) => PI_NATIVE_TOOLS[t]) } : {}),
+        ...(settings.commands ? { extensions: [gateFile] } : {}),
         provider:
           turn.model && builtin(turn.model) ? (gateway?.catalog ?? provider.id) : provider.id,
         ...(before ? { before } : {}),

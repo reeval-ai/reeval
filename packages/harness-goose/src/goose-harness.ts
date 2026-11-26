@@ -112,6 +112,8 @@ export const OPENROUTER_PROVIDER: GooseProvider = {
 export const GOOSE_HOME_SKILLS_DIR = '.config/goose/skills'
 /** The repo skill directory Goose reads (it also reads `.agents/skills` and `.claude/skills`). */
 export const GOOSE_WORKSPACE_SKILLS_DIR = '.goose/skills'
+/** Where the agent's `instructions` go, beside the home skills: Goose's global hints. */
+export const GOOSE_INSTRUCTIONS_FILE = '.config/goose/.goosehints'
 
 /**
  * Headless, with nothing sent but model requests: no telemetry, no keyring, and no extra model
@@ -282,6 +284,9 @@ export function createGoose(settings: GooseHarnessSettings): HarnessV1<GooseBuil
     },
     modelMapping: { type: 'session-config-option', path: 'model' },
     skillsDirectory: GOOSE_HOME_SKILLS_DIR,
+    // Its global hints, which go in the system prompt: in a user prompt's guidance block, a model
+    // can pass over them (Gemini 3.8 Flash does).
+    instructionMapping: { type: 'filesystem', path: GOOSE_INSTRUCTIONS_FILE },
     // Not authentication: the hook that writes into Goose's private home before it starts.
     authenticationFiles: () => (mcpServers.length ? [gooseConfig(settings.mcpServers ?? {})] : []),
   })

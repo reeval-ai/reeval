@@ -18,6 +18,7 @@ export {
   PI_INSTRUCTIONS_FILE,
   PI_MCP_FILE,
   PI_MODELS_FILE,
+  PI_NATIVE_TOOLS,
   PI_OPENROUTER,
   PI_VERTEX_PROVIDER,
   PI_WORKSPACE_SKILLS_DIR,
@@ -26,7 +27,9 @@ export {
   type PiHarnessSettings,
   type PiMcpServer,
   type PiModelInfo,
+  type PiTool,
   type PiVertex,
+  piCommandGate,
   piGatewayDescribes,
   piGatewayEndpoints,
 } from './pi-harness.ts'

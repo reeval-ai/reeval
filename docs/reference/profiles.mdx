@@ -73,7 +73,7 @@ A pairwise question needs two attempts that differ in a factor it varies. When t
 ### `agents`
 
 <Property name="agents" type="string[]" optional>
-  Harness ids to keep. A default id includes `[effort=<value>]` whenever `effort` is set. reeval skips an evaluation left with none.
+  Harness ids to keep. A default id includes `[effort=<value>]` whenever `effort` is set, and a tag for each shared option set. reeval skips an evaluation left with none.
 </Property>
 
 The plan notes `agents 2 → 1 (profile nightly)`. A miss notes `skipped: no agent left: profile nightly allows none`, with the allowed ids in place of `none`.

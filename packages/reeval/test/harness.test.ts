@@ -84,6 +84,7 @@ import {
   grokBuild,
   opencode,
   pi,
+  withOptions,
 } from '../src/agent.ts'
 import { toolCalls, webEvents } from '../src/assert.ts'
 import { malformedCredentials, missingCredentials, resolveConfig } from '../src/config.ts'
@@ -107,6 +108,7 @@ import { noDefaultEffort, withDefaultEffort } from '../src/harness/default-effor
 import { effortFromModelLabel, harnessEffort, servedEffortOf } from '../src/harness/effort.ts'
 import { workspaceSkillDir } from '../src/harness/index.ts'
 import { normalizeStream } from '../src/harness/trajectory.ts'
+import { harnessPart } from '../src/history/assemble.ts'
 import { harnessId } from '../src/options.ts'
 import { imageHarness } from '../src/sandbox/prepare.ts'
 import type { AgentHarnessDescriptor, TrajectoryEvent } from '../src/types.ts'
@@ -3096,6 +3098,45 @@ describe('what a tool event shows: the model view or the full output', () => {
       [
         ['line-1\nEND\n', 'full'],
         ['no', 'model'],
+      ],
+    )
+  })
+})
+
+describe('harness options', () => {
+  test('each option is in the default id and the fingerprint', () => {
+    const plain = claudeCode({ model: 'claude-sonnet-5' })
+    const tools = claudeCode({ model: 'claude-sonnet-5', tools: ['read', 'bash'] })
+    assert.equal(harnessId(tools), 'claude-code:claude-sonnet-5[tools=read+bash]')
+    assert.match(
+      harnessId(claudeCode({ model: 'claude-sonnet-5', effort: 'high', commands: ['npm test'] })),
+      /^claude-code:claude-sonnet-5\[effort=high\]\[commands=[0-9a-f]{8}\]$/,
+    )
+    const prompts = ['a', 'b'].map((p) => codex({ model: 'gpt-5.6-luna', systemPrompt: p }))
+    assert.notEqual(harnessId(prompts[0]!), harnessId(prompts[1]!))
+    assert.match(harnessId(prompts[0]!), /^codex:gpt-5\.6-luna\[systemPrompt=[0-9a-f]{8}\]$/)
+    const parts = [plain, tools, ...prompts].map(harnessPart)
+    assert.equal(new Set(parts).size, parts.length)
+  })
+
+  test('withOptions sets the options on each agent', () => {
+    const agents = withOptions(
+      [claudeCode({ model: 'claude-sonnet-5' }), pi({ model: 'anthropic/claude-sonnet-5' })],
+      { instructions: 'Be brief.' },
+    )
+    assert.deepEqual(
+      agents.map((a) => [a.kind, a.instructions, harnessId(a)]),
+      [
+        [
+          'claude-code',
+          'Be brief.',
+          harnessId(claudeCode({ model: 'claude-sonnet-5', instructions: 'Be brief.' })),
+        ],
+        [
+          'pi',
+          'Be brief.',
+          harnessId(pi({ model: 'anthropic/claude-sonnet-5', instructions: 'Be brief.' })),
+        ],
       ],
     )
   })

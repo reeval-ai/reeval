@@ -17,12 +17,22 @@ import { fakeScript } from './evals/probes.ts'
 // suite itself.
 const defaultModel = process.env.REEVAL_CONTRACT_MODEL ?? ''
 
+/** The shared options the option evals set, which only the real harnesses take. */
+type SharedOptions = {
+  instructions?: string
+  systemPrompt?: string
+  tools?: Array<'read' | 'write' | 'edit' | 'bash' | 'grep' | 'glob'>
+  commands?: string[]
+}
+
 /**
  * The row's harness, with `effort` when it's given (the effort eval's cell), on another model when
- * one is given (the reasoning eval's).
+ * one is given (the reasoning eval's), and with `options` (the option evals').
  */
-export const contractHarness = (effort?: string, on?: string) => {
-  const e = effort ? { effort } : {}
+export const contractHarness = (effort?: string, on?: string, options: SharedOptions = {}) => {
+  // Each harness's factory takes only the options it enforces: the evals that set one are left
+  // out of a row whose harness doesn't, so the cast never reaches a factory that refuses it.
+  const e = { ...(effort ? { effort } : {}), ...options } as { effort?: string }
   const model = on || defaultModel
   switch (process.env.REEVAL_CONTRACT_HARNESS) {
     case 'cursor':

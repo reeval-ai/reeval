@@ -10,6 +10,7 @@ import { execFileSync } from 'node:child_process'
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { after, before, describe, test } from 'node:test'
+import { OPTION_SUPPORT, type SharedOption } from '@reeval/agents/options'
 import { attemptDebugDir, parseAttemptKey } from '../src/debug/files.ts'
 import type { AttemptRecord, RunRecord } from '../src/history/types.ts'
 import type { PluginPart, TokenUsage, TrajectoryEvent } from '../src/types.ts'
@@ -18,6 +19,8 @@ import type { DebugRequest } from '../src/view/debug.ts'
 import { parseTrajectory, type TrajectoryLine } from '../src/view/model.ts'
 import {
   BLOCKED_HOST,
+  DENIED_COMMAND,
+  OPTION_WORD,
   PLANTED,
   PLUGIN_PROOF,
   PLUGIN_RULES_WORD,
@@ -82,13 +85,32 @@ const evalsNamed = (run: RunRecord, name: RegExp) => run.evals.filter((e) => nam
  */
 const SANDBOX_ID = process.env.REEVAL_CONTRACT_SANDBOX === 'boat-image' ? 'boat-image' : 'docker'
 
+/** Each shared harness option's eval tag. */
+const OPTION_TAGS: Record<SharedOption, string> = {
+  instructions: 'instructions',
+  systemPrompt: 'system-prompt',
+  tools: 'tools',
+  commands: 'commands',
+}
+
+/** The shared options the row's harness enforces; none on the fake row. */
+const optionsOf = (row: HarnessRow): readonly SharedOption[] =>
+  (OPTION_SUPPORT as Record<string, { options: readonly SharedOption[] }>)[harnessOf(row)]
+    ?.options ?? []
+
+/** Why a row skips an option's behavior: its harness can't enforce the option. */
+const withoutOption = (option: SharedOption) => (row: HarnessRow) =>
+  optionsOf(row).includes(option) ? undefined : `${harnessOf(row)} can't enforce ${option}`
+
 /**
- * The tags a row's run leaves out: the MCP evals on a harness with no MCP client, the plugin
- * evals on a row with no plugin field, and the hook, subagent and rules ones on one whose
- * plugin parts lack them.
+ * The tags a row's run leaves out: the MCP evals on a harness with no MCP client, each option's
+ * evals on a harness that can't enforce it, the plugin evals on a row with no plugin field, and
+ * the hook, subagent and rules ones on one whose plugin parts lack them.
  */
 function tagsLeftOut(row: HarnessRow): string[] {
   const out = row.mcp === false ? ['mcp'] : []
+  for (const [option, tag] of Object.entries(OPTION_TAGS))
+    if (!optionsOf(row).includes(option as SharedOption)) out.push(tag)
   if (!row.effort) out.push('effort')
   if (!row.reasoningModel) out.push('reasoning')
   if (!row.plugin) return [...out, 'plugin']
@@ -104,6 +126,10 @@ const TAGGED = {
   egress: 2,
   effort: 1,
   reasoning: 1,
+  instructions: 2,
+  'system-prompt': 1,
+  tools: 1,
+  commands: 2,
   plugin: 10,
   'plugin-hooks': 2,
   'plugin-agents': 2,
@@ -131,6 +157,35 @@ const evalNamed = (run: RunRecord, name: string) => {
   assert.ok(found, `eval "${name}" didn't run: ${run.evals.map((e) => e.name).join(', ')}`)
   return found
 }
+
+/**
+ * An option eval's only attempt, after checking its id: the row's cell with the options' suffix
+ * (`[tools=bash]`, `[instructions=<hash>]`, …).
+ */
+function optionAttempt(ran: Ran, row: HarnessRow, name: string, env: string, suffix: RegExp) {
+  const ids = evalNamed(ran.run, name).attempts.map((a) => a.id)
+  assert.equal(ids.length, 1, `${name}: ${ids.join(', ')}`)
+  const [cell, ...rest] = (ids[0] ?? '').split('/')
+  assert.ok(cell?.startsWith(cellOf(row)), `${name}: ${ids[0]}`)
+  assert.match(cell.slice(cellOf(row).length), suffix, `${name}: ${ids[0]}`)
+  assert.equal(rest.join('/'), `${env}/${SANDBOX_ID}#1`)
+  const a = evalNamed(ran.run, name).attempts[0] as AttemptRecord
+  assert.equal(a.outcome, 'pass', `${name}: ${detail(a)}`)
+  return a
+}
+
+/** The size of an attempt's first model call: the system prompt and tools, then the prompt. */
+const firstCallSent = (ran: Ran, row: HarnessRow, a: AttemptRecord) => {
+  const calls = modelCalls(ran, row, a).sort((x, y) => x.at.localeCompare(y.at))
+  assert.ok(calls.length > 0, `${a.key} made no model call on ${row.apiHost}`)
+  return (calls.find((c) => c.sent >= MAIN_CALL_BYTES) ?? (calls[0] as DebugRequest)).sent
+}
+
+/**
+ * Smaller calls are a harness's side calls, not its first turn's: OpenCode's session title is
+ * under 3 KB, and the smallest first turn, pi's on a replaced prompt, is about 4 KB.
+ */
+const MAIN_CALL_BYTES = 3000
 
 /** The eval's only attempt, after checking its id: an eval that didn't run fails here. */
 function attempt(ran: Ran, row: HarnessRow, name: string, env: string): AttemptRecord {
@@ -226,9 +281,72 @@ const envOf: Record<string, string> = {
 }
 
 /** What one contract run starts: reeval.config.ts's budget.attempts, which reeval run enforces too. */
-const CONTRACT_ATTEMPTS = 26
+const CONTRACT_ATTEMPTS = 32
 
 export const behaviors: Behavior[] = [
+  {
+    name: 'instructions added to the prompt',
+    canary: true,
+    skips: withoutOption('instructions'),
+    check(ran, row) {
+      optionAttempt(ran, row, 'instructions', 'ruled', /^\[instructions=[0-9a-f]{8}\]$/)
+      const c = attempt(ran, row, 'instructions-canary', 'ruled')
+      assert.equal(c.outcome, 'fail', `instructions canary: ${detail(c)}`)
+      assert.equal(c.error?.kind, 'assertion', `instructions canary: ${detail(c)}`)
+      assert.match(c.error?.message ?? '', new RegExp(`- '${OPTION_WORD}'`))
+    },
+  },
+  {
+    name: 'system prompt replaced',
+    canary: false,
+    skips: withoutOption('systemPrompt'),
+    check(ran, row) {
+      const a = optionAttempt(ran, row, 'system-prompt', 'notes', /^\[systemPrompt=[0-9a-f]{8}\]$/)
+      // The twin: the harness's own prompt on the same task makes its first model call bigger.
+      const replaced = firstCallSent(ran, row, a)
+      const own = firstCallSent(ran, row, attempt(ran, row, 'edit-and-run', 'notes'))
+      assert.ok(
+        replaced < own,
+        `system prompt: first model call ${replaced} bytes, ${own} with the harness's own`,
+      )
+    },
+  },
+  {
+    name: 'tools held to the list',
+    canary: false,
+    skips: withoutOption('tools'),
+    async check(ran, row) {
+      const a = optionAttempt(ran, row, 'tools', 'notes', /^\[tools=bash\]$/)
+      const catalog = await catalogOf(row)
+      const called = trajectoryOf(ran, a).flatMap((e) => (e.type === 'tool' ? [e.tool] : []))
+      assert.ok(called.length > 0, 'tools: no tool call')
+      const other = called.filter((t) => catalog.tools.get(t) !== 'bash')
+      assert.deepEqual(other, [], `tools: ['bash'] called ${other.join(', ')}`)
+    },
+  },
+  {
+    name: 'commands held to the list',
+    canary: true,
+    skips: withoutOption('commands'),
+    check(ran, row) {
+      const a = optionAttempt(
+        ran,
+        row,
+        'commands',
+        'notes',
+        /^\[tools=bash\]\[commands=[0-9a-f]{8}\]$/,
+      )
+      const tried = trajectoryOf(ran, a).filter(
+        (e) => e.type === 'tool' && JSON.stringify(e.input ?? '').includes(DENIED_COMMAND),
+      )
+      assert.ok(tried.length > 0, `commands: the agent never tried ${DENIED_COMMAND}: ${detail(a)}`)
+      const c = evalNamed(ran.run, 'commands-canary').attempts[0]
+      assert.ok(c, 'commands canary has no attempt')
+      assert.equal(c.outcome, 'fail', `commands canary: ${detail(c)}`)
+      assert.equal(c.error?.kind, 'assertion', `commands canary: ${detail(c)}`)
+      assert.match(c.error?.message ?? '', /the denied command ran/)
+    },
+  },
   {
     name: 'skill placed where the agent reads it, and used',
     canary: true,

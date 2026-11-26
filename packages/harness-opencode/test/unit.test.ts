@@ -82,6 +82,32 @@ test('the config turns off updates, sharing and the tools an eval has no use for
   assert.equal('mcp' in config, false)
 })
 
+test("systemPrompt replaces the build agent's; tools and commands deny by name, last match winning", () => {
+  const config = openCodeConfig({
+    model: 'anthropic/claude-haiku-4-5',
+    systemPrompt: 'You are Zorblax.',
+    tools: ['read', 'bash'],
+    commands: ['echo ok'],
+  })
+  assert.deepEqual(config.agents, {
+    title: { model: 'anthropic/claude-haiku-4-5' },
+    build: { system: 'You are Zorblax.' },
+  })
+  const rule = (action: string, effect = 'deny', resource = '*') => ({ action, resource, effect })
+  assert.deepEqual(config.permissions, [
+    rule('question'),
+    rule('browser'),
+    ...['write', 'edit', 'grep', 'glob', 'websearch', 'webfetch', 'subagent', 'execute'].map((a) =>
+      rule(a),
+    ),
+    rule('todowrite'),
+    rule('opencode_*'),
+    rule('shell'),
+    rule('shell', 'allow', 'echo ok'),
+    rule('shell', 'allow', 'echo ok *'),
+  ])
+})
+
 test("the model's provider calls over HTTP, where the gateway reads the served model", () => {
   // OpenCode's default for OpenAI and xAI is a Responses WebSocket.
   assert.deepEqual(openCodeConfig({ model: 'openai/gpt-5.4-mini' }).providers, {

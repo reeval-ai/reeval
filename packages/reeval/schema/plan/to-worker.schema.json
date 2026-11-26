@@ -22,6 +22,11 @@
           "type": "string",
           "pattern": "\\S"
         },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
+          "type": "string",
+          "pattern": "\\S"
+        },
         "kind": {
           "type": "string",
           "const": "antigravity"
@@ -327,6 +332,15 @@
       "description": "Claude Code through `@ai-sdk/harness-claude-code`, made by `claudeCode()`.",
       "type": "object",
       "properties": {
+        "commands": {
+          "description": "The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the harness refuses every other.",
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          }
+        },
         "effort": {
           "description": "Reasoning effort the Agent SDK `/effort` control takes: `low`, `medium`, `high`, `xhigh` (Extra in the UI) or `max`.",
           "type": "string",
@@ -338,6 +352,11 @@
         },
         "id": {
           "description": "Cell id; defaults to `claude-code:<model>`, or `claude-code:<model>[effort=<value>]` when `effort` is set.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
           "type": "string",
           "pattern": "\\S"
         },
@@ -357,6 +376,20 @@
         "startTimeout": {
           "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
+        },
+        "systemPrompt": {
+          "description": "Replaces the harness's own system prompt. The environment's rules and skills are still added, and OpenCode still adds its sections on the model and its tools.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "tools": {
+          "description": "The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`, `edit`, `bash`, `grep`, `glob` and `webSearch`. Its other built-in tools are off; skills and MCP tools stay.",
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["read", "write", "edit", "bash", "grep", "glob", "webSearch"]
+          }
         }
       },
       "required": ["kind", "model"],
@@ -490,6 +523,11 @@
           "type": "string",
           "pattern": "\\S"
         },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
+          "type": "string",
+          "pattern": "\\S"
+        },
         "kind": {
           "type": "string",
           "const": "codex"
@@ -506,6 +544,11 @@
         "startTimeout": {
           "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
+        },
+        "systemPrompt": {
+          "description": "Replaces the harness's own system prompt. The environment's rules and skills are still added, and OpenCode still adds its sections on the model and its tools.",
+          "type": "string",
+          "pattern": "\\S"
         }
       },
       "required": ["kind", "model"],
@@ -610,6 +653,11 @@
         },
         "id": {
           "description": "Cell id; defaults to `cursor:<model>`, or `cursor:<model>[effort=<value>]` when `effort` is set.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
           "type": "string",
           "pattern": "\\S"
         },
@@ -1694,6 +1742,11 @@
           "type": "string",
           "pattern": "\\S"
         },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
+          "type": "string",
+          "pattern": "\\S"
+        },
         "kind": {
           "type": "string",
           "const": "fx"
@@ -1793,6 +1846,11 @@
           "type": "string",
           "pattern": "\\S"
         },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
+          "type": "string",
+          "pattern": "\\S"
+        },
         "kind": {
           "type": "string",
           "const": "goose"
@@ -1843,6 +1901,11 @@
         },
         "id": {
           "description": "Cell id; defaults to `grok-build:<model>`, or `grok-build:<model>[effort=<value>]` when `effort` is set.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
           "type": "string",
           "pattern": "\\S"
         },
@@ -2053,6 +2116,15 @@
       "description": "OpenCode through `@reeval/harness-opencode` (`opencode acp`), made by `opencode()`. It runs on any provider whose key OpenCode sends in a header on known hosts, with that provider's key, and reports no usage (its ACP server counts one call).",
       "type": "object",
       "properties": {
+        "commands": {
+          "description": "The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the harness refuses every other.",
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          }
+        },
         "effort": {
           "description": "Reasoning effort for that provider: `options.reasoningEffort` (OpenAI) or `options.thinking` (Anthropic). Values are whatever that provider takes.",
           "type": "string",
@@ -2064,6 +2136,11 @@
         },
         "id": {
           "description": "Cell id; defaults to `opencode:<model>`, or `opencode:<model>[effort=<value>]` when `effort` is set.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
           "type": "string",
           "pattern": "\\S"
         },
@@ -2083,6 +2160,20 @@
         "startTimeout": {
           "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
+        },
+        "systemPrompt": {
+          "description": "Replaces the harness's own system prompt. The environment's rules and skills are still added, and OpenCode still adds its sections on the model and its tools.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "tools": {
+          "description": "The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`, `edit`, `bash`, `grep`, `glob` and `webSearch`. Its other built-in tools are off; skills and MCP tools stay.",
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["read", "write", "edit", "bash", "grep", "glob", "webSearch"]
+          }
         }
       },
       "required": ["kind", "model"],
@@ -2121,6 +2212,15 @@
       "description": "pi through `@reeval/harness-pi` (`pi --mode json` in the sandbox), made by `pi()`. It runs a model on its provider's key and reports each model call's tokens. It takes stdio and HTTP MCP servers, not SSE ones.",
       "type": "object",
       "properties": {
+        "commands": {
+          "description": "The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the harness refuses every other.",
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          }
+        },
         "effort": {
           "description": "Reasoning effort, passed as pi's `--thinking` (the CLI's name). Values are whatever that flag takes, e.g. `off`, `minimal`, `low`, `medium`, `high`, `xhigh` or `max`.",
           "type": "string",
@@ -2132,6 +2232,11 @@
         },
         "id": {
           "description": "Cell id; defaults to `pi:<model>`, or `pi:<model>[effort=<value>]` when `effort` is set.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
           "type": "string",
           "pattern": "\\S"
         },
@@ -2151,6 +2256,20 @@
         "startTimeout": {
           "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
+        },
+        "systemPrompt": {
+          "description": "Replaces the harness's own system prompt. The environment's rules and skills are still added, and OpenCode still adds its sections on the model and its tools.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "tools": {
+          "description": "The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`, `edit`, `bash`, `grep`, `glob` and `webSearch`. Its other built-in tools are off; skills and MCP tools stay.",
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["read", "write", "edit", "bash", "grep", "glob"]
+          }
         }
       },
       "required": ["kind", "model"],

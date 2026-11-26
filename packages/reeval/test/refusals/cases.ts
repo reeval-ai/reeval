@@ -17,6 +17,7 @@ import {
   grokBuild,
   opencode,
   pi,
+  withOptions,
 } from '../../src/agent.ts'
 import { checkResumeState } from '../../src/bundle/index.ts'
 import {
@@ -870,6 +871,51 @@ export const CASES: Record<string, Case[]> = {
     ['fakeAgent layout unknown', any(fakeAgent, { layout: 'vim' })],
     ['fakeAgent effort empty', any(fakeAgent, { effort: '' })],
     ['fakeAgent with a typo', any(fakeAgent, { txt: 'x' })],
+    ['cursor systemPrompt', any(cursor, { model: 'm', systemPrompt: 'You are X.' })],
+    ['codex tools', any(codex, { model: 'gpt-5.4-mini', tools: ['bash'] })],
+    ['codex commands', any(codex, { model: 'gpt-5.4-mini', commands: ['npm test'] })],
+    ['goose instructions empty', any(goose, { model: 'google/g', instructions: ' ' })],
+    ['fakeAgent instructions', any(fakeAgent, { instructions: 'Be brief.' })],
+    ['claudeCode tools empty', any(claudeCode, { model: 'sonnet', tools: [] })],
+    ['claudeCode tools by native name', any(claudeCode, { model: 'sonnet', tools: ['Bash'] })],
+    ['claudeCode commands not a list', any(claudeCode, { model: 'sonnet', commands: 'npm test' })],
+    [
+      'claudeCode commands without bash in tools',
+      any(claudeCode, { model: 'sonnet', tools: ['read'], commands: ['npm test'] }),
+    ],
+    ['pi webSearch', any(pi, { model: 'google/g', tools: ['bash', 'webSearch'] })],
+    [
+      'claudeCode every option',
+      any(claudeCode, {
+        model: 'sonnet',
+        instructions: 'Be brief.',
+        systemPrompt: 'You are X.',
+        tools: ['read', 'bash'],
+        commands: ['npm test'],
+      }),
+    ],
+    [
+      'withOptions an option one agent lacks',
+      () =>
+        withOptions([claudeCode({ model: 'sonnet' }), codex({ model: 'gpt-5.4-mini' })], {
+          tools: ['bash'],
+        } as never),
+    ],
+    [
+      'withOptions a tool one agent lacks',
+      () =>
+        withOptions([claudeCode({ model: 'sonnet' }), pi({ model: 'google/g' })], {
+          tools: ['webSearch'],
+        } as never),
+    ],
+    [
+      'withOptions what every agent takes',
+      () =>
+        withOptions([claudeCode({ model: 'sonnet' }), pi({ model: 'google/g' })], {
+          tools: ['read', 'bash'],
+          commands: ['npm test'],
+        }),
+    ],
     ['fakeAgent text a number', any(fakeAgent, { text: 3 })],
     ['fakeAgent delayMs over 596h', any(fakeAgent, { delayMs: 2 ** 31 })],
     ['fakeAgent files not strings', any(fakeAgent, { files: { 'a.txt': 1 } })],

@@ -12,6 +12,7 @@ import type {
   VertexPublisher,
   WebEventType,
 } from '@reeval/agents'
+import type { HarnessOptions, ToolName } from '@reeval/agents/options'
 import type {
   Experimental_DecisionModel,
   Experimental_DecisionQuestion,
@@ -43,6 +44,7 @@ export type {
   VertexPublisher,
   WebEventType,
 } from '@reeval/agents'
+export type { HarnessOptions, SharedOption, ToolName } from '@reeval/agents/options'
 
 /** More than zero and at most 596h: `90s`, `15m`, `1h`, or a number of milliseconds. */
 export type Duration = number | `${number}${'ms' | 's' | 'm' | 'h'}`
@@ -806,7 +808,7 @@ export type FakeScriptStep =
  * Cursor's agent through the Cursor TypeScript SDK's local runtime
  * (`@reeval/harness-cursor-sdk`), made by `cursor()`. It reports each turn's tokens.
  */
-export type CursorHarnessDescriptor = {
+export type CursorHarnessDescriptor = Pick<HarnessOptions, 'instructions'> & {
   kind: 'cursor'
   /**
    * The gateway this harness's model calls go through, by name. It skips the config's `gateway`
@@ -839,7 +841,10 @@ export type CursorHarnessDescriptor = {
 export type ClaudeCodeEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max'
 
 /** Claude Code through `@ai-sdk/harness-claude-code`, made by `claudeCode()`. */
-export type ClaudeCodeHarnessDescriptor = {
+export type ClaudeCodeHarnessDescriptor = Pick<
+  HarnessOptions,
+  'instructions' | 'systemPrompt' | 'tools' | 'commands'
+> & {
   kind: 'claude-code'
   /**
    * The gateway this harness's model calls go through, by name. It skips the config's `gateway`
@@ -864,7 +869,7 @@ export type ClaudeCodeHarnessDescriptor = {
   startTimeout?: Duration
 }
 /** The Antigravity CLI through `@reeval/harness-antigravity`, made by `antigravity()`. */
-export type AntigravityHarnessDescriptor = {
+export type AntigravityHarnessDescriptor = Pick<HarnessOptions, 'instructions'> & {
   kind: 'antigravity'
   /**
    * The gateway this harness's model calls go through, by name. It skips the config's `gateway`
@@ -893,7 +898,10 @@ export type AntigravityHarnessDescriptor = {
  * on any provider whose key OpenCode sends in a header on known hosts, with that provider's key,
  * and reports no usage (its ACP server counts one call).
  */
-export type OpenCodeHarnessDescriptor = {
+export type OpenCodeHarnessDescriptor = Pick<
+  HarnessOptions,
+  'instructions' | 'systemPrompt' | 'tools' | 'commands'
+> & {
   kind: 'opencode'
   /**
    * The gateway this harness's model calls go through, by name. It skips the config's `gateway`
@@ -925,7 +933,7 @@ export type OpenCodeHarnessDescriptor = {
  * provider's key, and reads each turn's usage from Goose's `usage_ledger` (its ACP server counts
  * one call).
  */
-export type GooseHarnessDescriptor = {
+export type GooseHarnessDescriptor = Pick<HarnessOptions, 'instructions'> & {
   kind: 'goose'
   /**
    * The gateway this harness's model calls go through, by name. It skips the config's `gateway`
@@ -956,7 +964,10 @@ export type GooseHarnessDescriptor = {
  * model on its provider's key and reports each model call's tokens. It takes stdio and
  * HTTP MCP servers, not SSE ones.
  */
-export type PiHarnessDescriptor = {
+export type PiHarnessDescriptor = Pick<
+  HarnessOptions<Exclude<ToolName, 'webSearch'>>,
+  'instructions' | 'systemPrompt' | 'tools' | 'commands'
+> & {
   kind: 'pi'
   /**
    * The gateway this harness's model calls go through, by name. It skips the config's `gateway`
@@ -987,7 +998,7 @@ export type PiHarnessDescriptor = {
  * OpenAI's Codex CLI through `@reeval/harness-codex` (`codex exec --json`), made by `codex()`.
  * It runs OpenAI models on an OpenAI API key and reports each turn's tokens, reasoning included.
  */
-export type CodexHarnessDescriptor = {
+export type CodexHarnessDescriptor = Pick<HarnessOptions, 'instructions' | 'systemPrompt'> & {
   kind: 'codex'
   /**
    * The gateway this harness's model calls go through, by name. It skips the config's `gateway`
@@ -1015,7 +1026,7 @@ export type CodexHarnessDescriptor = {
  * fx through `@reeval/harness-fx` (`fx acp`), made by `fx()`. It runs on Vercel AI Gateway or
  * OpenAI's API by the model id, or on OpenRouter or Vertex AI, and reports each turn's tokens.
  */
-export type FxHarnessDescriptor = {
+export type FxHarnessDescriptor = Pick<HarnessOptions, 'instructions'> & {
   kind: 'fx'
   /**
    * The gateway this harness's model calls go through, by name. It skips the config's `gateway`
@@ -1050,7 +1061,7 @@ export type FxHarnessDescriptor = {
  * xAI's Grok Build through `@reeval/harness-grok-build` (`grok agent stdio`), made by
  * `grokBuild()`. It runs xAI models on an xAI API key and reports each turn's tokens.
  */
-export type GrokBuildHarnessDescriptor = {
+export type GrokBuildHarnessDescriptor = Pick<HarnessOptions, 'instructions'> & {
   kind: 'grok-build'
   /**
    * The gateway this harness's model calls go through, by name. It skips the config's `gateway`
@@ -3240,7 +3251,8 @@ export type Cell = {
   key: string
   /**
    * The harness id: `id` when set, otherwise `<kind>:<model>` (`<kind>` alone without a model),
-   * with `[effort=<value>]` appended whenever `effort` is set.
+   * with `[effort=<value>]` appended whenever `effort` is set, then a tag for each shared option
+   * set (`[tools=<names>]`, `[commands=<hash>]`, …).
    */
   harness: string
   /** The environment's own name, also on a variant cell (`with-skill`, with no prefix). */

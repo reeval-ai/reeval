@@ -50,6 +50,49 @@ export const OPENCODE_WORKSPACE_SKILLS_DIR = '.opencode/skills'
  */
 export const OPENCODE_DENIED_TOOLS = ['question', 'browser'] as const
 
+/** OpenCode's built-in tools for each common tool name. */
+export const OPENCODE_NATIVE_TOOLS = {
+  read: 'read',
+  write: 'write',
+  edit: 'edit',
+  bash: 'shell',
+  grep: 'grep',
+  glob: 'glob',
+  webSearch: 'websearch',
+} as const
+
+/** The common tool names OpenCode has a built-in tool for. */
+export type OpenCodeTool = keyof typeof OPENCODE_NATIVE_TOOLS
+
+/** The built-in tools `tools` turns off unless it names them; `skill` and MCP tools stay. */
+const OPENCODE_FILTERED_TOOLS = [
+  ...Object.values(OPENCODE_NATIVE_TOOLS),
+  'webfetch',
+  'subagent',
+  'execute',
+  'todowrite',
+  'opencode_*',
+]
+
+const deny = (action: string) => ({ action, resource: '*', effect: 'deny' })
+
+/** The permission rules `tools` and `commands` add, in order: the last match wins. */
+function toolRules({ tools, commands }: OpenCodeConfigOptions) {
+  const kept = new Set<string>(tools?.map((t) => OPENCODE_NATIVE_TOOLS[t]))
+  return [
+    ...(tools ? OPENCODE_FILTERED_TOOLS.filter((t) => !kept.has(t)).map(deny) : []),
+    ...(commands
+      ? [
+          deny('shell'),
+          ...commands.flatMap((prefix) => [
+            { action: 'shell', resource: prefix, effect: 'allow' },
+            { action: 'shell', resource: `${prefix} *`, effect: 'allow' },
+          ]),
+        ]
+      : []),
+  ]
+}
+
 /**
  * The search service `websearch` uses: Exa's hosted MCP server, keyless. Without a provider in
  * the config, the tool asks the user to pick one, which in an eval ends "Web search cancelled".
@@ -75,11 +118,21 @@ export function openCodeConfig(options: OpenCodeConfigOptions = {}) {
   return {
     update: 'disable',
     share: 'disabled',
-    // Appended to an eval's own rules, and the last match wins, so reeval only denies: anything that
-    // asks is answered by harness-acp, which allows it.
-    permissions: OPENCODE_DENIED_TOOLS.map((action) => ({ action, resource: '*', effect: 'deny' })),
+    // Appended to an eval's own rules, and the last match wins, so reeval only denies, but for the
+    // commands it allows after denying every other: anything that asks is answered by
+    // harness-acp, which allows it.
+    permissions: [...OPENCODE_DENIED_TOOLS.map(deny), ...toolRules(options)],
     websearch: { provider: OPENCODE_WEB_SEARCH.provider },
-    ...(options.model ? { agents: { title: { model: options.model } } } : {}),
+    ...(options.model || options.systemPrompt !== undefined
+      ? {
+          agents: {
+            ...(options.model ? { title: { model: options.model } } : {}),
+            ...(options.systemPrompt !== undefined
+              ? { build: { system: options.systemPrompt } }
+              : {}),
+          },
+        }
+      : {}),
     // HTTP rather than a Responses WebSocket (OpenCode's default for OpenAI and xAI): the gateway
     // reads the model that served each call from its HTTP response.
     ...(provider
@@ -109,6 +162,9 @@ export type OpenCodeConfigOptions = {
   mcpServers?: OpenCodeHarnessSettings['mcpServers']
   /** Reasoning effort, in the request body's own field ({@link openCodeEffortBody}). */
   effort?: string
+  systemPrompt?: string
+  tools?: readonly OpenCodeTool[]
+  commands?: readonly string[]
 }
 
 /**
@@ -167,6 +223,18 @@ export type OpenCodeHarnessSettings = {
    * supplies the file and the token the calls carry.
    */
   readonly vertex?: OpenCodeVertex
+  /** Replaces the build agent's system prompt (`agents.build.system`). */
+  readonly systemPrompt?: string
+  /**
+   * The only built-in tools OpenCode keeps, by the AI SDK's common names: the others are denied
+   * by name, so `skill` and MCP tools stay.
+   */
+  readonly tools?: readonly OpenCodeTool[]
+  /**
+   * The command prefixes `shell` may run, alone or with arguments; every other command is denied
+   * (`permissions` on `shell`).
+   */
+  readonly commands?: readonly string[]
 }
 
 export type OpenCodeVertex = {
@@ -236,6 +304,9 @@ export function createOpenCode(settings: OpenCodeHarnessSettings): HarnessV1<Ope
     credentialBrokering: route.credentialBrokering ?? (() => []),
     modelMapping: { type: 'session-config-option', path: 'model' },
     skillsDirectory: OPENCODE_HOME_SKILLS_DIR,
+    // Its global rules, which go in the system prompt: in a user prompt's guidance block, a model
+    // can pass over them (Gemini 3.8 Flash does).
+    instructionMapping: { type: 'filesystem', path: OPENCODE_INSTRUCTIONS_FILE },
   })
   return {
     ...acp,
@@ -257,6 +328,9 @@ export function createOpenCode(settings: OpenCodeHarnessSettings): HarnessV1<Ope
     },
   }
 }
+
+/** Where the agent's `instructions` go, under the sandbox user's home: OpenCode's global rules. */
+export const OPENCODE_INSTRUCTIONS_FILE = '.config/opencode/AGENTS.md'
 
 /** Every provider's key variable: harness-acp forwards the one in auth, and brokers it. */
 const OPENCODE_KEY_ENV = [...new Set(OPENCODE_PROVIDERS.map((p) => p.env))].sort()

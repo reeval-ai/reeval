@@ -1829,6 +1829,26 @@ export const inventory: InventoryFeature[] = [
     ],
   },
   {
+    id: 'harness.options',
+    area: 'Harnesses',
+    name: "`instructions`, `systemPrompt`, `tools` and `commands` on the harness factories that enforce them and in `withOptions()`: refused at plan time where a harness can't, in the cell id and the fingerprint, and enforced in the sandbox",
+    plan: ['harness-options/harness-options'],
+    real: [
+      'contract › instructions added to the prompt',
+      'contract › system prompt replaced',
+      'contract › tools held to the list',
+      'contract › commands held to the list',
+    ],
+    unit: [
+      'reeval/test/harness.test.ts',
+      'reeval/test/refusals.test.ts',
+      'reeval/test/types.test.ts',
+      'harness-pi/test/unit.test.ts',
+      'harness-codex/test/unit.test.ts',
+      'harness-opencode/test/unit.test.ts',
+    ],
+  },
+  {
     id: 'harness.default-effort',
     area: 'Harnesses',
     name: "An unset `effort` runs at `medium` on every harness and model that takes one, recorded and noted in the plan where it can't; Cursor's `effort` and `params` checked against its model catalog at plan time",
