@@ -623,6 +623,7 @@ const OTHER_KEYS = [
   'call',
   'turn',
   'value',
+  ...decideStatePartSchema.options.flatMap((o) => Object.keys(o.shape)),
   ...Object.keys(captureSchema.shape),
   ...Object.keys(captureCallDataSchema.shape),
   'name',
