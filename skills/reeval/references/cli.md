@@ -158,5 +158,5 @@ one base would still have passed under the new gate is `regressed`. An eval Ctrl
 canceled is `can't compare` with that side `canceled`. An eval with `cases` is one row
 with its cases' rows inside it (`cases` in `--json`); its target over the cases or a pooled `minLift`
 decides the row, so it can regress while every case passes. `--fail-on-regression` exits 1 on a
-regressed eval, or on a new or can't-compare one that fails, unless head was canceled. `-v` adds each cell's
+regressed eval, or on a new or can't-compare one that fails, unless head was canceled or its target only reports. `-v` adds each cell's
 lift and effort, base → head.

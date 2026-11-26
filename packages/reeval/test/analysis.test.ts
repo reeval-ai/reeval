@@ -1996,7 +1996,7 @@ describe('a study: several arms, every cell ungated', () => {
       assert.doesNotMatch(v.agentS ?? '', /^0 vs 0 /, 'two sub-50 ms medians have no ratio')
       assert.deepEqual(Object.keys(v.separated ?? {}).slice(0, 2), ['tools', 'agentS'])
     }
-    assert.match(text, /This run is a study: every cell is ungated/)
+    assert.match(text, /This run is a study: no eval's target can fail the run/)
     assert.ok(
       text.indexOf('## Project instructions') < text.indexOf('## How reeval decided'),
       'the project instructions come before the rules',

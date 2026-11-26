@@ -259,7 +259,7 @@ export type HeadlinePrimary =
       kind: 'target'
       /** What it's judged on: `67% < 80%`, `2/3 cases hit 100% (pass@2)`, `infra error`. */
       result: string
-      /** The target as written: `metric(0.8)`. */
+      /** The target as written: `regression(0.8)`. */
       target: string
       /** `pass` and `fail` only for a target that blocks; `report` for one that only reports. */
       standing: 'pass' | 'fail' | 'report' | 'infra' | 'skipped'

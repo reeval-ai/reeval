@@ -636,7 +636,7 @@ importers:
     dependencies:
       '@ai-sdk/harness':
         specifier: 1.0.172
-        version: 1.0.172(ws@8.22.0)(zod@4.6.7)
+        version: 1.0.172(ws@8.22.1)(zod@4.6.7)
       '@ai-sdk/harness-acp':
         specifier: 1.0.112
         version: 1.0.112(zod@4.6.7)
