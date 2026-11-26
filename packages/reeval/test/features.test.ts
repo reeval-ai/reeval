@@ -47,7 +47,7 @@ import { type GraderDef, graderDef } from '../src/grade/define.ts'
 import { judge } from '../src/grade/judge-grader.ts'
 import { runGraders } from '../src/grade/run.ts'
 import { fakeBrokering } from '../src/harness/agents.ts'
-import { readTrajectory } from '../src/history/trajectory.ts'
+import { readStoredAttempt } from '../src/history/stored-attempt.ts'
 import type { RunRecord } from '../src/history/types.ts'
 import { sha256 } from '../src/ids.ts'
 import { askJudge } from '../src/judge/index.ts'
@@ -4185,7 +4185,7 @@ export const features: Feature[] = [
         'past 4 KiB, the value is in a file beside the record',
       )
       assert.equal(readFileSync(join(runDir, log?.file?.path ?? ''), 'utf8'), json)
-      const t = attempt && (await readTrajectory(runDir, attempt))
+      const t = attempt && (await readStoredAttempt(runDir, attempt))
       assert.equal(t?.observations[0]?.value, value)
     },
   },
@@ -4453,7 +4453,7 @@ export const features: Feature[] = [
         case: { key: '' },
         turns: [],
         skills: [],
-        trajectory: await readTrajectory(runDir, attempt),
+        stored: await readStoredAttempt(runDir, attempt),
       }
       const regraded = stored && (await runGraders(graders, stored, new AbortController().signal))
       assert.deepEqual(
@@ -4672,7 +4672,7 @@ export const features: Feature[] = [
         case: { key: '' },
         turns: [],
         skills: [],
-        trajectory: await readTrajectory(runDir, attempt),
+        stored: await readStoredAttempt(runDir, attempt),
         judge: {
           ask: (q, a, state, model, signal) => askJudge(q, a, state, { model }, signal),
         },

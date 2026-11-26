@@ -22,7 +22,7 @@ import type { GraderTurn } from './grade/types.ts'
 import { listRuns, readOriginal, readRecord, recordFile, runDir } from './history/files.ts'
 import { gradedOutcome, newRegradeId, writeRegrade } from './history/regrades.ts'
 import { findingLines, scanText } from './history/secret-scan.ts'
-import { readTrajectory } from './history/trajectory.ts'
+import { readStoredAttempt } from './history/stored-attempt.ts'
 import type {
   AttemptRecord,
   EvalEntry,
@@ -614,7 +614,7 @@ const heldBack = (def: GraderDef, error: string, signal: AbortSignal) =>
 
 /**
  * Runs what `steps` plans for the attempt. A grader whose grade can't be had today (`heldBack`,
- * a grader sandbox that fails to start, a trajectory that can't be read) keeps its stored grade
+ * a grader sandbox that fails to start, a stored attempt that can't be read) keeps its stored grade
  * and is returned in `failed`; `done` is the attempt as regraded, or undefined when nothing
  * changed.
  */
@@ -637,7 +637,7 @@ async function regradeAttempt(
       const inputs: GradeInputs = {
         case: caseOf(current, a) as Case,
         turns: storedTurns(a, kept),
-        trajectory: await readTrajectory(dir, a),
+        stored: await readStoredAttempt(dir, a),
         skills: kept.skills ?? [],
         subagents: a.turns.map((_, i) =>
           (a.subagents ?? []).filter((s) => s.turn === i).map(({ n: _n, turn: _turn, ...s }) => s),

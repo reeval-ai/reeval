@@ -398,8 +398,8 @@ export async function runJudgeGrader(
       ref?.digest,
     )
   }
-  const { trajectory } = inputs
-  const { workspace } = trajectory
+  const { stored } = inputs
+  const { workspace } = stored
   const readAttempt = async (path: string): Promise<string | null> => {
     const entry = workspace?.manifest.files.find((f) => f.path === path)
     const bytes = entry ? await workspace?.readFile(path) : null
@@ -408,7 +408,7 @@ export async function runJudgeGrader(
     return bytes.toString('utf8')
   }
   const wanted = resolveStateOptions(run.inputs)
-  const observed = trajectory.observations
+  const observed = stored.observations
   if (wanted.observations) {
     const missing = Array.isArray(wanted.observations)
       ? wanted.observations.find((n) => !observed.some((o) => o.name === n))
@@ -433,9 +433,9 @@ export async function runJudgeGrader(
       turns: turns.map((t, i) => ({ ...t, subagents: inputs.subagents?.[i] })),
       subject: last,
       output: turns[last]?.text ?? '',
-      diff: trajectory.diff,
+      diff: stored.diff,
       wanted,
-      checks: trajectory.execs,
+      checks: stored.execs,
       observations: observed,
       readFile: readAttempt,
       listFiles: async () => workspace?.manifest.files.map((f) => f.path) ?? [],
@@ -453,10 +453,10 @@ export async function runJudgeGrader(
     if (wantedArtifacts) {
       const names =
         wantedArtifacts === true
-          ? trajectory.artifacts.map((a) => a.name)
+          ? stored.artifacts.map((a) => a.name)
           : wantedArtifacts.map((a) => (typeof a === 'string' ? a : a.name))
       for (const name of names) {
-        const png = await trajectory.readArtifact(name)
+        const png = await stored.readArtifact(name)
         if (!png)
           throw new GradeError(
             `${who} artifacts names a capture this attempt doesn't have: ${JSON.stringify(name)}`,

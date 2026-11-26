@@ -2144,7 +2144,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'history.kept-workspace',
     area: 'Records and studio',
-    name: "The final workspace kept whole: every file git doesn't ignore, but dependency and cache directories, masked, a file the secret scan still finds something in dropped and named, as `workspace.tar.gz` with `workspace.json` listing each file's sha256, in the attempt's directory, the history and its archives (an `s3()` store keeps it apart from the runs a pull downloads), streamed and never read whole, on reeval's image or BusyBox's tools, at most 200 MiB uncompressed and 100 MiB compressed per attempt and 5 GiB per run (an attempt past either keeps none, `workspace.skipped` says why and the run's output names it); `readTrajectory` reads it back with the attempt's execs, observations and captures",
+    name: "The final workspace kept whole: every file git doesn't ignore, but dependency and cache directories, masked, a file the secret scan still finds something in dropped and named, as `workspace.tar.gz` with `workspace.json` listing each file's sha256, in the attempt's directory, the history and its archives (an `s3()` store keeps it apart from the runs a pull downloads), streamed and never read whole, on reeval's image or BusyBox's tools, at most 200 MiB uncompressed and 100 MiB compressed per attempt and 5 GiB per run (an attempt past either keeps none, `workspace.skipped` says why and the run's output names it); `readStoredAttempt` reads it back with the attempt's execs, observations and captures",
     fixtures: ['history/kept-workspace'],
     unit: ['reeval/test/kept-workspace.test.ts'],
   },
@@ -2172,7 +2172,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'grade.builtins',
     area: 'Judges and matchers',
-    name: "`reeval/graders`' built-in graders, named `<kind>:<main argument>`, over the stored trajectory and workspace alone: skills, tools, MCP servers, commands, web searches and fetches, written files, the final diff, kept files, `c.exec` exit codes, usage limits, recorded usage, page captures and observations, each a natural pass (1 or 0) or a recorded grade, with `weight`, `required` and `score` as options and a code version in its fingerprint; `reeval/graders/match`'s plain functions share the matchers' logic",
+    name: "`reeval/graders`' built-in graders, named `<kind>:<main argument>`, over the stored attempt and workspace alone: skills, tools, MCP servers, commands, web searches and fetches, written files, the final diff, kept files, `c.exec` exit codes, usage limits, recorded usage, page captures and observations, each a natural pass (1 or 0) or a recorded grade, with `weight`, `required` and `score` as options and a code version in its fingerprint; `reeval/graders/match`'s plain functions share the matchers' logic",
     fixtures: [
       'grade/builtin-transcript',
       'grade/builtin-workspace',

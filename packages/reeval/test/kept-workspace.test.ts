@@ -1,5 +1,5 @@
 // The kept workspace: what it keeps and leaves out, its manifest, its caps, the run's cap at
-// assembly, and reading it back with an attempt's other trajectory through `readTrajectory`.
+// assembly, and reading it back with the rest of what an attempt stored through `readStoredAttempt`.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import {
@@ -19,7 +19,7 @@ import type { Attempt } from '../src/attempt/state.ts'
 import { keepWorkspace } from '../src/attempt/workspace.ts'
 import { snapshot } from '../src/diff.ts'
 import { Artifacts, placeWorkspace } from '../src/history/assemble.ts'
-import { readKeptFiles, readRef, readTrajectory } from '../src/history/trajectory.ts'
+import { readKeptFiles, readRef, readStoredAttempt } from '../src/history/stored-attempt.ts'
 import type { AttemptFiles, AttemptRecord, ExecLine } from '../src/history/types.ts'
 import { sha256 } from '../src/ids.ts'
 import type { Sandbox } from '../src/sandbox/index.ts'
@@ -287,9 +287,9 @@ describe('placeWorkspace', () => {
   })
 })
 
-describe('readTrajectory', () => {
+describe('readStoredAttempt', () => {
   test("reads an attempt's execs, observations, captures and kept files, checking each hash", async () => {
-    const run = tempDir('trajectory')
+    const run = tempDir('stored')
     const ref = (path: string, data: string | Buffer) => {
       write(run, path, data)
       const bytes = Buffer.from(data)
@@ -306,7 +306,7 @@ describe('readTrajectory', () => {
         turn: 1,
       },
     ]
-    const box = hostBox(tempDir('trajectory-box'))
+    const box = hostBox(tempDir('stored-box'))
     await snapshot(box)
     write(box.workdir, 'src/app.js', 'export {}\n')
     const a = attemptFor()
@@ -327,7 +327,7 @@ describe('readTrajectory', () => {
         ],
       },
     } as unknown as AttemptRecord
-    const t = await readTrajectory(run, attempt)
+    const t = await readStoredAttempt(run, attempt)
     assert.deepEqual(t.execs, lines)
     assert.deepEqual(t.observations, attempt.observations)
     assert.equal((await t.readArtifact('home'))?.toString(), 'png')
@@ -344,10 +344,10 @@ describe('readTrajectory', () => {
     assert.equal(await t.workspace?.readFile('nope.js'), null)
     writeFileSync(join(run, '1/execs.jsonl'), 'changed\n')
     await assert.rejects(
-      readTrajectory(run, attempt),
+      readStoredAttempt(run, attempt),
       /1\/execs\.jsonl changed since the run wrote it/,
     )
-    const bare = await readTrajectory(run, {
+    const bare = await readStoredAttempt(run, {
       files: {},
       changedFiles: [],
     } as unknown as AttemptRecord)
@@ -358,7 +358,7 @@ describe('readTrajectory', () => {
   })
 
   test('reads a large observed value from its file', async () => {
-    const run = tempDir('trajectory-observed')
+    const run = tempDir('stored-observed')
     const value = { rows: ['x'.repeat(5000)] }
     const json = JSON.stringify(value)
     write(run, '1/observations/1.json', json)
@@ -368,12 +368,12 @@ describe('readTrajectory', () => {
       files: {},
       changedFiles: [],
     } as unknown as AttemptRecord
-    const t = await readTrajectory(run, attempt)
+    const t = await readStoredAttempt(run, attempt)
     assert.deepEqual(t.observations[0]?.value, value)
   })
 
   test('refuses a ref that climbs out of the run or is absolute', async () => {
-    const run = tempDir('trajectory-refs')
+    const run = tempDir('stored-refs')
     for (const path of ['../outside.txt', '/etc/passwd', '1/../../x', 'a//b']) {
       await assert.rejects(
         readRef(run, { path, sha256: sha256(''), bytes: 0 }),
@@ -384,7 +384,7 @@ describe('readTrajectory', () => {
   })
 
   test('follows symbolic links inside the workspace only, and fetches a missing archive', async () => {
-    const box = hostBox(tempDir('trajectory-links-box'))
+    const box = hostBox(tempDir('stored-links-box'))
     await snapshot(box)
     write(box.workdir, 'src/app.js', 'export {}\n')
     symlinkSync('src/app.js', join(box.workdir, 'app'))
@@ -392,7 +392,7 @@ describe('readTrajectory', () => {
     symlinkSync('../outside', join(box.workdir, 'out'))
     symlinkSync('/etc/passwd', join(box.workdir, 'abs'))
     symlinkSync('loop', join(box.workdir, 'loop'))
-    const run = tempDir('trajectory-links')
+    const run = tempDir('stored-links')
     const a = attemptFor()
     await keepWorkspace(a, box, join(run, 'staged'))
     const archive = readFileSync(join(run, 'staged/workspace.tar.gz'))
@@ -423,11 +423,11 @@ describe('readTrajectory', () => {
     for (const path of ['out', 'abs', 'loop', 'src', 'lib']) {
       assert.equal(await kept?.readFile(path), null, path)
     }
-    const bad = await readKeptFiles(tempDir('trajectory-bad-fetch'), {
+    const bad = await readKeptFiles(tempDir('stored-bad-fetch'), {
       files: { ...attempt.files, workspaceManifest: attempt.files.workspaceManifest },
     } as unknown as AttemptRecord).catch((error: Error) => error)
     assert.ok(bad instanceof Error, 'no manifest in that run')
-    const wrong = tempDir('trajectory-wrong-fetch')
+    const wrong = tempDir('stored-wrong-fetch')
     write(wrong, '1/workspace.json', manifest)
     const refetched = await readKeptFiles(wrong, attempt, {
       fetch: async (_ref, file) => writeFileSync(file, 'not it'),
