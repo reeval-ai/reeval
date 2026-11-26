@@ -9,7 +9,7 @@ export type Task = {
   pr: { number: number; sha: string; parent: string }
   prompt: string
   /** Paths the change should touch, by what the contributor guides ask for. */
-  touches: Array<{ label: string; paths: string | string[] }>
+  touches: Array<string | string[]>
   /** Files from the merged commit, placed after the agent's turn, and the command that runs them. */
   hidden: { files: Record<string, string>; run: string }
 }
@@ -32,9 +32,7 @@ export const TASKS: Task[] = [
       parent: '8351babbee2d5cbec0cdea72ffd844273766775d',
     },
     prompt: `\`reeval analyze\` always compares a run with its nearest recorded ancestor, or with the run \`--vs <run>\` names. Add \`reeval analyze --vs none\` to write up one run on its own. With it there is no base run: the digest's \`scope.base\` is null, and the digest has no facts that compare two runs (no \`eval-changed\`, \`drift\` or \`compare\` facts, and no \`pooled\` or \`observed\` factor rows). It works with \`--context\` and \`--dry-run\`, whose first line then names only the run, with no " vs ". \`--vs latest\` naming the run itself still exits 2 with "reeval analyze --vs names the run itself".`,
-    touches: [
-      { label: 'documents --vs none in the CLI help', paths: 'packages/reeval/src/cli-spec.ts' },
-    ],
+    touches: ['packages/reeval/src/cli-spec.ts'],
     hidden: {
       files: ['packages/reeval/test/analysis.test.ts'],
       run: [test('test/analysis.test.ts', '--vs none analyses this run only')],
@@ -65,14 +63,8 @@ export const TASKS: Task[] = [
     },
     prompt: `Add a \`toHaveChanged(paths?)\` matcher. \`expect(turn).toHaveChanged(paths?)\`, or \`expect(c)\` for the latest turn (nothing before a turn), passes when the workspace diff has a file matching any of \`paths\`: a glob against the path from the workspace root (\`greet.ts\` doesn't match \`src/greet.ts\`), which also matches everything under a directory it names (so \`test\` and \`./test/\` mean \`test/**\`), a RegExp, or a list of them. With no argument any change passes. Unlike \`toHaveEdited\`, which reads the transcript, it sees writes made by shell commands and subprocesses. Its messages name the files. For a diff that modified \`test/greet.test.js\` and added \`src/greet.ts\`, a miss lists every changed file, \`expected changes to package.json, got ["test/greet.test.js" (modified), "src/greet.ts" (added)]\`, and a negated hit lists only the files that matched, \`expected no changes to test/**, got ["test/greet.test.js" (modified)]\`; with an empty diff it's \`expected changes, got none\`. Anything other than a turn or \`c\` throws \`toHaveChanged() expects a turn from c.send(), or c\`. Build it like the other transcript matchers, on a \`changed(actual, paths?)\` helper exported from \`packages/reeval/src/assert.ts\`.`,
     touches: [
-      {
-        label: 'adds a feature fixture with a canary',
-        paths: 'packages/reeval/test/features/**/canary.eval.ts',
-      },
-      {
-        label: 'lists it in the feature inventory',
-        paths: 'packages/reeval/test/features/inventory.ts',
-      },
+      'packages/reeval/test/features/**/canary.eval.ts',
+      'packages/reeval/test/features/inventory.ts',
     ],
     hidden: {
       files: [
@@ -101,10 +93,7 @@ export const TASKS: Task[] = [
       parent: 'd875b9298ee8ff18a4ba785c8a6878d5bacfe23c',
     },
     prompt: `Compare questions take a model per entry (\`{ question, model }\`), but the \`question\` option, the defaults for every compare question that cascade from the config through groups to evals, refuses \`model\`. Let \`question: { model: 'provider/model' }\` set the model for every compare question below it that doesn't name its own: an entry's \`model\` wins over the cascaded one, which wins over \`analysis.model\`. Refuse a model there without a provider prefix, or an evaluation model such as \`typesafe-ai/jev-1.13.0\`, as entries already do. \`reeval run --dry-run\` (and \`--json\`) shows each question's resolved model.`,
-    touches: [
-      { label: 'adds refusal rows', paths: 'packages/reeval/test/refusals/**' },
-      { label: 'adds a plan case', paths: 'packages/reeval/test/plan/**' },
-    ],
+    touches: ['packages/reeval/test/refusals/**', 'packages/reeval/test/plan/**'],
     hidden: {
       files: [
         'packages/reeval/test/options.test.ts',

@@ -1,4 +1,5 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval, regression } from 'reeval'
+import { succeeded } from 'reeval/graders'
 import { plain } from './environments.ts'
 
 const greetsAda = `node -e "import('./greet.js').then((m) =>
@@ -6,8 +7,10 @@ const greetsAda = `node -e "import('./greet.js').then((m) =>
 
 export default defineEval({
   environment: plain,
+  graders: [succeeded('greets Ada in the house style')],
+  target: regression(),
   task: async (c) => {
     await c.send('Create greet.js exporting greet(name) in our house style.')
-    await expect(c.exec(greetsAda), 'greets Ada in the house style').toSucceed()
+    await c.exec(greetsAda, { label: 'greets Ada in the house style' })
   },
 })

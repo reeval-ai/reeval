@@ -15,30 +15,30 @@ export const withSkill = plain.extendEnvironment('with-postgres-skill', ({ skill
 }))
 EOF
   cat > evals/foreign-keys.eval.ts <<'EOF'
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
 import { plain, withSkill } from './environments.ts'
 export default defineEval({
   compare: { control: plain, variants: [withSkill] },
+  graders: [hasFile('migrations/001_orders.sql', /create index[^;]*on\s+orders\s*\(\s*customer_id/i)],
   async task(c) {
   await c.send('Write migrations/001_orders.sql creating customers and orders, orders.customer_id referencing customers.')
-  const sql = ((await c.readFile('migrations/001_orders.sql')) ?? '').toLowerCase()
-  expect(sql, 'indexes orders.customer_id').toMatch(/create index[^;]*on\s+orders\s*\(\s*customer_id/)
   },
 })
 EOF
 elif [ -d skills/firestore-rules-creation ]; then
   cat > evals/firestore-rules.eval.ts <<'EOF'
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
 const plain = defineEnvironment('plain', {})
 const withSkill = plain.extendEnvironment('with-rules-skill', ({ skill }) => ({
   skills: [skill.local('../skills/firestore-rules-creation')],
 }))
 export default defineEval({
   compare: { control: plain, variants: [withSkill] },
+  graders: [hasFile('firestore.rules', /request\.auth\.uid\s*==\s*uid/)],
   async task(c) {
   await c.send('Write firestore.rules so each user can read and write only their own users/{uid} document.')
-  const rules = (await c.readFile('firestore.rules')) ?? ''
-  expect(rules, 'checks request.auth.uid').toMatch(/request\.auth\.uid\s*==\s*uid/)
   },
 })
 EOF
@@ -54,29 +54,35 @@ export const withRules = repo.extendEnvironment('with-gemini-md', ({ file }) => 
 }))
 EOF
   cat > evals/projects-list.eval.ts <<'EOF'
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { inDiff, succeeded } from 'reeval/graders'
 import { repo, withRules } from './environments.ts'
 export default defineEval({
   compare: { control: repo, variants: [withRules] },
+  graders: [inDiff('CHANGELOG.md'), succeeded('compiles')],
   async task(c) {
   await c.send('`firebase projects:list` should say how to create a project when the account has none.')
-  expect(c, 'a CHANGELOG.md entry').toHaveChanged('CHANGELOG.md')
-  await expect(c.exec('npx tsc --noEmit -p tsconfig.json'), 'compiles').toSucceed()
+  await c.exec('npx tsc --noEmit -p tsconfig.json', { label: 'compiles' })
   },
 })
 EOF
 else
   npm view tailwindcss version
   cat > evals/tailwind.eval.ts <<'EOF'
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval, defineGrader } from 'reeval'
+import { hasFile } from 'reeval/graders'
 const vite = defineEnvironment('vite', { files: { 'package.json': '{ "type": "module" }\n' } })
 export default defineEval({
   environment: vite,
+  graders: [
+    hasFile('src/styles.css', /@import\s+["']tailwindcss["']/),
+    defineGrader('no-v3-tailwind-directives', {
+      files: ['src/styles.css'],
+      grade: async (c) => !/@tailwind\s+base/.test(await c.readFile('src/styles.css')),
+    }),
+  ],
   async task(c) {
   await c.send('Add Tailwind CSS 4 to this project, with src/styles.css as the stylesheet.')
-  const css = (await c.readFile('src/styles.css')) ?? ''
-  expect(css, 'uses @import "tailwindcss"').toMatch(/@import\s+["']tailwindcss["']/)
-  expect(css, 'no v3 @tailwind directives').not.toMatch(/@tailwind\s+base/)
   },
 })
 EOF

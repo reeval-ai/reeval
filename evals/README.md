@@ -8,7 +8,7 @@ so `pnpm test` and CI never run them.
 ```bash
 pnpm build
 pnpm reeval run --dry-run                          # the plan, no keys or Docker
-pnpm reeval run --config reeval.fake.config.ts     # the canary: every attempt misses
+pnpm reeval run --config reeval.fake.config.ts     # the canary: every eval scores under 100%
 pnpm reeval run evals/skill --runs 2               # Cursor, with CURSOR_API_KEY in .env.local
 ```
 
@@ -99,8 +99,8 @@ is Biome's formatter, because neither arm ran `pnpm format`.
 node evals/contributing/scripts/lockfiles.mjs   # each task's lockfile, for the image's pnpm store
 pnpm reeval image build
 pnpm reeval run contributing                     # Cursor, with CURSOR_API_KEY in .env.local
-pnpm reeval run --config evals/contributing/reeval.oracle.config.ts   # 8 of 8 attempts pass
-pnpm reeval run contributing --config reeval.fake.config.ts         # 8 of 8 attempts miss
+pnpm reeval run --config evals/contributing/reeval.oracle.config.ts   # every eval at 100%
+pnpm reeval run contributing --config reeval.fake.config.ts         # every eval under 100%
 ```
 
 Each attempt starts from the task's parent commit (`git('../..', { ref })`) in an image whose
@@ -141,8 +141,8 @@ files of its own, then 2, 2 and 1 of 1, with a `GEMINI.md` compare in the real r
 node evals/skill/scripts/vendor.mjs                     # packs this checkout's reeval
 pnpm reeval run evals/setup                       # Cursor, with CURSOR_API_KEY
 cd evals/setup
-pnpm reeval run --config reeval.oracle.config.ts                  # 4 passed
-pnpm reeval run --config reeval.oracle.config.ts --profile canary # every attempt fails
+pnpm reeval run --config reeval.oracle.config.ts                  # every eval at 100%
+pnpm reeval run --config reeval.oracle.config.ts --profile canary # every eval under 100%
 pnpm reeval run --config reeval.claude.config.ts                  # Claude Code
 ```
 
@@ -172,10 +172,10 @@ const variant = control.extendEnvironment(`${fixture}-with-mcp`, ({ mcp }) => ({
 | reads the history | `flaky-since` | Name the eval that turned flaky over 10 recorded runs, the commit that did it, and whether the race is in the check |
 | | `regression` | List the evals that passed at tag `v1.2` and fail in the latest run, 4 batches of changes later, and none that were broken already or recovered |
 | | `is-new` | Split the latest run's failures into new and old |
-| | `big-record` | Fix an 82-attempt run (its `summary.md` is about 485 KB) whose export check moved |
+| | `big-record` | Fix an 82-attempt run (its record is about 1.2 MB) whose export check moved |
 
 The history tasks start from a git repository the setup step writes, with a recorded run for
-each commit. Every check is deterministic: the named eval, commit or cause, `reeval run`
+each commit. Every grader is deterministic: the named eval, commit or cause, `reeval run`
 passing, `reeval.config.ts` untouched, the history unedited, and no check skipped.
 
 ### Results
@@ -231,7 +231,7 @@ that cheats (skips the failing eval, or gives wrong answers) must fail.
 
 ```bash
 cd evals/mcp-debugging
-pnpm reeval run --config reeval.oracle.config.ts                          # 18 passed
-pnpm reeval run --config reeval.oracle.config.ts --profile canary         # 18 missed
-pnpm reeval run --config reeval.oracle.config.ts --profile mcp with-mcp   # 9 passed, each calling failures
+pnpm reeval run --config reeval.oracle.config.ts                          # every eval at 100%
+pnpm reeval run --config reeval.oracle.config.ts --profile canary         # every eval under 100%
+pnpm reeval run --config reeval.oracle.config.ts --profile mcp            # with-mcp cells at 100%, each calling failures
 ```

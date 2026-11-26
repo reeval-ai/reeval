@@ -54,10 +54,10 @@ const commit = (message) => {
 // Changes that move nothing: what a busy repository's other commits look like.
 const tidy = {
   slug: () =>
-    edit('evals/slug.eval.ts', "'replaces runs of other characters'", "'joins words with dashes'"),
-  greet: () => edit('evals/greet.eval.ts', "'says hello'", "'greets with hello'"),
+    edit('evals/slug.eval.ts', "'replaces-runs-of-other-characters'", "'joins-words-with-dashes'"),
+  greet: () => edit('evals/greet.eval.ts', "'says-hello'", "'greets-with-hello'"),
   sum: () => edit('evals/sum.eval.ts', 'adds up a list of numbers', 'adds up an array of numbers'),
-  chunk: () => edit('evals/chunk.eval.ts', "'cuts with slice'", "'slices the array'"),
+  chunk: () => edit('evals/chunk.eval.ts', "'cuts-with-slice'", "'slices-the-array'"),
   config: () => edit('evals/parse-config.eval.ts', 'reads a JSON config file', 'reads a JSON file'),
   uniq: () => edit('evals/uniq.eval.ts', 'keeping the first', 'keeping first occurrences'),
   pad: () => edit('evals/pad.eval.ts', 'to n characters', 'to a width of n'),
@@ -189,7 +189,7 @@ const tasks = {
     )
     commit('reword the module judge question')
     run()
-    edit('evals/export.eval.ts', "toHaveFile('lib/export.js'", "toHaveFile('src/export.js'")
+    edit('evals/export.eval.ts', "hasFile('lib/export.js'", "hasFile('src/export.js'")
     commit('move the export check next to the modules')
     run()
   },

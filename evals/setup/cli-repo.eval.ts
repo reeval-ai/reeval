@@ -1,26 +1,30 @@
-import { defineEval, expect } from 'reeval'
-import { asksFirst, evalList, HARNESS_KEY, INSTALL, names, setUp, target } from './setup.ts'
+import { defineEval, defineGraders } from 'reeval'
+import { notInDiff } from 'reeval/graders'
+import { setUp, shared, sourcesOf, target } from './setup.ts'
+
+/** What the evals it writes should say, by grader name. */
+const SAYS: Record<string, RegExp> = {
+  'checks-by-running-something': /\.exec\(/,
+  'works-in-the-real-repo': /directory\(\s*['"]\.\.['"]/,
+  'keeps-env-out-of-the-sandbox': /!\.env/,
+  'keeps-the-config-out-of-the-sandbox': /!reeval\.config/,
+  'compares-gemini-md': /rules:\s*file\(\s*['"][./]*GEMINI\.md/,
+  'leaves-gemini-md-out-of-the-control': /!GEMINI\.md/,
+}
 
 export default defineEval({
   ...target('firebase-tools'),
+  graders: [
+    ...shared,
+    defineGraders(Object.keys(SAYS), {
+      grade: sourcesOf,
+      score: Object.fromEntries(
+        Object.entries(SAYS).map(([name, re]) => [name, (s: string) => (re.test(s) ? 1 : 0)]),
+      ),
+    }),
+    notInDiff(['src/**', 'README.md', 'GEMINI.md', 'scripts/**']),
+  ],
   task: async (c) => {
-    const first = await c.send(`Set up reeval here.${INSTALL}`)
-    asksFirst(first, await evalList(c))
-    const last = await c.send('Yes, go ahead.')
-    await setUp(c, [], { evals: [1, 3] })
-    const sources = (await c.exec('cat evals/*.ts 2>/dev/null')).stdout
-    expect(sources, 'checks by running something').toMatch(/\.exec\(/)
-    expect(sources, 'works in the real repo').toMatch(/directory\(\s*['"]\.\.['"]/)
-    expect(sources, 'keeps .env out of the sandbox').toMatch(/!\.env/)
-    expect(sources, 'keeps the config out of the sandbox').toMatch(/!reeval\.config/)
-    expect(sources, 'compares GEMINI.md').toMatch(/rules:\s*file\(\s*['"][./]*GEMINI\.md/)
-    expect(sources, 'leaves GEMINI.md out of the control').toMatch(/!GEMINI\.md/)
-    expect(c, 'leaves the code and docs alone').not.toHaveChanged([
-      'src/**',
-      'README.md',
-      'GEMINI.md',
-      'scripts/**',
-    ])
-    expect(last.text, 'names the harness key').toMatch(HARNESS_KEY)
+    await setUp(c, 'Yes, go ahead.')
   },
 })
