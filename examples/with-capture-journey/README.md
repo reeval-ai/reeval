@@ -1,8 +1,9 @@
 # with-capture-journey
 
 **Shows:** a screenshot taken after a vision model drives the page. The agent wires up a "Show
-price" button. A check reads the HTML for a click handler; then `c.capture` gets `instructions`,
-a model clicks the button the way a person would, and the judge reads the price in the shot.
+price" button. A grader reads the HTML for a click handler; in the task, `c.capture` gets
+`instructions`, a model clicks the button the way a person would, and a judge grader reads the
+price in the shot.
 `capture.model` on the eval names the model that clicks.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
@@ -19,7 +20,7 @@ pnpm eval
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check, and a fake judge scores the screenshot 0.9. The fake sandbox
+graders have something to grade, and a fake judge says yes to the screenshot. The fake sandbox
 drives no journey and saves a 1×1 placeholder PNG. `pnpm eval --profile docker` runs the same fake
 agent in Docker, where Claude clicks the button in real Chrome and judges the shot.
 `pnpm eval --profile claude-code` runs it on Claude Code, and `--profile <name>` on any other agent
@@ -29,13 +30,16 @@ in [`examples/profiles.ts`](../profiles.ts).
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** `pnpm eval --profile docker -v` logs each move the model makes:
+**What to look at:** `pnpm eval --profile docker -v` logs each move the model makes, then the
+grades:
 
 ```text
-[reveals#1 fake] 15:18:19 check     capture instruction "Click \"Show price\" if no price shows under it yet; once one shows, you are done"
-[reveals#1 fake] 15:18:21 check     capture use click on "Click \"Show price\" if no price shows under it yet; …"
-[reveals#1 fake] 15:18:22 check     capture use done on "Click \"Show price\" if no price shows under it yet; …"
-[reveals#1 fake] 15:18:23 judge     claude-sonnet-5 · 1s · score 1.00 ≥ 0.8 · pass · …
+[capture#1 fake] 08:03:10 check     capture instruction 1 of 1 "Click \"Show price\" if no price shows under it yet; once one shows, you are done"
+[capture#1 fake] 08:03:11 check     capture use click {"x":130,"y":150,"completesGoal":false} on "Click \"Show price\" if no price shows under it yet; …" · 1s
+[capture#1 fake] 08:03:12 check     capture use done {} on "Click \"Show price\" if no price shows under it yet; …" · 717ms
+[capture#1 fake] 08:03:12 check     capture instruction 1 of 1 done after 1 move in 2s
+[capture#1 fake] 08:03:14 check     grade click-handler score 1 (11ms)
+[capture#1 fake] 08:03:14 check     grade judge:Does the screenshot show "$12 a month"? score 1 (1634ms)
 ```
 
 The run record's artifact keeps the instructions, and the model and the moves it took:
@@ -60,7 +64,7 @@ the capture's 32-move cap.
 
 | File | What it is |
 |---|---|
-| [`with-capture-journey.eval.ts`](./with-capture-journey.eval.ts) | The eval: a check, the server, the journey, the screenshot and the judge |
+| [`with-capture-journey.eval.ts`](./with-capture-journey.eval.ts) | The eval: the server, the journey and the screenshot in the task, a grader on the HTML and a judge grader on the shot |
 | [`project/`](./project) | The page the agent starts from: `index.html`, with a dead button, and `server.js` |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent and judge, the `docker` profile, and the real agents from `../profiles.ts` |

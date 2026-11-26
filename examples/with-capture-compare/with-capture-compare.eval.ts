@@ -1,4 +1,5 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
 
 const site = defineEnvironment('site', ({ directory }) => ({ files: directory('./project') }))
 const withBrand = site.extendEnvironment('brand', ({ skill }) => ({
@@ -15,10 +16,10 @@ export default defineEval({
       artifacts: ['home'],
     },
   ],
+  graders: [hasFile('index.html', /Sign up/)],
   task: async (c) => {
     await c.send('Add a "Sign up" button under the intro paragraph in index.html.')
 
-    await expect(c).toHaveFile('index.html', /Sign up/)
     // server.js serves index.html on $PORT.
     const app = await c.serve('node server.js')
     await c.capture(app, { name: 'home' })

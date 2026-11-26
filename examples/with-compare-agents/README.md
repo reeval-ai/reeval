@@ -25,13 +25,15 @@ one profile you need.
 
 **What to look at:** the plan, `pnpm eval --dry-run`, which needs no keys or Docker. It has three
 cells, not four: Codex runs the control alone. The compare sets no `runs`, so each cell runs four
-times, and the question pairs Claude Code's attempts with Codex's run by run:
+times, the graders score each attempt, and the question pairs Claude Code's attempts with
+Codex's run by run:
 
 ```text
-plan  run … · 1 eval · 3 cells · 12 attempts · ~36m 00s serial (~9m 00s at concurrency 4)
-eval                                                       harnesses  variants  runs  attempts  notes
-with-compare-agents.eval.ts › documents the new function  2          1         4     12        runs 4 (compare default)
-  question 1/1  Which multiply() is easier to read? · after the run · shows diff · harness · 4 pairs · anthropic/claude-sonnet-5
+eval                 agents  variants  runs  attempts  target    notes
+with-compare-agents  2       1         4     12        metric()  runs 4 (compare default)
+  grader 1/2  succeeded:node --test · built-in · weight 1
+  grader 2/2  has-file:src/math.js · built-in · weight 1
+  question 1/1  Which multiply() is easier to read? · after the run · shows diff · agent · 4 pairs · anthropic/claude-sonnet-5
 ```
 
 `pnpm reeval run --dry-run --json` lists the cells: `claude-code:claude-sonnet-5/math/docker`

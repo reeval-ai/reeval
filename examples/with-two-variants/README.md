@@ -1,13 +1,13 @@
 # with-two-variants
 
 **Shows:** one convention handed to the agent two ways, against nothing. The agent adds
-`divide(a, b)`, and a hidden test checks it throws the project's `RangeError` for a zero
-divisor. `compare` runs the control and two variants (the rule as a skill, and as a docs file
-in the workspace), and `reeval query contrasts` sets every pair of arms side by side.
+`divide(a, b)`, and a grader runs a hidden test that checks it throws the project's `RangeError`
+for a zero divisor. `compare` runs the control and two variants (the rule as a skill, and as a
+docs file in the workspace), and `reeval query contrasts` sets every pair of arms side by side.
 
-**Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
-first. A real agent needs its key in `.env.local` (`ANTHROPIC_API_KEY` for Claude Code), Docker,
-and `pnpm reeval image build --profile claude-code` once.
+**Needs:** Docker, where the hidden test runs, even for the fake agent; in this repo, run
+`pnpm install && pnpm build` at the root first. A real agent also needs its key in `.env.local`
+(`ANTHROPIC_API_KEY` for Claude Code) and `pnpm reeval image build --profile claude-code` once.
 
 **Run:**
 
@@ -15,9 +15,9 @@ and `pnpm reeval image build --profile claude-code` once.
 pnpm eval
 ```
 
-**Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It writes the
+**Real or fake agent:** `pnpm eval` runs a fake agent, with no keys. It writes the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check. A scripted shell step looks for the convention where an agent
+grader has something to grade. A scripted shell step looks for the convention where an agent
 would, in `docs/errors.md` or the skill's directory, and follows it wherever it finds it.
 `pnpm eval --profile claude-code` runs the same compare on Claude Code, and `--profile <name>` on
 any other agent in [`examples/profiles.ts`](../profiles.ts).
@@ -26,18 +26,16 @@ any other agent in [`examples/profiles.ts`](../profiles.ts).
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the check matrix has a column per arm. Both variants pass where the
-control misses:
+**What to look at:** a row per arm. Both variants pass where the control misses:
 
 ```text
-pass             rejects division by zero
-  arm                pass
-  math               0 of 4
-  errors-skill       4 of 4  helped
-  errors-doc         4 of 4  helped
-  check              math    errors-skill  errors-doc
-  throws RangeError  0 of 4  4 of 4        4 of 4
-    expected command to succeed, exit code 1
+with-two-variants.eval.ts
+  · with-two-variants  100%  metric()
+    arm              pass
+    math             0 of 4
+      error  score 0.00 below 1: throws-range-error scored 0.00 (4 runs)
+    errors-skill     4 of 4  helped
+    errors-doc       4 of 4  helped
 ```
 
 Lift pairs each variant with the control only. After a run, the `contrasts` view pairs the two
@@ -64,7 +62,7 @@ tries, enough for a verdict.
 | [`skills/errors/SKILL.md`](./skills/errors/SKILL.md) | The convention as a skill |
 | [`docs/errors.md`](./docs/errors.md) | The same convention as a docs file the variant puts in the workspace |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
-| [`hidden/divide.test.js`](./hidden/divide.test.js) | The test the eval writes after the turn, which the agent never sees |
+| [`hidden/divide.test.js`](./hidden/divide.test.js) | The test the grader runs in a sandbox of its own, which the agent never sees |
 | [`fake-agent/`](./fake-agent) | What the fake agent writes: `plain/`, or `convention/` when it finds the convention |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent and its step that looks for the convention, and the real agents from `../profiles.ts` |
 

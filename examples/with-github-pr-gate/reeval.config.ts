@@ -11,7 +11,7 @@ export default defineConfig({
   include: ['*.eval.ts'],
   // Any attempt that misses fails the run, and so the pull request's check.
   target: regression(),
-  // A scripted agent that copies ./fake-agent's files into the workspace, so the checks run
+  // A scripted agent that copies ./fake-agent's files into the workspace, so the graders run
   // without keys or Docker.
   agents: fakeAgent({
     files: {

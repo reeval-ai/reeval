@@ -17,7 +17,7 @@ pnpm eval
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check; here it takes six seconds a turn, one attempt at a time, so the
+graders have something to grade; here it takes six seconds a turn, one attempt at a time, so the
 two-second budget, counted from the first attempt's start, runs out before the second can start. `pnpm eval --profile claude-code` runs the same eval on
 Claude Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts);
 raise `duration` to something like `'30m'` first, since a real attempt takes minutes.
@@ -30,24 +30,23 @@ one profile you need.
 the run exits 1:
 
 ```text
-REEVAL v0.17.2
+REEVAL v0.31.0
 
-  ➜  Run:       20261101T221802Z_…
-  ➜  Harness:   fake
+  ➜  Run:       20261126T080428Z_…
+  ➜  Agent:     fake
   ➜  Sandbox:   fake
   ➜  Scope:     1 eval file · 1 eval · 1 cell · 3 attempts (budget: 10 ✓, 2s)
-  ➜  Est. Time: ~19s (serial)
-  ➜  Record:    .reeval/runs/20261101T221802Z_….json
+  ➜  Est. Time: ~3s (serial)
+  ➜  Record:    .reeval/runs/20261126T080428Z_….json
 
   ◆  Running...
-
   ⚠  Budget: 2s reached; running attempts finish, queued ones are skipped
 
 with-budget.eval.ts
-└─ ✓ adds a tested multiply function  1 of 1 run passed
+  ✓ with-budget  100% ≥ 75%  metric(0.75)
 
 Budget reached: attempts that hadn’t started were skipped
-Done in 7s · 1 passed
+Done in 22s · 1 eval · 1 on target
 Browse it: reeval studio · summary .reeval/runs/…/summary.md
 ```
 
@@ -58,14 +57,14 @@ Ask for more attempts than the budget allows and the run stops before it starts,
 $ pnpm reeval run --runs 20
 …
   ➜  Scope:     1 eval file · 1 eval · 1 cell · 20 attempts (budget: 10 ✗, 2s)
-  ➜  Est. Time: ~2m 03s (serial)
+  ➜  Est. Time: ~2m 44s (serial)
 …
 reeval: this run plans 20 attempts, over budget.attempts 10 (reeval.config.ts). Narrow it with --tag or --runs, or raise the budget. (--force runs it anyway)
 ```
 
 | File | What it is |
 |---|---|
-| [`with-budget.eval.ts`](./with-budget.eval.ts) | The eval: one prompt, two checks, three runs and a mean-score target |
+| [`with-budget.eval.ts`](./with-budget.eval.ts) | The eval: one prompt, two graders, three runs and a mean-score target |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The slow fake agent, the budget, and the real agents from `../profiles.ts` |

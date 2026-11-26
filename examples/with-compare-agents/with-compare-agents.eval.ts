@@ -1,5 +1,6 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
 import { claudeCode, codex } from 'reeval/agent'
+import { hasFile, succeeded } from 'reeval/graders'
 
 const math = defineEnvironment('math', ({ directory }) => ({ files: directory('./project') }))
 const withJsdoc = math.extendEnvironment('jsdoc', ({ skill }) => ({
@@ -16,10 +17,9 @@ export default defineEval({
     agents: ['claude-code:claude-sonnet-5'],
   },
   questions: [{ question: 'Which multiply() is easier to read?', across: 'agent', diff: true }],
+  graders: [succeeded('node --test'), hasFile('src/math.js', /\*\/\s*export function multiply/)],
   task: async (c) => {
     await c.send('Add a multiply(a, b) function to src/math.js.')
-
-    await expect(c.exec('node --test'), 'tests pass').toSucceed()
-    await expect(c, 'JSDoc block').toHaveFile('src/math.js', /\*\/\s*export function multiply/)
+    await c.exec('node --test')
   },
 })

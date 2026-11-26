@@ -18,7 +18,7 @@ pnpm eval
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check; its one shell step looks for the skill and, without it, takes a
+graders have something to grade; its one shell step looks for the skill and, without it, takes a
 second longer, so the arms' effort differs. `pnpm eval --profile claude-code` runs the same
 compare on Claude Code, which reports tokens too, and `--profile <name>` on any other agent in
 [`examples/profiles.ts`](../profiles.ts).
@@ -30,13 +30,14 @@ one profile you need.
 **What to look at:** the effort table under the arms, which pass alike:
 
 ```text
-pass             adds a tested multiply function
-  arm              pass
-  math             4 of 4
-  project-layout   4 of 4  same
-  effort           tools  time
-  math             1      1.0s
-  project-layout   1      <0.1s
+with-effort.eval.ts
+  ✓ with-effort  100% ≥ 75%  metric(0.75)
+    arm              pass          vs control
+    math             4 of 4
+    project-layout   4 of 4  same  85× faster
+    effort           tools  time
+    math             1      1.0s
+    project-layout   1      <0.1s
 ```
 
 After a run, the `effort` view has each arm's medians and the rank test's p-value and verdict:

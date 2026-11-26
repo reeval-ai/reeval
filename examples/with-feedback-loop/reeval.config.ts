@@ -15,7 +15,7 @@ const turn = (n: number) => ({
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that copies ./fake-agent/turn-1 into the workspace on the first turn and
-  // ./fake-agent/turn-2 on the second, and a judge with a fixed score, so the checks run without
+  // ./fake-agent/turn-2 on the second, and a judge with a fixed score, so the graders run without
   // keys or Docker.
   agents: fakeAgent({
     script: [

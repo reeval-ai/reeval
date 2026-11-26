@@ -1,9 +1,9 @@
 # with-refactor
 
 **Shows:** a refactor that keeps behavior. Two modules parse records with the same loop, and the
-agent moves it into `src/parse.js`. The tests must stay green and unchanged
-(`not.toHaveChanged`), and a judge reads only the diff under `src/` (`{ diff: ['src/**'] }`) to
-say whether the duplication is gone.
+agent moves it into `src/parse.js`, which a required grader checks exists. The tests must stay
+green and unchanged (a required `notInDiff`), and a judge grader is given only the diff under
+`src/` (`{ diff: ['src/**'] }`) to say whether the duplication is gone.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
 first. A real agent needs its key in `.env.local` (`ANTHROPIC_API_KEY` for Claude Code, which also
@@ -17,7 +17,7 @@ pnpm eval
 
 **Real or fake agent:** `pnpm eval` runs a fake agent and a fake judge with a fixed score, with no
 keys or Docker. It copies the [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what
-an agent would produce, so the checks have something to check. `pnpm eval --profile claude-code`
+an agent would produce, so the graders have something to grade. `pnpm eval --profile claude-code`
 runs the same eval on Claude Code, with a real judge, and `--profile <name>` on any other agent in
 [`examples/profiles.ts`](../profiles.ts).
 
@@ -25,18 +25,32 @@ runs the same eval on Claude Code, with a real judge, and `--profile <name>` on 
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** what the judge was given, in the attempt's `judge-input.json` under
-`.reeval/runs/<run>/`. The diff is the `src/` changes alone, in `diff.patch` beside it:
+**What to look at:** the run record's grades, under `.reeval/runs/`. The tests guard is
+`required`, so an attempt that edits them scores 0 whatever the judge says. The judge's grade
+keeps its answer, not the diff it was given:
 
 ```json
-"state": {
-  "diff": { "$ref": "diff.patch", "sha256": "7d3ae9b4…" }
+{
+  "grader": "not-in-diff:test/**",
+  "kind": "builtin",
+  "grade": [],
+  "score": 1,
+  "required": true,
+  …
+},
+{
+  "grader": "judge:Do users.js and orders.js now both parse with parse.js, their loops gone?",
+  "kind": "judge",
+  "grade": true,
+  "score": 1,
+  "judge": { "calls": [{ "model": "fake", "answer": true, "probability": 0.9 }] },
+  …
 }
 ```
 
 | File | What it is |
 |---|---|
-| [`with-refactor.eval.ts`](./with-refactor.eval.ts) | The eval: the refactor, three checks and a judge on the diff |
+| [`with-refactor.eval.ts`](./with-refactor.eval.ts) | The eval: the refactor, three graders and a judge grader on the diff |
 | [`project/`](./project) | The package the agent starts from: two parsers and their tests |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace: `parse.js` and both modules using it |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent and judge, and the real agents from `../profiles.ts` |
