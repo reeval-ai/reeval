@@ -12,6 +12,7 @@ export const pi = {
   name: 'pi',
   factory: 'pi',
   platforms: ['linux', 'darwin'],
+  stepPerCall: true,
   reasoning: 'streamed',
   reasoningTokens: true,
   reportedCost: piCost,

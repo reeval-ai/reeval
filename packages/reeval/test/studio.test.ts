@@ -273,6 +273,10 @@ export default defineEval({
       activityLabel({ tools: 1, fileEdits: 0 }, 1),
       '1 tool call · 1 file changed · 0 edit tool calls',
     )
+    assert.equal(
+      activityLabel({ tools: 21, llmCalls: 9, fileEdits: 2 }, 2),
+      '21 tool calls · 9 LLM calls · 2 files changed · 2 edit tool calls',
+    )
   })
 })
 
@@ -519,6 +523,7 @@ describe('view-models over a real history', () => {
         ...a,
         activity: {
           tools: 1,
+          llmCalls: null,
           fileEdits: 0,
           webSearches: null,
           webFetches: null,

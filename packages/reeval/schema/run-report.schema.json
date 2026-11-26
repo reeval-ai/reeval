@@ -364,6 +364,10 @@
           },
           "required": ["captures", "diff", "questions", "transcript"]
         },
+        "llmCalls": {
+          "description": "Its model calls (`activity.llmCalls`); absent in reports from before reeval counted them.",
+          "$ref": "#/$defs/Figure"
+        },
         "outcome": {
           "type": "string",
           "enum": ["pass", "fail", "infra_error", "canceled"]

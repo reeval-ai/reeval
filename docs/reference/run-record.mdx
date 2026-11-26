@@ -828,7 +828,7 @@ Each input of a cell fingerprint, hashed on its own, so a change can be named.
 
 <Property name="timings" type="PhaseTimings"></Property>
 
-<Property name="activity" type="{tools: number; fileEdits: number; webSearches: number | null; webFetches: number | null; reasoningMs: number | null; stalledTools: number; maxToolMs: number | null}">
+<Property name="activity" type="{tools: number; llmCalls: number | null; fileEdits: number; webSearches: number | null; webFetches: number | null; reasoningMs: number | null; stalledTools: number; maxToolMs: number | null}">
   Counts from the transcript, so the attempt's activity is available without reading the transcript. `webSearches` includes refused searches. `fileEdits` counts edit tool calls, so a shell edit isn't one; `changedFiles` has what the workspace diff shows changed. `reasoningMs` is null when some turn's reasoning time is unknown, so a 0 is always a measurement.
 </Property>
 

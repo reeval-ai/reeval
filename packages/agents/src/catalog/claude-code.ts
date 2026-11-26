@@ -13,6 +13,7 @@ export const claudeCode = {
   factory: 'claudeCode',
   bridgePort: true,
   platforms: ['linux', 'darwin'],
+  stepPerCall: true,
   reasoning: 'streamed',
   reasoningTokens: true,
   // The bridge streams a subagent's messages; the turn's usage leaves out its model calls, which

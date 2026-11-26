@@ -676,6 +676,7 @@ const attemptIndexRowSchema: z.ZodType<AttemptIndexRow> = z.strictObject({
   tokens: figureSchema,
   agentMs: figureSchema,
   toolCalls: figureSchema,
+  llmCalls: figureSchema.optional(),
   facts: attemptFactsSchema.optional(),
   diff: z
     .strictObject({

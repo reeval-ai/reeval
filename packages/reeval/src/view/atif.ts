@@ -2,7 +2,7 @@
 // per prompt, and agent steps folded from the transcript. An agent step is one harness step where
 // the transcript numbers them, and starts again at a message that follows tool calls, since
 // Codex's and Cursor's steps are whole turns. Each tool call is one `tool_calls` entry with its
-// result in `observation`. A turn's tokens and cost go on its last agent step; a streamed
+// result in `observation`. A turn's tokens, cost and LLM calls go on its last agent step; a streamed
 // subagent's events are an embedded trajectory its spawn call's result refers to. What ATIF has
 // no field for (tool timing, `ok`, cost basis, the outcome) goes in `extra`.
 import type { AttemptRecord, RunRecord } from '../history/types.ts'
@@ -64,6 +64,20 @@ export function toAtif(
       tagged.add(id)
       id = parentOf(id)
     }
+  }
+
+  // Each turn's share of `activity.llmCalls`, from the same source: its `main` model calls where
+  // the gateway saw any, else its highest step.
+  const callsByTurn = () => {
+    const counts = new Map<number, number>()
+    if (attempt.activity.llmCalls === null) return counts
+    const calls = lines.filter((l) => l.type === 'model-call')
+    for (const l of calls.length ? calls : lines) {
+      const n = counts.get(l.turn) ?? 0
+      if (l.type === 'model-call') counts.set(l.turn, n + (l.role === 'side' ? 0 : 1))
+      else if ('step' in l && l.step) counts.set(l.turn, Math.max(n, l.step))
+    }
+    return counts
   }
 
   const build = (scope: string | undefined): { steps: Step[]; subs: Trajectory[] } => {
@@ -199,10 +213,12 @@ export function toAtif(
     }
     close()
     if (scope === undefined) {
+      const calls = callsByTurn()
       for (const [turn, at] of lastOfTurn) {
         const t = attempt.turns[turn]
         const step = steps[at] as Step
         if (t?.usage) step.metrics = defined({ ...tokens(t.usage), cost_usd: t.cost?.usd })
+        if (calls.get(turn)) step.llm_call_count = calls.get(turn)
       }
     }
     return { steps, subs }

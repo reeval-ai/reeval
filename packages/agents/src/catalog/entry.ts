@@ -90,6 +90,12 @@ export type HarnessEntry = Layout & {
    */
   reasoningTokens: boolean | 'provider'
   /**
+   * Set when its adapter ends a step at each model call, so a turn's highest transcript `step`
+   * is its model calls. Unset where a step ends when a call's tools have all returned (the ACP
+   * harnesses) or spans the turn (Codex, Cursor).
+   */
+  stepPerCall?: true
+  /**
    * Reads back the usage the agent's CLI stored for each model call, for a turn whose stream
    * reported none: an aborted turn's, whose stream ends before the turn's usage. Unset for a CLI
    * that stores no usage per call (fx), stores none for a canceled run (Cursor) or whose stream

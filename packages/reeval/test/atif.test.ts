@@ -94,7 +94,7 @@ describe('toAtif', () => {
     )
   })
 
-  test('turns, errors, web and edit calls, a bare input, and a subagent nested in a silent one', () => {
+  test('turns, errors, web and edit calls, LLM calls, a bare input, and a subagent nested in a silent one', () => {
     const usage = (n: number) => ({ input: n, output: 1, cacheRead: 0, cacheWrite: 0 })
     const attempt = {
       key: 'e#cell#1',
@@ -102,6 +102,7 @@ describe('toAtif', () => {
       imageId: 'img',
       outcome: 'pass',
       usage: usage(30),
+      activity: { llmCalls: 3 },
       turns: [
         { model: 'm', usage: usage(10) },
         { model: 'm', usage: usage(20) },
@@ -121,6 +122,9 @@ describe('toAtif', () => {
     const lines = [
       at(0, { type: 'prompt', text: 'go' }),
       at(0, { type: 'retry', message: 'rate limited' }),
+      at(0, { type: 'model-call', role: 'main' }),
+      at(0, { type: 'model-call', role: 'side' }),
+      at(0, { type: 'model-call', role: 'main' }),
       at(0, { type: 'tool', tool: 'Task', toolCallId: 'A', input: 'bare', output: { ok: 1 } }),
       at(0, { type: 'text', text: 'deep', subagent: 'B' }),
       at(0, { type: 'web-search', toolCallId: 'w1', query: 'q' }),
@@ -135,6 +139,7 @@ describe('toAtif', () => {
         added: 1,
         removed: 0,
       }),
+      at(1, { type: 'model-call', role: 'main' }),
       at(1, { type: 'error', message: 'boom' }),
       at(1, { type: 'text', text: 'done' }),
     ]
@@ -165,6 +170,22 @@ describe('toAtif', () => {
       agent.map((s) => s.metrics?.prompt_tokens),
       [10, undefined, 20],
     )
+    assert.deepEqual(
+      agent.map((s) => s.llm_call_count),
+      [2, undefined, 1],
+    )
+    const stepped = lines
+      .filter((l) => l.type !== 'model-call')
+      .map((l) => (l.type === 'web-search' ? { ...l, step: 2 } : l))
+    assert.deepEqual(
+      toAtif(run as unknown as RunRecord, attempt as never, stepped as never)
+        .steps.filter((s) => s.source === 'agent')
+        .map((s) => s.llm_call_count),
+      [2, undefined, undefined],
+    )
+    const uncounted = { ...structuredClone(attempt), activity: { llmCalls: null } }
+    const none = toAtif(run as unknown as RunRecord, uncounted as never, lines as never)
+    assert.ok(none.steps.every((s) => s.llm_call_count === undefined))
     const [a] = t.subagent_trajectories ?? []
     assert.equal(a?.trajectory_id, 'A')
     assert.equal(a?.subagent_trajectories?.[0]?.steps.at(-1)?.message, 'deep')

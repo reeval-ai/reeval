@@ -12,6 +12,7 @@ import type { EngineEval, EngineRun } from '../engine/node.ts'
 import { NO_ENVIRONMENT, profileSandbox } from '../environment.ts'
 import { evalFile, sourcesPart } from '../eval-source.ts'
 import { EXPORTERS } from '../exporters.ts'
+import { AGENTS, isAgentKind } from '../harness/agents.ts'
 import {
   effortFromModelLabel,
   harnessEffort,
@@ -431,7 +432,17 @@ function subagentRecords(turns: EvalRecord['turns']): SubagentRecord[] {
   )
 }
 
-function activity(record: EvalRecord): AttemptRecord['activity'] {
+/** See `activity.llmCalls`. */
+export function llmCalls(turns: EvalRecord['turns'], stepPerCall: boolean): number | null {
+  const calls = turns.flatMap((t) => t.transcript.filter((e) => e.type === 'model-call'))
+  if (calls.some((c) => c.stream)) return null
+  if (calls.length) return calls.filter((c) => c.role !== 'side').length
+  if (!stepPerCall) return null
+  const steps = turns.map((t) => t.transcript.reduce((n, e) => Math.max(n, e.step ?? 0), 0))
+  return steps.some((n) => n > 0) ? steps.reduce((n, s) => n + s, 0) : null
+}
+
+function activity(record: EvalRecord, stepPerCall: boolean): AttemptRecord['activity'] {
   const events = record.turns.flatMap((t) => t.transcript)
   const count = (type: string) => events.filter((e) => e.type === type).length
   const web = (type: WebEventType) => {
@@ -461,6 +472,7 @@ function activity(record: EvalRecord): AttemptRecord['activity'] {
   const stalledTools = events.filter((e) => 'stalled' in e && e.stalled).length
   return {
     tools: count('tool'),
+    llmCalls: llmCalls(record.turns, stepPerCall),
     fileEdits: count('file-edit'),
     webSearches: web('web-search'),
     webFetches: web('web-fetch'),
@@ -980,6 +992,7 @@ async function addAttempt(
     cellRecord.fingerprintParts = parts
     cellRecord.fingerprint = fingerprintOf(parts)
   }
+  const kind = e.attempt?.harness.kind
   entry.attempts.push({
     key: attemptKey(entry.key, cell.key, n),
     id: attemptId(cell.key, n),
@@ -1015,6 +1028,7 @@ async function addAttempt(
       `${entry.slug}/${evalSlug(cell.key)}/${n}`,
       out,
       join(ctx.stagingDir, 'evals', recordFileName(e.key)),
+      isAgentKind(kind) && AGENTS[kind].stepPerCall === true,
     )),
   })
 }
@@ -1061,7 +1075,8 @@ async function attemptEvidence(
   record: EvalRecord | null,
   dir: string,
   out: Artifacts,
-  stagingRecord?: string,
+  stagingRecord: string,
+  stepPerCall: boolean,
 ): Promise<
   Pick<
     AttemptRecord,
@@ -1189,9 +1204,10 @@ async function attemptEvidence(
     ...(record?.captureUse ? { captureUse: record.captureUse } : {}),
     timings: record?.timings ?? { setupMs: 0, agentMs: 0, diffMs: 0, checksMs: 0, judgeMs: 0 },
     activity: record
-      ? activity(record)
+      ? activity(record, stepPerCall)
       : {
           tools: 0,
+          llmCalls: null,
           fileEdits: 0,
           webSearches: 0,
           webFetches: 0,
