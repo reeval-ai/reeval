@@ -1,0 +1,838 @@
+{
+  "kind": "reeval-run",
+  "schemaVersion": 1,
+  "runId": "20261126T053204Z_148a262_cursor-agent_zrrg",
+  "status": "complete",
+  "startedAt": "2026-11-26T05:32:04.921Z",
+  "endedAt": "2026-11-26T05:32:06.207Z",
+  "durationMs": 1286,
+  "author": "cursor-agent",
+  "git": {
+    "sha": "148a262c552fe4f6f41389560c814c01b1bd8764",
+    "branch": "master",
+    "dirty": false,
+    "diffHash": null,
+    "worktreePatch": null,
+    "worktreePatchNote": null,
+    "commitTime": "2026-11-26T05:32:04+00:00",
+    "shallow": false,
+    "remote": null
+  },
+  "spans": {
+    "path": "spans.jsonl",
+    "sha256": "ff6c3fb5c74d936106363cfdabc95f2a4c2dc204c5836e26a71db80dedb31dc0",
+    "bytes": 3673
+  },
+  "runner": {
+    "kind": "local",
+    "hostHash": "ba806126880f"
+  },
+  "dependencies": {
+    "lockfiles": []
+  },
+  "stack": {
+    "reeval": "0.31.0",
+    "node": "26.13.0",
+    "runtime": {
+      "name": "node",
+      "version": "26.13.0"
+    },
+    "language": {
+      "name": "typescript"
+    },
+    "os": "linux",
+    "arch": "x64",
+    "images": [],
+    "packages": {
+      "@vitest/expect": "5.1.0",
+      "jiti": "2.7.0",
+      "@reeval/harness-antigravity": "0.1.17",
+      "@reeval/harness-opencode": "0.2.16",
+      "@reeval/harness-goose": "0.1.17",
+      "@reeval/harness-pi": "0.2.10",
+      "@reeval/harness-cursor-sdk": "0.1.9",
+      "@ai-sdk/harness-claude-code": "1.0.176-patch.423f52e6",
+      "@reeval/harness-codex": "0.1.14",
+      "@reeval/harness-fx": "0.1.14",
+      "@reeval/harness-grok-build": "0.1.13",
+      "ai": "7.0.161",
+      "@ai-sdk/harness": "1.0.172",
+      "@ai-sdk/anthropic": "4.0.95",
+      "@ai-sdk/google": "4.0.110",
+      "@ai-sdk/openai": "4.0.107",
+      "@ai-sdk/typesafe-ai": "3.0.32"
+    },
+    "harnesses": [
+      {
+        "id": "fake",
+        "kind": "fake",
+        "model": null,
+        "effort": null,
+        "resolvedModels": [],
+        "resolvedEffort": []
+      }
+    ],
+    "judge": {
+      "model": null,
+      "resolvedModels": [],
+      "threshold": 0.8,
+      "version": "1f259248a52c"
+    },
+    "context": [],
+    "fingerprintScope": [
+      "eval-source",
+      "harness",
+      "environment",
+      "agent-cli",
+      "image-id",
+      "judge",
+      "context"
+    ]
+  },
+  "environments": [
+    {
+      "name": "fake",
+      "parent": null,
+      "overrides": [],
+      "digest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+      "setup": [],
+      "skills": [],
+      "mcp": [],
+      "files": [],
+      "vars": [],
+      "secrets": [],
+      "brokered": [],
+      "unset": [],
+      "egress": "proxy"
+    }
+  ],
+  "profile": null,
+  "invocation": {
+    "filters": [],
+    "tags": []
+  },
+  "plan": {
+    "evals": 2,
+    "cells": 2,
+    "attempts": 2,
+    "estimateMs": 2000,
+    "sandboxWarnings": []
+  },
+  "budget": null,
+  "config": {
+    "sandbox": "fake",
+    "environment": "fake",
+    "runs": 1,
+    "judgeModel": null,
+    "threshold": 0.8,
+    "timeoutMs": 900000,
+    "concurrency": 4,
+    "configHash": "d26178d152628dd4f4683c21e001d005e2a22a4a3ab4ecbb77e2b2eccb88ac66"
+  },
+  "cost": {
+    "inputTokens": null,
+    "outputTokens": null,
+    "usage": null,
+    "source": "unreported"
+  },
+  "artifacts": "evidence",
+  "redaction": {
+    "version": 1
+  },
+  "summary": {
+    "evals": 2,
+    "attempts": 2,
+    "pass": 1,
+    "fail": 1,
+    "notGated": 0,
+    "infraError": 0,
+    "skipped": 0,
+    "counted": 2,
+    "gated": {
+      "pass": 1,
+      "fail": 1
+    },
+    "ungated": {
+      "pass": 0,
+      "fail": 0
+    },
+    "reclassified": 0
+  },
+  "evals": [
+    {
+      "id": "graded",
+      "key": "graded",
+      "slug": "graded-a20f6f",
+      "file": "evals/graded.eval.ts",
+      "group": [],
+      "name": "graded",
+      "tags": [],
+      "fingerprint": "5ead09637cb430edfb1cd8cbf901a9e27aa61644b4a1aa90cf97d8b596818adc",
+      "sources": [
+        {
+          "path": "evals/graded.eval.ts",
+          "sha256": "f15e20e3dde200915528311e1fe4743aae384ed8f93a83b90404f0f736583911"
+        }
+      ],
+      "source": {
+        "body": "2b43164e2a1583fc17b923c020796f8be420dbed729803bf406c0938e6bc7f12",
+        "options": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "outcome": "fail",
+      "todo": false,
+      "target": {
+        "kind": "regression",
+        "threshold": 1
+      },
+      "passRate": 0,
+      "cells": [
+        {
+          "key": "fake/fake/fake",
+          "harness": "fake",
+          "environment": "fake",
+          "sandbox": "fake",
+          "role": "control",
+          "fingerprint": "15c2aa6a8493c9d9b71f0243ae639d8549eb9484e681f89387c01eb576343996",
+          "fingerprintParts": {
+            "sources": "f088ba32868728aae7981ac1c3731ee914836a3ee3617adf6ad1a2add88ffdc6",
+            "harness": "ab994868f9798b5c138ee5d411a509b640d8e8d1926ac4df861c2da5e0d6f71b",
+            "environment": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+            "image": null,
+            "agentCli": null,
+            "judge": "c6920e9650c71d3766d60fd958bf2ca9ca4921c020f6b26afb06370e4241333e",
+            "context": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          },
+          "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+          "harnessKind": "fake",
+          "model": null,
+          "effort": null,
+          "gate": "all",
+          "overrides": [],
+          "runs": 1,
+          "pass": 0,
+          "fail": 1,
+          "infraError": 0,
+          "skipped": 0,
+          "passRate": 0,
+          "outcome": "fail",
+          "scores": {
+            "meanScore": 0.95,
+            "passAtK": 0,
+            "passHatK": 0
+          },
+          "prompts": [
+            {
+              "sha256": "09e496460a5518c191da17552b3e21451e9cd677b39a36256c49522184e64a19"
+            }
+          ]
+        }
+      ],
+      "attempts": [
+        {
+          "key": "graded # fake/fake/fake#1",
+          "id": "fake/fake/fake#1",
+          "cell": "fake/fake/fake",
+          "n": 1,
+          "seq": 1,
+          "startedAt": "2026-11-26T05:32:06.085Z",
+          "imageId": null,
+          "env": {
+            "vars": [],
+            "secrets": [],
+            "brokered": []
+          },
+          "context": [],
+          "egress": {
+            "policy": "proxy",
+            "allowed": null,
+            "recorded": false,
+            "contacted": [],
+            "blocked": [],
+            "expectedBlocked": [],
+            "unresolved": []
+          },
+          "servedModels": null,
+          "effort": null,
+          "servedEffort": null,
+          "outcome": "fail",
+          "error": {
+            "kind": "assertion",
+            "message": "score 0.95 below 1: judge:How readable is the change? scored 0.75"
+          },
+          "durationMs": 113,
+          "turns": [
+            {
+              "prompt": "write the app",
+              "status": "completed",
+              "startedAt": "2026-11-26T05:32:06.111Z",
+              "durationMs": 2,
+              "usage": null,
+              "model": null,
+              "servedModel": null,
+              "servedEffort": null,
+              "unreported": [],
+              "error": null,
+              "timeSplit": {
+                "modelMs": null,
+                "toolMs": 0,
+                "waitingMs": 0,
+                "otherMs": 2
+              },
+              "text": "Done."
+            }
+          ],
+          "usage": null,
+          "timeSplit": {
+            "modelMs": null,
+            "toolMs": 0,
+            "waitingMs": 0,
+            "otherMs": 2
+          },
+          "timings": {
+            "setupMs": 19,
+            "agentMs": 1,
+            "diffMs": 13,
+            "checksMs": 0,
+            "judgeMs": 6
+          },
+          "activity": {
+            "tools": 0,
+            "llmCalls": null,
+            "fileEdits": 1,
+            "webSearches": 0,
+            "webFetches": 0,
+            "reasoningMs": 0,
+            "stalledTools": 0,
+            "maxToolMs": 0
+          },
+          "judgements": [],
+          "snapshots": [
+            {
+              "name": "final",
+              "form": "dir",
+              "path": "graded-a20f6f/fake-fake-fake-dc13e2/1/snapshots/final",
+              "bytes": 25,
+              "files": 1,
+              "excluded": [],
+              "masked": [],
+              "dropped": [],
+              "skipped": null
+            }
+          ],
+          "workspace": {
+            "files": 1,
+            "bytes": 146,
+            "excluded": [],
+            "masked": [],
+            "dropped": [],
+            "skipped": null
+          },
+          "grades": [
+            {
+              "grader": "turns",
+              "kind": "builtin",
+              "grade": 1,
+              "score": null,
+              "weight": 1,
+              "required": false,
+              "fingerprint": {
+                "digest": "c4377e67cd19636210a7923f71fe5ccf62950ec690673e75f57f3d8823c820ba",
+                "code": "8594f79aff35168dad7eb0465245b9a0399cc1c1f49aa24df822d3df2cecead2",
+                "version": 1
+              },
+              "reads": {},
+              "durationMs": 11
+            },
+            {
+              "grader": "answers-42",
+              "kind": "code",
+              "grade": true,
+              "score": 1,
+              "weight": 1,
+              "required": false,
+              "fingerprint": {
+                "digest": "c9a0532ec26f0cb468f372e2b89f3ea82f6a7dd02f8721612709f9f8232117f3",
+                "code": "d5971822b4089ec1cf2e59d7075c279b9b85819495d007873400333f1232488e"
+              },
+              "reads": {
+                "files": [
+                  {
+                    "path": "src/app.js",
+                    "sha256": "5d2eb782fe3a645dbf5bdf2d765a254438962649c9c892811408cb50e04a5be4"
+                  }
+                ]
+              },
+              "durationMs": 13
+            },
+            {
+              "grader": "turn-count",
+              "kind": "code",
+              "grade": 1,
+              "score": null,
+              "weight": 1,
+              "required": false,
+              "fingerprint": {
+                "digest": "65b062aaee0af5fabc8ef2bafcd4787f47a1fec93afc2ba1cf3332e78d30171a",
+                "code": "86cc3b79de2423cbef9d2dec2a0e97df794e222106957c5265b6f9750ac11916"
+              },
+              "reads": {},
+              "durationMs": 11
+            },
+            {
+              "grader": "has-file:src/app.js",
+              "kind": "builtin",
+              "grade": true,
+              "score": 1,
+              "weight": 1,
+              "required": false,
+              "fingerprint": {
+                "digest": "3e520a6e89f8b1b261dc3ca1dcd4154166d66a301c70e504267a135ad3f021bf",
+                "code": "fa69f53b55e43fb922e48e0586a61c5722d49344130ccda39c7d1ce78bcf27fb",
+                "version": 1
+              },
+              "reads": {
+                "files": [
+                  {
+                    "path": "src/app.js",
+                    "sha256": "5d2eb782fe3a645dbf5bdf2d765a254438962649c9c892811408cb50e04a5be4"
+                  }
+                ]
+              },
+              "durationMs": 13
+            },
+            {
+              "grader": "in-diff:src/**",
+              "kind": "builtin",
+              "grade": [
+                "src/app.js"
+              ],
+              "score": 1,
+              "weight": 1,
+              "required": false,
+              "fingerprint": {
+                "digest": "ab7f44a14bf093ef8a7cd990d87decc0134928765ad3bfee458a69ab17e92224",
+                "code": "7f9513e5d7c308bce1d5a29ea0778ae0ac5f8e022df3f1dcb42123a96f7a68b6",
+                "version": 1
+              },
+              "reads": {},
+              "durationMs": 11
+            },
+            {
+              "grader": "wrote",
+              "kind": "builtin",
+              "grade": [
+                "src/app.js"
+              ],
+              "score": 1,
+              "weight": 1,
+              "required": false,
+              "fingerprint": {
+                "digest": "37a5af95a55b50835b8727b344ede5e312f33dd4d2e8584791aaaa5560ed41e1",
+                "code": "20fe3bf644674201b7ac46ee82904b7c96f0d19b7e4b54881a21c84a0642464c",
+                "version": 1
+              },
+              "reads": {},
+              "durationMs": 12
+            },
+            {
+              "grader": "judge:How readable is the change?",
+              "kind": "judge",
+              "grade": [
+                "good",
+                "okay"
+              ],
+              "score": 0.75,
+              "weight": 1,
+              "required": false,
+              "fingerprint": {
+                "digest": "7861b8bd70043be1090d350b517d7fb5548cf329cf82f00c38cca113c4f0c8cb",
+                "code": "002eb8595b0fa8d815e0124141252d58efd26c33f12adba01c92e3531a477263"
+              },
+              "scoreDigest": "7ea6661fa7a61231f10d7069b45c336af0bb06e5ebb3dc6eb3153c7b11ba7c5d",
+              "reads": {},
+              "judge": {
+                "calls": [
+                  {
+                    "model": "fake",
+                    "answer": "good"
+                  },
+                  {
+                    "model": "fake",
+                    "answer": "okay"
+                  }
+                ]
+              },
+              "durationMs": 12
+            },
+            {
+              "grader": "judge:What tone does the reply take?",
+              "kind": "judge",
+              "grade": "terse",
+              "score": null,
+              "weight": 1,
+              "required": false,
+              "fingerprint": {
+                "digest": "47d8f82020d45f69343d90a612fd6ead609241b0b06e03fdeb2a62a3eea08dbc",
+                "code": "07922f9071e7f28e8be4ab0c24cbd6319d9dec16261e228aa0091fef5bfbc6ef"
+              },
+              "reads": {},
+              "judge": {
+                "calls": [
+                  {
+                    "model": "fake",
+                    "answer": "terse"
+                  }
+                ]
+              },
+              "durationMs": 11
+            }
+          ],
+          "score": 0.95,
+          "checks": [],
+          "changedFiles": [
+            {
+              "path": "src/app.js",
+              "status": "added",
+              "added": 1,
+              "removed": 0
+            }
+          ],
+          "files": {
+            "transcript": {
+              "path": "graded-a20f6f/fake-fake-fake-dc13e2/1/transcript.jsonl",
+              "sha256": "52398cafb1a7437d79aaa753f5cc2d77abcbbd004f02132f6524c36682f17562",
+              "bytes": 693
+            },
+            "diff": {
+              "path": "graded-a20f6f/fake-fake-fake-dc13e2/1/diff.patch",
+              "sha256": "c8aea7ff232973e885f37bd99f24273f2adff5887a6e0633b2842005294a1472",
+              "bytes": 152
+            },
+            "workspace": {
+              "path": "graded-a20f6f/fake-fake-fake-dc13e2/1/workspace.tar.gz",
+              "sha256": "4d1486dc3964479ad3e25b48c8de538d0846bc9d958a884dd2ece6bd40f56531",
+              "bytes": 146
+            },
+            "workspaceManifest": {
+              "path": "graded-a20f6f/fake-fake-fake-dc13e2/1/workspace.json",
+              "sha256": "f768380f1672214edf8226206a401569e9e53dc068ce72c4ccb731f00dc660de",
+              "bytes": 185
+            }
+          }
+        }
+      ],
+      "scores": {
+        "meanScore": 0.95,
+        "passAtK": 0,
+        "passHatK": 0
+      }
+    },
+    {
+      "id": "reference",
+      "key": "reference",
+      "slug": "reference-52367a",
+      "file": "evals/reference.eval.ts",
+      "group": [],
+      "name": "reference",
+      "tags": [],
+      "fingerprint": "2e75062dda43d6bb0feb3a96c1e8815c32313e82caeb6ebd753a278234958d0c",
+      "sources": [
+        {
+          "path": "evals/reference.eval.ts",
+          "sha256": "87980857fce95b36e166af07d79c50e3371c4f8d8db94d57760f8aa223194127"
+        }
+      ],
+      "outcome": "pass",
+      "todo": false,
+      "target": {
+        "kind": "regression",
+        "threshold": 1
+      },
+      "passRate": 1,
+      "cells": [
+        {
+          "key": "fake/fake/fake",
+          "harness": "fake",
+          "environment": "fake",
+          "sandbox": "fake",
+          "role": "control",
+          "fingerprint": "5a6f42ef004d75bf530efdf9a7f8cf8c9eea6187ba49e0abfa3ae111476e801d",
+          "fingerprintParts": {
+            "sources": "54df9926b388b56a1d3125b6ae4983c357680739bc4013c393bf2953fd855127",
+            "harness": "ab994868f9798b5c138ee5d411a509b640d8e8d1926ac4df861c2da5e0d6f71b",
+            "environment": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+            "image": null,
+            "agentCli": null,
+            "judge": "c6920e9650c71d3766d60fd958bf2ca9ca4921c020f6b26afb06370e4241333e",
+            "context": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          },
+          "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+          "harnessKind": "fake",
+          "model": null,
+          "effort": null,
+          "gate": "all",
+          "overrides": [],
+          "runs": 1,
+          "pass": 1,
+          "fail": 0,
+          "infraError": 0,
+          "skipped": 0,
+          "passRate": 1,
+          "outcome": "pass",
+          "scores": {
+            "meanScore": 1,
+            "passAtK": 1,
+            "passHatK": 1
+          },
+          "prompts": [
+            {
+              "sha256": "5e227fe55115f666e601215d2e9133f86c5536fe144a8a6d3653482d198ce28d"
+            }
+          ]
+        }
+      ],
+      "attempts": [
+        {
+          "key": "reference#answer # fake/fake/fake#1",
+          "id": "fake/fake/fake#answer#1",
+          "cell": "fake/fake/fake",
+          "n": 1,
+          "seq": 2,
+          "startedAt": "2026-11-26T05:32:06.085Z",
+          "imageId": null,
+          "env": {
+            "vars": [],
+            "secrets": [],
+            "brokered": []
+          },
+          "context": [],
+          "egress": {
+            "policy": "proxy",
+            "allowed": null,
+            "recorded": false,
+            "contacted": [],
+            "blocked": [],
+            "expectedBlocked": [],
+            "unresolved": []
+          },
+          "servedModels": null,
+          "effort": null,
+          "servedEffort": null,
+          "outcome": "pass",
+          "error": null,
+          "durationMs": 104,
+          "turns": [
+            {
+              "prompt": "set the answer",
+              "status": "completed",
+              "startedAt": "2026-11-26T05:32:06.110Z",
+              "durationMs": 2,
+              "usage": null,
+              "model": null,
+              "servedModel": null,
+              "servedEffort": null,
+              "unreported": [],
+              "error": null,
+              "timeSplit": {
+                "modelMs": null,
+                "toolMs": 1,
+                "waitingMs": 0,
+                "otherMs": 1
+              },
+              "text": "Done."
+            }
+          ],
+          "usage": null,
+          "timeSplit": {
+            "modelMs": null,
+            "toolMs": 1,
+            "waitingMs": 0,
+            "otherMs": 1
+          },
+          "timings": {
+            "setupMs": 19,
+            "agentMs": 1,
+            "diffMs": 12,
+            "checksMs": 0,
+            "judgeMs": 1
+          },
+          "activity": {
+            "tools": 0,
+            "llmCalls": null,
+            "fileEdits": 1,
+            "webSearches": 0,
+            "webFetches": 0,
+            "reasoningMs": 0,
+            "stalledTools": 0,
+            "maxToolMs": 1
+          },
+          "judgements": [],
+          "snapshots": [
+            {
+              "name": "final",
+              "form": "dir",
+              "path": "reference-answer-4856a8/fake-fake-fake-dc13e2/1/snapshots/final",
+              "bytes": 25,
+              "files": 1,
+              "excluded": [],
+              "masked": [],
+              "dropped": [],
+              "skipped": null
+            }
+          ],
+          "workspace": {
+            "files": 1,
+            "bytes": 146,
+            "excluded": [],
+            "masked": [],
+            "dropped": [],
+            "skipped": null
+          },
+          "grades": [
+            {
+              "grader": "turns",
+              "kind": "builtin",
+              "grade": 1,
+              "score": null,
+              "weight": 1,
+              "required": false,
+              "fingerprint": {
+                "digest": "c4377e67cd19636210a7923f71fe5ccf62950ec690673e75f57f3d8823c820ba",
+                "code": "8594f79aff35168dad7eb0465245b9a0399cc1c1f49aa24df822d3df2cecead2",
+                "version": 1
+              },
+              "reads": {},
+              "durationMs": 11
+            },
+            {
+              "grader": "matches-reference",
+              "kind": "judge",
+              "grade": true,
+              "score": 1,
+              "weight": 1,
+              "required": false,
+              "fingerprint": {
+                "digest": "91d00362ef2afd937757d11befd3f9b11d38e7875d80b5706b77461b93bf1903",
+                "code": "650e85aa0717c69d277195a6910b8255b2b2cedbf037cf40cf79739f831ef985",
+                "reference": "d8ba4f0e784a0a29bbf141f493597e3cd5565134fb05501196416ab9ad90fde6"
+              },
+              "reads": {
+                "files": [
+                  {
+                    "path": "src/app.js",
+                    "sha256": "5d2eb782fe3a645dbf5bdf2d765a254438962649c9c892811408cb50e04a5be4"
+                  }
+                ]
+              },
+              "judge": {
+                "reference": {
+                  "digest": "d8ba4f0e784a0a29bbf141f493597e3cd5565134fb05501196416ab9ad90fde6",
+                  "files": 1
+                },
+                "calls": [
+                  {
+                    "model": "fake",
+                    "answer": true,
+                    "probability": 1
+                  }
+                ]
+              },
+              "durationMs": 14
+            }
+          ],
+          "score": 1,
+          "checks": [],
+          "changedFiles": [
+            {
+              "path": "src/app.js",
+              "status": "added",
+              "added": 1,
+              "removed": 0
+            }
+          ],
+          "files": {
+            "diff": {
+              "path": "reference-answer-4856a8/fake-fake-fake-dc13e2/1/diff.patch",
+              "sha256": "c8aea7ff232973e885f37bd99f24273f2adff5887a6e0633b2842005294a1472",
+              "bytes": 152
+            },
+            "workspace": {
+              "path": "reference-answer-4856a8/fake-fake-fake-dc13e2/1/workspace.tar.gz",
+              "sha256": "4d1486dc3964479ad3e25b48c8de538d0846bc9d958a884dd2ece6bd40f56531",
+              "bytes": 146
+            },
+            "workspaceManifest": {
+              "path": "reference-answer-4856a8/fake-fake-fake-dc13e2/1/workspace.json",
+              "sha256": "f768380f1672214edf8226206a401569e9e53dc068ce72c4ccb731f00dc660de",
+              "bytes": 185
+            }
+          },
+          "case": "answer"
+        }
+      ],
+      "scores": {
+        "meanScore": 1,
+        "passAtK": 1,
+        "passHatK": 1
+      },
+      "source": {
+        "body": "a9b74b50c6ff26b65a8db2060449875dd12e526cd5c99b8a0fab02f8e13330e7",
+        "options": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "cases": [
+        {
+          "key": "answer",
+          "index": 0,
+          "label": "reference#answer",
+          "hash": "190035b514be6f46f4d78c1d09e55504bef907c4f11cf6c985acb08753c22032",
+          "outcome": "pass",
+          "passRate": 1,
+          "fingerprint": "2e75062dda43d6bb0feb3a96c1e8815c32313e82caeb6ebd753a278234958d0c",
+          "cells": [
+            {
+              "key": "fake/fake/fake",
+              "harness": "fake",
+              "environment": "fake",
+              "sandbox": "fake",
+              "role": "control",
+              "fingerprint": "5a6f42ef004d75bf530efdf9a7f8cf8c9eea6187ba49e0abfa3ae111476e801d",
+              "fingerprintParts": {
+                "sources": "54df9926b388b56a1d3125b6ae4983c357680739bc4013c393bf2953fd855127",
+                "harness": "ab994868f9798b5c138ee5d411a509b640d8e8d1926ac4df861c2da5e0d6f71b",
+                "environment": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+                "image": null,
+                "agentCli": null,
+                "judge": "c6920e9650c71d3766d60fd958bf2ca9ca4921c020f6b26afb06370e4241333e",
+                "context": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+              },
+              "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+              "harnessKind": "fake",
+              "model": null,
+              "effort": null,
+              "gate": "all",
+              "overrides": [],
+              "runs": 1,
+              "pass": 1,
+              "fail": 0,
+              "infraError": 0,
+              "skipped": 0,
+              "passRate": 1,
+              "outcome": "pass",
+              "scores": {
+                "meanScore": 1,
+                "passAtK": 1,
+                "passHatK": 1
+              },
+              "prompts": [
+                {
+                  "sha256": "5e227fe55115f666e601215d2e9133f86c5536fe144a8a6d3653482d198ce28d"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "caseCount": 1
+    }
+  ]
+}

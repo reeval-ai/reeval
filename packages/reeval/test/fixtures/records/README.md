@@ -77,6 +77,7 @@ loading. The `reeval.config.ts` follows the config API like any other project.
 | `before-eval-error` | The corpus project's fake-harness runs from before `evals[].attempts[].failure` (what an eval's task threw: an `EvalError`'s reason and meta, or another error's message and class) |
 | `with-decisions` | The fake agent with `c.decide` on `reeval/testing`'s fake decision model, every attempt's artifacts kept: a boolean, choice and score decision between two turns, a `decision` line in `transcript.jsonl` and `evals[].attempts[].decisionUse`, graded from `c.decisions`; and a decision model that never answered, an infra error whose `decision` line holds the `error` |
 | `before-targets` | The corpus project's fake-harness runs from before `evals[].target` and `scores` on evals, cells and case cells (each eval's target, and its mean score, pass@k and pass^k), when evals set `gate` |
+| `with-graders` | The fake harness with code, built-in and judge graders, and the `report.json` built when it was recorded: `evals[].attempts[].grades` of each `kind`, grades that are booleans, numbers, strings and arrays, record-only grades (`score: null`), a judge's `judge.calls` across two models and a judge shown a case's reference (`fingerprint.reference`) |
 
 What reads them:
 

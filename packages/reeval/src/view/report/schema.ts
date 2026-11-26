@@ -28,6 +28,7 @@ import type {
   FailureCluster,
   FailureClusters,
   Figure,
+  GradeRow,
   HeadlinePrimary,
   IntegrityIssue,
   Interval,
@@ -667,6 +668,16 @@ const attemptFactsSchema: z.ZodType<AttemptFacts> = z.strictObject({
   ),
 })
 
+const gradeRowSchema = z.strictObject({
+  grader: z.string(),
+  kind: z.enum(['code', 'judge', 'builtin']),
+  score: z.number().min(0).max(1).nullable(),
+  weight: z.number().nonnegative(),
+  required: z.boolean(),
+  grade: z.string().nullable(),
+  error: z.string().nullable(),
+})
+
 const attemptIndexRowSchema: z.ZodType<AttemptIndexRow> = z.strictObject({
   id: z.string(),
   key: z.string(),
@@ -692,19 +703,7 @@ const attemptIndexRowSchema: z.ZodType<AttemptIndexRow> = z.strictObject({
   llmCalls: figureSchema.optional(),
   facts: attemptFactsSchema.optional(),
   score: z.number().min(0).max(1).optional(),
-  grades: z
-    .array(
-      z.strictObject({
-        grader: z.string(),
-        kind: z.literal('code'),
-        score: z.number().min(0).max(1).nullable(),
-        weight: z.number().nonnegative(),
-        required: z.boolean(),
-        grade: z.string().nullable(),
-        error: z.string().nullable(),
-      }),
-    )
-    .optional(),
+  grades: z.array(gradeRowSchema).optional(),
   diff: z
     .strictObject({
       files: z.number().int().nonnegative(),
@@ -723,7 +722,7 @@ const attemptIndexRowSchema: z.ZodType<AttemptIndexRow> = z.strictObject({
 })
 
 export const runReportSchema: z.ZodType<RunReport> = z.strictObject({
-  reportVersion: z.literal(1),
+  reportVersion: z.literal(2),
   runId: z.string(),
   single: z.boolean(),
   header: runHeaderSchema,
@@ -748,6 +747,7 @@ export type _SameAsSchema = [
   Assert<Same<z.infer<typeof variantComparisonSchema>, VariantComparison>>,
   Assert<Same<z.infer<typeof regressionChangesSchema>, RegressionChanges>>,
   Assert<Same<z.infer<typeof evalSectionSchema>, EvalSection>>,
+  Assert<Same<z.infer<typeof gradeRowSchema>, GradeRow>>,
   Assert<Same<z.infer<typeof runReportSchema>, RunReport>>,
 ]
 

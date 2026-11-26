@@ -420,6 +420,20 @@ describe('readableRunReport', () => {
     )
   })
 
+  test('reads a version 1 report holding every grade kind', () => {
+    const file = corpusEntries()
+      .find((e) => e.name === 'with-graders')
+      ?.runs.at(-1)
+      ?.file.replace(/\.json$/, '/report.json')
+    assert.ok(file)
+    const stored = JSON.parse(readFileSync(file, 'utf8')) as { reportVersion: number }
+    assert.equal(stored.reportVersion, 1)
+    const read = readableRunReport(stored)
+    assert.equal(read.reportVersion, REPORT_VERSION)
+    const kinds = new Set(read.attempts.flatMap((a) => a.grades ?? []).map((g) => g.kind))
+    assert.deepEqual([...kinds].sort(), ['builtin', 'code', 'judge'])
+  })
+
   test('refuses a report from a newer reeval', () => {
     const newer = { ...golden(), reportVersion: REPORT_VERSION + 1 }
     assert.throws(() => readableRunReport(newer), NewerSchemaError)

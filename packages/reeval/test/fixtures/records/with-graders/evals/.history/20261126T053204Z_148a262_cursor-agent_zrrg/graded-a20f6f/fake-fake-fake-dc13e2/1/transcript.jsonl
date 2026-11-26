@@ -1,0 +1,5 @@
+{"ts":"2026-11-26T05:32:06.111Z","atMs":0,"turn":0,"type":"prompt","text":"write the app"}
+{"turn":0,"ts":"2026-11-26T05:32:06.111Z","atMs":0,"type":"text","text":"Working on: write the app","durationMs":0}
+{"turn":0,"ts":"2026-11-26T05:32:06.111Z","atMs":0,"type":"file-edit","toolCallId":"call_1","path":"src/app.js","kind":"create","added":1,"removed":0,"input":{"path":"src/app.js","content":"export const answer = 42\n"},"output":"Wrote src/app.js","outputView":"model","durationMs":0}
+{"turn":0,"ts":"2026-11-26T05:32:06.111Z","atMs":0,"type":"text","text":"Done.","durationMs":0}
+{"ts":"2026-11-26T05:32:06.113Z","atMs":2,"turn":0,"type":"turn-end","status":"completed","durationMs":2}
