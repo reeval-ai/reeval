@@ -3,7 +3,7 @@ title: "Judge a running app"
 description: "See whether the app the harness built renders what the prompt asked for."
 ---
 
-A file assertion shows the harness wrote a page. It can't show the page renders. The evaluation starts the app the harness built, captures one page, and asks the judge what the picture shows. For a runnable project that captures a page after a model drives it, see [`with-capture-journey`](https://github.com/reeval-ai/reeval/tree/main/examples/with-capture-journey).
+A file grader shows the harness wrote a page. It can't show the page renders. The evaluation starts the app the harness built, captures one page, and asks the judge what the picture shows. For a runnable project that captures a page after a model drives it, see [`with-capture-journey`](https://github.com/reeval-ai/reeval/tree/main/examples/with-capture-journey).
 
 The example uses the `nextApp` environment, whose workspace holds a Next.js app on the Vercel AI SDK with `build` and `start` scripts. For more information about putting an app in the workspace, see [Workspaces](/configuration/environments/repositories).
 
@@ -73,16 +73,16 @@ Run the evaluation in the `evals/chat.eval.ts` file:
 npx reeval run chat
 ```
 
-During the run, reeval prints the judgment and score. The score can differ:
+With `-v`, reeval prints each grade and its score during the run. The score can differ:
 
 ```text
-judge  pass 0.93 (≥ 0.8)  Does the screenshot show a text input and a send button?
+[chat#1 fake]  +0:00 grade renders  score 1.00 2ms
 ```
 
-At the end, the block for the evaluation reads `pass`:
+At the end, the block for the evaluation reads its mean score:
 
 ```text
-pass             the chat page shows a composer
+└─ · chat  100%  metric()
 ```
 
 A score below the threshold fails the `renders` grader, and the block prints the score. To see what the judge saw, open the `artifacts/chat.png` file under the run's directory in the `.reeval/runs/` directory. For more information about the outcomes and the tally, see [Read a run's output](/results/output).

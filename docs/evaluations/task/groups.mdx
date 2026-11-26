@@ -12,7 +12,7 @@ Export shared options from one module. In the `evals/shared.ts` file, give both 
 ```ts title="evals/shared.ts"
 import { plain } from './environments.ts'
 
-export const shared = { environment: plain, tags: ['smoke'] as const }
+export const shared = { environment: plain, tags: ['smoke'] }
 ```
 
 Each eval gets its own file and spreads `shared`:
@@ -52,7 +52,7 @@ A helper can spread another helper and add its own fields. In the `evals/billing
 ```ts title="evals/billing-shared.ts"
 import { shared } from './shared.ts'
 
-export const billing = { ...shared, tags: [...shared.tags, 'billing'] as const }
+export const billing = { ...shared, tags: [...shared.tags, 'billing'] }
 ```
 
 The billing evaluation spreads `billing` and keeps `shared`'s `plain` environment and `smoke` tag.

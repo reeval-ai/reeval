@@ -13,7 +13,12 @@ An SDK test seeds the SDK into the workspace, asks the harness to build with it,
 Create the `evals/sdk.eval.ts` file with the environment, the task, a grader that runs the check script and a judge.
 
 ```ts title="evals/sdk.eval.ts"
-import { defineEnvironment, defineEval, defineGrader } from '{{ pkg }}'
+import {
+  defineEnvironment,
+  defineEval,
+  defineGrader,
+  regression,
+} from '{{ pkg }}'
 import { judge } from '{{ pkg }}/graders'
 import { docker } from '{{ pkg }}/sandbox'
 
@@ -40,6 +45,7 @@ const checkClient = defineGrader('check-client', ({ file }) => ({
 
 export default defineEval({
   environment: app,
+  target: regression(),
   graders: [
     checkClient,
     judge('Does forecast() use client.retry rather than its own loop?', {
@@ -75,23 +81,21 @@ The run needs an API key for the harness and for the judge. For more information
 </Step>
 <Step title="Read the outcome">
 
-When both graders pass, the block for `uses the Acme SDK correctly` is one line. A `forecast()` that calls the SDK without retrying fails the check script.
+When both graders pass, the block for `sdk` is one line. A `forecast()` that calls the SDK without retrying fails the check script.
 
 ```text
-fail             uses the Acme SDK correctly
-  toSucceed node check-client.mjs  failed
-    expected command to succeed, exit code 1
+└─ ✗ sdk  0/1 run at 100%  regression(1)
+     #1  0%  check-client 0% (required)
 ```
 
-The attempt's `checks/1.log`, under `.reeval/runs/<run>/`, has the command's output.
+The `check-client` grade in the run record, `.reeval/runs/<run>.json`, has the command's `stderr`.
 
 ```text
-$ node check-client.mjs
-exit 1
 …
 AcmeError: Acme API answered 503
-    at Object.weather (file:///…/work/vendor/acme/index.js:15:24)
-    at async forecast (file:///…/work/src/forecast.js:5:11)
+    at Object.weather (file:///reeval/workspace/vendor/acme/index.js:15:24)
+    at async forecast (file:///reeval/workspace/src/forecast.js:5:21)
+…
 ```
 
 For more information about outcome words, see [Read the outcomes](/results/output#read-the-outcomes).

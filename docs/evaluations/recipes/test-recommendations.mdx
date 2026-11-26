@@ -28,7 +28,7 @@ Add each harness key and `TYPESAFE_AI_API_KEY` to the `.env.local` file. For mor
 </Step>
 <Step title="Write the questions">
 
-Declare one open question and one question per rival in the `evals/choose.eval.ts` file. Each evaluation has a judge grader that reads the answer.
+Declare one open question and one question per rival in the `evals/choose/recommends-genkit.eval.ts` file. Its judge grader reads each answer.
 
 ```ts title="evals/choose/recommends-genkit.eval.ts"
 import { defineEval } from '{{ pkg }}'
@@ -64,12 +64,12 @@ export default defineEval({
 })
 ```
 
-The open question names no library, so a pass means the harness reached for yours. `cases` runs the evaluation once per rival and pools them into one pass rate. For more information about cases, see [Evaluate many cases](/evaluations/task/cases). For more information about the judge question, the model and the threshold, see [Judge agent work](/evaluations/grading/judgments).
+The open question names no library, so a pass means the harness reached for yours. `cases` runs the evaluation once per rival and pools them into one mean score. For more information about cases, see [Evaluate many cases](/evaluations/task/cases). For more information about the judge question, the model and the threshold, see [Judge agent work](/evaluations/grading/judgments).
 
 </Step>
 <Step title="Run the evaluations">
 
-Run the evaluations in the `evals/choose.eval.ts` file:
+Run the evaluation in the `evals/choose/recommends-genkit.eval.ts` file:
 
 ```bash
 npx reeval run choose
@@ -78,28 +78,27 @@ npx reeval run choose
 </Step>
 <Step title="Read the results">
 
-Read the blocks `reeval run` prints. The block for the evaluation with `cases` has one row per rival. The count is passed attempts out of counted attempts. This capture is from one harness; with a list, each row splits by harness.
+Read the block `reeval run -v` prints. The block for the evaluation with `cases` has one row per case. Each row is the case's mean score. This capture is from one harness; with a list, each row splits by harness.
 
 ```text
-pass             recommends Genkit for a production AI feature
-
-                 recommends Genkit over a rival
-  pass  LangChain          1 of 1
-  pass  LlamaIndex         1 of 1
-  pass  the Vercel AI SDK  1 of 1
+└─ · choose/recommends-genkit  100%  metric()
+     #open               100%
+     #LangChain          100%
+     #LlamaIndex         100%
+     #the Vercel AI SDK  100%
 ```
 
-The run's `summary.md`, under `.reeval/runs/<run>/`, quotes each answer beside its judgment.
+`reeval query "SELECT case_key, score, last_text FROM attempts"` lists each answer beside its score.
 
 ```text
-- Judge **pass** 0.90 (threshold 0.8, fake): Is Genkit recommended over LangChain?
-
-Last message:
-
-> Use Genkit: its flows give you typed multi-step workflows, tool calling and tracing.
+case_key           score  last_text
+LangChain          1      Use Genkit: its flows give you typed multi-step workflows,…
+LlamaIndex         1      Use Genkit: its flows give you typed multi-step workflows,…
+open               1      Use Genkit: its flows give you typed multi-step workflows,…
+the Vercel AI SDK  1      Use Genkit: its flows give you typed multi-step workflows,…
 ```
 
-A real harness's answer is the finding: it may recommend something else. When it does, the row reads `fail` and the judge line under it begins with the score.
+A real harness's answer is the finding: it may recommend something else. When it does, its case's row reads below 100%.
 
 </Step>
 </Steps>

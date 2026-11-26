@@ -42,7 +42,9 @@ export default defineEval({
   target: metric(0.75),
   graders: [
     succeeded('node --test'),
-    hasFile('CHANGELOG.md', /## Unreleased\s+- feat: /),
+    hasFile('CHANGELOG.md', /## Unreleased\s+- feat: /, {
+      name: 'changelog-entry',
+    }),
   ],
   task: async (c) => {
     await c.send('Add a multiply(a, b) function to src/math.js.')
@@ -68,17 +70,14 @@ npx reeval run changelog
 The run prints a block like this one:
 
 ```text
-pass             records the change in the changelog
-  arm              pass
-  math             0 of 4
-  changelog        4 of 4  helped
-  check            math    changelog
-  changelog entry  0 of 4  4 of 4
-    expected file CHANGELOG.md to exist
-  +1 more passed
+└─ ✓ changelog  100% ≥ 75%  metric(0.75)
+     arm              pass
+     math             0 of 4
+       error  score 0.50 below 0.75: changelog-entry scored 0.00 (4 runs)
+     changelog        4 of 4  helped
 ```
 
-The `changelog entry` row differs between the cells, so the skill changed what the harness did. When it passes on both sides, the harness already writes the entry, and this task can't show the skill. For more information about the block, see [Read the result](/results/compare/lift#read-the-result). To fail the variant when its lift may be below a floor, see [Gate on lift](/results/compare/lift#gate-on-lift).
+The `changelog-entry` grader scored 0 on the control and passed on the variant, so the skill changed what the harness did. When it passes on both sides, the harness already writes the entry, and this task can't show the skill. For more information about the block, see [Read the result](/results/compare/lift#read-the-result). To fail the variant when its lift may be below a floor, see [Gate on lift](/results/compare/lift#gate-on-lift).
 
 </Step>
 </Steps>

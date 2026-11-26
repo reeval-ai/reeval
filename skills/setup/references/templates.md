@@ -126,7 +126,10 @@ import { repo } from './environments.ts'
 
 export default defineEval({
   environment: repo,
-  graders: [succeeded('hidden test'), succeeded('npm test')],
+  graders: [
+    succeeded('hidden test', { required: true }),
+    succeeded('npm test'),
+  ],
   task: async (c) => {
     await c.send('Add slugify(text) to src/strings.ts and export it from src/index.ts.')
     await c.writeFile(

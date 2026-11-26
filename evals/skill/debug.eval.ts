@@ -21,6 +21,7 @@ export default defineEval({
     notInDiff('reeval.config.ts', { name: 'leaves-the-config-alone' }),
     hasFile(source, /trims punctuation/, { name: 'keeps-the-grader' }),
     hasFile(source, /ahoy-ada/, { name: 'expects-a-single-hyphen' }),
+    hasFile(source, /regression\(\)/, { name: 'keeps-the-target' }),
     defineGrader('names-the-failed-grader', {
       grade: (c) => /trims punctuation/.test(c.turns.at(-1)?.text ?? ''),
     }),

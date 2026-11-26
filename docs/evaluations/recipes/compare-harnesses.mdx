@@ -15,7 +15,7 @@ To measure a change on each agent instead, add `compare` ([the `compare.agents` 
 In the `evals/stream.eval.ts` file, list the agents in `agents` and give each agent four attempts with `runs`:
 
 ```ts title="evals/stream.eval.ts"
-import { defineEval } from '{{ pkg }}'
+import { defineEval, regression } from '{{ pkg }}'
 import { claudeCode, codex, cursor } from '{{ pkg }}/agent'
 import { hasFile } from '{{ pkg }}/graders'
 
@@ -27,6 +27,7 @@ export default defineEval({
     codex({ model: 'gpt-5.6-luna' }),
   ],
   runs: 4,
+  target: regression(),
   graders: [
     hasFile('package.json', /"ai"/, { name: 'adds-the-ai-package' }),
     hasFile('src/stream.ts', /streamText\(/, { name: 'uses-streamText' }),
@@ -67,7 +68,7 @@ fail             streams with Vercel AI SDK
     +1 more passed
 ```
 
-Here `codex:gpt-5.6-luna` failed `adds the ai package` in one attempt, so it fails the evaluation. For more information about the rows and gating, see [Read the result](/results/compare/lift#read-the-result).
+Here `codex:gpt-5.6-luna` failed `adds-the-ai-package` in one attempt, and `target: regression()` needs every attempt to pass, so it fails the evaluation. For more information about the rows and gating, see [Read the result](/results/compare/lift#read-the-result).
 
 </Step>
 <Step title="Read the effort per agent">
