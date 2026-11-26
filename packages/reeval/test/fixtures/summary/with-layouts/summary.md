@@ -37,10 +37,10 @@ Run `20261020T205330Z_da3d797_cursor-agent_1k52` by cursor-agent, 2026-10-20, re
 | [writes greet.js](#writes-greetjs) | task; 1 coding harness, 1 attempt | 100% passed | not reported |
 | [greets in French](#greets-in-french) | task; 1 coding harness, 1 attempt | 0% passed | not reported |
 | [explains why greet.js fails](#explains-why-greetjs-fails) | task; 1 coding harness, 2 attempts | 50% passed | not reported |
-| [reads the fixture repo](#reads-the-fixture-repo) | task; 1 coding harness, 1 attempt | Median tokens: not reported | not reported |
-| [starts its sandbox](#starts-its-sandbox) | task; 1 coding harness, 1 attempt | Median tokens: not reported | not reported |
-| [greets in Welsh](#greets-in-welsh) | task; 1 coding harness, 0 attempts | Median tokens: not reported | not reported |
-| [greets in Klingon](#greets-in-klingon) | task; 1 coding harness, 0 attempts | Median tokens: not reported | not reported |
+| [reads the fixture repo](#reads-the-fixture-repo) | task; 1 coding harness, 1 attempt | 0/1 run at 100% · regression(1) | not reported |
+| [starts its sandbox](#starts-its-sandbox) | task; 1 coding harness, 1 attempt | infra error · regression(1) | not reported |
+| [greets in Welsh](#greets-in-welsh) | task; 1 coding harness, 0 attempts | skipped | not reported |
+| [greets in Klingon](#greets-in-klingon) | task; 1 coding harness, 0 attempts | todo | not reported |
 
 ## Coding harnesses
 
@@ -407,9 +407,9 @@ n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. 1 per side is below 4, 
 
 `evals/results.eval.ts`. Task. 1 coding harness, 1 attempt.
 
-**Median tokens: not reported**
+**0/1 run at 100%** · regression(1)
 
-No attempt reported usage.
+Below target. 1 counted attempt, 1 coding harness.
 
 ### Failures and caveats
 
@@ -421,9 +421,9 @@ No attempt reported usage.
 
 `evals/results.eval.ts`. Task. 1 coding harness, 1 attempt.
 
-**Median tokens: not reported**
+**infra error** · regression(1)
 
-No attempt reported usage.
+No attempt counted: each ended in an infra error.
 
 ### Failures and caveats
 
@@ -435,17 +435,17 @@ No attempt reported usage.
 
 `evals/results.eval.ts`. Task. 1 coding harness, 0 attempts.
 
-**Median tokens: not reported**
+**skipped**
 
-No attempt reported usage.
+Not run.
 
 ## greets in Klingon
 
 `evals/results.eval.ts`. Task. 1 coding harness, 0 attempts.
 
-**Median tokens: not reported**
+**todo**
 
-No attempt reported usage.
+Not run.
 
 ## State
 

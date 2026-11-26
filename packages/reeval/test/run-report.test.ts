@@ -135,6 +135,43 @@ describe('buildRunReport', () => {
     assert.match(md, /What changed/)
   })
 
+  test('graded evals lead with their result against the target, as reeval run prints it', () => {
+    const report = buildRunReport(loadCorpusRun('with-targets'), { links: { base: './' } })
+    assert.doesNotThrow(() => runReportSchema.parse(report))
+    const primary = (name: string) => report.evals.find((e) => e.name === name)?.headline.primary
+    assert.deepEqual(primary('adds-a-button-that-builds'), {
+      kind: 'target',
+      result: '2/3 cases hit 100% (pass@1)',
+      target: 'capability(1)',
+      standing: 'report',
+    })
+    assert.deepEqual(primary('choose'), {
+      kind: 'target',
+      result: '83% ≥ 80%',
+      target: 'metric(0.8)',
+      standing: 'pass',
+    })
+    const md = runReportMarkdown(report)
+    const headline = (name: string) => md.split(`\n## ${name}\n`)[1]?.split('\n## ')[0] ?? ''
+    assert.match(
+      headline('adds-a-button-that-builds'),
+      /^\*\*2\/3 cases hit 100% \(pass@1\)\*\* · capability\(1\)\n\nReport only: the target never fails the run\. 3 counted attempts over 3 cases, 1 coding harness\.$/m,
+    )
+    assert.match(headline('choose'), /^\*\*83% ≥ 80%\*\* · metric\(0\.8\)$/m)
+    assert.match(headline('choose'), /^On target\. 6 counted attempts over 3 cases/m)
+    assert.match(headline('explains-why-greet-js-fails'), /^\*\*67% < 80%\*\* · metric\(0\.8\)$/m)
+    assert.match(headline('greets-in-french'), /^\*\*0\/1 run at 100%\*\* · regression\(1\)$/m)
+    assert.match(headline('starts-its-sandbox'), /^\*\*infra error\*\* · regression\(1\)$/m)
+    assert.match(headline('greets-in-welsh'), /^\*\*skipped\*\*$/m)
+    assert.doesNotMatch(md, /Median tokens/)
+    assert.match(md, /\| \[choose\]\(#choose\) \|[^\n]*\| 83% ≥ 80% · metric\(0\.8\) \|/)
+    assert.equal(
+      primary('greets-in-the-house-style-on-each-agent')?.kind,
+      'pass-rate',
+      'an eval its checks alone score keeps its pass rate',
+    )
+  })
+
   test('pass-rate headlines name found/used outcomes from discovery matchers', () => {
     const record = cloneRecord('with-layouts')
     const e = record.evals.find((ev) => !ev.compare) ?? record.evals[0]!
@@ -432,6 +469,20 @@ describe('readableRunReport', () => {
     assert.equal(read.reportVersion, REPORT_VERSION)
     const kinds = new Set(read.attempts.flatMap((a) => a.grades ?? []).map((g) => g.kind))
     assert.deepEqual([...kinds].sort(), ['builtin', 'code', 'judge'])
+  })
+
+  test('reads a version 2 report, from before the target headline, as it is', () => {
+    const file = corpusEntries()
+      .find((e) => e.name === 'with-targets')
+      ?.runs.at(-1)
+      ?.file.replace(/\.json$/, '/report.json')
+    assert.ok(file)
+    const stored = JSON.parse(readFileSync(file, 'utf8')) as { reportVersion: number }
+    assert.equal(stored.reportVersion, 2)
+    const read = readableRunReport(stored)
+    assert.equal(read.reportVersion, REPORT_VERSION)
+    const choose = read.evals.find((e) => e.name === 'choose')
+    assert.equal(choose?.headline.primary.kind, 'measure')
   })
 
   test('refuses a report from a newer reeval', () => {

@@ -14,7 +14,8 @@ import { labeledJudgments } from '../judgments.ts'
 import { attemptAnswerRows, isUngatedMiss } from '../model.ts'
 import type { RunRemarks } from '../remarks.ts'
 import { runScope } from '../scope.ts'
-import { factSegment, messageLine } from '../suite.ts'
+import { type EvalResult, factSegment, messageLine, suiteResult } from '../suite.ts'
+import { standing, targetNumber } from '../target.ts'
 import { turnErrorKind } from '../turn-error.ts'
 import {
   countFigure,
@@ -301,6 +302,29 @@ type Ctx = {
   hrefs: Set<string>
   /** Canonical evidence href per attempt key, assigned before section cites. */
   hrefByKey: Map<string, string>
+  /** Each eval against its target, as `reeval run` reads it, by `resultKey`. */
+  results: Map<string, EvalResult>
+}
+
+const resultKey = (file: string, id: string) => `${file}\0${id}`
+
+function resultsOf(record: RunRecord): Map<string, EvalResult> {
+  const out = new Map<string, EvalResult>()
+  for (const file of suiteResult(record).files) {
+    for (const e of file.evals) out.set(resultKey(file.path, e.id), e)
+  }
+  return out
+}
+
+/** Whether a grader with weight scored any of its attempts. */
+const graded = (e: EvalEntry) => e.attempts.some((a) => (a.grades ?? []).some((g) => g.weight > 0))
+
+const STANDING_WORDS: Record<ReturnType<typeof standing>, string> = {
+  pass: 'On target.',
+  fail: 'Below target.',
+  report: 'Report only: the target never fails the run.',
+  infra: 'No attempt counted: each ended in an infra error.',
+  skipped: 'Not run.',
 }
 
 function deriveTally(evals: EvalEntry[]): RunTally {
@@ -661,6 +685,34 @@ function headlinePrimaryText(primary: HeadlinePrimary): string {
       if (!primary.lead) return counts
       return `${counts}: ${primary.lead.signal}, ${primary.lead.prior} to ${primary.lead.current}`
     }
+    case 'target':
+      return primary.standing === 'skipped'
+        ? primary.result
+        : `${primary.result} · ${primary.target}`
+  }
+}
+
+/** The eval against its target, as `reeval run`'s result line has it. */
+function targetHeadline(
+  result: EvalResult,
+  harnesses: number,
+): { primary: HeadlinePrimary; fairness: Fairness; foot: string } {
+  const s = standing(result)
+  const counted = result.scored.filter((a) => a.score !== null)
+  const cases = new Set(counted.flatMap((a) => (a.case === null ? [] : [a.case]))).size
+  const over = cases ? ` over ${cases} case${cases === 1 ? '' : 's'}` : ''
+  return {
+    primary: {
+      kind: 'target',
+      result: targetNumber(result),
+      target: targetLabel(result.target),
+      standing: s,
+    },
+    fairness: 'clear',
+    foot:
+      counted.length === 0
+        ? STANDING_WORDS[s]
+        : `${STANDING_WORDS[s]} ${counted.length} counted attempt${counted.length === 1 ? '' : 's'}${over}, ${harnesses} coding harness${harnesses === 1 ? '' : 'es'}.`,
   }
 }
 
@@ -669,6 +721,7 @@ function chooseHeadline(
   arms: Arm[],
   prior: Ctx['prior'],
   regression: RegressionChanges | null,
+  result: EvalResult | undefined,
 ): { primary: HeadlinePrimary; fairness: Fairness; foot: string; kicker: string | null } {
   const harnesses = new Set(e.cells.map((c) => c.harness)).size
   const assertions = assertionLabels(e)
@@ -835,6 +888,8 @@ function chooseHeadline(
     }
   }
 
+  if (result && graded(e)) return { ...targetHeadline(result, harnesses), kicker }
+
   if (assertions.length > 0) {
     const gated = e.attempts.filter((a) => {
       const cell = cellOf(e, a.cell)
@@ -970,26 +1025,33 @@ function chooseHeadline(
     }
   }
 
-  const tokenValues = e.attempts
-    .filter((a) => countedOutcome(a.outcome) && a.usage)
-    .map((a) => totalTokens(a.usage!))
-  const spread =
-    spreadOf(tokenValues, tokensText) ??
-    ({
-      n: 0,
-      median: tokensFigure(null),
-      q1: tokensFigure(null),
-      q3: tokensFigure(null),
-    } satisfies Spread)
+  if (result) return { ...targetHeadline(result, harnesses), kicker }
+
+  const spread = tokenSpread(e)
   return {
     primary: { kind: 'measure', label: 'tokens', unit: 'tokens', spread },
-    fairness: tokenValues.length < COMPARE_RUNS ? 'too-few-runs' : 'clear',
+    fairness: spread.n < COMPARE_RUNS ? 'too-few-runs' : 'clear',
     foot:
       spread.n === 0
         ? 'No attempt reported usage.'
         : `${spread.n} attempts, interquartile range ${spread.q1.text} to ${spread.q3.text}.`,
     kicker,
   }
+}
+
+/** The tokens of the counted attempts that reported usage. */
+function tokenSpread(e: EvalEntry): Spread {
+  const values = e.attempts
+    .filter((a) => countedOutcome(a.outcome) && a.usage)
+    .map((a) => totalTokens(a.usage!))
+  return (
+    spreadOf(values, tokensText) ?? {
+      n: 0,
+      median: tokensFigure(null),
+      q1: tokensFigure(null),
+      q3: tokensFigure(null),
+    }
+  )
 }
 
 function buildTaskResults(e: EvalEntry): TaskResults | null {
@@ -1651,7 +1713,13 @@ function buildEvalSection(ctx: Ctx, e: EvalEntry, displayName: string): EvalSect
   const shapes = shapesOf(e, Boolean(ctx.prior))
   const design = designOf(e)
   const regression = ctx.prior ? buildRegression(ctx.prior) : null
-  const chosen = chooseHeadline(e, arms, ctx.prior, regression)
+  const chosen = chooseHeadline(
+    e,
+    arms,
+    ctx.prior,
+    regression,
+    ctx.results.get(resultKey(e.file, e.id)),
+  )
   const primaryHeadline = fillTextLeadCites(
     chosen.primary,
     e,
@@ -1905,6 +1973,7 @@ function buildRoster(evals: EvalEntry[], record: RunRecord): RosterRow[] {
 
 function buildRollup(
   sections: EvalSection[],
+  evals: EvalEntry[],
   analysis: AnalysisDoc | null,
 ): ExecutiveRollup | null {
   if (sections.length < 2 && !analysis?.analysis.tldr) return null
@@ -1938,13 +2007,13 @@ function buildRollup(
       medianTokens:
         s.headline.primary.kind === 'measure' && s.headline.primary.unit === 'tokens'
           ? s.headline.primary.spread.median
-          : tokensFigure(
-              s.primary && 'breakdown' in s.primary
-                ? (s.primary.median?.measures.tokens?.median.value ??
-                    s.primary.breakdown[0]?.measures.tokens?.median.value ??
-                    null)
-                : null,
-            ),
+          : s.primary && 'breakdown' in s.primary
+            ? tokensFigure(
+                s.primary.median?.measures.tokens?.median.value ??
+                  s.primary.breakdown[0]?.measures.tokens?.median.value ??
+                  null,
+              )
+            : tokenSpread(evals.find((e) => e.key === s.id)!).median,
     })),
     findings,
   }
@@ -2079,6 +2148,7 @@ export function buildRunReport(record: RunRecord, options: RunReportOptions = {}
     prior: options.prior ?? null,
     hrefs: new Set(),
     hrefByKey: new Map(),
+    results: resultsOf(record),
   }
   assignAttemptHrefs(ctx)
   const header = buildHeader(ctx)
@@ -2087,11 +2157,11 @@ export function buildRunReport(record: RunRecord, options: RunReportOptions = {}
 
   const sections = evals.map((e) => buildEvalSection(ctx, e, names.get(e.key) ?? e.name))
   const single = sections.length === 1
-  const rollup = buildRollup(sections, ctx.analysis)
+  const rollup = buildRollup(sections, evals, ctx.analysis)
   const roster = buildRoster(evals, record)
 
   return {
-    reportVersion: 2,
+    reportVersion: 3,
     runId: record.runId,
     single,
     header,
