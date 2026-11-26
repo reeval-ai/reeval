@@ -1,5 +1,5 @@
 [project]
-name = "reeval-fixture-python-caught-checks"
+name = "reeval-fixture-python-caught-asserts"
 version = "0.0.0"
 requires-python = ">=3.11"
 dependencies = ["reeval-python"]

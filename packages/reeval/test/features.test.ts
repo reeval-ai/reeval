@@ -6390,30 +6390,22 @@ export const features: Feature[] = [
     dir: 'python-sdk/hello',
     tiers: ['fake', 'docker', 'real'],
     env: '-',
-    canary: /expected.*to succeed/i,
+    canary: /missing-greet\.py exists/,
     args: ['--output-logs', 'errors-only'],
     prepare: (dir) => syncPythonFixtureProject(dir),
     record: ({ run, stdout }) => {
       const [lands] = run.evals.find((e) => e.name === 'lands')?.attempts ?? []
-      assert.deepEqual(
-        lands?.assertions?.map(({ label, labelled: labeled }) => [label, labeled]),
-        [
-          ['assert c.exec("test -f greet.py").ok', false],
-          ['assert node_check.ok', false],
-          ['assert verdict.passed', false],
-        ],
-        'each plain assert in a Python body is a check, passing ones too',
-      )
+      assert.equal(lands?.outcome, 'pass', 'the plain asserts in a Python body hold')
       const [canary] = run.evals.find((e) => e.name === 'canary')?.attempts ?? []
-      assert.deepEqual(
-        canary?.assertions?.map(({ label, status }) => [label, status]),
-        [['toSucceed test -f missing-greet.py', 'fail']],
-        "a Python body's expect lands in its record",
+      assert.equal(
+        canary?.failure?.reason,
+        'missing-greet.py exists',
+        "a Python body's failed assert is its attempt's failure",
       )
       assert.deepEqual(
         canary?.checks.map((c) => c.command),
         ['test -f missing-greet.py'],
-        'the command expect checks runs once',
+        'the command the assert reads runs once',
       )
       assert.match(
         stdout,
@@ -6427,13 +6419,13 @@ export const features: Feature[] = [
     tiers: ['fake'],
     env: '-',
     args: ['--concurrency', '1'],
-    canary: /expected.*to succeed/i,
+    canary: /zombie\.txt exists/,
     evals: {
       lands: { outcome: 'pass', attempts: ['fake/-/fake#1'] },
       canary: {
         outcome: 'fail',
         attempts: ['fake/-/fake#1'],
-        error: { kind: 'assertion', message: /expected.*to succeed/i },
+        error: { kind: 'assertion', message: /zombie\.txt exists/ },
       },
       'times out': {
         outcome: 'fail',
@@ -6454,42 +6446,29 @@ export const features: Feature[] = [
     },
   },
   {
-    dir: 'python-sdk/caught-checks',
+    dir: 'python-sdk/caught-asserts',
     tiers: ['fake'],
     env: '-',
-    canary: /missing file: expected.*to succeed/i,
+    canary: /missing file/,
     evals: {
-      'caught expect': {
-        outcome: 'fail',
-        attempts: ['fake/-/fake#1'],
-        error: {
-          kind: 'assertion',
-          message:
-            /^missing file: expected.*to succeed[\s\S]*\(the eval caught this failed check, which still fails the attempt; to wait or retry, use expect\.poll\)$/,
-        },
-      },
       'assert retries': { outcome: 'pass', attempts: ['fake/-/fake#1'] },
       canary: {
         outcome: 'fail',
         attempts: ['fake/-/fake#1'],
-        error: { kind: 'assertion', message: /missing file: expected.*to succeed/i },
+        error: { kind: 'assertion', message: /^missing file$/ },
       },
     },
     prepare: (dir) => syncPythonFixtureProject(dir),
     record: ({ run }) => {
-      const assertions = (name: string) =>
-        run.evals
-          .find((e) => e.name === name)
-          ?.attempts[0]?.assertions?.map(({ label, status }) => [label, status])
+      const [retries] = run.evals.find((e) => e.name === 'assert retries')?.attempts ?? []
       assert.deepEqual(
-        assertions('caught expect'),
-        [['missing file', 'fail']],
-        'a failed expect.require the body catches is a failed check, recorded with its own message',
-      )
-      assert.deepEqual(
-        assertions('assert retries'),
-        [['assert c.exec("test -f ready.txt").ok', 'pass']],
-        'a plain assert the body catches records nothing',
+        retries?.checks.map((c) => [c.command, c.exitCode]),
+        [
+          ['test -f ready.txt', 1],
+          ['touch ready.txt', 0],
+          ['test -f ready.txt', 0],
+        ],
+        'a plain assert the body catches fails nothing, and the loop tries again',
       )
     },
   },
@@ -6497,13 +6476,13 @@ export const features: Feature[] = [
     dir: 'python-sdk/declared-skip',
     tiers: ['fake'],
     env: '-',
-    canary: /ran: expected 'ran' to be 'skipped'/,
+    canary: /ran: 'ran' is not 'skipped'/,
     evals: {
       lands: { outcome: 'pass', attempts: ['fake/-/fake#1'] },
       canary: {
         outcome: 'fail',
         attempts: ['fake/-/fake#1'],
-        error: { kind: 'assertion', message: /ran: expected 'ran' to be 'skipped'/ },
+        error: { kind: 'assertion', message: /ran: 'ran' is not 'skipped'/ },
       },
       parked: { outcome: 'skipped', attempts: ['fake/-/fake#1'] },
       shelved: { outcome: 'skipped', attempts: ['fake/-/fake#1'] },

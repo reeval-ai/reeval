@@ -1,6 +1,6 @@
 import time
 
-from reeval_python import evaluate, expect
+from reeval_python import evaluate
 
 
 # Runs first and times out. Its body wakes while "lands" (same file, same cell, so the same
@@ -8,10 +8,10 @@ from reeval_python import evaluate, expect
 @evaluate("times out", {"timeout": 1})
 def times_out(c):
     time.sleep(2)
-    expect(c.exec("touch zombie.txt")).to_succeed()
+    c.exec("touch zombie.txt")
 
 
 @evaluate("lands")
 def lands(c):
     time.sleep(3)
-    expect(c.exec("test ! -f zombie.txt")).to_succeed()
+    assert c.exec("test ! -f zombie.txt").ok

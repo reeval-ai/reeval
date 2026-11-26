@@ -1,6 +1,6 @@
 import tomli
 
-from reeval_python import evaluate, expect
+from reeval_python import evaluate
 
 assert tomli.__version__
 
@@ -16,5 +16,3 @@ def lands(c):
         'node -e "const t=require(\'fs\').readFileSync(\'greet.py\',\'utf8\'); if(!/print\\(.hi.\\)/.test(t)) process.exit(1)"',
     )
     assert node_check.ok, "greet.py content matches print(hi)"
-    verdict = c.judge("Does greet.py print hi when run with python3?", task=True, diff=True)
-    assert verdict.passed, f"judge score {verdict.score} below {verdict.threshold}"

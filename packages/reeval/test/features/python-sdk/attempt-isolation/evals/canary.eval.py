@@ -1,7 +1,7 @@
-from reeval_python import evaluate, expect
+from reeval_python import evaluate
 
 
 # The mistake: expects the timed-out body's file, which never lands anywhere.
 @evaluate("canary")
 def canary(c):
-    expect(c.exec("test -f zombie.txt")).to_succeed()
+    assert c.exec("test -f zombie.txt").ok, "zombie.txt exists"
