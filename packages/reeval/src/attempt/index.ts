@@ -22,13 +22,14 @@ import {
   openSpan,
   withAttemptSpan,
 } from '../trace/spans.ts'
-import type { AttemptContext, EvalFn } from '../types.ts'
+import type { AttemptContext, EvalFn, EvalRecord } from '../types.ts'
 import { assertionRecords, checkFailure, linkJudgmentAssertions } from './assertions.ts'
 import { capturePage, serveCommand } from './capture.ts'
 import { createChecks } from './checks.ts'
 import { contextTaker } from './context.ts'
 import { tracePlan } from './debug.ts'
 import { prepareEnvironment } from './environment.ts'
+import { type Grading, gradeAttempt } from './grade.ts'
 import { judgeCaller } from './judge.ts'
 import { observer } from './observe.ts'
 import {
@@ -50,12 +51,18 @@ import { type AttemptSpec, bindAttemptContext, createAttempt, evalTimer } from '
 import { turnSender } from './turns.ts'
 import { keepWorkspace, workspaceSidecar } from './workspace.ts'
 
+export type { Grading } from './grade.ts'
 export type { AttemptSpec } from './state.ts'
 export { setupAllowance } from './state.ts'
 
 const TRACE_BUFFER_DEFAULT = 8 * 2 ** 20
 
-export async function runAttempt(spec: AttemptSpec, fn: EvalFn, handle: TestHandle): Promise<void> {
+export async function runAttempt(
+  spec: AttemptSpec,
+  fn: EvalFn,
+  handle: TestHandle,
+  grading?: Grading,
+): Promise<void> {
   const ctx = getRunContext()
   const { config, runId } = ctx
   const verbosity = ctx.verbosity ?? 0
@@ -75,7 +82,7 @@ export async function runAttempt(spec: AttemptSpec, fn: EvalFn, handle: TestHand
   let error: unknown
   try {
     return await withDebug(debug, () =>
-      withAttemptSpan(span, () => attemptBody(spec, fn, handle, id, debug)),
+      withAttemptSpan(span, () => attemptBody(spec, fn, handle, id, debug, grading)),
     )
   } catch (thrown) {
     error = thrown
@@ -91,6 +98,7 @@ async function attemptBody(
   { signal: testSignal, setMeta, progress, unawaited, expectError, assertions }: TestHandle,
   id: string,
   debug: AttemptDebug,
+  grading: Grading | undefined,
 ): Promise<void> {
   const ctx = getRunContext()
   const { runId, stagingDir, config } = ctx
@@ -245,6 +253,19 @@ async function attemptBody(
     reclassifyTurnErrors(a)
     // A turn's error, an OOM kill or a provider outage the timeout hid is why it ended instead.
     if (record.error?.kind !== 'assertion') delete record.failure
+    // Graders read what the task left, so none runs after it threw, timed out or was canceled.
+    if (grading?.graders.length && record.outcome === 'pass' && !failure && !oom) {
+      const low = await gradeAttempt(a, grading, workspaceSidecar(stagingDir, key), testSignal)
+      if (testSignal.aborted) {
+        recordFailure(a, testSignal.reason, false, assertions())
+        failure = { error: testSignal.reason }
+      } else if (low) {
+        recordFailure(a, low, false, assertions())
+        failure = { error: low }
+      }
+    }
+    const score = record.score ?? scoreOf(record)
+    if (score !== undefined) record.score = score
     const error = record.error ? ` · ${record.error.kind}: ${record.error.message}` : ''
     debug.log('teardown', `outcome ${record.outcome}${error}`)
     const rel = (path: string) => relativeFile(config.root, path) || '.'
@@ -267,4 +288,10 @@ async function attemptBody(
   }
   if (oom) throw oom
   if (failure) throw failure.error
+}
+
+/** An attempt's score without graders: 1 when it passed, 0 when it failed; none otherwise. */
+function scoreOf(record: EvalRecord): number | undefined {
+  if (record.outcome === 'pass') return 1
+  return record.error?.kind === 'assertion' || record.error?.kind === 'judge' ? 0 : undefined
 }

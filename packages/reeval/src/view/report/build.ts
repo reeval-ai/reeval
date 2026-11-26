@@ -1,7 +1,7 @@
 import { caseName } from '../../history/cases.ts'
 import type { AttemptRecord, CellRecord, EvalEntry, RunRecord } from '../../history/types.ts'
 import { COMPARE_RUNS, containsZero, liftInterval } from '../../stats.ts'
-import type { AttemptFailure, CapturePageFile } from '../../types.ts'
+import type { AttemptFailure, CapturePageFile, GradeRecord } from '../../types.ts'
 import { totalTokens } from '../../usage.ts'
 import type { AnalysisDoc } from '../analysis.ts'
 import type { AttemptFacts } from '../classify.ts'
@@ -40,6 +40,7 @@ import type {
   ArmRow,
   AssertionRow,
   AttemptIndexRow,
+  GradeRow,
   AttemptRef,
   BreakdownRow,
   CaptureGallery,
@@ -1963,6 +1964,19 @@ function reportFailure(f: AttemptFailure): ReportFailure {
   }
 }
 
+function gradeRow(g: GradeRecord): GradeRow {
+  const json = g.grade === undefined ? null : JSON.stringify(g.grade)
+  return {
+    grader: g.grader,
+    kind: g.kind,
+    score: g.score,
+    weight: g.weight,
+    required: g.required,
+    grade: json === null ? null : json.length > 200 ? `${json.slice(0, 199)}…` : json,
+    error: g.error ?? null,
+  }
+}
+
 function buildAttemptIndex(ctx: Ctx): AttemptIndexRow[] {
   const { evals, ids, linkBase, record, hrefByKey } = ctx
   const rows: AttemptIndexRow[] = []
@@ -1997,6 +2011,8 @@ function buildAttemptIndex(ctx: Ctx): AttemptIndexRow[] {
         toolCalls: countFigure(a.activity.tools),
         llmCalls: countFigure(a.activity.llmCalls),
         ...(ctx.facts?.has(a.key) ? { facts: ctx.facts.get(a.key) } : {}),
+        ...(a.score !== undefined ? { score: a.score } : {}),
+        ...(a.grades?.length ? { grades: a.grades.map(gradeRow) } : {}),
         diff:
           diffStats.files === 0 && diffStats.added === null
             ? null

@@ -687,6 +687,20 @@ const attemptIndexRowSchema: z.ZodType<AttemptIndexRow> = z.strictObject({
   toolCalls: figureSchema,
   llmCalls: figureSchema.optional(),
   facts: attemptFactsSchema.optional(),
+  score: z.number().min(0).max(1).optional(),
+  grades: z
+    .array(
+      z.strictObject({
+        grader: z.string(),
+        kind: z.literal('code'),
+        score: z.number().min(0).max(1).nullable(),
+        weight: z.number().nonnegative(),
+        required: z.boolean(),
+        grade: z.string().nullable(),
+        error: z.string().nullable(),
+      }),
+    )
+    .optional(),
   diff: z
     .strictObject({
       files: z.number().int().nonnegative(),

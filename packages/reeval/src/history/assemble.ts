@@ -519,7 +519,12 @@ function checkLog(c: EvalRecord['checks'][number]): string {
 
 /** A `c.exec` as its line of `execs.jsonl`, its output capped. */
 function execLine(c: EvalRecord['checks'][number]): string {
-  const line: ExecLine = {
+  return `${JSON.stringify(execLineOf(c))}\n`
+}
+
+/** A `c.exec` result as `execs.jsonl` keeps it, before masking. */
+export function execLineOf(c: EvalRecord['checks'][number]): ExecLine {
+  return {
     command: c.command,
     ...(c.label !== undefined ? { label: c.label } : {}),
     exitCode: c.exitCode,
@@ -534,7 +539,6 @@ function execLine(c: EvalRecord['checks'][number]): string {
         }
       : {}),
   }
-  return `${JSON.stringify(line)}\n`
 }
 
 /**
@@ -1354,6 +1358,8 @@ async function attemptEvidence(
     ...(record?.assertions?.length ? { assertions: record.assertions } : {}),
     ...(observations.length ? { observations } : {}),
     ...(record?.failure ? { failure: record.failure } : {}),
+    ...(record?.grades?.length ? { grades: record.grades } : {}),
+    ...(record?.score !== undefined ? { score: record.score } : {}),
     checks: (record?.checks ?? []).map((c, i) => ({
       command: c.command,
       ...(c.label !== undefined ? { label: c.label } : {}),

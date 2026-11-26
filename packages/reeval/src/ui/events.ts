@@ -75,6 +75,8 @@ export type ProgressUpdate =
       threshold: number | null
       ms: number
     }
+  /** A grader's result once the task returned; `score` is null for a grade that records only. */
+  | { kind: 'grade-end'; grader: string; score: number | null; error?: string; ms: number }
   | { kind: 'cleanup' }
   /** Something the attempt did that reeval stopped or changed, e.g. a refused brokered request. */
   | { kind: 'warning'; text: string }

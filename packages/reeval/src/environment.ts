@@ -121,6 +121,12 @@ const OWN_DIRS = COMPILED
 
 /** The directory of the file that called into reeval, from the stack; relative paths resolve here. */
 export function callerDir(): string | undefined {
+  const file = callerFile()
+  return file === undefined ? undefined : dirname(file)
+}
+
+/** The file outside reeval that called into it, from the stack. */
+export function callerFile(): string | undefined {
   const limit = Error.stackTraceLimit
   Error.stackTraceLimit = 30
   const stack = new Error().stack ?? ''
@@ -134,7 +140,7 @@ export function callerDir(): string | undefined {
     const file = normalize(match[1].startsWith('file://') ? fileURLToPath(match[1]) : match[1])
     if (OWN_DIRS.some((d) => file.startsWith(d)) || file.includes(`${sep}node_modules${sep}`))
       continue
-    return dirname(file)
+    return file
   }
   return undefined
 }

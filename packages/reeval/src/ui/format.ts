@@ -84,6 +84,17 @@ export function progressLine(c: Colors, p: Progress): string {
       return c.dim(`judging: ${oneLine(p.question, 120)}`)
     case 'judge-end':
       return judgeLine(c, p)
+    case 'grade-end': {
+      const result =
+        p.error !== undefined
+          ? c.red(`error: ${oneLine(p.error, 160)}`)
+          : p.score === null
+            ? c.dim('recorded')
+            : p.score < 1
+              ? c.red(`score ${p.score.toFixed(2)}`)
+              : `score ${p.score.toFixed(2)}`
+      return `grade ${p.grader}  ${result} ${c.dim(formatDuration(p.ms))}`
+    }
     case 'cleanup':
       return c.dim('cleaning up')
     case 'warning':
@@ -139,6 +150,8 @@ export function phaseOf(p: Progress | undefined): string {
     case 'judge-start':
     case 'judge-end':
       return 'judging'
+    case 'grade-end':
+      return 'grading'
     case 'cleanup':
       return 'cleanup'
     case 'browser-download':

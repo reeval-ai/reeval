@@ -522,6 +522,19 @@ export type ReportFailure = {
   stack: string | null
 }
 
+/** One grader's result on an attempt. */
+export type GradeRow = {
+  grader: string
+  kind: 'code'
+  /** In [0, 1]; null for a grade that records only. */
+  score: number | null
+  weight: number
+  required: boolean
+  /** The grade as JSON, clipped to 200 characters; null when the grader errored. */
+  grade: string | null
+  error: string | null
+}
+
 export type AttemptIndexRow = {
   id: string
   /** `AttemptRecord.key`. */
@@ -545,6 +558,10 @@ export type AttemptIndexRow = {
    * for it, such as a passing attempt whose transcript `evidence` didn't keep.
    */
   facts?: AttemptFacts
+  /** `AttemptRecord.score`; absent when it has none. */
+  score?: number
+  /** Each of the attempt's grades, in the eval's order; absent when no grader ran. */
+  grades?: GradeRow[]
   /** Lines exclude lockfiles; null counts print `not recorded`. */
   diff: { files: number; added: number | null; removed: number | null; text: string } | null
   links: {

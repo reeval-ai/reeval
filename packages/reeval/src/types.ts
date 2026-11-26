@@ -12,6 +12,7 @@ import type {
   VertexPublisher,
   WebEventType,
 } from '@reeval/agents'
+import type { GraderList } from './grade/types.ts'
 import type {
   ArtifactLevel,
   ExportFormat,
@@ -2394,6 +2395,8 @@ type SpecFields<N extends number> = EvalOptionFields<N> &
 export type EvalSpec<N extends number = number> = SpecFields<N> & {
   /** The eval's body, run once per attempt. */
   task: EvalFn
+  /** What grades each attempt once the task returns: `defineGrader` graders, each by its name. */
+  graders?: GraderList
 }
 
 /** What `defineEval` takes with `cases`: the task takes the attempt and its case. */
@@ -2401,6 +2404,8 @@ export type CaseEvalSpec<T, N extends number = number> = SpecFields<N> &
   CaseOptions<T> & {
     /** The eval's body, run once per attempt of each case. */
     task: CaseFn<T>
+    /** What grades each attempt once the task returns; each grader reads the attempt's case. */
+    graders?: GraderList<NoInfer<T>>
   }
 
 /**
@@ -3603,6 +3608,57 @@ export type Observation = {
   file?: FileRef
 }
 
+/** One grader's result on an attempt, from a `defineGrader` grader in the eval's `graders`. */
+export type GradeRecord = {
+  /** The grader's name, unique in its eval. */
+  grader: string
+  /** What the grader is: `code` runs its `grade` function on the host. */
+  kind: 'code'
+  /** Every name of the `defineGraders` group whose one `grade` call this came from. */
+  group?: string[]
+  /** What `grade` returned, masked; unset when the grader errored. */
+  grade?: JSONValue
+  /**
+   * In [0, 1]: `score(grade)`, or 1 or 0 for a boolean grade, or 0 when the grader errored; null
+   * for a grade that has no score, which is recorded only.
+   */
+  score: number | null
+  /** Its share of the attempt's score; 0 records only. */
+  weight: number
+  /** Whether a score under 1 (or an error) makes the attempt's score 0. */
+  required: boolean
+  /** Why it has no grade: `grade` threw or timed out, or its grade or score wasn't valid. */
+  error?: string
+  fingerprint: GradeFingerprint
+  /** sha256 of the `score` function and the local modules of the file it's defined in; unset without one. */
+  scoreDigest?: string
+  /** What the grader read from the attempt, by content hash, in first-read order. */
+  reads: GradeReads
+  durationMs: number
+}
+
+/** What makes two grades of the same attempt comparable: equal digests, the same grade. */
+export type GradeFingerprint = {
+  /** sha256 over the other parts. */
+  digest: string
+  /**
+   * sha256 of the grader's name, its `files` and its `grade` function, with the local modules of
+   * the file it's defined in.
+   */
+  code: string
+  /** sha256 of the `data` files' content; unset without `data`. */
+  data?: string
+  /** The grader's `revision`, when set. */
+  revision?: number
+}
+
+/** The attempt's observations, captures and kept files a grader read, by content hash. */
+export type GradeReads = {
+  observations?: Array<{ name: string; sha256: string }>
+  artifacts?: Array<{ name: string; sha256: string }>
+  files?: Array<{ path: string; sha256: string }>
+}
+
 /** Full per-attempt payload, written to disk by the worker. */
 export type EvalRecord = {
   /** When the worker began the attempt (its scheduler lease), for start order across the run. */
@@ -3636,6 +3692,10 @@ export type EvalRecord = {
   assertions?: AssertionRecord[]
   /** See `AttemptRecord.observations`. */
   observations?: Observation[]
+  /** See `AttemptRecord.grades`. */
+  grades?: GradeRecord[]
+  /** See `AttemptRecord.score`. */
+  score?: number
   /**
    * In call order, with `retries` when transient provider errors were retried on the way to the
    * verdict. `call` is the call's place among the attempt's `c.judge()` calls, failed ones
