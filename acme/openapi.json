@@ -1,0 +1,1079 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "acme API",
+    "version": "0.0.0",
+    "description": "acme is a mock e-commerce service: a product catalog, carts and orders. Every API key is its own tenant with its own copy of the seed data, and there is no signup. Money is integer cents in USD (1999 is $19.99). Bodies are JSON. Inputs are strict: an unknown query or body field is `invalid_request`. Every error is an `ErrorEnvelope`. An unknown route is 404 `not_found`, and an unexpected fault is 500 `internal_error`. Seed data: 24 products, `prod_001` to `prod_024`, in the categories `audio`, `computing`, `home`, `outdoors`; `prod_005` and `prod_017` have stock 0. Orders `order_0001` (paid) and `order_0002` (shipped). `POST /v1/reset` restores it. The same operations are also an MCP server (Streamable HTTP) at `/mcp`, with the same key."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8787",
+      "description": "The local server"
+    }
+  ],
+  "security": [
+    {
+      "bearer": []
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "summary": "Check that the service is up",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "operationId": "openapi",
+        "summary": "Get this OpenAPI document",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/products": {
+      "get": {
+        "operationId": "products.list",
+        "summary": "List products",
+        "description": "Lists the catalog in id order, filtered by `q` and `category`.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Text to find in the name or description, ignoring case, such as `headphones`.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Only products of this category.",
+            "schema": {
+              "type": "string",
+              "enum": ["audio", "computing", "home", "outdoors"]
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `nextCursor` of the previous page. Omit it for the first page.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Items for each page, 1 to 50.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "- `invalid_request`: A query parameter fails its schema or is unknown, or `cursor` is not the id of a product in this filtered list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/products/{id}": {
+      "get": {
+        "operationId": "products.get",
+        "summary": "Get a product",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "A product id, such as `prod_001`.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "- `invalid_request`: An id in the path is longer than 255 characters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "- `not_found`: No product has this id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/carts": {
+      "post": {
+        "operationId": "carts.create",
+        "summary": "Create an empty cart",
+        "description": "Takes no body. Each call creates a new cart.",
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/carts/{id}": {
+      "get": {
+        "operationId": "carts.get",
+        "summary": "Get a cart",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "A cart id from `carts.create`, such as `cart_0001`.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "- `invalid_request`: An id in the path is longer than 255 characters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "- `not_found`: No cart has this id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/carts/{id}/items": {
+      "post": {
+        "operationId": "carts.addItem",
+        "summary": "Add a product to a cart",
+        "description": "Adding a product already in the cart adds to its quantity. Stock is checked at checkout, not here. Returns the cart.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "A cart id from `carts.create`, such as `cart_0001`.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCartItemInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "- `invalid_request`: The body is not a JSON object, or fails its schema.\n- `invalid_request`: The line would hold more than 99.\n- `invalid_request`: An id in the path is longer than 255 characters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "- `not_found`: No cart has this id, or no product has `productId`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          }
+        }
+      }
+    },
+    "/v1/carts/{id}/items/{productId}": {
+      "patch": {
+        "operationId": "carts.updateItem",
+        "summary": "Set the quantity of a product in a cart",
+        "description": "To remove a product, use `carts.removeItem`. Returns the cart.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "A cart id from `carts.create`, such as `cart_0001`.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "description": "The id of a product in the cart, such as `prod_001`.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCartItemInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "- `invalid_request`: The body is not a JSON object, or fails its schema.\n- `invalid_request`: An id in the path is longer than 255 characters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "- `not_found`: No cart has this id, or the product is not in it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "carts.removeItem",
+        "summary": "Remove a product from a cart",
+        "description": "Returns the cart.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "A cart id from `carts.create`, such as `cart_0001`.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "description": "The id of a product in the cart, such as `prod_001`.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "- `invalid_request`: An id in the path is longer than 255 characters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "- `not_found`: No cart has this id, or the product is not in it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/orders": {
+      "post": {
+        "operationId": "orders.create",
+        "summary": "Check out a cart",
+        "description": "Creates a `paid` order from the cart, takes its items from stock and empties the cart, which stays usable. A failed checkout changes nothing. A repeated `Idempotency-Key` returns the order the first request created, with 201, whatever the body, and changes nothing.",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Any string you choose. A repeat of an earlier successful checkout of this API key returns that order and creates nothing.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "- `invalid_request`: The body is not a JSON object, or fails its schema.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "description": "- `payment_declined`: The payment token is `tok_declined`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "- `not_found`: No cart has this id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "- `cart_empty`: The cart has no items.\n- `insufficient_stock`: A line asks for more than the stock.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
+          "422": {
+            "description": "- `coupon_invalid`: The coupon is unknown or expired, or the subtotal is below its minimum.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "orders.list",
+        "summary": "List orders",
+        "description": "Lists the orders of this key in id order, filtered by `status`.",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `nextCursor` of the previous page. Omit it for the first page.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Items for each page, 1 to 50.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Only orders with this status.",
+            "schema": {
+              "type": "string",
+              "enum": ["paid", "shipped", "canceled"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "- `invalid_request`: A query parameter fails its schema or is unknown, or `cursor` is not the id of an order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/orders/{id}": {
+      "get": {
+        "operationId": "orders.get",
+        "summary": "Get an order",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "An order id, such as `order_0001`.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "- `invalid_request`: An id in the path is longer than 255 characters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "- `not_found`: No order has this id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/orders/{id}/cancel": {
+      "post": {
+        "operationId": "orders.cancel",
+        "summary": "Cancel a paid order",
+        "description": "Takes no body. Sets the status to `canceled` and returns the items to stock.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "An order id, such as `order_0001`.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "- `invalid_request`: An id in the path is longer than 255 characters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "- `not_found`: No order has this id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "- `order_not_cancelable`: The order is `shipped` or already `canceled`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reset": {
+      "post": {
+        "operationId": "reset",
+        "summary": "Restore the seed data of this key",
+        "description": "Takes no body. Deletes its carts and new orders, and restores the stock and ids.",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Send `Authorization: Bearer <key>`. A key is `acme_test_` and then one or more letters, digits or `. _ ~ + / -` characters, optionally ending in `=` padding, at most 256 characters in all, such as `acme_test_demo`."
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "- `unauthorized`: The API key is missing or invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "TooLarge": {
+        "description": "- `invalid_request`: The body is larger than 64 KiB.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Product": {
+        "description": "A product. `stock` is what this key can still buy; a product with stock 0 cannot be bought.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["audio", "computing", "home", "outdoors"]
+          },
+          "priceCents": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "stock": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": ["id", "name", "description", "category", "priceCents", "stock"],
+        "additionalProperties": false
+      },
+      "ProductPage": {
+        "description": "One page of products. `nextCursor` is null on the last page.",
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            }
+          },
+          "nextCursor": {
+            "type": ["string", "null"]
+          }
+        },
+        "required": ["data", "nextCursor"],
+        "additionalProperties": false
+      },
+      "CartItem": {
+        "description": "A priced line of a cart or an order.",
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unitPriceCents": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "quantity": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "lineTotalCents": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": ["productId", "name", "unitPriceCents", "quantity", "lineTotalCents"],
+        "additionalProperties": false
+      },
+      "Cart": {
+        "description": "A cart. Prices are the current catalog prices.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItem"
+            }
+          },
+          "subtotalCents": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 UTC time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "ISO 8601 UTC time"
+          }
+        },
+        "required": ["id", "items", "subtotalCents", "createdAt", "updatedAt"],
+        "additionalProperties": false
+      },
+      "Order": {
+        "description": "An order. Its items and prices are those of the cart at checkout.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cartId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["paid", "shipped", "canceled"]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItem"
+            }
+          },
+          "subtotalCents": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "discountCents": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalCents": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "couponCode": {
+            "type": ["string", "null"]
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 UTC time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "ISO 8601 UTC time"
+          }
+        },
+        "required": [
+          "id",
+          "cartId",
+          "status",
+          "items",
+          "subtotalCents",
+          "discountCents",
+          "totalCents",
+          "couponCode",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "OrderPage": {
+        "description": "One page of orders. `nextCursor` is null on the last page.",
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Order"
+            }
+          },
+          "nextCursor": {
+            "type": ["string", "null"]
+          }
+        },
+        "required": ["data", "nextCursor"],
+        "additionalProperties": false
+      },
+      "AddCartItemInput": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 99,
+            "description": "How many to add, 1 to 99. The line may hold at most 99 in all."
+          }
+        },
+        "required": ["productId", "quantity"],
+        "additionalProperties": false
+      },
+      "UpdateCartItemInput": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 99,
+            "description": "The new quantity, 1 to 99."
+          }
+        },
+        "required": ["quantity"],
+        "additionalProperties": false
+      },
+      "CreateOrderInput": {
+        "type": "object",
+        "properties": {
+          "cartId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "The cart to check out."
+          },
+          "paymentToken": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "`tok_declined` is declined. Any other token, such as `tok_ok`, succeeds."
+          },
+          "couponCode": {
+            "description": "`WELCOME10` takes 10% off, rounded down. `SAVE5` takes 500 cents off a subtotal of at least 5000. `EXPIRED20` is expired. Codes are case-sensitive.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "required": ["cartId", "paymentToken"],
+        "additionalProperties": false
+      },
+      "Ok": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": ["ok"],
+        "additionalProperties": false
+      },
+      "ErrorEnvelope": {
+        "description": "The body of every error. `code` is stable; `message` is for a person.",
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "unauthorized",
+                  "invalid_request",
+                  "not_found",
+                  "insufficient_stock",
+                  "cart_empty",
+                  "payment_declined",
+                  "coupon_invalid",
+                  "order_not_cancelable",
+                  "internal_error"
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": ["code", "message"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["error"],
+        "additionalProperties": false
+      }
+    }
+  }
+}

@@ -12,6 +12,17 @@ test('GET /health answers without creating an object', async () => {
   expect((await listDurableObjectIds(env.TENANT)).length).toBe(before)
 })
 
+test('GET /openapi.json answers without creating an object, with or without a key', async () => {
+  const before = (await listDurableObjectIds(env.TENANT)).length
+  const keyed: HeadersInit = { authorization: `Bearer ${freshKey('openapi')}` }
+  for (const headers of [{}, keyed]) {
+    const res = await workerFetch('http://acme.test/openapi.json', { headers })
+    expect(res.status).toBe(200)
+    expect(((await res.json()) as { openapi: string }).openapi).toBe('3.1.0')
+  }
+  expect((await listDurableObjectIds(env.TENANT)).length).toBe(before)
+})
+
 test('a missing or bad key gets 401 without creating an object', async () => {
   const before = (await listDurableObjectIds(env.TENANT)).length
   for (const [path, headers] of [

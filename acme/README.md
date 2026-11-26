@@ -29,6 +29,7 @@ pnpm typecheck   # tsc --noEmit in every package and in test/
 pnpm build       # tsdown: one self-contained dist/*.mjs for each bin
 pnpm test        # build, then every package's tests, the Worker tests in a local workerd, and test:e2e
 pnpm test:e2e    # test/: the built bins, through the SDK, the CLI, stdio MCP and /mcp. Build first
+pnpm openapi     # write openapi.json from the code; a test fails while it is stale
 pnpm --filter @acme/core test   # one package; @acme/api's tests also need pnpm build first
 ```
 
@@ -62,9 +63,11 @@ own copy of the seed data, and no signup.
 
 ## API
 
-Base path `/v1`, JSON only. Every route needs the key but `GET /health`. Inputs are strict: an
-unknown query or body field is `invalid_request`. Lists take `limit` (default 10, at most 50) and
-`cursor` (the `nextCursor` of the previous page, which is null on the last page).
+Base path `/v1`, JSON only. Every route needs the key but `GET /health` and `GET /openapi.json`,
+which serves the OpenAPI 3.1 document of the API. [`openapi.json`](./openapi.json) is a committed
+copy of it, for an agent with no network. Inputs are strict: an unknown query or body field is
+`invalid_request`. Lists take `limit` (default 10, at most 50) and `cursor` (the `nextCursor` of
+the previous page, which is null on the last page).
 
 | Route | Body or query |
 |---|---|

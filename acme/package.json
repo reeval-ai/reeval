@@ -10,6 +10,7 @@
     "build": "pnpm -r --filter './packages/*' --if-present build",
     "typecheck": "pnpm -r --filter './packages/*' typecheck && tsc --noEmit",
     "test": "pnpm build && pnpm -r --filter './packages/*' test && pnpm test:e2e",
+    "openapi": "pnpm --filter @acme/api openapi",
     "test:e2e": "node --test --experimental-strip-types --no-warnings --test-timeout=60000 \"test/**/*.test.ts\""
   },
   "devDependencies": {

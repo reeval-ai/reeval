@@ -17,6 +17,7 @@ import { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { z } from 'zod'
+import { OPENAPI } from './openapi.ts'
 
 /** The dependencies of the app. */
 export interface AcmeAppDeps {
@@ -77,6 +78,7 @@ export function createApp(deps: AcmeAppDeps): Hono<AcmeEnv> {
   )
 
   app.get('/health', (c) => c.json({ ok: true }))
+  app.get('/openapi.json', (c) => c.json(OPENAPI))
 
   app.use('/v1/*', async (c, next) => {
     const apiKey = tenantKeyFrom(c.req.raw)

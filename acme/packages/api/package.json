@@ -13,7 +13,8 @@
     "dev:worker": "wrangler dev",
     "test": "pnpm test:node && pnpm test:worker",
     "test:node": "node --test --experimental-strip-types --no-warnings --test-timeout=60000 \"test/**/*.test.ts\"",
-    "test:worker": "vitest run"
+    "test:worker": "vitest run",
+    "openapi": "node --experimental-strip-types --no-warnings scripts/openapi.ts"
   },
   "dependencies": {
     "@acme/core": "workspace:*",

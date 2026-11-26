@@ -1,5 +1,5 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src", "test", "tsdown.config.ts"],
+  "include": ["src", "scripts", "test", "tsdown.config.ts"],
   "exclude": ["src/worker.ts", "src/tenant.ts", "src/durable-store.ts"]
 }
