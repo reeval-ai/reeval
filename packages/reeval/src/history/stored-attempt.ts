@@ -49,7 +49,7 @@ export type ReadKeptOptions = {
   fetch?: (ref: FileRef, file: string) => Promise<void>
 }
 
-export type Trajectory = {
+export type StoredAttempt = {
   /** Each foreground `c.exec`, in call order; empty for a record from before `files.execs`. */
   execs: ExecLine[]
   /** The last value of each `c.observe` name, in first-call order, each value read back. */
@@ -235,11 +235,11 @@ async function observedValues(runDir: string, attempt: AttemptRecord): Promise<O
 }
 
 /** What `attempt` left for grading, from its run's directory `runDir`. */
-export async function readTrajectory(
+export async function readStoredAttempt(
   runDir: string,
   attempt: AttemptRecord,
   options: ReadKeptOptions = {},
-): Promise<Trajectory> {
+): Promise<StoredAttempt> {
   const artifacts = attempt.files.artifacts ?? []
   return {
     execs: await readExecs(runDir, attempt),
@@ -260,5 +260,5 @@ export async function readTrajectory(
 }
 
 /** The changed files as a grader's judge sees them, a dependency directory with its count. */
-export const diffFiles = (changed: AttemptRecord['changedFiles']): Trajectory['diff']['files'] =>
+export const diffFiles = (changed: AttemptRecord['changedFiles']): StoredAttempt['diff']['files'] =>
   changed.map(({ path, status, count }) => ({ path, status, ...(count ? { count } : {}) }))

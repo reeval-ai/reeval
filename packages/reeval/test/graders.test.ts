@@ -106,7 +106,7 @@ function inputs(over: Partial<GradeInputs> = {}): GradeInputs {
     case: { key: '' },
     turns: [turn(), turn({ transcript: [] })],
     skills: ['http-retries', 'unused'],
-    trajectory: {
+    stored: {
       execs: [
         { command: 'npm test', label: 'tests', exitCode: 1, stdout: '', stderr: '', durationMs: 1 },
         { command: 'npm test', label: 'tests', exitCode: 0, stdout: '', stderr: '', durationMs: 1 },
@@ -165,14 +165,14 @@ describe('reeval/graders/match', () => {
     assert.throws(() => match.searched(blind), /doesn't report web searches/)
   })
   test('reads the final diff', () => {
-    const d = { changedFiles: inputs().trajectory.changedFiles }
+    const d = { changedFiles: inputs().stored.changedFiles }
     assert.deepEqual(match.inDiff(d, 'src/**'), ['src/retry.ts'])
     assert.deepEqual(match.inDiff(d, ['README.md', /^src\//]), ['src/retry.ts', 'README.md'])
     assert.deepEqual(match.inDiff(d, 'test/**'), [])
     assert.deepEqual(match.inDiff(d), ['src/retry.ts', 'README.md'])
   })
   test('finds a c.exec by label, then by command, the last one', () => {
-    const e = { execs: inputs().trajectory.execs }
+    const e = { execs: inputs().stored.execs }
     assert.equal(match.succeeded(e, 'tests'), 0)
     assert.equal(match.succeeded(e, 'npm run build'), 2)
     assert.throws(

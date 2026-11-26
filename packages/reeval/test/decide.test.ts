@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
-import { readTrajectory } from '../src/history/trajectory.ts'
+import { readStoredAttempt } from '../src/history/stored-attempt.ts'
 import type { AttemptRecord } from '../src/history/types.ts'
 import { fakeConfig, project, readRun, runCli } from './helpers.ts'
 
@@ -43,8 +43,8 @@ const decisionLines = (dir: string, attempt: AttemptRecord) => {
 }
 
 describe('c.decide', () => {
-  test("a passing attempt's stored trajectory has its decisions, the answers masked", async () => {
-    const p = await project('decide-trajectory', {
+  test('what a passing attempt stored has its decisions, the answers masked', async () => {
+    const p = await project('decide-stored', {
       'reeval.config.ts': fakeConfig(),
       'evals/a.eval.ts': evalFile(
         `fakeDecisionModel({ done: { type: 'boolean', probability: 0.9, note: '${SECRET}' } })`,
@@ -58,7 +58,7 @@ describe('c.decide', () => {
     const attempt = evals[0]?.trial as AttemptRecord
     assert.equal(attempt.outcome, 'pass')
     assert.equal(attempt.files.transcript, undefined, 'a passing attempt keeps no transcript')
-    const t = await readTrajectory(dir, attempt)
+    const t = await readStoredAttempt(dir, attempt)
     assert.equal(t.decisions.length, 1)
     assert.equal(t.decisions[0]?.model, 'fake/fake-decision')
     assert.equal(t.decisions[0]?.answers.done?.type, 'boolean')

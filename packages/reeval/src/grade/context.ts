@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { shellQuote } from '@reeval/sandbox-docker/process'
 import { globFilter } from '../environment.ts'
 import { canonicalJson } from '../eval-source.ts'
-import type { Trajectory } from '../history/trajectory.ts'
+import type { StoredAttempt } from '../history/stored-attempt.ts'
 import { sha256 } from '../ids.ts'
 import type { DraftSource } from '../judge/draft.ts'
 import type { Sandbox } from '../sandbox/types.ts'
@@ -16,7 +16,7 @@ import type { GraderContext, GraderData, GraderSandbox, GraderTurn } from './typ
 export type GradeInputs = {
   case: Case
   turns: readonly GraderTurn[]
-  trajectory: Trajectory
+  stored: StoredAttempt
   /** The skills the attempt's environment placed, by name. */
   skills: readonly string[]
   /** Starts a grader's `env` sandbox; a grader with `env` errors without it. */
@@ -98,7 +98,7 @@ export async function copyFiles(
   box: Sandbox,
   signal: AbortSignal,
 ): Promise<FileRead[]> {
-  const { workspace } = inputs.trajectory
+  const { workspace } = inputs.stored
   const mayRead = readable(run.files)
   if (!workspace) {
     if (!run.files.some((p) => !p.startsWith('!'))) return []
@@ -150,13 +150,13 @@ export function graderContext(
   signal: AbortSignal,
   sandbox?: { box: Sandbox; copied: readonly FileRead[] },
 ): { c: GraderContext; reads: GradeReads } {
-  const { trajectory } = inputs
+  const { stored } = inputs
   const observations = new Map<string, { name: string; sha256: string }>()
   const artifacts = new Map<string, { name: string; sha256: string }>()
   const files = new Map<string, FileRead>(sandbox?.copied.map((f) => [f.path, f]))
   const mayRead = readable(run.files)
   function observation(name: string, options?: { optional: true }): JSONValue | undefined {
-    const found = trajectory.observations.find((o) => o.name === name)
+    const found = stored.observations.find((o) => o.name === name)
     if (!found) {
       if (options?.optional) return undefined
       throw new GradeError(
@@ -169,13 +169,13 @@ export function graderContext(
   const c: GraderContext = {
     case: inputs.case,
     turns: inputs.turns,
-    execs: trajectory.execs,
-    changedFiles: trajectory.changedFiles,
+    execs: stored.execs,
+    changedFiles: stored.changedFiles,
     skills: inputs.skills,
     observation: observation as GraderContext['observation'],
     async artifact(name) {
-      const ref = trajectory.artifacts.find((a) => a.name === name)
-      const png = ref && (await trajectory.readArtifact(name))
+      const ref = stored.artifacts.find((a) => a.name === name)
+      const png = ref && (await stored.readArtifact(name))
       if (!ref || !png) throw new GradeError(`the attempt has no capture named "${name}"`)
       artifacts.set(name, { name, sha256: ref.sha256 })
       return { name, png, ...(ref.capture ? { capture: ref.capture } : {}) }
@@ -187,18 +187,18 @@ export function graderContext(
           `${who(run)} can't read ${JSON.stringify(given)}: it isn't in its files (${run.files.length ? run.files.join(', ') : 'none'}). Add it to files.`,
         )
       }
-      if (!trajectory.workspace) {
+      if (!stored.workspace) {
         throw new GradeError(`the attempt kept no workspace, so ${path} can't be read`)
       }
-      const entry = trajectory.workspace.manifest.files.find((f) => f.path === path)
-      const bytes = await trajectory.workspace.readFile(path)
+      const entry = stored.workspace.manifest.files.find((f) => f.path === path)
+      const bytes = await stored.workspace.readFile(path)
       if (!entry || bytes === null) {
         throw new MissingFileError(`the attempt's workspace has no file ${path}`)
       }
       files.set(path, { path, sha256: entry.sha256 ?? sha256(bytes) })
       return bytes.toString('utf8')
     },
-    decisions: trajectory.decisions,
+    decisions: stored.decisions,
     data,
     sandbox: graderSandbox(sandbox?.box, run, signal),
     signal,

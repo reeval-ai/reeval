@@ -11,7 +11,7 @@ import { defineGrader, type GraderDef, graderDef } from '../src/grade/define.ts'
 import { judge } from '../src/grade/judge-grader.ts'
 import { runGraders } from '../src/grade/run.ts'
 import type { Grader } from '../src/grade/types.ts'
-import { keptFiles } from '../src/history/trajectory.ts'
+import { keptFiles } from '../src/history/stored-attempt.ts'
 import { sha256 } from '../src/ids.ts'
 import { askJudge } from '../src/judge/index.ts'
 import { fakeJudge } from '../src/judge.ts'
@@ -56,7 +56,7 @@ function attempt(files: Record<string, string> = {}, model?: JudgeModel) {
         usage: null,
       } as unknown as GradeInputs['turns'][number],
     ],
-    trajectory: {
+    stored: {
       execs: [
         {
           command: 'npm test',

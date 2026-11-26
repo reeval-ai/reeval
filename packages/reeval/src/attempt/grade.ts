@@ -12,7 +12,7 @@ import { sandboxStarter } from '../grade/sandbox.ts'
 import type { GraderTurn } from '../grade/types.ts'
 import { changedFiles, execLineOf, historyPatch } from '../history/assemble.ts'
 import { turnCost, unpricedTurns } from '../history/cost.ts'
-import { diffFiles, keptFiles, type Trajectory } from '../history/trajectory.ts'
+import { diffFiles, keptFiles, type StoredAttempt } from '../history/stored-attempt.ts'
 import { WORKSPACE_ARCHIVE, WORKSPACE_MANIFEST } from '../history/types.ts'
 import { askJudge } from '../judge/index.ts'
 import { loadPrices } from '../prices.ts'
@@ -26,8 +26,8 @@ import type { Attempt } from './state.ts'
 /** An eval's graders, and the case its attempts grade. */
 export type Grading = { graders: readonly GraderDef[]; item: Case }
 
-/** What the attempt left, as `readTrajectory` reads it back once the run is recorded. */
-async function liveTrajectory(a: Attempt, workspaceDir: string): Promise<Trajectory> {
+/** What the attempt left, as `readStoredAttempt` reads it back once the run is recorded. */
+async function liveStoredAttempt(a: Attempt, workspaceDir: string): Promise<StoredAttempt> {
   const { record } = a
   const artifacts = (record.artifacts ?? []).map((x) => ({
     path: `${x.name}.png`,
@@ -108,7 +108,7 @@ export async function gradeAttempt(
   const inputs: GradeInputs = {
     case: grading.item,
     turns: await graderTurns(a),
-    trajectory: await liveTrajectory(a, workspaceDir),
+    stored: await liveStoredAttempt(a, workspaceDir),
     skills: a.env?.record.skills.map((s) => s.name) ?? [],
     subagents: a.record.turns.map((t) => t.subagents),
     judge: {

@@ -12,7 +12,7 @@ import { functionDigest } from '../src/grade/digest.ts'
 import { attemptScore, runGraders, scoreFailure } from '../src/grade/run.ts'
 import { graderSlots, type SandboxStarter } from '../src/grade/sandbox.ts'
 import type { Grader } from '../src/grade/types.ts'
-import { keptFiles } from '../src/history/trajectory.ts'
+import { keptFiles } from '../src/history/stored-attempt.ts'
 import { sha256 } from '../src/ids.ts'
 import { registerSecret } from '../src/redact.ts'
 import { createSandbox, InfraError } from '../src/sandbox/index.ts'
@@ -48,7 +48,7 @@ function inputs(files: Record<string, string> = {}): GradeInputs {
   return {
     case: { key: 'iso', input: 'PT1H' } as GradeInputs['case'],
     turns: [],
-    trajectory: {
+    stored: {
       execs: [
         {
           command: 'npm test',
