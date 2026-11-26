@@ -237,7 +237,7 @@
                   "const": "metric"
                 },
                 "threshold": {
-                  "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
+                  "description": "The mean score, from 0 to 1, the attempts had to reach; unset only reported.",
                   "type": "number"
                 }
               },
@@ -1104,7 +1104,7 @@
           "type": "string"
         },
         "target": {
-          "description": "The eval's target, the default `metric()` included; unset in records from before targets.",
+          "description": "The eval's target, the default `capability()` included; unset in records from before targets.",
           "anyOf": [
             {
               "type": "object",
@@ -1130,7 +1130,7 @@
                   "const": "metric"
                 },
                 "threshold": {
-                  "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
+                  "description": "The mean score, from 0 to 1, the attempts had to reach; unset only reported.",
                   "type": "number"
                 }
               },

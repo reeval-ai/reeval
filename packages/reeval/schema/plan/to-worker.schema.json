@@ -2719,19 +2719,6 @@
               "type": "object",
               "properties": {
                 "kind": {
-                  "const": "metric"
-                },
-                "threshold": {
-                  "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
-                  "type": "number"
-                }
-              },
-              "required": ["kind"]
-            },
-            {
-              "type": "object",
-              "properties": {
-                "kind": {
                   "const": "regression"
                 },
                 "threshold": {
@@ -3134,7 +3121,7 @@
           "$ref": "#/$defs/ResolvedSnapshot"
         },
         "target": {
-          "description": "Unset means `metric()`.",
+          "description": "Unset means `capability()`.",
           "anyOf": [
             {
               "type": "object",
@@ -3152,19 +3139,6 @@
                 }
               },
               "required": ["blocking", "kind", "threshold"]
-            },
-            {
-              "type": "object",
-              "properties": {
-                "kind": {
-                  "const": "metric"
-                },
-                "threshold": {
-                  "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
-                  "type": "number"
-                }
-              },
-              "required": ["kind"]
             },
             {
               "type": "object",
