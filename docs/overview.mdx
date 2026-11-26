@@ -72,33 +72,31 @@ export const withSkill = page.extendEnvironment(
 The evaluation goes in its own file:
 
 ```ts title="evals/brand.eval.ts"
-import { defineEval, expect, metric } from 'reeval'
+import { defineEval, metric } from 'reeval'
+import { hasFile } from 'reeval/graders'
 import { page, withSkill } from './environments.ts'
 
 export default defineEval({
   compare: { control: page, variants: [withSkill] },
-    runs: 4,
-    target: metric(0.75),
+  runs: 4,
+  target: metric(0.75),
+  graders: [
+    hasFile('index.html', /href="styles\.css"/),
+    hasFile('styles.css', /#d97757/i, { name: 'brand-orange' }),
+    hasFile('styles.css', /Poppins[\s\S]*Lora|Lora[\s\S]*Poppins/, {
+      name: 'brand-fonts',
+    }),
+  ],
   task: async (c) => {
     await c.send(
       "Give index.html Anthropic's look: write styles.css with Anthropic's " +
         'brand colors and fonts, and link it from index.html.',
     )
-
-    await expect(c, 'links styles.css').toHaveFile(
-      'index.html',
-      /href="styles\.css"/,
-    )
-    await expect(c, 'brand orange').toHaveFile('styles.css', /#d97757/i)
-    await expect(c, 'brand fonts').toHaveFile(
-      'styles.css',
-      /Poppins[\s\S]*Lora|Lora[\s\S]*Poppins/,
-    )
   },
 })
 ```
 
-The prompt never names the color or the fonts, so those assertions pass only when the agent knows them. `reeval run` prints the outcome for each side:
+The prompt never names the color or the fonts, so those graders pass only when the agent knows them. `reeval run` prints the outcome for each side:
 
 ```text
 pass             styles the page in Anthropic's brand

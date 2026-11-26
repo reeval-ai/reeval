@@ -36,25 +36,25 @@ The server is the only change between the cells. For more information about `mcp
 In the `evals/releases.eval.ts` file, declare the evaluation and name the variant in `compare.variants`:
 
 ```ts title="evals/releases.eval.ts"
-import { defineEval, expect } from '{{ pkg }}'
+import { defineEval } from '{{ pkg }}'
+import { calledMcp, hasFile } from '{{ pkg }}/graders'
 import { app, withReleases } from './environments.ts'
 
 export default defineEval({
   compare: { control: app, variants: [withReleases] }, runs: 4,
+  graders: [
+    calledMcp('releases', 'latest_version', { weight: 0 }),
+    hasFile('package.json', /"version": "2\.4\.0"/),
+  ],
   task: async (c) => {
-    const turn = await c.send(
+    await c.send(
       "Set package.json's version to the latest acme-cli release.",
     )
-
-    if (c.attempt.cell.role === 'variant') {
-      expect(turn).toHaveCalledMcp('releases', 'latest_version')
-    }
-    await expect(turn).toHaveFile('package.json', /"version": "2\.4\.0"/)
   },
 })
 ```
 
-The prompt doesn't name the server, so the file assertion passes on the control only when the harness finds the version another way. The control has no server to call, so only the variant checks the call. `runs: 4` gives each cell four attempts. Below four counted attempts a side, the `too-few-tries` remark often says the effect doesn't hold yet.
+The prompt doesn't name the server, so the file grader passes on the control only when the harness finds the version another way. The control has no server to call, so `weight: 0` records the call without scoring it. `runs: 4` gives each cell four attempts. Below four counted attempts a side, the `too-few-tries` remark often says the effect doesn't hold yet.
 
 </Step>
 <Step title="Run the comparison">
@@ -68,9 +68,9 @@ npx reeval run releases
 </Step>
 <Step title="Read whether the server helped">
 
-Read the block the run prints for the evaluation. The `releases` row carries the effect, and the file assertion's row shows each cell's count. For more information about the rows, see [Read the result](/results/compare/lift#read-the-result).
+Read the block the run prints for the evaluation. The `releases` row carries the effect, and the file grader's row shows each cell's count. For more information about the rows, see [Read the result](/results/compare/lift#read-the-result).
 
-When the file assertion passes on both sides, the harness finds the version without the server, and this task can't show what the server changed. When the variant fails the call check, read the attempt's `transcript.jsonl` file under `.reeval/runs/<run>/`: `toHaveCalledMcp` matches a tool call named `mcp__releases__latest_version`.
+When the file grader passes on both sides, the harness finds the version without the server, and this task can't show what the server changed. When the variant's call grader reads 0, read the attempt's `transcript.jsonl` file under `.reeval/runs/<run>/`: `calledMcp` matches a tool call named `mcp__releases__latest_version`.
 
 </Step>
 </Steps>

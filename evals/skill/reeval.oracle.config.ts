@@ -1,5 +1,5 @@
 // The skill topic's oracle: a fake agent that applies oracle/'s known-good answer to each task,
-// so every check must pass (the shared reeval.fake.config.ts is the canary: every check fails).
+// so every grader must pass (the shared reeval.fake.config.ts is the canary: every grader misses).
 // `pnpm reeval run --config evals/skill/reeval.oracle.config.ts`, after `node evals/skill/scripts/vendor.mjs`.
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'reeval'
@@ -15,7 +15,8 @@ export default defineConfig({
     script: [[{ exec: `node ${solve}` }]],
     text:
       'Fixed: compare moved out of the config, the environment list became compare, repeat ' +
-      'became runs, and I added the missing await. The check that failed was `trims punctuation`.',
+      "became runs, and the judge's contents moved under inputs. The grader that failed was " +
+      '`succeeded:trims punctuation`.',
   }),
   sandbox: fakeSandbox(),
   judge: { model: fakeJudge({ score: 0.9 }) },

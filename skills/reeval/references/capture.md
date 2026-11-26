@@ -1,13 +1,19 @@
 # Web UIs: serve, capture and artifacts
 
 ```ts
+import { defineEval } from 'reeval'
+import { judge } from 'reeval/graders'
+
 export default defineEval({
+  graders: [
+    judge('Does the screenshot show an email field and a password field?', {
+      inputs: { artifacts: ['sign-in'] },
+    }),
+  ],
   task: async (c) => {
     await c.send('Build a sign-in page served by `npm start` on $PORT.')
     const app = await c.serve('npm start')
     await c.capture(app, { name: 'sign-in', path: '/login', wait: 'idle' })
-    const q = 'Does the screenshot show an email field and a password field?'
-    expect(await c.judge(q, { artifacts: ['sign-in'] })).toPass()
   },
 })
 ```

@@ -1,6 +1,9 @@
-import { defineEval, expect } from 'reeval'
+import { defineEval, defineGrader } from 'reeval'
+import { hasFile, succeeded } from 'reeval/graders'
 import { channels, PREAMBLE, project } from './channels.ts'
-import { dryRun, typechecks } from './checks.ts'
+import { dryRun, planOf, typecheck } from './checks.ts'
+
+const source = 'evals/landing.eval.ts'
 
 const task =
   PREAMBLE +
@@ -8,29 +11,44 @@ const task =
   'skill comparison: the control has no skill, the variant gets the design skill in ' +
   "skills/design, 2 runs per cell. Add a question asking which arm's landing page follows " +
   "the design guidelines more closely, and let the question see each side's `home` " +
-  'screenshot. Keep the existing checks. `npx reeval run --dry-run` must plan it and it must ' +
+  'screenshot. Keep the existing grader. `npx reeval run --dry-run` must plan it and it must ' +
   "typecheck with `npx tsc -p .`; you don't need to run it."
+
+const question = (c: Parameters<typeof planOf>[0]) => planOf(c)?.evals[0]?.questions[0]
 
 export default defineEval({
   compare: channels(project('landing', 'compare')),
+  graders: [
+    succeeded('typechecks'),
+    defineGrader('plans-2-cells-and-4-attempts', {
+      grade: (c) => {
+        const totals = planOf(c)?.totals
+        return totals?.evals === 1 && totals.cells === 2 && totals.attempts === 4
+      },
+    }),
+    defineGrader('a-control-and-a-variant', {
+      grade: (c) =>
+        planOf(c)
+          ?.evals[0]?.cells.map((cell) => cell.role)
+          .sort()
+          .join() === 'control,variant',
+    }),
+    defineGrader('asks-a-compare-question', {
+      grade: (c) => /design/i.test(question(c)?.question ?? ''),
+    }),
+    defineGrader('pairs-the-two-arms', {
+      grade: (c) => question(c)?.across.includes('environment') ?? false,
+    }),
+    defineGrader('the-question-sees-screenshots', {
+      grade: (c) => question(c)?.shows.includes('artifacts') ?? false,
+    }),
+    hasFile(source, /artifacts:\s*(\[\s*['"`]home['"`]|true)/, { name: 'the-home-screenshot' }),
+    hasFile(source, /capture\(/, { name: 'keeps-the-capture' }),
+    hasFile(source, /skills\/design/, { name: 'uses-the-design-skill' }),
+  ],
   task: async (c) => {
     await c.send(task)
-    await expect(c.exec(typechecks), 'typechecks').toSucceed()
-    const { plan } = await dryRun(c)
-    expect(plan?.totals, 'plans 2 cells and 4 attempts').toMatchObject({
-      evals: 1,
-      cells: 2,
-      attempts: 4,
-    })
-    const roles = plan?.evals[0]?.cells.map((cell) => cell.role).sort()
-    expect(roles, 'a control and a variant').toEqual(['control', 'variant'])
-    const question = plan?.evals[0]?.questions?.[0]
-    expect(question?.question ?? '', 'asks a compare question').toMatch(/design/i)
-    expect(question?.across ?? [], 'pairs the two arms').toContain('environment')
-    const source = (await c.readFile('evals/landing.eval.ts')) ?? ''
-    expect(question?.shows ?? [], 'the question sees screenshots').toContain('artifacts')
-    expect(source, 'the home screenshot').toMatch(/artifacts:\s*(\[\s*['"`]home['"`]|true)/)
-    expect(source, 'keeps the capture').toMatch(/capture\(/)
-    expect(source, 'uses the design skill').toMatch(/skills\/design/)
+    await typecheck(c)
+    await dryRun(c)
   },
 })

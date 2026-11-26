@@ -26,10 +26,10 @@ channel to learn it from and four authoring tasks, and compares the channels:
 
 | Task | Starts from | Checks |
 |---|---|---|
-| `judge.eval.ts` | A CLI and a fake-agent config | The eval it writes typechecks, plans, passes on the fake agent, asks a labeled judge question |
+| `judge.eval.ts` | A CLI and a fake-agent config | The eval it writes typechecks, plans, passes on the fake agent, has a judge grader named `explains-usage` and fails the run on a miss |
 | `compare.eval.ts` | An eval that screenshots a page | The plan has 2 cells, 4 attempts and a pairwise question that sees the screenshot |
 | `fix-config.eval.ts` | A config with four mistakes | `--dry-run` plans 2 cells × 3 runs, `reeval run` passes, `docs/` untouched |
-| `debug.eval.ts` | A run whose check is wrong | The fixed eval passes, keeps the check, and the answer names it |
+| `debug.eval.ts` | A run whose grader is wrong | The fixed eval passes, keeps the grader, and the answer names it |
 
 Every arm passed every task on Cursor (`composer-2.5`), so the difference is in effort. The
 split skill matched the full one on tool calls and time with fewer tokens; docs alone and
@@ -54,7 +54,7 @@ no other task opened them.
 Every attempt installs this checkout's reeval from `evals/skill/vendor/` (`node
 evals/skill/scripts/vendor.mjs` packs it, renders the docs and extracts the pre-split skill).
 `evals/skill/reeval.oracle.config.ts` runs a fake agent that applies a known-good answer to each
-task, so every check must pass there.
+task, so every grader must pass there.
 
 ## contributing: can an agent contribute to reeval?
 

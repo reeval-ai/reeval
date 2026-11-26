@@ -16,18 +16,26 @@ Three calls check the app the agent built:
 `c.serve` starts a command in the background and returns its port. reeval allocates a free port and sets it as `PORT`, so a server that reads `PORT` listens where reeval expects it. In the `evals/sign-in.eval.ts` file, build and start the app:
 
 ```ts title="evals/sign-in.eval.ts"
-import { defineEval, expect } from '{{ pkg }}'
+import { defineEval, EvalError } from '{{ pkg }}'
+import { judge } from '{{ pkg }}/graders'
 import { nextApp } from './environments.ts'
 
 export default defineEval({
   environment: nextApp,
+  graders: [
+    judge('Does the screenshot show an email field and a password field?', {
+      name: 'two-fields',
+      inputs: { artifacts: ['login'] },
+    }),
+  ],
   task: async (c) => {
     await c.send('Add a /login page with email and password fields.')
-    await expect(c.exec('npm run build'), 'builds').toSucceed()
+    const build = await c.exec('npm run build')
+    if (build.exitCode !== 0) {
+      throw new EvalError({ reason: "the app doesn't build" })
+    }
     const app = await c.serve('npm start')
-    const shot = await c.capture(app, { path: '/login', wait: 'idle' })
-    const q = 'Does the screenshot show an email field and a password field?'
-    expect(await c.judge(q, { artifacts: [shot] }), 'two fields').toPass()
+    await c.capture(app, { path: '/login', wait: 'idle' })
   },
 })
 ```
@@ -38,13 +46,12 @@ export default defineEval({
 
 ```ts title="evals/sign-in.eval.ts"
 const url = `localhost:${app.port}/login`
-await expect(
-  c.exec(`curl -fsS --retry 10 --retry-connrefused ${url}`),
-  'serves /login',
-).toSucceed()
+await c.exec(`curl -fsS --retry 10 --retry-connrefused ${url}`, {
+  label: 'serves /login',
+})
 ```
 
-`-f` makes an HTTP error a non-zero exit code, which fails `toSucceed`. To assert on the body, read `stdout` from the `c.exec` result.
+`-f` makes an HTTP error a non-zero exit code, which fails a `succeeded('serves /login')` grader. To grade the body, record `stdout` from the `c.exec` result with `c.observe`.
 
 ## Capture a page
 
@@ -65,13 +72,15 @@ To interact with the page before the capture, pass `instructions` as goal string
 
 ## Judge a capture
 
-The `artifacts` field on `c.judge` sends captures to the judge as images: the handles from `c.capture`, their names, or `true` for every capture so far. An evaluation model such as `typesafe-ai/jev-1.14.0` takes PNG captures, and a provider that can't take files fails the call. Ask what the picture shows, such as a field or a label, not whether it looks good.
+The `artifacts` input on a `judge()` grader sends captures to the judge as images: their names, or `true` for every capture. An evaluation model such as `typesafe-ai/jev-1.14.0` takes PNG captures, and a provider that can't take files fails the call. Ask what the picture shows, such as a field or a label, not whether it looks good.
 
-In the `evals/sign-in.eval.ts` file, send both captures:
+In the `evals/sign-in.eval.ts` file, add a grader that sends both captures:
 
 ```ts title="evals/sign-in.eval.ts"
-const q = 'Does the error page keep both fields and show one error message?'
-expect(await c.judge(q, { artifacts: true }), 'error state').toPass()
+judge('Does the error page keep both fields and show one error message?', {
+  name: 'error-state',
+  inputs: { artifacts: true },
+}),
 ```
 
 For more information about the judge, its model, and its threshold, see [Judgments](/evaluations/grading/judgments).

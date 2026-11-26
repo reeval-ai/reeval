@@ -14,13 +14,13 @@ This skill is for writing evals with reeval, not for changing reeval itself: to 
 the reeval-ai/reeval repository, follow its root `AGENTS.md` instead.
 
 reeval runs a real coding agent (Cursor, Claude Code, Antigravity, OpenCode, Goose, pi,
-Codex, fx or Grok Build) on a task in a fresh Docker sandbox, then checks the result with
-deterministic assertions and an LLM judge. You write evals in TypeScript; `reeval run` runs them.
+Codex, fx or Grok Build) on a task in a fresh Docker sandbox, then grades the result with
+deterministic graders and an LLM judge. You write evals in TypeScript; `reeval run` runs them.
 
 The package and CLI are `reeval`. Full docs: the `docs/` folder of github.com/reeval-ai/reeval (a docs.page
 site; its Reference tab has every option, flag and error).
 
-This file covers the common work: set up a project, write an eval with checks and a judge,
+This file covers the common work: set up a project, write an eval with graders and a judge,
 compare a skill, fix a config, read a failure. Read a reference file when the task needs it:
 
 | Read | When the task involves |
@@ -36,8 +36,8 @@ compare a skill, fix a config, read a failure. Read a reference file when the ta
 
 Use reeval's terms in code and messages: eval (`defineEval`), attempt (one run of a cell;
 `runs: n`), harness (`cursor()`, …), cell (harness × environment × sandbox), control and variant,
-lift (variant mean score − control mean score, 95% interval), target, checks and judge, transcript, effort
-(measured tool calls, agent time, tokens). Not "trial", "baseline/treatment" or "grader";
+lift (variant mean score − control mean score, 95% interval), target, graders and judge, transcript, effort
+(measured tool calls, agent time, tokens). Not "trial" or "baseline/treatment";
 [references/vocabulary.md](references/vocabulary.md) maps other frameworks' words to these.
 
 ## Workflow
@@ -76,7 +76,7 @@ npx reeval run
    `.env.local` next to `reeval.config.ts` (not the directory you run from), `npx reeval doctor`
    (exit 1 names each problem and its fix; a missing `analysis.model` or its key,
    `GOOGLE_GENERATIVE_AI_API_KEY`, is only a warning; `--json`, `--online` tries the keys), then
-   `npx reeval run`. Exit 0 means every gated cell passed. `npx reeval run --json` prints the
+   `npx reeval run`. Exit 0 means no eval missed a blocking target. `npx reeval run --json` prints the
    results as one JSON document on stdout (each check `ran` or `not run`, each variant's
    `effect`), with the progress on stderr.
 5. Read failures in the summary, then `.reeval/runs/<run>/summary.md` and each attempt's directory
@@ -123,8 +123,9 @@ export default defineConfig({
   pin a language-model judge to `gateway: 'direct'`. Always a provider prefix. Every `gateway`
   list ends with `direct()`, so a cell no listed gateway serves falls back to its own key (the
   plan's hint says so); `direct({ enabled: false })` refuses it instead.
-- Imports: `reeval` (`defineConfig`, `defineEnvironment`, `defineEval`,
-  `expect`, `metric`, `regression`, `capability`, `DEFAULT_EGRESS_ALLOW`, `DEFAULT_SKILL_EXCLUDE`, types), `/agent`, `/sandbox`
+- Imports: `reeval` (`defineConfig`, `defineEnvironment`, `defineEval`, `defineGrader`, `EvalError`,
+  `expect`, `metric`, `regression`, `capability`, `DEFAULT_EGRESS_ALLOW`, `DEFAULT_SKILL_EXCLUDE`, types), `/agent`, `/graders`
+  (the built-in graders and `judge`), `/sandbox`
   (`docker`, `fakeSandbox`), `/judge` (`fakeJudge`, `RECOMMENDED_JUDGE_MODEL`,
   `DEFAULT_THRESHOLD`). There is no `test`, `describe`, `baseline`, `secret` or `skill` export.
 - `defineConfig` and each eval's `defineEval` take the same options (`agents`, `sandbox`,
@@ -175,15 +176,20 @@ real Cursor runs need Docker.
 
 ```ts
 // evals/hello.eval.ts
-import { defineEval, expect } from 'reeval'
+import { defineEval } from 'reeval'
+import { hasFile, judge, succeeded } from 'reeval/graders'
 
 export default defineEval({
+  graders: [
+    hasFile('hello.txt', /hello/),
+    succeeded('grep -q hello hello.txt'),
+    judge('Does hello.txt contain the right content?', {
+      inputs: { contents: ['hello.txt'] },
+    }),
+  ],
   task: async (c) => {
-    const turn = await c.send('Create hello.txt containing "hello".')
-    await expect(turn).toHaveFile('hello.txt', /hello/) // async: await it
-    await expect(c.exec('grep -q hello hello.txt')).toSucceed()
-    const q = 'Does hello.txt contain the right content?'
-    expect(await c.judge(q, { contents: ['hello.txt'] })).toPass()
+    await c.send('Create hello.txt containing "hello".')
+    await c.exec('grep -q hello hello.txt')
   },
 })
 ```
@@ -229,10 +235,10 @@ export default defineEval({
   `defaults.sandbox`, then `reeval image build --profile oracle` and
   `reeval run --profile oracle` / `--profile canary` (needs Docker, no keys); see
   [references/evals.md](references/evals.md#trustworthy-evals). Not `fakeSandbox()`.
-  Keep grading out of the agent's reach: place hidden tests after the turn with `c.writeFile`, and guard seeded files
-  with `expect(await c.readFile(path)).toBe(original)` or `expect(c).not.toHaveChanged(['test/**'])`.
+  Keep grading out of the agent's reach: run hidden tests in a `defineGrader` with `env: docker()` and `data`, and guard seeded files
+  with `notInDiff(['test/**'], { required: true })`.
   When the behavior is the outcome, judge the program's output, not the diff:
-  `c.judge(q, { on: (await c.exec('node app.js')).stdout, output: true })`.
+  `await c.exec('node app.js')` in the task and `judge(q, { inputs: { checks: ['node app.js'] } })`.
 - Give the environment a `.gitignore` in `files` (the project's isn't copied in): an agent that
   runs a build otherwise fills the judge's diff with its output.
 - Matchers: `await expect(turn).toHaveFile(path, pattern?)`,
@@ -271,7 +277,8 @@ steps and the workspace's starting code. `compare` runs the same eval in a contr
 variant and reports lift.
 
 ```ts
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
+import { succeeded } from 'reeval/graders'
 
 const greetsAda = `node -e "import('./greet.js').then((m) =>
   process.exit(m.greet('Ada') === 'Ahoy, Ada!' ? 0 : 1))"`
@@ -282,9 +289,10 @@ const houseStyle = plain.extendEnvironment('house-style', ({ skill }) => ({
 
 export default defineEval({
   compare: { control: plain, variants: [houseStyle] },
+  graders: [succeeded('greets Ada')],
   task: async (c) => {
     await c.send('Create greet.js exporting greet(name) in our house style.')
-    await expect(c.exec(greetsAda)).toSucceed()
+    await c.exec(greetsAda, { label: 'greets Ada' })
   },
 })
 ```
@@ -306,7 +314,7 @@ export default defineEval({
 - Only variant cells gate; a control's misses don't fail the run. Below four tries a
   side each variant's effect is only a direction; from four, the block adds an effort table
   (median tools, time, tokens per arm), which often shows a skill's effect first. In a compare,
-  keep independent requirements as labeled `expect`s, not `expect.require`, so each gets a verdict.
+  keep independent requirements as separate graders, not an `EvalError` thrown from the task, so each gets a score.
 - `questions: [{ question: 'How did the agent pick its greeting?', transcript: true }]` beside
   `compare` asks a model about each attempt as it ends (`choices: ['yes', 'no']` for a pick); an
   entry with `across: 'environment'` (and, say, `diff: true`) asks which side did better, pair by
@@ -329,7 +337,7 @@ reeval analyze           reeval studio          reeval image build      reeval d
 | Exit code | Means |
 |---|---|
 | 0 | Pass, and `--dry-run` |
-| 1 | A gated failure |
+| 1 | An eval missed a blocking target |
 | 2 | A usage or config error, including a filter that matches nothing |
 | 3 | An infra error, such as a sandbox that failed to start, a harness key the API rejected or a turn the provider stopped |
 

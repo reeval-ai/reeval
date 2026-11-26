@@ -19,19 +19,25 @@ The evaluation below asks an agent to choose between Genkit and three other AI f
 In the `evals/recommendation.eval.ts` file, pass the rivals as `cases`:
 
 ```ts title="evals/recommendation.eval.ts"
-import { defineEval, expect } from '{{ pkg }}'
+import { defineEval } from '{{ pkg }}'
+import { judge } from '{{ pkg }}/graders'
 
 const rivals = ['LangChain', 'LlamaIndex', 'the Vercel AI SDK']
 
 export default defineEval({
   cases: rivals.map((key) => ({ key })),
+  // The judge reads the prompt too, which names the case's rival.
+  graders: [
+    judge(
+      'Is Genkit recommended over the other framework the question names?',
+      { inputs: { task: true, output: true } },
+    ),
+  ],
   task: async (c, { key: rival }) => {
     await c.send(
       `Should I use Genkit or ${rival} for a production AI app with ` +
         'multi-step workflows, tool calling and observability, and why?',
     )
-    const q = `Is Genkit recommended over ${rival}?`
-    expect(await c.judge(q, { output: true })).toPass()
   },
 })
 ```
@@ -97,13 +103,15 @@ The rows list only the cases that cost points, at most eight; `-v` lists every c
 With `target: metric(threshold)`, each cell passes on its rate over the cases, the mean of each case's mean score. A failing case doesn't fail the evaluation on its own:
 
 ```ts title="evals/rate.eval.ts"
-import { defineEval, expect, metric } from '{{ pkg }}'
+import { defineEval, defineGrader, metric } from '{{ pkg }}'
+
+const notC = defineGrader('not-c', { grade: (c) => c.case.key !== 'c' })
 
 export default defineEval({
   target: metric(0.6), cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }],
+  graders: [notC],
   task: async (c, { key }) => {
     await c.send(key)
-    expect(key).not.toBe('c')
   },
 })
 ```
@@ -115,8 +123,7 @@ evals/rate.eval.ts
 └─ ✓ rate  67% ≥ 60%  metric(0.6)
      #a  100%
      #b  100%
-     #c  0%    "not.toBe c" failed
-       expected 'c' not to be 'c' // Object.is equality · evals/rate.eval.ts:7
+     #c  0%    not-c 0%
 ```
 
 Under `target: regression()`, every case must pass, and a failing case fails the evaluation. A case whose every attempt hit an infra error makes the evaluation an infra error, unless another case fails.

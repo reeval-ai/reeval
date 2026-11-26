@@ -29,29 +29,29 @@ For more information about other skill sources, see [Give the agent skills](/con
 </Step>
 <Step title="Write the evaluation">
 
-Assert on what the skill teaches, so the control fails without it. The prompt doesn't mention the changelog, so only a harness that follows the skill writes the entry. In the `evals/changelog.eval.ts` file, name the control and the variant in `compare`:
+Grade what the skill teaches, so the control fails without it. The prompt doesn't mention the changelog, so only a harness that follows the skill writes the entry. In the `evals/changelog.eval.ts` file, name the control and the variant in `compare`:
 
 ```ts title="evals/changelog.eval.ts"
-import { defineEval, expect, metric } from '{{ pkg }}'
+import { defineEval, metric } from '{{ pkg }}'
+import { hasFile, succeeded } from '{{ pkg }}/graders'
 import { math, withSkill } from './environments.ts'
 
 export default defineEval({
   compare: { control: math, variants: [withSkill] },
-    runs: 4,
-    target: metric(0.75),
+  runs: 4,
+  target: metric(0.75),
+  graders: [
+    succeeded('node --test'),
+    hasFile('CHANGELOG.md', /## Unreleased\s+- feat: /),
+  ],
   task: async (c) => {
     await c.send('Add a multiply(a, b) function to src/math.js.')
-
-    await expect(c.exec('node --test'), 'tests pass').toSucceed()
-    await expect(c, 'changelog entry').toHaveFile(
-      'CHANGELOG.md',
-      /## Unreleased\s+- feat: /,
-    )
+    await c.exec('node --test')
   },
 })
 ```
 
-`runs: 4` gives each cell four attempts, the fewest that can read `helped`. The variant passes when at least 3 of its 4 attempts pass. To also check that the variant loaded the skill, guard `toHaveCalledSkill` with `c.attempt.cell.role === 'variant'`, since the control has no skill to load ([Give the agent skills](/configuration/environments/skills#check-the-agent-used-the-skill)).
+`runs: 4` gives each cell four attempts, the fewest that can read `helped`. The variant passes when its 4 attempts' mean score is at least 0.75. To also record whether the variant loaded the skill, add `usedSkill('changelog', { weight: 0 })`, which scores nothing, since the control has no skill to load ([Give the agent skills](/configuration/environments/skills#check-the-agent-used-the-skill)).
 
 </Step>
 <Step title="Run the comparison">
