@@ -504,10 +504,7 @@ export default defineEval({
     assert.equal((await runCli(p.dir, ['run'], { env: { REEVAL_TEST_BREAK: '1' } })).code, 1)
     const regressed = await compareCode()
     assert.equal(regressed.code, 1, regressed.out)
-    assert.match(
-      regressed.out,
-      /^ {2}gate +all → any {2}base would still pass under it$/m,
-    )
+    assert.match(regressed.out, /^ {2}gate +all → any {2}base would still pass under it$/m)
     assert.deepEqual((await row())?.gate?.rescored, 'pass')
     assert.equal((await row())?.status, 'regressed')
 

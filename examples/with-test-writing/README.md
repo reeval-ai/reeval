@@ -30,7 +30,7 @@ attempt 0:
 
 ```text
 with-test-writing.eval.ts
-  ✗ with-test-writing  0/1 run at 100%  regression(1)
+  ✗ with-test-writing  mean 0% · 0/1 run at 100%  regression(1)
     #1  0%  catches-the-mutant 0% (required)
     …
 ```

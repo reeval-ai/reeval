@@ -5587,7 +5587,10 @@ export const features: Feature[] = [
         [{ kind: 'capability', threshold: 1, blocking: false }, ['any']],
         'no target is capability(), which never blocks',
       )
-      assert.match(stdout, /^└─ · lands {2}mean 0% · 0\/1 run at 100% \(pass@1\) {2}capability\(1\)$/m)
+      assert.match(
+        stdout,
+        /^└─ · lands {2}mean 0% · 0\/1 run at 100% \(pass@1\) {2}capability\(1\)$/m,
+      )
       assert.match(stdout, /^Done in \S+ · 2 evals · 1 below · 1 report only$/m)
     },
   },
@@ -5815,7 +5818,10 @@ export const features: Feature[] = [
     env: '-',
     canary: /second try\n\n1 !== 2/,
     record: ({ stdout }) => {
-      assert.equal(entryOf(stdout, 'lands').trim(), '✓ lands  mean 100% · 1/1 run at 100%  regression(1)')
+      assert.equal(
+        entryOf(stdout, 'lands').trim(),
+        '✓ lands  mean 100% · 1/1 run at 100%  regression(1)',
+      )
       assert.equal(
         entryOf(stdout, 'canary'),
         [
@@ -5885,7 +5891,11 @@ export const features: Feature[] = [
       const compared = await runCli(project, ['compare'])
       assert.match(compared.stdout, /^2 new evals \(1 below · 1 report only\)$/m)
       const history = await runCli(project, ['history'])
-      assert.match(history.stdout, /^ {2}✗ +0\/1 {2}lands$/m, 'a missed capability() reads as missed')
+      assert.match(
+        history.stdout,
+        /^ {2}✗ +0\/1 {2}lands$/m,
+        'a missed capability() reads as missed',
+      )
     },
   },
   {
@@ -5934,7 +5944,10 @@ export const features: Feature[] = [
       },
     },
     record: ({ stdout }) => {
-      assert.equal(entryOf(stdout, 'lands').trim(), '✓ lands  mean 100% · 2/2 runs at 100%  regression(1)')
+      assert.equal(
+        entryOf(stdout, 'lands').trim(),
+        '✓ lands  mean 100% · 2/2 runs at 100%  regression(1)',
+      )
       assert.match(
         entryOf(stdout, 'canary'),
         /✗ canary {2}mean \d+% · 1\/2 runs at 100%, worst 0% {2}regression\(1\)\n +idler {2}0% {2}has-file:out\.txt 0%$/,

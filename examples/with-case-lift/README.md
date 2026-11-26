@@ -30,7 +30,7 @@ one profile you need.
 
 ```text
 with-case-lift.eval.ts
-  ✓ with-case-lift  6/6 runs at 100%  regression(1)
+  ✓ with-case-lift  mean 100% · 6/6 runs at 100%  regression(1)
     #subtract  100%
     #multiply  100%
     …

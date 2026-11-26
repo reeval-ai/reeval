@@ -422,7 +422,10 @@ export default defineEval({
   const show = await runCli(p.dir, ['show'])
   assert.doesNotMatch(show.stdout, /^ {4}#.*\b80%|-1%/m, show.stdout)
   assert.equal(show.stdout.match(/^ {4}#[ab] {2}79% {2}near 79%$/gm)?.length, 4, show.stdout)
-  assert.match(show.stdout, /^✗ regression +mean 79% · 0\/4 runs ≥ 80%, worst 79% +regression\(0\.8\)$/m)
+  assert.match(
+    show.stdout,
+    /^✗ regression +mean 79% · 0\/4 runs ≥ 80%, worst 79% +regression\(0\.8\)$/m,
+  )
   // With no earlier run every eval is new, counted against its target as the run counts it.
   const compare = await runCli(p.dir, ['compare'])
   assert.match(compare.stdout, /^3 new evals \(3 below\)$/m, compare.stdout)

@@ -3180,7 +3180,9 @@ environments:
     ],
     [
       'target regression(0.5) with minLift: accepted',
-      targeted(regression(0.5), { compare: { control: plainEnv, variants: [skillEnv], minLift: 0.2 } }),
+      targeted(regression(0.5), {
+        compare: { control: plainEnv, variants: [skillEnv], minLift: 0.2 },
+      }),
     ],
     [
       'target capability() with best-of runs: accepted',

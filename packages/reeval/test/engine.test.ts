@@ -125,7 +125,10 @@ export default defineEval({ async task() {} })
 
     const byName = await runCli(p.dir, ['run', 'named-thing'])
     assert.equal(byName.code, 0)
-    assert.match(byName.stdout, /^└─ ✓ named-thing +mean 100% · 1\/1 run at 100% +regression\(1\)$/m)
+    assert.match(
+      byName.stdout,
+      /^└─ ✓ named-thing +mean 100% · 1\/1 run at 100% +regression\(1\)$/m,
+    )
     assert.doesNotMatch(byName.stdout, / ✓ a /)
 
     const { runId } = readRun(p.dir).run

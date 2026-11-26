@@ -160,7 +160,10 @@ describe('buildRunReport', () => {
     assert.match(headline('choose'), /^\*\*83% ≥ 80%\*\* · metric\(0\.8\)$/m)
     assert.match(headline('choose'), /^On target\. 6 counted attempts over 3 cases/m)
     assert.match(headline('explains-why-greet-js-fails'), /^\*\*67% < 80%\*\* · metric\(0\.8\)$/m)
-    assert.match(headline('greets-in-french'), /^\*\*mean 0% · 0\/1 run at 100%\*\* · regression\(1\)$/m)
+    assert.match(
+      headline('greets-in-french'),
+      /^\*\*mean 0% · 0\/1 run at 100%\*\* · regression\(1\)$/m,
+    )
     assert.match(headline('starts-its-sandbox'), /^\*\*infra error\*\* · regression\(1\)$/m)
     assert.match(headline('greets-in-welsh'), /^\*\*skipped\*\*$/m)
     assert.doesNotMatch(md, /Median tokens/)

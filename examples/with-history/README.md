@@ -30,7 +30,7 @@ ends with the line that records it:
 
 ```text
 with-history.eval.ts
-  ✗ with-history  0/1 run at 100%  regression(1)
+  ✗ with-history  mean 50% · 0/1 run at 100%  regression(1)
     #1  50%  succeeded:node --test 0%
 …
 recorded history/20261126T080701Z_….json + 10 artifact files in history/20261126T080701Z_…/ (124.5 KB). Commit it with git.

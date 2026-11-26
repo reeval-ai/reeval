@@ -12,7 +12,7 @@ The examples use the control `page`, an unstyled HTML page, and the variant `bra
 Name the control in `compare.control` and the variants in `compare.variants` in the evaluation's options:
 
 ```ts title="evals/brand.eval.ts"
-{ compare: { control: page, variants: [withSkill] }, runs: 4, target: metric(0.75) },
+{ compare: { control: page, variants: [withSkill] }, runs: 4 },
 ```
 
 The task asks for Anthropic's brand color and fonts in `styles.css`, and its `brand orange` and `brand fonts` assertions read that file. For the full evaluation, see [`with-library-skill-lift`](https://github.com/reeval-ai/reeval/tree/main/examples/with-library-skill-lift).
@@ -48,7 +48,7 @@ To print the interval under each variant, pass `-v`:
     difference +100 points, 95% interval +31…+100
 ```
 
-The evaluation's outcome, `pass`, is the variant's, because the target gates only variants. `target: metric(0.75)` passes a cell when its 4 attempts' mean score is at least 0.75, at least 3 passing.
+The evaluation's outcome, `pass`, is the variant's, because the target gates only variants. The default target, `capability()`, passes a cell when one of its 4 attempts passes, and only reports.
 
 For when each effect word applies, and when a difference holds, see [Variant outcomes](/reference/statistics#variant-outcomes).
 

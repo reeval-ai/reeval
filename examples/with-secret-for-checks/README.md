@@ -34,14 +34,14 @@ one profile you need.
   ⚠  Warning: E2E_TOKEN reaches the checks (c.exec, setup steps) as its real value. It's never in the agent's own environment, but a process a setup step leaves running holds it while the agent works. To give the checks only a placeholder, add the hosts it's sent to, e.g. secret.fromEnv('E2E_TOKEN', { hosts: ['api.example.com'] }).
 …
 with-secret-for-checks.eval.ts
-  ✓ with-secret-for-checks  1/1 run at 100%  regression(1)
+  ✓ with-secret-for-checks  mean 100% · 1/1 run at 100%  regression(1)
 ```
 
 Change `to: 'checks'` to `to: 'agent'` and `pnpm eval` fails the run, exiting 1:
 
 ```text
 with-secret-for-checks.eval.ts
-  ✗ with-secret-for-checks  0/1 run at 100%  regression(1)
+  ✗ with-secret-for-checks  mean 0% · 0/1 run at 100%  regression(1)
     #1  0%  agent-env 0% (required)
     …
     Observed:

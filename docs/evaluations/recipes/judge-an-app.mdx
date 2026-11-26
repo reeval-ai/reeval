@@ -82,7 +82,7 @@ With `-v`, reeval prints each grade and its score during the run. The score can 
 At the end, the block for the evaluation reads its mean score:
 
 ```text
-└─ · chat  100%  metric()
+└─ · chat  mean 100% · 1/1 run at 100% (pass@1)  capability(1)
 ```
 
 A score below 1 from the `renders` grader lowers the attempt's score, and the block prints it. To see what the judge saw, open the `artifacts/chat.png` file under the run's directory in the `.reeval/runs/` directory. For more information about the outcomes and the tally, see [Read a run's output](/results/output).

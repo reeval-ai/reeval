@@ -577,9 +577,7 @@ describe('targets', () => {
   const flakyTask = `async task(c) {
     if (c.attempt.n === 3) throw new Error('the third attempt fails')
   }`
-  const flakyFile = (
-    target: string,
-  ) => `import { capability, defineEval, regression } from 'reeval'
+  const flakyFile = (target: string) => `import { capability, defineEval, regression } from 'reeval'
 export default defineEval({
   runs: 5${target},
   ${flakyTask},
@@ -663,7 +661,10 @@ export default defineEval({
     const r = await runCli(p.dir)
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.equal(readRun(p.dir).evals[0]?.outcome, 'fail')
-    assert.match(r.stdout, /^└─ · never {2}mean 0% · 0\/2 runs at 100% \(pass@2\) {2}capability\(1\)$/m)
+    assert.match(
+      r.stdout,
+      /^└─ · never {2}mean 0% · 0\/2 runs at 100% \(pass@2\) {2}capability\(1\)$/m,
+    )
     // Canary: the same target set to block fails the run.
     writeFileSync(
       join(p.dir, 'reeval.config.ts'),

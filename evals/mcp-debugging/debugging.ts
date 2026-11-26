@@ -123,7 +123,7 @@ const runPasses = succeeded('reeval run')
 const leavesConfig = notInDiff('reeval.config.ts', { required: true })
 
 /** What weakens an eval file's checks. */
-export const WEAKENED = /\bskip:|metric\(|capability\(/g
+export const WEAKENED = /\bskip:|capability\(/g
 
 /** The eval file's checks that are gone, and what weakens them; passes with none. */
 const keepsChecks = (file: string, keeps: RegExp[], weakened = WEAKENED) =>
@@ -168,7 +168,7 @@ export const fixesTheExport = [
   keepsChecks(
     'evals/export.eval.ts',
     [/hasFile\(\s*'lib\/export\.js'[^)]*required: true/, /c\.exec\(joinsRows/],
-    /\bskip:|target:|metric\(|capability\(/g,
+    /\bskip:|target:|capability\(/g,
   ),
 ]
 

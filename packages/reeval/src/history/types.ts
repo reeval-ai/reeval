@@ -26,6 +26,7 @@ import type {
   Observation,
   Outcome,
   PhaseTimings,
+  RecordedTarget,
   ResolvedJudgeStateOptions,
   Revision,
   SandboxBase,
@@ -34,7 +35,6 @@ import type {
   SetupProcess,
   Snapshot,
   StartRetry,
-  RecordedTarget,
   SubagentUsage,
   TimeSplit,
   TokenUsage,
@@ -691,7 +691,7 @@ export type EvalEntry = {
   todo: boolean
   /**
    * What decides `outcome`; in records from before targets, read from the cells' gates (`all` is
-   * `regression()`, `{ passRate }` is a mean-score `metric`, none is `capability()`).
+   * `regression()`, `{ passRate }` or none is a mean-score `metric`).
    */
   target?: RecordedTarget
   /** Over the target's cells; filled from `pass` and `fail` in records from before it. */

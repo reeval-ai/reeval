@@ -216,7 +216,11 @@ export default defineEval({
     const cmp = await runCli(p.dir, ['compare', a ?? '', b ?? ''])
     assert.equal(cmp.code, 0, cmp.stdout + cmp.stderr)
     assert.match(cmp.stdout, /^1 regressed$/m)
-    assert.match(cmp.stdout, /^ {2}regressed +e$/m, 'the eval regressed, and its block names the case')
+    assert.match(
+      cmp.stdout,
+      /^ {2}regressed +e$/m,
+      'the eval regressed, and its block names the case',
+    )
   })
 })
 

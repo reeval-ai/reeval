@@ -2339,7 +2339,7 @@
           }
         },
         "target": {
-          "description": "What decides `outcome`; in records from before targets, read from the cells' gates (`all` is `regression()`, `{ passRate }` is a mean-score `metric`, none is `capability()`).",
+          "description": "What decides `outcome`; in records from before targets, read from the cells' gates (`all` is `regression()`, `{ passRate }` or none is a mean-score `metric`).",
           "anyOf": [
             {
               "type": "object",
