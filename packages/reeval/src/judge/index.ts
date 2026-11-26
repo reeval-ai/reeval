@@ -25,7 +25,7 @@ import type {
   JudgeState,
   TokenUsage,
 } from '../types.ts'
-import { isApiError, isTransient, JUDGE_RETRY, type RetryPolicy, withRetries } from './retry.ts'
+import { isApiError, isTransient, judgeRetry, type RetryPolicy, withRetries } from './retry.ts'
 import { overTokenLimit, withInputSize } from './size.ts'
 
 /** The judge the docs recommend, pinned so a model update never silently moves scores. */
@@ -326,7 +326,7 @@ export async function askJudge(
   state: JudgeState,
   options: Required<Pick<JudgeOptions, 'model'>> & JudgeOptions,
   signal: AbortSignal,
-  retry: RetryPolicy = JUDGE_RETRY,
+  retry: RetryPolicy = judgeRetry(),
 ): Promise<JudgeAnswer> {
   const { model } = options
   const { gateway, fallbacks, vertex } = gatewaySettings(options.gateway)

@@ -118,8 +118,9 @@
   grader turns on, uncut, and knows no model's limit: a provider error refusing it keeps the
   provider's wording and adds one line with the input's estimated size, biggest files and the
   inputs that were on, largest first; narrow one, e.g. `{ diff: ['src/'] }`.
-- A judge grader whose provider fails scores 0 with its `error`, and the other graders still
-  run.
+- A judge grader whose provider fails after its retries, or that times out, ends the attempt
+  `infra_error`, which `--retry-errors` runs again; one the model refuses, or answers malformed,
+  scores 0 with its `error`, and the other graders still run.
 
 ## Trustworthy evals
 

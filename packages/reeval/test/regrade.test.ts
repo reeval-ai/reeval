@@ -4,6 +4,8 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
+import { createServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
 import type { RegradeRecord } from '../src/history/types.ts'
@@ -428,6 +430,53 @@ export default defineEval({ graders: [quality], task: async (c) => void (await c
     assert.match(gone.stdout, /quality {2,}inputs missing {2,}skip 1 {2,}no judge model/)
     assert.match(gone.stdout, /1 grader can't run as configured today \(quality\)/)
     assert.deepEqual(regradeFiles(judged.dir), [])
+  })
+
+  test("keeps the stored grade and fails when the judge's provider is down", async () => {
+    const server = createServer((req, res) => {
+      req.resume().on('end', () => {
+        res.setHeader('content-type', 'application/json')
+        if (req.headers.authorization !== 'Bearer up') {
+          res.statusCode = 503
+          res.end(JSON.stringify({ message: 'overloaded' }))
+          return
+        }
+        res.end(JSON.stringify({ answers: { answer: { type: 'noul', noul: 0.9 } } }))
+      })
+    })
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    const provider = (key: string) => ({
+      TYPESAFE_AI_API_KEY: key,
+      TYPESAFE_AI_BASE_URL: `http://127.0.0.1:${(server.address() as AddressInfo).port}/v1`,
+      REEVAL_TEST_JUDGE_RETRY_MS: '1',
+    })
+    const quality = (question: string) => `import { defineGrader } from 'reeval'
+export const quality = defineGrader('quality', { judge: { question: '${question}', inputs: { output: true } } })
+`
+    try {
+      const p = await setup('regrade-judge-outage', {
+        artifacts: 'all',
+        judge: "{ model: 'typesafe-ai/jev-1.14.0' }",
+        graders: quality('Clear?'),
+        evalSrc: `import { defineEval } from 'reeval'
+import { quality } from './graders.ts'
+export default defineEval({ graders: [quality], task: async (c) => void (await c.send('hi')) })
+`,
+        env: provider('up'),
+      })
+      await writeFile(join(p.dir, 'evals/graders.ts'), quality('Clearer?'))
+      const out = await runCli(p.dir, ['regrade', '--yes'], { env: provider('down') })
+      assert.equal(out.code, 1, out.stdout + out.stderr)
+      assert.match(out.stdout, /1 grade failed\b/)
+      assert.match(
+        out.stdout,
+        /quality on .+: The judge's provider failed judge grader quality on typesafe-ai\/jev-1\.14\.0: overloaded/,
+      )
+      const stored = JSON.parse(await cli(p.dir, ['show', '--json'])).evals[0].attempts[0].grades[0]
+      assert.deepEqual([stored.score, stored.error], [1, undefined])
+    } finally {
+      server.close()
+    }
   })
 
   test("re-scores a judge grader's score map without calling the judge", async () => {

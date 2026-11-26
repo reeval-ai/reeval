@@ -19,10 +19,12 @@ import {
 } from '../judge/artifacts.ts'
 import { draftState } from '../judge/draft.ts'
 import { checkModelString, isFakeJudge, type JudgeAnswer, judgeModelName } from '../judge/index.ts'
+import { isOutage } from '../judge/retry.ts'
 import { stateOf } from '../judge/state.ts'
 import { resolveStateOptions } from '../judge/state-options.ts'
 import { isObjectLike } from '../object.ts'
-import { redactValue } from '../redact.ts'
+import { redactSecrets, redactValue } from '../redact.ts'
+import { InfraError } from '../sandbox/types.ts'
 import type {
   Case,
   GradeReads,
@@ -365,7 +367,11 @@ export function readsOf(): Reads {
   }
 }
 
-/** Asks the judge grader's question of each model about the stored attempt. */
+/**
+ * Asks the judge grader's question of each model about the stored attempt. A model's provider
+ * failing the call (`isOutage`) is the attempt's infra error, thrown; any other failure is the
+ * grade's error.
+ */
 export async function runJudgeGrader(
   run: JudgeRun,
   inputs: GradeInputs,
@@ -482,6 +488,14 @@ export async function runJudgeGrader(
       (inputs.judge as GradeJudge).ask(run.question, run.answers, state, model, signal),
     ),
   )
+  const down = settled.findIndex((s) => s.status === 'rejected' && isOutage(s.reason))
+  if (down >= 0) {
+    const { reason } = settled[down] as PromiseRejectedResult
+    throw new InfraError(
+      `The judge's provider failed ${who} on ${names[down]}: ${redactSecrets(reason.message)}`,
+      { transient: true },
+    )
+  }
   const calls: JudgeGradeCall[] = []
   let failure: string | undefined
   for (const [i, s] of settled.entries()) {

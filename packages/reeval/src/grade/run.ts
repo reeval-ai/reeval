@@ -104,10 +104,14 @@ async function runJudge(run: JudgeRun, inputs: GradeInputs, signal: AbortSignal)
       durationMs: performance.now() - started,
     }
   } catch (error) {
-    const why = timeout.signal.aborted
-      ? `judge timed out after ${formatDuration(run.timeoutMs)}`
-      : message(error)
-    return { error: why, reads: reads.reads(), durationMs: performance.now() - started }
+    if (error instanceof InfraError) throw error
+    if (timeout.signal.aborted && !signal.aborted) {
+      throw new InfraError(
+        `The judge timed out after ${formatDuration(run.timeoutMs)} grading ${run.names.join(', ')}`,
+        { transient: true },
+      )
+    }
+    return { error: message(error), reads: reads.reads(), durationMs: performance.now() - started }
   } finally {
     timeout.clear()
   }
@@ -280,7 +284,8 @@ function scoreOf(def: GraderDef, ran: Ran): { score: number | null; error?: stri
 /**
  * Runs every grader at once, a `defineGraders` group's `grade` once for all its members, and
  * returns their grades in the order given. Throws the infra error of a grader's sandbox that
- * didn't start, once every grader has settled.
+ * didn't start, or of a judge whose provider failed or that timed out, once every grader has
+ * settled.
  */
 export async function runGraders(
   defs: readonly GraderDef[],
