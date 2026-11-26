@@ -67,7 +67,7 @@ import type {
 import { promptTokens, sumUsage } from '../usage.ts'
 import { cellOutcome, gatePart, passRateOf, worstOutcome } from '../view/gate.ts'
 import { checkTries } from '../view/judgments.ts'
-import { transcriptByLine } from '../view/model.ts'
+import { parseTranscript } from '../view/model.ts'
 import { isLockfile, splitPatch } from '../view/patch.ts'
 import { SPANS_FILE } from '../view/spans.ts'
 import { turnErrorKind } from '../view/turn-error.ts'
@@ -1710,7 +1710,7 @@ function writeExports(run: RunRecord, formats: ExportFormat[], out: Artifacts): 
     const path = attempt.files.transcript?.path
     const bytes = path && out.files.get(path)
     if (!bytes) continue
-    const lines = transcriptByLine(Buffer.from(bytes).toString('utf8')).filter((l) => l !== null)
+    const lines = parseTranscript(Buffer.from(bytes).toString('utf8'))
     for (const format of formats) {
       const { file, render } = EXPORTERS[format]
       attempt.files[format] = out.add(

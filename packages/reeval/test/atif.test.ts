@@ -291,6 +291,19 @@ export default defineEval({
     const parsed = trajectorySchema.safeParse(trajectory)
     assert.ok(parsed.success, JSON.stringify(parsed.error?.issues, null, 2))
     assert.equal(parsed.data.session_id, record.runId)
+
+    // At the default `evidence` level a passing attempt keeps neither its transcript nor its export.
+    writeFileSync(
+      join(p.dir, 'reeval.config.ts'),
+      fakeConfig({ extra: "exports: ['atif'], record: 'always'," }),
+    )
+    const pruned = await runCli(p.dir)
+    assert.equal(pruned.code, 0, pruned.stderr)
+    const runs = readdirSync(history).filter((f) => f.endsWith('.json') && f !== file)
+    const [kept] = (
+      JSON.parse(readFileSync(join(history, runs[0] as string), 'utf8')) as RunRecord
+    ).evals.flatMap((e) => e.attempts)
+    assert.deepEqual([kept?.files.transcript, kept?.files.atif], [undefined, undefined])
   })
 })
 
