@@ -3,26 +3,12 @@ import { mkdir, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { writeArchive } from './archive/index.ts'
 import { CommandError, pick } from './commands.ts'
+import { EXPORTERS } from './exporters.ts'
 import { readRecord, readRunArchiveFiles, recordFile, scratchDir } from './history/files.ts'
-import type { AttemptRecord, RunRecord } from './history/types.ts'
+import type { ExportFormat } from './history/types.ts'
 import { fromCwd } from './ids.ts'
 import { transcriptLines } from './mcp/files.ts'
 import type { ResolvedConfig } from './types.ts'
-import { toAtif } from './view/atif.ts'
-import type { TranscriptLine } from './view/model.ts'
-
-type Exporter = {
-  /** The file each attempt's export is, in the attempt's folder. */
-  file: string
-  render(run: RunRecord, attempt: AttemptRecord, lines: TranscriptLine[]): string
-}
-
-export const EXPORTERS: Record<string, Exporter> = {
-  atif: {
-    file: 'atif.json',
-    render: (run, attempt, lines) => `${JSON.stringify(toAtif(run, attempt, lines), null, 2)}\n`,
-  },
-}
 
 type Ctx = {
   config: ResolvedConfig
@@ -34,7 +20,9 @@ export async function exportCommand(ctx: Ctx, refs: string[]): Promise<number> {
   const { config, flags } = ctx
   const format = flags.format
   const exporter =
-    format === undefined || !Object.hasOwn(EXPORTERS, format) ? undefined : EXPORTERS[format]
+    format === undefined || !Object.hasOwn(EXPORTERS, format)
+      ? undefined
+      : EXPORTERS[format as ExportFormat]
   if (format !== undefined && !exporter) {
     throw new CommandError(
       `reeval export has no format "${format}": use ${Object.keys(EXPORTERS).join(', ')}, or none for the run's archive`,

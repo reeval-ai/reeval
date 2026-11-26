@@ -14,6 +14,7 @@ import type {
 } from '@reeval/agents'
 import type {
   ArtifactLevel,
+  ExportFormat,
   FileRef,
   JudgeRetry,
   RecordMode,
@@ -2764,6 +2765,12 @@ export type ReevalConfig = {
   concurrency?: number
   /** When runs are copied into the history folder: `reeval record` only, in CI, or on every run. */
   record?: RecordMode
+  /**
+   * Formats each attempt with a transcript is also written in as its run ends, beside its
+   * transcript: `'atif'` writes `atif.json`, a Harbor ATIF trajectory. `reeval export --format`
+   * writes the same files for a run afterwards.
+   */
+  exports?: ExportFormat[]
   /** Where recorded runs are kept, and which attempts keep their artifacts there. */
   history?: HistoryConfig
   /** Caps on a run; a profile's `budget` is merged over it. */
@@ -2977,6 +2984,7 @@ export type ResolvedConfig = {
   /** The config's own `concurrency`; see `resolveConcurrency` for the run's. */
   concurrency: number | undefined
   record: RecordMode
+  exports: ExportFormat[]
   history: ResolvedHistory
   /**
    * Each profile's `history` resolved over the config's, for the profiles that set one; their
