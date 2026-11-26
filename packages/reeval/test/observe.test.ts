@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { describe, test } from 'node:test'
 import { validate } from '../scripts/schema/validate.ts'
-import { observer } from '../src/attempt/observe.ts'
+import { observedFileBytes, observer } from '../src/attempt/observe.ts'
 import type { Attempt } from '../src/attempt/state.ts'
 import { attemptInput } from '../src/compare/questions.ts'
 import { resolveQuestionState } from '../src/compare/state.ts'
@@ -26,19 +26,39 @@ describe('c.observe', () => {
     observe('deps', ['pg'])
     observe('orm', 'drizzle')
     assert.deepEqual(a.record.observations, [
-      { name: 'orm', value: 'drizzle', turn: 1, sha256: sha256('"drizzle"') },
-      { name: 'deps', value: ['pg'], turn: 1, sha256: sha256('["pg"]') },
+      { name: 'orm', value: 'drizzle', turn: 1 },
+      { name: 'deps', value: ['pg'], turn: 1 },
     ])
   })
 
-  test('keeps a large value whole, with the sha256 of its masked JSON', () => {
+  test('keeps a large value whole, masked, and counts it toward the attempt', () => {
     const { a, observe } = attempt()
     const big = { log: 'x'.repeat(1_000_000), token: `ghp_${'a'.repeat(36)}` }
     observe('big', big)
     const [kept] = a.record.observations ?? []
-    const masked = { log: big.log, token: '[REDACTED]' }
-    assert.deepEqual(kept?.value, masked)
-    assert.equal(kept?.sha256, sha256(JSON.stringify(masked)))
+    assert.deepEqual(kept?.value, { log: big.log, token: '[REDACTED]' })
+    assert.equal(observedFileBytes(a as unknown as Attempt), JSON.stringify(kept?.value).length)
+    observe('small', 1)
+    observe('big', 'short now')
+    assert.equal(
+      observedFileBytes(a as unknown as Attempt),
+      0,
+      'only the last value per name counts',
+    )
+  })
+
+  test("refuses large values past the attempt's 100 MiB", () => {
+    const { a, observe } = attempt()
+    const half = 'x'.repeat(51 * 2 ** 20)
+    observe('one', half)
+    assert.throws(
+      () => observe('two', half),
+      /c\.observe\("two"\) would keep 102\.0 MB of large observed values, over the attempt's 100\.0 MB: observe less, or a summary of it/,
+    )
+    assert.deepEqual(
+      a.record.observations?.map((o) => o.name),
+      ['one'],
+    )
   })
 
   test('masks a secret-looking value', () => {
