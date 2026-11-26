@@ -1667,8 +1667,10 @@ describe('redacting credential shapes', () => {
         const ms = time(text)
         assert.ok(ms < 1500, `${prefix}: ${text.length} characters took ${Math.round(ms)}ms`)
       }
-      const small = time(short.repeat(4_000))
-      const large = time(short.repeat(16_000))
+      // The fastest of three, so one GC pause on a loaded runner doesn't read as quadratic.
+      const fastest = (text: string) => Math.min(time(text), time(text), time(text))
+      const small = fastest(short.repeat(4_000))
+      const large = fastest(short.repeat(16_000))
       assert.ok(large < Math.max(small, 5) * 16, `${prefix}: ${small}ms then ${large}ms`)
     }
   })
