@@ -170,8 +170,12 @@ export function attemptScore(grades: readonly GradeRecord[]): number {
   return scored.reduce((sum, g) => sum + g.weight * (g.score as number), 0) / total
 }
 
-/** Why an attempt that scored under 1 fails: its score and each grader that cost it. */
-export function scoreFailure(score: number, grades: readonly GradeRecord[]): string {
+/** Why an attempt that scored under its threshold fails: its score and each grader that cost it. */
+export function scoreFailure(
+  score: number,
+  threshold: number,
+  grades: readonly GradeRecord[],
+): string {
   const cost = grades.filter(
     (g) =>
       g.error !== undefined || (g.score !== null && g.score < 1 && (g.weight > 0 || g.required)),
@@ -181,5 +185,5 @@ export function scoreFailure(score: number, grades: readonly GradeRecord[]): str
       ? `${g.grader} errored: ${g.error.split('\n')[0]}`
       : `${g.grader}${g.required ? ' (required)' : ''} scored ${g.score?.toFixed(2)}`,
   )
-  return `score ${score.toFixed(2)} below 1: ${why.join('; ')}`
+  return `score ${score.toFixed(2)} below ${threshold}: ${why.join('; ')}`
 }

@@ -136,11 +136,11 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/options.test.ts', 'reeval/test/results.test.ts'],
   },
   {
-    id: 'gate.observe',
+    id: 'target.metric',
     area: 'Config and selection',
-    name: "`gate: 'observe'` and `compare.gate: 'observe'`: every cell ungated, a failed `expect` reads `ran` and fails nothing, and no pass^k hint",
-    plan: ['observe/observe'],
-    fixtures: ['run/observe', 'output/study'],
+    name: '`target: metric()`, the default: every cell ungated, a failed `expect` reads `ran` and fails nothing',
+    plan: ['targets/targets'],
+    fixtures: ['run/target-metric', 'output/study'],
     unit: ['reeval/test/output.test.ts'],
   },
   {
@@ -182,7 +182,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'cases',
     area: 'Config and selection',
-    name: '`cases`: one eval over a list of cases, each an object with its `key`, counted and named once with its cases as rows inside it, pooled into a pass rate that `gate: { passRate }` gates and a paired lift that `minLift` gates; older records fold into the same shape, an `evaluate.each` family under its template without placeholders, so a port continues its history',
+    name: '`cases`: one eval over a list of cases, each an object with its `key`, counted and named once with its cases as rows inside it, pooled into a mean score that `target: metric(threshold)` gates and a paired lift that `minLift` gates; older records fold into the same shape, an `evaluate.each` family under its template without placeholders, so a port continues its history',
     plan: ['compare/cases', 'compare/cases-filtered', 'selection/tags'],
     fixtures: ['run/cases', 'run/cases-rate'],
     unit: [
@@ -263,16 +263,22 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/compare-questions.test.ts', 'reeval/test/options.test.ts'],
   },
   {
-    id: 'gate',
+    id: 'target',
     area: 'Config and selection',
-    name: "`gate` (`'all'`, `{ passRate }`) and `compare.gate`",
-    unit: ['reeval/test/results.test.ts', 'reeval/test/options.test.ts'],
+    name: "`target`: `metric(threshold?)` over the mean score, `regression(threshold)` over every attempt (pass^k), `capability(threshold, { blocking })` over any (pass@k); an attempt passes at the threshold, a compare's control only reports, and each eval records its target and its mean score, pass@k and pass^k",
+    plan: ['targets/targets', 'best-of/default'],
+    fixtures: ['run/target-regression', 'run/target-capability', 'run/cases-rate'],
+    unit: [
+      'reeval/test/results.test.ts',
+      'reeval/test/options.test.ts',
+      'reeval/test/studio.test.ts',
+    ],
   },
   {
-    id: 'gate.hint',
+    id: 'target.ci-hint',
     area: 'Config and selection',
-    name: 'The default-gate hint: printed for an eval whose gated cells run more than once at the default gate, not for a study whose cells are all ungated',
-    plan: ['compare/study', 'compare/control-and-variants'],
+    name: "The CI hint: in CI, the plan names the evals whose target can't fail the run, and how to set one",
+    plan: ['targets/in-ci', 'targets/in-ci-config-target', 'profiles/pr-in-ci'],
     unit: ['reeval/test/options.test.ts'],
   },
   {
@@ -2405,7 +2411,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'compare.gate-change',
     area: 'Records and studio',
-    name: "A changed gate is a fingerprint part `reeval compare` names and re-scores base under, so `--fail-on-regression` fails only on a flip the gate doesn't explain",
+    name: "A changed target changes the cells' gate, a fingerprint part `reeval compare` names and re-scores base under, so `--fail-on-regression` fails only on a flip the gate doesn't explain",
     unit: [
       'reeval/test/history-compare.test.ts',
       'reeval/test/analysis.test.ts',

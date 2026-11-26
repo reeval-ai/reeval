@@ -28,6 +28,23 @@ for (const corpus of ['before-cases', 'before-families'] as const) {
   })
 }
 
+test("a record from before targets reads each eval's target from its cells' gates", () => {
+  const r = read()
+  assert.deepEqual(
+    r.evals.map((e) => [e.name, e.target]),
+    [
+      ['rated', { kind: 'metric', threshold: 0.6 }],
+      ['strict', { kind: 'regression', threshold: 1 }],
+      ['lands', { kind: 'regression', threshold: 1 }],
+      ['lifted', { kind: 'regression', threshold: 1 }],
+      ['alone', { kind: 'regression', threshold: 1 }],
+      ['picks', { kind: 'metric' }],
+    ],
+  )
+  assert.equal(evalNamed(r, 'rated')?.outcome, 'pass', 'metric(0.6) still passes 2 of 3')
+  assert.equal(evalNamed(r, 'picks')?.outcome, 'pass', 'an ungated eval only reported')
+})
+
 describe('an eval with cases in a record from before it was one entry', () => {
   test('is one eval per declaration, its cases inside it, and the run counts it once', () => {
     assert.ok(raw, 'the before-cases corpus entry')
@@ -181,11 +198,11 @@ describe('reeval compare of an eval with cases', () => {
   test('names a case that flipped under the rate that still gates the eval', async () => {
     const p = await project('compare-rated-case', {
       'reeval.config.ts': fakeConfig(),
-      'evals/e.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/e.eval.ts': `import { defineEval, expect, metric } from 'reeval'
 const bad = process.env.BAD ?? ''
 export default defineEval({
   cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }, { key: 'd' }, { key: 'e' }],
-  gate: { passRate: 0.7 },
+  target: metric(0.7),
   async task(c, { key: k }) {
     await c.send(k)
     expect(k, 'ok').not.toBe(bad)

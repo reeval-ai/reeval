@@ -19,7 +19,7 @@ export function contributes(id: string): EvalSpec {
   const variants = newGuides ? [variant, newGuides] : [variant]
   return {
     timeout: '45m',
-    compare: { control: control, variants, gate: 'observe' },
+    compare: { control: control, variants },
     task: async (c) => {
       // The merged change, for reeval.oracle.config.ts's fake agent to apply. A real agent never
       // gets it.

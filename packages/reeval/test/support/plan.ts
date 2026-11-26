@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { type CostPart, costLine, type Range } from '../../src/cost.ts'
 import type { PlanDocument } from '../../src/plan.ts'
+import { targetLabel } from '../../src/target.ts'
 import { runCli } from '../helpers.ts'
 import { fixture, testDir } from './fixture.ts'
 
@@ -90,6 +91,7 @@ export function renderPlan(
       rows.push([`${e.id}${tags}`, `skipped: ${e.skip}`])
       continue
     }
+    const target = targetLabel(e.target)
     e.cells.forEach((c, i) => {
       rows.push([
         i === 0 ? `${e.id}${tags}` : '',
@@ -99,9 +101,12 @@ export function renderPlan(
           ? 'ungated'
           : c.gate === 'all'
             ? 'gated'
-            : `gated passRate ${c.gate.passRate}`,
+            : c.gate === 'any'
+              ? 'gated any'
+              : `gated passRate ${c.gate.passRate}`,
         c.bestOf === undefined ? `×${c.runs}` : `best of ${c.bestOf}`,
         [
+          i === 0 && target !== 'metric()' ? `target ${target}` : '',
           c.effort && !c.key.includes('[effort=') ? `effort ${c.effort}` : '',
           c.minLift === undefined ? '' : `minLift ${c.minLift}`,
           i === 0 && e.cases

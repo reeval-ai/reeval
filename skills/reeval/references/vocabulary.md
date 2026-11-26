@@ -11,8 +11,8 @@ reeval's word in code and messages.
 | harness (`cursor()`, …) | agent harness, scaffold, solver (reeval itself is the *evaluation* harness) |
 | cell (harness × environment × sandbox) | a factorial-design cell |
 | control, variant | baseline, treatment |
-| lift (variant pass@1 − control pass@1, 95% interval) | treatment effect, delta, uplift |
-| gate (how a cell's attempts decide its outcome) | `'all'` is pass^k, `{ passRate }` a pass@1 threshold; epoch reducer (Inspect), quality gate |
+| lift (variant mean score − control mean score, 95% interval) | treatment effect, delta, uplift |
+| target (how a cell's attempts decide its outcome) | `regression()` is pass^k, `capability()` pass@k, `metric(t)` a mean-score threshold; epoch reducer (Inspect), quality gate |
 | pass@1 (passes over passes and fails; `pass_at_1` in `reeval query`) | success rate, resolve rate (SWE-bench) |
 | checks, judge (`expect`, `c.exec`, `c.judge`) | grader, verifier, scorer, evaluator |
 | transcript (`transcript.jsonl`) | trajectory, trace |

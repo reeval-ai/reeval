@@ -182,7 +182,8 @@ type LiveAttempt = {
 
 /**
  * Whether some cell's ended attempts already miss its gate, whatever its other attempts do: under
- * `all` any fail or error, under `{ passRate }` once the passes it can still reach fall short. A
+ * `all` any fail or error, under `any` once none passed and none is left, under `{ passRate }`
+ * once the passes it can still reach fall short. A
  * `minLift` is decided only from the record.
  */
 function gateMissed(attempts: LiveAttempt[]): boolean {
@@ -197,6 +198,7 @@ function gateMissed(attempts: LiveAttempt[]): boolean {
     if (gate === 'all' || gate === 'none') return failed + errored > 0
     const passed = own.filter((a) => a.state === 'pass').length
     const left = own.filter((a) => a.state === 'running').length + unplaced
+    if (gate === 'any') return passed + left === 0 && failed + errored > 0
     const best = passed + left + failed
     return best > 0 ? (passed + left) / best < gate.passRate : errored > 0
   })

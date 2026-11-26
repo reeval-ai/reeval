@@ -127,12 +127,13 @@ export async function project(name: string, files: Record<string, string>): Prom
 }
 
 export const fakeConfig = (options: { harness?: string; judge?: string; extra?: string } = {}) => `
-import { defineConfig, defineEnvironment } from 'reeval'
+import { capability, defineConfig, defineEnvironment, metric, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 import { fakeJudge } from 'reeval/judge'
 const sandbox = fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) })
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent(${options.harness ?? '{}'}),
   sandbox,
   environments: defineEnvironment('fake', {}),

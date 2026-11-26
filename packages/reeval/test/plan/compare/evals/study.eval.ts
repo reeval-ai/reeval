@@ -2,7 +2,7 @@ import { defineEval } from 'reeval'
 import { base, skilled, terse } from './envs.ts'
 
 export default defineEval({
-  compare: { control: base, variants: [skilled, terse], gate: 'observe' },
+  compare: { control: base, variants: [skilled, terse] },
   runs: 3,
   task: async () => {},
 })

@@ -3,8 +3,8 @@ warning: workspace git(../repo) uses no ref (the default branch): results aren't
 warning: skill skills/guide: skills/guide/more is a symlink to shared/more, outside its folder; reeval places only regular files, so the attempt doesn't get it
 warning: skill skills/guide: skills/guide/references/broken.md is a broken symlink, and reeval doesn't place it
 warning: skill skills/guide: skills/guide/references/notes.md is a symlink to shared/notes.md, outside its folder; reeval places only regular files, so the attempt doesn't get it
-guide-answer    fake/everything/docker:docker  control  gated  ×1  workspace ../repo · files .env, a.txt, app/package.json, app/src/index.ts · plugins tool (skills)
-no-environment  fake/-/docker                  control  gated  ×1
+guide-answer    fake/everything/docker:docker  control  ungated  ×1  workspace ../repo · files .env, a.txt, app/package.json, app/src/index.ts · plugins tool (skills)
+no-environment  fake/-/docker                  control  ungated  ×1
 excluded: —
 image docker:docker · cursor · 1 evals
   dockerfile docker/Dockerfile  reeval-dockerfile:docker-041abaa0fd4f5133  (docker build (layer cache), tagged by content hash)

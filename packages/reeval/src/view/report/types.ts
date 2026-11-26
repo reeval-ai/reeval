@@ -170,6 +170,10 @@ export type EvalSection = {
   qualitative: QualitativeAnswers[]
   captures: CaptureGallery | null
   failures: FailureClusters | null
+  /** The eval's target as written, `regression(0.8)`; unset in reports built before targets. */
+  target?: string
+  /** Over the target's cells (`EvalEntry.scores`), each `75%` or `n/a`; unset before them. */
+  scores?: { meanScore: Figure; passAtK: Figure; passHatK: Figure }
 }
 
 export type ArmRef = { id: string; label: string }

@@ -1,10 +1,11 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 
 // REEVAL_FIXTURE_SANDBOX picks the tier: the fake sandbox (F) by default, or docker (D). The fake
 // agent takes OpenCode's layout (and image), so no key is needed. As the agent: read the plugin's
 // skill among OpenCode's own, and follow the subagent reeval unpacked into .opencode/agents.
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({
     layout: 'opencode',
     script: [

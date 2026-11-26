@@ -2959,12 +2959,12 @@ export const features: Feature[] = [
     tiers: ['fake', 'docker'],
     env: 'variant',
     cells: ['empty', 'variant'],
-    canaryPass: ['variant'],
+    canaryCells: ['empty'],
     canary: /expected null to be 'variant-only'/,
     record: ({ run }) => {
       const empty = run.environments.find((e) => e.name === 'empty')
       assert.deepEqual(empty?.files, [])
-      for (const e of run.evals) {
+      for (const e of run.evals.filter((e) => e.name === 'lands')) {
         assert.deepEqual(e.compare, { baseline: 'empty' })
         assert.equal(e.cells.find((c) => c.role === 'control')?.environment, 'empty')
         assert.ok(e.cells.find((c) => c.role === 'variant')?.lift, JSON.stringify(e.cells))
@@ -5452,7 +5452,7 @@ export const features: Feature[] = [
     },
   },
   {
-    dir: 'run/observe',
+    dir: 'run/target-metric',
     tiers: ['fake'],
     env: 'observe',
     lands: { outcome: 'pass', error: { kind: 'assertion', message: /picks postgres/ } },
@@ -5461,12 +5461,53 @@ export const features: Feature[] = [
     record: ({ run, stdout }) => {
       const lands = run.evals.find((e) => e.name === 'lands')
       assert.deepEqual(
-        lands?.cells.map((c) => c.gate),
-        ['none'],
-        "gate: 'observe' records its cells ungated",
+        [lands?.target, lands?.cells.map((c) => c.gate)],
+        [{ kind: 'metric' }, ['none']],
+        'target: metric() records its cells ungated',
       )
       assert.match(stdout, /^└─ ● lands {2}0 of 1 run passed$/m)
       assert.match(stdout, /^Done in \S+ · 1 failed · 1 ran$/m)
+    },
+  },
+  {
+    dir: 'run/target-regression',
+    tiers: ['fake'],
+    env: 'plain',
+    canary: /^score 0\.75 below 0\.8: half scored 0\.50$/,
+    record: ({ run }) => {
+      const lands = run.evals.find((e) => e.name === 'lands')
+      assert.equal(lands?.attempts[0]?.score, 0.75)
+      assert.deepEqual(lands?.target, { kind: 'regression', threshold: 0.7 })
+      assert.deepEqual(lands?.scores, { meanScore: 0.75, passAtK: 1, passHatK: 1 })
+      const canary = run.evals.find((e) => e.name === 'canary')
+      assert.deepEqual(canary?.scores, { meanScore: 0.75, passAtK: 0, passHatK: 0 })
+    },
+  },
+  {
+    dir: 'run/target-capability',
+    tiers: ['fake'],
+    env: '-',
+    canary: /lands on the third try/,
+    evals: {
+      lands: {
+        outcome: 'pass',
+        attempts: ['fake/-/fake#1', 'fake/-/fake#2'],
+        error: { kind: 'assertion', message: /lands on the second try: expected 1 to be 2/ },
+        clean: ['fake/-/fake#2'],
+      },
+      canary: {
+        outcome: 'fail',
+        attempts: ['fake/-/fake#1', 'fake/-/fake#2'],
+        error: { kind: 'assertion', message: /lands on the third try: expected \d to be 3/ },
+      },
+    },
+    record: ({ run }) => {
+      const lands = run.evals.find((e) => e.name === 'lands')
+      assert.deepEqual(
+        [lands?.cells[0]?.gate, lands?.scores],
+        ['any', { meanScore: 0.5, passAtK: 1, passHatK: 0 }],
+        'one passing attempt of two is pass@k',
+      )
     },
   },
   {
@@ -5822,14 +5863,14 @@ export const features: Feature[] = [
     lands: { outcome: 'pass', error: { kind: 'assertion', message: /has the marker/ } },
     landsPass: ['marked'],
     canary: /reached: expected 'control' to be 'variant'/,
-    canaryPass: ['marked'],
+    canaryCells: ['plain'],
     record: ({ stdout }) => {
       assert.doesNotMatch(
         entryOf(stdout, 'lands'),
         /"reached"/,
         "a check the baseline never reached didn't fail",
       )
-      assert.match(entryOf(stdout, 'canary'), /^ +✗ reached +failed on the control$/m)
+      assert.match(entryOf(stdout, 'canary'), /^ +✗ reached +failed 1 of 1 run$/m)
     },
   },
   {
@@ -5881,8 +5922,8 @@ export const features: Feature[] = [
     },
     landsPass: ['plain'],
     canaryCells: ['plain', 'working'],
-    canary: /is a variant: expected 'control' to be 'variant'/,
-    canaryPass: ['working'],
+    canary: /is the control: expected 'variant' to be 'control'/,
+    canaryPass: ['plain'],
     args: ['--json'],
     record: ({ runDir, stdout }) => {
       const suite = JSON.parse(stdout) as SuiteResult
@@ -5899,7 +5940,7 @@ export const features: Feature[] = [
       // The canary: a variant whose attempt counted reads its checks' counts.
       assert.deepEqual(checks('canary', 'working'), [
         ['runs true', 'ran'],
-        ['is a variant', 'ran'],
+        ['is the control', 'ran'],
       ])
       const summary = readFileSync(join(runDir, 'summary.md'), 'utf8')
       assert.match(

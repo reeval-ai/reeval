@@ -1,8 +1,8 @@
-// An eval with `cases` as one suite: each cell's pass@1 over the cases and, with
+// An eval with `cases` as one suite: each cell's mean score over the cases and, with
 // `compare`, each variant's lift over the control paired by case. A case is the unit: at one
 // attempt a case and side that's a Bernoulli pair (Newcombe's paired interval, McNemar's exact
-// test); at several, a t interval over the cases' pass@1 differences, so attempts within a case
-// are never counted as independent.
+// test); at several, a t interval over the cases' mean score differences, so attempts within a
+// case are never counted as independent.
 import {
   containsZero,
   mcnemar,
@@ -31,7 +31,12 @@ import type {
 
 const isCounted = (a: AttemptRecord) => a.outcome === 'pass' || a.outcome === 'fail'
 
-type Side = { pass: number; counted: number; samples: EffortSample[] }
+/** A counted attempt's score: its own, else 1 for a pass and 0 for a fail. */
+export const scoreOf = (a: Pick<AttemptRecord, 'outcome' | 'score'>) =>
+  a.score ?? (a.outcome === 'pass' ? 1 : 0)
+
+/** A case's side: its passes, its counted attempts and the sum of their scores. */
+type Side = { pass: number; counted: number; score: number; samples: EffortSample[] }
 
 function sideOf(entry: EvalEntry, cell: string): Side | null {
   const counted = entry.attempts.filter((a) => a.cell === cell && isCounted(a))
@@ -39,6 +44,7 @@ function sideOf(entry: EvalEntry, cell: string): Side | null {
   return {
     pass: counted.filter((a) => a.outcome === 'pass').length,
     counted: counted.length,
+    score: counted.reduce((sum, a) => sum + scoreOf(a), 0),
     samples: counted.map(effortSample),
   }
 }
@@ -61,7 +67,7 @@ function rateOf(cell: string, sides: Side[], passRate: number | undefined): Fami
   const pass = sides.reduce((s, x) => s + x.pass, 0)
   const counted = sides.reduce((s, x) => s + x.counted, 0)
   const single = sides.every((x) => x.counted === 1)
-  const rates = sides.map((x) => x.pass / x.counted)
+  const rates = sides.map((x) => x.score / x.counted)
   const t = meanInterval(rates)
   const w = wilson(pass, counted)
   return {
@@ -144,8 +150,8 @@ function liftOf(
   })
   if (!pairs.length) return null
   const single = pairs.every(([v, c]) => v.counted === 1 && c.counted === 1)
-  const vRates = pairs.map(([v]) => v.pass / v.counted)
-  const cRates = pairs.map(([, c]) => c.pass / c.counted)
+  const vRates = pairs.map(([v]) => v.score / v.counted)
+  const cRates = pairs.map(([, c]) => c.score / c.counted)
   const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length
   let points: number
   let range: FamilyInterval
@@ -168,7 +174,7 @@ function liftOf(
     decided = counts.variantOnly + counts.controlOnly >= PAIRED_MIN
   } else {
     const differences = pairs.map(
-      ([v, c]) => (v.pass * c.counted - c.pass * v.counted) / (v.counted * c.counted),
+      ([v, c]) => (v.score * c.counted - c.score * v.counted) / (v.counted * c.counted),
     )
     const t = meanInterval(differences)
     points = t.mean

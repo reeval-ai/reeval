@@ -1,4 +1,4 @@
-from reeval_python import define_environment, evaluate
+from reeval_python import define_environment, evaluate, regression
 
 base = define_environment("base", {"env": {"MODE": "base"}})
 skilled = base.extend("skilled", {"env": {"MODE": "skilled"}})
@@ -12,7 +12,8 @@ async def control_and_two(c): ...
 @evaluate(
     "every cell gated, with a minimum lift",
     {
-        "compare": {"control": base, "variants": [skilled], "gate": "all", "min_lift": 0.2},
+        "compare": {"control": base, "variants": [skilled], "min_lift": 0.2},
+        "target": regression(),
         "runs": 2,
     },
 )

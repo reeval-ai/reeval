@@ -948,13 +948,13 @@ const sandbox = fakeSandbox({ dir: new URL('../sandboxes', import.meta.url) })
 export const next = defineEnvironment('next-app', { sandbox, traits: { stack: 'next' } })
 export const vite = defineEnvironment('vite-app', { sandbox, traits: { stack: 'vite' } })
 `,
-      'evals/fam.eval.ts': `import { defineEval } from 'reeval'
+      'evals/fam.eval.ts': `import { defineEval, metric } from 'reeval'
 import { next, vite } from './env.ts'
 export default defineEval({
   environment: [next, vite],
   cases: [{ key: 'next' }, { key: 'vite' }, { key: 'both' }],
   runs: 2,
-  gate: { passRate: 0.6 },
+  target: metric(0.6),
   where: ({ case: { key: k }, environment }) => k === 'both' || environment.traits.stack === k,
   async task(_c, { key: k }) { if (k === 'next') throw new Error('next fails') },
 })
@@ -1255,10 +1255,11 @@ export const skilled = base.extendEnvironment('skilled', ({ skill }) => ({
   skills: [skill.local('../skills')],
 }))
 `,
-    'evals/gated.eval.ts': `import { defineEval } from 'reeval'
+    'evals/gated.eval.ts': `import { defineEval, regression } from 'reeval'
 import { base, skilled } from './envs.ts'
 export default defineEval({
   runs: 2,
+  target: regression(),
   compare: { control: base, variants: [skilled], minLift: 0.5 },
   questions: [{ question: 'Which is cleaner?', across: 'environment', diff: true }],
   async task(c) { await c.send('go') },

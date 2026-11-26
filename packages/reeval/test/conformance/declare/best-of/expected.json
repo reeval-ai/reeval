@@ -22,7 +22,10 @@
         "runs": {
           "bestOf": 5
         },
-        "gate": "all"
+        "target": {
+          "kind": "regression",
+          "threshold": 1
+        }
       },
       "body": "b2",
       "source": {

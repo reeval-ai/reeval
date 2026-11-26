@@ -76,6 +76,7 @@ loading. The `reeval.config.ts` follows the config API like any other project.
 | `with-run-report` | The corpus recipe's run with `<run>/report.json` (`RunReport`) beside its summary.md, both from one report built when the run was recorded |
 | `before-eval-error` | The corpus project's fake-harness runs from before `evals[].attempts[].failure` (what an eval's task threw: an `EvalError`'s reason and meta, or another error's message and class) |
 | `with-decisions` | The fake agent with `c.decide` on `reeval/testing`'s fake decision model, every attempt's artifacts kept: a boolean, choice and score decision between two turns, a `decision` line in `transcript.jsonl` and `evals[].attempts[].decisionUse`, graded from `c.decisions`; and a decision model that never answered, an infra error whose `decision` line holds the `error` |
+| `before-targets` | The corpus project's fake-harness runs from before `evals[].target` and `scores` on evals, cells and case cells (each eval's target, and its mean score, pass@k and pass^k), when evals set `gate` |
 
 What reads them:
 

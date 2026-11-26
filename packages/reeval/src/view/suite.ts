@@ -362,7 +362,7 @@ export type PooledArm = {
   measures: Measure[]
 }
 
-/** A cell's pass@1 over a family's cases, which its `gate: { passRate }` gates. */
+/** A cell's pass@1 over a family's cases, which its `{ passRate }` gate gates. */
 export type PooledRate = {
   /** The cell's key, the same in every case. */
   key: string

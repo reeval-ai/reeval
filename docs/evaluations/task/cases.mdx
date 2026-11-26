@@ -3,7 +3,7 @@ title: "Evaluate many cases"
 description: "Run the same evaluation over a list of cases and read one result."
 ---
 
-The `cases` option runs one evaluation over a list of inputs. Every case shares the options and the body, which takes the case as its second argument. An evaluation with cases is one evaluation, its cases inside it: under the default gate a failing case fails it. For how cases multiply cells and attempts, see [Cell](/reference/glossary#cell).
+The `cases` option runs one evaluation over a list of inputs. Every case shares the options and the body, which takes the case as its second argument. An evaluation with cases is one evaluation, its cases inside it: under `target: regression()` a failing case fails it. For how cases multiply cells and attempts, see [Cell](/reference/glossary#cell).
 
 <Info>
 For evaluations that pass or fail on their own, give each one its own `*.eval.ts` file instead of `cases`.
@@ -96,13 +96,13 @@ Past eight cases, the table lists only the failed ones; `-v` lists every case. W
 
 ## Gate on the rate over the cases
 
-With `gate: { passRate }`, each cell passes on its rate over the cases, the mean of each case's pass@1. A failing case doesn't fail the evaluation on its own:
+With `target: metric(threshold)`, each cell passes on its rate over the cases, the mean of each case's mean score. A failing case doesn't fail the evaluation on its own:
 
 ```ts title="evals/rate.eval.ts"
-import { defineEval, expect } from '{{ pkg }}'
+import { defineEval, expect, metric } from '{{ pkg }}'
 
 export default defineEval({
-  gate: { passRate: 0.6 }, cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }],
+  target: metric(0.6), cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }],
   task: async (c, { key }) => {
     await c.send(key)
     expect(key).not.toBe('c')

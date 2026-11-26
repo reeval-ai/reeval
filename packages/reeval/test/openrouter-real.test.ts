@@ -26,11 +26,11 @@ test('openrouter(): the Jev judge and the analysis model record what OpenRouter 
     "OPENROUTER_API_KEY isn't set, and REEVAL_TEST_REAL=1 asks for real OpenRouter calls",
   )
   const p = await project('openrouter-real', {
-    'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
+    'reeval.config.ts': `import { defineConfig, defineEnvironment, regression } from 'reeval'
 import { openrouter } from 'reeval/gateway'
 import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
-export default defineConfig({
+export default defineConfig({ target: regression(),
   agents: fakeAgent({ files: { 'greet.js': 'export const greet = (name) => \`Hello, \${name}!\`\\n' } }),
   environments: defineEnvironment('fake', { sandbox: fakeSandbox() }),
   gateway: [openrouter()],

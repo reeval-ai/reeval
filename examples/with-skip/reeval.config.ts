@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { defineConfig } from 'reeval'
+import { defineConfig, metric } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 import { profiles } from '../profiles.ts'
@@ -16,11 +16,11 @@ export default defineConfig({
     text: 'I added the function to src/math.js.',
   }),
   sandbox: fakeSandbox(),
-  // Every eval's options: two runs a cell, passing when one of them does (the default gate would
+  // Every eval's options: two runs a cell, passing when one of them does (regression() would
   // need both).
   timeout: '5m',
   runs: 2,
-  gate: { passRate: 0.5 },
+  target: metric(0.5),
   // The real agents: `--profile claude-code`, or any other in ../profiles.ts. An example's own
   // profiles go beside them.
   profiles: { ...profiles },

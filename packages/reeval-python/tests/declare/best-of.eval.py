@@ -1,11 +1,11 @@
-from reeval_python import evaluate, group
+from reeval_python import evaluate, group, regression
 
 
 @evaluate("best of 3", {"runs": {"best_of": 3}})
 def best_of_3(c): ...
 
 
-@evaluate("best of 5 over a gate", {"runs": {"best_of": 5}, "gate": "all"})
+@evaluate("best of 5 over a gate", {"runs": {"best_of": 5}, "target": regression()})
 def best_of_5(c): ...
 
 

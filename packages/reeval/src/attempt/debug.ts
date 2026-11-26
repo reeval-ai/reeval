@@ -6,6 +6,7 @@ import { egressLabel } from '../egress.ts'
 import type { ResolvedEnvironment } from '../environment/resolve.ts'
 import { brokeringFor } from '../harness/agents.ts'
 import { harnessId, sandboxId } from '../options.ts'
+import { targetLabel } from '../target.ts'
 import { formatDuration } from '../text.ts'
 import type { RunContext } from '../types.ts'
 import type { AttemptSpec } from './state.ts'
@@ -30,10 +31,9 @@ export function tracePlan(debug: AttemptDebug, spec: AttemptSpec, ctx: RunContex
       : from('environments', 'none set')
   debug.log('plan', `environment ${env.name}${role} ${envFrom}`)
   debug.log('plan', `egress ${egressLabel(spec.egress) || 'proxy'} ${from('egress')}`)
-  const gate = typeof spec.gate === 'string' ? spec.gate : `passRate ${spec.gate.passRate}`
   debug.log(
     'plan',
-    `run ${spec.n} · runs ${ctx.runs !== undefined ? '(--runs)' : from('runs')} · gate ${gate} · timeout ${formatDuration(spec.timeoutMs)} ${from('timeout', 'config.timeout or 15m')}`,
+    `run ${spec.n} · runs ${ctx.runs !== undefined ? '(--runs)' : from('runs')} · target ${targetLabel(spec.target)} ${from('target')} · timeout ${formatDuration(spec.timeoutMs)} ${from('timeout', 'config.timeout or 15m')}`,
   )
   const judge = spec.judge
   const model =
@@ -60,6 +60,7 @@ export function tracePlan(debug: AttemptDebug, spec: AttemptSpec, ctx: RunContex
       sandbox: spec.sandbox,
       egress: spec.egress,
       gate: spec.gate,
+      target: spec.target,
       timeoutMs: spec.timeoutMs,
       judge: spec.judge,
       sources: spec.sources,

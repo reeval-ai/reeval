@@ -1,8 +1,9 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 
 // Docker only: reeval looks for the processes setup left running in the container.
 export default defineConfig({
+  target: regression(),
   // As the agent: CHECK_TOKEN in any process's environment, as `value` or `placeholder`.
   agents: fakeAgent({
     script: [

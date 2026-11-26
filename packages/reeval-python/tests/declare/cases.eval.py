@@ -1,4 +1,4 @@
-from reeval_python import define_environment, evaluate
+from reeval_python import define_environment, evaluate, regression
 
 base = define_environment("base", {"env": {"MODE": "base"}})
 skilled = base.extend("skilled", {"env": {"MODE": "skilled"}})
@@ -9,6 +9,7 @@ skilled = base.extend("skilled", {"env": {"MODE": "skilled"}})
     {
         "cases": [{"key": "ada"}, {"key": "grace"}, {"key": "linus"}],
         "compare": {"control": base, "variants": [skilled], "min_lift": 0.2},
+        "target": regression(),
     },
 )
 async def pooled(c, who): ...

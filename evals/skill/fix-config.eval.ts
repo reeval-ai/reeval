@@ -10,7 +10,7 @@ const task =
   'each mistake you fixed, one line each.'
 
 export default defineEval({
-  compare: { ...channels(project('notes', 'fix-config')), gate: 'observe' },
+  compare: channels(project('notes', 'fix-config')),
   task: async (c) => {
     const turn = await c.send(task)
     const { exitCode, plan } = await dryRun(c)

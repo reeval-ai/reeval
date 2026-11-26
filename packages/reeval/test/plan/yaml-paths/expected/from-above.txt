@@ -1,5 +1,5 @@
 no profile · 1 evals · 1 cells · 1 attempts
-p  fake/base/docker:docker  control  gated  ×1  files NOTES.md
+p  fake/base/docker:docker  control  ungated  ×1  files NOTES.md
 excluded: —
 image docker:docker · cursor · 1 evals
   dockerfile docker/Dockerfile  reeval-dockerfile:docker-d4ceb9f7c18a402a  (docker build (layer cache), tagged by content hash)

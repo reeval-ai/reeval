@@ -1,6 +1,7 @@
 import { caseName } from '../../history/cases.ts'
 import type { AttemptRecord, CellRecord, EvalEntry, RunRecord } from '../../history/types.ts'
 import { COMPARE_RUNS, containsZero, liftInterval } from '../../stats.ts'
+import { targetLabel } from '../../target.ts'
 import type { AttemptFailure, CapturePageFile, GradeRecord } from '../../types.ts'
 import { totalTokens } from '../../usage.ts'
 import type { AnalysisDoc } from '../analysis.ts'
@@ -24,6 +25,7 @@ import {
   ptsDelta,
   ptsInterval,
   rateOf,
+  shareFigure,
   spreadOf,
   tokensFigure,
   tokensText,
@@ -1709,6 +1711,16 @@ function buildEvalSection(ctx: Ctx, e: EvalEntry, displayName: string): EvalSect
     qualitative: buildQualitative(e, ctx.ids, ctx.linkBase, ctx.hrefs, ctx.hrefByKey),
     captures: buildCaptures(e, ctx.ids, ctx.linkBase, ctx.hrefs, ctx.hrefByKey, ctx.pages),
     failures: buildFailures(e, ctx.ids, ctx.linkBase, ctx.hrefs, ctx.hrefByKey, ctx.remarks),
+    ...(e.target ? { target: targetLabel(e.target) } : {}),
+    ...(e.scores
+      ? {
+          scores: {
+            meanScore: shareFigure(e.scores.meanScore),
+            passAtK: shareFigure(e.scores.passAtK),
+            passHatK: shareFigure(e.scores.passHatK),
+          },
+        }
+      : {}),
   }
 }
 

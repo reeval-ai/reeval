@@ -1,14 +1,14 @@
 no profile · 5 evals · 10 cells · 10 attempts
-added-agent     a/-/docker  control  gated               ×1
-                b/-/docker  control  gated               ×1
-                c/-/docker  control  gated               ×1
-pass-rate       a/-/docker  control  gated passRate 0.8  ×1
+added-agent     a/-/docker  control  ungated             ×1
+                b/-/docker  control  ungated             ×1
+                c/-/docker  control  ungated             ×1
+pass-rate       a/-/docker  control  gated passRate 0.8  ×1  target metric(0.8)
                 b/-/docker  control  gated passRate 0.8  ×1
-replaced-agent  c/-/docker  control  gated               ×1
-runs-2          a/-/docker  control  gated               ×1
-                b/-/docker  control  gated               ×1
-runs-3          a/-/docker  control  gated               ×1
-                b/-/docker  control  gated               ×1
+replaced-agent  c/-/docker  control  ungated             ×1
+runs-2          a/-/docker  control  ungated             ×1
+                b/-/docker  control  ungated             ×1
+runs-3          a/-/docker  control  ungated             ×1
+                b/-/docker  control  ungated             ×1
 excluded: —
 image docker · cursor · 5 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

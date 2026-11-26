@@ -1,5 +1,5 @@
 profile ci (--profile) · 2 evals · 2 cells · 2 attempts
-builtins  fake/-/fake  control  gated  ×1
+builtins  fake/-/fake  control  ungated  ×1
           grader no-page-errors:home · builtin · weight 0.5
           grader within-limits · builtin · weight 1 · required
           grader used-skill:http-retries · builtin · weight 2 · required
@@ -8,7 +8,7 @@ builtins  fake/-/fake  control  gated  ×1
           grader not-in-diff:test/** · builtin · records only
           grader turns · builtin · weight 1 · required
           grader builds · code · weight 1
-none      fake/-/fake  control  gated  ×1
+none      fake/-/fake  control  ungated  ×1
           grader turns · builtin · records only
           grader no-page-errors:home · builtin · weight 0.5
           grader within-limits · builtin · weight 1 · required

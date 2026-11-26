@@ -22,10 +22,10 @@ export default defineEval({
   },
 })
 `,
-  'evals/two-checks-fail.eval.ts': `import { defineEval, expect } from 'reeval'
+  'evals/two-checks-fail.eval.ts': `import { defineEval, expect, metric } from 'reeval'
 export default defineEval({
   runs: 2,
-  gate: { passRate: 0.5 },
+  target: metric(0.5),
   async task(c) {
     await c.send('go')
     if (c.attempt.n === 1) expect(1, 'first check').toBe(2)

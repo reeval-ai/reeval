@@ -194,6 +194,54 @@
             "type": "string"
           }
         },
+        "target": {
+          "description": "The eval's target, which its attempts pass at the threshold of; unset in records from before targets.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "blocking": {
+                  "description": "Whether a miss fails the run.",
+                  "type": "boolean"
+                },
+                "kind": {
+                  "const": "capability"
+                },
+                "threshold": {
+                  "description": "The score, from 0 to 1, one attempt must reach.",
+                  "type": "number"
+                }
+              },
+              "required": ["blocking", "kind", "threshold"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "metric"
+                },
+                "threshold": {
+                  "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
+                  "type": "number"
+                }
+              },
+              "required": ["kind"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "regression"
+                },
+                "threshold": {
+                  "description": "The score, from 0 to 1, every attempt must reach.",
+                  "type": "number"
+                }
+              },
+              "required": ["kind", "threshold"]
+            }
+          ]
+        },
         "workspace": {
           "description": "The git repository its workspace starts as, which the CLI fetches before any attempt.",
           "$ref": "#/$defs/GitWorkspace"
@@ -417,10 +465,10 @@
       "required": ["environment", "harness", "key", "role", "sandbox"]
     },
     "CellGate": {
-      "description": "A cell's gate: its policy, or `'none'` when its failures don't fail the eval (a control's, or any cell under `gate: 'observe'`).",
+      "description": "A cell's gate: `'all'` when every counted attempt must pass, `'any'` when one must, `{ passRate }` when its mean score must reach that share (its pass share in a `runs: { bestOf }` cell), or `'none'` when its failures don't fail the run (a compare's control, or an eval whose target doesn't block).",
       "anyOf": [
         {
-          "enum": ["all", "none"]
+          "enum": ["all", "any", "none"]
         },
         {
           "type": "object",
@@ -985,7 +1033,7 @@
           }
         },
         "gate": {
-          "description": "The eval's gate policy, or undefined when it was left at the default (`'all'`).",
+          "description": "In records from before targets, the eval's gate when it set one. Never written now.",
           "anyOf": [
             {
               "enum": ["all", "observe"]
@@ -1038,6 +1086,54 @@
         "skip": {
           "description": "Why the eval doesn't run at all, e.g. a profile's harness limit left none.",
           "type": "string"
+        },
+        "target": {
+          "description": "The eval's target, the default `metric()` included; unset in records from before targets.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "blocking": {
+                  "description": "Whether a miss fails the run.",
+                  "type": "boolean"
+                },
+                "kind": {
+                  "const": "capability"
+                },
+                "threshold": {
+                  "description": "The score, from 0 to 1, one attempt must reach.",
+                  "type": "number"
+                }
+              },
+              "required": ["blocking", "kind", "threshold"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "metric"
+                },
+                "threshold": {
+                  "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
+                  "type": "number"
+                }
+              },
+              "required": ["kind"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "regression"
+                },
+                "threshold": {
+                  "description": "The score, from 0 to 1, every attempt must reach.",
+                  "type": "number"
+                }
+              },
+              "required": ["kind", "threshold"]
+            }
+          ]
         },
         "traitExcluded": {
           "description": "The environments `--trait` or a profile's `limit.traits` left out; unset when none.",
@@ -1095,7 +1191,7 @@
       ]
     },
     "EvalSource": {
-      "description": "An eval's own source as hashes: its body and case data as declared, and its options and its enclosing groups' in canonical form (`tags`, `revision` and `gate` aside).",
+      "description": "An eval's own source as hashes: its body and case data as declared, and its options and its enclosing groups' in canonical form (`tags`, `revision` and `target` aside).",
       "type": "object",
       "properties": {
         "body": {

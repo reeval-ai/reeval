@@ -1,9 +1,10 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 
 // REEVAL_FIXTURE_SANDBOX picks the tier: the fake sandbox (F) by default, or docker (D). The
 // agent runs a command and writes a file, then sits out 15s even when it's told to stop.
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({
     delayMs: 15_000,
     ignoreAbort: true,

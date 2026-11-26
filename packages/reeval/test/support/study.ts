@@ -19,8 +19,8 @@ const full = email
 const b64 = (t: string) => Buffer.from(t).toString('base64')
 
 export type StudyOptions = {
-  /** The compare's gate; a study sets `'observe'`. */
-  gate?: 'observe' | 'variants'
+  /** Gates the variants with `target: regression()`; a study reports only. */
+  gated?: boolean
   runs?: number
   /** `analysis` config body, after `model:`'s fake. */
   output?: string
@@ -30,7 +30,7 @@ export type StudyOptions = {
 }
 
 export function studyFiles(options: StudyOptions = {}): Record<string, string> {
-  const gate = options.gate === undefined ? '' : `gate: '${options.gate}',`
+  const target = options.gated ? 'target: regression(),' : ''
   return {
     'reeval.config.ts': `import { defineConfig } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
@@ -78,7 +78,7 @@ export const newSkill = noSkill.extendEnvironment('new-skill', ({ skill }) => ({
   skills: [skill.local('../skills/fui-new')],
 }))
 `,
-    'evals/auth.eval.ts': `import { defineEval, expect } from 'reeval'
+    'evals/auth.eval.ts': `import { defineEval, expect, regression } from 'reeval'
 import { fakeJudge } from 'reeval/judge'
 import { currentSkill, newSkill, noSkill } from './environments.ts'
 const RUBRIC: Array<[string, string, RegExp | null]> = [
@@ -93,8 +93,8 @@ export default defineEval({
   compare: {
     control: noSkill,
     variants: [currentSkill${options.oneVariant ? '' : ', newSkill'}],
-    ${gate}
   },
+  ${target}
   questions: [
     { question: 'Which sign-in has the better UX?', across: 'environment', diff: true },
     {

@@ -996,9 +996,8 @@ class EvalOptionsDataCompareCompare(TypedDict):
     # The environment each variant is measured against. Not layered under the variants, and it
     # replaces any `environments` the eval inherits.
     control: EnvironmentData
-    # Which cells decide pass/fail: `variants` (default), `all`, or `observe` (none of them).
-    gate: NotRequired[Literal["all", "observe", "variants"]]
-    # Lift in points from -1 to 1; a variant cell below it fails.
+    # Lift in points from -1 to 1, over the mean score; a variant cell below it fails. Needs a
+    # blocking `target`.
     minLift: NotRequired[float]
     # Other environments, each planned and run as itself.
     variants: list[EnvironmentData]
@@ -1008,12 +1007,28 @@ class EvalOptionsDataCompareEgressAllow(TypedDict):
     allow: list[str]
 
 
-class EvalOptionsDataCompareGatePassRate(TypedDict):
-    passRate: float
-
-
 class EvalOptionsDataCompareRunsBestOf(TypedDict):
     bestOf: float
+
+
+class EvalOptionsDataCompareTargetCapability(TypedDict):
+    # Whether a miss fails the run.
+    blocking: bool
+    kind: Literal["capability"]
+    # The score, from 0 to 1, one attempt must reach.
+    threshold: float
+
+
+class EvalOptionsDataCompareTargetMetric(TypedDict):
+    kind: Literal["metric"]
+    # The mean score, from 0 to 1, the attempts must reach; unset only reports.
+    threshold: NotRequired[float]
+
+
+class EvalOptionsDataCompareTargetRegression(TypedDict):
+    kind: Literal["regression"]
+    # The score, from 0 to 1, every attempt must reach.
+    threshold: float
 
 
 class EvalOptionsDataCompare(TypedDict):
@@ -1029,8 +1044,6 @@ class EvalOptionsDataCompare(TypedDict):
     egress: NotRequired[PhasedEgress | Literal["allow-all", "deny-all", "proxy"] | EvalOptionsDataCompareEgressAllow]
     # Variables and secrets for the sandbox, merged by name down the cascade.
     env: NotRequired[EnvVars]
-    # How each cell's attempts decide its outcome; default `'all'`.
-    gate: NotRequired[Literal["all", "observe"] | EvalOptionsDataCompareGatePassRate]
     # Defaults for `c.judge()`, merged field by field down the cascade.
     judge: NotRequired[ConfigJudgeOptions]
     # Keys a profile's `limit` may not narrow for this group or eval.
@@ -1059,6 +1072,10 @@ class EvalOptionsDataCompare(TypedDict):
     snapshot: NotRequired[SnapshotOptions | Literal["turns"] | bool]
     # Labels for `--tag` and profiles to select by; a group's are added to its evals'.
     tags: NotRequired[list[str]]
+    # Whether the eval passes and can fail the run, over its attempts' scores: `metric()`,
+    # `regression()` or `capability()`; default `metric()`, which only reports. On a compare it
+    # applies to the variants, and the control only reports.
+    target: NotRequired[EvalOptionsDataCompareTargetCapability | EvalOptionsDataCompareTargetMetric | EvalOptionsDataCompareTargetRegression]
     # Per attempt.
     timeout: NotRequired[float | str]
 
@@ -1083,12 +1100,28 @@ class EvalOptionsData2EnvironmentsOnly(TypedDict):
     only: list[str] | str
 
 
-class EvalOptionsData2GatePassRate(TypedDict):
-    passRate: float
-
-
 class EvalOptionsData2RunsBestOf(TypedDict):
     bestOf: float
+
+
+class EvalOptionsData2TargetCapability(TypedDict):
+    # Whether a miss fails the run.
+    blocking: bool
+    kind: Literal["capability"]
+    # The score, from 0 to 1, one attempt must reach.
+    threshold: float
+
+
+class EvalOptionsData2TargetMetric(TypedDict):
+    kind: Literal["metric"]
+    # The mean score, from 0 to 1, the attempts must reach; unset only reports.
+    threshold: NotRequired[float]
+
+
+class EvalOptionsData2TargetRegression(TypedDict):
+    kind: Literal["regression"]
+    # The score, from 0 to 1, every attempt must reach.
+    threshold: float
 
 
 class EvalOptionsData2(TypedDict):
@@ -1105,8 +1138,6 @@ class EvalOptionsData2(TypedDict):
     # What this group or eval runs in: one environment, or a list, each its own cell beside each
     # harness. `{ add }` and `{ only }` edit the inherited list.
     environments: NotRequired[EnvironmentData | list[EnvironmentData] | EvalOptionsData2EnvironmentsAdd | EvalOptionsData2EnvironmentsOnly]
-    # How each cell's attempts decide its outcome; default `'all'`.
-    gate: NotRequired[Literal["all", "observe"] | EvalOptionsData2GatePassRate]
     # Defaults for `c.judge()`, merged field by field down the cascade.
     judge: NotRequired[ConfigJudgeOptions]
     # Keys a profile's `limit` may not narrow for this group or eval.
@@ -1135,6 +1166,10 @@ class EvalOptionsData2(TypedDict):
     snapshot: NotRequired[SnapshotOptions | Literal["turns"] | bool]
     # Labels for `--tag` and profiles to select by; a group's are added to its evals'.
     tags: NotRequired[list[str]]
+    # Whether the eval passes and can fail the run, over its attempts' scores: `metric()`,
+    # `regression()` or `capability()`; default `metric()`, which only reports. On a compare it
+    # applies to the variants, and the control only reports.
+    target: NotRequired[EvalOptionsData2TargetCapability | EvalOptionsData2TargetMetric | EvalOptionsData2TargetRegression]
     # Per attempt.
     timeout: NotRequired[float | str]
 
@@ -2461,7 +2496,6 @@ CAMEL_KEYS: frozenset[str] = frozenset(
         "outputTokens",
         "outputTruncated",
         "outputView",
-        "passRate",
         "preSatisfied",
         "providerMetadata",
         "providerOptions",

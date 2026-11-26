@@ -223,10 +223,10 @@ export default defineEval({
   },
 })
 `,
-      'evals/observe.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/observe.eval.ts': `import { defineEval, expect, metric } from 'reeval'
 export default defineEval({
   runs: 3,
-  gate: 'observe',
+  target: metric(),
   async task(c) {
     await c.send('go')
     if (c.attempt.n < 3) throw new Error('no pick file')
@@ -668,6 +668,18 @@ describe('remark thresholds', () => {
       }),
       [],
       'a failed expect is a check, not a throw',
+    )
+    const graded = structuredClone(record)
+    for (const a of graded.evals[0]?.attempts ?? []) {
+      if (a.error?.kind !== 'assertion') continue
+      a.grades = [{ grader: 'zero', score: 0, weight: 1, required: false, durationMs: 1 } as never]
+      a.score = 0
+      a.error = { ...a.error, message: 'score 0.00 below 1: zero scored 0.00' }
+    }
+    assert.deepEqual(
+      kinds(graded, NO_HISTORY),
+      [],
+      'graded attempts that scored low returned, so none threw',
     )
     const gated = structuredClone(record)
     for (const c of gated.evals[0]?.cells ?? []) c.gate = 'all'

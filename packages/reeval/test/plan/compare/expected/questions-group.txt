@@ -1,34 +1,33 @@
 no profile · 6 evals · 24 cells · 88 attempts
-hint: 5 evals run more than once with the default gate, so every attempt must pass (pass^k); set gate: { passRate: 0.8 } to gate on pass@1 instead
 hint: 1 compare runs 2 times per cell; below 4 runs a side its lift shows only a direction and its effort can't be tested (runs: 4)
 questions-group/asks-none       a/base/docker     control          ungated             ×4  runs 4 (compare default)
-                                a/skilled/docker  variant skilled  gated               ×4
+                                a/skilled/docker  variant skilled  ungated             ×4
                                 b/base/docker     control          ungated             ×4
-                                b/skilled/docker  variant skilled  gated               ×4
+                                b/skilled/docker  variant skilled  ungated             ×4
 questions-group/asks            a/base/docker     control          ungated             ×4  runs 4 (compare default)
-                                a/skilled/docker  variant skilled  gated               ×4
+                                a/skilled/docker  variant skilled  ungated             ×4
                                 b/base/docker     control          ungated             ×4
-                                b/skilled/docker  variant skilled  gated               ×4
+                                b/skilled/docker  variant skilled  ungated             ×4
                                 question: Which handles state more cleanly? · shows diff · environment · 8 pairs · no language model
-questions-group/gated           a/base/docker     control          ungated             ×2
+questions-group/gated           a/base/docker     control          ungated             ×2  target metric(0.5)
                                 a/skilled/docker  variant skilled  gated passRate 0.5  ×2
                                 b/base/docker     control          ungated             ×2
                                 b/skilled/docker  variant skilled  gated passRate 0.5  ×2
                                 question: Which handles state more cleanly? · shows diff · environment · 4 pairs · no language model
 questions-group/other-compare   a/base/docker     control          ungated             ×4  runs 4 (compare default)
-                                a/terse/docker    variant terse    gated               ×4
+                                a/terse/docker    variant terse    ungated             ×4
                                 b/base/docker     control          ungated             ×4
-                                b/terse/docker    variant terse    gated               ×4
+                                b/terse/docker    variant terse    ungated             ×4
                                 question: Which handles state more cleanly? · shows diff · environment · 8 pairs · no language model
 questions-group/other-question  a/base/docker     control          ungated             ×4  runs 4 (compare default)
-                                a/skilled/docker  variant skilled  gated               ×4
+                                a/skilled/docker  variant skilled  ungated             ×4
                                 b/base/docker     control          ungated             ×4
-                                b/skilled/docker  variant skilled  gated               ×4
+                                b/skilled/docker  variant skilled  ungated             ×4
                                 question: What did the agent change? · shows diff · each attempt · 16 attempts · no language model
 questions-group/pairs-compares  a/base/docker     control          ungated             ×4  runs 4 (compare default)
-                                a/skilled/docker  variant skilled  gated               ×4
+                                a/skilled/docker  variant skilled  ungated             ×4
                                 b/base/docker     control          ungated             ×4
-                                b/skilled/docker  variant skilled  gated               ×4
+                                b/skilled/docker  variant skilled  ungated             ×4
                                 question: Which is shorter? · shows diff · environment · 8 pairs · no language model
 excluded: questions-group/pairs-skipped (skip)
 image docker · cursor · 6 evals

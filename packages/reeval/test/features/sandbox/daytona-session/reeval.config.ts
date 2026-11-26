@@ -1,4 +1,4 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { daytona } from 'reeval/provider/daytona'
 
@@ -6,6 +6,7 @@ import { daytona } from 'reeval/provider/daytona'
 // token logs in to with no key, as Daytona's SSH gateway takes one. As the agent: who and where the
 // shell runs, which node and npm it finds, and its proxy.
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({
     script: [
       [

@@ -1,10 +1,9 @@
 no profile · 2 evals · 4 cells · 12 attempts
-hint: 2 evals run more than once with the default gate, so every attempt must pass (pass^k); set gate: { passRate: 0.8 } to gate on pass@1 instead
 hint: 1 compare runs 2 times per cell; below 4 runs a side its lift shows only a direction and its effort can't be tested (runs: 4)
-variants/gated         b/base/docker     control          gated    ×2
+variants/gated         b/base/docker     control          ungated  ×2  target regression(1)
                        b/skilled/docker  variant skilled  gated    ×2  minLift 0.2
 variants/two-variants  b/base/docker     control          ungated  ×4  runs 4 (compare default)
-                       b/skilled/docker  variant skilled  gated    ×4
+                       b/skilled/docker  variant skilled  ungated  ×4
 excluded: —
 image docker · cursor · 2 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

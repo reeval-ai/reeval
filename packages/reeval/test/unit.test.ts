@@ -95,6 +95,7 @@ import { redactSecrets, registerSecret } from '../src/redact.ts'
 import { createFakeSandbox, posixShell } from '../src/sandbox/fake.ts'
 import { InfraError, type Sandbox } from '../src/sandbox/types.ts'
 import { fakeSandbox } from '../src/sandbox.ts'
+import { regression } from '../src/target.ts'
 import { clip } from '../src/text.ts'
 import type { EvalOptions, ExecResult, Outcome, ResolvedProfile } from '../src/types.ts'
 import { gatePart } from '../src/view/gate.ts'
@@ -2325,7 +2326,7 @@ test('expand: per harness, the control then each variant; labels name the role',
     [
       { options: { environments: extra }, where: 'profiles.parent.defaults' },
       {
-        options: { compare: { control: plain, variants: [skill] }, runs: 1 },
+        options: { compare: { control: plain, variants: [skill] }, runs: 1, target: regression() },
         where: 'e',
       },
     ],

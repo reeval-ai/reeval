@@ -1,4 +1,4 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval, expect, metric } from 'reeval'
 
 const math = defineEnvironment('math', ({ directory }) => ({ files: directory('./project') }))
 const withLayout = math.extendEnvironment('project-layout', ({ skill }) => ({
@@ -8,7 +8,7 @@ const withLayout = math.extendEnvironment('project-layout', ({ skill }) => ({
 export default defineEval({
   compare: { control: math, variants: [withLayout] },
   runs: 4,
-  gate: { passRate: 0.75 },
+  target: metric(0.75),
   task: async (c) => {
     await c.send('Add a multiply(a, b) function to src/math.js, with a test.')
 

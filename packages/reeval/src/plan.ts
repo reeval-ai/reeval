@@ -3,6 +3,7 @@ import { acrossOf, type PairAttempt, pairFactors, pairsOf, plannedSides } from '
 import { questionShows, resolveQuestionState } from './compare/state.ts'
 import { type CostedAttempt, type PlanCost, planCost } from './cost.ts'
 import type { ExcludedEval, PlannedItem } from './engine/node.ts'
+import { inCI } from './env.ts'
 import { NO_ENVIRONMENT } from './environment.ts'
 import { UsageError } from './errors.ts'
 import { fallbackHint } from './gateway/resolve.ts'
@@ -16,6 +17,7 @@ import { majorityOf } from './options.ts'
 import type { Prices } from './prices.ts'
 import { providerLimit, sandboxKind } from './sandbox/kinds.ts'
 import { COMPARE_RUNS, PAIRED_MIN } from './stats.ts'
+import { blocks, DEFAULT_TARGET, targetLabel } from './target.ts'
 import { clip, formatDuration, plural } from './text.ts'
 import type {
   Budget,
@@ -38,6 +40,7 @@ import type {
   Revision,
   SandboxDescriptor,
   SandboxWarning,
+  Target,
 } from './types.ts'
 import type { RunHeader } from './ui/events.ts'
 import { EFFORT_MIN_RUNS } from './view/effort.ts'
@@ -85,7 +88,7 @@ export type RunPlan = {
   warnings: string[]
   /** One per level whose sandbox runs as root, with capabilities added back or with host devices. */
   sandboxWarnings: SandboxWarning[]
-  /** Advice that doesn't stop the run, e.g. about the default gate. */
+  /** Advice that doesn't stop the run, e.g. that an eval can't fail CI. */
   hints: string[]
   sandboxes: SandboxDescriptor[]
   /** The harnesses the planned attempts run on, for their credentials. */
@@ -179,7 +182,6 @@ export async function buildPlan(options: {
       harnesses: Set<string>
       variants: Set<string>
       n: number
-      gated: boolean
       controls: Set<string>
       variantSides: Set<string>
     }
@@ -229,12 +231,10 @@ export async function buildPlan(options: {
       harnesses: new Set(),
       variants: new Set(),
       n: 0,
-      gated: false,
       controls: new Set(),
       variantSides: new Set(),
     }
     row.harnesses.add(attempt.cell.harness)
-    if (attempt.gate !== 'none') row.gated = true
     if (attempt.cell.variant !== undefined) row.variants.add(attempt.cell.variant)
     const side = `${attempt.cell.harness}\0${attempt.cell.sandbox}`
     if (attempt.cell.role === 'control') row.controls.add(side)
@@ -292,7 +292,7 @@ export async function buildPlan(options: {
       (a, b) => Number(a.kind !== 'root') - Number(b.kind !== 'root'),
     ),
     hints: [
-      ...gateHint(units.filter((u) => u.some((r) => counted.get(r.id)?.gated))),
+      ...targetHint(units),
       ...verdictHint([...rows.values()].filter(lifted)),
       ...familyHints([...rows.values()].filter(lifted)),
       ...gatewayHints(planned),
@@ -398,17 +398,17 @@ function evalUnits(rows: PlanRow[]): PlanRow[][] {
   return [...units.values()]
 }
 
-/**
- * One line when evals run several times under the default gate, which every attempt must pass.
- * `units` are the evals with a gated cell; a study whose cells are all `'none'` has none.
- */
-function gateHint(units: PlanRow[][]): string[] {
-  const n = units.filter((u) =>
-    u.some((r) => !r.plan.skip && r.plan.runs > 1 && r.plan.gate === undefined),
-  ).length
+/** One line in CI when evals run whose target can't fail the run, so a miss can't fail CI. */
+function targetHint(units: PlanRow[][]): string[] {
+  if (!inCI()) return []
+  const ids = units
+    .filter((u) => u.some((r) => !r.plan.skip && !blocks(r.plan.target)))
+    .map(([r]) => clip(r?.family?.id ?? r?.id ?? '', 64))
+  const n = ids.length
   if (n === 0) return []
+  const named = n > 3 ? `${ids.slice(0, 3).join(', ')} and ${n - 3} more` : ids.join(', ')
   return [
-    `${plural(n, 'eval')} ${n === 1 ? 'runs' : 'run'} more than once with the default gate, so every attempt must pass (pass^k); set gate: { passRate: 0.8 } to gate on pass@1 instead`,
+    `${plural(n, 'eval')} can't fail CI (${named}): ${n === 1 ? 'its target only reports' : 'their targets only report'}; set target: regression() (or metric(0.8), capability(1, { blocking: true })) in the eval or the config to fail on a miss`,
   ]
 }
 
@@ -579,7 +579,7 @@ function bestOfRange(p: EvalPlan, attempts: number): string {
  * with cases is one row, its cases counted in its notes.
  */
 export function planTable(plan: RunPlan, todos: readonly string[] = []): string[] {
-  const header = ['eval', 'agents', 'variants', 'runs', 'attempts', 'notes']
+  const header = ['eval', 'agents', 'variants', 'runs', 'attempts', 'target', 'notes']
   const egress = egressByEnvironment(plan.rows.filter((m) => !m.plan.skip))
   const groups = evalUnits(plan.rows).map((members) => ({
     id: (members[0] as PlanRow).family?.id ?? (members[0] as PlanRow).id,
@@ -596,8 +596,8 @@ export function planTable(plan: RunPlan, todos: readonly string[] = []): string[
     const decides =
       p.variants !== null
         ? ' · paired lift'
-        : typeof p.gate === 'object'
-          ? ' · pass rate over the cases'
+        : p.target?.kind === 'metric' && p.target.threshold !== undefined
+          ? ' · mean score over the cases'
           : ''
     const pooled = family && family.cases >= 2 ? [`${ran} cases${decides}`] : []
     return [
@@ -610,6 +610,7 @@ export function planTable(plan: RunPlan, todos: readonly string[] = []): string[
           : `${p.variants.run} of ${p.variants.of}`,
       p.bestOf !== undefined ? `best of ${p.bestOf}` : String(p.runs),
       bestOfRange(p, family ? attempts : p.attempts),
+      targetLabel(p.target ?? DEFAULT_TARGET),
       [
         live.length === 0 && p.skip ? `skipped: ${p.skip}` : '',
         ...pooled,
@@ -622,7 +623,7 @@ export function planTable(plan: RunPlan, todos: readonly string[] = []): string[
         .join(' · '),
     ]
   })
-  for (const id of todos) rows.push([clip(id, 64), '—', '—', '0', '0', 'todo'])
+  for (const id of todos) rows.push([clip(id, 64), '—', '—', '0', '0', '—', 'todo'])
   const widths = header.map((h, i) => Math.max(h.length, ...rows.map((r) => (r[i] ?? '').length)))
   const line = (cols: string[]) =>
     cols
@@ -734,6 +735,8 @@ export type PlanEval = {
   revision?: Revision
   /** Why the eval doesn't run at all, else null. */
   skip: string | null
+  /** What passes it, and whether a miss fails the run. */
+  target: Target
   notes: string[]
   cells: PlanCell[]
   /** Its questions: pairwise ones answered after the run, the rest after each attempt; unset without any. */
@@ -902,6 +905,7 @@ export function planDocument(
         tags: attempt.tags,
         ...(attempt.revision !== undefined ? { revision: attempt.revision } : {}),
         skip: attempt.plan.skip ?? null,
+        target: attempt.plan.target ?? DEFAULT_TARGET,
         notes: attempt.plan.notes,
         cells: [],
         ...(questions.length ? { questions } : {}),

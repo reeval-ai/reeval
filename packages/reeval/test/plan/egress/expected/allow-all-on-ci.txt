@@ -1,5 +1,5 @@
 no profile · 1 evals · 1 cells · 1 attempts
-the-default-sends-everything-through-the-gateway  fake/-/docker  control  gated  ×1
+the-default-sends-everything-through-the-gateway  fake/-/docker  control  ungated  ×1
 excluded: —
 image docker · cursor · 1 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

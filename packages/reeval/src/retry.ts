@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { PlannedItem } from './engine/types.ts'
 import { evalFile, sourcesPart } from './eval-source.ts'
-import { gatewayPart, harnessPart } from './history/assemble.ts'
+import { gatewayPart, harnessPart, thresholdPart } from './history/assemble.ts'
 import type { FingerprintParts, RunRecord } from './history/types.ts'
 import { recordFileName } from './ids.ts'
 import type { EvalRecord, Outcome } from './types.ts'
@@ -15,6 +15,7 @@ const PARTS: Array<[keyof FingerprintParts, string]> = [
   ['harness', 'harness'],
   ['gateway', 'gateway'],
   ['gate', 'gate'],
+  ['threshold', 'target threshold'],
   ['judge', 'judge'],
 ]
 
@@ -58,6 +59,7 @@ export async function retryChanges(
       harness: harnessPart(attempt.harness),
       ...gatewayPart(attempt.gateway),
       ...gatePart(attempt.gate),
+      ...thresholdPart(attempt.target),
       judge: judge.part,
     }
     for (const [part, name] of PARTS) {

@@ -1,4 +1,4 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 
 const target = `http://${process.env.REEVAL_EGRESS_TARGET}/`
@@ -8,6 +8,7 @@ const askHostDns = `const r = new (require('dns').promises.Resolver)({ timeout: 
 
 // Docker only: the fake sandbox can't enforce a policy, so reeval run would exit 2.
 export default defineConfig({
+  target: regression(),
   // As the agent: reach the host's listener directly, around the proxy, resolve a name in the
   // sandbox (through its own resolver, or else from the host's DNS server), then reach the
   // listener through the proxy.

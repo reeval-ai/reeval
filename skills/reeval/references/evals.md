@@ -2,13 +2,13 @@
 
 ## Contents
 
-- Cases: `cases`, `where`, and `gate: 'observe'`
+- Cases: `cases`, `where`, and `target`
 - The attempt: `c.send`, `c.exec`, `c.serve`, files
 - The judge: inputs, input size, errors
 - Trustworthy evals
 - Matchers
 
-## Cases: `cases`, `where`, and `gate: 'observe'`
+## Cases: `cases`, `where`, and `target`
 
 - ``export default defineEval({ …, task })`; `skip: true` or `skip: 'reason'` (no `.only`/`.todo` in TypeScript)
   (an error in CI), `.todo`. The eval id is the file path under the eval root without `.eval.ts`; renaming an eval restarts its history.
@@ -18,8 +18,8 @@
   `runs: 1` can reach a lift verdict where each case alone is within noise. Fewer than six
   discordant cases shows only a direction (`insufficient` in `reeval query case_lift`), so
   aim for six cases or more; the plan hints when there are fewer. No `runs: { bestOf }` beside it.
-  `gate: { passRate }` gates each cell's rate over the cases (the mean of each case's pass@1), so
-  one failing case of three passes `passRate: 0.6`; under `'all'` every case must pass, so a
+  `target: metric(threshold)` gates each cell's rate over the cases (the mean of each case's mean score), so
+  one failing case of three passes `metric(0.6)`; under `regression()` every case must pass, so a
   failing case fails the eval. It is one eval: one row in `--dry-run` and the run output (a
   case table under it when it fails, or with `-v`), one entry in the record with its cases
   inside, counted once in the tally. The failing case still records `fail`.
@@ -41,10 +41,11 @@
   `limit: { traits: { stack: ['next', 'vite'] } }`. Both narrow after `where`, by the control's
   traits under `compare`, and `--dry-run` notes `--trait stack=next leaves out vite-app`. Never
   read a flag or a variable in `where` to do this.
-- `defineEval({ gate: 'observe', task })` records what agents do (with `c.observe` and
-  checks) and fails only on run or infra errors. Its block reads `ran`. `compare.minLift` and
-  `runs: { bestOf }` are errors beside it; `compare: { gate: 'observe' }` ungates a compare's cells.
-  Any gate but `'all'`, `{ passRate }` or `'observe'` is an error.
+- `defineEval({ task })` with the default `target: metric()` records what agents do (with
+  `c.observe` and checks) and fails only on run or infra errors. Its block reads `ran`.
+  `compare.minLift` is an error beside it. `metric(0.8)` gates the mean score, `regression(0.8)`
+  every attempt (pass^k) and `capability(1, { blocking: true })` one attempt (pass@k); without
+  `blocking`, a capability miss doesn't fail the run. A compare's target gates its variants only.
   A comment on an eval describes the current check (why a canary fails, which path it reads),
   not what used to be true or which product a prompt was ported from.
 
@@ -170,7 +171,7 @@ npx reeval run --profile canary           # the checks you meant fail, exit 1
   oracle, with its key, to check that a question passes good work.
 - `fakeSandbox()` isn't the oracle's sandbox: it runs on the host, brokers nothing and enforces no
   egress. It's for trying reeval and testing configs without Docker.
-- An eval that sets its own `agents` and `pin: ['agents']` keeps it (the plan notes `agents set by the eval`), and an ungated cell's (`compare: { gate: 'observe' }`, a control's) failed checks don't change the
+- An eval that sets its own `agents` and `pin: ['agents']` keeps it (the plan notes `agents set by the eval`), and an ungated cell's (a `metric()` eval's, a control's) failed checks don't change the
   exit code: its row in the result block shows its count (`plain  0 of 4`).
 
 Keep grading out of the

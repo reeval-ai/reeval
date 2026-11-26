@@ -1,9 +1,10 @@
-import { defineConfig, defineEnvironment } from 'reeval'
+import { defineConfig, defineEnvironment, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeJudge } from 'reeval/judge'
 import { fakeSandbox } from 'reeval/sandbox'
 
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({ script: [[{ reply: 'hi' }]] }),
   sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }),
   environments: defineEnvironment('fake', ({ skill, secret }) => ({

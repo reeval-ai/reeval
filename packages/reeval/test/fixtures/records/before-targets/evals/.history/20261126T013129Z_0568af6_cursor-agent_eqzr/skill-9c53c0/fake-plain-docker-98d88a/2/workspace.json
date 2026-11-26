@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    {
+      "path": "greet.js",
+      "sha256": "d695f68b4619fb48c0a6d8e5ab3139c54fe0a68c39fada13897064740dfefdda",
+      "bytes": 54
+    },
+    {
+      "path": "package.json",
+      "sha256": "5a065fe7d8eab2a582f428e11c2ea63aaf70607a54f69cfd5c711b5c53d91b32",
+      "bytes": 21
+    }
+  ]
+}

@@ -65,7 +65,7 @@ reeval: this run plans 20 attempts, over budget.attempts 10 (reeval.config.ts). 
 
 | File | What it is |
 |---|---|
-| [`with-budget.eval.ts`](./with-budget.eval.ts) | The eval: one prompt, two checks, three runs and a pass-rate gate |
+| [`with-budget.eval.ts`](./with-budget.eval.ts) | The eval: one prompt, two checks, three runs and a mean-score target |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The slow fake agent, the budget, and the real agents from `../profiles.ts` |

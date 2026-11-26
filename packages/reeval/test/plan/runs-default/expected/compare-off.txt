@@ -1,12 +1,11 @@
 profile off (--profile) · 5 evals · 5 cells · 7 attempts
-hint: 1 eval runs more than once with the default gate, so every attempt must pass (pass^k); set gate: { passRate: 0.8 } to gate on pass@1 instead
-compare-cases   a/base/docker  control  gated  ×2  2 cases · compare off (profile off)
+compare-cases   a/base/docker  control  ungated  ×2  2 cases · compare off (profile off)
                 case a         a/base/docker ×1
                 case b         a/base/docker ×1
-compare-runs-1  a/base/docker  control  gated  ×1  compare off (profile off)
-compare-runs-2  a/base/docker  control  gated  ×2  compare off (profile off)
-compare         a/base/docker  control  gated  ×1  compare off (profile off)
-no-compare      a/base/docker  control  gated  ×1
+compare-runs-1  a/base/docker  control  ungated  ×1  compare off (profile off)
+compare-runs-2  a/base/docker  control  ungated  ×2  compare off (profile off)
+compare         a/base/docker  control  ungated  ×1  compare off (profile off)
+no-compare      a/base/docker  control  ungated  ×1
 excluded: —
 image docker · cursor · 5 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

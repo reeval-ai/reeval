@@ -1,4 +1,4 @@
-import { defineConfig, defineEnvironment } from 'reeval'
+import { defineConfig, defineEnvironment, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { docker, fakeSandbox } from 'reeval/sandbox'
 
@@ -11,6 +11,7 @@ const sandbox =
     : fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) })
 
 export default defineConfig(({ file }) => ({
+  target: regression(),
   agents: fakeAgent({}),
   environments: defineEnvironment('found', {
     sandbox,

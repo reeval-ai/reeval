@@ -71,7 +71,6 @@ import {
   egressSchema,
   envValueSchema,
   envVarsSchema,
-  gatePolicySchema,
   gitWorkspaceSchema,
   hostFileSchema,
   mcpServerSchema,
@@ -84,6 +83,7 @@ import {
   skillPlacementSchema,
   skillSourceSchema,
   substituteInSchema,
+  targetSchema,
 } from './plain.ts'
 import {
   pairFactorPersistedSchema,
@@ -134,7 +134,7 @@ export const CONTRACT_SCHEMAS: Record<string, z.ZodType> = {
   Question: questionSchema,
   QuestionOptions: questionOptionsSchema,
   PairFactor: pairFactorPersistedSchema,
-  GatePolicy: gatePolicySchema,
+  Target: targetSchema,
   EgressPolicy: egressPolicySchema,
   PhasedEgress: phasedEgressSchema,
   Egress: egressSchema,

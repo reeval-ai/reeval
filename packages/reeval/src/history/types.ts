@@ -35,6 +35,7 @@ import type {
   Snapshot,
   StartRetry,
   SubagentUsage,
+  Target,
   TimeSplit,
   TokenUsage,
   TurnStatus,
@@ -621,9 +622,24 @@ export type AttemptRecord = {
   /**
    * In [0, 1]: the scored grades' mean, weighted by `weight`; 0 when the task threw, an `expect`
    * failed or a required grader scored under 1; 1 when the task returned and nothing scored.
-   * `outcome` is `pass` only at 1. Unset on a timeout, a cancel or an infra error.
+   * `outcome` is `pass` when it reaches the eval's target's threshold (1 without one). Unset on a
+   * timeout, a cancel or an infra error. Records from before it read 1 for a pass, 0 for a fail.
    */
   score?: number
+}
+
+/**
+ * How a cell's or an eval's counted attempts scored, each null when none counted. With `cases`,
+ * a cell's are the means of its cases', and an eval's are the means of its target's cells' (the
+ * variants on a compare, else every cell).
+ */
+export type ScoreSummary = {
+  /** The attempts' mean score. */
+  meanScore: number | null
+  /** pass@k: 1 when an attempt passed, else 0. */
+  passAtK: number | null
+  /** pass^k: 1 when every attempt passed, else 0. */
+  passHatK: number | null
 }
 
 export type EvalEntry = {
@@ -667,6 +683,13 @@ export type EvalEntry = {
   verdict?: 'family'
   /** A placeholder (Python's `evaluate.todo` or `group.todo`): it never runs, and its outcome is `skipped`. */
   todo: boolean
+  /**
+   * What decides `outcome`; in records from before targets, read from the cells' gates (`all` is
+   * `regression()`, `{ passRate }` is `metric(passRate)`, none is `metric()`).
+   */
+  target?: Target
+  /** Over the target's cells; filled from `pass` and `fail` in records from before it. */
+  scores?: ScoreSummary
   /**
    * Declared not to run: `skip` on its `defineEval`, or in Python `evaluate.skip`, inside a
    * `group.skip`, or left out by an `.only` in its file. Its outcome is `skipped`. Unset otherwise, so in a run that isn't `complete` a skipped
@@ -729,11 +752,11 @@ export type CaseRecord = {
   /** `EvalEntry.source.case`: the hash of the case's data. */
   hash?: string
   /**
-   * What the case did, over its own cells by each cell's gate. Under a `gate: { passRate }`, the
+   * What the case did, over its own cells by each cell's gate. Under a `{ passRate }` gate, the
    * eval's cell gates on the mean over the cases, so `verdict` says this outcome decides nothing.
    */
   outcome: Outcome
-  /** `family` when a cell's `gate: { passRate }` gates the mean over the cases, not this case. */
+  /** `family` when a cell's `{ passRate }` gate gates the mean over the cases, not this case. */
   verdict?: 'family'
   /** pass@1 over its gated cells' attempts. */
   passRate: number | null
@@ -753,13 +776,13 @@ export type FamilyInterval = {
   level: 0.95
   /**
    * `wilson` or `newcombe-paired`: one counted attempt a case and side, so each case is one
-   * Bernoulli trial (or pair). `t-cases`: several, so a t interval over the cases' pass@1, with
+   * Bernoulli trial (or pair). `t-cases`: several, so a t interval over the cases' mean scores, with
    * attempts within a case never counted as independent.
    */
   method: 'wilson' | 'newcombe-paired' | 't-cases'
 }
 
-/** One cell's pass@1 over an eval's cases. */
+/** One cell's mean score over an eval's cases. */
 export type FamilyRate = {
   /** The cell's key, the same in every case. */
   cell: string
@@ -768,16 +791,16 @@ export type FamilyRate = {
   /** Passes and counted attempts over those cases. */
   pass: number
   counted: number
-  /** The mean of the cases' pass@1; at one attempt a case, `pass / counted`. */
+  /** The mean of the cases' mean scores; at one pass/fail attempt a case, `pass / counted`. */
   rate: number
   interval: FamilyInterval
-  /** The cell's `gate: { passRate }`: with cases it gates `rate`, not each case's pass@1. */
+  /** The cell's `{ passRate }` gate: with cases it gates `rate`, not each case's score. */
   passRate?: number
   /** Set with `passRate`: `fail` when `rate` is below it. */
   outcome?: 'pass' | 'fail'
 }
 
-/** A cell's pass@1 over an eval's cases. */
+/** A cell's mean score over an eval's cases. */
 export type CellRate = Omit<FamilyRate, 'cell'>
 
 /**
@@ -817,7 +840,7 @@ export type FamilyLift = {
   vs: string
   /** Cases with counted attempts on both sides. */
   pairs: number
-  /** Mean pass@1 over the paired cases on each side. */
+  /** The mean of the paired cases' mean scores on each side. */
   variantRate: number
   controlRate: number
   /** Set at one attempt a case and side: pairs where only one side passed. */
@@ -867,19 +890,19 @@ export type FamilyRecord = {
   excluded?: ExcludedPair[]
   /**
    * `fail` when a lift is below its `minLift` or a rate below its `passRate`. A case still fails
-   * on its own under `gate: 'all'`.
+   * on its own under an `all` gate.
    */
   outcome: 'pass' | 'fail'
 }
 
-/** A variant cell's pass@1 against the control's, on the same harness and sandbox. */
+/** A variant cell's mean score against the control's, on the same harness and sandbox. */
 export type Lift = {
   /** The control cell's key. */
   vs: string
   /** Passes out of counted attempts (passes and fails) on each side. */
   control: { pass: number; counted: number }
   variant: { pass: number; counted: number }
-  /** Variant pass@1 minus control pass@1, from -1 to 1. */
+  /** The variant's mean score minus the control's, from -1 to 1. */
   points: number
   /** 95% interval on the difference, by Newcombe's hybrid score method from two Wilson intervals. */
   interval: { lo: number; hi: number; level: 0.95; method: 'newcombe-wilson' }
@@ -910,6 +933,11 @@ export type FingerprintParts = {
    * in it as a policy change, not a reason the runs can't be compared.
    */
   gate?: string
+  /**
+   * The score each attempt passes at under a `regression()` or `capability()` target; unset at 1
+   * and under `metric()`, whose threshold is its gate's.
+   */
+  threshold?: string
 }
 
 /** One harness and environment of an evaluation, and how its attempts went. */
@@ -936,7 +964,7 @@ export type CellRecord = Cell & {
    * own default. Fast is not this.
    */
   effort: string | null
-  /** How the attempts decide the cell's outcome; `'none'` when it doesn't fail the evaluation. */
+  /** How the attempts decide the cell's outcome; `'none'` when they don't fail the run. */
   gate: CellGate
   /** Environment keys the variant replaced on the control's (or a child on its parent's). */
   overrides: string[]
@@ -954,17 +982,20 @@ export type CellRecord = Cell & {
   skipped: number
   /** pass@1: pass / (pass + fail); infra errors and skips excluded. */
   passRate: number | null
+  /** Filled from `pass` and `fail` in records from before it. */
+  scores?: ScoreSummary
   /**
-   * By `gate`. `'all'` (pass^k: every counted attempt passes) matches `{ passRate: 1 }`;
-   * `{ passRate }` is a pass@1 threshold. Infra only when nothing counted; `'none'`
-   * reports the worst outcome. A variant below its `minLift` fails too.
+   * By `gate`. `'all'` (pass^k: every counted attempt passes) matches `{ passRate: 1 }`, `'any'`
+   * is pass@k, and `{ passRate }` a mean score threshold (a pass@1 one under `bestOf`). Infra
+   * only when nothing counted; `'none'` reports the worst outcome. A variant below its `minLift`
+   * fails too.
    */
   outcome: Outcome
   /** Unset on an eval with several `cases`, whose variants have `EvalEntry.lifts`. */
   lift?: Lift
   /**
-   * On an eval with several `cases`: the cell's pass@1 over them. A `gate: { passRate }` gates
-   * `rate.rate`, the mean of the cases' pass@1, and sets `rate.outcome`.
+   * On an eval with several `cases`: the cell's mean score over them. A `{ passRate }` gate gates
+   * `rate.rate`, the mean of the cases' mean scores, and sets `rate.outcome`.
    */
   rate?: CellRate
   /**
@@ -1285,7 +1316,9 @@ export type HistoryCell = Pick<
   | 'infraError'
   | 'skipped'
   | 'passRate'
+  | 'scores'
   | 'outcome'
+  | 'bestOf'
 > & {
   lift?: { vs: string; points: number; lo: number; hi: number; withinNoise: boolean }
   /** Median tool calls, agent time and tokens over the counted attempts; null when none counted. */
@@ -1373,6 +1406,8 @@ export type HistoryEntry = {
     revision?: EvalEntry['revision']
     outcome: Outcome
     passRate: number | null
+    target?: Target
+    scores?: ScoreSummary
     cells: HistoryCell[]
     /** An eval with `cases`: each case that ran, with its own cells; unset without cases. */
     cases?: HistoryCase[]
@@ -1380,7 +1415,7 @@ export type HistoryEntry = {
     caseCount?: number
     /** With `cases` and `compare`: each variant's lift paired by case. */
     lifts?: FamilyLiftSummary[]
-    /** With `cases`: its cells' rates over the cases that a `gate: { passRate }` gates; unset when none. */
+    /** With `cases`: its cells' rates over the cases that a `{ passRate }` gate gates; unset when none. */
     rates?: Array<
       Pick<FamilyRate, 'cell' | 'rate'> & Required<Pick<FamilyRate, 'passRate' | 'outcome'>>
     >

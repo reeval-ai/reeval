@@ -2620,23 +2620,6 @@
             }
           ]
         },
-        "gate": {
-          "description": "How each cell's attempts decide its outcome.",
-          "anyOf": [
-            {
-              "enum": ["all", "observe"]
-            },
-            {
-              "type": "object",
-              "properties": {
-                "passRate": {
-                  "type": "number"
-                }
-              },
-              "required": ["passRate"]
-            }
-          ]
-        },
         "graders": {
           "description": "`reeval/graders`' built-ins every eval grades with, their options data: merged by name over the config's, and under each eval's own.",
           "type": "array",
@@ -2704,6 +2687,54 @@
             },
             {
               "type": "boolean"
+            }
+          ]
+        },
+        "target": {
+          "description": "Whether each eval passes and can fail the run, over its attempts' scores.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "blocking": {
+                  "description": "Whether a miss fails the run.",
+                  "type": "boolean"
+                },
+                "kind": {
+                  "const": "capability"
+                },
+                "threshold": {
+                  "description": "The score, from 0 to 1, one attempt must reach.",
+                  "type": "number"
+                }
+              },
+              "required": ["blocking", "kind", "threshold"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "metric"
+                },
+                "threshold": {
+                  "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
+                  "type": "number"
+                }
+              },
+              "required": ["kind"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "regression"
+                },
+                "threshold": {
+                  "description": "The score, from 0 to 1, every attempt must reach.",
+                  "type": "number"
+                }
+              },
+              "required": ["kind", "threshold"]
             }
           ]
         },
@@ -2932,23 +2963,6 @@
           "description": "The config file as typed from the current directory, or `reeval.config.ts` without one.",
           "type": "string"
         },
-        "gate": {
-          "description": "Unset means `'all'`; kept unset so the plan can hint when `runs > 1`.",
-          "anyOf": [
-            {
-              "enum": ["all", "observe"]
-            },
-            {
-              "type": "object",
-              "properties": {
-                "passRate": {
-                  "type": "number"
-                }
-              },
-              "required": ["passRate"]
-            }
-          ]
-        },
         "gateway": {
           "description": "The `gateway` list, in preference order, with `direct()` at the end unless it's listed elsewhere or turned off; `[direct()]` when the config sets none.",
           "type": "array",
@@ -3174,6 +3188,54 @@
         "snapshot": {
           "$ref": "#/$defs/ResolvedSnapshot"
         },
+        "target": {
+          "description": "Unset means `metric()`.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "blocking": {
+                  "description": "Whether a miss fails the run.",
+                  "type": "boolean"
+                },
+                "kind": {
+                  "const": "capability"
+                },
+                "threshold": {
+                  "description": "The score, from 0 to 1, one attempt must reach.",
+                  "type": "number"
+                }
+              },
+              "required": ["blocking", "kind", "threshold"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "metric"
+                },
+                "threshold": {
+                  "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
+                  "type": "number"
+                }
+              },
+              "required": ["kind"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "regression"
+                },
+                "threshold": {
+                  "description": "The score, from 0 to 1, every attempt must reach.",
+                  "type": "number"
+                }
+              },
+              "required": ["kind", "threshold"]
+            }
+          ]
+        },
         "timeoutMs": {
           "type": "number"
         }
@@ -3191,7 +3253,6 @@
         "environments",
         "exports",
         "file",
-        "gate",
         "gateway",
         "gatewaySet",
         "harness",
@@ -3207,6 +3268,7 @@
         "sandbox",
         "secrets",
         "snapshot",
+        "target",
         "timeoutMs"
       ]
     },

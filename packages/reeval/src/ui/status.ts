@@ -14,7 +14,7 @@
 //   each cell's difference and 95% interval follows its row.
 // - An eval with `cases` is one row, `· 3 cases` after its count. Without compare its outcome
 //   sentence names the cases that failed (`Failed on power; 2 of 3 cases passed.`, the first
-//   eight, then `and N more`). Under `gate: { passRate }` each gated cell's rate over the cases
+//   eight, then `and N more`). Under a `{ passRate }` gate each gated cell's rate over the cases
 //   follows: `Pass rate over the cases: 67%, below passRate 0.7.` (`on <cell>` when several are
 //   gated). Then a case table: a row per case marked with its outcome, a column per cell (the
 //   control first) with its passes, `–` where `where` left it out; past eight cases only the failed

@@ -107,10 +107,10 @@ export default defineEval({
   test('an eval with cases is one eval_trend row, its cases in cases with verdict family', async () => {
     const p = await project('query-trend-verdict', {
       'reeval.config.ts': fakeConfig(),
-      'evals/rated.eval.ts': `import { defineEval, expect } from 'reeval'
+      'evals/rated.eval.ts': `import { defineEval, expect, metric } from 'reeval'
 export default defineEval({
   cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }],
-  gate: { passRate: 0.6 },
+  target: metric(0.6),
   async task(_c, { key: k }) {
     expect(k, 'not c').not.toBe('c')
   },
@@ -1079,11 +1079,11 @@ export default defineEval({
       }),
       'evals/helpers.ts': "export const prompt = 'go'\n",
       'evals/unrelated.ts': 'export const x = 1\n',
-      'evals/flaky.eval.ts': `import { defineEval } from 'reeval'
+      'evals/flaky.eval.ts': `import { defineEval, metric } from 'reeval'
 import { prompt } from './helpers.ts'
 export default defineEval({
   runs: 3,
-  gate: { passRate: 0.5 },
+  target: metric(0.5),
   async task(c) {
     await c.send(prompt)
     if (c.attempt.n === 2) throw new Error('the second attempt fails')

@@ -1,10 +1,11 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 
 // REEVAL_FIXTURE_SANDBOX picks the tier: the fake sandbox (F) by default, or docker (D). The fake
 // agent takes fx's layout (and image), so no key is needed. As the agent: follow the plugin's skill
 // among fx's own skills, in its private home, where the session placed it.
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({
     layout: 'fx',
     script: [

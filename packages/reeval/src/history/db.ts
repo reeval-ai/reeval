@@ -8,6 +8,7 @@ import { pairTallies } from '../compare/pairs.ts'
 import { UsageError } from '../errors.ts'
 import { RUN_ID, relativeFile, sha256 } from '../ids.ts'
 import { BUILD_ID, ownRequire } from '../root.ts'
+import { targetLabel } from '../target.ts'
 import type { JSONValue } from '../types.ts'
 import { classifyAttempt, declaredContext, isRuntimeState } from '../view/classify.ts'
 import { filesChanged } from '../view/effort.ts'
@@ -71,7 +72,7 @@ CREATE TABLE runs (
 CREATE TABLE evals (
   run_id TEXT NOT NULL, key TEXT NOT NULL, id TEXT, slug TEXT, file TEXT, groups TEXT, name TEXT,
   tags TEXT, fingerprint TEXT, outcome TEXT, pass_at_1 REAL, sources TEXT, cases INTEGER,
-  declared TEXT,
+  declared TEXT, target TEXT, mean_score REAL, pass_at_k REAL, pass_hat_k REAL,
   PRIMARY KEY (run_id, key)
 );
 -- Each case of an eval with cases per run. verdict 'family': the case's outcome is its own, and
@@ -156,6 +157,7 @@ CREATE TABLE cells (
   runs INTEGER, pass INTEGER, fail INTEGER, infra_error INTEGER, skipped INTEGER, pass_at_1 REAL,
   outcome TEXT, lift_vs TEXT, lift_points REAL, lift_lo REAL, lift_hi REAL, within_noise INTEGER,
   min_lift REAL, comparable TEXT, cases INTEGER, rate_lo REAL, rate_hi REAL, rate_method TEXT,
+  mean_score REAL, pass_at_k REAL, pass_hat_k REAL,
   PRIMARY KEY (run_id, eval_key, key)
 );
 CREATE TABLE attempts (
@@ -171,7 +173,7 @@ CREATE TABLE attempts (
   machine_memory_bytes INTEGER, cpu_seconds REAL, avg_cores REAL, peak_cores REAL,
   peak_memory_bytes INTEGER, disk_read_bytes INTEGER, disk_write_bytes INTEGER, p95_cores REAL,
   cgroup_peak_memory_bytes INTEGER, cpu_periods INTEGER, throttled_periods INTEGER,
-  throttled_seconds REAL, llm_calls INTEGER, reason TEXT,
+  throttled_seconds REAL, llm_calls INTEGER, reason TEXT, score REAL,
   PRIMARY KEY (run_id, key)
 );
 CREATE TABLE judgements (
@@ -270,12 +272,13 @@ CREATE INDEX attempts_by_cell ON attempts (run_id, eval_key, cell_key);
 
 /** Canned questions about the history, as views to filter. */
 const VIEWS = `
--- Variant against control, per agent, per run.
+-- Variant against control, per agent, per run; points is the difference in mean score.
 CREATE VIEW lift AS
   SELECT c.run_id, r.started_at, r.branch, c.eval_key, c.agent, c.model, c.variant,
     c.lift_vs AS control, c.pass AS variant_pass, c.pass + c.fail AS variant_counted,
     k.pass AS control_pass, k.pass + k.fail AS control_counted, c.pass_at_1 AS variant_pass_at_1,
-    k.pass_at_1 AS control_pass_at_1, c.lift_points AS points,
+    k.pass_at_1 AS control_pass_at_1, c.mean_score AS variant_mean_score,
+    k.mean_score AS control_mean_score, c.lift_points AS points,
     c.lift_lo AS lo, c.lift_hi AS hi, c.within_noise, c.min_lift, c.outcome, c.fingerprint
   FROM cells c JOIN runs r USING (run_id)
   JOIN cells k ON k.run_id = c.run_id AND k.eval_key = c.eval_key AND k.key = c.lift_vs
@@ -410,7 +413,7 @@ CREATE VIEW skill_files AS
 -- message) and the label of the first check that failed.
 CREATE VIEW failing_attempts AS
   SELECT a.run_id, r.started_at, a.eval_key, a.key AS attempt_key, a.cell_key, c.agent,
-    c.model, c.environment, s.name AS skill, a.outcome, a.error_kind, a.error_message,
+    c.model, c.environment, s.name AS skill, a.outcome, a.score, a.error_kind, a.error_message,
     a.reason, a.duration_ms, a.oom_kills,
     (SELECT x.label FROM assertions x WHERE x.run_id = a.run_id AND x.attempt_key = a.key
       AND x.status = 'fail' ORDER BY x.seq LIMIT 1) AS first_failed_check
@@ -459,11 +462,11 @@ CREATE VIEW check_rates AS
   FROM cell_checks k
   JOIN cells c ON c.run_id = k.run_id AND c.eval_key = k.eval_key AND c.key = k.cell_key;
 
--- One eval per run: outcome and pass@1, with the branch and pull request. An eval with cases is
--- one row; its cases are in cases.
+-- One eval per run: outcome, target, pass@1, mean score, pass@k and pass^k (over the target's
+-- cells), with the branch and pull request. An eval with cases is one row; its cases are in cases.
 CREATE VIEW eval_trend AS
   SELECT e.eval_key, r.run_id, r.started_at, r.branch, r.pr_number, r.recorded, e.outcome,
-    e.cases, e.pass_at_1, e.fingerprint
+    e.cases, e.pass_at_1, e.fingerprint, e.target, e.mean_score, e.pass_at_k, e.pass_hat_k
   FROM (SELECT key AS eval_key, * FROM evals) e JOIN runs r USING (run_id);
 
 -- Each judge question's pass rate per cell per run, where it differs from that cell's last run.
@@ -595,7 +598,7 @@ function insertRun(
   for (const e of record.evals) {
     const cellEnv = new Map(e.cells.map((c) => [c.key, c.environmentDigest ?? '']))
     run(
-      `INSERT INTO evals VALUES (${Array(14).fill('?').join(', ')})`,
+      `INSERT INTO evals VALUES (${Array(18).fill('?').join(', ')})`,
       record.runId,
       e.key,
       e.id,
@@ -610,6 +613,10 @@ function insertRun(
       json(e.sources),
       e.caseCount ?? null,
       e.todo ? 'todo' : e.skip ? 'skip' : null,
+      e.target ? targetLabel(e.target) : null,
+      e.scores?.meanScore ?? null,
+      e.scores?.passAtK ?? null,
+      e.scores?.passHatK ?? null,
     )
     if ((e.caseCount ?? 0) < 2)
       for (const c of e.cells)
@@ -670,7 +677,7 @@ function insertRun(
     for (const c of e.cells) {
       const p = c.fingerprintParts
       run(
-        `INSERT INTO cells VALUES (${Array(33 + PART_KEYS.length)
+        `INSERT INTO cells VALUES (${Array(36 + PART_KEYS.length)
           .fill('?')
           .join(', ')})`,
         record.runId,
@@ -707,6 +714,9 @@ function insertRun(
         c.rate?.interval.lo ?? null,
         c.rate?.interval.hi ?? null,
         c.rate?.interval.method ?? null,
+        c.scores?.meanScore ?? null,
+        c.scores?.passAtK ?? null,
+        c.scores?.passHatK ?? null,
       )
       for (const k of c.checks ?? []) {
         run(
@@ -775,7 +785,7 @@ function insertRun(
     }
     for (const a of e.attempts) {
       run(
-        `INSERT INTO attempts VALUES (${Array(56).fill('?').join(', ')})`,
+        `INSERT INTO attempts VALUES (${Array(57).fill('?').join(', ')})`,
         record.runId,
         e.key,
         a.cell,
@@ -832,6 +842,7 @@ function insertRun(
         a.resources?.usage?.throttling?.throttledSeconds ?? null,
         a.activity.llmCalls,
         a.failure?.reason ?? null,
+        a.score ?? null,
       )
       const env = envOf.get(cellEnv.get(a.cell) ?? '')
       const skills = env?.skills.map((x) => x.name) ?? []

@@ -36,7 +36,8 @@ with-compare-agents.eval.ts › documents the new function  2          1        
 
 `pnpm reeval run --dry-run --json` lists the cells: `claude-code:claude-sonnet-5/math/docker`
 (the control), `claude-code:claude-sonnet-5/jsdoc/docker` (the variant) and
-`codex:gpt-5.6-luna/math/docker`, whose gate is `none`, so Codex never fails the run.
+`codex:gpt-5.6-luna/math/docker`. Every cell's gate is `none`: the default target, `metric()`,
+only reports.
 
 | File | What it is |
 |---|---|

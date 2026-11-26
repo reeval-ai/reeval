@@ -1111,12 +1111,32 @@
             "$ref": "#/$defs/QualitativeAnswers"
           }
         },
+        "scores": {
+          "description": "Over the target's cells (`EvalEntry.scores`), each `75%` or `n/a`; unset before them.",
+          "type": "object",
+          "properties": {
+            "meanScore": {
+              "$ref": "#/$defs/Figure"
+            },
+            "passAtK": {
+              "$ref": "#/$defs/Figure"
+            },
+            "passHatK": {
+              "$ref": "#/$defs/Figure"
+            }
+          },
+          "required": ["meanScore", "passAtK", "passHatK"]
+        },
         "shapes": {
           "type": "array",
           "items": {
             "type": "string",
             "enum": ["task", "ab", "discoverability", "regression"]
           }
+        },
+        "target": {
+          "description": "The eval's target as written, `regression(0.8)`; unset in reports built before targets.",
+          "type": "string"
         }
       },
       "required": [

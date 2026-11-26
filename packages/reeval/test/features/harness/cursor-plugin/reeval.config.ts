@@ -1,4 +1,4 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { cursor, fakeAgent } from 'reeval/agent'
 
 // REEVAL_FIXTURE_SANDBOX picks the tier: the fake sandbox (F) by default, or docker (D).
@@ -6,6 +6,7 @@ import { cursor, fakeAgent } from 'reeval/agent'
 // agent takes Cursor's layout: as the agent, run the session's hook from the workspace's
 // .cursor/hooks.json, then follow the unpacked rule.
 export default defineConfig({
+  target: regression(),
   agents:
     process.env.REEVAL_FIXTURE_HARNESS === 'cursor'
       ? cursor({ model: process.env.REEVAL_REAL_MODEL ?? 'composer-2.5' })

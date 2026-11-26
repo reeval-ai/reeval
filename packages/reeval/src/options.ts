@@ -8,7 +8,7 @@ import { compareProblem } from './contract/compare.ts'
 import { sandboxProblem } from './contract/docker.ts'
 import { harnessProblem } from './contract/harness.ts'
 import { judgeProblem } from './contract/judge.ts'
-import { gateProblem, snapshotProblem } from './contract/plain.ts'
+import { snapshotProblem, targetProblem } from './contract/plain.ts'
 import {
   isEvaluationModel,
   questionOptionsProblem,
@@ -55,11 +55,11 @@ import {
   sandboxKind,
 } from './sandbox/kinds.ts'
 import { COMPARE_RUNS } from './stats.ts'
+import { blocks, DEFAULT_TARGET, targetGate, targetLabel } from './target.ts'
 import type {
   CaptureOptions,
   Cell,
   CellGate,
-  CompareGate,
   ConfigJudgeOptions,
   Duration,
   Egress,
@@ -69,7 +69,6 @@ import type {
   EnvVars,
   EvalOptions,
   EvalPlan,
-  GatePolicy,
   HarnessDescriptor,
   HarnessEdit,
   JudgeOptions,
@@ -88,8 +87,8 @@ import type {
   SandboxDescriptor,
   SandboxWarning,
   SnapshotOption,
+  Target,
 } from './types.ts'
-import { gateLabel } from './view/gate.ts'
 
 /** Every eval/group option key `checkOptions` accepts. The feature matrix holds each to an inventory entry. */
 export const EVAL_OPTION_KEYS = [
@@ -98,7 +97,7 @@ export const EVAL_OPTION_KEYS = [
   'environments',
   'compare',
   'runs',
-  'gate',
+  'target',
   'env',
   'egress',
   'judge',
@@ -140,8 +139,7 @@ const SUGGEST: Record<string, string> = {
   pins: 'pin',
   workspace: 'snapshot',
   snapshots: 'snapshot',
-  passRate: 'gate',
-  threshold: 'gate',
+  threshold: 'target',
 }
 
 /**
@@ -157,9 +155,9 @@ export function mergeSnapshot(
   return { when: inner.when ?? outer.when, compress: inner.compress ?? outer.compress }
 }
 
-/** Throws unless `value` is `'all'`, `'observe'` or `{ passRate }` with a rate in (0, 1]. */
-export function checkGate(value: unknown, where: string): void {
-  const problem = gateProblem(value, where)
+/** Throws unless `value` is a target from `metric()`, `regression()` or `capability()`. */
+export function checkTarget(value: unknown, where: string): void {
+  const problem = targetProblem(value, where)
   if (problem) throw new UsageError(problem)
 }
 const PINNABLE: PinnableKey[] = ['agents', 'runs', 'compare']
@@ -276,12 +274,6 @@ function checkRuns(runs: unknown, where: string): void {
 export const runsOf = (runs: Runs): { runs: number; bestOf?: number } =>
   typeof runs === 'number' ? { runs } : { runs: runs.bestOf, bestOf: runs.bestOf }
 
-/**
- * A best-of cell's gate: half or more of its counted attempts pass, which is its majority once it
- * has one (an infra error counts on neither side).
- */
-export const MAJORITY_GATE: GatePolicy = { passRate: 0.5 }
-
 /** How many of a best-of cell's attempts always run: the majority. */
 export const majorityOf = (bestOf: number) => (bestOf + 1) / 2
 
@@ -305,7 +297,7 @@ export function checkOptions(options: object, where: string, allowed = KNOWN): v
   }
   const o = options as EvalOptions
   if (o.runs !== undefined) checkRuns(o.runs, where)
-  if (o.gate !== undefined) checkGate(o.gate, where)
+  if (o.target !== undefined) checkTarget(o.target, where)
   if (
     o.tags !== undefined &&
     (!Array.isArray(o.tags) || o.tags.some((t) => typeof t !== 'string'))
@@ -630,7 +622,6 @@ export type Level = { options: EvalOptions; where: string }
 export type NormalizedCompare = {
   control: Environment
   variants: Environment[]
-  gate: CompareGate
   minLift?: number
   /** Agent ids; unset means every agent the eval runs. */
   agents?: string[]
@@ -680,8 +671,8 @@ export type Resolved = {
   runs: number
   /** Set by `runs: { bestOf }`, which `runs` then equals. */
   bestOf: number | undefined
-  /** Unset means `'all'`. */
-  gate: GatePolicy | undefined
+  /** Unset means `metric()`. */
+  target: Target | undefined
   env: EnvVars
   /** From the config and profile defaults, under the environment; from groups and the eval, over it. */
   egress: { inherited?: Egress; own?: Egress }
@@ -706,7 +697,6 @@ function normalizeCompare(value: EvalOptions['compare']): NormalizedCompare | un
   return {
     control: value.control,
     variants: value.variants,
-    gate: value.gate ?? 'variants',
     ...(value.minLift !== undefined ? { minLift: value.minLift } : {}),
     ...(value.agents
       ? { agents: value.agents.map((h) => (typeof h === 'string' ? h : harnessId(h))) }
@@ -745,7 +735,7 @@ function applyLevel(
     out.runs = runs
     out.bestOf = bestOf
   }
-  if (options.gate !== undefined) out.gate = options.gate
+  if (options.target !== undefined) out.target = options.target
   if (options.timeout !== undefined) out.timeout = options.timeout
   out.snapshot = mergeSnapshot(out.snapshot, options.snapshot)
   if (options.revision !== undefined) out.revision = options.revision
@@ -988,22 +978,11 @@ export function cascade(
       `${where} compares environments, so it can't take runs: { bestOf: ${out.bestOf} }${set}: a lift needs the same number of attempts on each side, and best-of stops each cell on its own. Set a fixed count on it, e.g. runs: 4.`,
     )
   }
-  if (out.gate === 'observe' && out.compare?.minLift !== undefined && out.compare.variants.length) {
+  if (out.compare?.minLift !== undefined && out.compare.variants.length && !blocks(out.target)) {
+    const target = targetLabel(out.target ?? DEFAULT_TARGET)
     throw new UsageError(
-      `${where} has gate: 'observe', so its compare can't take minLift: ${out.compare.minLift}: minLift gates the lift, and nothing in it gates. Drop minLift, or gate the eval.`,
+      `${where} has target: ${target}, which can't fail the run, so its compare can't take minLift: ${out.compare.minLift}. Set a target that can, e.g. target: regression(), or drop minLift.`,
     )
-  }
-  if (out.gate === 'observe' && out.bestOf !== undefined) {
-    throw new UsageError(
-      `${where} has gate: 'observe', so it can't take runs: { bestOf: ${out.bestOf} }: best-of decides each cell by its majority. Set a fixed count, e.g. runs: 3.`,
-    )
-  }
-  if (out.bestOf !== undefined) {
-    // The majority decides a best-of cell, so no other gate can.
-    if (out.gate !== undefined && gateLabel(out.gate) !== gateLabel(MAJORITY_GATE)) {
-      notes.push(`gate ${gateLabel(out.gate)} → majority (runs.bestOf)`)
-    }
-    out.gate = MAJORITY_GATE
   }
   defaultRuns(out, notes, options)
   const resolved: Resolved = { ...out, runs: options.runs ?? out.runs ?? 1 }
@@ -1066,6 +1045,8 @@ export type PlannedAttempt = {
   minLift?: number
   /** Set by `runs: { bestOf }`. */
   bestOf?: number
+  /** The eval's target, which its attempts pass at the threshold of. */
+  target: Target
   n: number
   label: string
   /** The `vertex()` settings its harness runs on, when it resolved to Vertex AI. */
@@ -1128,7 +1109,8 @@ export function expand(
       ? resolved.environments
       : [undefined]
   const controls = own.map((e) => applied(e))
-  const policy: CellGate = resolved.gate === 'observe' ? 'none' : (resolved.gate ?? 'all')
+  const target = resolved.target ?? DEFAULT_TARGET
+  const policy = targetGate(target, resolved.bestOf !== undefined)
   const gateIf = (gated: boolean): CellGate => (gated ? policy : 'none')
   const attempts: PlannedAttempt[] = []
   for (const harness of resolved.harness) {
@@ -1153,8 +1135,8 @@ export function expand(
           ...cellTraits(env),
         },
         // A compare a profile's limit left without variants has nothing to compare the
-        // control against, so it gates like an eval without compare.
-        gate: gateIf(!compare || compare.variants.length === 0 || compare.gate === 'all'),
+        // control against, so the target applies to it as to an eval without compare.
+        gate: gateIf(!compare || compare.variants.length === 0),
       }
     })
     if (compare && (!compare.agents || compare.agents.includes(hid))) {
@@ -1173,7 +1155,7 @@ export function expand(
             variant: v.name,
             ...cellTraits(env),
           },
-          gate: gateIf(compare.gate !== 'observe'),
+          gate: policy,
         })
       }
     }
@@ -1201,6 +1183,7 @@ export function expand(
             ? { minLift: compare.minLift }
             : {}),
           ...(resolved.bestOf !== undefined ? { bestOf: resolved.bestOf } : {}),
+          target,
           n,
           label,
           ...(onVertex ? { vertex: onVertex } : {}),
@@ -1453,7 +1436,7 @@ export function evalPlan(
     ...(!skip && resolved.questions.length ? { questions: resolved.questions } : {}),
     runs: resolved.runs,
     ...(resolved.bestOf !== undefined ? { bestOf: resolved.bestOf } : {}),
-    ...(resolved.gate !== undefined ? { gate: resolved.gate } : {}),
+    target: resolved.target ?? DEFAULT_TARGET,
     attempts: skip ? 0 : attempts.length,
     notes,
     ...(skip ? { skip } : {}),

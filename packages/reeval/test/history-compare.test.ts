@@ -436,11 +436,11 @@ export default defineEval({
     assert.equal((await compareCode('--fail-on-regression')).code, 0, 'canary: passing, it is fine')
   })
 
-  test("reeval compare names a config gate change and re-scores base under head's gate", async () => {
-    const config = (gate: string) =>
-      fakeConfig({ harness: harness(), extra: `runs: 2, gate: ${gate},` })
+  test("reeval compare names a config target change and re-scores base under head's gate", async () => {
+    const config = (target: string) =>
+      fakeConfig({ harness: harness(), extra: `runs: 2, target: ${target},` })
     const p = await gitProject('compare-gate', {
-      'reeval.config.ts': config('{ passRate: 0.5 }'),
+      'reeval.config.ts': config('metric(0.5)'),
       'evals/flaky.eval.ts': `import { defineEval, expect } from 'reeval'
 export default defineEval({
   async task(c) {
@@ -467,7 +467,7 @@ export default defineEval({
 
     assert.equal((await runCli(p.dir, ['run', '--record'])).code, 0, 'one pass in two is enough')
 
-    await setGate("'all'")
+    await setGate('regression()')
     assert.equal((await runCli(p.dir)).code, 1, 'the stricter gate fails the run')
     const tightened = await compareCode()
     assert.equal(tightened.code, 0, `only the gate explains the flip\n${tightened.out}`)
@@ -484,10 +484,14 @@ export default defineEval({
       head: 'fail',
       changes: ['gate changed'],
       gate: { base: 'passRate 0.5', head: 'all', rescored: 'fail' },
+      scores: {
+        base: { meanScore: 0.5, passAtK: 1, passHatK: 0 },
+        head: { meanScore: 0.5, passAtK: 1, passHatK: 0 },
+      },
     })
 
     // Canary: base would still pass under head's looser gate, so head failing it is a regression.
-    await setGate('{ passRate: 0.3 }')
+    await setGate('metric(0.3)')
     assert.equal((await runCli(p.dir, ['run'], { env: { REEVAL_TEST_BREAK: '1' } })).code, 1)
     const regressed = await compareCode()
     assert.equal(regressed.code, 1, regressed.out)
@@ -499,21 +503,30 @@ export default defineEval({
     assert.equal((await row())?.status, 'regressed')
 
     // Twin: the same gate as base has no gate change to name.
-    await setGate('{ passRate: 0.5 }')
+    await setGate('metric(0.5)')
     assert.equal((await runCli(p.dir)).code, 0)
     assert.equal((await compareCode()).code, 0)
     const same = await row()
     assert.deepEqual([same?.status, same?.changes, same?.gate], ['same', undefined, undefined])
+
+    // A regression() threshold decides each attempt's outcome, so runs under another one differ.
+    await setGate('regression(0.7)')
+    assert.equal((await runCli(p.dir, ['run', '--record'])).code, 1)
+    await setGate('regression(0.8)')
+    assert.equal((await runCli(p.dir)).code, 1)
+    const threshold = await row()
+    assert.notEqual(threshold?.status, 'same')
+    assert.ok(threshold?.changes?.includes('target threshold changed'), JSON.stringify(threshold))
   })
 
-  test('a gate change leaves an eval with cases comparable, and its real regression still fails', async () => {
-    const config = (gate: string) =>
+  test('a target change leaves an eval with cases comparable, and its real regression still fails', async () => {
+    const config = (target: string) =>
       fakeConfig({
         harness: "{ withSkill: { files: { 'ok.txt': 'y' } } }",
-        extra: `gate: ${gate},`,
+        extra: `target: ${target},`,
       })
     const p = await gitProject('compare-family-gate-change', {
-      'reeval.config.ts': config("'all'"),
+      'reeval.config.ts': config('regression()'),
       'skills/s/SKILL.md': '---\nname: s\ndescription: A skill. Use when testing.\n---\nBody.\n',
       'evals/writes-ok-txt.eval.ts': `import { defineEnvironment, defineEval, expect } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
@@ -538,7 +551,7 @@ export default defineEval({
     const rows = async () =>
       JSON.parse((await runCli(p.dir, ['compare', '--json'])).stdout).rows as Row[]
     assert.equal((await runCli(p.dir, ['run', '--record'])).code, 0)
-    await writeFile(join(p.dir, 'reeval.config.ts'), config('{ passRate: 0.5 }'))
+    await writeFile(join(p.dir, 'reeval.config.ts'), config('metric(0.5)'))
 
     assert.equal((await runCli(p.dir)).code, 0)
     const [same] = await rows()

@@ -1,4 +1,4 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 
 // As the agent: every object of every snapshot git dir it can reach, searched for what the seeded
@@ -19,6 +19,7 @@ const probe = [
 // hidden version over the seeded file between the two turns.
 // REEVAL_FIXTURE_SANDBOX picks the tier: the fake sandbox (F) by default, or docker (D).
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({
     script: [
       [{ exec: "printf 'turn1\\n' >> notes.txt && printf 'TURN1-SEEDED-EDIT\\n' > src/sum.js" }],

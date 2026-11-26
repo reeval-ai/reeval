@@ -1,4 +1,4 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval, expect, metric } from 'reeval'
 
 // The agent starts from the small package in ./project.
 const math = defineEnvironment('math', ({ directory }) => ({ files: directory('./project') }))
@@ -7,7 +7,7 @@ const math = defineEnvironment('math', ({ directory }) => ({ files: directory('.
 export default defineEval({
   environment: math,
   runs: 8,
-  gate: { passRate: 0.75 },
+  target: metric(0.75),
   task: async (c) => {
     await c.send('Add a multiply(a, b) function to src/math.js, with a test in test/math.test.js.')
 

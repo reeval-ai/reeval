@@ -46,10 +46,10 @@ describe('antigravity in docker', () => {
     agyImage,
     async () => {
       const agyConfig = (sandbox: string) => `
-import { defineConfig, defineEnvironment } from 'reeval'
+import { defineConfig, defineEnvironment, regression } from 'reeval'
 import { antigravity } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
-export default defineConfig({
+export default defineConfig({ target: regression(),
   agents: antigravity({ model: 'gemini-3.8-flash-low' }),
   environments: defineEnvironment('box', { sandbox: ${sandbox} }),
   timeout: '90s',
@@ -143,9 +143,9 @@ export default defineEval({
       )
       const p = await project('docker-agy-real', {
         'reeval.config.ts': `
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { antigravity } from 'reeval/agent'
-export default defineConfig({
+export default defineConfig({ target: regression(),
   agents: antigravity({ model: 'gemini-3.8-flash-low' }),
   timeout: '5m',
 })

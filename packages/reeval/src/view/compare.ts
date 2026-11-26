@@ -3,6 +3,7 @@ import type {
   FingerprintParts,
   HistoryCell,
   HistoryEntry,
+  ScoreSummary,
   StackSummary,
 } from '../history/types.ts'
 import type { Outcome } from '../types.ts'
@@ -41,6 +42,8 @@ export type CompareRow = {
   cells?: { added: string[]; removed: string[] }
   /** Cells in both runs, with each side's lift (variants) and effort. */
   perCell?: CompareCell[]
+  /** Each side's mean score, pass@k and pass^k over the target's cells, null where it has none. */
+  scores?: { base: ScoreSummary | null; head: ScoreSummary | null }
   /**
    * The sides whose `fail` is only attempts the run's interrupt canceled, which `reeval show`
    * reads as `canceled`. Such an eval is never `regressed` or `fixed`: it's `drift`.
@@ -193,7 +196,7 @@ type ComparableEval = Pick<
   HistoryEval,
   'id' | 'fingerprint' | 'outcome' | 'sources' | 'source' | 'revision' | 'cells'
 > &
-  Partial<Pick<HistoryEval, 'cases' | 'lifts' | 'rates'>> & { verdict?: 'family' }
+  Partial<Pick<HistoryEval, 'cases' | 'lifts' | 'rates' | 'scores'>> & { verdict?: 'family' }
 
 type Comparable = Pick<HistoryEntry, 'stack'> & { evals: ComparableEval[] }
 
@@ -219,6 +222,7 @@ const PART_LABELS: Record<Exclude<keyof FingerprintParts, 'sources' | 'gate'>, s
   judge: 'judge',
   context: 'agent context',
   gateway: 'gateway',
+  threshold: 'target threshold',
 }
 
 const showRevision = (r: ComparableEval['revision']) =>
@@ -617,6 +621,7 @@ function evalRows(
     }
     const perCell = compareCells(b, h)
     if (perCell.length) row.perCell = perCell
+    if (b.scores || h.scores) row.scores = { base: b.scores ?? null, head: h.scores ?? null }
     if (!withCases) {
       if (row.base === 'infra_error' || row.head === 'infra_error') {
         return { ...row, status: 'infra' }

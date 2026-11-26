@@ -117,8 +117,11 @@
               ]
             }
           ],
-          "gate": "all",
           "minLift": 0.2
+        },
+        "target": {
+          "kind": "regression",
+          "threshold": 1
         },
         "runs": 2
       },

@@ -1,9 +1,10 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 
 // REEVAL_FIXTURE_SANDBOX picks the tier: the fake sandbox (F) by default, or docker (D).
 // REEVAL_SECRETS_FILE holds API_KEY in the sandbox mode.
 export default defineConfig({
+  target: regression(),
   // As the agent: print the secret.
   agents: fakeAgent({ script: [[{ exec: 'printenv API_KEY' }]] }),
 })

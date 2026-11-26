@@ -1,20 +1,17 @@
-// The compare option's plain-data contract: the control, its variants and how they gate.
+// The compare option's plain-data contract: the control, its variants and the lift they need.
 // Environments in it are checked by whichever schema the caller passes (an
 // `Environment` from `defineEnvironment`, or environment data from another language).
 import { z } from 'zod'
 import { isObjectLike } from '../object.ts'
-import type { CompareGate, CompareOptions, Environment, HarnessDescriptor } from '../types.ts'
+import type { CompareOptions, Environment, HarnessDescriptor } from '../types.ts'
 import { FACTORY, harnessDescriptorSchema, harnessProblem } from './harness.ts'
-import { type Assert, type Issue, oneOf, refusal, type Same } from './shared.ts'
-
-export const compareGateSchema = z.enum(['variants', 'all', 'observe'])
+import { type Assert, type Issue, refusal, type Same } from './shared.ts'
 
 /** The compare object, with environments checked by `environment`. */
 export const compareSchema = <E extends z.ZodType>(environment: E) =>
   z.strictObject({
     control: environment,
     variants: z.array(environment).min(1),
-    gate: compareGateSchema.optional(),
     minLift: z.number().min(-1).max(1).optional(),
     agents: z.array(z.union([z.string(), harnessDescriptorSchema])).optional(),
   })
@@ -22,7 +19,6 @@ export const compareSchema = <E extends z.ZodType>(environment: E) =>
 const authoredCompare = compareSchema(z.custom<Environment>())
 
 export type _SameAsSchema = [
-  Assert<Same<z.infer<typeof compareGateSchema>, CompareGate>>,
   Assert<Same<z.infer<typeof authoredCompare>, CompareOptions<Environment>>>,
   Assert<Same<keyof z.infer<typeof authoredCompare>, keyof CompareOptions<Environment>>>,
 ]
@@ -52,8 +48,6 @@ function explain(where: string) {
           return `compare.control in ${where} takes one environment (got ${v.map((e) => (e as { name?: string } | null)?.name ?? describe(e)).join(', ')}). For a grid without a compare, use environments.`
         }
         return `compare.control in ${where} must be an environment from defineEnvironment (got ${describe(v)}). It is what each variant is measured against; variants are not layered on it.`
-      case 'gate':
-        return `compare.gate in ${where} is ${oneOf(compareGateSchema.options)} (got ${describe(v)})`
       case 'minLift':
         return `compare.minLift in ${where} is points from -1 to 1, e.g. minLift: 0.1 (got ${describe(v)})`
       case 'agents': {

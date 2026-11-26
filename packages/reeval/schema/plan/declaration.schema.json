@@ -1150,12 +1150,8 @@
                   "description": "The environment each variant is measured against. Not layered under the variants, and it replaces any `environments` the eval inherits.",
                   "$ref": "#/$defs/EnvironmentData"
                 },
-                "gate": {
-                  "description": "Which cells decide pass/fail: `variants` (default), `all`, or `observe` (none of them).",
-                  "enum": ["all", "observe", "variants"]
-                },
                 "minLift": {
-                  "description": "Lift in points from -1 to 1; a variant cell below it fails.",
+                  "description": "Lift in points from -1 to 1, over the mean score; a variant cell below it fails. Needs a blocking `target`.",
                   "type": "number"
                 },
                 "variants": {
@@ -1194,23 +1190,6 @@
             "env": {
               "description": "Variables and secrets for the sandbox, merged by name down the cascade.",
               "$ref": "#/$defs/EnvVars"
-            },
-            "gate": {
-              "description": "How each cell's attempts decide its outcome; default `'all'`.",
-              "anyOf": [
-                {
-                  "enum": ["all", "observe"]
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "passRate": {
-                      "type": "number"
-                    }
-                  },
-                  "required": ["passRate"]
-                }
-              ]
             },
             "judge": {
               "description": "Defaults for `c.judge()`, merged field by field down the cascade.",
@@ -1299,6 +1278,54 @@
               "items": {
                 "type": "string"
               }
+            },
+            "target": {
+              "description": "Whether the eval passes and can fail the run, over its attempts' scores: `metric()`, `regression()` or `capability()`; default `metric()`, which only reports. On a compare it applies to the variants, and the control only reports.",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "blocking": {
+                      "description": "Whether a miss fails the run.",
+                      "type": "boolean"
+                    },
+                    "kind": {
+                      "const": "capability"
+                    },
+                    "threshold": {
+                      "description": "The score, from 0 to 1, one attempt must reach.",
+                      "type": "number"
+                    }
+                  },
+                  "required": ["blocking", "kind", "threshold"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "const": "metric"
+                    },
+                    "threshold": {
+                      "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
+                      "type": "number"
+                    }
+                  },
+                  "required": ["kind"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "const": "regression"
+                    },
+                    "threshold": {
+                      "description": "The score, from 0 to 1, every attempt must reach.",
+                      "type": "number"
+                    }
+                  },
+                  "required": ["kind", "threshold"]
+                }
+              ]
             },
             "timeout": {
               "description": "Per attempt.",
@@ -1515,23 +1542,6 @@
                 }
               ]
             },
-            "gate": {
-              "description": "How each cell's attempts decide its outcome; default `'all'`.",
-              "anyOf": [
-                {
-                  "enum": ["all", "observe"]
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "passRate": {
-                      "type": "number"
-                    }
-                  },
-                  "required": ["passRate"]
-                }
-              ]
-            },
             "judge": {
               "description": "Defaults for `c.judge()`, merged field by field down the cascade.",
               "$ref": "#/$defs/ConfigJudgeOptions"
@@ -1619,6 +1629,54 @@
               "items": {
                 "type": "string"
               }
+            },
+            "target": {
+              "description": "Whether the eval passes and can fail the run, over its attempts' scores: `metric()`, `regression()` or `capability()`; default `metric()`, which only reports. On a compare it applies to the variants, and the control only reports.",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "blocking": {
+                      "description": "Whether a miss fails the run.",
+                      "type": "boolean"
+                    },
+                    "kind": {
+                      "const": "capability"
+                    },
+                    "threshold": {
+                      "description": "The score, from 0 to 1, one attempt must reach.",
+                      "type": "number"
+                    }
+                  },
+                  "required": ["blocking", "kind", "threshold"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "const": "metric"
+                    },
+                    "threshold": {
+                      "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
+                      "type": "number"
+                    }
+                  },
+                  "required": ["kind"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "const": "regression"
+                    },
+                    "threshold": {
+                      "description": "The score, from 0 to 1, every attempt must reach.",
+                      "type": "number"
+                    }
+                  },
+                  "required": ["kind", "threshold"]
+                }
+              ]
             },
             "timeout": {
               "description": "Per attempt.",

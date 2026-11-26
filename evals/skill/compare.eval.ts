@@ -12,7 +12,7 @@ const task =
   "typecheck with `npx tsc -p .`; you don't need to run it."
 
 export default defineEval({
-  compare: { ...channels(project('landing', 'compare')), gate: 'observe' },
+  compare: channels(project('landing', 'compare')),
   task: async (c) => {
     await c.send(task)
     await expect(c.exec(typechecks), 'typechecks').toSucceed()

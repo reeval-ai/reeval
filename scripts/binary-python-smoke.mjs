@@ -83,6 +83,7 @@ agents:
 sandbox: { kind: fake }
 judge: { model: { kind: fake-judge, score: 1 } }
 timeout: 2m
+target: { kind: regression, threshold: 1 }
 `
 const EVALS = {
   'greet.eval.py': `import os

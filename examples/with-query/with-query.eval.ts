@@ -1,4 +1,4 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval, expect, metric } from 'reeval'
 
 // The control is the small package in ./project; the variant adds the changelog skill.
 const math = defineEnvironment('math', ({ directory }) => ({ files: directory('./project') }))
@@ -9,7 +9,7 @@ const withSkill = math.extendEnvironment('changelog', ({ skill }) => ({
 export default defineEval({
   compare: { control: math, variants: [withSkill] },
   runs: 4,
-  gate: { passRate: 0.75 },
+  target: metric(0.75),
   task: async (c) => {
     await c.send('Add a multiply(a, b) function to src/math.js.')
 

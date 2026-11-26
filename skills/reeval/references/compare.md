@@ -33,21 +33,22 @@ does not layer, inherit or extend. Share setup first (the example is in SKILL.md
   `sandbox` uses the cascaded `sandbox` option, else implicit Docker; `.extend()` keeps the
   parent env's sandbox when the child omits it.
 - There is no `strategy` field. A profile's `limit.compare: false` strips variants and runs
-  the control, which then gates like an eval without compare (as does `maxVariants: 0`), whatever
-  `compare.gate` says. `compare: false` on `evaluate` or `group` is an error.
+  the control, which then gates like an eval without compare (as does `maxVariants: 0`). `compare: false` on `evaluate` or `group` is an error.
 
 ## Gates and lift
 
-- Only variant cells gate by default (`gate?: 'variants' | 'all' | 'observe'`). A control's misses
+- Only variant cells gate, by the eval's `target`. A control's misses
   show in its arm's count (`plain  0 of 2`) and never fail the run. `compare.agents: [cursor({ model: 'composer-2.5' })]` compares on some harnesses only.
-- With `runs > 1`, a cell passes only if every counted attempt passes (pass^k), unless
-  `gate: { passRate: 0.8 }` (a pass@1 threshold; pass@1 is passes over passes and fails). Infra errors don't count; a cell is `infra_error`
+- With `runs > 1` and `target: regression()`, a cell passes only if every counted attempt passes
+  (pass^k); `target: metric(0.8)` passes on a mean score of 0.8 (for pass/fail attempts, pass@1:
+  passes over passes and fails), and the default `metric()` only reports. `minLift` needs a target
+  that can fail the run. Infra errors don't count; a cell is `infra_error`
   only when nothing counted.
-- **Lift** is variant pass@1 minus control pass@1, with a 95% interval. The result block
+- **Lift** is the variant's mean score minus the control's, with a 95% interval. The result block
   prints it as an effect word after the variant's count: `helped`, `made it worse`, or `can't
   tell yet` below four tries a side or when the interval crosses 0; `-v` adds the difference
   and interval. `reeval query factor_effects` and `reeval analyze` use the same four: below
-  it the lift is `insufficient` (not measured), never a results line. When the eval's sources changed across the compared runs, that pass@1
+  it the lift is `insufficient` (not measured), never a results line. When the eval's sources changed across the compared runs, that
   difference is `not comparable: the eval changed`, not an effect, and mixed counts such as
   `6/10 vs 8/9` are not a results line.
 - `compare: { control, variants: [x], minLift: 0 }` fails a variant whose interval's lower

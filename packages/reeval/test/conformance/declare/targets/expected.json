@@ -1,0 +1,221 @@
+{
+  "children": [
+    {
+      "type": "eval",
+      "name": "best of",
+      "mode": "run",
+      "options": {
+        "runs": {
+          "bestOf": 3
+        },
+        "target": {
+          "kind": "regression",
+          "threshold": 0.8
+        }
+      },
+      "body": "b1",
+      "source": {
+        "body": "eb3e3dcbc03908fdd57fbad9d733b8407d9d149f40ff08f3357926f885cf47d6"
+      }
+    },
+    {
+      "type": "eval",
+      "name": "capability reports",
+      "mode": "run",
+      "options": {
+        "runs": 3,
+        "target": {
+          "kind": "capability",
+          "threshold": 0.5,
+          "blocking": false
+        }
+      },
+      "body": "b2",
+      "source": {
+        "body": "eb3e3dcbc03908fdd57fbad9d733b8407d9d149f40ff08f3357926f885cf47d6"
+      }
+    },
+    {
+      "type": "eval",
+      "name": "capability",
+      "mode": "run",
+      "options": {
+        "runs": 3,
+        "target": {
+          "kind": "capability",
+          "threshold": 1,
+          "blocking": true
+        }
+      },
+      "body": "b3",
+      "source": {
+        "body": "eb3e3dcbc03908fdd57fbad9d733b8407d9d149f40ff08f3357926f885cf47d6"
+      }
+    },
+    {
+      "type": "eval",
+      "name": "cases metric [chat]",
+      "mode": "run",
+      "options": {
+        "target": {
+          "kind": "metric",
+          "threshold": 0.8
+        }
+      },
+      "body": "b4",
+      "source": {
+        "body": "eb3e3dcbc03908fdd57fbad9d733b8407d9d149f40ff08f3357926f885cf47d6",
+        "caseJson": "{\"key\":\"chat\"}"
+      },
+      "family": {
+        "name": "cases metric",
+        "case": 0,
+        "cases": 2
+      }
+    },
+    {
+      "type": "eval",
+      "name": "cases metric [rag]",
+      "mode": "run",
+      "options": {
+        "target": {
+          "kind": "metric",
+          "threshold": 0.8
+        }
+      },
+      "body": "b5",
+      "source": {
+        "body": "eb3e3dcbc03908fdd57fbad9d733b8407d9d149f40ff08f3357926f885cf47d6",
+        "caseJson": "{\"key\":\"rag\"}"
+      },
+      "family": {
+        "name": "cases metric",
+        "case": 1,
+        "cases": 2
+      }
+    },
+    {
+      "type": "eval",
+      "name": "compare regression",
+      "mode": "run",
+      "options": {
+        "compare": {
+          "control": {
+            "kind": "environment",
+            "name": "base",
+            "layers": [
+              {
+                "name": "base",
+                "spec": {
+                  "env": {
+                    "MODE": "base"
+                  }
+                }
+              }
+            ]
+          },
+          "variants": [
+            {
+              "kind": "environment",
+              "name": "skilled",
+              "layers": [
+                {
+                  "name": "base",
+                  "spec": {
+                    "env": {
+                      "MODE": "base"
+                    }
+                  }
+                },
+                {
+                  "name": "skilled",
+                  "spec": {
+                    "env": {
+                      "MODE": "skilled"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "target": {
+          "kind": "regression",
+          "threshold": 0.8
+        },
+        "runs": 2
+      },
+      "body": "b6",
+      "source": {
+        "body": "eb3e3dcbc03908fdd57fbad9d733b8407d9d149f40ff08f3357926f885cf47d6"
+      }
+    },
+    {
+      "type": "eval",
+      "name": "compare reports",
+      "mode": "run",
+      "options": {
+        "compare": {
+          "control": {
+            "kind": "environment",
+            "name": "base",
+            "layers": [
+              {
+                "name": "base",
+                "spec": {
+                  "env": {
+                    "MODE": "base"
+                  }
+                }
+              }
+            ]
+          },
+          "variants": [
+            {
+              "kind": "environment",
+              "name": "skilled",
+              "layers": [
+                {
+                  "name": "base",
+                  "spec": {
+                    "env": {
+                      "MODE": "base"
+                    }
+                  }
+                },
+                {
+                  "name": "skilled",
+                  "spec": {
+                    "env": {
+                      "MODE": "skilled"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "target": {
+          "kind": "metric"
+        },
+        "runs": 4
+      },
+      "body": "b7",
+      "source": {
+        "body": "eb3e3dcbc03908fdd57fbad9d733b8407d9d149f40ff08f3357926f885cf47d6"
+      }
+    },
+    {
+      "type": "eval",
+      "name": "reports",
+      "mode": "run",
+      "options": {
+        "runs": 3
+      },
+      "body": "b8",
+      "source": {
+        "body": "eb3e3dcbc03908fdd57fbad9d733b8407d9d149f40ff08f3357926f885cf47d6"
+      }
+    }
+  ]
+}

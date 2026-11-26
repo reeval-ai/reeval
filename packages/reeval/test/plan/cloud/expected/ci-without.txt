@@ -1,3 +1,4 @@
 no profile · 1 evals · 1 cells · 1 attempts
-a  fake/-/fake  control  gated  ×1
+hint: 1 eval can't fail CI (a): its target only reports; set target: regression() (or metric(0.8), capability(1, { blocking: true })) in the eval or the config to fail on a miss
+a  fake/-/fake  control  ungated  ×1
 excluded: —

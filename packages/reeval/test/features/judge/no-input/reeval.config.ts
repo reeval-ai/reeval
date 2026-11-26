@@ -1,9 +1,10 @@
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeJudge } from 'reeval/judge'
 
 // REEVAL_FIXTURE_SANDBOX picks the tier: the fake sandbox (F) by default, or docker (D).
 export default defineConfig({
+  target: regression(),
   agents: fakeAgent({ files: { 'src/app.ts': 'export const app = () => "hello"\n' } }),
   judge: { model: fakeJudge({ score: 1 }) },
 })
