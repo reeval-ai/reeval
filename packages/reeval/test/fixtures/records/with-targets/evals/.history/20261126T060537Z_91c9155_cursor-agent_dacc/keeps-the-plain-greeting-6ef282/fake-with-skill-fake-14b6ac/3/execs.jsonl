@@ -1,0 +1,1 @@
+{"command":"grep -q Hello greet.js","exitCode":1,"stdout":"","stderr":"","durationMs":3,"turn":1}

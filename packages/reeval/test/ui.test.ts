@@ -261,30 +261,24 @@ function render(
 const lines = (...l: string[]) => `${l.join('\n')}\n`
 
 const LIST = [
-  ['✓ writes greet.js              1 of 1 run passed'],
+  ['✓ writes greet.js              1/1 run at 100%             regression(1)'],
   [
-    '✗ greets in French             0 of 1 run passed',
-    'Failed on fake.',
-    '✗ french greeting  failed 1 of 1 run',
+    '✗ greets in French             0/1 run at 100%             regression(1)',
+    '#1  0%  "french greeting" failed',
     '  expected command to succeed, exit code 1',
   ],
   [
-    '✗ explains why greet.js fails  1 of 2 runs passed',
-    'Passed 1 of 2 on fake.',
-    '✗ names the root cause  failed 1 of 2 runs',
+    '✗ explains why greet.js fails  1/2 runs at 100%, worst 0%  regression(1)',
+    '#2  0%  "names the root cause" failed',
     "  expected 'Docker is down' to contain 'null'",
   ],
   [
-    '✗ reads the fixture repo       0 of 1 run passed',
-    'Failed on fake.',
-    '✗ 1 run failed',
-    '  the fixture repo is missing',
+    '✗ reads the fixture repo       0/1 run at 100%             regression(1)',
+    '#1  0%  the fixture repo is missing',
   ],
   [
-    '✗ starts its sandbox           0 of 1 run passed',
-    'No run finished.',
-    '✗ 1 run hit an infrastructure error',
-    '  the fake sandbox fell over',
+    '· starts its sandbox           infra error                 regression(1)',
+    '#1  infra error  the fake sandbox fell over',
   ],
   ['– greets in Welsh              skipped'],
   ['– greets in Klingon            todo'],
@@ -301,7 +295,7 @@ const result = (glyphs: boolean) => [
     return [`${branch}${row}`, ...detail.map((line) => `${indent}${line}`)]
   }),
   '',
-  'Done in 6m 05s · 3 failed · 1 infra error · 1 passed · 2 skipped',
+  'Done in 6m 05s · 7 evals · 1 on target · 3 below · 1 infra error · 2 skipped',
   'Browse it: reeval studio · summary .reeval/runs/run-1/summary.md',
 ]
 
@@ -384,9 +378,8 @@ describe('plain renderer', () => {
     const events = interleaved.map((e) => (e.type === 'run-end' ? { ...e, record: served } : e))
     const out = render(events, options()).split('\n')
     const row = out.findIndex((l) => l.startsWith('├─ ✓ writes greet.js'))
-    assert.deepEqual(out.slice(row, row + 3), [
-      '├─ ✓ writes greet.js              1 of 1 run passed',
-      '│    Passed on fake.',
+    assert.deepEqual(out.slice(row, row + 2), [
+      '├─ ✓ writes greet.js              1/1 run at 100%             regression(1)',
       '│    Worth knowing: served by Anthropic 2 · Amazon Bedrock 1; judge served by Google 1',
     ])
   })

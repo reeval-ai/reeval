@@ -24,7 +24,7 @@ export const ICON: Record<StatusIcon, string> = {
   failing: '◌',
   pass: '✓',
   fail: '✗',
-  observe: '●',
+  observe: '·',
   skipped: '–',
   canceled: '○',
 }
@@ -37,7 +37,6 @@ export function paintIcon(c: Colors, icon: StatusIcon, glyph = ICON[icon]): stri
   if (icon === 'fail' || icon === 'failing') return c.red(glyph)
   if (icon === 'running') return c.teal(glyph)
   if (icon === 'canceled') return c.yellow(glyph)
-  if (icon === 'observe') return c.blue(glyph)
   return c.dim(glyph)
 }
 
@@ -95,8 +94,14 @@ export const nameWidth = (rows: StatusRow[]) =>
 const fit = (name: string, width: number) =>
   name.length > width ? `${name.slice(0, width - 1)}…` : name.padEnd(width)
 
-export const rowText = (c: Colors, row: StatusRow, width: number, glyph?: string) =>
-  `${paintIcon(c, row.icon, glyph)} ${fit(row.name, width)}  ${c.dim(row.summary)}`.trimEnd()
+/** The summary column's width in a file: its longest summary that a target follows. */
+export const summaryWidth = (rows: StatusRow[]) =>
+  Math.max(0, ...rows.filter((r) => r.target).map((r) => r.summary.length))
+
+export const rowText = (c: Colors, row: StatusRow, width: number, glyph?: string, summary = 0) =>
+  `${paintIcon(c, row.icon, glyph)} ${fit(row.name, width)}  ${
+    row.target ? `${row.summary.padEnd(summary)}  ${c.dim(row.target)}` : c.dim(row.summary)
+  }`.trimEnd()
 
 export type ListTextOptions = {
   colors: Colors
@@ -106,6 +111,8 @@ export type ListTextOptions = {
   expand: (row: StatusRow) => boolean
   /** The full detail (`-v`), not the compact one. */
   full?: boolean
+  /** Case rows past the compact detail's eight stay out of a full detail without `-v`. */
+  capped?: boolean
 }
 
 /** Each file's heading and rows, a blank line between files. */
@@ -116,13 +123,14 @@ export function fileLines(files: StatusFile[], o: ListTextOptions): string[] {
     if (i) out.push('')
     out.push(c.bold(file.path))
     const width = nameWidth(file.rows)
+    const summary = summaryWidth(file.rows)
     for (const [j, row] of file.rows.entries()) {
       const last = j === file.rows.length - 1
       const branch = o.glyphs ? c.dim(last ? '└─ ' : '├─ ') : '  '
-      out.push(`${branch}${rowText(c, row, width)}`)
+      out.push(`${branch}${rowText(c, row, width, undefined, summary)}`)
       if (!o.expand(row)) continue
       const down = o.glyphs ? c.dim(last ? '     ' : '│    ') : '    '
-      for (const line of shownDetail(row.detail, o.full ?? false)) {
+      for (const line of shownDetail(row.detail, o.full ?? false, o.capped)) {
         out.push(`${down}${paintDetail(c, line)}`.trimEnd())
       }
     }
@@ -131,7 +139,7 @@ export function fileLines(files: StatusFile[], o: ListTextOptions): string[] {
 }
 
 /**
- * The whole list once, as the run ends: failures, compares and evals with remarks expanded (with `-v`, every
+ * The whole list once, as the run ends: misses, compares and evals with remarks expanded (with `-v`, every
  * row), other passes on one line each. `full` adds the detail the interactive list keeps behind
  * `→ more` (the rest of each message, file excerpts, snapshots); `-v` implies it.
  */
@@ -143,18 +151,20 @@ export function listLines(
   verbose = false,
   full = verbose,
 ): string[] {
+  const capped = full && !verbose
   const expand = (row: StatusRow) =>
     row.detail.length > 0 &&
     (verbose ||
       row.compare ||
       row.answers ||
       row.remarks > 0 ||
+      row.missed ||
       row.icon === 'fail' ||
       row.icon === 'canceled')
   return [
     ...list.errors.flatMap((e) => [c.red(`error: ${e.split('\n')[0] ?? ''}`)]),
     ...(list.errors.length ? [''] : []),
-    ...fileLines(list.files, { colors: c, glyphs, expand, full }),
+    ...fileLines(list.files, { colors: c, glyphs, expand, full, capped }),
     '',
     ...(list.hiddenRemarks ? [c.dim(`+${plural(list.hiddenRemarks, 'more remark')} (-v)`)] : []),
     ...list.notes.map((n) => c.yellow(n)),

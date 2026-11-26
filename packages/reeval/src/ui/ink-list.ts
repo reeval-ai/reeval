@@ -16,7 +16,14 @@ import {
 } from 'react'
 import { redactSecrets } from '../redact.ts'
 import { type Colors, stripAnsi } from './colors.ts'
-import { detailSegments, nameWidth, paintIcon, type Segment, SPINNER } from './list.ts'
+import {
+  detailSegments,
+  nameWidth,
+  paintIcon,
+  type Segment,
+  SPINNER,
+  summaryWidth,
+} from './list.ts'
 import { type DetailLine, type StatusRow, shownDetail } from './status.ts'
 import type { ListState, ListStore } from './tty.ts'
 
@@ -124,6 +131,7 @@ export function frameLines(
     if (n) out.push({ text: '', row: -1 })
     out.push({ text: c.bold(file.path), row: -1 })
     const width = nameWidth(file.rows)
+    const summary = summaryWidth(file.rows)
     for (const row of file.rows) {
       const here = i === selected
       const spins = row.icon === 'running' || row.icon === 'failing'
@@ -133,7 +141,9 @@ export function frameLines(
       const pointer = here ? c.blue('❯') : ' '
       const label = here ? c.bold(name) : name
       out.push({
-        text: `${pointer} ${paintIcon(c, row.icon, glyph)} ${label}  ${c.dim(row.summary)}`,
+        text: `${pointer} ${paintIcon(c, row.icon, glyph)} ${label}  ${
+          row.target ? `${row.summary.padEnd(summary)}  ${c.dim(row.target)}` : c.dim(row.summary)
+        }`,
         row: i,
       })
       if (expanded === row.id) {

@@ -1,68 +1,37 @@
-                 adds a $name button that builds
-  pass  reset      1 of 1
-  fail  double     0 of 1
-    build          failed
-      expected command to succeed, exit code 1
-    +1 more passed
-  pass  clear      1 of 1
+· adds-a-button-that-builds                2/3 cases hit 100% (pass@1)  capability(1)
+    #double  0%  the build fails
+      button: double
+      exitCode: 1
+      after turn 1
+✓ choose                                   83% ≥ 80%                    metric(0.8)
 
-                 greets %s in the house style
-  pass  Ada
-    arm            pass
-    plain          0 of 1
-    with-skill     1 of 1
-  pass  Grace
-    arm            pass
-    plain          0 of 1
-    with-skill     1 of 1
-  pass  Linus
-    arm            pass
-    plain          0 of 1
-    with-skill     1 of 1
-  pass  Edsger
-    arm            pass
-    plain          0 of 1
-    with-skill     1 of 1
-  pass  all cases
-    arm            pass
-    plain          0 of 4
-    with-skill     4 of 4  helped
+✗ explains-why-greet-js-fails              67% < 80%                    metric(0.8)
+    #1  83%  judge "How clearly does the answer name the root cause?" 50%
+    #2  50%  names-the-root-cause 0%, judge "How clearly does the answer name the root cause?" 50%
+  observed         answer  the name is null 1 · Docker is down 1
 
-fail             greets in the house style on each agent
-  harness           pass
-  skilled           1 of 1
-  terse             0 of 1
-    house greeting  failed
-      expected command to succeed, exit code 1
-    exclaims        not run
-    +1 more passed
+✗ greets-in-french                         0/1 run at 100%              regression(1)
+    #1  0%  greet.js has no French greeting
+      file: greet.js
+      exitCode: 1
+      after turn 1
+– greets-in-klingon                        skipped
 
-fail             learns the house style from the skill
-  learner
-    arm             pass
-    plain           0 of 4
-    with-skill      4 of 4  helped
-    check           plain   with-skill
-    house greeting  0 of 4  4 of 4
-      expected command to succeed, exit code 1
-    effort          tools  time
-    plain           0      <0.1s
-    with-skill      0      <0.1s
-  terse
-    arm             pass
-    plain           0 of 4
-    with-skill      0 of 4  same
-    check           plain   with-skill
-    house greeting  0 of 4  0 of 4
-      expected command to succeed, exit code 1
-    effort          tools  time
-    plain           0      <0.1s
-    with-skill      0      <0.1s
-
-fail             greets in the house style
-  arm              pass
+· greets-in-the-house-style-2              4/4 cases hit 100% (pass@1)  capability(1)
+  arm              pass            vs control
   plain            0 of 4
-  with-skill       4 of 4  helped
+  with-skill       4 of 4  helped  "house greeting" +100 pts
+
+✗ greets-in-the-house-style-on-each-agent  1/2 runs at 100%, worst 0%   regression(1)
+    terse  0%  "house greeting" failed
+      expected command to succeed, exit code 1 · evals/greets-in-the-house-style-on-each-agent.eval.ts:28
+
+✗ greets-in-the-house-style                4/8 runs at 100%, worst 0%   regression(1)
+    #1–4 · with-doc  0%  "house greeting" failed
+      expected command to succeed, exit code 1 · evals/greets-in-the-house-style.eval.ts:21
+  arm              pass            vs control
+  plain            0 of 4
+  with-skill       4 of 4  helped  "house greeting" +100 pts
   with-doc         0 of 4  same
   check            plain    with-skill  with-doc
   house greeting   0 of 4   4 of 4      0 of 4
@@ -74,10 +43,22 @@ fail             greets in the house style
   with-skill       1      <0.1s
   with-doc         1      <0.1s
 
-fail             keeps the plain greeting
-  arm              pass
+– greets-in-welsh                          skipped
+
+· greets-once                              100%                         metric()
+  arm              pass            vs control
+  plain            0 of 4
+  with-skill       4 of 4  helped  "house greeting" +100 pts
+  check            plain   with-skill
+  house greeting   0 of 4  4 of 4
+    expected command to succeed, exit code 1
+
+✗ keeps-the-plain-greeting                 0/4 runs at 100%, worst 0%   regression(1)
+    #1–4  0%  "says hello" failed
+      expected command to succeed, exit code 1 · evals/keeps-the-plain-greeting.eval.ts:21
+  arm              pass                   vs control
   plain            4 of 4
-  with-skill       0 of 4  made it worse
+  with-skill       0 of 4  made it worse  "says hello" −100 pts
   check            plain   with-skill
   says hello       4 of 4  0 of 4
     expected command to succeed, exit code 1
@@ -85,34 +66,28 @@ fail             keeps the plain greeting
   plain            1      <0.1s
   with-skill       1      <0.1s
 
-pass             greets once
-  arm              pass
-  plain            0 of 1
-  with-skill       1 of 1  helped
-  check            plain   with-skill
-  house greeting   0 of 1  1 of 1
-    expected command to succeed, exit code 1
+· learns-the-house-style-from-the-skill    50%                          metric()
+  learner
+    arm             pass            vs control
+    plain           0 of 4
+    with-skill      4 of 4  helped  "house greeting" +100 pts
+    check           plain   with-skill
+    house greeting  0 of 4  4 of 4
+      expected command to succeed, exit code 1
+  terse
+    arm             pass
+    plain           0 of 4
+    with-skill      0 of 4  same
+    check           plain   with-skill
+    house greeting  0 of 4  0 of 4
+      expected command to succeed, exit code 1
 
-pass             writes greet.js
+· reads-the-fixture-repo                   0%                           metric()
+    #1  0%  the fixture repo is missing
+      after turn 1
+      at task (evals/reads-the-fixture-repo.eval.ts:9:13)
+· starts-its-sandbox                       infra error                  regression(1)
+    #1  infra error  the fake sandbox fell over
+✓ writes-greet-js                          1/1 run at 100%              regression(1)
 
-fail             greets in French
-  french greeting  failed
-    expected command to succeed, exit code 1
-  +1 more passed
-
-fail             explains why greet.js fails
-  2 tries               1 of 2
-  names the root cause  1 of 2
-    expected 'Docker is down' to contain 'null'
-  +1 more passed
-
-fail             reads the fixture repo
-  error            the fixture repo is missing
-
-infra error      starts its sandbox
-  infra error      the fake sandbox fell over
-
-skipped          greets in Welsh
-todo             greets in Klingon
-
-8 fail · 3 pass · 1 infra error · 2 skipped
+15 evals · 2 on target · 5 below · 5 report only · 1 infra error · 2 skipped

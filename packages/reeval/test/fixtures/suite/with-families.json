@@ -6,9 +6,10 @@
     "errors": [],
     "tally": {
       "errors": 0,
-      "pass": 0,
-      "notGated": 0,
-      "fail": 3,
+      "evals": 10,
+      "onTarget": 0,
+      "below": 3,
+      "reportOnly": 0,
       "infraError": 5,
       "canceled": 0,
       "skipped": 2
@@ -509,7 +510,65 @@
             ],
             "rates": [],
             "questions": [],
-            "observations": []
+            "observations": [],
+            "target": {
+              "kind": "regression",
+              "threshold": 1
+            },
+            "blocking": true,
+            "meanScore": 1,
+            "scored": [
+              {
+                "case": "Ada",
+                "cell": "fake/with-house-greeting/docker",
+                "n": 1,
+                "outcome": "pass",
+                "score": 1,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": null
+              },
+              {
+                "case": "Ada",
+                "cell": "broken/with-house-greeting/docker",
+                "n": 1,
+                "outcome": "infra_error",
+                "score": null,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": {
+                  "kind": "infra",
+                  "message": "the fake sandbox fell over"
+                }
+              },
+              {
+                "case": "Grace",
+                "cell": "fake/with-house-greeting/docker",
+                "n": 1,
+                "outcome": "pass",
+                "score": 1,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": null
+              },
+              {
+                "case": "Grace",
+                "cell": "broken/with-house-greeting/docker",
+                "n": 1,
+                "outcome": "infra_error",
+                "score": null,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": {
+                  "kind": "infra",
+                  "message": "the fake sandbox fell over"
+                }
+              }
+            ]
           },
           {
             "path": "evals%2Fcases.eval.ts › writes greet.js for Ada",
@@ -593,7 +652,40 @@
             "pooled": null,
             "rates": null,
             "questions": [],
-            "observations": []
+            "observations": [],
+            "target": {
+              "kind": "regression",
+              "threshold": 1
+            },
+            "blocking": true,
+            "meanScore": 1,
+            "scored": [
+              {
+                "case": null,
+                "cell": "fake/fake/fake",
+                "n": 1,
+                "outcome": "pass",
+                "score": 1,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": null
+              },
+              {
+                "case": null,
+                "cell": "broken/fake/fake",
+                "n": 1,
+                "outcome": "infra_error",
+                "score": null,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": {
+                  "kind": "infra",
+                  "message": "the fake sandbox fell over"
+                }
+              }
+            ]
           },
           {
             "path": "evals%2Fcases.eval.ts › writes greet.js for Grace",
@@ -677,7 +769,40 @@
             "pooled": null,
             "rates": null,
             "questions": [],
-            "observations": []
+            "observations": [],
+            "target": {
+              "kind": "regression",
+              "threshold": 1
+            },
+            "blocking": true,
+            "meanScore": 1,
+            "scored": [
+              {
+                "case": null,
+                "cell": "fake/fake/fake",
+                "n": 1,
+                "outcome": "pass",
+                "score": 1,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": null
+              },
+              {
+                "case": null,
+                "cell": "broken/fake/fake",
+                "n": 1,
+                "outcome": "infra_error",
+                "score": null,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": {
+                  "kind": "infra",
+                  "message": "the fake sandbox fell over"
+                }
+              }
+            ]
           }
         ]
       },
@@ -766,7 +891,40 @@
             "pooled": null,
             "rates": null,
             "questions": [],
-            "observations": []
+            "observations": [],
+            "target": {
+              "kind": "regression",
+              "threshold": 1
+            },
+            "blocking": true,
+            "meanScore": 1,
+            "scored": [
+              {
+                "case": null,
+                "cell": "fake/fake/fake",
+                "n": 1,
+                "outcome": "pass",
+                "score": 1,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": null
+              },
+              {
+                "case": null,
+                "cell": "broken/fake/fake",
+                "n": 1,
+                "outcome": "infra_error",
+                "score": null,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": {
+                  "kind": "infra",
+                  "message": "the fake sandbox fell over"
+                }
+              }
+            ]
           },
           {
             "path": "evals%2Fgreet.eval.ts › fails its check",
@@ -856,7 +1014,43 @@
             "pooled": null,
             "rates": null,
             "questions": [],
-            "observations": []
+            "observations": [],
+            "target": {
+              "kind": "regression",
+              "threshold": 1
+            },
+            "blocking": true,
+            "meanScore": 0,
+            "scored": [
+              {
+                "case": null,
+                "cell": "fake/fake/fake",
+                "n": 1,
+                "outcome": "fail",
+                "score": 0,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": {
+                  "kind": "assertion",
+                  "message": "expected command to succeed, exit code 1"
+                }
+              },
+              {
+                "case": null,
+                "cell": "broken/fake/fake",
+                "n": 1,
+                "outcome": "infra_error",
+                "score": null,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": {
+                  "kind": "infra",
+                  "message": "the fake sandbox fell over"
+                }
+              }
+            ]
           },
           {
             "path": "evals%2Fgreet.eval.ts › fails its judge",
@@ -946,7 +1140,43 @@
             "pooled": null,
             "rates": null,
             "questions": [],
-            "observations": []
+            "observations": [],
+            "target": {
+              "kind": "regression",
+              "threshold": 1
+            },
+            "blocking": true,
+            "meanScore": 0,
+            "scored": [
+              {
+                "case": null,
+                "cell": "fake/fake/fake",
+                "n": 1,
+                "outcome": "fail",
+                "score": 0,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": {
+                  "kind": "judge",
+                  "message": "judge score 0.80 is below 0.95 for \"Is greet.js perfect?\" (fake)"
+                }
+              },
+              {
+                "case": null,
+                "cell": "broken/fake/fake",
+                "n": 1,
+                "outcome": "infra_error",
+                "score": null,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": {
+                  "kind": "infra",
+                  "message": "the fake sandbox fell over"
+                }
+              }
+            ]
           },
           {
             "path": "evals%2Fgreet.eval.ts › is skipped for now",
@@ -1024,7 +1254,14 @@
             "pooled": null,
             "rates": null,
             "questions": [],
-            "observations": []
+            "observations": [],
+            "target": {
+              "kind": "regression",
+              "threshold": 1
+            },
+            "blocking": true,
+            "meanScore": null,
+            "scored": []
           },
           {
             "path": "evals%2Fgreet.eval.ts › greets in Welsh",
@@ -1073,7 +1310,14 @@
             "pooled": null,
             "rates": null,
             "questions": [],
-            "observations": []
+            "observations": [],
+            "target": {
+              "kind": "regression",
+              "threshold": 1
+            },
+            "blocking": true,
+            "meanScore": null,
+            "scored": []
           }
         ]
       },
@@ -1305,7 +1549,40 @@
                 "error": null
               }
             ],
-            "observations": []
+            "observations": [],
+            "target": {
+              "kind": "regression",
+              "threshold": 1
+            },
+            "blocking": true,
+            "meanScore": 1,
+            "scored": [
+              {
+                "case": null,
+                "cell": "fake/with-house-greeting/docker",
+                "n": 1,
+                "outcome": "pass",
+                "score": 1,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": null
+              },
+              {
+                "case": null,
+                "cell": "broken/with-house-greeting/docker",
+                "n": 1,
+                "outcome": "infra_error",
+                "score": null,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": {
+                  "kind": "infra",
+                  "message": "the fake sandbox fell over"
+                }
+              }
+            ]
           },
           {
             "path": "evals%2Fskill.eval.ts › house greeting › writes a greeting",
@@ -1552,7 +1829,40 @@
                 "error": "Rate limit exceeded (429)"
               }
             ],
-            "observations": []
+            "observations": [],
+            "target": {
+              "kind": "regression",
+              "threshold": 1
+            },
+            "blocking": true,
+            "meanScore": 1,
+            "scored": [
+              {
+                "case": null,
+                "cell": "fake/with-house-greeting/docker",
+                "n": 1,
+                "outcome": "pass",
+                "score": 1,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": null
+              },
+              {
+                "case": null,
+                "cell": "broken/with-house-greeting/docker",
+                "n": 1,
+                "outcome": "infra_error",
+                "score": null,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": {
+                  "kind": "infra",
+                  "message": "the fake sandbox fell over"
+                }
+              }
+            ]
           }
         ]
       }
@@ -1565,9 +1875,10 @@
     "errors": [],
     "tally": {
       "errors": 0,
-      "pass": 1,
-      "notGated": 0,
-      "fail": 0,
+      "evals": 1,
+      "onTarget": 1,
+      "below": 0,
+      "reportOnly": 0,
       "infraError": 0,
       "canceled": 0,
       "skipped": 0
@@ -1623,7 +1934,48 @@
             "pooled": null,
             "rates": null,
             "questions": [],
-            "observations": []
+            "observations": [],
+            "target": {
+              "kind": "regression",
+              "threshold": 1
+            },
+            "blocking": true,
+            "meanScore": 1,
+            "scored": [
+              {
+                "case": null,
+                "cell": "slow/fake/fake",
+                "n": 1,
+                "outcome": "pass",
+                "score": 1,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": null
+              },
+              {
+                "case": null,
+                "cell": "slow/fake/fake",
+                "n": 2,
+                "outcome": "pass",
+                "score": 1,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": null
+              },
+              {
+                "case": null,
+                "cell": "slow/fake/fake",
+                "n": 3,
+                "outcome": "pass",
+                "score": 1,
+                "lost": [],
+                "failedChecks": [],
+                "failure": null,
+                "error": null
+              }
+            ]
           }
         ]
       }

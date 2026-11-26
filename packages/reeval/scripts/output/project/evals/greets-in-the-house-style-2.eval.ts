@@ -1,4 +1,4 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { capability, defineEnvironment, defineEval, expect } from 'reeval'
 
 const plain = defineEnvironment('plain', {})
 const withSkill = defineEnvironment('with-skill', ({ skill }) => ({
@@ -9,6 +9,7 @@ const withSkill = defineEnvironment('with-skill', ({ skill }) => ({
 // case outer, its arms inner, and the cases pooled into one effect.
 
 export default defineEval({
+  target: capability(),
   cases: [{ key: 'Ada' }, { key: 'Grace' }, { key: 'Linus' }, { key: 'Edsger' }],
   compare: { control: plain, variants: [withSkill] },
   task: async (c, { key: name }) => {

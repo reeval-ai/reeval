@@ -147,11 +147,11 @@ export default defineEval({
     assert.equal(r.code, 1, r.stdout + r.stderr)
     assert.match(
       r.stdout,
-      /1 run failed\n +the build fails\n +exitCode: 3\n +stderr: boom\n +after turn 1\n/,
+      /#1 {2}0% {2}the build fails\n +exitCode: 3\n +stderr: boom\n +after turn 1\n/,
     )
     assert.match(
       r.stdout,
-      /TypeError: x\.y is not a function\n +before the first turn\n +at task \(evals\/b\.eval\.ts:5:\d+\)/,
+      /#1 {2}0% {2}TypeError: x\.y is not a function\n +before the first turn\n +at task \(evals\/b\.eval\.ts:5:\d+\)/,
     )
     const { run } = readRun(p.dir)
     const [a, b] = run.evals.map((e) => e.attempts[0]?.failure)

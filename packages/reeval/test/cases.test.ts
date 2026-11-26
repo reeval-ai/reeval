@@ -5,8 +5,6 @@ import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 import { caseEntries, foldCases, unfoldCases } from '../src/history/cases.ts'
 import type { RunRecord } from '../src/history/types.ts'
-import { openDetail } from '../src/ui/ink-list.ts'
-import { statusList } from '../src/ui/status.ts'
 import { readableRecord } from '../src/view/record.ts'
 import { suiteResult } from '../src/view/suite.ts'
 import { fakeConfig, project, readRun, recordedRuns, runCli } from './helpers.ts'
@@ -222,7 +220,7 @@ export default defineEval({
 })
 
 describe('reeval run prints an eval with cases', () => {
-  test('the compact count says how many hidden cases failed, and a check names their runs', async () => {
+  test('the compact detail lists eight missed cases and counts the rest', async () => {
     const keys = Array.from({ length: 12 }, (_, i) => `q${i + 1}`)
     const p = await project('cases-compact-count', {
       'reeval.config.ts': fakeConfig(),
@@ -239,24 +237,41 @@ export default defineEval({
     })
     const r = await runCli(p.dir, ['run', '--ui', 'plain'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
-    assert.match(r.stdout, /\+4 more cases: 2 failed, 2 passed \(-v\)$/m)
-    assert.match(r.stdout, /ok {2}failed on q1 \(2 of 2 runs\), q2 \(2 of 2 runs\)/)
+    assert.match(r.stdout, /^ {5}#q8 +0% +"ok" failed$/m)
+    assert.doesNotMatch(r.stdout, /#q9 /)
+    assert.match(r.stdout, /^ {5}\+2 more cases \(-v\)$/m)
+    assert.doesNotMatch(r.stdout, /#q1[12] /, 'a case at 100% has no row')
+  })
 
-    const { run } = readRun(p.dir)
-    const [row] = statusList({
-      record: run,
-      suite: suiteResult(run),
-      remarks: null,
-      verbose: false,
-    }).files.flatMap((f) => f.rows)
-    const open = openDetail(row?.detail ?? [], false)
-    assert.equal(
-      open.filter((l) => l.cases === 'row').length,
-      5,
-      'the interactive list opens the case table at five rows',
+  test('a capability over cases reads the cases that hit, as the record and reeval query judge it', async () => {
+    const p = await project('cases-capability', {
+      'reeval.config.ts': fakeConfig(),
+      'evals/e.eval.ts': `import { capability, defineEval, expect } from 'reeval'
+export default defineEval({
+  cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }],
+  runs: 2,
+  target: capability(1, { blocking: true }),
+  async task(c, { key: k }) {
+    await c.send(k)
+    expect(k === 'a' || (k === 'b' && c.attempt.n === 1), 'ok').toBe(true)
+  },
+})
+`,
+    })
+    const r = await runCli(p.dir, ['run', '--ui', 'plain'])
+    assert.equal(r.code, 1, r.stdout + r.stderr)
+    assert.match(
+      r.stdout,
+      /^└─ ✗ e {2}2\/3 cases hit 100% \(pass@2\) {2}capability\(1, \{ blocking: true \}\)$/m,
     )
-    assert.ok(open.some((l) => l.text.endsWith('7 cases hidden, → to show')))
-    assert.ok(!open.some((l) => l.text.includes('(-v)')), "the printed list's count isn't there")
+    assert.doesNotMatch(r.stdout, /runs at 100% \(pass@6\)/, 'canary: not pooled over the cases')
+    assert.match(r.stdout, /^ {5}#c +0% +"ok" failed$/m)
+    assert.equal(readRun(p.dir).run.evals[0]?.outcome, 'fail')
+    const q = await runCli(p.dir, ['query', 'SELECT outcome, pass_at_k FROM evals', '--json'])
+    assert.equal(q.code, 0, q.stdout + q.stderr)
+    const [row] = JSON.parse(q.stdout)
+    assert.equal(row.outcome, 'fail')
+    assert.ok(Math.abs(row.pass_at_k - 2 / 3) < 1e-9, String(row.pass_at_k))
   })
 
   test('-v on a compare over cases prints the paired lift once, not a difference per case', async () => {

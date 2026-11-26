@@ -510,7 +510,7 @@ describe('reeval run on the cloud platform', () => {
         r.stdout.includes(`Started cloud run ${id}; reeval attach ${id} follows it`),
         r.stdout,
       )
-      assert.match(r.stdout, /1 passed/)
+      assert.match(r.stdout, / · 1 eval · 1 on target$/m)
       assert.doesNotMatch(r.stdout, /Waiting for the cloud run/, 'no spinner off a terminal')
       assert.ok(!r.stdout.includes('\x1b['), 'nor a cursor move')
       const seen = p.seen.filter((s) => s.path !== '/ingest').map((s) => `${s.method} ${s.path}`)
@@ -1484,7 +1484,7 @@ export default defineEval({
       const r = await runCli(dir, ['run', '--cloud'], {
         env,
         onOutput: (stdout) => {
-          if (!/1 passed/.test(stdout)) return false
+          if (!/ · 1 eval · 1 on target$/m.test(stdout)) return false
           ended = Date.now()
           return true
         },
@@ -1496,7 +1496,7 @@ export default defineEval({
       const interrupted = await runCli(dir, ['attach', `${p.base}/api/runs/run_1/events`], {
         env,
         onOutput: (stdout, pid) => {
-          if (!/1 passed/.test(stdout)) return false
+          if (!/ · 1 eval · 1 on target$/m.test(stdout)) return false
           setTimeout(() => {
             killed = Date.now()
             process.kill(pid, 'SIGINT')
@@ -1891,7 +1891,7 @@ export default defineEval({ environment: mac, async task() {} })
       const r = await runCli(dir, ['run', '--cloud'], { env: { REEVAL_CLOUD_URL: p.base } })
       assert.equal(r.code, 0, r.stdout + r.stderr)
       assert.match(r.stdout, /Running here, not in the cloud: .*outside the bundle root/)
-      assert.match(r.stdout, /1 passed/)
+      assert.match(r.stdout, / · 1 eval · 1 on target$/m)
       assert.deepEqual(p.seen, [], 'a run that stays here never calls the platform')
     } finally {
       await p.close()
@@ -1929,7 +1929,7 @@ describe("a cloud run's files, downloaded with --download", () => {
       assert.ok(existsSync(join(dir, '.reeval/debug', runId)))
       const show = await runCli(dir, ['show', runId])
       assert.equal(show.code, 0, show.stdout + show.stderr)
-      assert.match(show.stdout, new RegExp(`run ${runId} {2}1 pass`))
+      assert.match(show.stdout, new RegExp(`run ${runId} {2}1 eval · 1 on target$`, 'm'))
       assert.match(show.stdout, /\n {2}Runner +cloud run run_1 · /)
       assert.doesNotMatch(show.stdout, /local ·/)
       const query = await runCli(dir, ['query', 'select run_id from runs'])
@@ -2912,7 +2912,7 @@ describe('reeval run --cloud --resume', () => {
       const devRun = budgetStop(dev)
       const resumed = await runCli(dev, ['run', '--resume'], { env })
       assert.equal(resumed.code, 0, resumed.stdout + resumed.stderr)
-      assert.match(resumed.stdout, /1 passed/)
+      assert.match(resumed.stdout, / · 1 eval · 1 on target$/m)
       assert.doesNotMatch(resumed.stdout, /continues here|cloud/i)
       const local = await fixtureProject()
       cloudConfig(local)
@@ -2925,7 +2925,7 @@ describe('reeval run --cloud --resume', () => {
         again.stdout,
         new RegExp(`run ${localRun} ran on this machine, so it continues here`),
       )
-      assert.match(again.stdout, /1 passed/)
+      assert.match(again.stdout, / · 1 eval · 1 on target$/m)
       assert.notEqual(devRun, localRun)
       assert.deepEqual(p.seen, [], 'nothing reaches the platform')
     } finally {
@@ -3082,7 +3082,7 @@ describe('reeval run --cloud --resume', () => {
       assert.equal(calls(p).filter((c) => c.endsWith('/resume')).length, resumes)
       const local = await runCli(dir, ['run', '--local', '--resume', runId], { env })
       assert.equal(local.code, 0, local.stdout + local.stderr)
-      assert.match(local.stdout, /1 passed/)
+      assert.match(local.stdout, / · 1 eval · 1 on target$/m)
       assert.equal(calls(p).filter((c) => c.endsWith('/resume')).length, resumes)
     } finally {
       await p.close()
@@ -3116,7 +3116,7 @@ describe('reeval run --cloud --resume', () => {
       assert.ok(existsSync(marker))
       const here = await runCli(dir, ['run', '--local', '--resume', runId], { env })
       assert.equal(here.code, 0, here.stdout + here.stderr)
-      assert.match(here.stdout, /1 passed/)
+      assert.match(here.stdout, / · 1 eval · 1 on target$/m)
       assert.ok(!existsSync(marker), 'the run is no longer a download')
       const continued = readFileSync(file, 'utf8')
       const events = `${p.base}/api/runs/run_1/events`

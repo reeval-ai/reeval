@@ -124,7 +124,7 @@ for (const installer of installers) {
     assert.equal(cli('--version').stdout.trim(), manifest.version)
     const run = cli('run')
     assert.equal(run.status, 0, run.stdout + run.stderr)
-    assert.match(run.stdout, /^└─ ✓ hello {2}1 of 1 run passed$/m)
+    assert.match(run.stdout, /^└─ ✓ hello {2}1\/1 run at 100% {2}regression\(1\)$/m)
     await boatInApp(app, pkg, binCli(app), () => {
       const sdk = sh(
         installer.cmd,
@@ -323,7 +323,7 @@ test("the packed package runs beside the project's own, different vitest", {
   assert.equal(theirs.version, '3.2.4')
   const run = sh(join(app, 'node_modules/.bin/reeval'), app, ['run', '--ui', 'plain'], 60_000)
   assert.equal(run.status, 0, run.stdout + run.stderr)
-  assert.match(run.stdout, /^└─ ✓ hello {2}1 of 1 run passed$/m)
+  assert.match(run.stdout, /^└─ ✓ hello {2}1\/1 run at 100% {2}regression\(1\)$/m)
   assert.doesNotMatch(run.stdout + run.stderr, /sum\.test|warning/)
   // The canary: the project's own vitest still runs its own tests.
   const unit = sh(join(app, 'node_modules/.bin/vitest'), app, ['run', 'src'], 120_000)
@@ -360,7 +360,7 @@ test("the packed package installs with Yarn Berry's Plug'n'Play and runs reeval"
   assert.equal(berry(app, ['reeval', '--version']).stdout.trim(), manifest.version)
   const run = berry(app, ['reeval', 'run', '--ui', 'plain'], 60_000)
   assert.equal(run.status, 0, run.stdout + run.stderr)
-  assert.match(run.stdout, /^└─ ✓ hello {2}1 of 1 run passed$/m)
+  assert.match(run.stdout, /^└─ ✓ hello {2}1\/1 run at 100% {2}regression\(1\)$/m)
   const cli: Cli = (args, env) =>
     spawnAsync('corepack', ['yarn', 'reeval', ...args], app, {
       COREPACK_ENABLE_DOWNLOAD_PROMPT: '0',
@@ -496,7 +496,7 @@ test('the packed package installs into a clean project and runs reeval', {
   assert.equal(cli('image', 'build', '--help').status, 0)
   const run = cli('run')
   assert.equal(run.status, 0, run.stdout + run.stderr)
-  assert.match(run.stdout, /^└─ ✓ hello {2}1 of 1 run passed$/m)
+  assert.match(run.stdout, /^└─ ✓ hello {2}1\/1 run at 100% {2}regression\(1\)$/m)
   assert.equal(cli('show').status, 0)
   // Adapters the package bundles can't be resolved by name, but the run still records them.
   assert.equal(readRun(app).run.stack.packages['@reeval/harness-antigravity'], VERSION)

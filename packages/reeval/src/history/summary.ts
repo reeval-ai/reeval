@@ -16,7 +16,7 @@ export const OUTCOME_MARK: Record<Outcome, string> = {
   skipped: '↓',
 }
 
-/** `5 fail · 2 pass`, with the run's status when it didn't complete. */
+/** `7 evals · 2 on target · 5 below`, with the run's status when it didn't complete. */
 export const runTally = (run: RunRecord) =>
   `${tallyLine(colors(false), suiteResult(run).tally)}${run.status === 'complete' ? '' : ` · ${run.status === 'budget' ? 'budget reached' : run.status}`}`
 

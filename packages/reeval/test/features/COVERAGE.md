@@ -342,7 +342,7 @@
 | `--log-order`, `--log-prefix` and `--output-logs` through `reeval run` | ✓ 1 | — | — | — | — | — |
 | Result layouts by what an eval varies: results, measure a change, compare harnesses, both, and an eval with cases | ✓ 1 | — | ● 5 | — | — | — |
 | A check that never ran reads `not run`, never `0 of N`, including every check of a cell with no counted attempt | ✓ 2 | — | ● 2 | — | — | — |
-| The tally (`5 fail · 2 pass`, infra errors, canceled attempts and skips apart) and the no-model hint | ✓ 2 | — | ● 1 | — | — | — |
+| The tally (`2 on target · 5 below`, infra errors, canceled attempts and skips apart) and the no-model hint | ✓ 2 | — | ● 1 | — | — | — |
 | An error outside any attempt: printed first, `N run error` in the tally, `errors` in the record, and `outcome: fail` with exit 1 | ✓ 1 | — | ● 1 | — | — | — |
 | An eval with cases' block reads every case: its columns, pooled arms and summed compare questions | ✓ 1 | — | — | — | — | — |
 | `-v`/`--verbose`: the timestamped per-attempt phase trace (plan, image, container, environment, brokering, turns and tool calls, checks, judge, gateway requests, teardown) | ✓ 4 | — | — | — | — | ◐ 1 (1 without a canary) |

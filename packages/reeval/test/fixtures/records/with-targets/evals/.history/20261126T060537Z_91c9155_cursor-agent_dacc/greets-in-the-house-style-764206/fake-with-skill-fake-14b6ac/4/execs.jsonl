@@ -1,0 +1,2 @@
+{"command":"grep -q Ahoy greet.js","exitCode":0,"stdout":"","stderr":"","durationMs":3,"turn":1}
+{"command":"grep -q \"!\" greet.js","exitCode":0,"stdout":"","stderr":"","durationMs":4,"turn":1}

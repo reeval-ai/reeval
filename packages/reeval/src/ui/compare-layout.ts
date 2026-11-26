@@ -29,6 +29,8 @@ import {
   isStudy,
   type ResultOutcome,
   type SuiteResult,
+  type SuiteTally,
+  tallyKey,
 } from '../view/suite.ts'
 import { type Colors, colors, type Paint } from './colors.ts'
 import {
@@ -49,6 +51,7 @@ import {
   t,
   table,
 } from './layout.ts'
+import { tallyParts } from './target.ts'
 
 /** One side of a compare: its run id, its facts, and where its commit stands. */
 export type CompareSide = {
@@ -710,13 +713,24 @@ function noBaseline(c: Colors, input: CompareInput, opts: CompareOptions): strin
   const { suite, runId } = input.head
   const blocks = renderBlocks(suite, { color: opts.color, verbose: opts.verbose })
   const units = unitsOf(suite)
-  const order = ['fail', 'infra_error', 'canceled', 'pass', 'not_gated', 'skipped'] as const
+  // Every eval is new, so each counts where the run's own tally counts it: against its target.
   const tally = (rows: CompareRow[], noun: string) => {
-    const shown = rows.map((r) => shownOutcome(r, 'head', units.get(r.id)))
-    const counts = order.flatMap((o) => {
-      const n = shown.filter((x) => x === o).length
-      return n ? [paintOutcome(c, o)(`${n} ${OUTCOME[o]}`)] : []
-    })
+    const t: SuiteTally = {
+      errors: 0,
+      evals: 0,
+      onTarget: 0,
+      below: 0,
+      reportOnly: 0,
+      infraError: 0,
+      canceled: 0,
+      skipped: 0,
+    }
+    for (const r of rows) {
+      const outcome = sideOutcome(r, 'head')
+      if (outcome) t[tallyKey({ outcome, blocking: units.get(r.id)?.result.blocking ?? true })]++
+    }
+    const paint = { red: c.red, green: c.green, yellow: c.yellow, dim: c.dim }
+    const counts = tallyParts(t).map((p) => (p.tone ? paint[p.tone](p.text) : p.text))
     return `${plural(rows.length, noun)}${counts.length ? ` (${counts.join(c.dim(' · '))})` : ''}`
   }
   return [

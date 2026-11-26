@@ -1,10 +1,5 @@
-fail             greets in the house style on each agent
-  harness           pass
-  skilled           1 of 1
-  terse             0 of 1
-    house greeting  failed
-      expected command to succeed, exit code 1
-    exclaims        not run
-    +1 more passed
+✗ greets-in-the-house-style-on-each-agent  1/2 runs at 100%, worst 0%  regression(1)
+    terse  0%  "house greeting" failed
+      expected command to succeed, exit code 1 · evals/greets-in-the-house-style-on-each-agent.eval.ts:28
 
-1 fail
+1 eval · 1 below

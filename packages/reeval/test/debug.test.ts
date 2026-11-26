@@ -140,7 +140,7 @@ describe('verbosity', () => {
     assert.equal(r.code, 0, r.stdout + r.stderr)
     for (const phase of PHASES) assert.match(r.stdout, phaseLine(phase), phase)
     // Twin: agent mode's own output is still there, and nothing else of plain mode's.
-    assert.match(r.stdout, /^Done in \S+ · 1 passed$/m)
+    assert.match(r.stdout, /^Done in \S+ · 1 eval · 1 on target$/m)
     assert.doesNotMatch(r.stdout, /▶ evals\/a\.eval\.ts/)
   })
 

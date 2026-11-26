@@ -2881,7 +2881,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'output.tally',
     area: 'CLI and runner',
-    name: 'The tally (`5 fail · 2 pass`, infra errors, canceled attempts and skips apart) and the no-model hint',
+    name: 'The tally (`2 on target · 5 below`, infra errors, canceled attempts and skips apart) and the no-model hint',
     fixtures: ['output/infra-error'],
     unit: ['reeval/test/output.test.ts', 'reeval/test/suite.test.ts'],
   },

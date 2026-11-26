@@ -75,16 +75,38 @@ describe('every layout', () => {
     }
   })
 
-  test('ends with the tally, and counts read N of M, never a percentage', () => {
+  test('ends with the tally, and each eval heads its block with the number its target reads', () => {
     for (const g of GOLDENS) {
       const lines = rendered(g.name)
       assert.match(
         lines.at(-1) ?? '',
-        /^(\d+ (run errors?|fail|pass|infra errors?|canceled|skipped)( · )?)+$/,
+        /^(\d+ (run errors?|evals?|on target|below|report only|infra errors?|canceled|skipped)( · )?)+$/,
         g.name,
       )
-      if (!g.verbose) assert.doesNotMatch(lines.join('\n'), /\d%|pass@1|interval/, g.name)
+      if (!g.verbose) assert.doesNotMatch(lines.join('\n'), /interval|difference/, g.name)
+      const heads = lines.filter((l) => /^[✓✗·–○] /.test(l))
+      assert.ok(heads.length, g.name)
+      for (const head of heads) {
+        assert.match(
+          head,
+          / {2}(\d+%|\d+\/\d+ (runs?|cases?)|every run|skipped|todo|not run|infra error|canceled)/,
+          head,
+        )
+      }
     }
+  })
+
+  test('✓ and ✗ only for a blocking target; · for one that only reports', () => {
+    const text = rendered('suite').join('\n')
+    assert.match(text, /^✓ writes-greet-js +1\/1 run at 100% +regression\(1\)$/m)
+    assert.match(text, /^✓ choose +83% ≥ 80% +metric\(0\.8\)$/m)
+    assert.match(text, /^✗ explains-why-greet-js-fails +67% < 80% +metric\(0\.8\)$/m)
+    assert.match(text, /^· greets-once +100% +metric\(\)$/m)
+    assert.match(
+      text,
+      /^· adds-a-button-that-builds +2\/3 cases hit 100% \(pass@1\) +capability\(1\)$/m,
+    )
+    assert.doesNotMatch(text, /^[✓✗] .*(metric\(\)|capability\(1\))$/m, 'canary: never ✓ or ✗')
   })
 
   test('statistics only with -v', () => {
@@ -100,11 +122,25 @@ describe('every layout', () => {
     assert.doesNotMatch(text, /^ {2}exclaims +0 of/m, 'canary: not 0 of N')
   })
 
-  test('a pass prints its name only; a fail its failed checks and how many more passed', () => {
+  test('a pass is one line; a miss lists the cases that cost points and why', () => {
     const text = rendered('results').join('\n')
-    assert.match(text, /^pass {13}writes greet\.js\n(\n|fail|infra|skipped|todo)/m)
-    assert.match(text, /^fail {13}greets in French\n {2}french greeting +failed\n/m)
-    assert.match(text, /^ {2}\+1 more passed$/m)
+    assert.match(text, /^✓ writes-greet-js .*$(\n[✓✗·] |\n\n|$(?![\s\S]))/m)
+    assert.match(
+      text,
+      /^✗ greets-in-french .*\n {4}#1 {2}0% {2}greet\.js has no French greeting\n {6}file: greet\.js\n {6}exitCode: 1\n {6}after turn 1$/m,
+    )
+    assert.match(
+      text,
+      /^ {4}#2 {2}50% {2}names-the-root-cause 0%, judge "How clearly does the answer name the root cause\?" 50%$/m,
+    )
+    assert.doesNotMatch(text, /^ {4}#1 {2}100%/m, 'canary: a case at 100% only with -v')
+    assert.match(rendered('results-verbose').join('\n'), /^ {4}#1 {2}100%$/m)
+  })
+
+  test("an EvalError's frames print only with -v; a plain error's always", () => {
+    const text = rendered('results').join('\n')
+    assert.match(text, /^ {6}at task \(evals\/reads-the-fixture-repo\.eval\.ts:\d+:\d+\)$/m)
+    assert.doesNotMatch(text, /^ {6}at task \(evals\/greets-in-french/m)
   })
 
   test('the upstream providers a gateway named print under the eval; none when it named none', () => {
@@ -125,7 +161,7 @@ describe('every layout', () => {
     assert.match(
       text,
       new RegExp(
-        `${e.name}\\n(.*\\n)*? {2}served by Anthropic 12 · Amazon Bedrock 3; judge served by Typesafe 2$`,
+        `${e.name} .*\\n(.*\\n)*? {2}served by Anthropic 12 · Amazon Bedrock 3; judge served by Typesafe 2$`,
         'm',
       ),
     )
@@ -142,66 +178,66 @@ describe('every layout', () => {
     assert.match(text, /^ {2}question {2}Which reads better\?\n {4}4 votes, every one a tie$/m)
   })
 
-  test('a family case whose cells are all ungated reads ran, never pass beside 0 of 1', () => {
-    const g = GOLDENS.find((x) => x.name === 'family')
-    assert.ok(g)
-    const suite = goldenSuite(g)
-    const e = suite.files.flatMap((f) => f.evals).find((x) => x.cases?.length)
-    assert.ok(e?.cases)
-    for (const k of e.cases) {
-      k.outcome = 'pass'
-      for (const cell of k.cells) {
-        cell.gated = false
-        cell.passed = 0
-        cell.failed = 1
-      }
-    }
-    const text = render(suite, null, { color: false, verbose: false }).join('\n')
-    assert.match(text, /^ {2}ran {2}\S.* +0 of 1$/m)
-    assert.doesNotMatch(text, /^ {2}pass {2}\S.* +0 of 1$/m)
-  })
-
-  test('canceled and skipped tries are named beside the count, never counted as fails', () => {
+  test("an attempt that didn't count reads its status in place of a score, never 0%", () => {
     const g = GOLDENS.find((x) => x.name === 'results')
     assert.ok(g)
     const suite = goldenSuite(g)
-    const e = suite.files
-      .flatMap((f) => f.evals)
-      .find((x) => x.name === 'explains why greet.js fails')
-    const cell = e?.cells?.[0]
-    assert.ok(cell)
-    cell.attempts = 4
-    cell.failed = 2
-    cell.skipped = 1
-    cell.errors.push({ kind: 'aborted', message: 'The run was canceled', attempts: 1 })
+    const e = suite.files.flatMap((f) => f.evals).find((x) => x.name === 'writes-greet-js')
+    const [a] = e?.scored ?? []
+    assert.ok(e && a)
+    e.outcome = 'canceled'
+    e.scored = [
+      {
+        ...a,
+        outcome: 'fail',
+        score: null,
+        error: { kind: 'aborted', message: 'The run was canceled' },
+      },
+    ]
     const text = render(suite, null, { color: false, verbose: false }).join('\n')
-    assert.match(text, /^ {2}4 tries +1 of 2 · 1 canceled · 1 skipped$/m)
-    assert.doesNotMatch(text, /^ {2}4 tries +1 of 3/m, 'canary: a canceled try is not a fail')
+    assert.match(text, /^○ writes-greet-js +canceled$/m)
+    e.outcome = 'fail'
+    e.scored = [
+      a,
+      {
+        ...a,
+        n: 2,
+        outcome: 'fail',
+        score: null,
+        error: { kind: 'aborted', message: 'The run was canceled' },
+      },
+    ]
+    const missed = render(suite, null, { color: false, verbose: false }).join('\n')
+    assert.match(missed, /^ {4}#2 {2}canceled {2}The run was canceled$/m)
+    assert.doesNotMatch(missed, /^ {4}#2 {2}0%/m, 'canary: a cancel is not a 0')
   })
 
-  test('the tally puts fail first, leaves zeros out and counts infra errors and skips apart', () => {
+  test('the tally counts the evals, then on target, below and report only, leaving zeros out', () => {
     const c = colors(false)
     const tally = (t: Partial<SuiteTally>): SuiteTally => ({
       errors: 0,
-      pass: 0,
-      notGated: 0,
-      fail: 0,
+      evals: 0,
+      onTarget: 0,
+      below: 0,
+      reportOnly: 0,
       infraError: 0,
       canceled: 0,
       skipped: 0,
       ...t,
     })
-    assert.equal(tallyLine(c, tally({ pass: 2, fail: 5 })), '5 fail · 2 pass')
     assert.equal(
-      tallyLine(c, tally({ pass: 1, infraError: 2, skipped: 1 })),
-      '1 pass · 2 infra errors · 1 skipped',
+      tallyLine(c, tally({ evals: 3, onTarget: 1, below: 1, reportOnly: 1 })),
+      '3 evals · 1 on target · 1 below · 1 report only',
     )
     assert.equal(
-      tallyLine(c, tally({ fail: 1, pass: 2, canceled: 3 })),
-      '1 fail · 2 pass · 3 canceled',
+      tallyLine(c, tally({ evals: 4, onTarget: 1, infraError: 2, skipped: 1 })),
+      '4 evals · 1 on target · 2 infra errors · 1 skipped',
     )
-    assert.equal(tallyLine(c, tally({ errors: 1, pass: 2 })), '1 run error · 2 pass')
-    assert.equal(tallyLine(c, tally({ pass: 1, notGated: 4 })), '1 pass · 4 ran')
+    assert.equal(
+      tallyLine(c, tally({ errors: 1, evals: 2, onTarget: 2 })),
+      '1 run error · 2 evals · 2 on target',
+    )
+    assert.equal(tallyLine(c, tally({ evals: 1, canceled: 1 })), '1 eval · 1 canceled')
     assert.equal(tallyLine(c, tally({})), 'no evals ran')
   })
 
@@ -224,7 +260,7 @@ describe('catch regressions (reeval compare)', () => {
       "1 regressed · 1 fixed · 1 can't compare · 1 new · 1 removed · 2 same",
     )
     for (const g of COMPARE_GOLDENS.filter((x) => !x.verbose)) {
-      assert.doesNotMatch(comparedText(g).join('\n'), /\d%|lift|interval|noise|×/, g.name)
+      assert.doesNotMatch(comparedText(g).join('\n'), /lift|interval|noise|×/, g.name)
     }
     assert.match(
       comparedText(compareGolden('compare-verbose')).join('\n'),
@@ -340,14 +376,17 @@ describe('catch regressions (reeval compare)', () => {
     assert.doesNotMatch(comparedText(g, complete).join('\n'), /interrupted|budget/, 'canary')
   })
 
-  test('with no baseline, the count names every outcome, not only fail and pass', () => {
+  test('with no baseline, the count reads each new eval against its target, and names every outcome', () => {
     const g = compareGolden('compare-no-baseline')
     const input = goldenCompare(g)
     const [first, ...rest] = input.rows
     assert.ok(first)
     input.rows = [{ ...first, head: 'infra_error' }, ...rest]
     const last = comparedText(g, input).at(-1) ?? ''
-    assert.match(last, /^6 new evals \(\d fail · 1 infra error · \d pass\)$/)
+    assert.match(last, /^6 new evals \(\d on target · \d below · 1 infra error\)$/)
+    input.rows = [first, ...rest]
+    for (const e of input.head.suite.files.flatMap((f) => f.evals)) e.blocking = false
+    assert.equal(comparedText(g, input).at(-1), '6 new evals (6 report only)')
   })
 
   test('a side the interrupt canceled reads canceled, not fail', () => {
@@ -374,7 +413,7 @@ describe('catch regressions (reeval compare)', () => {
     assert.ok(added)
     none.rows = [{ ...added, head: 'fail', canceled: ['head'] }, ...others]
     const last = renderCompare(none, { color: false, verbose: false }).at(-1) ?? ''
-    assert.match(last, /^6 new evals \((\d fail · )?1 canceled · \d pass\)$/)
+    assert.match(last, /^6 new evals \(\d on target · (\d below · )?1 canceled\)$/)
   })
 
   test('color is the only difference color makes', () => {

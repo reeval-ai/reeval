@@ -1,4 +1,4 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval, expect, regression } from 'reeval'
 
 const plain = defineEnvironment('plain', {})
 const withSkill = defineEnvironment('with-skill', ({ skill }) => ({
@@ -12,6 +12,7 @@ const withDoc = defineEnvironment('with-doc', {
 // effort table prints because the eval failed. The second eval's skill makes it worse; the
 // third has 1 try an arm, so its effect can't be told yet.
 export default defineEval({
+  target: regression(),
   runs: 4,
   compare: { control: plain, variants: [withSkill, withDoc] },
   task: async (c) => {

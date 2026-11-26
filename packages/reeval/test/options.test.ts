@@ -71,9 +71,9 @@ export default defineEval({
     assert.match(r.stdout, /^\[writes#2 bad\] ▶ writes-ok$/m)
     assert.match(
       r.stdout,
-      /evals\/writes-ok\.eval\.ts\n└─ ✗ writes-ok {2}2 of 4 runs passed\n {5}good passed 2 of 2, bad 0 of 2\.\n {5}✗ toHaveFile ok\.txt {2}failed 2 of 4 runs, all on bad\n {7}expected file ok\.txt to exist · evals\/writes-ok\.eval\.ts:7\n/,
+      /evals\/writes-ok\.eval\.ts\n└─ ✗ writes-ok {2}2\/4 runs at 100%, worst 0% {2}regression\(1\)\n {5}#1–2 · bad {2}0% {2}"toHaveFile ok\.txt" failed\n {7}expected file ok\.txt to exist · evals\/writes-ok\.eval\.ts:7\n/,
     )
-    assert.match(r.stdout, /^Done in \S+ · 1 failed$/m)
+    assert.match(r.stdout, /^Done in \S+ · 1 eval · 1 below$/m)
     const thirds = await project('matrix-thirds', {
       'reeval.config.ts': config('', `fakeAgent({ id: 'one' })`),
       'evals/two-of-three.eval.ts': `import { defineEval, metric } from 'reeval'
@@ -91,10 +91,9 @@ export default defineEval({
     assert.equal(rounded.code, 0, rounded.stdout + rounded.stderr)
     assert.match(
       rounded.stdout,
-      /✓ two-of-three {2}2 of 3 runs passed$/m,
-      'counts read N of M, never a percentage',
+      /✓ two-of-three {2}67% ≥ 50% {2}metric\(0\.5\)$/m,
+      'a mean rounds down, never up to its threshold',
     )
-    assert.doesNotMatch(rounded.stdout, /\d%/)
     const { run, evals } = readRun(p.dir)
     assert.equal(run.summary.attempts, 4)
     assert.deepEqual(
@@ -300,13 +299,16 @@ export default defineEval({
     })
     const r = await runCli(p.dir)
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    // The family is one row, its arms pooled over the cases. Agent time can hold either way on a
-    // slow runner, so the vs control cell may lead with it.
+    // The family is one row, its arms pooled over the cases.
     const pooled =
-      /✓ writes-ok {2}6 of 6 variant runs passed · 6 cases\n[│ ]+The skilled variant helped\.\n[│ ]+arm +passed {2}verdict {2}vs control\n[│ ]+base \(control\) {2}0 of 6\n[│ ]+skilled +6 of 6 {2}helped {3}(?:(?:\d+(?:\.\d)?× |\d+% )?(?:slower|faster) · )?"toHaveFile ok\.txt" \+100 pts\n[│ ]+case {6}base \(control\) {2}skilled\n[│ ]+✓ ada {7}0 of 1 {10}1 of 1\n/
+      /✓ writes-ok {2}6\/6 runs at 100% {2}regression\(1\)\n[│ ]+arm +pass +vs control\n[│ ]+base +0 of 6\n[│ ]+skilled +6 of 6 {2}helped {2}(?:(?:\d+(?:\.\d)?× |\d+% )?(?:slower|faster) · )?"toHaveFile ok\.txt" \+100 pts\n/
     assert.match(r.stdout, pooled)
     assert.doesNotMatch(r.stdout, /Failed cases/, 'every case passed')
-    assert.match(r.stdout, /^Done in \S+ · 1 passed$/m, 'the eval with cases counts once')
+    assert.match(
+      r.stdout,
+      /^Done in \S+ · 1 eval · 1 on target$/m,
+      'the eval with cases counts once',
+    )
 
     const { evals, read } = readRun(p.dir)
     const [ev] = evals
@@ -401,12 +403,12 @@ export default defineEval({
     assert.equal(r.code, 1, r.stdout + r.stderr)
     assert.match(
       r.stdout,
-      /✗ writes-ok {2}6 of 6 variant runs passed · 6 cases\n[│ ]+The skilled variant helped\.\n[│ ]+arm +passed {2}verdict +vs control\n[│ ]+base \(control\) {2}0 of 6\n[│ ]+skilled +6 of 6 {2}helped, not by minLift 60 {2}(?:(?:\d+(?:\.\d)?× |\d+% )?(?:slower|faster) · )?"toHaveFile ok\.txt" \+100 pts\n/,
+      /✗ writes-ok {2}6\/6 runs at 100% {2}regression\(1\)\n[│ ]+arm +pass +vs control\n[│ ]+base +0 of 6\n[│ ]+skilled +6 of 6 {2}helped, not by minLift 60 {2}(?:(?:\d+(?:\.\d)?× |\d+% )?(?:slower|faster) · )?"toHaveFile ok\.txt" \+100 pts\n/,
     )
     assert.doesNotMatch(r.stdout, /Failed cases/, 'every case passed on its own')
     assert.match(
       r.stdout,
-      /^Done in \S+ · 1 failed$/m,
+      /^Done in \S+ · 1 eval · 1 below$/m,
       'the pooled gate fails the eval, counted once',
     )
     const [ev] = readRun(p.dir).evals
@@ -439,7 +441,7 @@ export default defineEval({
     // Three pairs are too few for the lift to hold, however one-sided they are: it shows the direction.
     assert.match(
       r.stdout,
-      /^[│ ]+skilled +6 of 6 {2}helped {3}(?:(?:\d+(?:\.\d)?× |\d+% )?(?:slower|faster) · )?"toHaveFile ok\.txt" \+100 pts$/m,
+      /^[│ ]+skilled +6 of 6 {2}helped {2}(?:(?:\d+(?:\.\d)?× |\d+% )?(?:slower|faster) · )?"toHaveFile ok\.txt" \+100 pts$/m,
     )
   })
 
@@ -467,9 +469,9 @@ export default defineEval({
     assert.match(r.stdout, /^ {2}➜ {2}Scope: +1 eval file · 1 eval · 2 cells · 4 attempts$/m)
     // A successful compare reads as one: the control's expected misses aren't failures.
     const block =
-      /✓ writes-ok {2}2 of 2 variant runs passed\n[│ ]+The skilled variant helped\.\n[│ ]+arm +passed {2}verdict\n[│ ]+base \(control\) {2}0 of 2\n[│ ]+skilled +2 of 2 {2}helped\n[│ ]+✗ toHaveFile ok\.txt {2}failed on the control 2 of 2 · expected\n/
+      /✓ writes-ok {2}2\/2 runs at 100% {2}regression\(1\)\n[│ ]+arm +pass\n[│ ]+base +0 of 2\n[│ ]+skilled +2 of 2 {2}helped\n[│ ]+check +base +skilled\n[│ ]+toBe base +2 of 2 +not run\n[│ ]+toHaveFile ok\.txt +0 of 2 +2 of 2\n[│ ]+expected file ok\.txt to exist\n/
     assert.match(r.stdout, block)
-    assert.match(r.stdout, /^Done in \S+ · 1 passed · 2 ran$|^Done in \S+ · 1 passed$/m)
+    assert.match(r.stdout, /^Done in \S+ · 1 eval · 1 on target$/m)
 
     const color = await runCli(p.dir, ['run'], { env: { FORCE_COLOR: '1' } })
     assert.equal(color.code, 0, color.stdout + color.stderr)
@@ -564,7 +566,7 @@ export default defineEval({
     assert.equal(noWorse?.cells[1]?.outcome, 'fail')
     assert.equal(noWorse?.outcome, 'fail', 'minLift fails the variant cell')
     assert.match(r.stdout, /✗ no-worse.*not by minLift/s)
-    assert.match(r.stdout, /^Done in \S+ · 1 failed · 1 passed$/m)
+    assert.match(r.stdout, /^Done in \S+ · 2 evals · 1 on target · 1 below$/m)
   })
 
   test('compare.harness scopes variants; other harnesses run the control only', async () => {
@@ -648,8 +650,14 @@ export default defineEval({
       ],
     )
     assert.deepEqual(evals[0]?.scores, scores, "the eval's scores are its target cells'")
-    assert.match(r.stdout, /✓ at-08 +4 of 5 runs passed$/m)
-    assert.match(r.stdout, /^Done in \S+ · 3 failed · 2 passed · 1 ran$/m)
+    assert.match(r.stdout, /✓ at-08 +80% ≥ 80% +metric\(0\.8\)$/m)
+    assert.match(r.stdout, /✗ at-09 +80% < 90% +metric\(0\.9\)$/m)
+    assert.match(
+      r.stdout,
+      /✓ any-one +4\/5 runs at 100% \(pass@5\) +capability\(1, \{ blocking: true \}\)$/m,
+    )
+    assert.match(r.stdout, /· reports +80% +metric\(\)$/m)
+    assert.match(r.stdout, /^Done in \S+ · 6 evals · 2 on target · 3 below · 1 report only$/m)
   })
 
   test('a config-level target applies to every eval', async () => {
@@ -677,6 +685,7 @@ export default defineEval({
     const r = await runCli(p.dir)
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.equal(readRun(p.dir).evals[0]?.outcome, 'fail')
+    assert.match(r.stdout, /^└─ · never {2}0\/2 runs at 100% \(pass@2\) {2}capability\(1\)$/m)
     // Canary: the same target set to block fails the run.
     writeFileSync(
       join(p.dir, 'reeval.config.ts'),

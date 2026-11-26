@@ -1,14 +1,21 @@
-import { defineEval, expect } from 'reeval'
-import { fakeAgent } from 'reeval/agent'
-
-// Results: a pass, a failed check with one that never ran after it, a check that fails one try
-// of two, a throw no check explains, an infra error, and a skipped and a todo eval.
+// Results: one eval per outcome against its target: a pass, an EvalError with its meta, a mean
+// score under its threshold with a judge grader, a throw on a target that doesn't block, an infra
+// error, and two skipped evals (one `skip: 'todo'`).
+// biome-ignore lint/suspicious/noShadowRestrictedNames: reeval's EvalError stands in for the global one
+import { defineEval, EvalError, regression } from 'reeval'
+import { writesGreet } from './graders.ts'
 
 export default defineEval({
+  target: regression(),
+  graders: [writesGreet],
   task: async (c) => {
     await c.send('Write greet.js that greets in French.')
-    await expect(c, 'writes greet.js').toHaveFile('greet.js')
-    await expect.require(c.exec('grep -q Bonjour greet.js'), 'french greeting').toSucceed()
-    await expect(c.exec('grep -q Salut greet.js'), 'informal greeting').toSucceed()
+    const grep = await c.exec('grep -q Bonjour greet.js')
+    if (grep.exitCode !== 0) {
+      throw new EvalError({
+        reason: 'greet.js has no French greeting',
+        meta: { file: 'greet.js', exitCode: grep.exitCode },
+      })
+    }
   },
 })

@@ -1,0 +1,78 @@
+{
+  "kind": "reeval-remarks",
+  "schemaVersion": 1,
+  "runId": "20261126T060537Z_91c9155_cursor-agent_dacc",
+  "createdAt": "2026-11-26T06:05:45.155Z",
+  "remarks": [
+    {
+      "id": "fbf06b8cf419c5985eb6ef55c8d6b4c08d30d39d5370c45eff8f2c33512d5274",
+      "evalId": "greets-in-the-house-style-2",
+      "kind": "too-few-tries",
+      "severity": "concern",
+      "text": "The with-skill variant, paired over 4 cases: better, but a paired lift needs 6 cases that differ between the arms to hold.",
+      "brief": "Too few cases differ between the arms for the paired lift to hold; add cases at evals/greets-in-the-house-style-2.eval.ts to confirm it.",
+      "evidence": [
+        "greets-in-the-house-style-2/fake+with-skill+fake"
+      ],
+      "fix": {
+        "at": "source:evals/greets-in-the-house-style-2.eval.ts",
+        "edit": "add cases, so 6 or more can differ between the arms"
+      },
+      "firstSeenRun": "20261126T060537Z_91c9155_cursor-agent_dacc",
+      "printed": true
+    },
+    {
+      "id": "634d0959d7f3ee271adc5ba105925c72658a1069873b68b8d1b9181a11bb7827",
+      "evalId": "greets-in-the-house-style",
+      "kind": "cant-tell-apart",
+      "severity": "concern",
+      "text": "The with-doc variant and the control failed every run (0 of 4 and 0 of 4): the task may be too hard, or the eval broken.",
+      "evidence": [
+        "greets-in-the-house-style/fake+with-doc+fake",
+        "greets-in-the-house-style/fake+plain+fake"
+      ],
+      "fix": {
+        "at": "source:evals/greets-in-the-house-style.eval.ts",
+        "edit": "check the eval with an oracle (a fake agent that writes the solution); if it passes, make the task easier"
+      },
+      "evalKey": "greets-in-the-house-style",
+      "firstSeenRun": "20261126T060537Z_91c9155_cursor-agent_dacc",
+      "printed": true
+    },
+    {
+      "id": "f609e2a37007fe50838347c5475a39a705b2f7116e0edfa911b894ea691572b9",
+      "evalId": "learns-the-house-style-from-the-skill",
+      "kind": "cant-tell-apart",
+      "severity": "concern",
+      "text": "The with-skill variant on terse and the control failed every run (0 of 4 and 0 of 4): the task may be too hard, or the eval broken.",
+      "evidence": [
+        "learns-the-house-style-from-the-skill/terse+with-skill+fake",
+        "learns-the-house-style-from-the-skill/terse+plain+fake"
+      ],
+      "fix": {
+        "at": "source:evals/learns-the-house-style-from-the-skill.eval.ts",
+        "edit": "check the eval with an oracle (a fake agent that writes the solution); if it passes, make the task easier"
+      },
+      "evalKey": "learns-the-house-style-from-the-skill",
+      "firstSeenRun": "20261126T060537Z_91c9155_cursor-agent_dacc",
+      "printed": true
+    },
+    {
+      "id": "2fe57365d30335988a0222d8472a154425be934b8d658d5b01159069b1f66da5",
+      "evalId": "reads-the-fixture-repo",
+      "kind": "observe-throws",
+      "severity": "concern",
+      "text": "1 of 1 tries threw outside an expect, so the eval recorded its own error, not what the agent did: the fixture repo is missing",
+      "evidence": [
+        "reads-the-fixture-repo/fake+-+fake#1"
+      ],
+      "fix": {
+        "at": "source:evals/reads-the-fixture-repo.eval.ts",
+        "edit": "fix what the body throws, or check what can fail with expect, which metric() records without failing"
+      },
+      "evalKey": "reads-the-fixture-repo",
+      "firstSeenRun": "20261126T060537Z_91c9155_cursor-agent_dacc",
+      "printed": false
+    }
+  ]
+}

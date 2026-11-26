@@ -1,27 +1,18 @@
 No earlier recorded run to compare 20261020T230148Z_958e309_cursor-agent_qghb with, so every eval is new.
 
-fail             bills in minor units with the billing doc
-  amount in minor units  failed
-    expected command to succeed, exit code 1
+✗ bills in minor units with the billing doc  0/1 run at 100%   regression(1)
+    #1  0%  "amount in minor units" failed
+      expected command to succeed, exit code 1
+✓ adds a $name button that builds            3/3 runs at 100%  regression(1)
+✗ greets in the house style                  0/1 run at 100%   regression(1)
+    #1  0%  "house greeting" failed
+      expected command to succeed, exit code 1
+✓ writes greet.js                            1/1 run at 100%   regression(1)
+✗ greets in French                           0/1 run at 100%   regression(1)
+    #1  0%  "french greeting" failed
+      expected command to succeed, exit code 1
+✗ greets in Spanish                          0/1 run at 100%   regression(1)
+    #1  0%  "spanish greeting" failed
+      expected command to succeed, exit code 1
 
-                 adds a $name button that builds
-  pass  reset      1 of 1
-  pass  double     1 of 1
-  pass  clear      1 of 1
-
-fail             greets in the house style
-  house greeting   failed
-    expected command to succeed, exit code 1
-  +1 more passed
-
-pass             writes greet.js
-
-fail             greets in French
-  french greeting  failed
-    expected command to succeed, exit code 1
-
-fail             greets in Spanish
-  spanish greeting  failed
-    expected command to succeed, exit code 1
-
-6 new evals (4 fail · 2 pass)
+6 new evals (2 on target · 4 below)
