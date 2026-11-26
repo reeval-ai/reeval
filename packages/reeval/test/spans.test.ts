@@ -450,23 +450,31 @@ export default defineEval({
 
   test('a collector that never answers holds up the exit by seconds, not its timeout', async (t) => {
     const p = await fakeProject('spans-otlp-black-hole')
-    const server = createServer((req) => req.resume())
+    const timeoutMs = 300_000
+    let lastRequest: number | undefined
+    const server = createServer((req) => {
+      lastRequest = Date.now()
+      req.resume()
+    })
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     t.after(() => {
       server.closeAllConnections()
       server.close()
     })
     const { port } = server.address() as AddressInfo
-    const began = Date.now()
     const r = await runCli(p.dir, ['run'], {
       env: {
         OTEL_EXPORTER_OTLP_ENDPOINT: `http://127.0.0.1:${port}`,
-        OTEL_EXPORTER_OTLP_TIMEOUT: '120000',
+        OTEL_EXPORTER_OTLP_TIMEOUT: String(timeoutMs),
       },
     })
+    const exited = Date.now()
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.match(r.stdout + r.stderr, /OpenTelemetry export: .*didn't take the rest within 5 s/)
-    assert.ok(Date.now() - began < 12_000, `took ${Date.now() - began} ms`)
+    assert.ok(lastRequest, 'the collector was sent an export')
+    // From the last export, not the launch, so a slow runner's start-up and run don't count.
+    const held = exited - lastRequest
+    assert.ok(held < timeoutMs / 5, `the exit waited ${held} ms after the last export`)
   })
 
   test('a collector that refuses the spans is a warning, not a failed run', async () => {
