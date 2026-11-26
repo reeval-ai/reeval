@@ -131,7 +131,7 @@ describe('toAtif', () => {
         type: 'file-edit',
         toolCallId: 'f',
         path: 'a.ts',
-        kind: 'edit',
+        kind: 'modify',
         added: 1,
         removed: 0,
       }),

@@ -166,7 +166,7 @@ export function toAtif(
                 line.type === 'file-edit'
                   ? { path: line.path, kind: line.kind, added: line.added, removed: line.removed }
                   : line.type === 'web-search'
-                    ? { query: line.query, references: line.references }
+                    ? defined({ query: line.query, references: line.references })
                     : line.type === 'web-fetch'
                       ? defined({ url: line.url, status: line.status, bytes: line.bytes })
                       : undefined,
