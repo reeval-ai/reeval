@@ -15,7 +15,10 @@ export type ObservedTally = {
   counts: Array<{ value: string; n: number }>
   /** Over the number values; null when none. */
   numbers: { median: number; min: number; max: number; n: number } | null
-  /** Values neither tallied nor summarized: objects, and arrays with no scalar item. */
+  /**
+   * Values neither tallied nor summarized: objects, arrays with no scalar item, and values over
+   * 4 KiB, which the record keeps in a file.
+   */
   others: number
 }
 
@@ -48,7 +51,7 @@ export function observedTallies(
 ): ObservedTally[] {
   const byName = new Map<string, Map<string, Acc>>()
   for (const a of attempts) {
-    for (const { name, value } of a.observations ?? []) {
+    for (const { name, value, file } of a.observations ?? []) {
       const cells = byName.get(name) ?? new Map<string, Acc>()
       byName.set(name, cells)
       let t = cells.get(a.cell)
@@ -58,7 +61,8 @@ export function observedTallies(
       }
       t.attempts++
       const count = (v: string) => t.counts.set(v, (t.counts.get(v) ?? 0) + 1)
-      if (typeof value === 'number') t.nums.push(value)
+      if (file) t.others++
+      else if (typeof value === 'number') t.nums.push(value)
       else if (scalar(value)) count(label(value))
       else if (Array.isArray(value) && value.some(scalar)) {
         for (const item of new Set(value.filter(scalar).map(label))) count(item)

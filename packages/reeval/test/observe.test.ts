@@ -8,6 +8,7 @@ import { observedFileBytes, observer } from '../src/attempt/observe.ts'
 import type { Attempt } from '../src/attempt/state.ts'
 import { attemptInput } from '../src/compare/questions.ts'
 import { resolveQuestionState } from '../src/compare/state.ts'
+import type { AttemptRecord, FileRef } from '../src/history/types.ts'
 import { sha256 } from '../src/ids.ts'
 import type { EvalRecord } from '../src/types.ts'
 import { observedLine, observedTallies } from '../src/view/observations.ts'
@@ -172,6 +173,24 @@ describe('observed tallies', () => {
     )
   })
 
+  test('counts a value kept in a file with the untallied ones, not as null', () => {
+    const file = { path: 'evals/a/observations/1.json', sha256: 'x', bytes: 5000 }
+    const tallies = observedTallies([
+      { cell: 'a', observations: [{ name: 'log', value: null, file, turn: 1 }] },
+      { cell: 'a', observations: [{ name: 'log', value: 'short', turn: 1 }] },
+    ])
+    assert.deepEqual(
+      tallies.map((t) => [t.counts, t.others, observedLine(t)]),
+      [
+        [
+          [{ value: 'short', n: 1 }],
+          1,
+          'short 1 · 1 value in reeval query attempt_values · 2 attempts',
+        ],
+      ],
+    )
+  })
+
   test('shows a value on one line', () => {
     const [t] = observedTallies([at('a', [['v', 'one\ntwo \u001b[31mred\u0007']])])
     assert.equal(t && observedLine(t), 'one two [31mred 1')
@@ -321,6 +340,61 @@ export default defineEval({
         ],
       ],
     )
+  })
+})
+
+describe('a large observation in a run', () => {
+  let ran: Promise<{ dir: string; attempt: AttemptRecord; file: FileRef }> | undefined
+  const large = () =>
+    (ran ??= (async () => {
+      const p = await project('observe-large', {
+        'reeval.config.ts': `import { defineConfig, defineEnvironment } from 'reeval'
+import { fakeAgent } from 'reeval/agent'
+import { fakeAnalysis } from 'reeval/judge'
+import { fakeSandbox } from 'reeval/sandbox'
+export default defineConfig({
+  agents: fakeAgent(),
+  environments: defineEnvironment('fake', { sandbox: fakeSandbox() }),
+  analysis: { model: fakeAnalysis({ answer: (q) => JSON.stringify(q.attempt.observations ?? null) }) },
+})
+`,
+        'evals/a.eval.ts': `import { defineEval } from 'reeval'
+export default defineEval({
+  questions: [{ question: 'What did it log?', observations: ['log'] }],
+  async task(c) {
+    await c.send('x')
+    c.observe('log', 'line\\n'.repeat(1200))
+  },
+})
+`,
+      })
+      const r = await runCli(p.dir)
+      assert.equal(r.code, 0, r.stdout + r.stderr)
+      const attempt = readRun(p.dir).run.evals[0]?.attempts[0]
+      const file = attempt?.observations?.[0]?.file
+      assert.ok(attempt && file, 'kept in a file')
+      return { dir: p.dir, attempt, file }
+    })())
+
+  test('a question reads it whole', async () => {
+    const { attempt } = await large()
+    // The recorded answer is capped; its start shows the question had the value, not null.
+    const text = attempt.answers?.[0]?.text ?? ''
+    const shown = JSON.stringify([{ name: 'log', value: 'line\n'.repeat(1200) }])
+    assert.ok(text.length > 100 && shown.startsWith(text.replace(/…$/, '')), text.slice(0, 60))
+  })
+
+  test('attempt_values names its file, with no value', async () => {
+    const { dir, file } = await large()
+    const q = await runCli(dir, [
+      'query',
+      'SELECT name, value, kind, text, file_path FROM attempt_values',
+      '--json',
+    ])
+    assert.equal(q.code, 0, q.stderr)
+    assert.deepEqual(JSON.parse(q.stdout), [
+      { name: 'log', value: null, kind: 'file', text: null, file_path: file.path },
+    ])
   })
 })
 

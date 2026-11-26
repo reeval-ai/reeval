@@ -30,6 +30,8 @@ import type {
   FakeAnswer,
   FakeVote,
   GatewayName,
+  JSONValue,
+  Observation,
   PairFactor,
   PairVote,
   QuestionCall,
@@ -872,11 +874,37 @@ async function keptAttempt(
       }
     }),
     checks,
-    ...(kept.observations ? { observations: kept.observations } : {}),
+    ...(kept.observations
+      ? { observations: await filedObservations(kept.observations, artifacts) }
+      : {}),
     ...(captures ? { captures: shots.flat() } : {}),
     id: `${cell.key}#${e.attempt?.n ?? kept.n}`,
     key: kept.key,
   }
+}
+
+/**
+ * Each observation with its value, read from `dir` where the record keeps it in a file, or a
+ * stand-in naming the file where it can't be read.
+ */
+async function filedObservations(
+  observations: Observation[] | undefined,
+  dir: string | null,
+): Promise<Observation[] | undefined> {
+  if (!observations?.some((o) => o.file)) return observations
+  return Promise.all(
+    observations.map(async (o) => {
+      if (!o.file) return o
+      const json = dir
+        ? await readFile(join(dir, ...o.file.path.split('/')), 'utf8').catch(() => null)
+        : null
+      const value: JSONValue =
+        json === null
+          ? `[reeval: a ${o.file.bytes}-byte value kept in ${o.file.path}, which couldn't be read]`
+          : (JSON.parse(json) as JSONValue)
+      return { ...o, value }
+    }),
+  )
 }
 
 const readStaged = async (stagingDir: string, key: string): Promise<EvalRecord | null> =>
@@ -997,8 +1025,17 @@ export function questionRunner(options: QuestionRunnerOptions) {
     const kept = isCompleted(a) ? keptAttempts.get(a.key) : undefined
     if (kept) return keptAttempt(a, kept, options.resumed?.artifacts ?? null, captures)
     const found = stagedAttempt(a, record)
-    if (!found || !captures) return found
-    return { ...found, captures: await stagedCaptures(options.stagingDir, a.key, record) }
+    if (!found) return found
+    const sidecar = recordFileName(a.key).replace(/\.json$/, '.observations')
+    const observations = await filedObservations(
+      found.observations,
+      join(options.stagingDir, 'evals', sidecar),
+    )
+    return {
+      ...found,
+      ...(observations ? { observations } : {}),
+      ...(captures ? { captures: await stagedCaptures(options.stagingDir, a.key, record) } : {}),
+    }
   }
 
   const askEach = (id: string, e: EvalQuestions, result: EngineEval) => {

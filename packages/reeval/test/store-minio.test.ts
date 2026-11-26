@@ -3,11 +3,15 @@
 // unless REEVAL_TEST_REQUIRE_DOCKER=1 (CI's docker job), which fails instead.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { after, before, describe, test } from 'node:test'
+import { readKeptFiles } from '../src/history/trajectory.ts'
 import type { RunRecord } from '../src/history/types.ts'
+import { sha256 } from '../src/ids.ts'
+import { resolveHistory } from '../src/store/resolve.ts'
 import { s3Store } from '../src/store/s3.ts'
+import { fetchWorkspace } from '../src/store/sync.ts'
 import { fakeConfig, project, runCli, tempDir } from './helpers.ts'
 import { dockerRunning, type Minio, startMinio } from './support/minio.ts'
 
@@ -219,5 +223,77 @@ describe('reeval on MinIO', { skip }, () => {
     const sync = await runCli(a, ['sync', '--profile', 'ci'], { env: env() })
     assert.equal(sync.code, 0, sync.stdout + sync.stderr)
     assert.match(sync.stdout, /nothing to upload, pulled 0 run\(s\) from s3:\/\/reeval-runs\/team/)
+  })
+})
+
+describe('a kept workspace on MinIO', { skip }, () => {
+  let s3: Minio
+  let dir: string
+  // Random bytes as base64 barely compress, so the archive is over s3()'s 8 MiB upload part.
+  const BLOB_BYTES = 9 * 2 ** 20
+  const descriptor = () => ({
+    kind: 's3' as const,
+    bucket: s3.bucket,
+    endpoint: s3.url,
+    prefix: 'ws',
+  })
+  before(async () => {
+    s3 = await startMinio()
+    const p = await project('store-minio-workspace', {
+      'reeval.config.ts': fakeConfig({
+        harness: `{ script: [[{ write: { 'blob.txt': process.getBuiltinModule('node:crypto').randomBytes(${BLOB_BYTES}).toString('base64') } }]] }`,
+        extra: `record: 'manual',
+  history: { store: ${JSON.stringify(descriptor())} },`,
+      }),
+      'evals/a.eval.ts':
+        "import { defineEval } from 'reeval'\nexport default defineEval({ async task(c) { await c.send('go') } })\n",
+    })
+    dir = p.dir
+  })
+  after(() => s3?.close())
+
+  test('uploads in parts and fetches back whole on demand', async () => {
+    const env = { ...keyEnv(s3), CI: 'false', GITHUB_ACTIONS: 'false' }
+    const r = await runCli(dir, ['run'], { env })
+    assert.equal(r.code, 0, r.stdout + r.stderr)
+    const runId = (
+      readdirSync(join(dir, '.reeval/runs')).find((f) => f.endsWith('.json')) ?? ''
+    ).replace(/\.json$/, '')
+    const recorded = await runCli(dir, ['record', runId], { env })
+    assert.equal(recorded.code, 0, recorded.stdout + recorded.stderr)
+    const history = resolveHistory(
+      { store: descriptor() },
+      'history',
+      'reeval.config.ts',
+      dir,
+      'evals/.history',
+    )
+    const record = JSON.parse(readFileSync(join(history.dir, `${runId}.json`), 'utf8')) as RunRecord
+    const attempt = record.evals[0]?.attempts[0]
+    const ref = attempt?.files.workspace
+    assert.ok(attempt && ref, JSON.stringify(attempt?.workspace))
+    assert.ok(ref.bytes > 8 * 2 ** 20, `${ref.bytes} bytes, over one part`)
+    const month = `${runId.slice(0, 4)}-${runId.slice(4, 6)}`
+    assert.deepEqual(await s3.keys(`ws/workspaces/${month}/${runId}/`), [
+      `ws/workspaces/${month}/${runId}/${ref.path}`,
+    ])
+    const runDir = join(history.dir, runId)
+    const archive = join(runDir, ...ref.path.split('/'))
+    rmSync(archive)
+    const saved = { ...process.env }
+    Object.assign(process.env, keyEnv(s3))
+    try {
+      const files = await readKeptFiles(runDir, attempt, { fetch: fetchWorkspace(history, runId) })
+      // Masking may shorten a secret-looking run of the random text, so its length is a floor.
+      const blob = await files?.readFile('blob.txt')
+      assert.ok((blob?.length ?? 0) > BLOB_BYTES, `blob.txt: ${blob?.length} bytes`)
+    } finally {
+      for (const name of Object.keys(keyEnv(s3))) {
+        if (saved[name] === undefined) delete process.env[name]
+        else process.env[name] = saved[name]
+      }
+    }
+    assert.ok(existsSync(archive), 'fetched into the copy')
+    assert.equal(sha256(readFileSync(archive)), ref.sha256)
   })
 })

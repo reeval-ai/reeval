@@ -21,7 +21,7 @@ import type { ToolClass } from './tool-class.ts'
 import type { AttemptRecord, CellRecord, RunRecord } from './types.ts'
 
 /** Bump when the tables or views change: a database from another version is rebuilt. */
-const DB_VERSION = 26
+const DB_VERSION = 27
 /** This build of reeval, like the header cache: another reeval re-derives every row. */
 const BUILD = BUILD_ID
 const PART_KEYS = Object.keys(PART_COLUMNS) as Array<keyof typeof PART_COLUMNS>
@@ -101,11 +101,12 @@ CREATE TABLE attempt_answers_m (
   model TEXT, resolved_model TEXT, input_path TEXT, case_key TEXT
 );
 -- Every c.observe(name, value) an attempt made, its last value per name: the JSON as text, its
--- kind, and the value again as num when it's a number and as text when it's a string.
+-- kind, and the value again as num when it's a number and as text when it's a string. A value
+-- over 4 KiB is kind 'file', with no value and its JSON's file_path in the run's folder.
 CREATE TABLE attempt_values_m (
   run_id TEXT NOT NULL, eval_key TEXT NOT NULL, cell_key TEXT NOT NULL, attempt_key TEXT NOT NULL,
   attempt_id TEXT, outcome TEXT, name TEXT NOT NULL, value TEXT, kind TEXT, num REAL, text TEXT,
-  turn INTEGER, case_key TEXT
+  turn INTEGER, file_path TEXT, case_key TEXT
 );
 -- Every pairwise question's vote: a pair of sides (arms within a harness, harnesses across an arm)
 -- on one run, shown in one order (swapped = 1: b first), and the side picked or 'tie'.
@@ -945,7 +946,7 @@ function insertRun(
       }
       for (const o of a.observations ?? []) {
         run(
-          `INSERT INTO attempt_values_m VALUES (${Array(13).fill('?').join(', ')})`,
+          `INSERT INTO attempt_values_m VALUES (${Array(14).fill('?').join(', ')})`,
           record.runId,
           e.key,
           a.cell,
@@ -953,11 +954,12 @@ function insertRun(
           a.id,
           a.outcome,
           o.name,
-          JSON.stringify(o.value),
-          valueKind(o.value),
+          o.file ? null : JSON.stringify(o.value),
+          o.file ? 'file' : valueKind(o.value),
           typeof o.value === 'number' ? o.value : null,
           typeof o.value === 'string' ? o.value : null,
           o.turn,
+          o.file?.path ?? null,
           a.case ?? null,
         )
       }
