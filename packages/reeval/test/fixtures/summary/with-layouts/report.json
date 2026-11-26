@@ -6460,6 +6460,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -6495,6 +6499,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -6532,6 +6540,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -6567,6 +6579,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -6604,6 +6620,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -6639,6 +6659,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -6676,6 +6700,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -6711,6 +6739,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -6748,6 +6780,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -6783,6 +6819,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -6820,6 +6860,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -6855,6 +6899,10 @@
       "toolCalls": {
         "value": 0,
         "text": "0"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -6892,6 +6940,10 @@
         "value": 0,
         "text": "0"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -6927,6 +6979,10 @@
       "toolCalls": {
         "value": 0,
         "text": "0"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -6964,6 +7020,10 @@
         "value": 0,
         "text": "0"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -6999,6 +7059,10 @@
       "toolCalls": {
         "value": 0,
         "text": "0"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -7036,6 +7100,10 @@
         "value": 0,
         "text": "0"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -7071,6 +7139,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -7108,6 +7180,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -7143,6 +7219,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -7180,6 +7260,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -7215,6 +7299,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -7252,6 +7340,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -7287,6 +7379,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -7324,6 +7420,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -7359,6 +7459,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -7396,6 +7500,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -7431,6 +7539,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -7468,6 +7580,10 @@
         "value": 0,
         "text": "0"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": null,
       "links": {
         "transcript": null,
@@ -7498,6 +7614,10 @@
       "toolCalls": {
         "value": 0,
         "text": "0"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -7535,6 +7655,10 @@
         "value": 0,
         "text": "0"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -7570,6 +7694,10 @@
       "toolCalls": {
         "value": 0,
         "text": "0"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -7607,6 +7735,10 @@
         "value": 0,
         "text": "0"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -7642,6 +7774,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -7679,6 +7815,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -7714,6 +7854,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -7751,6 +7895,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -7786,6 +7934,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -7823,6 +7975,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -7858,6 +8014,10 @@
       "toolCalls": {
         "value": 0,
         "text": "0"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -7895,6 +8055,10 @@
         "value": 0,
         "text": "0"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -7930,6 +8094,10 @@
       "toolCalls": {
         "value": 0,
         "text": "0"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -7967,6 +8135,10 @@
         "value": 0,
         "text": "0"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -8002,6 +8174,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -8039,6 +8215,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -8074,6 +8254,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -8111,6 +8295,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -8146,6 +8334,10 @@
       "toolCalls": {
         "value": 0,
         "text": "0"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -8183,6 +8375,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -8218,6 +8414,10 @@
       "toolCalls": {
         "value": 0,
         "text": "0"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -8255,6 +8455,10 @@
         "value": 0,
         "text": "0"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -8290,6 +8494,10 @@
       "toolCalls": {
         "value": 0,
         "text": "0"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -8327,6 +8535,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -8362,6 +8574,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
@@ -8399,6 +8615,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -8435,6 +8655,10 @@
         "value": 1,
         "text": "1"
       },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
       "diff": {
         "files": 1,
         "added": null,
@@ -8470,6 +8694,10 @@
       "toolCalls": {
         "value": 1,
         "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
       },
       "diff": {
         "files": 1,
