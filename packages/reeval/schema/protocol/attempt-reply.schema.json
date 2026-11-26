@@ -4,59 +4,6 @@
   "title": "AttemptReply",
   "$ref": "#/$defs/AttemptReply",
   "$defs": {
-    "AssertionRecord": {
-      "description": "One `expect` or `expect.require` matcher call an attempt made, or a check another language made.",
-      "type": "object",
-      "properties": {
-        "at": {
-          "description": "`path:line` of the call in the eval file, relative to the project root, when reeval saw it.",
-          "type": "string"
-        },
-        "durationMs": {
-          "description": "Async matchers only (`toHaveFile`, `toSucceed`, `.resolves`, `expect.poll`).",
-          "type": "number"
-        },
-        "label": {
-          "description": "`label` is the supplied `expect` label. Without one, it is the matcher plus its first argument or named subject, cut at 60 characters. Repeats get ` #2`, ` #3`, and later suffixes.",
-          "type": "string"
-        },
-        "labelled": {
-          "description": "The eval gave the label.",
-          "type": "boolean"
-        },
-        "matcher": {
-          "description": "`toHaveFile`, `not.toBe`, `resolves.toBe`, `poll.toBe`.",
-          "type": "string"
-        },
-        "message": {
-          "description": "Why it failed or couldn't answer, or why `expect.skip` marked it not applicable, cut at 1 KB.",
-          "type": "string"
-        },
-        "preSatisfied": {
-          "description": "A passing `toHaveFile` / `not.toHaveFile` the agent didn't satisfy (path already matched, or was absent before and after). Optional on older records.",
-          "type": "boolean"
-        },
-        "reason": {
-          "description": "Why the check does not apply (`expect.skip`'s second argument).",
-          "type": "string"
-        },
-        "soft": {
-          "description": "A failure didn't end the eval's body: an `expect`. False for `expect.require` and for a check that threw, such as Python's `assert`, which end the body when they fail. True for `expect.skip`.",
-          "type": "boolean"
-        },
-        "status": {
-          "description": "`error`: the matcher couldn't answer (a subject it can't read, an event the harness doesn't report). `not_applicable`: `expect.skip` (or a language runner's equivalent); never fails the attempt and leaves the check's pass/fail denominator.",
-          "type": "string",
-          "enum": ["pass", "fail", "error", "not_applicable"]
-        },
-        "target": {
-          "description": "File matcher target: `toHaveFile`'s path, or `path <pattern>` when a pattern was given. Optional on older records and non-file matchers.",
-          "type": "string"
-        }
-      },
-      "required": ["label", "labelled", "matcher", "soft", "status"],
-      "additionalProperties": false
-    },
     "AttemptError": {
       "description": "Why a call failed, in reeval's words.",
       "type": "object",
@@ -73,7 +20,7 @@
       "additionalProperties": {}
     },
     "AttemptReply": {
-      "description": "reeval's reply to a call: its result, or the error it threw. A failed matcher is a result (its record says `fail`), not an error, unless the matcher couldn't run.",
+      "description": "reeval's reply to a call: its result, or the error it threw.",
       "anyOf": [
         {
           "oneOf": [
@@ -279,82 +226,6 @@
             {
               "type": "object",
               "properties": {
-                "assertion": {
-                  "$ref": "#/$defs/AssertionRecord"
-                },
-                "id": {
-                  "description": "Pairs a reply with its request.",
-                  "type": "string",
-                  "pattern": "\\S"
-                },
-                "ok": {
-                  "type": "boolean",
-                  "const": true
-                },
-                "op": {
-                  "type": "string",
-                  "const": "expect"
-                }
-              },
-              "required": ["assertion", "id", "ok", "op"],
-              "additionalProperties": false
-            },
-            {
-              "type": "object",
-              "properties": {
-                "assertion": {
-                  "$ref": "#/$defs/AssertionRecord"
-                },
-                "id": {
-                  "description": "Pairs a reply with its request.",
-                  "type": "string",
-                  "pattern": "\\S"
-                },
-                "ok": {
-                  "type": "boolean",
-                  "const": true
-                },
-                "op": {
-                  "type": "string",
-                  "const": "record"
-                }
-              },
-              "required": ["assertion", "id", "ok", "op"],
-              "additionalProperties": false
-            },
-            {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "description": "Pairs a reply with its request.",
-                  "type": "string",
-                  "pattern": "\\S"
-                },
-                "ok": {
-                  "type": "boolean",
-                  "const": true
-                },
-                "op": {
-                  "type": "string",
-                  "const": "judge"
-                },
-                "verdict": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Verdict"
-                    },
-                    {
-                      "$ref": "#/$defs/JudgeFailure"
-                    }
-                  ]
-                }
-              },
-              "required": ["id", "ok", "op", "verdict"],
-              "additionalProperties": false
-            },
-            {
-              "type": "object",
-              "properties": {
                 "id": {
                   "description": "Pairs a reply with its request.",
                   "type": "string",
@@ -380,39 +251,6 @@
         {
           "type": "object",
           "properties": {
-            "id": {
-              "description": "Pairs a reply with its request.",
-              "type": "string",
-              "pattern": "\\S"
-            },
-            "ok": {
-              "type": "boolean",
-              "const": true
-            },
-            "op": {
-              "type": "string",
-              "const": "expect"
-            },
-            "untested": {
-              "description": "The strings the matcher tested that a `{ matchedBy, answers }` argument has no answer for, by its `matchedBy`. Nothing was recorded: answer them and make the call again.",
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "required": ["id", "ok", "op", "untested"],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
             "error": {
               "$ref": "#/$defs/AttemptError"
             },
@@ -433,9 +271,6 @@
                 "readFile",
                 "writeFile",
                 "observe",
-                "expect",
-                "record",
-                "judge",
                 "serve",
                 "kill",
                 "capture",
@@ -739,70 +574,6 @@
           }
         }
       ]
-    },
-    "JudgeArtifactRef": {
-      "description": "A capture this judge call sent as a file part. Bytes live in the `artifacts/<name>.png` file.",
-      "type": "object",
-      "properties": {
-        "bytes": {
-          "type": "number"
-        },
-        "mediaType": {
-          "type": "string",
-          "const": "image/png"
-        },
-        "name": {
-          "type": "string"
-        },
-        "path": {
-          "description": "The `artifacts/<name>.png` path under the attempt directory.",
-          "type": "string"
-        },
-        "sha256": {
-          "type": "string"
-        }
-      },
-      "required": ["bytes", "mediaType", "name", "path", "sha256"],
-      "additionalProperties": false
-    },
-    "JudgeFailure": {
-      "description": "What `c.judge()` returns when the call failed (the provider's error, after any retries): the attempt fails as a judge error once the eval's body has finished, so the judges and checks after it still run.",
-      "type": "object",
-      "properties": {
-        "artifacts": {
-          "description": "Captures this call sent the judge as file parts, when any.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/JudgeArtifactRef"
-          }
-        },
-        "error": {
-          "type": "string"
-        },
-        "gateway": {
-          "description": "The gateway from the config's `gateway` list the call went through; unset without one.",
-          "type": "string",
-          "enum": ["direct", "vercel", "openrouter", "vertex"]
-        },
-        "model": {
-          "type": "string"
-        },
-        "question": {
-          "type": "string"
-        },
-        "score": {
-          "type": "null"
-        },
-        "threshold": {
-          "type": "number"
-        },
-        "verdict": {
-          "type": "string",
-          "const": "error"
-        }
-      },
-      "required": ["error", "model", "question", "score", "threshold", "verdict"],
-      "additionalProperties": false
     },
     "TokenUsage": {
       "description": "The tokens one turn used, as its harness reported them. `input` excludes cache reads and writes (so the prompt was `input + cacheRead + cacheWrite`); `reasoning` is part of `output`.",
@@ -1366,54 +1137,6 @@
     "TurnStatus": {
       "type": "string",
       "enum": ["completed", "aborted", "error"]
-    },
-    "Verdict": {
-      "type": "object",
-      "properties": {
-        "artifacts": {
-          "description": "Captures this call sent the judge as file parts, when any.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/JudgeArtifactRef"
-          }
-        },
-        "costUsd": {
-          "description": "What the gateway says the call cost, in US dollars (OpenRouter's `usage.cost`); unset when it names none.",
-          "type": "number"
-        },
-        "gateway": {
-          "description": "The gateway from the config's `gateway` list the call went through; unset without one.",
-          "type": "string",
-          "enum": ["direct", "vercel", "openrouter", "vertex"]
-        },
-        "model": {
-          "type": "string"
-        },
-        "question": {
-          "type": "string"
-        },
-        "resolvedModel": {
-          "description": "The model id the provider says served the call, when it reports one.",
-          "type": "string"
-        },
-        "score": {
-          "description": "The judge's probability that the answer is yes, from 0 to 1.",
-          "type": "number"
-        },
-        "threshold": {
-          "type": "number"
-        },
-        "upstream": {
-          "description": "The upstream provider the gateway says served the call (OpenRouter's); unset when it names none.",
-          "type": "string"
-        },
-        "verdict": {
-          "type": "string",
-          "enum": ["pass", "fail"]
-        }
-      },
-      "required": ["model", "question", "score", "threshold", "verdict"],
-      "additionalProperties": false
     },
     "WebEventType": {
       "description": "The transcript events a harness may be unable to report.",

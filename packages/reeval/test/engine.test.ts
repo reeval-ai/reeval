@@ -634,7 +634,7 @@ export default first
         .map((p) => p.slice(src.length + 1).replaceAll(sep, '/'))
     assert.deepEqual(importing(/from ['"](vitest|vite)(\/[^'"]*)?['"]/), [])
     const vitestParts = importing(/from ['"]@vitest\//)
-    assert.ok(vitestParts.length > 0, 'the canary: the engine does import @vitest/expect')
+    assert.ok(vitestParts.length > 0, 'the canary: the engine does import @vitest/utils')
     assert.deepEqual(
       vitestParts.filter((p) => !p.startsWith('engine/')),
       [],

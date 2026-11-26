@@ -535,10 +535,6 @@
             }
           ]
         },
-        "label": {
-          "description": "Stable label for this judge call in the record and report. When unset, the report derives one from the `toPass` assertion label or the question text.",
-          "type": "string"
-        },
         "maxConcurrent": {
           "description": "The most judge calls to this model's provider at once, across the run.",
           "type": "number"
@@ -567,10 +563,6 @@
               "$ref": "#/$defs/JSONValue"
             }
           }
-        },
-        "threshold": {
-          "description": "Minimum score (0–1) for a `pass` verdict.",
-          "type": "number"
         }
       },
       "required": []
@@ -2648,7 +2640,7 @@
           }
         },
         "judge": {
-          "description": "Defaults for `c.judge()`, merged field by field over the config's.",
+          "description": "Defaults for judge graders, merged field by field over the config's.",
           "$ref": "#/$defs/ConfigJudgeOptions"
         },
         "question": {
@@ -3010,67 +3002,7 @@
           }
         },
         "judge": {
-          "type": "object",
-          "properties": {
-            "gateway": {
-              "description": "The gateway the judge's calls go through, by name or by its helper. It skips the config's `gateway` fallback: the plan refuses a gateway that isn't listed or can't serve the model.",
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/DirectGatewayDescriptor"
-                },
-                {
-                  "$ref": "#/$defs/OpenRouterGatewayDescriptor"
-                },
-                {
-                  "$ref": "#/$defs/VercelGatewayDescriptor"
-                },
-                {
-                  "$ref": "#/$defs/VertexGatewayDescriptor"
-                },
-                {
-                  "enum": ["direct", "openrouter", "vercel", "vertex"]
-                }
-              ]
-            },
-            "label": {
-              "description": "Stable label for this judge call in the record and report. When unset, the report derives one from the `toPass` assertion label or the question text.",
-              "type": "string"
-            },
-            "maxConcurrent": {
-              "description": "The most judge calls to this model's provider at once, across the run.",
-              "type": "number"
-            },
-            "model": {
-              "description": "`'provider/model'`, or a fake judge.",
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/FakeJudgeModel"
-                },
-                {
-                  "type": "string"
-                }
-              ]
-            },
-            "providerOptions": {
-              "description": "AI SDK provider options for the judge's calls, keyed by provider.",
-              "type": "object",
-              "properties": {},
-              "required": [],
-              "additionalProperties": {
-                "type": "object",
-                "properties": {},
-                "required": [],
-                "additionalProperties": {
-                  "$ref": "#/$defs/JSONValue"
-                }
-              }
-            },
-            "threshold": {
-              "description": "Minimum score (0–1) for a `pass` verdict.",
-              "type": "number"
-            }
-          },
-          "required": ["threshold"]
+          "$ref": "#/$defs/ConfigJudgeOptions"
         },
         "optionKeys": {
           "description": "The keys the config sets, for `reeval report`'s config shape.",

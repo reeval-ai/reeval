@@ -1,11 +1,13 @@
 import { observedName } from '../attempt/observe.ts'
-import type { JudgeCallFields, JudgeOptions, ResolvedJudgeStateOptions } from '../types.ts'
+import type { JudgeInputs, JudgeOptions, ResolvedJudgeStateOptions } from '../types.ts'
 
 /**
- * What one call turned on, every key set (`false` when off), in the record's key order, so equal
+ * What one judge turned on, every key set (`false` when off), in the record's key order, so equal
  * selections serialize the same.
  */
-export function resolveStateOptions(call: JudgeCallFields): ResolvedJudgeStateOptions {
+export function resolveStateOptions(
+  call: JudgeInputs & { turns?: 'last' | 'all' },
+): ResolvedJudgeStateOptions {
   const observations = observedNames(call.observations)
   return {
     task: call.task ?? false,

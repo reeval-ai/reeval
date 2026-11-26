@@ -6,24 +6,19 @@ import type {
   Experimental_DecisionStatePart,
 } from 'ai'
 import { TURN_STATUS } from '../assert.ts'
-import { type ExpectCall, expectCall, recordCall } from '../attempt/match.ts'
 import {
   type AttemptCall,
   type AttemptReply,
   type AttemptRequest,
   attemptRequestProblem,
   type DecideCallData,
-  type JudgeOn,
 } from '../contract/attempt.ts'
-import type { RawAssertion } from '../engine/runtime.ts'
 import { UsageError } from '../errors.ts'
 import { registerExecEnv } from '../redact.ts'
 import type {
   AttemptContext,
   BackgroundHandle,
   DecideCall,
-  JudgeCallFields,
-  JudgeCallOptions,
   Turn,
   TurnData,
   TurnStatus,
@@ -47,19 +42,6 @@ function turnData(turn: Turn): TurnData {
     unreported: turn.unreported,
     diff: turn.diff,
   }
-}
-
-/** The turn or value a wire `JudgeOn` names, as `c.judge`'s own `on` takes it. */
-function judgeTarget(c: AttemptContext, on: JudgeOn): JudgeCallFields['on'] {
-  if ('value' in on) return on.value
-  const turn = c.turns[on.turn]
-  if (!turn) {
-    const n = c.turns.length
-    throw new UsageError(
-      `c.judge()'s on is turn ${on.turn}, but the attempt has ${n} turn${n === 1 ? '' : 's'}`,
-    )
-  }
-  return turn
 }
 
 /** A wire decision state, its `capture` and `inputs` parts made as `c.part` and `c.state` make them. */
@@ -87,7 +69,6 @@ async function decideState(
 
 export async function replyToAttempt(
   c: AttemptContext,
-  calls: RawAssertion[],
   handles: Map<string, BackgroundHandle>,
   request: AttemptRequest,
 ): Promise<AttemptReply> {
@@ -107,7 +88,7 @@ export async function replyToAttempt(
     return { id, ok: false, op: call?.op, error } as AttemptReply
   }
   try {
-    const body = await perform(c, calls, handles, call)
+    const body = await perform(c, handles, call)
     return { id, ok: true, op: call.op, ...body } as AttemptReply
   } catch (error) {
     const { name = 'Error', message = String(error) } = error as Error
@@ -117,7 +98,6 @@ export async function replyToAttempt(
 
 async function perform(
   c: AttemptContext,
-  matcherCalls: RawAssertion[],
   handles: Map<string, BackgroundHandle>,
   call: AttemptCall,
 ): Promise<Record<string, unknown>> {
@@ -157,19 +137,6 @@ async function perform(
     case 'observe':
       c.observe(call.name, call.value)
       return {}
-    case 'expect':
-      return await expectCall(c, matcherCalls, call as ExpectCall)
-    case 'record':
-      return { assertion: recordCall(matcherCalls, call) }
-    case 'judge': {
-      const { question, options } = call
-      const { on, ...rest } = (options ?? {}) as Omit<JudgeCallFields, 'on'> & { on?: JudgeOn }
-      const verdict = await c.judge(question, {
-        ...rest,
-        ...(on === undefined ? {} : { on: judgeTarget(c, on) }),
-      } as JudgeCallOptions)
-      return { verdict }
-    }
     case 'decide': {
       const { op: _op, state, ...rest } = call
       const result = await c.decide({

@@ -4,12 +4,10 @@
 
 import { trackLoad } from '../inputs-load.ts'
 import { loadEvalModule } from '../language-runner/load.ts'
-import { evalMatchers } from '../matchers.ts'
 import { useSchedulerChannel } from '../scheduler/client.ts'
 import { useServiceChannel } from '../scheduler/services.ts'
 import type { LocalInput, RunContext } from '../types.ts'
 import { collect, collectingFile, registerGroup, registerTest } from './collector.ts'
-import { extendExpect } from './expect.ts'
 import { type FromWorker, PROTOCOL, type ToWorker } from './protocol.ts'
 import { type Reporter, routeConsole, runTests, serializeError } from './run.ts'
 import { useEngine } from './runtime.ts'
@@ -75,7 +73,6 @@ export function startWorker(channel: Channel): Worker {
         for (const key of keys) traits.add(key)
       },
     })
-    extendExpect(evalMatchers)
     routeConsole(reporter)
     try {
       const tracked = run.inputs ? trackLoad(run.config.root) : undefined

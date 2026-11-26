@@ -5,7 +5,6 @@
 import { limitsProblem, overLimits, runMatchLabel } from '../assert.ts'
 import { callerFile, DefinitionError } from '../environment.ts'
 import { UsageError } from '../errors.ts'
-import { statusTest } from '../matchers.ts'
 import { isObjectLike } from '../object.ts'
 import { redactSecrets } from '../redact.ts'
 import type { BuiltinGraderData, BuiltinKind, Duration, JSONValue } from '../types.ts'
@@ -64,6 +63,19 @@ const FACTORIES: Record<BuiltinKind, string> = {
   'page-status': 'pageStatus',
   'no-page-errors': 'noPageErrors',
   observed: 'observed',
+}
+
+/**
+ * Whether a page's status is `status`, a code from 100 to 599 or a range from `'1xx'` to `'5xx'`;
+ * undefined for anything else. No response (an undefined status) is never one.
+ */
+function statusTest(status: unknown): ((actual: number | undefined) => boolean) | undefined {
+  const range = typeof status === 'string' && /^[1-5]xx$/.test(status) ? Number(status[0]) : 0
+  const code =
+    typeof status === 'number' && Number.isInteger(status) && status >= 100 && status <= 599
+  if (!range && !code) return undefined
+  return (actual) =>
+    actual !== undefined && (range ? Math.floor(actual / 100) === range : actual === status)
 }
 
 type C = GraderContext

@@ -39,7 +39,6 @@ import { fromCwd } from './ids.ts'
 import { reevalJiti } from './jiti.ts'
 import {
   checkModelString,
-  DEFAULT_THRESHOLD,
   judgeCredentials,
   modelKeyOptions,
   RECOMMENDED_JUDGE_MODEL,
@@ -1023,8 +1022,7 @@ function resolveJudge(
   judge ??= {}
   const problem = judgeProblem(judge, { at: 'config', path, file })
   if (problem) throw new UsageError(problem)
-  const threshold = judge.threshold ?? DEFAULT_THRESHOLD
-  return { ...judge, threshold }
+  return judge
 }
 
 /** Host variables that required `env` secrets read, as `[sandbox name, host name]`. */

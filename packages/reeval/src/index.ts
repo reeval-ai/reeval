@@ -4,7 +4,6 @@ export type { RunMatch } from './assert.ts'
 export { HarnessCapabilityError } from './assert.ts'
 export { defineConfig } from './config.ts'
 export { DEFAULT_EGRESS_ALLOW } from './egress.ts'
-export { expect } from './engine/expect.ts'
 export {
   DEFAULT_DIRECTORY_IGNORES,
   DEFAULT_SKILL_EXCLUDE,
@@ -95,11 +94,8 @@ export type {
   HostFile,
   JSONValue,
   JudgeArtifactRef,
-  JudgeCallOptions,
-  JudgeFailure,
   JudgeInputs,
   JudgeOptions,
-  JudgeSubject,
   McpServer,
   Observation,
   PairFactor,
@@ -124,7 +120,6 @@ export type {
   TranscriptEvent,
   Turn,
   TurnData,
-  Verdict,
   Viewport,
   Wait,
   WebEventType,

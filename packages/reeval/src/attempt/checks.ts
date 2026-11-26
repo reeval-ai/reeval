@@ -3,7 +3,6 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { execOptionsProblem } from '../contract/attempt.ts'
 import { debugLog, debugTrace } from '../debug/attempt.ts'
 import { acceptIntoSnapshot } from '../diff.ts'
-import { SUBJECT } from '../engine/runtime.ts'
 import { UsageError } from '../errors.ts'
 import { MIN_FRAGMENT, redactSecrets, registerExecEnv } from '../redact.ts'
 import type { Sandbox } from '../sandbox/index.ts'
@@ -111,8 +110,7 @@ export function createChecks(a: Attempt) {
       ms: durationMs,
       ...(retries > 0 ? { try: tries.length, tries: retries + 1 } : {}),
     })
-    // Names its command in `expect(await c.exec(…)).toSucceed()`'s default label.
-    return Object.defineProperty(r, SUBJECT, { value: command })
+    return r
   }
   type Options = ExecOptions
   function exec(command: string, options?: Options & { background?: false }): Promise<ExecResult>
@@ -136,15 +134,13 @@ export function createChecks(a: Attempt) {
         startBackground(a, command, 'c.exec({ background: true })', execEnv(a, options.env)),
       )
     }
-    const run = execForeground(
+    return execForeground(
       command,
       options?.retries ?? 0,
       options?.interval ?? 1000,
       options?.env,
       options?.label,
     )
-    // Names its command in `expect(c.exec(…)).toSucceed()`'s default label.
-    return Object.defineProperty(run, SUBJECT, { value: command })
   }
   const readFile = async (path: string) => (await sandboxFor(a, 'c.readFile()')).readFile(path)
   const writeFile = async (path: string, contents: string | Uint8Array) => {

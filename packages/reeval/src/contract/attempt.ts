@@ -1,14 +1,13 @@
 // The attempt protocol's contract: the calls an eval's body makes on its attempt (`c.send`,
-// `c.exec`, `c.readFile`, `c.writeFile`, `c.observe` and each matcher), as a runner in another language would
+// `c.exec`, `c.readFile`, `c.writeFile`, `c.observe`, `c.decide`, …), as a runner in another language would
 // send them to reeval, and reeval's replies. Today an eval's body runs in reeval's own worker, so
 // no call crosses a process boundary yet; the schemas are the spec such a runner codes against,
 // with their JSON Schema in schema/protocol/. Results reuse the attempt's own types (`TurnData`,
-// `ExecResult`, `AssertionRecord`), held to them at compile time and described by their TSDoc;
+// `ExecResult`, `Capture`), held to them at compile time and described by their TSDoc;
 // a `.describe()` here is the protocol's own wording, for what no hand-written type documents.
 import { z } from 'zod'
 import { MAX_TIMER_MS, TIMER_LIMIT } from '../duration.ts'
 import type {
-  AssertionRecord,
   Capture,
   CaptureConsoleMessage,
   CaptureFailedRequest,
@@ -22,26 +21,16 @@ import type {
   ExecResult,
   ExecRetry,
   FileChange,
-  JudgeArtifactRef,
-  JudgeFailure,
   TokenUsage,
   TranscriptEvent,
   TurnData,
   TurnStatus,
-  Verdict,
   Wait,
   WebEventType,
 } from '../types.ts'
 import { captureWindowSchema } from './config.ts'
 import { traitsSchema } from './environment.ts'
-import { gatewayNameSchema } from './gateway.ts'
-import {
-  fakeJudgeDataSchema,
-  judgeFields,
-  judgeModelNameSchema,
-  sharedInputFields,
-  turnsSchema,
-} from './judge.ts'
+import { judgeModelNameSchema, sharedInputFields } from './judge.ts'
 import { VAR } from './plain.ts'
 import {
   type Assert,
@@ -229,20 +218,6 @@ export const execOptionsSchema = z
 export const execOptionsProblem = (value: unknown): string | undefined =>
   dataProblem(execOptionsSchema, value, 'c.exec()', () => Object.keys(execOptionsSchema.shape))
 
-export const assertionRecordSchema = z.strictObject({
-  label: z.string(),
-  labelled: z.boolean(),
-  matcher: z.string(),
-  status: z.enum(['pass', 'fail', 'error', 'not_applicable']),
-  soft: z.boolean(),
-  at: z.string().optional(),
-  message: z.string().optional(),
-  reason: z.string().optional(),
-  target: z.string().optional(),
-  preSatisfied: z.boolean().optional(),
-  durationMs: z.number().optional(),
-})
-
 const turnIndex = z
   .number()
   .int('must be a turn index, from 0')
@@ -283,38 +258,6 @@ export const captureSchema = z.strictObject({
   ...capturePageFields,
 })
 
-export const judgeArtifactRefSchema = z.strictObject({
-  name: z.string(),
-  path: z.string(),
-  sha256: z.string(),
-  bytes: z.number(),
-  mediaType: z.literal('image/png'),
-})
-
-const verdictFields = {
-  threshold: z.number(),
-  question: z.string(),
-  model: z.string(),
-  gateway: gatewayNameSchema.optional(),
-  artifacts: z.array(judgeArtifactRefSchema).optional(),
-}
-
-export const verdictSchema = z.strictObject({
-  verdict: z.enum(['pass', 'fail']),
-  score: z.number(),
-  ...verdictFields,
-  resolvedModel: z.string().optional(),
-  upstream: z.string().optional(),
-  costUsd: z.number().optional(),
-})
-
-export const judgeFailureSchema = z.strictObject({
-  verdict: z.literal('error'),
-  score: z.null(),
-  ...verdictFields,
-  error: z.string(),
-})
-
 export type _SameAsSchema = [
   Assert<Same<z.infer<typeof captureWaitSchema>, CaptureWait>>,
   Assert<Same<z.infer<typeof waitSchema>, Wait>>,
@@ -325,9 +268,6 @@ export type _SameAsSchema = [
   Assert<Same<z.infer<typeof capturePageSchema>, CapturePage>>,
   Assert<Same<z.infer<typeof captureConsoleMessageSchema>, CaptureConsoleMessage>>,
   Assert<Same<z.infer<typeof captureFailedRequestSchema>, CaptureFailedRequest>>,
-  Assert<Same<z.infer<typeof judgeArtifactRefSchema>, JudgeArtifactRef>>,
-  Assert<Same<z.infer<typeof verdictSchema>, Verdict>>,
-  Assert<Same<z.infer<typeof judgeFailureSchema>, JudgeFailure>>,
   Assert<Same<z.infer<typeof tokenUsageSchema>, TokenUsage>>,
   Assert<Same<z.infer<typeof fileChangeSchema>, FileChange>>,
   Assert<Same<z.infer<typeof diffSchema>, Diff>>,
@@ -338,85 +278,7 @@ export type _SameAsSchema = [
   Assert<Same<z.infer<typeof execResultSchema>, ExecResult>>,
   Assert<Same<z.infer<typeof execRetrySchema>, ExecRetry>>,
   Assert<Same<z.infer<typeof execEnvSchema>, ExecEnv>>,
-  Assert<Same<z.infer<typeof assertionRecordSchema>, AssertionRecord>>,
 ]
-
-/** A pattern, for the matchers that take a string or a `RegExp`. */
-export const patternSchema = z
-  .strictObject({
-    regexp: z.string().describe("The pattern's source, as `RegExp.prototype.source` gives it."),
-    flags: z
-      .string()
-      .regex(/^[dgimsuvy]*$/, 'must use only the flags d, g, i, m, s, u, v and y')
-      .optional()
-      .describe('Its flags, e.g. `i`.'),
-  })
-  .describe('A regular expression, where a matcher takes a string or a `RegExp`.')
-
-/** A pattern in the runner's own language, which reeval never compiles. */
-function hasAnsweredPattern(value: unknown): boolean {
-  if (Array.isArray(value)) return value.some(hasAnsweredPattern)
-  if (typeof value !== 'object' || value === null) return false
-  return 'matchedBy' in value || Object.values(value).some(hasAnsweredPattern)
-}
-
-export const answeredPatternSchema = z
-  .strictObject({
-    matchedBy: z
-      .string()
-      .regex(/\S/)
-      .describe("The pattern as the runner's language writes it, e.g. `re.compile('npm t')`."),
-    answers: z
-      .record(z.string(), z.boolean())
-      .describe('Whether it matches each string the runner has been asked about.'),
-  })
-  .describe(
-    'A pattern the runner matches in its own language. reeval runs the matcher with it, and when the matcher tests a string not in `answers` replies with those strings (`untested`) instead of a record; the runner matches them and makes the call again with them in `answers`.',
-  )
-
-const isPatternLike = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value) && 'regexp' in value
-
-// Any object is a JSON value, so an object with `regexp` is held to the pattern's shape here.
-export const matcherArgSchema = z
-  .union([patternSchema, answeredPatternSchema, jsonValueSchema])
-  .superRefine((value, ctx) => {
-    if (!isPatternLike(value)) return
-    for (const issue of patternSchema.safeParse(value).error?.issues ?? []) {
-      ctx.addIssue(issue as never)
-    }
-  })
-  .describe(
-    "One argument to a matcher: a JSON value, a regular expression as `{ regexp, flags? }`, or a pattern in the runner's own language as `{ matchedBy, answers }`.",
-  )
-
-export const matcherSubjectSchema = z
-  .union([
-    z.strictObject({ turn: turnIndex }),
-    z.strictObject({ attempt: z.literal(true).describe('The attempt itself, `c`.') }),
-    z.strictObject({ value: jsonValueSchema.describe('A value the eval passes as it is.') }),
-    z.strictObject({
-      exec: z
-        .string()
-        .regex(/\S/)
-        .describe('A command reeval runs, for its `ExecResult`; again on each try when polled.'),
-      env: execEnvSchema.optional(),
-      result: execResultSchema
-        .optional()
-        .describe(
-          "The command's `ExecResult` when the runner already ran it: reeval checks that instead of running it again, and the check is still named by the command.",
-        ),
-    }),
-    z.strictObject({
-      readFile: z
-        .string()
-        .regex(/\S/)
-        .describe("A file reeval reads, for its contents (null when there's none)."),
-    }),
-  ])
-  .describe(
-    'What `expect` was given: a turn `c.send` returned, the attempt (for its files and latest turn), a value, such as an `ExecResult`, or a command or file reeval reads for it.',
-  )
 
 const nonEmpty = z.string().regex(/\S/, 'must not be empty')
 
@@ -463,37 +325,6 @@ export const captureCallDataSchema = z
   )
 
 const handleId = nonEmpty.describe('A background process, as an exec or serve reply named it.')
-
-const judgeOnSchema = z.union([
-  z.strictObject({ turn: turnIndex }),
-  z.strictObject({ value: jsonValueSchema.describe('Graded as the output.') }),
-])
-
-export const judgeCallDataSchema = z
-  .strictObject({
-    model: z
-      .union([judgeModelNameSchema, fakeJudgeDataSchema])
-      .optional()
-      .describe("`'provider/model'`, or a fake judge with a numeric score."),
-    ...judgeFields,
-    ...sharedInputFields,
-    contents: z.array(nonEmpty).optional(),
-    turns: turnsSchema.optional(),
-    on: judgeOnSchema
-      .optional()
-      .describe(
-        'The turn `task`, `output`, `transcript` and `diff` read instead of the latest: an earlier turn, or a value graded as the output.',
-      ),
-    artifacts: z
-      .union([z.literal(true), z.array(z.union([nonEmpty, captureSchema]))])
-      .optional()
-      .describe(
-        'Captures this call sends the judge as image file parts: a capture `c.capture` returned, or its name, or `true` for every capture so far. The provider that cannot take files fails the call.',
-      ),
-  })
-  .describe(
-    "`c.judge()`'s options as data: the judge options, with the model by name or a fake judge's numeric score, the inputs it shows the judge (at least one turned on) and `on`.",
-  )
 
 const jsonObjectSchema = z.record(z.string(), jsonValueSchema)
 
@@ -559,13 +390,6 @@ export const decideResultSchema = z
 
 /** An observation's name: one a query, a tally line and a judge's input can carry as it is. */
 export const OBSERVE_NAME = /^[A-Za-z0-9_.:/-]{1,64}$/
-
-const callSiteSchema = z
-  .strictObject({
-    file: nonEmpty.describe('The eval file: absolute, or relative to the project root.'),
-    line: z.number().int().min(1).describe('From 1.'),
-  })
-  .describe("Where the eval made the call, which the record names beside the check's outcome.")
 
 export const attemptCallSchema = z
   .discriminatedUnion('op', [
@@ -645,105 +469,6 @@ export const attemptCallSchema = z
         "`c.observe(name, value)`: records a fact about the attempt that never affects its outcome. A name observed again keeps the last value. Fails after the body's `done`.",
       ),
     z
-      .strictObject({
-        op: z.literal('expect'),
-        subject: matcherSubjectSchema,
-        matcher: z
-          .string()
-          .regex(
-            /^[a-z][A-Za-z]*$/,
-            'must be a matcher name such as toHaveFile, without "not." (set not: true instead)',
-          )
-          .describe("The matcher's name, e.g. `toHaveFile` or `toBe`, without `not.`."),
-        args: z.array(matcherArgSchema).describe("The matcher's arguments."),
-        not: z.boolean().describe('Called as `expect(…).not`.'),
-        soft: z
-          .boolean()
-          .describe(
-            'Called as `expect`: a failure fails the attempt at its end and the body carries on. False for `expect.require`, whose failure the runner raises, ending the body.',
-          ),
-        label: z.string().optional().describe("`expect`'s second argument."),
-        at: callSiteSchema.optional(),
-        poll: z
-          .strictObject({
-            interval: millisSchema.optional().describe('Milliseconds between tries. Default 50.'),
-            timeout: millisSchema
-              .optional()
-              .describe('Milliseconds before it fails with the last error. Default 1000.'),
-          })
-          .optional()
-          .describe(
-            '`expect.poll`: reeval re-reads the subject and retries the matcher until it passes, recording only the final outcome. The subject must be one reeval can re-read: the attempt, a command or a file.',
-          ),
-      })
-      .superRefine((call, ctx) => {
-        if (call.poll && 'value' in call.subject) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['subject'],
-            message:
-              "can't be polled: reeval can't re-read a value. Poll the attempt, an exec or a readFile",
-          })
-        }
-        if (call.poll && 'exec' in call.subject && call.subject.result) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['subject', 'result'],
-            message: "can't be polled: drop result so reeval runs the command on each try",
-          })
-        }
-        if (call.poll && call.args.some(hasAnsweredPattern)) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['args'],
-            message:
-              "can't be polled with a { matchedBy } pattern, whose answers can't follow the subject from try to try: poll with a string, or check once",
-          })
-        }
-      })
-      .describe(
-        'A matcher call: `expect(subject, label).not?.matcher(...args)`. Replies with its record.',
-      ),
-    z
-      .strictObject({
-        op: z.literal('record'),
-        matcher: z
-          .string()
-          .regex(/^[a-z][A-Za-z]*$/, 'must be a name such as assert')
-          .describe("What made the check in the eval's language, e.g. `assert`."),
-        subject: z
-          .string()
-          .optional()
-          .describe(
-            'What it checked, as the eval wrote it (`result.ok`): names the check when it has no label.',
-          ),
-        label: z
-          .string()
-          .optional()
-          .describe("The check's own name, the same whether it passes or fails."),
-        status: z.enum(['pass', 'fail']),
-        message: z.string().optional().describe('Why it failed.'),
-        soft: z
-          .boolean()
-          .optional()
-          .describe(
-            "The body carried on after a failure, as after an `expect`. Default false: the check raised, as Python's `assert` does.",
-          ),
-        at: callSiteSchema.optional(),
-      })
-      .describe(
-        "A check the eval's own language made, such as Python's `assert`: recorded as a matcher call is, so it's named, counted and compared the same. Replies with its record.",
-      ),
-    z
-      .strictObject({
-        op: z.literal('judge'),
-        question: nonEmpty.describe('A yes/no question about the inputs `options` turns on.'),
-        options: judgeCallDataSchema,
-      })
-      .describe(
-        '`c.judge(question, options)`. Replies with its verdict, or a judge failure when the provider failed.',
-      ),
-    z
       .strictObject({ op: z.literal('decide'), ...decideCallDataSchema.shape })
       .describe(
         '`c.decide(call)`. Replies with its result. A provider failure fails the call and the attempt, as an infrastructure error.',
@@ -811,38 +536,10 @@ export const attemptReplySchema = z
       z.strictObject({
         id,
         ok: z.literal(true),
-        op: z.literal('expect'),
-        assertion: assertionRecordSchema,
-      }),
-      z.strictObject({
-        id,
-        ok: z.literal(true),
-        op: z.literal('record'),
-        assertion: assertionRecordSchema,
-      }),
-      z.strictObject({
-        id,
-        ok: z.literal(true),
-        op: z.literal('judge'),
-        verdict: z.union([verdictSchema, judgeFailureSchema]),
-      }),
-      z.strictObject({
-        id,
-        ok: z.literal(true),
         op: z.literal('decide'),
         result: decideResultSchema,
       }),
     ]),
-    z.strictObject({
-      id,
-      ok: z.literal(true),
-      op: z.literal('expect'),
-      untested: z
-        .record(z.string(), z.array(z.string()))
-        .describe(
-          'The strings the matcher tested that a `{ matchedBy, answers }` argument has no answer for, by its `matchedBy`. Nothing was recorded: answer them and make the call again.',
-        ),
-    }),
     z.strictObject({
       id,
       ok: z.literal(false),
@@ -852,9 +549,6 @@ export const attemptReplySchema = z
         'readFile',
         'writeFile',
         'observe',
-        'expect',
-        'record',
-        'judge',
         'serve',
         'kill',
         'capture',
@@ -863,9 +557,7 @@ export const attemptReplySchema = z
       error: attemptErrorSchema,
     }),
   ])
-  .describe(
-    "reeval's reply to a call: its result, or the error it threw. A failed matcher is a result (its record says `fail`), not an error, unless the matcher couldn't run.",
-  )
+  .describe("reeval's reply to a call: its result, or the error it threw.")
 
 export const cellRoleSchema = z.enum(['control', 'variant'])
 
@@ -911,9 +603,7 @@ export const attemptAbortSchema = z
 export const attemptDoneSchema = z
   .strictObject({
     type: z.literal('done'),
-    error: attemptThrownSchema
-      .optional()
-      .describe('What the body threw, if it threw. A failed `expect.require` is one.'),
+    error: attemptThrownSchema.optional().describe('What the body threw, if it threw.'),
     turnStatusRead: z
       .boolean()
       .optional()
@@ -922,7 +612,7 @@ export const attemptDoneSchema = z
       ),
   })
   .describe(
-    "The runner to reeval: the eval's body has finished. The attempt's checks and record follow.",
+    "The runner to reeval: the eval's body has finished. The attempt's graders and record follow.",
   )
 
 const CALL_KEYS = Object.fromEntries(
@@ -932,13 +622,7 @@ const OTHER_KEYS = [
   'id',
   'call',
   'turn',
-  'attempt',
   'value',
-  'regexp',
-  'flags',
-  'matchedBy',
-  'answers',
-  ...Object.keys(judgeCallDataSchema.shape),
   ...Object.keys(captureSchema.shape),
   ...Object.keys(captureCallDataSchema.shape),
   'name',
@@ -946,10 +630,6 @@ const OTHER_KEYS = [
   'type',
   'port',
   'handle',
-  'exec',
-  'result',
-  'readFile',
-  'interval',
   'timeout',
   'ms',
 ]
@@ -974,8 +654,6 @@ export const attemptDoneProblem = (value: unknown): string | undefined =>
 
 export type AttemptCall = z.infer<typeof attemptCallSchema>
 export type DecideCallData = z.infer<typeof decideCallDataSchema>
-/** `c.judge()`'s `on` as data: a turn by its index, or a value graded as the output. */
-export type JudgeOn = z.infer<typeof judgeOnSchema>
 export type AttemptStart = z.infer<typeof attemptStartSchema>
 export type AttemptAbort = z.infer<typeof attemptAbortSchema>
 export type AttemptDone = z.infer<typeof attemptDoneSchema>
@@ -989,10 +667,6 @@ export const ATTEMPT_SCHEMAS: Record<string, z.ZodType> = {
   AttemptReply: attemptReplySchema,
   AttemptError: attemptErrorSchema,
   AttemptThrown: attemptThrownSchema,
-  MatcherSubject: matcherSubjectSchema,
-  MatcherArg: matcherArgSchema,
-  Pattern: patternSchema,
-  AnsweredPattern: answeredPatternSchema,
   JSONValue: jsonValueSchema,
   TurnData: turnDataSchema,
   TurnStatus: turnStatusSchema,
@@ -1004,12 +678,6 @@ export const ATTEMPT_SCHEMAS: Record<string, z.ZodType> = {
   ExecResult: execResultSchema,
   ExecRetry: execRetrySchema,
   ExecEnv: execEnvSchema,
-  AssertionRecord: assertionRecordSchema,
-  JudgeCallData: judgeCallDataSchema,
-  FakeJudgeData: fakeJudgeDataSchema,
-  Verdict: verdictSchema,
-  JudgeFailure: judgeFailureSchema,
-  JudgeArtifactRef: judgeArtifactRefSchema,
   Capture: captureSchema,
   CaptureWindow: captureWindowSchema,
   AttemptStart: attemptStartSchema,
@@ -1039,11 +707,6 @@ export const ATTEMPT_TYPES = [
   'ExecResult',
   'ExecRetry',
   'ExecEnv',
-  'AssertionRecord',
-  'FakeJudgeData',
-  'Verdict',
-  'JudgeFailure',
-  'JudgeArtifactRef',
   'Capture',
   'CaptureWindow',
   'Cell',

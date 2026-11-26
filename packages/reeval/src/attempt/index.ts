@@ -1,15 +1,14 @@
 // One attempt's lifecycle, a phase per module: resolve the environment (environment.ts), start
-// the session (session.ts), run turns (turns.ts), run checks and the judge (checks.ts, judge.ts),
-// tear down, and write the record (record.ts). They share one `Attempt` (state.ts).
+// the session (session.ts), run turns (turns.ts) and commands (checks.ts), tear down, grade
+// (grade.ts) and write the record (record.ts). They share one `Attempt` (state.ts).
 import { AttemptDebug, withDebug } from '../debug/attempt.ts'
 import { attemptDebugDir } from '../debug/files.ts'
 import { getRunContext, type TestHandle } from '../engine/runtime.ts'
 import { TimeoutError } from '../errors.ts'
 import { checkGraderImages } from '../grade/sandbox.ts'
 import { attemptId, attemptKey, evalId, evalSlug, relativeFile } from '../ids.ts'
-import { redactSecrets } from '../redact.ts'
 import { InfraError } from '../sandbox/types.ts'
-import { clip, formatDuration } from '../text.ts'
+import { formatDuration } from '../text.ts'
 import {
   type AgentAttempt,
   agentSpans,
@@ -25,7 +24,6 @@ import {
   withAttemptSpan,
 } from '../trace/spans.ts'
 import type { AttemptContext, EvalFn, EvalRecord } from '../types.ts'
-import { assertionRecords, checkFailure, linkJudgmentAssertions } from './assertions.ts'
 import { capturePage, serveCommand } from './capture.ts'
 import { createChecks } from './checks.ts'
 import { contextTaker } from './context.ts'
@@ -33,11 +31,8 @@ import { tracePlan } from './debug.ts'
 import { decider, partOf, stateBuilder } from './decide.ts'
 import { prepareEnvironment } from './environment.ts'
 import { type Grading, gradeAttempt } from './grade.ts'
-import { judgeCaller } from './judge.ts'
 import { observer } from './observe.ts'
 import {
-  attemptError,
-  judgeErrorsMessage,
   reclassifyTimeout,
   reclassifyTurnErrors,
   recordEgress,
@@ -98,7 +93,7 @@ export async function runAttempt(
 async function attemptBody(
   spec: AttemptSpec,
   fn: EvalFn,
-  { signal: testSignal, setMeta, progress, unawaited, expectError, assertions }: TestHandle,
+  { signal: testSignal, setMeta, progress }: TestHandle,
   id: string,
   debug: AttemptDebug,
   grading: Grading | undefined,
@@ -170,7 +165,6 @@ async function attemptBody(
     capture: (target, options) => capturePage(a, target, options),
     attempt: { id: attemptId(spec.cell.key, spec.n), cell: spec.cell, n: spec.n },
     send: turnSender(a, takeContext, { exec, readFile }, tracing ? onTurnEnd : undefined),
-    judge: judgeCaller(a, readFile),
     decide: decider(a),
     state: stateBuilder(a, readFile),
     part: partOf(a),
@@ -199,27 +193,17 @@ async function attemptBody(
     })
     // A body that ignores the signal can still return normally after a timeout or cancel.
     a.signal.throwIfAborted()
-    const missed = (await unawaited()) ?? checkFailure(assertions()) ?? expectError()
-    // A start or decision that failed under a caught call or an `expect` still fails the attempt as itself.
+    // A start or decision that failed under a caught call still fails the attempt as itself.
     if (a.infraFailure) throw a.infraFailure.error
-    if (missed) throw missed
-    const judgeErrors = judgeErrorsMessage(a)
-    if (judgeErrors) {
-      a.judgeThrown.add(judgeErrors)
-      throw new Error(judgeErrors)
-    }
-  } catch (thrown) {
-    const error = attemptError(a, thrown, assertions())
-    recordFailure(a, error, timedOut(), assertions())
-    if (taskThrew?.error === error) recordTaskFailure(a, error, assertions(), config.root)
+  } catch (error) {
+    recordFailure(a, error, timedOut())
+    if (taskThrew?.error === error) recordTaskFailure(a, error, config.root)
     failure = {
       error: timedOut()
         ? new TimeoutError(`Eval timed out after ${spec.timeoutMs / 1000}s`)
         : error,
     }
   } finally {
-    // Checks the eval didn't await still use the sandbox: let them finish before teardown.
-    if (!a.signal.aborted) await unawaited().catch(() => {})
     clock?.clear()
     await a.endStarts()
     for (const bg of a.backgrounds) await bg.kill().catch(() => {})
@@ -251,14 +235,6 @@ async function attemptBody(
       )
     }
     const { record } = a
-    const checked = assertionRecords(assertions())
-    if (checked.length) record.assertions = checked
-    linkJudgmentAssertions(record.judgements ?? [], checked)
-    for (const x of checked) {
-      const why = x.message ? ` · ${clip(redactSecrets(x.message.split('\n')[0] ?? ''), 160)}` : ''
-      const mark = x.status === 'pass' || x.status === 'not_applicable' ? '✓' : '✗'
-      debug.log('check', `assert ${mark} ${x.label} (${x.matcher}, ${x.status})${why}`)
-    }
     reclassifyTurnErrors(a)
     // A turn's error, an OOM kill or a provider outage the timeout hid is why it ended instead.
     if (record.error?.kind !== 'assertion') delete record.failure
@@ -277,10 +253,10 @@ async function attemptBody(
           ),
       )
       if (testSignal.aborted) {
-        recordFailure(a, testSignal.reason, false, assertions())
+        recordFailure(a, testSignal.reason, false)
         failure = { error: testSignal.reason }
       } else if (low) {
-        recordFailure(a, low, false, assertions())
+        recordFailure(a, low, false)
         failure = { error: low }
       }
     }
@@ -313,5 +289,5 @@ async function attemptBody(
 /** An attempt's score without graders: 1 when it passed, 0 when it failed; none otherwise. */
 function scoreOf(record: EvalRecord): number | undefined {
   if (record.outcome === 'pass') return 1
-  return record.error?.kind === 'assertion' || record.error?.kind === 'judge' ? 0 : undefined
+  return record.error?.kind === 'assertion' ? 0 : undefined
 }

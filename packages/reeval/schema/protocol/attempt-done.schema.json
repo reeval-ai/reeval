@@ -5,11 +5,11 @@
   "$ref": "#/$defs/AttemptDone",
   "$defs": {
     "AttemptDone": {
-      "description": "The runner to reeval: the eval's body has finished. The attempt's checks and record follow.",
+      "description": "The runner to reeval: the eval's body has finished. The attempt's graders and record follow.",
       "type": "object",
       "properties": {
         "error": {
-          "description": "What the body threw, if it threw. A failed `expect.require` is one.",
+          "description": "What the body threw, if it threw.",
           "$ref": "#/$defs/AttemptThrown"
         },
         "turnStatusRead": {

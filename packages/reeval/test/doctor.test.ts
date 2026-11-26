@@ -700,7 +700,7 @@ export default defineEval({ async task() {} })
       'judge-none',
       `{ agents: fakeAgent(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }) }`,
     )
-    // No eval calls c.judge, so there's no line at all.
+    // No eval calls judge(), so there's no line at all.
     assert.deepEqual(await checkJudge(none, deps(), false, '.env.local'), [])
     await mkdir(join(none.root, 'evals/support'), { recursive: true })
     await writeFile(
@@ -709,16 +709,16 @@ export default defineEval({ async task() {} })
     )
     await writeFile(
       join(none.root, 'evals/graded.eval.ts'),
-      "import { defineEval } from 'reeval'\nimport { grade } from './support/grade.ts'\nexport default defineEval({ task: grade })\n",
+      "import { defineEval } from 'reeval'\nimport { grade } from './support/grade.ts'\nexport default defineEval({ async task() {}, graders: [grade] })\n",
     )
     await writeFile(
       join(none.root, 'evals/support/grade.ts'),
-      "export const grade = async (c) => { await c.judge('ok?', { diff: true }) }\n",
+      "import { judge } from 'reeval/graders'\nexport const grade = judge('ok?', { inputs: { diff: true } })\n",
     )
     assert.deepEqual(await judgeCallers(none), ['evals/graded.eval.ts'])
     const unset = await checkJudge(none, deps(), false, '.env.local')
     assert.deepEqual(statuses(unset), ['warn'])
-    assert.equal(unset[0]?.summary, 'no judge model, and evals/graded.eval.ts calls c.judge')
+    assert.equal(unset[0]?.summary, 'no judge model, and evals/graded.eval.ts calls judge()')
     const fake = await configOf(
       'judge-fake',
       `{ agents: fakeAgent(), environments: defineEnvironment('fake', { sandbox: fakeSandbox() }), judge: { model: fakeJudge({ score: 1 }) } }`,

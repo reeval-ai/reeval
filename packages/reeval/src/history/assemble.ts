@@ -20,7 +20,7 @@ import {
   servedEffortOf,
 } from '../harness/effort.ts'
 import { attemptId, attemptKey, evalSlug, recordFileName, sha256 } from '../ids.ts'
-import { judgeModelName } from '../judge/index.ts'
+import { DEFAULT_THRESHOLD, judgeModelName } from '../judge/index.ts'
 import { collapseDependencies, patchForJudge } from '../judge/patch.ts'
 import { mergeJudge } from '../judge/state-options.ts'
 import {
@@ -1695,12 +1695,7 @@ const byName =
   (a: T, b: T) =>
     key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0
 
-function stackOf(
-  input: AssembleInput,
-  seen: Seen,
-  judgeModel: string | null,
-  threshold: number,
-): Stack {
+function stackOf(input: AssembleInput, seen: Seen, judgeModel: string | null): Stack {
   const packages = packageVersions(input.enginePackages)
   return {
     reeval: input.reeval,
@@ -1724,7 +1719,7 @@ function stackOf(
     judge: {
       model: judgeModel,
       resolvedModels: [...seen.resolvedJudges].sort(),
-      threshold,
+      threshold: DEFAULT_THRESHOLD,
       version: judgeVersion(input.reeval, packages, judgeModel ?? ''),
     },
     context: [...seen.contexts.values()].sort(byName((c) => c.path)),
@@ -1744,7 +1739,7 @@ export function judgePart(
   const part = sha256(
     JSON.stringify({
       model,
-      threshold: runJudge.threshold,
+      threshold: DEFAULT_THRESHOLD,
       version: judgeVersion(reeval, packageVersions(enginePackages), model ?? ''),
     }),
   )
@@ -1858,7 +1853,7 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
 
   const attempts = evals.flatMap((e) => e.attempts)
   const retried = input.retry && input.previous ? input.previous : null
-  const stack = stackOf(input, seen, judgeModel, runJudge.threshold)
+  const stack = stackOf(input, seen, judgeModel)
   const ids = (list: HarnessDescriptor | HarnessDescriptor[] | undefined) =>
     list === undefined ? undefined : [list].flat().map(harnessId)
   const spans = await spansFile(ctx.stagingDir, input.previous, input.previousArtifacts, out)
@@ -1951,7 +1946,7 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
       environment: config.environments.map((e) => e.name).join(', ') || null,
       ...(config.runs !== undefined ? runsOf(config.runs) : { runs: 1 }),
       judgeModel,
-      threshold: runJudge.threshold,
+      threshold: DEFAULT_THRESHOLD,
       timeoutMs: config.timeoutMs,
       concurrency: input.ctx.concurrency,
       configHash,

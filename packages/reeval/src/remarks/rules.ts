@@ -827,8 +827,8 @@ function snapshotTooLarge(e: EvalResult, entries: EvalEntry[], ctx: RemarkContex
 }
 
 /**
- * observe-throws: an eval whose target only reports (`metric()`) whose body threw outside an
- * `expect` in more than half its counted tries. Graders run only after a body that returned, so a
+ * observe-throws: an eval whose target only reports (`metric()`) whose body threw in more than
+ * half its counted tries. Graders run only after a body that returned, so a
  * graded attempt's failure is its score, not a throw. Such an eval fails only on run and infra errors, so those tries read
  * `ran` while recording the eval's error, not what the agent did. One per eval.
  */
@@ -855,13 +855,13 @@ function observeThrows(e: EvalResult, entries: EvalEntry[], ctx: RemarkContext):
       evalId: e.path,
       kind: 'observe-throws',
       severity: 'concern',
-      text: `${threw.length} of ${counted.length} tries threw outside an expect, so the eval recorded its own error, not what the agent did: ${clip(first.attempt.error?.message ?? '', 120)}`,
+      text: `${threw.length} of ${counted.length} tries threw, so the eval recorded its own error, not what the agent did: ${clip(first.attempt.error?.message ?? '', 120)}`,
       evidence: threw.map(
         (h) => `${cellPaths.get(`${h.entry.id}\0${h.attempt.cell}`) ?? h.entry.id}#${h.attempt.n}`,
       ),
       fix: {
         at: ctx.locate(first.entry, null),
-        edit: 'fix what the body throws, or check what can fail with expect, which metric() records without failing',
+        edit: 'fix what the body throws, or check what can fail with a grader, which metric() records without failing',
       },
     },
   ]

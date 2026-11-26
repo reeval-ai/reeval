@@ -109,7 +109,7 @@ declares the same again.
 ```
 
 The calls an eval's body makes on its attempt (`c.send`, `c.exec`, `c.serve`, `kill`,
-`c.capture`, `c.readFile`, `c.writeFile`, `c.judge` and each matcher, `expect.poll` included)
+`c.capture`, `c.readFile`, `c.writeFile`, `c.decide` and `c.observe`)
 have their own schemas in `src/contract/attempt.ts`, with JSON Schemas in
 `schema/protocol/` (`attempt-request`, `attempt-reply`). Those calls run inside the worker today,
 so none of them crosses this channel; a runner in another language would send them, numbered by
@@ -120,10 +120,7 @@ threw, if anything. Nothing starts with `attempt-start`: the sandbox and the age
 on the body's first call that needs them (`send`, `exec`, `readFile`, `writeFile`, `serve` or
 `capture`), so the body's own code runs first. Calls sent at once share that one start; if it
 fails, each of them gets an error reply and the attempt fails as an infra error. A background
-`exec` or a `serve` replies with a handle id, which `kill` and `capture` name; a polled `expect`
-names a subject reeval can re-read (the attempt, a command or a file), since a runner's value
-can't be read again. `c.judge`'s `on` is tagged the same way: `{ turn }` names a turn by its index, `{ value }`
-carries a JSON value to grade as the output.
+`exec` or a `serve` replies with a handle id, which `kill` and `capture` name.
 `test/conformance/context/` has whole attempts in these messages, held to the real code.
 
 ## Versions

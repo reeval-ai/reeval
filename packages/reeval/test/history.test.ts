@@ -958,9 +958,7 @@ export default defineEval({
     assert.equal(run.stack.node, process.versions.node)
     assert.deepEqual(run.stack.runtime, { name: 'node', version: process.versions.node })
     assert.deepEqual(run.stack.language, { name: 'typescript' })
-    assert.ok(
-      run.stack.packages.ai && run.stack.packages['@vitest/expect'] && run.stack.packages.jiti,
-    )
+    assert.ok(run.stack.packages.ai && run.stack.packages.jiti)
     assert.match(run.stack.judge.version, /^[0-9a-f]{12}$/)
     assert.equal('reproducibility' in run, false)
     assert.deepEqual(run.stack.fingerprintScope.length > 0, true)

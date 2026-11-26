@@ -5,7 +5,7 @@ import type { FakeAnalysisModel, FakeJudgeModel } from './types.ts'
 /**
  * A judge that returns `score` without calling a model, for tests and dry runs, and `answer` to a
  * judge grader with `answers`. Either can be a function of the state the judge would see (per
- * group, eval, call or grader; the config takes a number).
+ * group, eval or grader; the config takes a number).
  */
 export const fakeJudge = ({
   score = 1,
@@ -37,7 +37,7 @@ export const fakeAnalysis = ({
   ...(answer !== undefined ? { answer } : {}),
 })
 
-export { DEFAULT_THRESHOLD, RECOMMENDED_JUDGE_MODEL } from './judge/index.ts'
+export { RECOMMENDED_JUDGE_MODEL } from './judge/index.ts'
 export type {
   AnalysisConfig,
   BlindAttempt,
@@ -48,11 +48,8 @@ export type {
   FakeJudgeModel,
   FakeVote,
   JudgeArtifactRef,
-  JudgeCallOptions,
-  JudgeFailure,
   JudgeInputs,
   JudgeModel,
   JudgeOptions,
   JudgeState,
-  Verdict,
 } from './types.ts'

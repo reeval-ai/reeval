@@ -381,13 +381,6 @@ export type JudgeModel = string | FakeJudgeModel | { readonly specificationVersi
 export type JudgeOptions = {
   /** The model that grades. */
   model?: JudgeModel
-  /** Minimum score (0–1) for a `pass` verdict. */
-  threshold?: number
-  /**
-   * Stable label for this judge call in the record and report. When unset, the report derives one
-   * from the `toPass` assertion label or the question text.
-   */
-  label?: string
   /** AI SDK provider options for the judge's calls, keyed by provider. */
   providerOptions?: Record<string, Record<string, JSONValue>>
   /** The most judge calls to this model's provider at once, across the run. */
@@ -400,14 +393,14 @@ export type JudgeOptions = {
 }
 
 /**
- * What one `c.judge()` call shows the judge beside the question. Every input is off unless the
- * call turns it on, and a call turns on at least one; each is a key of the state in
- * `judge-input.json`, or the captures sent as file parts.
+ * What a judge is shown beside the question. Every input is off unless it's turned on, and a
+ * judge turns on at least one; each is a key of the judge's state, or the captures sent as file
+ * parts.
  */
 export type JudgeInputs = {
   /** The graded turn's prompt. */
   task?: boolean
-  /** The graded turn's final message, or `on`'s value. */
+  /** The graded turn's final message. */
   output?: boolean
   /** `status path` lines for the changed files, under `diff`'s patterns. */
   files?: boolean
@@ -451,29 +444,11 @@ export type TranscriptView = { detail?: 'tools' | 'full'; agent?: boolean; subag
 /** A judge's or question's `transcript`: on, a detail, or a `TranscriptView`. */
 export type JudgeTranscript = boolean | 'tools' | 'full' | TranscriptView
 
-/** What a judge call's inputs read: which turn, and whether the turns before it too. */
-export type JudgeSubject = {
-  /** The turn `task`, `output`, `transcript` and `diff` read instead of the latest, or a value used as the output. */
-  on?: Turn | JSONValue
-  /**
-   * `'all'`: every turn up to the graded one under `turns`, each with its task, output and (with
-   * `transcript`) transcript. Default `'last'`.
-   */
-  turns?: 'last' | 'all'
-}
-
 /** One input turned on: `true`, a mode or a non-empty selection, not `false`. */
 type OneInput<I, K extends keyof I> = { [P in K]-?: Exclude<I[P], false | undefined> }
 
 /** At least one of `I`'s keys turned on. */
 export type AtLeastOneInput<I> = { [K in keyof I]-?: OneInput<I, K> & Omit<I, K> }[keyof I]
-
-/** `c.judge()`'s options, before the at-least-one-input rule that `JudgeCallOptions` adds. */
-export type JudgeCallFields = JudgeOptions & JudgeInputs & JudgeSubject
-
-/** `c.judge()`'s options: the judge options, the inputs (at least one) and what they read. */
-export type JudgeCallOptions = Omit<JudgeCallFields, keyof JudgeInputs> &
-  AtLeastOneInput<JudgeInputs>
 
 /** The inputs one judge call saw, every key set (`false` when off); `artifacts` is recorded apart. */
 export type ResolvedJudgeStateOptions = {
@@ -509,10 +484,9 @@ export type Verdict = {
 }
 
 /**
- * What `c.judge()` returns when the call failed (the provider's error, after any retries): the attempt fails as a judge error once the eval's body has finished,
- * so the judges and checks after it still run.
+ * A recorded judge call that failed (the provider's error, after any retries).
  */
-export type JudgeFailure = Omit<
+type JudgeFailure = Omit<
   Verdict,
   'verdict' | 'score' | 'resolvedModel' | 'upstream' | 'costUsd'
 > & {
@@ -528,12 +502,6 @@ export type JudgeFailure = Omit<
 export type AttemptContext = {
   /** Sends the next turn of this eval's agent session. */
   send(prompt: string): Promise<Turn>
-  /**
-   * Asks the judge a yes/no question about what `options` turns on, and nothing else: at least
-   * one of `task`, `output`, `files`, `diff`, `contents`, `transcript`, `checks` or `artifacts`.
-   * They read the latest turn, or `options.on`.
-   */
-  judge(question: string, options: JudgeCallOptions): Promise<Verdict | JudgeFailure>
   /**
    * Runs `command` in the sandbox. With `retries`, a non-zero exit runs it again, up to that
    * many extra times, `interval` ms apart; it resolves with the last try. `env` adds variables
@@ -2077,7 +2045,7 @@ export type QuestionFields = QuestionInputs & {
 }
 
 /**
- * What a question is shown of each attempt: `c.judge()`'s inputs but `contents` (the attempts'
+ * What a question is shown of each attempt: a judge's inputs but `contents` (the attempts'
  * workspaces are gone when questions are asked). Every input is off unless the question turns it
  * on, and a question turns on at least one.
  */
@@ -2369,7 +2337,7 @@ type EvalOptionFields<N extends number = number> = {
    * defaults, the environment, then groups and the eval.
    */
   egress?: Egress
-  /** Defaults for `c.judge()`, merged field by field down the cascade. */
+  /** Defaults for judge graders, merged field by field down the cascade. */
   judge?: JudgeOptions
   /** Screenshot defaults for `c.capture()`. Shallow-merged; `viewport` and `model` replace the value. */
   capture?: CaptureOptions
@@ -2492,7 +2460,7 @@ export type CaseEvalSpec<T, N extends number = number> = SpecFields<N> &
 export type EvalOptionsData = Omit<EvalOptionFields, 'agents' | 'judge'> & {
   /** Which agents run the eval; each is its own cell. */
   agents?: HarnessData
-  /** Defaults for `c.judge()`, merged field by field down the cascade. */
+  /** Defaults for judge graders, merged field by field down the cascade. */
   judge?: ConfigJudgeOptions
 } & EnvironmentOrCompare<EnvironmentData, EnvironmentsData>
 
@@ -2677,7 +2645,7 @@ export type ProfileDefaults = {
   env?: EnvVars
   /** Where the sandbox may connect; replaces the config's policy, per phase. */
   egress?: Egress
-  /** Defaults for `c.judge()`, merged field by field over the config's. */
+  /** Defaults for judge graders, merged field by field over the config's. */
   judge?: ConfigJudgeOptions
   /** Per attempt. */
   timeout?: Duration
@@ -2848,7 +2816,7 @@ export type ReevalConfig = {
   env?: EnvVars
   /** Where the sandbox may connect; default `'proxy'` in both phases. */
   egress?: Egress
-  /** Defaults for `c.judge()`, merged field by field down the cascade. */
+  /** Defaults for judge graders, merged field by field down the cascade. */
   judge?: ConfigJudgeOptions
   /** Per attempt; default `'15m'`. */
   timeout?: Duration
@@ -2973,7 +2941,7 @@ export type ProfileDefaultsData = Omit<ProfileDefaults, 'environments' | 'judge'
   graders?: BuiltinGraderData[]
   /** What every eval runs in when it names no environment: one, or a list (a cell each). */
   environments?: EnvironmentData | EnvironmentData[]
-  /** Defaults for `c.judge()`, merged field by field over the config's. */
+  /** Defaults for judge graders, merged field by field over the config's. */
   judge?: ConfigJudgeData
 }
 
@@ -3010,7 +2978,7 @@ export type ReevalConfigData = Omit<
    * cell each).
    */
   environments?: EnvironmentData | EnvironmentData[]
-  /** Defaults for `c.judge()`, merged field by field down the cascade. */
+  /** Defaults for judge graders, merged field by field down the cascade. */
   judge?: ConfigJudgeData
   /** Named presets of `defaults`, `limit`, `judge`, `budget`, `record` and `tags`. */
   profiles?: Record<string, ProfileData>
@@ -3105,7 +3073,7 @@ export type ResolvedConfig = {
   target: Target | undefined
   env: EnvVars
   egress?: Egress
-  judge: ConfigJudgeOptions & { threshold: number }
+  judge: ConfigJudgeOptions
   timeoutMs: number
   capture: CaptureOptions
   question: QuestionOptions
@@ -3188,7 +3156,7 @@ export type AttemptError = {
 
 /**
  * What the eval's task threw that failed the attempt: an `EvalError`, or any other error. Not a
- * failed `expect`, a judge, a timeout, a cancel or an infra error.
+ * timeout, a cancel or an infra error.
  */
 export type AttemptFailure = {
   kind: 'task'
@@ -3915,7 +3883,7 @@ export type EvalRecord = {
       retries?: JudgeRetry[]
       call?: number
       usage?: TokenUsage
-      /** From `JudgeOptions.label` when set. */
+      /** The judge call's own label, when it had one. */
       label?: string
       /** The `toPass` assertion label that consumed this verdict, when linked. */
       assertion?: string

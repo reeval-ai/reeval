@@ -294,7 +294,7 @@
       "required": ["kind", "message"]
     },
     "AttemptFailure": {
-      "description": "What the eval's task threw that failed the attempt: an `EvalError`, or any other error. Not a failed `expect`, a judge, a timeout, a cancel or an infra error.",
+      "description": "What the eval's task threw that failed the attempt: an `EvalError`, or any other error. Not a timeout, a cancel or an infra error.",
       "type": "object",
       "properties": {
         "kind": {

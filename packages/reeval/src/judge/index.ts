@@ -285,14 +285,6 @@ export function hostCall(
   return { route: { kind: 'gateway' }, call }
 }
 
-/** A verdict plus the transient failures retried on the way to it. */
-export type JudgeResult = {
-  verdict: Verdict
-  retries: JudgeRetry[]
-  /** The call's tokens; null when the provider reported none, and for the fake judge. */
-  usage: TokenUsage | null
-}
-
 /** A model call's gateway by name, with the list entry's OpenRouter fallbacks and Vertex settings. */
 export function gatewaySettings(entry: GatewayName | GatewayDescriptor | undefined): {
   gateway: GatewayName | undefined
@@ -322,33 +314,6 @@ export type JudgeAnswer = {
   costUsd?: number
   retries: JudgeRetry[]
   usage: TokenUsage | null
-}
-
-/** Transient provider errors (429, 5xx, "high demand") are retried with backoff and recorded. */
-export async function runJudge(
-  question: string,
-  state: JudgeState,
-  options: Required<Pick<JudgeOptions, 'model' | 'threshold'>> & JudgeOptions,
-  signal: AbortSignal,
-  retry: RetryPolicy = JUDGE_RETRY,
-): Promise<JudgeResult> {
-  const { threshold } = options
-  const {
-    probability,
-    retries,
-    usage,
-    answer: _answer,
-    ...called
-  } = await askJudge(question, undefined, state, options, signal, retry)
-  const score = probability ?? 0
-  const verdict: Verdict = {
-    verdict: score >= threshold ? 'pass' : 'fail',
-    score,
-    threshold,
-    question,
-    ...called,
-  }
-  return { verdict, retries, usage }
 }
 
 /**
