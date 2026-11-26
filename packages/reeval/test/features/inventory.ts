@@ -2388,6 +2388,12 @@ export const inventory: InventoryFeature[] = [
     real: ['e2e › a second identical run', 'e2e › reeval history and reeval show'],
   },
   {
+    id: 'history.regrade',
+    area: 'Records and studio',
+    name: "`reeval regrade`: recorded attempts graded again with today's graders, selected by eval, `--tag`, `--grader`, `--since` or `--at`; a plan per grader (keep, re-score, recompute, compute, keep old grade, or skip with inputs missing) with `--dry-run` and `--yes`; one regrade file per run in `<run>/regrades/`, which `history`, `show` and `compare` apply (`↻`, `--original`, `show --regrades`, `grader changed`)",
+    unit: ['reeval/test/regrade.test.ts', 'reeval/test/corpus.test.ts'],
+  },
+  {
     id: 'history.trace',
     area: 'Records and studio',
     name: "`reeval show --trace`: a run's timeline as Chrome Trace Event JSON for Perfetto, attempts in lanes by overlap with their setup, turns, tool calls, checks and judge, from any record",

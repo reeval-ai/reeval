@@ -507,7 +507,10 @@ function prepare(
  * An eval's graders under the config's and then the profile's: a grader replaces one of the same
  * name before it.
  */
-function withDefaultGraders(own: readonly GraderDef[], run: RunContext): GraderDef[] {
+export function withDefaultGraders(
+  own: readonly GraderDef[],
+  run: Pick<RunContext, 'config' | 'profile'>,
+): GraderDef[] {
   const data = [
     ...(run.config.graders ?? []),
     ...((run.profile?.defaults.graders ?? []) as BuiltinGraderData[]),

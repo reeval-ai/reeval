@@ -620,6 +620,12 @@ export type AttemptRecord = {
    */
   grades?: GradeRecord[]
   /**
+   * The id of the newest `reeval regrade` that changed this attempt's grades, score or outcome,
+   * which the fields here read as; unset when none did. Readers set it; `reeval regrade` never
+   * rewrites the record.
+   */
+  regraded?: string
+  /**
    * In [0, 1]: the scored grades' mean, weighted by `weight`; 0 when the task threw, an `expect`
    * failed or a required grader scored under 1; 1 when the task returned and nothing scored.
    * `outcome` is `pass` when it reaches the eval's target's threshold (1 without one). Unset on a
@@ -1211,6 +1217,75 @@ export type RunRecord = {
    * were none.
    */
   errors?: string[]
+  /**
+   * Each `reeval regrade` of the run, oldest first, which its attempts read as; unset when it has
+   * none, or when it's read with `--original`. Readers set it from the run's `regrades/` folder.
+   */
+  regrades?: RegradeNote[]
+}
+
+/** A regrade a record was read with. */
+export type RegradeNote = {
+  id: string
+  at: string
+  /** The keys of the attempts it changed. */
+  attempts: string[]
+}
+
+/**
+ * What one `reeval regrade` changed in one run: the attempts whose grades it changed, each with
+ * its new grades, score and outcome, which readers put in place of the recorded ones. The record
+ * itself is never rewritten.
+ */
+export type RegradeRecord = {
+  kind: 'reeval-regrade'
+  schemaVersion: 1
+  /** Also the file name in the run's `regrades/` folder: `<UTC time>_<random>`. */
+  id: string
+  /** The id of the run it regrades. */
+  regradeOf: string
+  at: string
+  /** The reeval version that wrote it. */
+  reeval: string
+  /** The commit the graders were read at; null outside a git repository. */
+  git: { sha: string; dirty: boolean } | null
+  /** `--grader`: the only graders it ran; unset when it ran every grader that changed. */
+  graders?: string[]
+  attempts: RegradedAttempt[]
+}
+
+/** One attempt as a regrade left it. */
+export type RegradedAttempt = {
+  /** The attempt's `key` in the run record. */
+  key: string
+  /**
+   * Every grade it reads with now, in the eval's order, a grade not regraded as it was. A reader
+   * takes from it only the grades its `actions` rescored, recomputed or added, over what earlier
+   * regrades left, so two regrades of different graders both hold.
+   */
+  grades: GradeRecord[]
+  score: number
+  outcome: 'pass' | 'fail'
+  /** Why it fails now: its score under the run's target; null when it passes. */
+  error: AttemptError | null
+  /** What happened to each grader on it. */
+  actions: RegradeAction[]
+}
+
+/**
+ * What a regrade did with one grader on one attempt: `kept` it (unchanged, or not selected),
+ * `rescored` its stored grade (its score, weight or required changed), `recomputed` it (its
+ * fingerprint changed: `changed` names the parts), ran a `new` grader, left one the eval no
+ * longer has (`not-found`), kept one whose inputs the run didn't keep (`inputs-missing`, with
+ * `reason`) or kept one whose grade couldn't be had (`failed`: a judge that errored, a grader
+ * sandbox that didn't start, a timeout or an interrupt, with the error as `reason`). A code
+ * grader's own throw is `recomputed`, its grade holding the error and scoring 0 as a run's does.
+ */
+export type RegradeAction = {
+  grader: string
+  action: 'kept' | 'rescored' | 'recomputed' | 'new' | 'not-found' | 'inputs-missing' | 'failed'
+  changed?: string[]
+  reason?: string
 }
 
 /** These fields describe what ran and graded the agents: the machine, images, harnesses, and judge. */
@@ -1419,6 +1494,13 @@ export type HistoryEntry = {
     rates?: Array<
       Pick<FamilyRate, 'cell' | 'rate'> & Required<Pick<FamilyRate, 'passRate' | 'outcome'>>
     >
+    /**
+     * Each grader its attempts were graded with, by name: a digest of its fingerprint, score
+     * function, weight and required. Unset when no attempt was graded.
+     */
+    graders?: Record<string, string>
+    /** A regrade changed one of its attempts' grades. */
+    regraded?: true
   }>
   /** The run's errors outside any attempt; unset when there were none. */
   errors?: string[]

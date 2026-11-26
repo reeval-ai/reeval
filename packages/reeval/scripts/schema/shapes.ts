@@ -148,6 +148,14 @@ export const SHAPES: PersistedShape[] = [
     versionField: 'schemaVersion',
   },
   {
+    name: 'regrade',
+    file: 'src/history/types.ts',
+    type: 'RegradeRecord',
+    where:
+      'What one reeval regrade changed in a run: <run>/regrades/<id>.json in the history folder, which readers apply',
+    versionField: 'schemaVersion',
+  },
+  {
     name: 'run-report',
     file: 'src/view/report/types.ts',
     type: 'RunReport',

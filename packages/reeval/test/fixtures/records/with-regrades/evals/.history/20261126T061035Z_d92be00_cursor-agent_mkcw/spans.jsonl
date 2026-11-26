@@ -1,0 +1,8 @@
+{"spanId":"295c811195f40dd5","parentSpanId":"8398085176b40074","name":"setup","startMs":1795673436565,"endMs":1795673436568,"attributes":{},"traceId":"6b813e5a1aa18e43d8ff99dbf8bc4276"}
+{"spanId":"a3684f8775dfec7a","parentSpanId":"8398085176b40074","name":"sandbox","startMs":1795673436569,"endMs":1795673436587,"attributes":{},"traceId":"6b813e5a1aa18e43d8ff99dbf8bc4276"}
+{"spanId":"3b2e1caff398d454","parentSpanId":"8398085176b40074","name":"diff","startMs":1795673436587,"endMs":1795673436592,"attributes":{},"traceId":"6b813e5a1aa18e43d8ff99dbf8bc4276"}
+{"spanId":"55d123861d28544b","parentSpanId":"8398085176b40074","name":"agent","startMs":1795673436593,"endMs":1795673436594,"attributes":{},"traceId":"6b813e5a1aa18e43d8ff99dbf8bc4276"}
+{"spanId":"77f31cc9d39eb826","parentSpanId":"8398085176b40074","name":"diff","startMs":1795673436595,"endMs":1795673436604,"attributes":{},"traceId":"6b813e5a1aa18e43d8ff99dbf8bc4276"}
+{"spanId":"20c1b51acd677b57","parentSpanId":"8398085176b40074","name":"judge","startMs":1795673436665,"endMs":1795673436666,"attributes":{},"traceId":"6b813e5a1aa18e43d8ff99dbf8bc4276"}
+{"spanId":"8398085176b40074","name":"attempt","startMs":1795673436560,"endMs":1795673436679,"attributes":{"reeval.eval.id":"one","reeval.attempt.key":"one # fake/fake/fake#1","reeval.cell":"fake/fake/fake","reeval.attempt.n":1,"reeval.outcome":"pass"},"traceId":"6b813e5a1aa18e43d8ff99dbf8bc4276","parentSpanId":"a188aef0adf1cff5"}
+{"traceId":"6b813e5a1aa18e43d8ff99dbf8bc4276","spanId":"a188aef0adf1cff5","name":"reeval.run","startMs":1795673435536,"endMs":1795673436692,"attributes":{"reeval.run.id":"20261126T061035Z_d92be00_cursor-agent_mkcw","reeval.version":"0.31.0","reeval.run.status":"ran"}}

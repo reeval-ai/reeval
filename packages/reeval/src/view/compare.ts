@@ -196,7 +196,9 @@ type ComparableEval = Pick<
   HistoryEval,
   'id' | 'fingerprint' | 'outcome' | 'sources' | 'source' | 'revision' | 'cells'
 > &
-  Partial<Pick<HistoryEval, 'cases' | 'lifts' | 'rates' | 'scores'>> & { verdict?: 'family' }
+  Partial<Pick<HistoryEval, 'cases' | 'lifts' | 'rates' | 'scores' | 'graders'>> & {
+    verdict?: 'family'
+  }
 
 type Comparable = Pick<HistoryEntry, 'stack'> & { evals: ComparableEval[] }
 
@@ -283,6 +285,13 @@ const sameCell = (b: FingerprintedCell, h: FingerprintedCell) =>
     withoutGate(b.fingerprintParts) === withoutGate(h.fingerprintParts))
 
 /** Whether two runs of an eval ran the same cells, each comparable. */
+/** Whether a grader the eval's attempts were graded with differs, outside fingerprints too. */
+function gradersChanged(b: ComparableEval, h: ComparableEval): boolean {
+  if (!b.graders || !h.graders) return false
+  const names = new Set([...Object.keys(b.graders), ...Object.keys(h.graders)])
+  return [...names].some((n) => b.graders?.[n] !== h.graders?.[n])
+}
+
 function sameEval(b: ComparableEval, h: ComparableEval): boolean {
   if (b.fingerprint === h.fingerprint) return true
   if (b.cells.length !== h.cells.length) return false
@@ -581,7 +590,7 @@ function casesRow(
   if (changes.length) out.changes = changes
   if (out.base === 'infra_error' || out.head === 'infra_error') return { ...out, status: 'infra' }
   if (caseRows.some((r) => r.status === 'infra')) return { ...out, status: 'infra' }
-  const caseChanged = changes.some((c) => c !== 'gate changed')
+  const caseChanged = changes.some((c) => c !== 'gate changed' && c !== 'grader changed')
   if (caseChanged || out.canceled || caseRows.some((r) => r.status === 'drift' || r.canceled)) {
     return { ...out, status: 'drift' }
   }
@@ -622,19 +631,26 @@ function evalRows(
     const perCell = compareCells(b, h)
     if (perCell.length) row.perCell = perCell
     if (b.scores || h.scores) row.scores = { base: b.scores ?? null, head: h.scores ?? null }
+    const graders = gradersChanged(b, h)
+    const graderNote = graders ? ['grader changed'] : []
     if (!withCases) {
       if (row.base === 'infra_error' || row.head === 'infra_error') {
         return { ...row, status: 'infra' }
       }
-      if (!comparable && !scoped) return { ...row, status: 'drift', changes: whyChanged(b, h) }
+      if (!comparable && !scoped) {
+        return { ...row, status: 'drift', changes: [...whyChanged(b, h), ...graderNote] }
+      }
     }
     const over = scoped?.over ?? { base: b.cells ?? [], head: h.cells ?? [] }
     const gate = gateChange(over.base, over.head)
-    if (gate) Object.assign(row, { changes: ['gate changed'], gate })
-    if (withCases) return casesRow(b, h, graderChanged, row)
+    if (gate || graders) {
+      Object.assign(row, { changes: [...(gate ? ['gate changed'] : []), ...graderNote] })
+    }
+    if (gate) row.gate = gate
+    if (withCases) return casesRow(b, h, graderChanged || graders, row)
     const from = gate?.rescored ?? row.base
     if (row.canceled) return { ...row, status: 'drift' }
-    if (graderChanged && from !== row.head) return { ...row, status: 'drift' }
+    if ((graderChanged || graders) && from !== row.head) return { ...row, status: 'drift' }
     if (from === 'pass' && row.head === 'fail') return { ...row, status: 'regressed' }
     if (from === 'fail' && row.head === 'pass') return { ...row, status: 'fixed' }
     return { ...row, status: row.base === row.head ? 'same' : 'gate' }

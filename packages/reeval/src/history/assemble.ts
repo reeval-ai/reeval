@@ -87,7 +87,7 @@ import { parseTranscript } from '../view/model.ts'
 import { isLockfile, splitPatch } from '../view/patch.ts'
 import { SPANS_FILE } from '../view/spans.ts'
 import { turnErrorKind } from '../view/turn-error.ts'
-import { checkTallies, discrimination, foldCases } from './cases.ts'
+import { checkTallies, discrimination, foldCases, unfoldCases } from './cases.ts'
 import { withCosts } from './cost.ts'
 import { familiesOf, pooledPassRate } from './families.ts'
 import { mergeOutcome } from './outcome.ts'
@@ -111,6 +111,7 @@ import {
   type RunInvocation,
   type RunnerInfo,
   type RunRecord,
+  type RunSummary,
   SCHEMA_VERSION,
   type Stack,
   type SubagentRecord,
@@ -1555,6 +1556,69 @@ function rollUp(evals: EvalEntry[]): void {
   }
 }
 
+/** The run's tallies over its unfolded evals' attempts. */
+function summaryOf(evals: EvalEntry[]): RunSummary {
+  const attempts = evals.flatMap((e) => e.attempts)
+  const count = (o: Outcome) => attempts.filter((a) => a.outcome === o).length
+  const ungatedOf = (a: AttemptRecord) => {
+    const e = evals.find((x) => x.attempts.includes(a))
+    return e?.cells.find((c) => c.key === a.cell)?.gate === 'none'
+  }
+  const notGated = attempts.filter((a) => ungatedOf(a) && a.outcome === 'fail').length
+  const gatedPass = attempts.filter((a) => !ungatedOf(a) && a.outcome === 'pass').length
+  const gatedFail = attempts.filter((a) => !ungatedOf(a) && a.outcome === 'fail').length
+  const ungatedPass = attempts.filter((a) => ungatedOf(a) && a.outcome === 'pass').length
+  const ungatedFail = attempts.filter((a) => ungatedOf(a) && a.outcome === 'fail').length
+  const reclassified = attempts.filter(
+    (a) =>
+      a.outcome === 'infra_error' &&
+      (a.turnStatusRead === false ||
+        (a.turnStatusRead === undefined && a.turns.some((t) => t.status === 'error'))),
+  ).length
+  return {
+    evals: evals.length,
+    attempts: attempts.length,
+    pass: count('pass'),
+    fail: count('fail'),
+    notGated,
+    infraError: count('infra_error'),
+    skipped: count('skipped'),
+    counted: gatedPass + gatedFail,
+    gated: { pass: gatedPass, fail: gatedFail },
+    ungated: { pass: ungatedPass, fail: ungatedFail },
+    reclassified,
+  }
+}
+
+/**
+ * A recorded run with its attempts' outcomes and scores changed, rolled up again: its cells,
+ * lifts, evals, families and summary, as assembly would have from those attempts.
+ */
+export function rerollRecord(record: RunRecord): RunRecord {
+  const unfolded = unfoldCases(record)
+  const { evals } = unfolded
+  for (const e of evals) {
+    const family = unfolded.families?.find((f) => f.id === e.family?.id)
+    for (const c of e.cells) {
+      const minLift = c.lift?.minLift ?? family?.lifts.find((l) => l.variant === c.key)?.minLift
+      if (minLift !== undefined) minLifts.set(c, minLift)
+    }
+  }
+  rollUp(evals)
+  const families = familiesOf(
+    evals,
+    (cell) => minLifts.get(cell),
+    (id) => unfolded.families?.find((f) => f.id === id)?.excluded,
+  )
+  const { families: _families, ...rest } = unfolded
+  return foldCases({
+    ...rest,
+    summary: { ...record.summary, ...summaryOf(evals) },
+    evals,
+    ...(families.length ? { families } : {}),
+  })
+}
+
 /** Start order across the run, by when each attempt's worker began it. */
 function sequence(evals: EvalEntry[]): void {
   const started = evals
@@ -1793,22 +1857,6 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
   }
 
   const attempts = evals.flatMap((e) => e.attempts)
-  const count = (o: Outcome) => attempts.filter((a) => a.outcome === o).length
-  const ungatedOf = (a: (typeof attempts)[number]) => {
-    const e = evals.find((x) => x.attempts.includes(a))
-    return e?.cells.find((c) => c.key === a.cell)?.gate === 'none'
-  }
-  const notGated = attempts.filter((a) => ungatedOf(a) && a.outcome === 'fail').length
-  const gatedPass = attempts.filter((a) => !ungatedOf(a) && a.outcome === 'pass').length
-  const gatedFail = attempts.filter((a) => !ungatedOf(a) && a.outcome === 'fail').length
-  const ungatedPass = attempts.filter((a) => ungatedOf(a) && a.outcome === 'pass').length
-  const ungatedFail = attempts.filter((a) => ungatedOf(a) && a.outcome === 'fail').length
-  const reclassified = attempts.filter(
-    (a) =>
-      a.outcome === 'infra_error' &&
-      (a.turnStatusRead === false ||
-        (a.turnStatusRead === undefined && a.turns.some((t) => t.status === 'error'))),
-  ).length
   const retried = input.retry && input.previous ? input.previous : null
   const stack = stackOf(input, seen, judgeModel, runJudge.threshold)
   const ids = (list: HarnessDescriptor | HarnessDescriptor[] | undefined) =>
@@ -1911,19 +1959,7 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
     cost: costOf(attempts),
     artifacts: 'all',
     redaction: { version: 1 },
-    summary: {
-      evals: evals.length,
-      attempts: attempts.length,
-      pass: count('pass'),
-      fail: count('fail'),
-      notGated,
-      infraError: count('infra_error'),
-      skipped: count('skipped'),
-      counted: gatedPass + gatedFail,
-      gated: { pass: gatedPass, fail: gatedFail },
-      ungated: { pass: ungatedPass, fail: ungatedFail },
-      reclassified,
-    },
+    summary: summaryOf(evals),
     evals,
     ...(families.length ? { families } : {}),
     ...secretWarningsOf(attempts),

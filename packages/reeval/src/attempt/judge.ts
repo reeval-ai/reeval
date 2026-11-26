@@ -87,6 +87,18 @@ export function onJudge<T>(
   options: JudgeOptions & { model: JudgeModel },
   judge: (routed: Omit<JudgeOptions, 'maxConcurrent'> & { model: JudgeModel }) => Promise<T>,
 ): Promise<T> {
+  return a.timed('judgeMs', () => routedJudge(options, judge, a.signal))
+}
+
+/**
+ * A judge call through the run's gateway for its model, under the judge provider's concurrency
+ * lease.
+ */
+export function routedJudge<T>(
+  options: JudgeOptions & { model: JudgeModel },
+  judge: (routed: Omit<JudgeOptions, 'maxConcurrent'> & { model: JudgeModel }) => Promise<T>,
+  signal: AbortSignal,
+): Promise<T> {
   const { maxConcurrent, ...judgeOptions } = options
   const { config, profile } = getRunContext()
   const scope = gatewayScope(config, profile)
@@ -97,12 +109,10 @@ export function onJudge<T>(
   const entry = gateway && scope.gateways.find((g) => g.kind === gateway)
   const routed = gateway ? { ...unpinned, gateway: entry || gateway } : unpinned
   const provider = judgeModelName(options.model).split('/')[0]
-  return a.timed('judgeMs', () =>
-    withLease(
-      maxConcurrent ? { [`judge:${provider}`]: maxConcurrent } : {},
-      () => judge(routed),
-      a.signal,
-    ),
+  return withLease(
+    maxConcurrent ? { [`judge:${provider}`]: maxConcurrent } : {},
+    () => judge(routed),
+    signal,
   )
 }
 

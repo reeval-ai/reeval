@@ -422,8 +422,45 @@ async function run(argv: string[]): Promise<number> {
     const { mcpCommand } = await import('./mcp/command.ts')
     return mcpCommand({ config, flags: values, version })
   }
+  if (command === 'regrade') {
+    loadEnvFiles(configPath)
+    const loaded = await loadConfig(
+      configPath,
+      'regrade',
+      values.profile ?? (process.env.REEVAL_PROFILE || undefined),
+    )
+    const profile = selectProfile(loaded, values.profile)
+    const config = withProfileHistory(loaded, profile)
+    if (config.history.store.kind !== 'local') {
+      throw new UsageError(
+        `reeval regrade writes beside a local() history only, and history.store in ${config.file} keeps runs in ${config.history.store.name}. Run it with a profile whose history is local(), or none.`,
+      )
+    }
+    const named = values.profile ?? (process.env.REEVAL_PROFILE || undefined)
+    const { regrade } = await import('./regrade.ts')
+    // The eval files load in this process, so a timer or socket one leaves open would keep it.
+    const exitSoon = () => setTimeout(() => process.exit(), ABANDONED_EXIT_MS).unref()
+    return regrade(config, profile, {
+      profileFor: (recorded) =>
+        named !== undefined ? profile : recorded ? selectProfile(loaded, recorded, {}) : null,
+      filters,
+      tags: values.tag ?? [],
+      graders: values.grader ?? [],
+      ...(values.since !== undefined ? { since: values.since } : {}),
+      ...(values.at !== undefined ? { at: values.at } : {}),
+      allBranches: !!values['all-branches'],
+      dryRun: !!values['dry-run'],
+      yes: !!values.yes,
+      ...(process.stdin.isTTY && process.stdout.isTTY ? { confirm } : {}),
+      out: (s: string) => console.log(s),
+    }).finally(exitSoon)
+  }
   if (command in HISTORY_COMMANDS) {
     const config = await historyConfig(configPath, command, values.profile, values)
+    if (values.original) {
+      const { readOriginal } = await import('./history/files.ts')
+      readOriginal(true)
+    }
     const commands = await import('./commands.ts')
     const ctx = {
       config,
@@ -1782,7 +1819,10 @@ async function runCommand(
       // A re-record keeps the level the run was recorded at, which `reeval record --artifacts`
       // may have set.
       const level = rerecord
-        ? { artifacts: (await readRecord(recordFile(config.history.dir, record.runId))).artifacts }
+        ? {
+            artifacts: (await readRecord(recordFile(config.history.dir, record.runId), true))
+              .artifacts,
+          }
         : {}
       recordLine = await recordCmd(
         config,

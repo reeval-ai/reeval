@@ -36,6 +36,7 @@ import {
   type IgnoredRecorded,
   ignoredRecordedFiles,
 } from './ignore.ts'
+import { applyRegrades, readRegrades, regradesStamp } from './regrades.ts'
 import { type Finding, findingLines, findingSummary, scanBytes, scanText } from './secret-scan.ts'
 import { keptFacts, summaryFiles } from './summary.ts'
 import type {
@@ -90,9 +91,27 @@ export function parseRecord(bytes: Uint8Array, where: string): RunRecord {
   }
 }
 
-export async function readRecord(path: string): Promise<RunRecord> {
-  return parseRecord(await readFile(path), path)
+let original = false
+
+/** `--original`: every record this process reads is read as recorded, without its regrades. */
+export function readOriginal(on: boolean): void {
+  original = on
 }
+
+/**
+ * The record at `path`, with the regrades in its run folder applied unless `asRecorded` or
+ * `--original` asks for it as it was written.
+ */
+export async function readRecord(path: string, asRecorded = false): Promise<RunRecord> {
+  const record = parseRecord(await readFile(path), path)
+  if (asRecorded || original || !path.endsWith('.json')) return record
+  const regrades = readRegrades(path.slice(0, -5))
+  return regrades.length ? applyRegrades(record, regrades) : record
+}
+
+/** What a cached reading of the record at `path` depends on beyond the file: its regrades. */
+export const readingStamp = (path: string): string =>
+  original ? 'original' : regradesStamp(path.slice(0, -5))
 
 const warnedUnreadable = new Set<string>()
 
@@ -156,7 +175,7 @@ type Cache = {
    * code.
    */
   build: string
-  files: Record<string, { size: number; mtimeMs: number; entry: HistoryEntry }>
+  files: Record<string, { size: number; mtimeMs: number; regrades?: string; entry: HistoryEntry }>
 }
 
 const BUILD = BUILD_ID
@@ -188,13 +207,24 @@ export async function listRuns(
     const key = relativeFile(root, path)
     try {
       const info = await stat(path)
+      const regrades = readingStamp(path)
       const hit = cache.files[key]
-      if (hit && hit.size === info.size && hit.mtimeMs === info.mtimeMs) {
+      if (
+        hit &&
+        hit.size === info.size &&
+        hit.mtimeMs === info.mtimeMs &&
+        (hit.regrades ?? '') === regrades
+      ) {
         entries.push(hit.entry)
         continue
       }
       const entry = runHeader(await readRecord(path), recorded)
-      cache.files[key] = { size: info.size, mtimeMs: info.mtimeMs, entry }
+      cache.files[key] = {
+        size: info.size,
+        mtimeMs: info.mtimeMs,
+        ...(regrades ? { regrades } : {}),
+        entry,
+      }
       entries.push(entry)
       changed = true
     } catch (error) {
@@ -1013,7 +1043,7 @@ export async function leveledArchiveFiles(
 > {
   const release = await claimRun(dir, runId)
   try {
-    const run = await readRecord(recordFile(dir, runId))
+    const run = await readRecord(recordFile(dir, runId), true)
     options.check?.(run)
     if (options.recorded) {
       const mismatch = await differs(dir, run, options.recorded, options)
@@ -1048,7 +1078,7 @@ export async function recordRun(options: RecordOptions): Promise<RecordResult> {
   const source = scratchDir(options.root)
   let scratch: RunRecord
   try {
-    scratch = await readRecord(join(source, `${runId}.json`))
+    scratch = await readRecord(join(source, `${runId}.json`), true)
   } catch (error) {
     if (isMissing(error)) throw new HistoryError(`No run ${runId} in .reeval/runs`)
     throw error

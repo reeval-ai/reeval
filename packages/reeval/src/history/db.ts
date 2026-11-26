@@ -16,7 +16,7 @@ import { cellMeasures, familyMeasures, type Measure } from '../view/measures.ts'
 import { transcriptByLine } from '../view/model.ts'
 import { caseEntries, caseName } from './cases.ts'
 import { DERIVED, DERIVED_TABLES, deriveFacts, PART_COLUMNS } from './facts.ts'
-import { readRecord, recordNames, scratchDir, warnUnreadable } from './files.ts'
+import { readingStamp, readRecord, recordNames, scratchDir, warnUnreadable } from './files.ts'
 import { rowsOf } from './rows.ts'
 import type { ToolClass } from './tool-class.ts'
 import type { AttemptRecord, CellRecord, RunRecord } from './types.ts'
@@ -1270,7 +1270,9 @@ async function sync(
     }
     for (const [runId, { path, recorded }] of wanted) {
       const info = await stat(path)
-      const rel = relativeFile(root, path)
+      const stamp = readingStamp(path)
+      // A regrade changes what the run reads as without touching its record file.
+      const rel = stamp ? `${relativeFile(root, path)}#${sha256(stamp)}` : relativeFile(root, path)
       const had = known.get(runId)
       if (had && had.path === rel && had.size === info.size && had.mtime_ms === info.mtimeMs) {
         continue

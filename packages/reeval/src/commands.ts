@@ -13,6 +13,7 @@ import {
   runDir,
   scratchDir,
 } from './history/files.ts'
+import { applyRegrades, readRegrades } from './history/regrades.ts'
 import { readReportInputs } from './history/report-inputs.ts'
 import { renderSummary } from './history/summary.ts'
 import type { ArtifactLevel, HistoryEntry, RunDebug } from './history/types.ts'
@@ -70,6 +71,7 @@ export type HistoryFlags = {
   format?: string
   debug?: boolean
   'push-only'?: boolean
+  regrades?: boolean
 }
 
 export class CommandError extends Error {
@@ -491,6 +493,10 @@ export async function showCommand(ctx: Ctx, refs: string[]): Promise<number> {
   }
   const entry = await pick(config, ref, entries)
   const dir = entry.recorded ? config.history.dir : scratchDir(config.root)
+  if (ctx.flags.regrades) {
+    ctx.out(await regradesOf(join(dir, `${entry.runId}.json`), ctx.flags.json))
+    return 0
+  }
   const run = await readRecord(join(dir, `${entry.runId}.json`))
   if (ctx.flags.trace) {
     const { runTrace } = await import('./history/trace.ts')
@@ -523,6 +529,35 @@ export async function showCommand(ctx: Ctx, refs: string[]): Promise<number> {
     ctx.out(formatShow(run, { remarks, ...(origin && { cloudRunId: origin.cloudRunId }) }))
   }
   return 0
+}
+
+/** `reeval show --regrades`: each regrade of the run, oldest first, with what it changed. */
+async function regradesOf(path: string, json?: boolean): Promise<string> {
+  const record = await readRecord(path, true)
+  const regrades = readRegrades(path.slice(0, -5))
+  if (json) return JSON.stringify(regrades, null, 2)
+  if (!regrades.length) return `${record.runId} has no regrades. reeval regrade writes them.`
+  // Counted on the run as readers show it after each regrade, each merged over the ones before.
+  const outcomesAfter = (n: number) =>
+    new Map(
+      applyRegrades(structuredClone(record), regrades.slice(0, n)).evals.flatMap((e) =>
+        e.attempts.map((a) => [a.key, a.outcome]),
+      ),
+    )
+  const out = [`${regrades.length} regrade${regrades.length === 1 ? '' : 's'} of ${record.runId}:`]
+  let outcomes = outcomesAfter(0)
+  for (const [i, r] of regrades.entries()) {
+    const passed = (list: Array<string | undefined>) => list.filter((o) => o === 'pass').length
+    const before = passed(r.attempts.map((a) => outcomes.get(a.key)))
+    outcomes = outcomesAfter(i + 1)
+    const after = passed(r.attempts.map((a) => outcomes.get(a.key)))
+    const n = r.attempts.length
+    const graders = r.graders?.join(', ') ?? 'every changed grader'
+    out.push(
+      `  ${r.id}  ${r.at.slice(0, 16).replace('T', ' ')} UTC  ${graders}  ${n} attempt${n === 1 ? '' : 's'}: ${before}/${n} → ${after}/${n} passed`,
+    )
+  }
+  return out.join('\n')
 }
 
 /**

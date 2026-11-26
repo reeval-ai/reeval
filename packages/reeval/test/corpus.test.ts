@@ -11,6 +11,7 @@ import { analyzeCommand } from '../src/analysis/command.ts'
 import { attach } from '../src/attach.ts'
 import { compareCommand, showCommand } from '../src/commands.ts'
 import { loadConfig } from '../src/config.ts'
+import { applyRegrades, readRegrades } from '../src/history/regrades.ts'
 import type { RunTrace } from '../src/history/trace.ts'
 import type { RunRecord } from '../src/history/types.ts'
 import { queryCommand } from '../src/query.ts'
@@ -399,7 +400,13 @@ describe('the record corpus', { concurrency: 4 }, () => {
               showCommand({ config, flags: { json: true }, out }, [id]),
             ),
           )
-          assert.deepEqual(shown, readableRecord(structuredClone(r.raw) as never))
+          assert.deepEqual(
+            shown,
+            applyRegrades(
+              readableRecord(structuredClone(r.raw) as never),
+              readRegrades(r.file.slice(0, -'.json'.length)),
+            ),
+          )
           const traceFile = join(traces, `${id}.json`)
           await run(`reeval show ${id} --trace`, (out) =>
             showCommand({ config, flags: { trace: true, out: traceFile }, out }, [id]),

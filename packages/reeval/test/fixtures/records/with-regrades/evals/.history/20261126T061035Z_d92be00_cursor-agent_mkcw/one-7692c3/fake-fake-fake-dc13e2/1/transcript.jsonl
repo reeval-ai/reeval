@@ -1,0 +1,5 @@
+{"ts":"2026-11-26T06:10:36.593Z","atMs":0,"turn":0,"type":"prompt","text":"write it"}
+{"turn":0,"ts":"2026-11-26T06:10:36.593Z","atMs":0,"type":"text","text":"Working on: write it","durationMs":0}
+{"turn":0,"ts":"2026-11-26T06:10:36.593Z","atMs":0,"type":"file-edit","toolCallId":"call_1","path":"out.txt","kind":"create","added":1,"removed":0,"input":{"path":"out.txt","content":"hello"},"output":"Wrote out.txt","outputView":"model","durationMs":1}
+{"turn":0,"ts":"2026-11-26T06:10:36.594Z","atMs":1,"type":"text","text":"Wrote out.txt","durationMs":0}
+{"ts":"2026-11-26T06:10:36.595Z","atMs":2,"turn":0,"type":"turn-end","status":"completed","durationMs":2}
