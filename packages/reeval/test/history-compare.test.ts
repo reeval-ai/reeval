@@ -1123,10 +1123,10 @@ describe('records from a newer reeval', () => {
     const p = await fixture(OLD)
     await portBefore100(p.dir)
     await future(p.dir, (r) => {
-      r.schemaVersion = 2
+      r.schemaVersion = 3
     })
     const upgrade =
-      /written by a newer reeval \(schemaVersion 2; this reeval reads up to 1\)\. Upgrade reeval to read it\./
+      /written by a newer reeval \(schemaVersion 3; this reeval reads up to 2\)\. Upgrade reeval to read it\./
     const shown = await runCli(p.dir, ['show', newRun])
     assert.notEqual(shown.code, 0, shown.stdout + shown.stderr)
     assert.match(shown.stderr, upgrade)
@@ -1165,7 +1165,7 @@ describe('records from a newer reeval', () => {
     })
     const trajectories = execFileSync(
       'find',
-      [join(p.dir, HISTORY, newRun), '-name', 'trajectory.jsonl'],
+      [join(p.dir, HISTORY, newRun), '-name', 'transcript.jsonl'],
       { encoding: 'utf8' },
     )
       .trim()

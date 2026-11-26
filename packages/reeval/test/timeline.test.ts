@@ -43,7 +43,7 @@ const model = (atMs: number, durationMs: number, stream = false): TrajectoryEven
   ...(stream ? { stream: true as const } : {}),
 })
 
-/** A captured attempt's trajectory.jsonl, its first turn's events. */
+/** A captured attempt's trajectory, from the older run's transcript.jsonl: its first turn's events. */
 function captured(harness: string): { events: TrajectoryEvent[]; turnMs: number } {
   const run = join(
     import.meta.dirname,
@@ -51,7 +51,7 @@ function captured(harness: string): { events: TrajectoryEvent[]; turnMs: number 
   )
   const dir = readdirSync(run).find((d) => d.startsWith(harness))
   assert.ok(dir)
-  const lines = readFileSync(join(run, dir, '1', 'trajectory.jsonl'), 'utf8')
+  const lines = readFileSync(join(run, dir, '1', 'transcript.jsonl'), 'utf8')
     .split('\n')
     .filter(Boolean)
     .map((l) => JSON.parse(l) as Record<string, unknown>)

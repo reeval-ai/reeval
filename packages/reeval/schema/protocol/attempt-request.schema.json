@@ -472,7 +472,7 @@
               ]
             },
             "on": {
-              "description": "The turn `output`, `diff` and `transcript` read instead of the latest.",
+              "description": "The turn `output`, `diff` and `trajectory` read instead of the latest.",
               "type": "object",
               "properties": {
                 "turn": {
@@ -488,7 +488,7 @@
             "output": {
               "type": "boolean"
             },
-            "transcript": {
+            "trajectory": {
               "anyOf": [
                 {
                   "type": "boolean"

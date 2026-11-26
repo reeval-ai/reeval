@@ -1495,7 +1495,7 @@ describe('context_use and skill_files on real runs', () => {
       join(
         p.dir,
         'evals/.history/20260929T033538Z_nogit_runner_f3z3',
-        'evals-skill-eval-ts-skill-468cc8/claude-code-claude-haiku-4-5-skilled-docker-7add5d/1/trajectory.jsonl',
+        'evals-skill-eval-ts-skill-468cc8/claude-code-claude-haiku-4-5-skilled-docker-7add5d/1/transcript.jsonl',
       ),
     )
     const harnesses = async (sql: string) => {

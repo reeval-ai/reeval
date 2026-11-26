@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$comment": "Generated from TranscriptLine in src/view/model.ts by `pnpm schema:update`; don't edit. One line of an attempt's transcript.jsonl in a run's artifacts.",
-  "title": "TranscriptLine",
-  "$ref": "#/$defs/TranscriptLine",
+  "$comment": "Generated from TrajectoryLine in src/view/model.ts by `pnpm schema:update`; don't edit. One line of an attempt's trajectory.jsonl in a run's artifacts.",
+  "title": "TrajectoryLine",
+  "$ref": "#/$defs/TrajectoryLine",
   "$defs": {
     "DecisionAnswerRecord": {
       "description": "One question's answer, as the AI SDK returns it.",
@@ -321,7 +321,7 @@
       },
       "required": ["cacheRead", "cacheWrite", "input", "output", "reasoning"]
     },
-    "TranscriptLine": {
+    "TrajectoryLine": {
       "anyOf": [
         {
           "type": "object",
@@ -661,7 +661,7 @@
               ]
             },
             "input": {
-              "description": "The tool's input. `transcript.jsonl` keeps one whose JSON is past 128K characters as text: its first 96K and last 16K characters, with a line where the rest was cut."
+              "description": "The tool's input. `trajectory.jsonl` keeps one whose JSON is past 128K characters as text: its first 96K and last 16K characters, with a line where the rest was cut."
             },
             "ok": {
               "description": "Whether the call succeeded; null when the harness never reported its result.",
@@ -676,7 +676,7 @@
             },
             "output": {},
             "outputTruncated": {
-              "description": "Set when `output` is only part of the output, with a line where the rest was cut: `transcript.jsonl` keeps the first 96K and last 16K characters of one past 128K (of its JSON, for structured output), and the harness adapter keeps the first and last 512 KiB of a saved output past 1 MiB. `bytes` is the whole output's size in UTF-8.",
+              "description": "Set when `output` is only part of the output, with a line where the rest was cut: `trajectory.jsonl` keeps the first 96K and last 16K characters of one past 128K (of its JSON, for structured output), and the harness adapter keeps the first and last 512 KiB of a saved output past 1 MiB. `bytes` is the whole output's size in UTF-8.",
               "type": "object",
               "properties": {
                 "bytes": {

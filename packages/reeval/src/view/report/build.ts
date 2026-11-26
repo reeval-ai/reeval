@@ -2161,7 +2161,7 @@ export function buildRunReport(record: RunRecord, options: RunReportOptions = {}
   const roster = buildRoster(evals, record)
 
   return {
-    reportVersion: 3,
+    reportVersion: 4,
     runId: record.runId,
     single,
     header,

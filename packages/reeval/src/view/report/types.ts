@@ -44,7 +44,7 @@ export type MeasureCells = Record<MeasureKey, Spread | null>
 export type EvalShape = 'task' | 'ab' | 'discoverability' | 'regression'
 
 export type RunReport = {
-  reportVersion: 3
+  reportVersion: 4
   runId: string
   /** `evals.length === 1`: the eval is the `#` title and every block moves up one level. */
   single: boolean

@@ -3,14 +3,14 @@
 // resume of the run appends its own header, events and exit line to the same stream. Browser-safe.
 
 import type { ReevalEvent } from '../ui/events.ts'
-import { fillDefaults, NewerSchemaError, SCHEMA_VERSIONS } from './record.ts'
+import { fillDefaults, MIGRATIONS, NewerSchemaError, SCHEMA_VERSIONS } from './record.ts'
 
-export const EVENTS_SCHEMA_VERSION = 1
+export const EVENTS_SCHEMA_VERSION = 2
 
 /** The first line a `reeval run` writes to the stream: what the renderers need to draw it. */
 export type RunEventsHeader = {
   type: 'header'
-  schemaVersion: 1
+  schemaVersion: 2
   /** The reeval that wrote the stream. */
   reeval: string
   runId: string
@@ -83,6 +83,9 @@ export type RunEventsHeartbeat = {
 /** One line of a run's event stream. */
 export type RunEventLine = RunEventsHeader | ReevalEvent | RunEventsHeartbeat | RunEventsExit
 
+/** Migrates a line of an older stream. Only the header carries a version, so it runs on every line. */
+const fromVersion1 = MIGRATIONS['run-events']?.[1] as (line: RunEventLine) => RunEventLine
+
 /**
  * A stream line as `reeval attach` reads it. A header from a newer reeval throws a
  * `NewerSchemaError`; an event type this reeval doesn't know is passed on, and the renderers
@@ -95,5 +98,5 @@ export function readableEventLine(line: RunEventLine): RunEventLine {
       throw new NewerSchemaError(`run ${line.runId}'s event stream`, line.schemaVersion, newest)
     }
   }
-  return fillDefaults('run-events', line)
+  return fillDefaults('run-events', fromVersion1(line))
 }

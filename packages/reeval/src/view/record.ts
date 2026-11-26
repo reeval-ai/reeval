@@ -98,12 +98,62 @@ export const READ_DEFAULTS: Record<ShapeName, ReadDefault[]> = {
  * optional field or a read default bumps the shape's schemaVersion and adds one here.
  */
 export const MIGRATIONS: Partial<Record<ShapeName, Record<number, (value: never) => unknown>>> = {
-  // Version 2 added grade kinds `judge` and `builtin`, and version 3 the `target` headline; an
-  // older report reads as it is.
+  // Record and event-stream version 2, and report version 4, call the agent's event log its
+  // trajectory: each `transcript` field is `trajectory`.
+  'run-record': { 1: (record: object) => recordV2(record) },
+  'run-events': {
+    1: (line: Obj) => {
+      renamed(line, EVENTS_TRAJECTORY)
+      if (line.type === 'header' && line.schemaVersion === 1) line.schemaVersion = 2
+      if (line.type === 'run-end' && isObject(line.record) && line.record.schemaVersion === 1) {
+        line.record = recordV2(line.record)
+      }
+      return line
+    },
+  },
+  // Report version 2 added grade kinds `judge` and `builtin`, and version 3 the `target`
+  // headline; an older report reads as it is.
   'run-report': {
     1: (report: object) => ({ ...report, reportVersion: 2 }),
     2: (report: object) => ({ ...report, reportVersion: 3 }),
+    3: (report: object) => ({
+      ...renamed(report, ['attempts[].links.transcript']),
+      reportVersion: 4,
+    }),
   },
+}
+
+/** Each `transcript` field a run record at schemaVersion 1 has, as a READ_DEFAULTS path. */
+const RECORD_TRAJECTORY = [
+  'evals[].attempts[].files.transcript',
+  'evals[].attempts[].files.rawTranscript',
+  'evals[].attempts[].answers[].stateOptions.transcript',
+  'evals[].answers[].stateOptions.transcript',
+  'evals[].cases[].answers[].stateOptions.transcript',
+  'stack.judge.state.transcript',
+]
+
+/** Each `transcript` field an event stream at schemaVersion 1 has outside its run-end record. */
+const EVENTS_TRAJECTORY = [
+  '<type=collected>.evals[].attempt.plan.questions[].state.transcript',
+  '<type=eval-start>.attempt.plan.questions[].state.transcript',
+  '<type=eval-end>.result.attempt.plan.questions[].state.transcript',
+  '<type=run-end>.results[].attempt.plan.questions[].state.transcript',
+]
+
+const recordV2 = (record: object) => ({ ...renamed(record, RECORD_TRAJECTORY), schemaVersion: 2 })
+
+/** `value` with the field at each path renamed from `transcript…` to `trajectory…`, in place. */
+function renamed<T extends object>(value: T, paths: string[]): T {
+  for (const path of paths) {
+    visit(value, path.split('.'), (parent, key) => {
+      if (!(key in parent)) return
+      parent[key.replace('transcript', 'trajectory').replace('Transcript', 'Trajectory')] =
+        parent[key]
+      delete parent[key]
+    })
+  }
+  return value
 }
 
 /** The newest schemaVersion of each versioned shape this reeval reads. */
@@ -113,7 +163,7 @@ export const SCHEMA_VERSIONS = {
   'analysis-note': 1,
   remarks: 1,
   'capture-page': 1,
-  'run-events': 1,
+  'run-events': 2,
   'bundle-manifest': 1,
   'archive-manifest': 1,
   credentials: 1,
@@ -137,17 +187,18 @@ export class NewerSchemaError extends Error {
 type Obj = Record<string, unknown>
 const isObject = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v)
 
-function fill(value: unknown, segments: string[], empty: () => unknown): void {
+/** Calls `leaf` with each object the path's last segment is a key of, and that key. */
+function visit(value: unknown, segments: string[], leaf: (parent: Obj, key: string) => void): void {
   if (!isObject(value)) return
   const [head = '', ...rest] = segments
   const branch = /^<(\w+)=(.+)>$/.exec(head)
   if (branch) {
-    if (String(value[branch[1] as string]) === branch[2]) fill(value, rest, empty)
+    if (String(value[branch[1] as string]) === branch[2]) visit(value, rest, leaf)
     return
   }
   const [, key = head, walk] = /^(.+?)(\[\]|\{\})?$/.exec(head) ?? []
   if (!rest.length && !walk) {
-    if (value[key] === undefined) value[key] = empty()
+    leaf(value, key)
     return
   }
   const child = value[key]
@@ -161,12 +212,16 @@ function fill(value: unknown, segments: string[], empty: () => unknown): void {
           ? Object.values(child)
           : []
         : [child]
-  for (const c of children) fill(c, rest, empty)
+  for (const c of children) visit(c, rest, leaf)
 }
 
 /** Fills in each read default of `shape` that `value` is missing, in place. */
 export function fillDefaults<T>(shape: ShapeName, value: T): T {
-  for (const d of READ_DEFAULTS[shape]) fill(value, d.path.split('.'), d.empty)
+  for (const d of READ_DEFAULTS[shape]) {
+    visit(value, d.path.split('.'), (parent, key) => {
+      if (parent[key] === undefined) parent[key] = d.empty()
+    })
+  }
   return value
 }
 

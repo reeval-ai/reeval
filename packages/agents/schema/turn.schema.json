@@ -24,7 +24,7 @@
       "required": ["basis", "source", "usd"]
     },
     "OutTurn": {
-      "description": "One line of `turns.jsonl`: a turn's result, less its transcript, raw parts and steps.",
+      "description": "One line of `turns.jsonl`: a turn's result, less its trajectory, raw parts and steps.",
       "type": "object",
       "properties": {
         "agentMs": {
@@ -109,7 +109,7 @@
           "type": "number"
         },
         "unreported": {
-          "description": "Event types the harness can't report, so their absence from `transcript` proves nothing.",
+          "description": "Event types the harness can't report, so their absence from `trajectory` proves nothing.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/WebEventType"
@@ -186,7 +186,7 @@
           ]
         },
         "events": {
-          "description": "How its own events reached the transcript: `streamed` with its spawner's, or `none`, so only the spawn call and its result are there (the workspace diff has what it changed).",
+          "description": "How its own events reached the trajectory: `streamed` with its spawner's, or `none`, so only the spawn call and its result are there (the workspace diff has what it changed).",
           "enum": ["none", "streamed"]
         },
         "finalMessage": {
@@ -271,7 +271,7 @@
       "enum": ["aborted", "completed", "error"]
     },
     "WebEventType": {
-      "description": "The transcript events a harness may be unable to report.",
+      "description": "The trajectory events a harness may be unable to report.",
       "enum": ["web-fetch", "web-search"]
     }
   }

@@ -728,7 +728,7 @@ const attemptIndexRowSchema: z.ZodType<AttemptIndexRow> = z.strictObject({
 })
 
 export const runReportSchema: z.ZodType<RunReport> = z.strictObject({
-  reportVersion: z.literal(3),
+  reportVersion: z.literal(4),
   runId: z.string(),
   single: z.boolean(),
   header: runHeaderSchema,

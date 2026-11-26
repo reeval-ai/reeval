@@ -55,8 +55,8 @@ export type ChangedFile = FileChange & {
   lockfile?: boolean
 }
 
-/** Stays 1 while reeval is pre-release: the record changes in place. */
-export const SCHEMA_VERSION = 1
+/** Bumped only for a change that can't be additive, with a migration in `MIGRATIONS` (src/view/record.ts). */
+export const SCHEMA_VERSION = 2
 
 export type ArtifactLevel = 'all' | 'evidence' | 'failures' | 'none'
 export type RecordMode = 'manual' | 'ci' | 'always'

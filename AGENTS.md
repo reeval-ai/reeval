@@ -71,7 +71,7 @@ every project in `examples/` depends on it as `"reeval": "workspace:*"`.
   depend on it. One exception: files reeval writes and reads back (run records, trajectories, saved
   analyses, `.reeval/debug` request logs) keep loading after a change, which `pnpm schema:check`
   enforces; see [Changing what reeval persists](#changing-what-reeval-persists).
-- **Schema v1.** Keep every schema at version 1 and change it additively: a new field is optional
+- **Additive schemas.** Keep each schema at its version and change it additively: a new field is optional
   or has a read default. Only a change that can't be additive (a removed, renamed or narrowed
   field) bumps the shape's `schemaVersion`, with a migration; the schema check refuses it
   otherwise.

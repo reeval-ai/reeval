@@ -49,7 +49,7 @@ describe('engine', () => {
       assert.doesNotMatch(r.stdout + r.stderr, leak)
     }
     const { run } = readRun(p.dir)
-    assert.equal(run.schemaVersion, 1)
+    assert.equal(run.schemaVersion, 2)
     assert.equal(run.status, 'complete')
     assert.deepEqual(run.summary, {
       evals: 1,

@@ -289,7 +289,7 @@
           }
         },
         "atif": {
-          "description": "The transcript as a Harbor ATIF trajectory, with the config's `exports: ['atif']`.",
+          "description": "The trajectory as a Harbor ATIF trajectory, with the config's `exports: ['atif']`.",
           "$ref": "#/$defs/FileRef"
         },
         "decisions": {
@@ -306,15 +306,15 @@
         "judgeInput": {
           "$ref": "#/$defs/FileRef"
         },
-        "rawTranscript": {
-          "description": "Unnormalized harness stream parts, only with `REEVAL_RAW_TRANSCRIPT=1`.",
+        "rawTrajectory": {
+          "description": "Unnormalized harness stream parts, only with `REEVAL_RAW_TRAJECTORY=1`.",
           "$ref": "#/$defs/FileRef"
         },
         "setupLog": {
           "description": "Each environment setup step's command, exit code, duration, and output.",
           "$ref": "#/$defs/FileRef"
         },
-        "transcript": {
+        "trajectory": {
           "$ref": "#/$defs/FileRef"
         },
         "workspace": {
@@ -332,11 +332,11 @@
       "type": "object",
       "properties": {
         "activity": {
-          "description": "Counts from the transcript, so the attempt's activity is available without reading the transcript. `webSearches` includes refused searches. `fileEdits` counts edit tool calls, so a shell edit isn't one; `changedFiles` has what the workspace diff shows changed. `reasoningMs` is null when some turn's reasoning time is unknown, so a 0 is always a measurement.",
+          "description": "Counts from the trajectory, so the attempt's activity is available without reading the trajectory. `webSearches` includes refused searches. `fileEdits` counts edit tool calls, so a shell edit isn't one; `changedFiles` has what the workspace diff shows changed. `reasoningMs` is null when some turn's reasoning time is unknown, so a 0 is always a measurement.",
           "type": "object",
           "properties": {
             "fileEdits": {
-              "description": "The transcript's `file-edit` events: calls to the agent's file-editing tools, a Claude Code subagent's included. A file the agent changed from the shell, or through a subagent whose calls its harness doesn't stream (Cursor's `task`, Codex's `spawn_agent`), isn't counted: `changedFiles`, from the workspace diff, has every file the attempt changed.",
+              "description": "The trajectory's `file-edit` events: calls to the agent's file-editing tools, a Claude Code subagent's included. A file the agent changed from the shell, or through a subagent whose calls its harness doesn't stream (Cursor's `task`, Codex's `spawn_agent`), isn't counted: `changedFiles`, from the workspace diff, has every file the attempt changed.",
               "type": "number"
             },
             "llmCalls": {
@@ -351,7 +351,7 @@
               ]
             },
             "maxToolMs": {
-              "description": "Longest tool `durationMs` in the transcript; null when none reported a duration.",
+              "description": "Longest tool `durationMs` in the trajectory; null when none reported a duration.",
               "anyOf": [
                 {
                   "type": "null"
@@ -373,7 +373,7 @@
               ]
             },
             "stalledTools": {
-              "description": "Transcript tool events with `stalled: true` (long shell or edit).",
+              "description": "Trajectory tool events with `stalled: true` (long shell or edit).",
               "type": "number"
             },
             "tools": {
@@ -528,7 +528,7 @@
           "$ref": "#/$defs/CostUsd"
         },
         "decisionUse": {
-          "description": "What the attempt's `c.decide()` calls used, apart from the agent's `usage` and `cost`. The calls are `files.decisions`, and each is a `decision` line in transcript.jsonl too.",
+          "description": "What the attempt's `c.decide()` calls used, apart from the agent's `usage` and `cost`. The calls are `files.decisions`, and each is a `decision` line in trajectory.jsonl too.",
           "$ref": "#/$defs/DecisionUseSpend"
         },
         "durationMs": {
@@ -753,7 +753,7 @@
           }
         },
         "subagents": {
-          "description": "The subagents the agent spawned, in spawn order. Their events are in `transcript.jsonl`, each tagged `subagent` with the entry's `id`. Absent when it spawned none.",
+          "description": "The subagents the agent spawned, in spawn order. Their events are in `trajectory.jsonl`, each tagged `subagent` with the entry's `id`. Absent when it spawned none.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/SubagentRecord"
@@ -767,7 +767,7 @@
           "$ref": "#/$defs/PhaseTimings"
         },
         "turns": {
-          "description": "`text` is the agent's final message, cut at 8 KB; the whole of it is in the `transcript.jsonl` file. `mcpStartup` times each stdio MCP server's start in the turn (`McpStartup`). `reasoningMs` is how long the turn's reasoning took, null when the harness can't time it.",
+          "description": "`text` is the agent's final message, cut at 8 KB; the whole of it is in the `trajectory.jsonl` file. `mcpStartup` times each stdio MCP server's start in the turn (`McpStartup`). `reasoningMs` is how long the turn's reasoning took, null when the harness can't time it.",
           "type": "array",
           "items": {
             "type": "object",
@@ -3230,11 +3230,11 @@
       },
       "required": ["delayMs", "error"]
     },
-    "JudgeTranscript": {
-      "description": "A judge's or question's `transcript`: on, a detail, or a `TranscriptView`.",
+    "JudgeTrajectory": {
+      "description": "A judge's or question's `trajectory`: on, a detail, or a `TrajectoryView`.",
       "anyOf": [
         {
-          "$ref": "#/$defs/TranscriptView"
+          "$ref": "#/$defs/TrajectoryView"
         },
         {
           "enum": ["full", "tools"]
@@ -3847,14 +3847,14 @@
         "task": {
           "type": "boolean"
         },
-        "transcript": {
-          "$ref": "#/$defs/JudgeTranscript"
+        "trajectory": {
+          "$ref": "#/$defs/JudgeTrajectory"
         },
         "turns": {
           "enum": ["all", "last"]
         }
       },
-      "required": ["checks", "contents", "diff", "files", "output", "task", "transcript", "turns"]
+      "required": ["checks", "contents", "diff", "files", "output", "task", "trajectory", "turns"]
     },
     "ResolvedQuestionStateOptions": {
       "description": "`QuestionStateOptions` with every key set: what each side of one question showed.",
@@ -3909,14 +3909,14 @@
         "task": {
           "type": "boolean"
         },
-        "transcript": {
-          "$ref": "#/$defs/JudgeTranscript"
+        "trajectory": {
+          "$ref": "#/$defs/JudgeTrajectory"
         },
         "turns": {
           "enum": ["all", "last"]
         }
       },
-      "required": ["checks", "diff", "files", "output", "task", "transcript", "turns"]
+      "required": ["checks", "diff", "files", "output", "task", "trajectory", "turns"]
     },
     "ResourceFailureRecord": {
       "description": "The sandbox ran out of a resource during the attempt: `oom` is the kernel killing `kills` processes at its memory limit. The attempt is then an infra error, whatever its checks said.",
@@ -4439,7 +4439,7 @@
           "$ref": "#/$defs/RunnerInfo"
         },
         "schemaVersion": {
-          "const": 1
+          "const": 2
         },
         "secretWarnings": {
           "description": "Every attempt's `secretWarnings`, each with the attempt's `key` as `attemptId`; absent when there's none.",
@@ -5113,7 +5113,7 @@
       "required": ["error", "waitedMs"]
     },
     "SubagentRecord": {
-      "description": "A subagent an attempt's agent spawned (`subagents[]`). `toolCalls` and `fileEdits` count its events in the transcript; null when its harness doesn't report them (`events: 'none'`). `prompt` and `finalMessage` are cut at 8 KB.",
+      "description": "A subagent an attempt's agent spawned (`subagents[]`). `toolCalls` and `fileEdits` count its events in the trajectory; null when its harness doesn't report them (`events: 'none'`). `prompt` and `finalMessage` are cut at 8 KB.",
       "type": "object",
       "properties": {
         "agent": {
@@ -5154,7 +5154,7 @@
           "type": "string"
         },
         "id": {
-          "description": "The spawn call's `toolCallId`, which the subagent's transcript events carry as `subagent`.",
+          "description": "The spawn call's `toolCallId`, which the subagent's trajectory events carry as `subagent`.",
           "type": "string"
         },
         "model": {
@@ -5227,7 +5227,7 @@
       ]
     },
     "TimeSplit": {
-      "description": "Where a turn's time went, in ms, summing to its `durationMs`. Each moment counts once, as the first of: `waitingMs`, a background job the agent waited on (from the call that started it through the polls that checked on it), `toolMs`, a tool call, `modelMs`, a model call, and `otherMs`, the rest (the harness's own work, and time between calls). `modelMs` is null when the turn's model calls weren't seen one by one: on a sandbox without the egress gateway, and on Cursor, whose turn is one stream; that time is in `otherMs`. Which calls wait is a heuristic over the transcript: a shell call run in the background (`run_in_background`, a trailing `&`, `nohup`, or the command a Cursor terminal file names), then `sleep` and `wait` commands, output tools (`BashOutput`, `TaskOutput`) and reads of a Cursor terminal file.",
+      "description": "Where a turn's time went, in ms, summing to its `durationMs`. Each moment counts once, as the first of: `waitingMs`, a background job the agent waited on (from the call that started it through the polls that checked on it), `toolMs`, a tool call, `modelMs`, a model call, and `otherMs`, the rest (the harness's own work, and time between calls). `modelMs` is null when the turn's model calls weren't seen one by one: on a sandbox without the egress gateway, and on Cursor, whose turn is one stream; that time is in `otherMs`. Which calls wait is a heuristic over the trajectory: a shell call run in the background (`run_in_background`, a trailing `&`, `nohup`, or the command a Cursor terminal file names), then `sleep` and `wait` commands, output tools (`BashOutput`, `TaskOutput`) and reads of a Cursor terminal file.",
       "type": "object",
       "properties": {
         "modelMs": {
@@ -5281,8 +5281,8 @@
       },
       "required": ["cacheRead", "cacheWrite", "input", "output", "reasoning"]
     },
-    "TranscriptView": {
-      "description": "Which of the transcript the judge sees, as an object: `detail` is `'tools'` or `'full'` (unset, what `true` shows), and `agent` and `subagents` whether the agent's own events and its subagents' show, each unless false. Both false is refused: that's `transcript: false`.",
+    "TrajectoryView": {
+      "description": "Which of the trajectory the judge sees, as an object: `detail` is `'tools'` or `'full'` (unset, what `true` shows), and `agent` and `subagents` whether the agent's own events and its subagents' show, each unless false. Both false is refused: that's `trajectory: false`.",
       "type": "object",
       "properties": {
         "agent": {
@@ -5336,9 +5336,9 @@
       "required": ["digest", "ref"]
     },
     "WebEventType": {
-      "description": "The transcript events a harness may be unable to report.",
+      "description": "The trajectory events a harness may be unable to report.",
       "enum": ["web-fetch", "web-search"]
     }
   },
-  "x-schemaVersion": 1
+  "x-schemaVersion": 2
 }

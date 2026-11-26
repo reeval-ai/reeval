@@ -370,7 +370,7 @@ describe('replay captures through normalizeStream', () => {
 })
 
 const CLAUDE_CODE_SKILL =
-  'fixtures/records/real-contract/evals/.history/20260929T033538Z_nogit_runner_f3z3/evals-skill-eval-ts-skill-468cc8/claude-code-claude-haiku-4-5-skilled-docker-7add5d/1/trajectory.jsonl'
+  'fixtures/records/real-contract/evals/.history/20260929T033538Z_nogit_runner_f3z3/evals-skill-eval-ts-skill-468cc8/claude-code-claude-haiku-4-5-skilled-docker-7add5d/1/transcript.jsonl'
 
 /** Each harness's use of the contract's `contract-probe` skill, as its capture has it. */
 const SKILL_USES: Record<AgentKind, { from: string; tool: string; input: unknown }> = {

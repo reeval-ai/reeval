@@ -99,7 +99,9 @@ describe('persisted shapes', () => {
     const before80: ShapeSchema = JSON.parse(
       readFileSync(join(testDir, 'fixtures/schema/before-80/run-record.schema.json'), 'utf8'),
     )
-    const bare = compare(before80, snapshot('run-record'), none).filter((c) => c.breaking)
+    const bare = compare(before80, snapshot('run-record'), none).filter(
+      (c) => c.breaking && c.path !== 'schemaVersion',
+    )
     assert.deepEqual(bare.map((c) => c.path).sort(), [
       'evals[].attempts[].activity.llmCalls',
       'evals[].attempts[].activity.maxToolMs',
@@ -259,13 +261,13 @@ describe('persisted shapes', () => {
   test('a schemaVersion bump makes breaking changes pass only with a migration from the old version', () => {
     const old = without('EvalEntry', 'todo')
     const bumped = copy(snapshot('run-record'))
-    bumped['x-schemaVersion'] = 2
+    bumped['x-schemaVersion'] = 3
     const unmigrated = compare(old, bumped, none)
     assert.deepEqual(
       unmigrated.filter((c) => c.breaking).map((c) => c.kind),
       ['added-required', 'version'],
     )
-    const migrated = compare(old, bumped, { defaults: [], migrations: [1] })
+    const migrated = compare(old, bumped, { defaults: [], migrations: [2] })
     assert.deepEqual(
       migrated.filter((c) => c.breaking),
       [],
@@ -440,12 +442,12 @@ describe('read defaults', () => {
 
   test('a file from a newer reeval throws NewerSchemaError naming both versions', () => {
     const record = copy(records[0]?.value) as Record<string, unknown>
-    record.schemaVersion = 2
+    record.schemaVersion = 3
     assert.throws(
       () => readableRecord(record as never),
       (e: Error) =>
         e instanceof NewerSchemaError &&
-        /written by a newer reeval \(schemaVersion 2; this reeval reads up to 1\)\. Upgrade reeval to read it\./.test(
+        /written by a newer reeval \(schemaVersion 3; this reeval reads up to 2\)\. Upgrade reeval to read it\./.test(
           e.message,
         ),
     )

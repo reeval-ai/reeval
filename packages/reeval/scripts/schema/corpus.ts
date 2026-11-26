@@ -76,7 +76,8 @@ export function corpus(): {
     for (const e of readdirSync(dir, { withFileTypes: true })) {
       const path = join(dir, e.name)
       if (e.isDirectory()) walk(path)
-      else if (e.name === 'trajectory.jsonl') trajectories.push(path)
+      else if (e.name === 'trajectory.jsonl' || e.name === 'transcript.jsonl')
+        trajectories.push(path)
       else if (e.name.endsWith('.zip')) archives.push(path)
       else if (e.name === 'remarks.json') {
         remarks.push({ file: path, value: JSON.parse(readFileSync(path, 'utf8')) })
