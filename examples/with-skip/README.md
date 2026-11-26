@@ -1,9 +1,9 @@
 # with-skip
 
-**Shows:** three evals, one file each, sharing the options in `reeval.config.ts` (`timeout`,
-`runs` and `target`) and the environment in `environments.ts`. `adds-subtract` overrides `runs` and
-adds a tag of its own, and `adds-divide` sets `skip` with a reason, so it stays declared but
-unrun.
+**Shows:** three evals, one file each, sharing the options in `reeval.config.ts` (`timeout`, `runs`
+and `target`) and the environment in `environments.ts`, each graded by one `observed` grader.
+`adds-subtract` overrides `runs` and adds a tag of its own, and `adds-divide` sets `skip` with a
+reason, so it stays declared but unrun.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
 first. A real agent needs its key in `.env.local` (`ANTHROPIC_API_KEY` for Claude Code), Docker,
@@ -16,9 +16,9 @@ pnpm eval
 ```
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
-[`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check. `pnpm eval --profile claude-code` runs the same evals on
-Claude Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts).
+[`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so
+the graders have something to grade. `pnpm eval --profile claude-code` runs the same evals on Claude
+Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts).
 
 **Copying it out of the repo:** `reeval.config.ts` imports `../profiles.ts`. Copy
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
@@ -29,28 +29,28 @@ one profile you need.
 no attempts, with its reason in the notes:
 
 ```text
-eval           harnesses  variants  runs  attempts  notes
-adds-divide    0          —         2     0         skipped: divide by zero isn't specified yet
-adds-multiply  1          —         2     2
-adds-subtract  1          —         1     1
+eval           agents  variants  runs  attempts  target       notes
+adds-divide    0       —         2     0         metric(0.5)  skipped: divide by zero isn't specified yet
+adds-multiply  1       —         2     2         metric(0.5)
+adds-subtract  1       —         1     1         metric(0.5)
 ```
 
-`target: metric(0.5)` passes a cell when one of its two runs does; `regression()` would need
-both. Every eval is tagged `math`, so
-`pnpm reeval run --tag smoke --dry-run` plans only `adds-subtract`, and `--tag math` plans all three.
-The run's status list ends:
+`target: metric(0.5)` passes a cell when its runs' mean score is at least 0.5, so one of two passing
+runs is enough; `regression()` would need both. Every eval is tagged `math`, so `pnpm reeval run
+--tag smoke --dry-run` plans only `adds-subtract`, and `--tag math` plans all three. The run's
+status list ends:
 
 ```text
 adds-divide.eval.ts
-└─ – adds-divide  skipped
+  – adds-divide  skipped
 
 adds-multiply.eval.ts
-└─ ✓ adds-multiply  2 of 2 runs passed
+  ✓ adds-multiply  100% ≥ 50%  metric(0.5)
 
 adds-subtract.eval.ts
-└─ ✓ adds-subtract  1 of 1 run passed
+  ✓ adds-subtract  100% ≥ 50%  metric(0.5)
 
-Done in 2s · 2 passed · 1 skipped
+Done in 2s · 3 evals · 2 on target · 1 skipped
 ```
 
 | File | What it is |

@@ -1,4 +1,4 @@
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval, defineGrader } from 'reeval'
 
 const anthropicSkills = 'dbd4588f9e1033efb41dad4bef2f7947c8993d44'
 
@@ -20,15 +20,18 @@ const skilled = defineEnvironment('four-sources', ({ skill }) => ({
   ],
 }))
 
+const skills = ['brand-guidelines', 'doc-coauthoring', 'eval-rubric', 'release-notes']
+
+// The share of the skills the agent's reply names.
+const namesEverySkill = defineGrader('names-every-skill', {
+  grade: (c) => skills.filter((name) => c.turns[0]?.text.includes(name)),
+  score: (named) => named.length / skills.length,
+})
+
 export default defineEval({
   environment: skilled,
+  graders: [namesEverySkill],
   task: async (c) => {
-    const turn = await c.send(
-      'List the names of the skills you have, one per line. Do not change any files.',
-    )
-
-    for (const name of ['brand-guidelines', 'doc-coauthoring', 'eval-rubric', 'release-notes']) {
-      expect(turn.text, name).toContain(name)
-    }
+    await c.send('List the names of the skills you have, one per line. Do not change any files.')
   },
 })

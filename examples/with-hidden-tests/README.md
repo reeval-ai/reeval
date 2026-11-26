@@ -1,12 +1,13 @@
 # with-hidden-tests
 
 **Shows:** grading with a test the agent never saw. The agent implements `slugify(text)` from a
-stub, then the eval places [`hidden/slugify.test.js`](./hidden/slugify.test.js) with `c.writeFile`
-after the turn and runs it with `c.exec`, so the agent can't read or edit what it's graded by.
+stub, then a sandboxed grader copies the agent's `src/` into its own Docker container, places
+[`hidden/slugify.test.js`](./hidden/slugify.test.js) there and runs it, so the agent can't read or
+edit what it's graded by. The grade is the share of the hidden tests that pass.
 
-**Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
-first. A real agent needs its key in `.env.local` (`ANTHROPIC_API_KEY` for Claude Code), Docker,
-and `pnpm reeval image build --profile claude-code` once.
+**Needs:** Docker, for the grader's container; in this repo, run `pnpm install && pnpm build` at the
+root first. A real agent also needs its key in `.env.local` (`ANTHROPIC_API_KEY` for Claude Code),
+Docker, and `pnpm reeval image build --profile claude-code` once.
 
 **Run:**
 
@@ -14,39 +15,33 @@ and `pnpm reeval image build --profile claude-code` once.
 pnpm eval
 ```
 
-**Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
-[`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check. `pnpm eval --profile claude-code` runs the same eval on
-Claude Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts).
+**Real or fake agent:** `pnpm eval` runs a fake agent, with no keys. It copies the
+[`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so
+the graders have something to grade. `pnpm eval --profile claude-code` runs the same eval on Claude
+Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts).
 
 **Copying it out of the repo:** `reeval.config.ts` imports `../profiles.ts`. Copy
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the attempt's check log. Here the fake agent's `slugify` keeps punctuation,
-and `.reeval/runs/<run>/…/1/checks/1.log` has the hidden test that caught it:
+**What to look at:** the result block. Here the fake agent's `slugify` keeps punctuation, so one of
+the three hidden tests fails:
 
 ```text
-$ node --test
-exit 1
---- stdout
-…
-not ok 2 - drops punctuation
-…
-    + 'ship-it,-now!'
-    - 'ship-it-now'
+with-hidden-tests.eval.ts
+  · with-hidden-tests  67%  metric()
+    #1  67%  hidden-tests 67%
 ```
 
-The attempt's `diff.patch` has only `src/slugify.js`: a file placed with `c.writeFile` isn't
-counted as the agent's change.
+The run record's grade lists the files the grader read, with their hashes. The attempt's
+`diff.patch` has only `src/slugify.js`: the hidden test never enters the agent's workspace.
 
 | File | What it is |
 |---|---|
-| [`with-hidden-tests.eval.ts`](./with-hidden-tests.eval.ts) | The eval: the prompt, then the hidden test and one check |
+| [`with-hidden-tests.eval.ts`](./with-hidden-tests.eval.ts) | The eval: the prompt, and the grader that runs the hidden test |
 | [`hidden/slugify.test.js`](./hidden/slugify.test.js) | The test the agent never sees |
 | [`project/`](./project) | The package the agent starts from: a `src/slugify.js` stub |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, and the real agents from `../profiles.ts` |
 
-Hidden tests are in the [Evaluate](../../docs/evaluations/evaluate.mdx) page, and
-`c.writeFile` in the [Attempt context reference](../../docs/reference/attempt-context.mdx).
+Sandboxed graders are in the [Authoring API reference](../../docs/reference/authoring-api.mdx).

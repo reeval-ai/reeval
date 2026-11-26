@@ -14,7 +14,7 @@ const files = {
 
 export default defineConfig({
   include: ['*.eval.ts'],
-  // A scripted agent that copies ./fake-agent's files into the workspace, so the checks run
+  // A scripted agent that copies ./fake-agent's files into the workspace, so the graders run
   // without keys or Docker.
   agents: fakeAgent({
     files,

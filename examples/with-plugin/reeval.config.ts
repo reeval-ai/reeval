@@ -10,7 +10,7 @@ const fakeFile = (path: string) =>
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that calls the plugin's MCP server, as an agent following the release skill
-  // would, then copies ./fake-agent's files into the workspace, so the checks run without keys or
+  // would, then copies ./fake-agent's files into the workspace, so the graders run without keys or
   // Docker.
   agents: fakeAgent({
     script: [[{ mcp: 'release:releases/next_version' }]],

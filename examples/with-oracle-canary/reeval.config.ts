@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { defineConfig } from 'reeval'
+import { defineConfig, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 import { profiles } from '../profiles.ts'
@@ -12,12 +12,14 @@ const writes = (dir: string) => ({
 
 export default defineConfig({
   include: ['*.eval.ts'],
+  // Every attempt must score 1: the oracle's run passes and the canary's fails.
+  target: regression(),
   // The oracle: a scripted agent that does the task right, with ./oracle's files. It must pass.
   agents: fakeAgent({
     files: writes('oracle'),
     text: 'I added clamp(n, min, max) and a test.',
   }),
-  // The sandbox real agents run in, so the checks pass or fail as they would for them.
+  // The sandbox real agents run in, so the graders score them as they would for them.
   sandbox: docker(),
   profiles: {
     // The real agents: `--profile claude-code`, or any other in ../profiles.ts. An example's own

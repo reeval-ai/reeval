@@ -10,7 +10,7 @@ const fakeFile = (path: string) =>
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that starts the MCP server and calls its tool, as an agent would, then copies
-  // ./fake-agent's files into the workspace, so the checks run without keys or Docker.
+  // ./fake-agent's files into the workspace, so the graders run without keys or Docker.
   agents: fakeAgent({
     script: [[{ mcp: 'releases/latest_version' }]],
     files: { 'package.json': fakeFile('package.json') },

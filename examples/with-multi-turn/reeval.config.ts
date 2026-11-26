@@ -16,7 +16,7 @@ const turn = (n: number) => ({
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that writes ./fake-agent/turn-1 on the first turn and turn-2 on the
-  // second, so the checks run without keys or Docker.
+  // second, so the graders run without keys or Docker.
   agents: fakeAgent({
     script: [
       [turn(1), { reply: 'I added multiply(a, b) to src/math.js and a test for it.' }],

@@ -1,11 +1,11 @@
 # with-secret-for-checks
 
-**Shows:** a secret only the checks get. The environment sets `E2E_TOKEN` with
+**Shows:** a secret only the task's commands get. The environment sets `E2E_TOKEN` with
 `secret.fromEnv('E2E_TOKEN', { to: 'checks', optional: true })`: `c.exec` and setup steps get it,
 the agent's own environment never does, and without `E2E_TOKEN` on the host the eval runs with the
 variable left out. A process a setup step leaves running keeps it while the agent works; broker it
-with `hosts` instead when one needs it. The agent saves its environment to `env.txt`, and the eval
-checks the token isn't in it but reaches a check.
+with `hosts` instead when one needs it. The agent saves its environment to `env.txt`; a `hasFile`
+grader checks the token isn't in it, and an `observed` grader that the task's `c.exec` got it.
 
 **Needs:** Docker, even for the fake agent; in this repo, run `pnpm install && pnpm build` at the
 root first. `E2E_TOKEN` is optional. A real agent also needs its key in `.env.local`
@@ -18,7 +18,7 @@ E2E_TOKEN=test-token pnpm eval
 ```
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys. It runs the prompt's command in
-the sandbox, as an agent would, so the checks have its `env.txt` to read. `pnpm eval --profile
+the sandbox, as an agent would, so the graders have its `env.txt` to read. `pnpm eval --profile
 claude-code` runs the same eval on Claude Code, and `--profile <name>` on any other agent in
 [`examples/profiles.ts`](../profiles.ts).
 
@@ -30,27 +30,25 @@ one profile you need.
 
 ```text
 …
-  ➜  Record:    .reeval/runs/20261101T222122Z_….json
-
   ⚠  Warning: E2E_TOKEN reaches the checks (c.exec, setup steps) as its real value. It's never in the agent's own environment, but a process a setup step leaves running holds it while the agent works. To give the checks only a placeholder, add the hosts it's sent to, e.g. secret.fromEnv('E2E_TOKEN', { hosts: ['api.example.com'] }).
 …
 with-secret-for-checks.eval.ts
-└─ ✓ keeps the test token from the agent  1 of 1 run passed
+  · with-secret-for-checks  100%  metric()
 ```
 
-Change `to: 'checks'` to `to: 'agent'` and the first check fails:
+Change `to: 'checks'` to `to: 'agent'` and `pnpm eval -v` shows the `agent-env` grader miss:
 
 ```text
 with-secret-for-checks.eval.ts
-└─ ✗ keeps the test token from the agent  0 of 1 run passed
-     Failed on fake.
-     ✗ the agent's env  failed 1 of 1 run
-       expected 'CURL_CA_BUNDLE=/etc/ssl/certs/ca-cert…' not to match /^E2E_TOKEN=/m · with-secret-for-checks.eval.ts:12
+  · with-secret-for-checks  50%  metric()
+    #1  50%  agent-env 0%
+    Observed:
+      task-has-token  true 1
 ```
 
 | File | What it is |
 |---|---|
-| [`with-secret-for-checks.eval.ts`](./with-secret-for-checks.eval.ts) | The eval: the checks-only token, one prompt, two checks |
+| [`with-secret-for-checks.eval.ts`](./with-secret-for-checks.eval.ts) | The eval: the checks-only token, one prompt, two graders |
 | [`reeval.config.ts`](./reeval.config.ts) | The scripted fake agent in Docker, and the real agents from `../profiles.ts` |
 
 Secrets, `to` and `optional` are in the [Pass secrets](../../docs/configuration/environments/secrets.mdx)

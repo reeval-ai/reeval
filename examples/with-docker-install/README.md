@@ -16,9 +16,9 @@ pnpm eval
 ```
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys. It copies the
-[`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check; it still runs in the environment's sandbox, so `jq` comes from the
-install layer. `pnpm eval --profile claude-code` runs the same eval on Claude Code, and
+[`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so
+the graders have something to grade; it still runs in the environment's sandbox, so `jq` comes from
+the install layer. `pnpm eval --profile claude-code` runs the same eval on Claude Code, and
 `--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts).
 
 **Copying it out of the repo:** `reeval.config.ts` imports `../profiles.ts`. Copy
@@ -40,7 +40,7 @@ workspace; per-attempt steps belong in the environment's `setup`.
 
 | File | What it is |
 |---|---|
-| [`with-docker-install.eval.ts`](./with-docker-install.eval.ts) | The eval: the `jq` environment, one prompt, two checks |
+| [`with-docker-install.eval.ts`](./with-docker-install.eval.ts) | The eval: the `jq` environment, one prompt, two graders |
 | [`project/`](./project) | What the agent starts from: `orders.json` |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, and the real agents from `../profiles.ts` |

@@ -10,7 +10,7 @@ const fakeFile = (path: string) =>
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that reads the skill where its layout places skills (~/.agents/skills) and
-  // copies ./fake-agent's files into the workspace, so the checks run without keys or Docker.
+  // copies ./fake-agent's files into the workspace, so the graders run without keys or Docker.
   agents: fakeAgent({
     script: [[{ exec: 'cat ~/.agents/skills/jsdoc/SKILL.md' }]],
     files: { 'src/math.js': fakeFile('src/math.js') },

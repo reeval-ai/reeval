@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
-import { defineEnvironment, defineEval, expect } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
+import { hasFile, succeeded } from 'reeval/graders'
 
 // The agent starts from the small package in ./project.
 const math = defineEnvironment('math', ({ directory }) => ({ files: directory('./project') }))
@@ -14,10 +15,9 @@ const oracle = fakeAgent({
 export default defineEval({
   environment: math,
   agents: { add: oracle },
+  graders: [hasFile('src/math.js', /export function multiply/), succeeded('node --test')],
   task: async (c) => {
     await c.send('Add a multiply(a, b) function to src/math.js.')
-
-    await expect(c).toHaveFile('src/math.js', /export function multiply/)
-    await expect(c.exec('node --test')).toSucceed()
+    await c.exec('node --test')
   },
 })

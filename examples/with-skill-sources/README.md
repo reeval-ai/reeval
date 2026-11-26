@@ -1,10 +1,10 @@
 # with-skill-sources
 
 **Shows:** skills from everywhere reeval can take them: `skill.git` (a GitHub repository at a
-commit, narrowed with `only`), `skill.registry` (a skills.sh id), `skill.npm` (a published
-package's `skills/`) and `skill.inline` (written in the eval, placed in the workspace with
-`placement: 'workspace'`). The agent lists the skills it has, and the eval checks each name is in
-its reply.
+commit, narrowed with `only`), `skill.registry` (a skills.sh id), `skill.npm` (a published package's
+`skills/`) and `skill.inline` (written in the eval, placed in the workspace with `placement:
+'workspace'`). The agent lists the skills it has, and the `names-every-skill` grader scores the
+share of the names in its reply.
 
 **Needs:** the network, to fetch the skills from GitHub and the npm registry on the host; nothing
 else for the fake agent. In this repo, run `pnpm install && pnpm build` at the root first. A real
@@ -18,8 +18,8 @@ pnpm eval
 ```
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It replies with
-[`fake-agent/reply.md`](./fake-agent/reply.md) to mimic what an agent would say, so the checks have
-something to check; the skills are still fetched and placed for real. `pnpm eval --profile
+[`fake-agent/reply.md`](./fake-agent/reply.md) to mimic what an agent would say, so the graders have
+something to grade; the skills are still fetched and placed for real. `pnpm eval --profile
 claude-code` runs the same eval on Claude Code, and `--profile <name>` on any other agent in
 [`examples/profiles.ts`](../profiles.ts).
 
@@ -46,7 +46,7 @@ A git skill on a branch, or a registry skill without a `version`, warns in the p
 
 | File | What it is |
 |---|---|
-| [`with-skill-sources.eval.ts`](./with-skill-sources.eval.ts) | The eval: one skill from each source, and a check per skill |
+| [`with-skill-sources.eval.ts`](./with-skill-sources.eval.ts) | The eval: one skill from each source, and a grader over the reply |
 | [`fake-agent/reply.md`](./fake-agent/reply.md) | The fake agent's reply |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, and the real agents from `../profiles.ts` |
 

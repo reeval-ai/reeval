@@ -1,8 +1,9 @@
 # with-judge-state
 
 **Shows:** choosing what the judge sees. The agent adds `multiply(a, b)` and lists it in the
-README, and the call's inputs give the judge the diff of `src/` only (`diff`), the README whole
-(`contents`) and the commands the agent ran (`transcript: 'tools'`). Nothing else reaches it.
+README, and the `judge` grader's `inputs` give the judge the diff of `src/` only (`diff`), the
+README whole (`contents`) and the commands the agent ran (`transcript: 'tools'`). Nothing else
+reaches it.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
 first. A real agent needs its key in `.env.local` (`ANTHROPIC_API_KEY` for Claude Code, which
@@ -25,26 +26,22 @@ mimic what an agent would produce, so the judge has a transcript and a diff to s
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the attempt's `judge-input.json`, under `.reeval/runs/<run>/`: exactly what
-the judge was given. The README is whole in `contents`, `diff`'s patterns leave it out of the
-diff, and `dropped` says so. `stateOptions` lists every input, `false` where it's off.
+**What to look at:** the judge's grade in the run record, `.reeval/runs/<run>.json`. The README is
+whole in `contents`, `diff`'s patterns leave it out of the diff, and `dropped` says so:
 
 ```text
-    "state": {
-      "diff": "diff --git a/src/math.js b/src/math.js\n…+export function multiply(a, b) {\n+  return a * b\n+}\n",
-      "contents": {
-        "README.md": "# math\n\nArithmetic helpers, in `src/math.js`:\n\n- `add(a, b)`: …\n- `multiply(a, b)`: …"
-      },
-      "transcript": "tool shell: node --test → ok · 83ms\n  TAP version 13\n…edit src/math.js (modify, +7 −3) · 2ms\nedit README.md (modify, +6 −5) · 0ms"
-    },
-    "dropped": [
-      "README.md: not in diff's patterns"
-    ]
+"grader": "judge:Does README.md list every function src/math.js exports?",
+"kind": "judge",
+…
+"judge": {
+  "dropped": ["README.md: not in diff's patterns"],
+  "calls": [{ "model": "fake", "answer": true, "probability": 0.9 }]
+}
 ```
 
 | File | What it is |
 |---|---|
-| [`with-judge-state.eval.ts`](./with-judge-state.eval.ts) | The eval: one prompt, two checks and a judge with its inputs |
+| [`with-judge-state.eval.ts`](./with-judge-state.eval.ts) | The eval: one prompt, two graders and a judge with its inputs |
 | [`project/`](./project) | The package the agent starts from: `src/math.js`, its test and `README.md` |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent and judge, and the real agents from `../profiles.ts` |

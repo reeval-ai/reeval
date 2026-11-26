@@ -10,7 +10,7 @@ const fakeFile = (path: string) =>
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that writes ./fake-agent's files, then runs the tests as a shell tool call,
-  // so the transcript has an edit and a command to check without keys or Docker.
+  // so the transcript has an edit and a command to grade without keys or Docker.
   agents: fakeAgent({
     script: [
       [

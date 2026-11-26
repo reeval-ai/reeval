@@ -9,7 +9,7 @@ const fakeFile = (path: string) =>
 
 export default defineConfig({
   include: ['*.eval.ts'],
-  // A scripted agent that copies ./fake-agent's files into the workspace, so the checks run
+  // A scripted agent that copies ./fake-agent's files into the workspace, so the graders run
   // without an agent's key or Docker. The judges are real: see with-judge-providers.eval.ts.
   agents: fakeAgent({
     files: {

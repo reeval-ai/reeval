@@ -10,7 +10,7 @@ const fakeFile = (path: string) =>
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that replies with ./fake-agent/reply.md, the skills it was given, so the
-  // checks run without keys or Docker.
+  // graders run without keys or Docker.
   agents: fakeAgent({ text: fakeFile('reply.md') }),
   sandbox: fakeSandbox(),
   // The real agents: `--profile claude-code`, or any other in ../profiles.ts. An example's own

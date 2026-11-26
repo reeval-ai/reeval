@@ -3,7 +3,7 @@
 **Shows:** starting every attempt from a pinned repository. `workspace: git(repo, { ref, path,
 init })` fetches one directory of a public GitHub repository at a full commit SHA, and
 `init: true` gives the workspace a `.git` with one commit of it. The agent adds `subtract(a, b)`,
-and the eval runs the tests and reads `git status`.
+and the task runs the tests and observes `git status`, which an `observed` grader reads.
 
 **Needs:** the network, to fetch the repository from GitHub; nothing else for the fake agent. In
 this repo, run `pnpm install && pnpm build` at the root first. A real agent needs its key in
@@ -18,9 +18,9 @@ pnpm eval
 ```
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
-[`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-checks have something to check. `pnpm eval --profile claude-code` runs the same eval on
-Claude Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts).
+[`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so
+the graders have something to grade. `pnpm eval --profile claude-code` runs the same eval on Claude
+Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts).
 
 **Copying it out of the repo:** `reeval.config.ts` imports `../profiles.ts`. Copy
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
@@ -31,20 +31,20 @@ host, before any attempt, and names the commit every attempt starts from:
 
 ```text
 …
-  ➜  Record:    .reeval/runs/20261101T222141Z_….json
-
   ℹ  workspace github:reeval-ai/reeval#f60f255edb8a110d42d2ae4e483bd8555168b854:examples/with-checks/project at f60f255edb8a
   ◆  Running...
 
 with-git-workspace.eval.ts
-└─ ✓ adds subtract to a pinned repository  1 of 1 run passed
+  · with-git-workspace  100%  metric()
+    Observed:
+      git-status  M src/math.js M test/math.test.js ?? .g… 1
 ```
 
 A branch or no `ref` warns in the plan, since the code under the eval could change between runs.
 
 | File | What it is |
 |---|---|
-| [`with-git-workspace.eval.ts`](./with-git-workspace.eval.ts) | The eval: the pinned workspace, and two checks |
+| [`with-git-workspace.eval.ts`](./with-git-workspace.eval.ts) | The eval: the pinned workspace, and two graders |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, and the real agents from `../profiles.ts` |
 

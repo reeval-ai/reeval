@@ -17,23 +17,23 @@ Every example takes the real agents in [`profiles.ts`](./profiles.ts) by name: `
 
 | Example | Shows |
 |---|---|
-| [`with-checks`](./with-checks) | Deterministic checks on what the agent left behind |
-| [`with-checks-and-gates`](./with-checks-and-gates) | Every check reports after one fails; `expect.require` stops at a gate |
+| [`with-checks`](./with-checks) | Deterministic graders on what the agent left behind |
+| [`with-checks-and-gates`](./with-checks-and-gates) | Named graders that each score on their own; `EvalError` fails the task when the rest would mean nothing |
 | [`with-hidden-tests`](./with-hidden-tests) | Grading with a test the agent never saw |
 | [`with-guarded-files`](./with-guarded-files) | Failing an agent that changes files it should leave alone |
-| [`with-transcript-matchers`](./with-transcript-matchers) | Checking what the agent did, not only what it left |
-| [`with-web-matchers`](./with-web-matchers) | Checking the agent searched the web and read the docs |
+| [`with-transcript-matchers`](./with-transcript-matchers) | Grading what the agent did, not only what it left |
+| [`with-web-matchers`](./with-web-matchers) | Grading that the agent searched the web and read the docs |
 | [`with-multi-turn`](./with-multi-turn) | A session with a follow-up turn |
 | [`with-cases`](./with-cases) | One task over a list of cases |
 | [`with-skip`](./with-skip) | Evals sharing the config's options, and one skipped with a reason |
 | [`with-pass-rate`](./with-pass-rate) | A cell that passes on most tries, not all |
-| [`with-background-process`](./with-background-process) | A server started in the attempt and checked over HTTP |
+| [`with-background-process`](./with-background-process) | A server started in the attempt and called over HTTP |
 
 ## Judges
 
 | Example | Shows |
 |---|---|
-| [`with-judge`](./with-judge) | An LLM judge for the quality a check can't read |
+| [`with-judge`](./with-judge) | An LLM judge for the quality a deterministic grader can't read |
 | [`with-jev`](./with-jev) | Jev, reeval's recommended judge model |
 | [`with-judge-state`](./with-judge-state) | Choosing what the judge sees |
 | [`with-judge-on-output`](./with-judge-on-output) | Judging what the program prints, not the diff |
@@ -83,7 +83,7 @@ Every example takes the real agents in [`profiles.ts`](./profiles.ts) by name: `
 | Example | Shows |
 |---|---|
 | [`with-brokered-secret`](./with-brokered-secret) | A key the agent's code uses but can't read |
-| [`with-secret-for-checks`](./with-secret-for-checks) | A secret only the checks get |
+| [`with-secret-for-checks`](./with-secret-for-checks) | A secret only the task's commands get |
 | [`with-strict-secrets`](./with-strict-secrets) | Refusing any secret the sandbox would see |
 | [`with-egress-deny-all`](./with-egress-deny-all) | An agent with no network |
 | [`with-egress-allowlist`](./with-egress-allowlist) | An allowlist of hosts |
