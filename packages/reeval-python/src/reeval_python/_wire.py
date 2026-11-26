@@ -28,6 +28,9 @@ class AntigravityHarnessDescriptor(TypedDict):
     # Cell id; defaults to `antigravity:<model>`, or `antigravity:<model>[effort=<value>]` when
     # `effort` is set.
     id: NotRequired[str]
+    # Added to the harness's own system prompt, or, on a harness that has no way to add to it,
+    # to its global rules or to each prompt.
+    instructions: NotRequired[str]
     kind: Literal["antigravity"]
     # The most Antigravity attempts at once, across the run, e.g. for the key's rate limits.
     maxConcurrent: NotRequired[float]
@@ -428,7 +431,8 @@ class Cell(TypedDict):
     # The environment's own name, also on a variant cell (`with-skill`, with no prefix).
     environment: str
     # The harness id: `id` when set, otherwise `<kind>:<model>` (`<kind>` alone without a
-    # model), with `[effort=<value>]` appended whenever `effort` is set.
+    # model), with `[effort=<value>]` appended whenever `effort` is set, then a tag for each
+    # shared option set (`[tools=<names>]`, `[commands=<hash>]`, …).
     harness: str
     # The harness id, the environment name, and the sandbox id, joined with `/`.
     key: str
@@ -453,6 +457,12 @@ CellRole: TypeAlias = "Literal[\"control\", \"variant\"]"
 
 # Claude Code through `@ai-sdk/harness-claude-code`, made by `claudeCode()`.
 class ClaudeCodeHarnessDescriptor(TypedDict):
+    # The shell commands the agent may run, as prefixes: a command runs when it is one of them
+    # or starts with one and a space, and the harness refuses every other. A prefix has no shell
+    # operators: Claude Code and pi refuse any command with one, and OpenCode runs a chained
+    # command only when each part is allowed. An allowed command still runs what it runs, such
+    # as a script the agent wrote.
+    commands: NotRequired[list[str]]
     # Reasoning effort the Agent SDK `/effort` control takes: `low`, `medium`, `high`, `xhigh`
     # (Extra in the UI) or `max`.
     effort: NotRequired[Literal["low", "medium", "high", "xhigh", "max"]]
@@ -463,6 +473,9 @@ class ClaudeCodeHarnessDescriptor(TypedDict):
     # Cell id; defaults to `claude-code:<model>`, or `claude-code:<model>[effort=<value>]` when
     # `effort` is set.
     id: NotRequired[str]
+    # Added to the harness's own system prompt, or, on a harness that has no way to add to it,
+    # to its global rules or to each prompt.
+    instructions: NotRequired[str]
     kind: Literal["claude-code"]
     # The most Claude Code attempts at once, across the run, e.g. for the account's rate limits.
     maxConcurrent: NotRequired[float]
@@ -471,6 +484,13 @@ class ClaudeCodeHarnessDescriptor(TypedDict):
     # How long the harness's session may take to become ready (its bootstrap and first session)
     # before the attempt is an infra error, after one retry; default 90s.
     startTimeout: NotRequired[Duration]
+    # Replaces the harness's own system prompt. The environment's rules and skills are still
+    # added, and OpenCode still adds its sections on the model and its tools.
+    systemPrompt: NotRequired[str]
+    # The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`,
+    # `edit`, `bash`, `grep`, `glob` and `webSearch`. Its other built-in tools are off; skills
+    # and MCP tools stay. OpenCode keeps `write` and `edit` only together.
+    tools: NotRequired[list[Literal["read", "write", "edit", "bash", "grep", "glob", "webSearch"]]]
 
 
 # A VM per attempt from reeval's own VM service, made by `cloud()` from `reeval/internal/vm`.
@@ -510,6 +530,9 @@ class CodexHarnessDescriptor(TypedDict):
     # Cell id; defaults to `codex:<model>`, or `codex:<model>[effort=<value>]` when `effort` is
     # set.
     id: NotRequired[str]
+    # Added to the harness's own system prompt, or, on a harness that has no way to add to it,
+    # to its global rules or to each prompt.
+    instructions: NotRequired[str]
     kind: Literal["codex"]
     # The most Codex attempts at once, across the run, e.g. for the key's rate limits.
     maxConcurrent: NotRequired[float]
@@ -518,6 +541,9 @@ class CodexHarnessDescriptor(TypedDict):
     # How long the harness's session may take to become ready (its bootstrap and first session)
     # before the attempt is an infra error, after one retry; default 90s.
     startTimeout: NotRequired[Duration]
+    # Replaces the harness's own system prompt. The environment's rules and skills are still
+    # added, and OpenCode still adds its sections on the model and its tools.
+    systemPrompt: NotRequired[str]
 
 
 # The config file is plain data sent to workers, so its judge model can't be an object.
@@ -546,6 +572,9 @@ class CursorHarnessDescriptor(TypedDict):
     # Cell id; defaults to `cursor:<model>`, or `cursor:<model>[effort=<value>]` when `effort`
     # is set.
     id: NotRequired[str]
+    # Added to the harness's own system prompt, or, on a harness that has no way to add to it,
+    # to its global rules or to each prompt.
+    instructions: NotRequired[str]
     kind: Literal["cursor"]
     # The most Cursor attempts at once, across the run, e.g. for the account's rate limits.
     maxConcurrent: NotRequired[float]
@@ -1230,6 +1259,9 @@ class FxHarnessDescriptor(TypedDict):
     gateway: NotRequired[GatewayName]
     # Cell id; defaults to `fx:<model>`, or `fx:<model>[effort=<value>]` when `effort` is set.
     id: NotRequired[str]
+    # Added to the harness's own system prompt, or, on a harness that has no way to add to it,
+    # to its global rules or to each prompt.
+    instructions: NotRequired[str]
     kind: Literal["fx"]
     # The most fx attempts at once, across the run, e.g. for the key's rate limits.
     maxConcurrent: NotRequired[float]
@@ -1282,6 +1314,9 @@ class GooseHarnessDescriptor(TypedDict):
     # Cell id; defaults to `goose:<model>`, or `goose:<model>[effort=<value>]` when `effort` is
     # set.
     id: NotRequired[str]
+    # Added to the harness's own system prompt, or, on a harness that has no way to add to it,
+    # to its global rules or to each prompt.
+    instructions: NotRequired[str]
     kind: Literal["goose"]
     # The most Goose attempts at once, across the run, e.g. for the key's rate limits.
     maxConcurrent: NotRequired[float]
@@ -1306,6 +1341,9 @@ class GrokBuildHarnessDescriptor(TypedDict):
     # Cell id; defaults to `grok-build:<model>`, or `grok-build:<model>[effort=<value>]` when
     # `effort` is set.
     id: NotRequired[str]
+    # Added to the harness's own system prompt, or, on a harness that has no way to add to it,
+    # to its global rules or to each prompt.
+    instructions: NotRequired[str]
     kind: Literal["grok-build"]
     # The most Grok Build attempts at once, across the run, e.g. for the key's rate limits.
     maxConcurrent: NotRequired[float]
@@ -1368,6 +1406,12 @@ McpServer: TypeAlias = "McpServerMcp | McpServerMcp2"
 # any provider whose key OpenCode sends in a header on known hosts, with that provider's key,
 # and reports no usage (its ACP server counts one call).
 class OpenCodeHarnessDescriptor(TypedDict):
+    # The shell commands the agent may run, as prefixes: a command runs when it is one of them
+    # or starts with one and a space, and the harness refuses every other. A prefix has no shell
+    # operators: Claude Code and pi refuse any command with one, and OpenCode runs a chained
+    # command only when each part is allowed. An allowed command still runs what it runs, such
+    # as a script the agent wrote.
+    commands: NotRequired[list[str]]
     # Reasoning effort for that provider: `options.reasoningEffort` (OpenAI) or
     # `options.thinking` (Anthropic). Values are whatever that provider takes.
     effort: NotRequired[str]
@@ -1378,6 +1422,9 @@ class OpenCodeHarnessDescriptor(TypedDict):
     # Cell id; defaults to `opencode:<model>`, or `opencode:<model>[effort=<value>]` when
     # `effort` is set.
     id: NotRequired[str]
+    # Added to the harness's own system prompt, or, on a harness that has no way to add to it,
+    # to its global rules or to each prompt.
+    instructions: NotRequired[str]
     kind: Literal["opencode"]
     # The most OpenCode attempts at once, across the run, e.g. for the key's rate limits.
     maxConcurrent: NotRequired[float]
@@ -1387,6 +1434,13 @@ class OpenCodeHarnessDescriptor(TypedDict):
     # How long the harness's session may take to become ready (its bootstrap and first session)
     # before the attempt is an infra error, after one retry; default 90s.
     startTimeout: NotRequired[Duration]
+    # Replaces the harness's own system prompt. The environment's rules and skills are still
+    # added, and OpenCode still adds its sections on the model and its tools.
+    systemPrompt: NotRequired[str]
+    # The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`,
+    # `edit`, `bash`, `grep`, `glob` and `webSearch`. Its other built-in tools are off; skills
+    # and MCP tools stay. OpenCode keeps `write` and `edit` only together.
+    tools: NotRequired[list[Literal["read", "write", "edit", "bash", "grep", "glob", "webSearch"]]]
 
 
 # OpenRouter, with `OPENROUTER_API_KEY`: made by `openrouter()` in `reeval/gateway`. It serves
@@ -1416,6 +1470,12 @@ class PhasedEgress(TypedDict):
 # model on its provider's key and reports each model call's tokens. It takes stdio and HTTP MCP
 # servers, not SSE ones.
 class PiHarnessDescriptor(TypedDict):
+    # The shell commands the agent may run, as prefixes: a command runs when it is one of them
+    # or starts with one and a space, and the harness refuses every other. A prefix has no shell
+    # operators: Claude Code and pi refuse any command with one, and OpenCode runs a chained
+    # command only when each part is allowed. An allowed command still runs what it runs, such
+    # as a script the agent wrote.
+    commands: NotRequired[list[str]]
     # Reasoning effort, passed as pi's `--thinking` (the CLI's name). Values are whatever that
     # flag takes, e.g. `off`, `minimal`, `low`, `medium`, `high`, `xhigh` or `max`.
     effort: NotRequired[str]
@@ -1425,6 +1485,9 @@ class PiHarnessDescriptor(TypedDict):
     gateway: NotRequired[GatewayName]
     # Cell id; defaults to `pi:<model>`, or `pi:<model>[effort=<value>]` when `effort` is set.
     id: NotRequired[str]
+    # Added to the harness's own system prompt, or, on a harness that has no way to add to it,
+    # to its global rules or to each prompt.
+    instructions: NotRequired[str]
     kind: Literal["pi"]
     # The most pi attempts at once, across the run, e.g. for the key's rate limits.
     maxConcurrent: NotRequired[float]
@@ -1435,6 +1498,13 @@ class PiHarnessDescriptor(TypedDict):
     # How long the harness's session may take to become ready (its bootstrap and first session)
     # before the attempt is an infra error, after one retry; default 90s.
     startTimeout: NotRequired[Duration]
+    # Replaces the harness's own system prompt. The environment's rules and skills are still
+    # added, and OpenCode still adds its sections on the model and its tools.
+    systemPrompt: NotRequired[str]
+    # The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`,
+    # `edit`, `bash`, `grep`, `glob` and `webSearch`. Its other built-in tools are off; skills
+    # and MCP tools stay. OpenCode keeps `write` and `edit` only together.
+    tools: NotRequired[list[Literal["read", "write", "edit", "bash", "grep", "glob"]]]
 
 
 # An option a profile's `limit` can narrow, and `pin` can protect.
@@ -2153,6 +2223,7 @@ CAMEL_KEYS: frozenset[str] = frozenset(
         "startHangs",
         "startTimeout",
         "startedAt",
+        "systemPrompt",
         "toolCallId",
         "totalTokens",
         "turnMs",
