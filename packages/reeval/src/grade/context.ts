@@ -22,8 +22,8 @@ export type GradeInputs = {
   /** Starts a grader's `env` sandbox; a grader with `env` errors without it. */
   sandboxes?: SandboxStarter
   /**
-   * Each turn's subagent runs, which a judge's `transcript` shows under their spawn calls. A
-   * regrade rebuilds them from the record's `subagents` and `transcript.jsonl`.
+   * Each turn's subagent runs, which a judge's `trajectory` shows under their spawn calls. A
+   * regrade rebuilds them from the record's `subagents` and `trajectory.jsonl`.
    */
   subagents?: ReadonlyArray<DraftSource['subagents']>
   /** How judge graders ask; without it they error. */

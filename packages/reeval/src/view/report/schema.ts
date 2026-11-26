@@ -719,7 +719,7 @@ const attemptIndexRowSchema: z.ZodType<AttemptIndexRow> = z.strictObject({
     })
     .nullable(),
   links: z.strictObject({
-    transcript: z.string().nullable(),
+    trajectory: z.string().nullable(),
     diff: z.string().nullable(),
     captures: z.array(z.strictObject({ name: z.string(), href: z.string() })),
     questions: z.array(z.string()),

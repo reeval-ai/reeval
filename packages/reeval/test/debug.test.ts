@@ -157,7 +157,7 @@ describe('verbosity', () => {
     for (const phase of PHASES) assert.match(r.stdout, phaseLine(phase, true), phase)
     assert.match(r.stdout, / plan {6}resolved config\n\[[^\]]+\] {6}\{"config":\{"root":/)
     assert.match(r.stdout, / env {7}resolved environment\n/)
-    assert.match(r.stdout, / harness {3}transcript tool\n.*"output":"from-the-agent\\n"/)
+    assert.match(r.stdout, / harness {3}trajectory tool\n.*"output":"from-the-agent\\n"/)
     assert.match(r.stdout, / judge {5}judge prompt\n.*"question":"Did it write out\.txt\?"/)
     assert.match(r.stdout, / check {5}check output: test -f out\.txt\n/)
   })
@@ -213,7 +213,7 @@ describe('local debug data', () => {
     const kinds = new Set(
       trace.slice(1).map((e: { phase: string; kind: string }) => `${e.phase}/${e.kind}`),
     )
-    for (const kind of ['plan/config', 'env/environment', 'harness/transcript', 'check/output']) {
+    for (const kind of ['plan/config', 'env/environment', 'harness/trajectory', 'check/output']) {
       assert.ok(kinds.has(kind), `${kind} in ${[...kinds].join(', ')}`)
     }
     assert.ok(trace.slice(1).every((e: { ms: unknown }) => Number.isInteger(e.ms)))
@@ -362,7 +362,7 @@ export default defineEval({ async task() {} })
     }
   })
 
-  test("a key's tail is masked on screen, in debug.log, trace.ndjson and the transcript", async () => {
+  test("a key's tail is masked on screen, in debug.log, trace.ndjson and the trajectory", async () => {
     const KEY = 'crsr_debug_7f3Kq9ZpL2mXw8Rt4VbN6yHc'
     const tail = KEY.slice(-12)
     // What a leak check that searches the sandbox for the key's tail would run and print.
@@ -392,7 +392,7 @@ export default defineEval({
       screen: r.stdout + r.stderr,
       'debug.log': read(join(dir, 'debug.log')),
       'trace.ndjson': read(join(dir, 'trace.ndjson')),
-      'the record and transcript': JSON.stringify(run),
+      'the record and trajectory': JSON.stringify(run),
     }
     for (const [where, text] of Object.entries(outputs)) {
       for (const n of [8, 10, 12]) {
@@ -402,7 +402,7 @@ export default defineEval({
     }
     // The canary: the masked command is there, so the check would see the tail if it leaked.
     assert.match(outputs['debug.log'], /check +\$ echo searching for \[REDACTED\]; grep/)
-    assert.match(outputs['the record and transcript'], /searching for \[REDACTED\]/)
+    assert.match(outputs['the record and trajectory'], /searching for \[REDACTED\]/)
   })
 
   test('a credential-like MCP header written as a plain string is masked on screen, in the trace and the record', async () => {
@@ -441,7 +441,7 @@ export default defineEval({
       screen: r.stdout + r.stderr,
       'debug.log': read(join(dir, 'debug.log')),
       'trace.ndjson': read(join(dir, 'trace.ndjson')),
-      'the record and transcript': [
+      'the record and trajectory': [
         JSON.stringify(view.run),
         ...files(view.dir).map((f) => read(join(view.dir, f))),
       ].join('\n'),
@@ -452,7 +452,7 @@ export default defineEval({
       }
     }
     // The canary: the neutral header beside it is printed as it is, so a value would show.
-    for (const where of ['screen', 'trace.ndjson', 'the record and transcript'] as const) {
+    for (const where of ['screen', 'trace.ndjson', 'the record and trajectory'] as const) {
       assert.match(outputs[where], new RegExp(`X-Request-Source: ${SOURCE}`), where)
       assert.match(outputs[where], /Authorization: \[REDACTED\]/, where)
     }

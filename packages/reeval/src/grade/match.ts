@@ -26,37 +26,37 @@ export type { PathMatch, RunMatch, ToolInputMatch }
 
 type Turns = Pick<GraderContext, 'turns'>
 
-/** Every turn's transcript, and the events any turn's harness couldn't report. */
+/** Every turn's trajectory, and the events any turn's harness couldn't report. */
 const subject = (c: Turns): Subject => ({
-  transcript: c.turns.flatMap((t) => t.transcript),
+  trajectory: c.turns.flatMap((t) => t.trajectory),
   unreported: [...new Set(c.turns.flatMap((t) => t.unreported))],
 })
 
-const transcript = (c: Turns) => c.turns.flatMap((t) => t.transcript)
+const trajectory = (c: Turns) => c.turns.flatMap((t) => t.trajectory)
 
 /** Whether a tool call used the skill `name`, as `toHaveCalledSkill` decides it. */
 export function calledSkill(c: Turns, name: string): boolean {
-  return skillCalls(transcript(c), name).length > 0
+  return skillCalls(trajectory(c), name).length > 0
 }
 
 /** The skills the environment placed that the agent's tool calls used, in order of first use. */
 export function usedSkills(c: Turns & Pick<GraderContext, 'skills'>): string[] {
-  return placedSkillsUsed(transcript(c), c.skills)
+  return placedSkillsUsed(trajectory(c), c.skills)
 }
 
 /** How many tool calls were named `name`, with an input matching `input` when given. */
 export function calledTool(c: Turns, name: string | RegExp, input?: ToolInputMatch): number {
-  return toolCalls(transcript(c), name, input).length
+  return toolCalls(trajectory(c), name, input).length
 }
 
 /** How many calls went to the MCP server `server`, or to its `tool`. */
 export function calledMcp(c: Turns, server: string, tool?: string, input?: ToolInputMatch): number {
-  return mcpCalls(transcript(c), server, tool, input).length
+  return mcpCalls(trajectory(c), server, tool, input).length
 }
 
 /** How many shell commands matched `command`; a `RunMatch` counts the programs they ran. */
 export function ran(c: Turns, command?: string | RegExp | RunMatch): number {
-  return commandsRun(transcript(c), command).hits.length
+  return commandsRun(trajectory(c), command).hits.length
 }
 
 /** How many web searches matched `query`. Throws when a turn's harness doesn't report them. */
@@ -74,7 +74,7 @@ export function fetched(c: Turns, url?: string | RegExp): number {
  * later reverted counts, one a command it ran changed doesn't.
  */
 export function wrote(c: Turns, path?: string | RegExp): string[] {
-  return editedPaths(transcript(c), path)
+  return editedPaths(trajectory(c), path)
 }
 
 /**

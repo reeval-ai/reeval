@@ -14,7 +14,7 @@ import { mergeOutcome } from '../history/outcome.ts'
 import type { AttemptRecord, FileRef, RunRecord } from '../history/types.ts'
 import { recordFileName } from '../ids.ts'
 import { judgeDiff } from '../judge/patch.ts'
-import { transcriptForJudge } from '../judge/transcript.ts'
+import { trajectoryForJudge } from '../judge/trajectory.ts'
 import type { PlanRow } from '../plan.ts'
 import { redactSecrets } from '../redact.ts'
 import { clip } from '../text.ts'
@@ -37,7 +37,7 @@ import type {
   QuestionCall,
   QuestionStateOptions,
   ResolvedQuestionStateOptions,
-  TranscriptEvent,
+  TrajectoryEvent,
 } from '../types.ts'
 import {
   acrossOf,
@@ -73,7 +73,7 @@ function shownParts(shows: QuestionShows, taskEach: boolean): string[] {
   return [
     ...(taskEach && state.task ? ['the prompts it was sent'] : []),
     ...(state.output ? ['its final message'] : []),
-    ...(isOn(state.transcript) ? ['its transcript'] : []),
+    ...(isOn(state.trajectory) ? ['its trajectory'] : []),
     ...(state.files ? ['the files it changed'] : []),
     ...(isOn(state.diff) ? ['the changes it made to the project, as a unified diff'] : []),
     ...(isOn(state.checks)
@@ -135,10 +135,10 @@ function buildSide(
   const turns: BlindTurn[] = shownTurns(attempt, state).map((t) => ({
     ...(state.task && !taskShared ? { task: redactSecrets(t.prompt) } : {}),
     ...(state.output ? { output: redactSecrets(t.text ?? '') } : {}),
-    ...(state.transcript
+    ...(state.trajectory
       ? {
-          transcript: redactSecrets(
-            transcriptForJudge(t.transcript ?? [], state.transcript, t.subagents).join('\n'),
+          trajectory: redactSecrets(
+            trajectoryForJudge(t.trajectory ?? [], state.trajectory, t.subagents).join('\n'),
           ),
         }
       : {}),
@@ -225,7 +225,7 @@ function sideText(side: BlindSide): string {
   const turnLines = (t: BlindTurn) => [
     ...(t.task !== undefined ? tag('task', t.task) : []),
     ...(t.output !== undefined ? tag('output', t.output) : []),
-    ...(t.transcript !== undefined ? tag('transcript', t.transcript) : []),
+    ...(t.trajectory !== undefined ? tag('trajectory', t.trajectory) : []),
   ]
   const lines = [
     ...(side.turns
@@ -797,7 +797,7 @@ export function stagedAttempt(e: EngineEval, record: EvalRecord | null): PairAtt
     checksPassed,
     control: cell.role === 'control',
     turns:
-      record?.turns.map((t) => ({ prompt: t.prompt, text: t.text, transcript: t.transcript })) ??
+      record?.turns.map((t) => ({ prompt: t.prompt, text: t.text, trajectory: t.trajectory })) ??
       [],
     checks:
       record?.checks.map(({ command, exitCode, stdout, stderr }) => ({
@@ -822,7 +822,7 @@ function logOutput(log: string | null): { stdout: string; stderr: string } {
 
 /**
  * An attempt a resume kept from the previous record, as a pair side: its turns, `diff.patch`,
- * transcript, check logs and captures, read back from the previous record's artifact files.
+ * trajectory, check logs and captures, read back from the previous record's artifact files.
  */
 async function keptAttempt(
   e: EngineEval,
@@ -835,12 +835,12 @@ async function keptAttempt(
   const path = (ref: FileRef) => join(artifacts ?? '', ...ref.path.split('/'))
   const text = (ref: FileRef | undefined) =>
     ref && artifacts ? readFile(path(ref), 'utf8').catch(() => null) : Promise.resolve(null)
-  const events = new Map<number, TranscriptEvent[]>()
-  for (const line of (await text(kept.files.transcript))?.split('\n') ?? []) {
+  const events = new Map<number, TrajectoryEvent[]>()
+  for (const line of (await text(kept.files.trajectory))?.split('\n') ?? []) {
     if (!line) continue
     const { turn, ...event } = JSON.parse(line) as { turn: number; type: string }
     if (event.type === 'prompt' || event.type === 'turn-end' || event.type === 'decision') continue
-    events.set(turn, [...(events.get(turn) ?? []), event as TranscriptEvent])
+    events.set(turn, [...(events.get(turn) ?? []), event as TrajectoryEvent])
   }
   const checks = []
   for (const c of kept.checks) {
@@ -862,14 +862,14 @@ async function keptAttempt(
     control: cell.role === 'control',
     turns: kept.turns.map((t, i) => {
       const said = events.get(i) ?? []
-      // The record cuts a long final message; the transcript's last text event has it whole.
+      // The record cuts a long final message; the trajectory's last text event has it whole.
       const last = t.text.includes('… [reeval: truncated ')
         ? said.findLast((x) => x.type === 'text' && !x.subagent)
         : undefined
       return {
         prompt: t.prompt,
         text: last?.type === 'text' ? last.text : t.text,
-        transcript: said,
+        trajectory: said,
         subagents: kept.subagents?.filter((r) => r.turn === i),
       }
     }),

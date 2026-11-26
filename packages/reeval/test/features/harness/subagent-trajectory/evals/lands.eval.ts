@@ -4,8 +4,8 @@ import { plain } from './env.ts'
 const counted = defineGrader('subagents-counted', {
   grade: (c) => {
     const turn = c.turns[0]
-    const spawn = turn?.transcript.find((e) => e.type === 'tool' && e.tool === 'Agent')
-    const edit = turn?.transcript.find((e) => e.type === 'file-edit')
+    const spawn = turn?.trajectory.find((e) => e.type === 'tool' && e.tool === 'Agent')
+    const edit = turn?.trajectory.find((e) => e.type === 'file-edit')
     return {
       edit: edit?.type === 'file-edit' ? edit.path : null,
       spawnedBy:

@@ -16,10 +16,10 @@ import {
   attemptReplySchema,
   attemptRequestSchema,
   attemptStartSchema,
-  transcriptEventSchema,
+  trajectoryEventSchema,
 } from '../src/contract/attempt.ts'
-import type { TranscriptEvent, TurnData } from '../src/types.ts'
-import { readableTranscriptLine } from '../src/view/record.ts'
+import type { TrajectoryEvent, TurnData } from '../src/types.ts'
+import { readableTrajectoryLine } from '../src/view/record.ts'
 
 const snapshot = (name: string): ShapeSchema =>
   JSON.parse(
@@ -28,13 +28,13 @@ const snapshot = (name: string): ShapeSchema =>
 
 type Line = { turn: number; type: string; [key: string]: unknown }
 
-/** Each transcript in the corpus as the turns a `send` reply would carry. */
+/** Each trajectory in the corpus as the turns a `send` reply would carry. */
 function corpusTurns(): TurnData[] {
-  return corpus().transcripts.flatMap((file) => {
+  return corpus().trajectories.flatMap((file) => {
     const turns = new Map<number, TurnData>()
     for (const text of readFileSync(file, 'utf8').split('\n')) {
       if (!text.trim()) continue
-      const { turn, ...line } = readableTranscriptLine(JSON.parse(text)) as unknown as Line
+      const { turn, ...line } = readableTrajectoryLine(JSON.parse(text)) as unknown as Line
       if (line.type === 'prompt') {
         turns.set(turn, {
           prompt: line.text as string,
@@ -42,7 +42,7 @@ function corpusTurns(): TurnData[] {
           status: 'completed',
           startedAt: line.ts as string,
           durationMs: 0,
-          transcript: [],
+          trajectory: [],
           usage: null,
           model: null,
           unreported: [],
@@ -52,7 +52,7 @@ function corpusTurns(): TurnData[] {
         const t = turns.get(turn) as TurnData
         Object.assign(t, { status: line.status, durationMs: line.durationMs })
       } else if (line.type !== 'decision') {
-        ;(turns.get(turn) as TurnData).transcript.push(line as unknown as TranscriptEvent)
+        ;(turns.get(turn) as TurnData).trajectory.push(line as unknown as TrajectoryEvent)
       }
     }
     return [...turns.values()]
@@ -62,7 +62,7 @@ function corpusTurns(): TurnData[] {
 test('every turn in the record corpus fits a send reply, in Zod and in the JSON Schema', () => {
   const turns = corpusTurns()
   assert.ok(turns.length >= 100, `${turns.length} turns`)
-  const kinds = new Set(turns.flatMap((t) => t.transcript.map((e) => e.type)))
+  const kinds = new Set(turns.flatMap((t) => t.trajectory.map((e) => e.type)))
   assert.deepEqual([...kinds].sort(), ['file-edit', 'model-call', 'reasoning', 'text', 'tool'])
   const reply = snapshot('attempt-reply')
   for (const [i, turn] of turns.entries()) {
@@ -71,10 +71,10 @@ test('every turn in the record corpus fits a send reply, in Zod and in the JSON 
     assert.ok(parsed.success, JSON.stringify(parsed.error?.issues[0]))
     assert.deepEqual(validate(reply, value), [])
   }
-  // The canary: an event with a field the transcript doesn't have.
+  // The canary: an event with a field the trajectory doesn't have.
   const [first] = turns
-  const event = { ...(first?.transcript[0] as TranscriptEvent), color: 'blue' }
-  assert.equal(transcriptEventSchema.safeParse(event).success, false)
+  const event = { ...(first?.trajectory[0] as TrajectoryEvent), color: 'blue' }
+  assert.equal(trajectoryEventSchema.safeParse(event).success, false)
 })
 
 test('every attempt in the record corpus has a start message, in Zod and in the JSON Schema', () => {

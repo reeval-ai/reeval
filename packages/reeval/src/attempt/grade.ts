@@ -83,7 +83,7 @@ async function graderTurns(a: Attempt): Promise<GraderTurn[]> {
         status: t.status,
         startedAt: t.startedAt,
         durationMs: t.durationMs,
-        transcript: t.transcript,
+        trajectory: t.trajectory,
         usage: t.usage,
         model: t.model,
         unreported: t.unreported,

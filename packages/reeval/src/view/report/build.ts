@@ -86,7 +86,7 @@ export type RunReportOptions = {
   /** `.capture.json` files read beside the record, by `ArtifactRef.capture.page.path`. */
   pages?: ReadonlyMap<string, CapturePageFile>
   /**
-   * Each attempt's facts from its kept transcript (`attemptFacts`), by `AttemptRecord.key`; an
+   * Each attempt's facts from its kept trajectory (`attemptFacts`), by `AttemptRecord.key`; an
    * attempt with none has none in the report.
    */
   facts?: ReadonlyMap<string, AttemptFacts>
@@ -2110,7 +2110,7 @@ function buildAttemptIndex(ctx: Ctx): AttemptIndexRow[] {
                     : `${diffStats.files} files, ${diffLinesText(diffStats.added, diffStats.removed)}`,
               },
         links: {
-          transcript: a.files.transcript ? withBase(linkBase, a.files.transcript.path) : null,
+          trajectory: a.files.trajectory ? withBase(linkBase, a.files.trajectory.path) : null,
           diff: a.files.diff ? withBase(linkBase, a.files.diff.path) : null,
           captures: (a.files.artifacts ?? []).map((art) => ({
             name: art.name,

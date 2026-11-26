@@ -9,7 +9,7 @@
  *   GET  /api/v1/runs/:runId/report                         RunReportIndex
  *   GET  /api/v1/runs/:runId/report/evals/:evalId           EvalDetail
  *   GET  /api/v1/runs/:runId/artifacts/*path                the file's bytes
- *   GET  /api/v1/runs/:runId/artifacts/*path?cursor&limit   TranscriptPage, for a .jsonl file
+ *   GET  /api/v1/runs/:runId/artifacts/*path?cursor&limit   TrajectoryPage, for a .jsonl file
  *
  * Every route but `pair` needs `Authorization: Bearer <session>`, the session `pair` returned
  * for the one-time pairing token. An eval id is one path segment, percent-encoded. An artifact
@@ -18,7 +18,7 @@
  */
 
 import type { HistoryEntry } from '../history/types.ts'
-import { parseTranscript, type TranscriptLine } from './model.ts'
+import { parseTrajectory, type TrajectoryLine } from './model.ts'
 import type { EvalDetail, REPORT_VERSION, RunReportIndex } from './report/split.ts'
 
 /** The routes' version, in their prefix: a breaking change to a route or shape bumps it. */
@@ -30,7 +30,7 @@ const SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/
 const MAX_DEPTH = 8
 
 export const RUN_LIST_LIMIT = { default: 50, max: 100 }
-export const TRANSCRIPT_LIMIT = { default: 500, max: 2000 }
+export const TRAJECTORY_LIMIT = { default: 500, max: 2000 }
 
 /** The route names, each with what it answers. */
 export type StudioRoutes = {
@@ -39,7 +39,7 @@ export type StudioRoutes = {
   runs: RunList
   report: RunReportIndex
   eval: EvalDetail
-  artifact: Uint8Array | TranscriptPage
+  artifact: Uint8Array | TrajectoryPage
 }
 export type StudioRoute = keyof StudioRoutes
 export const STUDIO_ROUTES: readonly StudioRoute[] = [
@@ -77,10 +77,10 @@ export type RunListItem = HistoryEntry
 export type RunList = Page<RunListItem>
 
 /**
- * A page of a `.jsonl` artifact's transcript lines. `next`, the cursor and `totalLines` count the
- * lines that parse as transcript lines; a line that isn't JSON, or has no `type`, is skipped.
+ * A page of a `.jsonl` artifact's trajectory lines. `next`, the cursor and `totalLines` count the
+ * lines that parse as trajectory lines; a line that isn't JSON, or has no `type`, is skipped.
  */
-export type TranscriptPage = Page<TranscriptLine> & { totalLines: number }
+export type TrajectoryPage = Page<TrajectoryLine> & { totalLines: number }
 
 // ── Paths ──────────────────────────────────────────────────────────────────────────────────
 
@@ -170,19 +170,19 @@ export function pageRuns(
   return { items, next: more ? (items.at(-1)?.runId ?? null) : null }
 }
 
-/** Where a `.jsonl` page starts and how many lines it holds, as `transcriptQuery` reads them. */
-export type TranscriptRange = { start: number; limit: number }
+/** Where a `.jsonl` page starts and how many lines it holds, as `trajectoryQuery` reads them. */
+export type TrajectoryRange = { start: number; limit: number }
 
 /**
  * A `.jsonl` page's query, read strictly: the cursor is a whole number (0 when absent), the limit
- * a positive whole number clamped to `TRANSCRIPT_LIMIT.max` (the default when absent), neither
+ * a positive whole number clamped to `TRAJECTORY_LIMIT.max` (the default when absent), neither
  * with a leading zero. Anything else is the sentence saying why, which the server answers with a
  * 400.
  */
-export function transcriptQuery(query: {
+export function trajectoryQuery(query: {
   cursor?: string | null
   limit?: string | null
-}): TranscriptRange | string {
+}): TrajectoryRange | string {
   const { cursor, limit } = query
   if (cursor != null && !/^(0|[1-9]\d{0,14})$/.test(cursor)) {
     return `cursor must be a whole number of lines (got ${JSON.stringify(cursor)})`
@@ -192,16 +192,16 @@ export function transcriptQuery(query: {
   }
   return {
     start: cursor == null ? 0 : Number(cursor),
-    limit: limit == null ? TRANSCRIPT_LIMIT.default : Math.min(Number(limit), TRANSCRIPT_LIMIT.max),
+    limit: limit == null ? TRAJECTORY_LIMIT.default : Math.min(Number(limit), TRAJECTORY_LIMIT.max),
   }
 }
 
 /**
- * One page of a `.jsonl` file's lines, each read as a transcript line (`parseTranscript`), from
+ * One page of a `.jsonl` file's lines, each read as a trajectory line (`parseTrajectory`), from
  * the line `range.start` counts to.
  */
-export function pageTranscript(transcript: string, range: TranscriptRange): TranscriptPage {
-  const lines = parseTranscript(transcript)
+export function pageTrajectory(trajectory: string, range: TrajectoryRange): TrajectoryPage {
+  const lines = parseTrajectory(trajectory)
   const { start } = range
   const end = start + range.limit
   return {

@@ -1,5 +1,5 @@
 import type { ReasoningDelivery } from '../catalog/entry.ts'
-import type { FileEditEvent, TokenUsage, TranscriptEvent } from '../types.ts'
+import type { FileEditEvent, TokenUsage, TrajectoryEvent } from '../types.ts'
 
 /** One stream part and when it arrived, in ms since the turn started. */
 export type StampedPart = { ms: number; part: { type: string; [key: string]: unknown } }
@@ -11,7 +11,7 @@ type Pending = { ms: number; part: StampedPart['part']; step: number }
  */
 type Timing = { start?: number; end?: number; at?: number; recovered?: boolean }
 
-/** Shell-like tools at or above this duration get `stalled: true` on their transcript event. */
+/** Shell-like tools at or above this duration get `stalled: true` on their trajectory event. */
 export const STALL_TOOL_MS = 120_000
 
 const SHELL_TOOLS = new Set([
@@ -407,7 +407,7 @@ function adapterToolOutput(metadata: unknown): AdapterToolOutput {
 }
 
 /**
- * Turns an AI SDK harness stream into transcript events: text and reasoning blocks joined, each
+ * Turns an AI SDK harness stream into trajectory events: text and reasoning blocks joined, each
  * tool call merged with its result, edits normalized to `file-edit`, web tools given their query
  * or URL, and the harness's duplicate `fileChange` events dropped. Cursor's tool durations come
  * from its runner's own `tool_call` events, because tool results are only flushed at the end of
@@ -421,7 +421,7 @@ export function normalizeStream(
   parts: StampedPart[],
   startedAt: number,
   options: { fullToolOutput?: 'all' | readonly string[]; workspace?: RegExp } = {},
-): TranscriptEvent[] {
+): TrajectoryEvent[] {
   const { workspace } = options
   const inWorkspace: InWorkspace = (path) => (workspace ? path.replace(workspace, '') : path)
   const fullByHarness = (tool: string) =>
@@ -453,7 +453,7 @@ export function normalizeStream(
     timing.set(id, t)
   }
 
-  const out: Array<{ at: number; event: TranscriptEvent; placed?: true }> = []
+  const out: Array<{ at: number; event: TrajectoryEvent; placed?: true }> = []
   const finishes = parts.flatMap(({ ms, part }) => (part.type === 'finish-step' ? [ms] : []))
   const stamp = (at: number, step: number) => ({
     ts: new Date(startedAt + at).toISOString(),
@@ -756,7 +756,7 @@ export const timesReasoning = (delivery: ReasoningDelivery) =>
  */
 export function reasoningTime(
   delivery: ReasoningDelivery,
-  events: readonly TranscriptEvent[],
+  events: readonly TrajectoryEvent[],
   usage: TokenUsage | null,
 ): number | null {
   if (!timesReasoning(delivery)) return null

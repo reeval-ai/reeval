@@ -15,8 +15,8 @@ import type {
 import { GATEWAY_NAMES, gatewayDescriptorSchema, gatewayNameSchema } from './gateway.ts'
 import { type Assert, type Issue, jsonValueSchema, nonEmpty, type Same } from './shared.ts'
 
-/** The refusal for a transcript view that shows neither the agent's events nor its subagents'. */
-export const NO_TRANSCRIPT = 'shows the judge no transcript; use transcript: false'
+/** The refusal for a trajectory view that shows neither the agent's events nor its subagents'. */
+export const NO_TRAJECTORY = 'shows the judge no trajectory; use trajectory: false'
 
 /** The inputs every judge and question shares; a judge adds `contents` and `artifacts`. */
 export const sharedInputFields = {
@@ -24,7 +24,7 @@ export const sharedInputFields = {
   output: z.boolean().optional(),
   files: z.boolean().optional(),
   diff: z.union([z.boolean(), z.array(nonEmpty()).min(1)]).optional(),
-  transcript: z
+  trajectory: z
     .union([
       z.boolean(),
       z.enum(['tools', 'full']),
@@ -34,7 +34,7 @@ export const sharedInputFields = {
           agent: z.boolean().optional(),
           subagents: z.boolean().optional(),
         })
-        .refine((v) => v.agent !== false || v.subagents !== false, NO_TRANSCRIPT),
+        .refine((v) => v.agent !== false || v.subagents !== false, NO_TRAJECTORY),
     ])
     .optional(),
   checks: z.union([z.boolean(), z.array(nonEmpty())]).optional(),
@@ -43,7 +43,7 @@ export const sharedInputFields = {
 
 export const turnsSchema = z.enum(['last', 'all'])
 
-const { task, output, files, diff, transcript, checks, observations } = sharedInputFields
+const { task, output, files, diff, trajectory, checks, observations } = sharedInputFields
 
 export const judgeInputsSchema = z.strictObject({
   task,
@@ -51,7 +51,7 @@ export const judgeInputsSchema = z.strictObject({
   files,
   diff,
   contents: z.array(nonEmpty()).optional(),
-  transcript,
+  trajectory,
   checks,
   observations,
   artifacts: z.union([z.literal(true), z.array(z.custom<Capture | string>())]).optional(),
@@ -132,8 +132,8 @@ function distance(a: string, b: string): number {
 const nearest = (key: string, keys: readonly string[]) =>
   keys.find((k) => distance(key.toLowerCase(), k.toLowerCase()) <= 2)
 
-/** A transcript view with both the agent's events and its subagents' turned off. */
-export const showsNoTranscript = (value: unknown) =>
+/** A trajectory view with both the agent's events and its subagents' turned off. */
+export const showsNoTrajectory = (value: unknown) =>
   typeof value === 'object' &&
   value !== null &&
   (value as { agent?: unknown }).agent === false &&

@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
 import { callUsage, type ModelCall, modelCallEvents } from '../src/model-calls.ts'
-import type { TranscriptEvent } from '../src/types.ts'
+import type { TrajectoryEvent } from '../src/types.ts'
 import {
   inferDurations,
   segments,
@@ -21,7 +21,7 @@ const tool = (
   input: unknown,
   durationMs: number | null = 10,
   output: unknown = '',
-): TranscriptEvent => ({
+): TrajectoryEvent => ({
   ...at(atMs),
   type: 'tool',
   toolCallId: `t${atMs}`,
@@ -31,7 +31,7 @@ const tool = (
   ok: true,
   durationMs,
 })
-const model = (atMs: number, durationMs: number, stream = false): TranscriptEvent => ({
+const model = (atMs: number, durationMs: number, stream = false): TrajectoryEvent => ({
   ...at(atMs),
   type: 'model-call',
   request: 'POST api.anthropic.com/v1/messages',
@@ -43,22 +43,22 @@ const model = (atMs: number, durationMs: number, stream = false): TranscriptEven
   ...(stream ? { stream: true as const } : {}),
 })
 
-/** A captured attempt's transcript.jsonl, its first turn's events. */
-function captured(harness: string): { events: TranscriptEvent[]; turnMs: number } {
+/** A captured attempt's trajectory.jsonl, its first turn's events. */
+function captured(harness: string): { events: TrajectoryEvent[]; turnMs: number } {
   const run = join(
     import.meta.dirname,
     'fixtures/records/before-time-split/evals/.history/20261105T124838Z_nogit_cursor-agent_bxp9/probe-eval-ts-slow-install-d3cb47',
   )
   const dir = readdirSync(run).find((d) => d.startsWith(harness))
   assert.ok(dir)
-  const lines = readFileSync(join(run, dir, '1', 'transcript.jsonl'), 'utf8')
+  const lines = readFileSync(join(run, dir, '1', 'trajectory.jsonl'), 'utf8')
     .split('\n')
     .filter(Boolean)
     .map((l) => JSON.parse(l) as Record<string, unknown>)
   const end = lines.find((l) => l.type === 'turn-end')
   const events = lines
     .filter((l) => l.type !== 'prompt' && l.type !== 'turn-end')
-    .map(({ turn: _, ...e }) => e as TranscriptEvent)
+    .map(({ turn: _, ...e }) => e as TrajectoryEvent)
   return { events, turnMs: Number(end?.durationMs) }
 }
 
@@ -204,7 +204,7 @@ describe('inferDurations', () => {
     const events = inferDurations(
       [
         tool(100, 'read', {}, null),
-        { ...model(150, 10), role: 'side' } as TranscriptEvent,
+        { ...model(150, 10), role: 'side' } as TrajectoryEvent,
         model(200, 10, true),
         tool(400, 'read', {}),
       ],
@@ -353,9 +353,9 @@ export default defineEval({
     assert.equal(modelMs, null, 'the fake sandbox has no gateway to see model calls')
     assert.ok(waitingMs >= 1000, `waited ${waitingMs}ms`)
     assert.equal(toolMs + waitingMs + otherMs, turn?.durationMs)
-    assert.ok(attempt.files.transcript)
-    const transcript = read(attempt.files.transcript.path)
-    const readCall = transcript
+    assert.ok(attempt.files.trajectory)
+    const trajectory = read(attempt.files.trajectory.path)
+    const readCall = trajectory
       .split('\n')
       .filter(Boolean)
       .map((l) => JSON.parse(l))

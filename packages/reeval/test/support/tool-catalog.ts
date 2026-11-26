@@ -1,21 +1,21 @@
 // Each harness's tool catalog (its adapter's `builtinTools`) as the contract and the replays check
 // it: every tool a CLI calls must be one its adapter knows, and a contract behavior's file edit,
 // file read or command must land on a tool of that kind. A tool outside the catalog reaches the
-// transcript under its native name, so a renamed tool (agy 1.4.3's `view_file` → `read_file`)
-// would otherwise drop the edit out of the transcript while every other check still passes.
+// trajectory under its native name, so a renamed tool (agy 1.4.3's `view_file` → `read_file`)
+// would otherwise drop the edit out of the trajectory while every other check still passes.
 import { projectToolCall as antigravityTool } from '@reeval/harness-antigravity'
 import { projectToolCall as cursorTool } from '@reeval/harness-cursor-sdk'
 import { harnessAdapter } from '../../src/harness/agent.ts'
 import type { AgentKind } from '../../src/harness/agents.ts'
 import { agentAuth, agentFor } from '../../src/harness/agents.ts'
-import type { TranscriptEvent } from '../../src/types.ts'
+import type { TrajectoryEvent } from '../../src/types.ts'
 import { type HarnessRow, harnesses, harnessOf } from './harnesses.ts'
 
 export type ToolKind = 'readonly' | 'edit' | 'bash'
 
 export type Catalog = {
   harness: string
-  /** Each tool's name in the transcript, and its kind (`toolUseKind`), when it has one. */
+  /** Each tool's name in the trajectory, and its kind (`toolUseKind`), when it has one. */
   tools: ReadonlyMap<string, ToolKind | undefined>
   /** The catalog name a native tool name lands on, or undefined when the adapter doesn't map it. */
   native: (name: string) => string | undefined
@@ -71,7 +71,7 @@ export const catalogOfHarness = (harness: string) => {
 }
 
 /** The tool calls in `events` whose name the catalog doesn't know, each once. MCP tools are known. */
-export function unmappedTools(catalog: Catalog, events: readonly TranscriptEvent[]): string[] {
+export function unmappedTools(catalog: Catalog, events: readonly TrajectoryEvent[]): string[] {
   const names = events.flatMap((e) => (e.type === 'tool' ? [e.tool] : []))
   return [...new Set(names.filter((n) => !isMcp(n) && !catalog.tools.has(n)))].sort()
 }
@@ -114,7 +114,7 @@ export const SIGNALS: Record<string, readonly Signal[]> = {
 export function misfiled(
   catalog: Catalog,
   behavior: string,
-  events: readonly TranscriptEvent[],
+  events: readonly TrajectoryEvent[],
 ): string[] {
   const tools = events.flatMap((e) => (e.type === 'tool' ? [e] : []))
   const kindOf = (name: string) => catalog.tools.get(name)

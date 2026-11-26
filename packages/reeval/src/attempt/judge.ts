@@ -15,7 +15,7 @@ export function judgeTurns(a: Attempt, subject: Turn): { turns: DraftSource[]; s
   const byName = (turn: Turn, i: number): DraftSource => ({
     prompt: turn.prompt,
     text: turn.text,
-    transcript: turn.transcript,
+    trajectory: turn.trajectory,
     subagents: a.record.turns[i]?.subagents,
   })
   const at = a.turns.indexOf(subject)

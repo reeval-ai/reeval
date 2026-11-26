@@ -1,12 +1,12 @@
 import { isObjectLike } from '../object.ts'
 import { cutOutsideSecrets } from '../redact.ts'
 import { clip, formatDuration } from '../text.ts'
-import type { JudgeInputs, SubagentRun, TranscriptEvent } from '../types.ts'
+import type { JudgeInputs, SubagentRun, TrajectoryEvent } from '../types.ts'
 
 /** Tool output and input beyond this many characters are clipped unless the judge sees `'full'`. */
 export const TOOL_OUTPUT_CHARS = 300
 
-type Mode = Exclude<JudgeInputs['transcript'], false | undefined>
+type Mode = Exclude<JudgeInputs['trajectory'], false | undefined>
 
 const text = (value: unknown) =>
   typeof value === 'string' ? value : (JSON.stringify(value) ?? String(value))
@@ -41,7 +41,7 @@ export type JudgeSubagent = Pick<
   | 'finalMessage'
 > & { n?: number }
 
-/** The judge's view of a transcript: the detail, and whose events show. */
+/** The judge's view of a trajectory: the detail, and whose events show. */
 type View = { detail: 'messages' | 'tools' | 'full'; agent: boolean; subagents: boolean }
 
 const viewOf = (mode: Mode): View =>
@@ -53,17 +53,17 @@ const viewOf = (mode: Mode): View =>
       }
     : { detail: mode === true ? 'messages' : mode, agent: true, subagents: true }
 
-const subagentOf = (e: TranscriptEvent) => ('subagent' in e ? e.subagent : undefined)
+const subagentOf = (e: TrajectoryEvent) => ('subagent' in e ? e.subagent : undefined)
 
 /**
- * A turn's transcript as one entry per event, for the judge: compact lines, not raw events.
+ * A turn's trajectory as one entry per event, for the judge: compact lines, not raw events.
  * `true` shows messages and tool calls, `'tools'` tool calls only, `'full'` adds reasoning and
  * leaves tool input and output whole. Each subagent's events follow its spawn call, indented
  * under a line naming it from `runs`; a view without `agent` shows the subagents alone, each
  * with its task and last message.
  */
-export function transcriptForJudge(
-  events: readonly TranscriptEvent[],
+export function trajectoryForJudge(
+  events: readonly TrajectoryEvent[],
   mode: Mode,
   runs: readonly JudgeSubagent[] = [],
 ): string[] {
@@ -79,7 +79,7 @@ export function transcriptForJudge(
   const took = (ms: number | null) => (ms === null ? '' : ` · ${formatDuration(ms)}`)
   const result = (ok: boolean | null | undefined) =>
     ok === null ? 'unfinished' : ok === false ? 'failed' : 'ok'
-  const line = (e: TranscriptEvent): string | undefined => {
+  const line = (e: TrajectoryEvent): string | undefined => {
     switch (e.type) {
       case 'text':
         return view.detail === 'tools' ? undefined : `message: ${e.text}`
@@ -109,15 +109,15 @@ export function transcriptForJudge(
   }
 
   const byId = new Map(runs.map((r) => [r.id, r]))
-  const children = new Map<string, TranscriptEvent[]>()
-  const own: TranscriptEvent[] = []
+  const children = new Map<string, TrajectoryEvent[]>()
+  const own: TrajectoryEvent[] = []
   for (const e of events) {
     const tag = subagentOf(e)
     if (tag === undefined) own.push(e)
     else children.set(tag, [...(children.get(tag) ?? []), e])
   }
   const shown = new Set<string>()
-  const spawned = (e: TranscriptEvent) =>
+  const spawned = (e: TrajectoryEvent) =>
     e.type === 'tool'
       ? [...new Set([...byId.keys(), ...children.keys()])].filter(
           (id) => id === e.toolCallId || id.startsWith(`${e.toolCallId}#`),
@@ -137,12 +137,12 @@ export function transcriptForJudge(
     const mine = children.get(id) ?? []
     body.push(...walk(mine))
     if (run?.events === 'none' && !mine.length) {
-      body.push("(its own actions aren't in the transcript; the diff has what it changed)")
+      body.push("(its own actions aren't in the trajectory; the diff has what it changed)")
     }
     if (alone && run?.finalMessage) body.push(`final message: ${cut(run.finalMessage)}`)
     return [head, ...body.map(indent)]
   }
-  const walk = (list: readonly TranscriptEvent[]): string[] => {
+  const walk = (list: readonly TrajectoryEvent[]): string[] => {
     const out: string[] = []
     for (const e of list) {
       const l = line(e)

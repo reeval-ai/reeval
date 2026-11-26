@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto'
 import { appendFile, mkdir, rename, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import type { StampedPart } from '../driver/transcript.ts'
+import type { StampedPart } from '../driver/trajectory.ts'
 import type { HarnessResult } from '../driver/types.ts'
-import type { TranscriptEvent } from '../types.ts'
-import type { OutSession, OutTranscriptLine, OutTurn } from './types.ts'
+import type { TrajectoryEvent } from '../types.ts'
+import type { OutSession, OutTrajectoryLine, OutTurn } from './types.ts'
 
 /** Where a session writes what it did, on the host. */
 export type OutOptions = {
@@ -21,7 +21,7 @@ export type OutOptions = {
   debug?: boolean
 }
 
-/** A tool output longer than this, in characters, is cut in `transcript.jsonl`. */
+/** A tool output longer than this, in characters, is cut in `trajectory.jsonl`. */
 export const OUTPUT_CAP = 128 * 1024
 const HEAD = 96 * 1024
 const TAIL = 16 * 1024
@@ -210,8 +210,8 @@ function longText(value: unknown, secrets: readonly string[]): string | undefine
   return raw !== undefined && raw.length > OUTPUT_CAP ? masked(raw, secrets) : undefined
 }
 
-/** The transcript event as `transcript.jsonl` has it: a tool call's long input and output cut to their ends. */
-function line(turn: number, event: TranscriptEvent, secrets: readonly string[]): OutTranscriptLine {
+/** The trajectory event as `trajectory.jsonl` has it: a tool call's long input and output cut to their ends. */
+function line(turn: number, event: TrajectoryEvent, secrets: readonly string[]): OutTrajectoryLine {
   if (!('input' in event || 'output' in event)) return { turn, ...event }
   const input = longText(event.input, secrets)
   const output = longText(event.output, secrets)
@@ -232,7 +232,7 @@ function line(turn: number, event: TranscriptEvent, secrets: readonly string[]):
 
 /**
  * Writes a session's `out` directory: `session.json`, then a line of `turns.jsonl` and the turn's
- * lines of `transcript.jsonl` as each turn ends, so a directory a crash left behind still reads.
+ * lines of `trajectory.jsonl` as each turn ends, so a directory a crash left behind still reads.
  * Every file has the secrets masked. Writes run in order, one at a time.
  */
 export class OutWriter {
@@ -251,7 +251,7 @@ export class OutWriter {
   static async open(options: OutOptions, secrets: readonly string[]): Promise<OutWriter> {
     const out = new OutWriter(options, secrets)
     await mkdir(options.raw ? join(out.dir, 'raw') : out.dir, { recursive: true })
-    for (const file of ['turns.jsonl', 'transcript.jsonl']) await writeFile(join(out.dir, file), '')
+    for (const file of ['turns.jsonl', 'trajectory.jsonl']) await writeFile(join(out.dir, file), '')
     if (options.raw) await writeFile(join(out.dir, 'raw', 'parts.jsonl'), '')
     if (options.debug) await writeFile(join(out.dir, 'debug.log'), '')
     return out
@@ -278,11 +278,11 @@ export class OutWriter {
   }
 
   async turn(turn: number, prompt: string, result: HarnessResult): Promise<void> {
-    const { transcript, raw: _raw, steps: _steps, ...rest } = result
+    const { trajectory, raw: _raw, steps: _steps, ...rest } = result
     const record: OutTurn = { turn, prompt, ...rest }
     await this.#append(
-      'transcript.jsonl',
-      transcript.map((e) => line(turn, e, this.#secrets)),
+      'trajectory.jsonl',
+      trajectory.map((e) => line(turn, e, this.#secrets)),
     )
     await this.#append('turns.jsonl', [record])
   }

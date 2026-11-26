@@ -702,19 +702,19 @@ export default defineEval({
     assert.equal(e.trial.turns.length, 1)
     assert.equal(e.trial.turns[0]?.text, 'Wrote hello.txt')
     assert.equal(e.trial.turns[0]?.status, 'completed')
-    const transcript = e
-      .read(e.trial.files.transcript?.path ?? '')
+    const trajectory = e
+      .read(e.trial.files.trajectory?.path ?? '')
       .trim()
       .split('\n')
       .map((l) => JSON.parse(l))
     assert.deepEqual(
-      { ...transcript[0], ts: undefined },
+      { ...trajectory[0], ts: undefined },
       { ts: undefined, atMs: 0, turn: 0, type: 'prompt', text: 'write hello.txt' },
     )
-    for (const event of transcript)
+    for (const event of trajectory)
       assert.ok(!Number.isNaN(Date.parse(event.ts)), 'every line is timestamped')
     assert.deepEqual(
-      transcript
+      trajectory
         .filter((t) => t.type === 'file-edit')
         .map(({ path, kind, added, removed }) => ({ path, kind, added, removed })),
       [
@@ -722,8 +722,8 @@ export default defineEval({
         { path: 'big.txt', kind: 'create', added: 1, removed: 0 },
       ],
     )
-    assert.equal(transcript.at(-1).type, 'turn-end')
-    assert.equal(transcript.at(-1).durationMs, e.trial.turns[0]?.durationMs)
+    assert.equal(trajectory.at(-1).type, 'turn-end')
+    assert.equal(trajectory.at(-1).durationMs, e.trial.turns[0]?.durationMs)
     assert.match(e.read(e.trial.files.diff?.path ?? ''), /\+hi/)
     assert.equal(e.trial.turns[0]?.text, 'Wrote hello.txt', 'the final message lives in the record')
     assert.equal('final' in e.trial.files, false)
@@ -750,8 +750,8 @@ export default defineEval({
       new RegExp(`^${e.slug}/fake-fake-fake-[0-9a-f]{6}/1/diff\\.patch$`),
     )
     assert.equal(
-      e.trial.files.transcript?.path,
-      e.trial.files.diff?.path.replace('diff.patch', 'transcript.jsonl'),
+      e.trial.files.trajectory?.path,
+      e.trial.files.diff?.path.replace('diff.patch', 'trajectory.jsonl'),
     )
     assert.deepEqual(liveSandboxes(p), [], 'sandbox destroyed')
   })
@@ -940,7 +940,7 @@ export default defineEval({
     assert.ok(!r.stdout.includes('\x1b['))
   })
 
-  test('a model judge makes a real provider call: the request carries the question and transcript, the verdict the reply', async () => {
+  test('a model judge makes a real provider call: the request carries the question and trajectory, the verdict the reply', async () => {
     // A Gemini API stand-in: P(true) comes from the question, so one eval passes and one fails.
     const requests: { path: string; key: string | undefined; body: string }[] = []
     const server = createServer(async (req, res) => {
@@ -1011,7 +1011,7 @@ export default defineEval({
       for (const req of requests) {
         assert.equal(req.path, '/v1beta/models/gemini-under-test:generateContent')
         assert.equal(req.key, 'reeval-judge-test-key')
-        assert.match(req.body, /Hello, friend!/, 'the transcript is in the state the judge sees')
+        assert.match(req.body, /Hello, friend!/, 'the trajectory is in the state the judge sees')
       }
     } finally {
       server.close()

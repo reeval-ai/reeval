@@ -21,7 +21,7 @@ Every example takes the real agents in [`profiles.ts`](./profiles.ts) by name: `
 | [`with-checks-and-gates`](./with-checks-and-gates) | Named graders that each score on their own; `EvalError` fails the task when the rest would mean nothing |
 | [`with-hidden-tests`](./with-hidden-tests) | Grading with a test the agent never saw |
 | [`with-guarded-files`](./with-guarded-files) | Failing an agent that changes files it should leave alone |
-| [`with-transcript-matchers`](./with-transcript-matchers) | Grading what the agent did, not only what it left |
+| [`with-trajectory-matchers`](./with-trajectory-matchers) | Grading what the agent did, not only what it left |
 | [`with-web-matchers`](./with-web-matchers) | Grading that the agent searched the web and read the docs |
 | [`with-multi-turn`](./with-multi-turn) | A session with a follow-up turn |
 | [`with-cases`](./with-cases) | One task over a list of cases |

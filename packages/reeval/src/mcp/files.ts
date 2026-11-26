@@ -1,10 +1,10 @@
-// The run files `reeval mcp` reads beside the records: transcripts, setup and check logs.
+// The run files `reeval mcp` reads beside the records: trajectories, setup and check logs.
 import { readFile } from 'node:fs/promises'
 import type { AttemptRecord, RunRecord } from '../history/types.ts'
 import { resolveFile, type StudioSource } from '../studio/source.ts'
 import type { ResolvedConfig } from '../types.ts'
-import type { TranscriptLine } from '../view/model.ts'
-import { readableTranscriptLine } from '../view/record.ts'
+import type { TrajectoryLine } from '../view/model.ts'
+import { readableTrajectoryLine } from '../view/record.ts'
 
 export const source = (config: ResolvedConfig): StudioSource => ({
   root: config.root,
@@ -38,30 +38,30 @@ export async function runFile(config: ResolvedConfig, run: RunRecord, path: stri
   })
 }
 
-/** The attempt's transcript lines, or null when the run kept no transcript for it. */
-export async function transcriptLines(
+/** The attempt's trajectory lines, or null when the run kept no trajectory for it. */
+export async function trajectoryLines(
   config: ResolvedConfig,
   run: RunRecord,
   attempt: AttemptRecord,
-): Promise<TranscriptLine[] | null> {
-  const file = await runFile(config, run, attempt.files.transcript?.path)
+): Promise<TrajectoryLine[] | null> {
+  const file = await runFile(config, run, attempt.files.trajectory?.path)
   if (!file) return null
-  const lines: TranscriptLine[] = []
+  const lines: TrajectoryLine[] = []
   for (const line of (await readFile(file, 'utf8')).split('\n')) {
     if (!line.trim()) continue
     try {
-      lines.push(readableTranscriptLine(JSON.parse(line) as TranscriptLine))
+      lines.push(readableTrajectoryLine(JSON.parse(line) as TrajectoryLine))
     } catch {}
   }
   return lines
 }
 
-export async function readTranscript(config: ResolvedConfig, run: RunRecord, ref: string) {
+export async function readTrajectory(config: ResolvedConfig, run: RunRecord, ref: string) {
   const attempt = findAttempt(run, ref)
-  const lines = await transcriptLines(config, run, attempt)
+  const lines = await trajectoryLines(config, run, attempt)
   if (!lines) {
     throw new Error(
-      `${run.runId} kept no transcript for ${attempt.key} (recorded with --artifacts failures or none?)`,
+      `${run.runId} kept no trajectory for ${attempt.key} (recorded with --artifacts failures or none?)`,
     )
   }
   return { attempt, lines }

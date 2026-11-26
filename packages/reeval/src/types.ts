@@ -7,7 +7,7 @@ import type {
   SubagentRun,
   SubagentUsage,
   TokenUsage,
-  TranscriptEvent,
+  TrajectoryEvent,
   TurnStatus,
   VertexPublisher,
   WebEventType,
@@ -38,7 +38,7 @@ export type {
   SubagentRun,
   SubagentUsage,
   TokenUsage,
-  TranscriptEvent,
+  TrajectoryEvent,
   TurnStatus,
   VertexPublisher,
   WebEventType,
@@ -270,7 +270,7 @@ export type Diff = { patch: string; files: FileChange[] }
  * `otherMs`, the rest (the harness's own work, and time between calls). `modelMs` is null when
  * the turn's model calls weren't seen one by one: on a sandbox without the egress gateway, and
  * on Cursor, whose turn is one stream; that time is in `otherMs`. Which calls wait is a heuristic
- * over the transcript: a shell call run in the background (`run_in_background`, a trailing `&`,
+ * over the trajectory: a shell call run in the background (`run_in_background`, a trailing `&`,
  * `nohup`, or the command a Cursor terminal file names), then `sleep` and `wait` commands, output
  * tools (`BashOutput`, `TaskOutput`) and reads of a Cursor terminal file.
  */
@@ -296,7 +296,7 @@ export type TurnData = {
   status: TurnStatus
   startedAt: string
   durationMs: number
-  transcript: TranscriptEvent[]
+  trajectory: TrajectoryEvent[]
   /** Tokens the turn used, its subagents' included; null when the harness reports none. */
   usage: TokenUsage | null
   /**
@@ -306,7 +306,7 @@ export type TurnData = {
   model: string | null
   /**
    * Event types the harness couldn't report for this turn: the agent may have searched or
-   * fetched with no event in `transcript`. `toHaveSearched()` and `toHaveFetched()` refuse
+   * fetched with no event in `trajectory`. `toHaveSearched()` and `toHaveFetched()` refuse
    * such a turn. Usually `[]`; a Cursor turn
    * whose web calls the adapter couldn't recover (its SDK drops them from the stream) is
    * `['web-search', 'web-fetch']`.
@@ -417,12 +417,12 @@ export type JudgeInputs = {
    */
   contents?: string[]
   /**
-   * The graded turn's transcript as text lines: `true` is messages and tool calls with tool
+   * The graded turn's trajectory as text lines: `true` is messages and tool calls with tool
    * output clipped, `'tools'` tool calls only, `'full'` adds reasoning and whole tool output.
    * Each subagent's events show under its spawn call; `{ detail, agent, subagents }` picks the
-   * detail and whose events (`TranscriptView`).
+   * detail and whose events (`TrajectoryView`).
    */
-  transcript?: JudgeTranscript
+  trajectory?: JudgeTrajectory
   /** `c.exec` results so far; a list shows only those commands, as passed to `c.exec`. */
   checks?: boolean | string[]
   /** `c.observe()` values so far, by name; a list shows only those names. */
@@ -435,14 +435,14 @@ export type JudgeInputs = {
 }
 
 /**
- * Which of the transcript the judge sees, as an object: `detail` is `'tools'` or `'full'` (unset,
+ * Which of the trajectory the judge sees, as an object: `detail` is `'tools'` or `'full'` (unset,
  * what `true` shows), and `agent` and `subagents` whether the agent's own events and its
- * subagents' show, each unless false. Both false is refused: that's `transcript: false`.
+ * subagents' show, each unless false. Both false is refused: that's `trajectory: false`.
  */
-export type TranscriptView = { detail?: 'tools' | 'full'; agent?: boolean; subagents?: boolean }
+export type TrajectoryView = { detail?: 'tools' | 'full'; agent?: boolean; subagents?: boolean }
 
-/** A judge's or question's `transcript`: on, a detail, or a `TranscriptView`. */
-export type JudgeTranscript = boolean | 'tools' | 'full' | TranscriptView
+/** A judge's or question's `trajectory`: on, a detail, or a `TrajectoryView`. */
+export type JudgeTrajectory = boolean | 'tools' | 'full' | TrajectoryView
 
 /** One input turned on: `true`, a mode or a non-empty selection, not `false`. */
 type OneInput<I, K extends keyof I> = { [P in K]-?: Exclude<I[P], false | undefined> }
@@ -457,7 +457,7 @@ export type ResolvedJudgeStateOptions = {
   files: boolean
   diff: boolean | string[]
   contents: string[]
-  transcript: JudgeTranscript
+  trajectory: JudgeTrajectory
   turns: 'last' | 'all'
   checks: boolean | string[]
   /** Set only when the call turned it on, so never `false` as written. */
@@ -544,7 +544,7 @@ export type AttemptContext = {
    * Asks a decision model the `questions` about `state`, for the task to act on: the AI SDK's
    * `experimental_decide` on the call's `model`, else `decide.model`, else `analysis.model`, with
    * the attempt's signal. State and questions are masked first, and the call is recorded in the
-   * transcript; it's never graded, and its tokens never count as the agent's. A provider failure,
+   * trajectory; it's never graded, and its tokens never count as the agent's. A provider failure,
    * after the AI SDK's retries, fails the attempt as an infrastructure error.
    */
   decide<const QUESTIONS extends Record<string, Experimental_DecisionQuestion>>(
@@ -552,7 +552,7 @@ export type AttemptContext = {
   ): Promise<DecideResult<QUESTIONS>>
   /**
    * The judge's inputs as decision state: one JSON part with the keys a judge sees, masked as
-   * the judge's are. `output`, `diff` and `transcript` read the latest turn, or `on`.
+   * the judge's are. `output`, `diff` and `trajectory` read the latest turn, or `on`.
    */
   state(inputs: StateInputs): Promise<Experimental_DecisionStatePart[]>
   /** A capture as an image file part of decision state: a `c.capture()` result or its name. */
@@ -587,9 +587,9 @@ export type DecideResult<QUESTIONS extends Record<string, Experimental_DecisionQ
 /** What `c.state()` shows: the judge's inputs of the same names. */
 export type StateInputs = Pick<
   JudgeInputs,
-  'output' | 'diff' | 'contents' | 'observations' | 'transcript'
+  'output' | 'diff' | 'contents' | 'observations' | 'trajectory'
 > & {
-  /** The turn `output`, `diff` and `transcript` read instead of the latest. */
+  /** The turn `output`, `diff` and `trajectory` read instead of the latest. */
   on?: Turn
 }
 
@@ -2038,8 +2038,8 @@ export type QuestionFields = QuestionInputs & {
   /** The answers a question asked of each attempt picks from, with a short reason. */
   choices?: string[]
   /**
-   * `'all'`: every turn under `turns`, each with its task, output and (with `transcript`)
-   * transcript; `'last'`: the last turn only. Default `'all'`.
+   * `'all'`: every turn under `turns`, each with its task, output and (with `trajectory`)
+   * trajectory; `'last'`: the last turn only. Default `'all'`.
    */
   turns?: 'last' | 'all'
 }
@@ -2062,12 +2062,12 @@ export type QuestionInputs = {
    */
   diff?: boolean | string[]
   /**
-   * The transcript as text lines: `true` is messages and tool calls with tool output clipped,
+   * The trajectory as text lines: `true` is messages and tool calls with tool output clipped,
    * `'tools'` tool calls only, `'full'` adds reasoning and whole tool output, each subagent's
    * events under its spawn call; `{ detail, agent, subagents }` picks the detail and whose events
-   * (`TranscriptView`). It names each harness's tools, so a pair of two harnesses isn't blind.
+   * (`TrajectoryView`). It names each harness's tools, so a pair of two harnesses isn't blind.
    */
-  transcript?: JudgeTranscript
+  trajectory?: JudgeTrajectory
   /** `c.exec` results; a list shows only those commands, as passed to `c.exec`. */
   checks?: boolean | string[]
   /** `c.observe()` values, by name; a list shows only those names. */
@@ -2085,7 +2085,7 @@ export type ResolvedQuestionStateOptions = {
   output: boolean
   files: boolean
   diff: boolean | string[]
-  transcript: JudgeTranscript
+  trajectory: JudgeTrajectory
   turns: 'last' | 'all'
   checks: boolean | string[]
   /** Set only when the question turned it on, so never `false` as written. */
@@ -2744,11 +2744,11 @@ export type BlindAttempt = {
 }
 
 /** A turn of one side, with the inputs its question turned on. */
-export type BlindTurn = { task?: string; output?: string; transcript?: string }
+export type BlindTurn = { task?: string; output?: string; trajectory?: string }
 
 /**
  * One side of a blinded pair, or the attempt a per-attempt question is asked of: only the inputs
- * its question turned on. With `turns: 'all'`, `task`, `output` and `transcript` are
+ * its question turned on. With `turns: 'all'`, `task`, `output` and `trajectory` are
  * under `turns`; a task both sides of a pair share is the pair's prompt's, not either side's.
  */
 export type BlindSide = BlindTurn & {
@@ -2844,8 +2844,8 @@ export type ReevalConfig = {
   /** When runs are copied into the history folder: `reeval record` only, in CI, or on every run. */
   record?: RecordMode
   /**
-   * Formats each attempt with a transcript is also written in as its run ends, beside its
-   * transcript: `'atif'` writes `atif.json`, a Harbor ATIF trajectory. `reeval export --format`
+   * Formats each attempt with a trajectory is also written in as its run ends, beside its
+   * trajectory: `'atif'` writes `atif.json`, a Harbor ATIF trajectory. `reeval export --format`
    * writes the same files for a run afterwards.
    */
   exports?: ExportFormat[]
@@ -3177,7 +3177,7 @@ export type TurnRecord = Pick<
   | 'prompt'
   | 'text'
   | 'status'
-  | 'transcript'
+  | 'trajectory'
   | 'startedAt'
   | 'durationMs'
   | 'usage'
@@ -3942,7 +3942,7 @@ export type EvalRecord = {
    */
   captureUse?: CaptureUseSpend
   /**
-   * Every `c.decide()` call, in call order: written to decisions.jsonl and as transcript.jsonl's
+   * Every `c.decide()` call, in call order: written to decisions.jsonl and as trajectory.jsonl's
    * `decision` lines, never into the history record.
    */
   decisions?: DecisionRecord[]

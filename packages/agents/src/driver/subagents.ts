@@ -1,5 +1,5 @@
 import type { SubagentSupport } from '../catalog/entry.ts'
-import type { SubagentRun, SubagentUsage, TokenUsage, TranscriptEvent } from '../types.ts'
+import type { SubagentRun, SubagentUsage, TokenUsage, TrajectoryEvent } from '../types.ts'
 import { addUsage, sumUsage } from '../usage.ts'
 import { harnessUsage } from './agent.ts'
 
@@ -10,15 +10,15 @@ import { harnessUsage } from './agent.ts'
  */
 export async function turnSubagents(
   support: SubagentSupport | undefined,
-  transcript: readonly TranscriptEvent[],
+  trajectory: readonly TrajectoryEvent[],
   raw: readonly unknown[],
   read: (command: string) => Promise<string | undefined>,
 ): Promise<SubagentRun[]> {
   if (!support) return []
-  const spawned = support.spawns(transcript, raw)
+  const spawned = support.spawns(trajectory, raw)
   if (!spawned.length) return []
   const parents = new Map(
-    transcript.flatMap((e) =>
+    trajectory.flatMap((e) =>
       'toolCallId' in e && 'subagent' in e && e.subagent ? [[e.toolCallId, e.subagent]] : [],
     ),
   )

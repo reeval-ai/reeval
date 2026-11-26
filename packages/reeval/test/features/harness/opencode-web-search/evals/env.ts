@@ -22,7 +22,7 @@ export const found = defineGrader('found-pages', {
   grade: (c) =>
     Math.max(
       0,
-      ...(c.turns[0]?.transcript ?? []).flatMap((e) =>
+      ...(c.turns[0]?.trajectory ?? []).flatMap((e) =>
         e.type === 'web-search' ? [e.references ?? 0] : [],
       ),
     ),

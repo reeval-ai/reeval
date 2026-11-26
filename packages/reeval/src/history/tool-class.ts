@@ -164,7 +164,7 @@ function wildcards(glob: string): string {
   return re
 }
 
-/** A glob as a regex, with `{a,b}` alternatives. Words come from transcripts, so it never throws. */
+/** A glob as a regex, with `{a,b}` alternatives. Words come from trajectories, so it never throws. */
 function globRegex(glob: string): RegExp {
   let re = ''
   let from = 0

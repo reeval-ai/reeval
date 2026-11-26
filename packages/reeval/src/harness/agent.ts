@@ -20,7 +20,7 @@ import { hasNetworkSession, InfraError, type Sandbox } from '../sandbox/types.ts
 import { startEnv } from '../startup.ts'
 import type { AgentHarnessDescriptor, SandboxDescriptor } from '../types.ts'
 import { type Agent, agentAuth, agentFor, authHint, writePluginFiles } from './agents.ts'
-import { WORKSPACE_PATH } from './transcript.ts'
+import { WORKSPACE_PATH } from './trajectory.ts'
 import type { Harness } from './types.ts'
 
 /** The route's service account, written beside the workspace; returns where it is. */
@@ -184,7 +184,7 @@ export function createAgentHarness(
           },
           authHint: (message, refused) => authHint(catalog, message, refused),
           workspace: WORKSPACE_PATH,
-          raw: Boolean(process.env.REEVAL_RAW_TRANSCRIPT),
+          raw: Boolean(process.env.REEVAL_RAW_TRAJECTORY),
           log,
           signal,
           onEvent: (event) => {

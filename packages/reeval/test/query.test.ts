@@ -20,7 +20,7 @@ import { toolTarget } from '../src/history/tool-target.ts'
 import type { AttemptRecord, RunRecord } from '../src/history/types.ts'
 import { statementCount, usesRunParameter } from '../src/query.ts'
 import { toolCalls } from '../src/view/classify.ts'
-import { harnessLabel, type TranscriptLine } from '../src/view/model.ts'
+import { harnessLabel, type TrajectoryLine } from '../src/view/model.ts'
 import { baseEnv, fakeConfig, pkgRoot, project, readRun, runCli } from './helpers.ts'
 import { fixture } from './support/fixture.ts'
 
@@ -636,7 +636,7 @@ export default defineEval({
     )
     assert.deepEqual(rows, [{ skill: 'house-greeting', reads: 1, opened: 1 }])
 
-    // Recorded with history.artifacts' default, the passing attempt keeps no transcript: its
+    // Recorded with history.artifacts' default, the passing attempt keeps no trajectory: its
     // reads are unknown, so it has no row rather than a row saying it never read the skill.
     assert.equal((await runCli(p.dir, ['record'])).code, 0)
     assert.deepEqual(await query(p.dir, 'SELECT skill FROM skill_reads'), [])
@@ -863,8 +863,8 @@ export default defineEval({
     )
   })
 
-  test('effort’s per-class call medians leave out an attempt with calls but no transcript file', async () => {
-    const p = await project('query-effort-missing-transcript', {
+  test('effort’s per-class call medians leave out an attempt with calls but no trajectory file', async () => {
+    const p = await project('query-effort-missing-trajectory', {
       'reeval.config.ts': fakeConfig({ harness: "{ script: [[{ exec: 'true' }]] }" }),
       'evals/calls.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
@@ -883,7 +883,7 @@ export default defineEval({
       [1, 1, 1],
     )
     for (const a of attempts.slice(1)) {
-      rmSync(join(dir, ...(a.files.transcript?.path ?? '').split('/')))
+      rmSync(join(dir, ...(a.files.trajectory?.path ?? '').split('/')))
     }
     assert.deepEqual(
       await query(
@@ -952,8 +952,8 @@ export const skilled = defineEnvironment('skilled', ({ skill }) => ({
     )
   })
 
-  test('views read from transcripts say how many attempts the recorded artifacts left out', async () => {
-    const p = await project('query-transcript-coverage', {
+  test('views read from trajectories say how many attempts the recorded artifacts left out', async () => {
+    const p = await project('query-trajectory-coverage', {
       'reeval.config.ts': fakeConfig({
         harness: `{ script: [[{ exec: 'if test -f ~/.agents/skills/s/SKILL.md; then echo y > ok.txt; fi' }]] }`,
       }),
@@ -983,7 +983,7 @@ export const skilled = defineEnvironment('skilled', ({ skill }) => ({
     const ran = await runCli(p.dir, ['run'])
     assert.equal(ran.code, 0, ran.stdout + ran.stderr)
     const scratch = await runCli(p.dir, ['query', 'tool_calls'])
-    assert.doesNotMatch(scratch.stderr, /note:/, 'a scratch run keeps every transcript')
+    assert.doesNotMatch(scratch.stderr, /note:/, 'a scratch run keeps every trajectory')
 
     assert.equal((await runCli(p.dir, ['record', 'latest'])).code, 0)
     const recorded = await runCli(p.dir, [
@@ -996,7 +996,7 @@ export const skilled = defineEnvironment('skilled', ({ skill }) => ({
       /note: tool_calls, skill_uses cover 2 of the 4 attempts that made tool calls; .* history\.artifacts: 'all'/,
     )
     const run = await runCli(p.dir, ['query', 'SELECT * FROM attempts', '--json'])
-    assert.doesNotMatch(run.stderr, /note:/, 'a view not read from transcripts has no note')
+    assert.doesNotMatch(run.stderr, /note:/, 'a view not read from trajectories has no note')
 
     assert.equal((await runCli(p.dir, ['run'])).code, 0)
     const whole = await runCli(p.dir, ['query', 'tool_calls', '--run', readRun(p.dir).run.runId])
@@ -1202,7 +1202,7 @@ describe('reeval query plumbing', () => {
     for (const [sql, n] of cases) assert.equal(statementCount(sql), n, sql)
   })
 
-  test("a tool call's subagent is the id its transcript line names, null for the agent's own", () => {
+  test("a tool call's subagent is the id its trajectory line names, null for the agent's own", () => {
     const line = (subagent?: string) =>
       ({
         turn: 0,
@@ -1215,7 +1215,7 @@ describe('reeval query plumbing', () => {
         startedAt: 0,
         durationMs: 1,
         ...(subagent ? { subagent } : {}),
-      }) as TranscriptLine
+      }) as TrajectoryLine
     assert.deepEqual(
       toolCalls([line(), line('s1')]).map((c) => c.subagent),
       [null, 's1'],
@@ -1489,13 +1489,13 @@ describe('context_use and skill_files on real runs', () => {
     )
   })
 
-  test('an attempt whose transcript is gone has no skill_files or skill_reads rows', async () => {
+  test('an attempt whose trajectory is gone has no skill_files or skill_reads rows', async () => {
     const p = await recordFixture('fixtures/records/real-contract')
     rmSync(
       join(
         p.dir,
         'evals/.history/20260929T033538Z_nogit_runner_f3z3',
-        'evals-skill-eval-ts-skill-468cc8/claude-code-claude-haiku-4-5-skilled-docker-7add5d/1/transcript.jsonl',
+        'evals-skill-eval-ts-skill-468cc8/claude-code-claude-haiku-4-5-skilled-docker-7add5d/1/trajectory.jsonl',
       ),
     )
     const harnesses = async (sql: string) => {

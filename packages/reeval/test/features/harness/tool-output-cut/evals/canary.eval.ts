@@ -3,7 +3,7 @@ import { plain } from './env.ts'
 
 const shellOutput = defineGrader('shell-output', {
   grade: (c) => {
-    const shell = c.turns[0]?.transcript.find((e) => e.type === 'tool' && e.tool === 'shell')
+    const shell = c.turns[0]?.trajectory.find((e) => e.type === 'tool' && e.tool === 'shell')
     return shell?.type === 'tool'
       ? {
           outputView: shell.outputView ?? null,

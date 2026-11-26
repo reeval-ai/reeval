@@ -19,7 +19,7 @@ export default defineEval({
     },
     { question: 'Which greeting handles a missing name?', across: 'environment', diff: true },
     { question: 'Does the greeting use the house style?', choices: ['yes', 'no'], diff: true },
-    { question: 'How did the agent pick its greeting?', transcript: true },
+    { question: 'How did the agent pick its greeting?', trajectory: true },
   ],
   graders: [hasFile('greet.js', { name: 'writes greet.js' }), hasFile('greet.js', /=>/)],
   task: async (c) => {

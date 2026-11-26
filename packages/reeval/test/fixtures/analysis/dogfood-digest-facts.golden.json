@@ -717,7 +717,7 @@
   {
     "id": "F24",
     "kind": "skill-reads",
-    "note": "Attempts that read each skill they had (a load by name, or a tool call on skills/<name>/), and the transcript lines of the first read. source: placed by the environment, found in a skill directory the agent reads (skill-dir: a setup step, the workspace or a package manager put it there), or a SKILL.md read elsewhere (such as a package cache).",
+    "note": "Attempts that read each skill they had (a load by name, or a tool call on skills/<name>/), and the trajectory lines of the first read. source: placed by the environment, found in a skill directory the agent reads (skill-dir: a setup step, the workspace or a package manager put it there), or a SKILL.md read elsewhere (such as a package cache).",
     "cells": [
       {
         "cell": "es-good",

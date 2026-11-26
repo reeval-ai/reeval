@@ -113,12 +113,12 @@ CI writes the same matrix to the job summary.
   turn: the first `c.exec`, `c.readFile` or `c.writeFile` starts the sandbox and session.
 - **What the agent itself sees** differs from what `c.exec` sees: checks get `to: 'checks'`
   secrets, and the agent doesn't. Script the fake agent in `reeval.config.ts` with real sandbox
-  actions, then assert on its transcript:
+  actions, then assert on its trajectory:
 
   ```ts
   agents: fakeAgent({ script: [[{ exec: 'printenv CHECK_TOKEN || echo unset' }]] })
   // in the eval: the shell call's stdout
-  turn.transcript.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : []))
+  turn.trajectory.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : []))
   ```
 
   There's one step list per `c.send`, and the last list repeats. The steps are `{ exec }`,

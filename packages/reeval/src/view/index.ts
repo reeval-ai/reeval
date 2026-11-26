@@ -26,7 +26,7 @@ export type {
   CapturePageFile,
   Outcome,
   SandboxWarning,
-  TranscriptEvent,
+  TrajectoryEvent,
 } from '../types.ts'
 export * from './analysis.ts'
 export * from './api.ts'
@@ -49,7 +49,7 @@ export {
   readableCapturePage,
   readableRecord,
   readableRemarks,
-  readableTranscriptLine,
+  readableTrajectoryLine,
 } from './record.ts'
 export * from './remarks.ts'
 export * from './report/core.ts'

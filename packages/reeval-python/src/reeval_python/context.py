@@ -83,7 +83,7 @@ def _state_part(
     diff: bool | list[str] | None,
     contents: list[str] | None,
     observations: bool | list[str] | None,
-    transcript: bool | str | Mapping[str, Any] | None,
+    trajectory: bool | str | Mapping[str, Any] | None,
     on: Turn | None,
 ) -> DecideStatePartInputs:
     part: dict[str, Any] = {"type": "inputs"}
@@ -91,7 +91,7 @@ def _state_part(
         ("diff", diff),
         ("contents", contents),
         ("observations", observations),
-        ("transcript", transcript),
+        ("trajectory", trajectory),
     ):
         if value is not None:
             part[key] = value
@@ -101,10 +101,10 @@ def _state_part(
         part["on"] = {"turn": on.index}
     if not any(
         _input_on(part.get(key))
-        for key in ("output", "diff", "contents", "observations", "transcript")
+        for key in ("output", "diff", "contents", "observations", "trajectory")
     ):
         raise TypeError(
-            "c.state() shows nothing: turn on output, diff, contents, observations or transcript"
+            "c.state() shows nothing: turn on output, diff, contents, observations or trajectory"
         )
     return cast(DecideStatePartInputs, part)
 
@@ -305,12 +305,12 @@ class AttemptContext:
         diff: bool | list[str] | None = None,
         contents: list[str] | None = None,
         observations: bool | list[str] | None = None,
-        transcript: bool | str | Mapping[str, Any] | None = None,
+        trajectory: bool | str | Mapping[str, Any] | None = None,
         on: Turn | None = None,
     ) -> DecideStatePart:
         """The judge's inputs as one part of `c.decide()`'s state, masked as a judge's are: the
         latest turn's, or `on` an earlier one's."""
-        return _state_part(output, diff, contents, observations, transcript, on)
+        return _state_part(output, diff, contents, observations, trajectory, on)
 
 
 class SyncAttemptContext:
@@ -416,9 +416,9 @@ class SyncAttemptContext:
         diff: bool | list[str] | None = None,
         contents: list[str] | None = None,
         observations: bool | list[str] | None = None,
-        transcript: bool | str | Mapping[str, Any] | None = None,
+        trajectory: bool | str | Mapping[str, Any] | None = None,
         on: Turn | None = None,
     ) -> DecideStatePart:
         """The judge's inputs as one part of `c.decide()`'s state, masked as a judge's are: the
         latest turn's, or `on` an earlier one's."""
-        return _state_part(output, diff, contents, observations, transcript, on)
+        return _state_part(output, diff, contents, observations, trajectory, on)

@@ -1,6 +1,6 @@
 // One attempt as an ATIF trajectory (Harbor's Agent Trajectory Interchange Format): a user step
-// per prompt, and agent steps folded from the transcript. An agent step is one harness step where
-// the transcript numbers them, and starts again at a message that follows tool calls, since
+// per prompt, and agent steps folded from the trajectory. An agent step is one harness step where
+// the trajectory numbers them, and starts again at a message that follows tool calls, since
 // Codex's and Cursor's steps are whole turns. Each tool call is one `tool_calls` entry with its
 // result in `observation`. A turn's tokens, cost and LLM calls go on its last agent step; a streamed
 // subagent's events are an embedded trajectory its spawn call's result refers to. What ATIF has
@@ -9,7 +9,7 @@
 import type { AttemptRecord, RunRecord } from '../history/types.ts'
 import type { TokenUsage } from '../types.ts'
 import type { Metrics, ObservationResult, Step, ToolCall, Trajectory } from './atif-schema.ts'
-import type { TranscriptLine } from './model.ts'
+import type { TrajectoryLine } from './model.ts'
 
 export const ATIF_VERSION = 'ATIF-v1.7'
 
@@ -44,11 +44,11 @@ function tokens(u: TokenUsage): Metrics {
   }
 }
 
-/** The ATIF trajectory of `attempt`, from its record and its `transcript.jsonl` lines. */
+/** The ATIF trajectory of `attempt`, from its record and its `trajectory.jsonl` lines. */
 export function toAtif(
   run: RunRecord,
   attempt: AttemptRecord,
-  lines: TranscriptLine[],
+  lines: TrajectoryLine[],
 ): Trajectory {
   const cell = run.evals
     .find((e) => e.attempts.some((a) => a.key === attempt.key))
@@ -111,7 +111,7 @@ export function toAtif(
       lastOfTurn.set(cur.turn, steps.length - 1)
       cur = null
     }
-    const open = (line: TranscriptLine) => {
+    const open = (line: TrajectoryLine) => {
       close()
       cur = {
         step: 'step' in line ? line.step : undefined,
@@ -125,7 +125,7 @@ export function toAtif(
       }
       return cur
     }
-    const stepChanged = (line: TranscriptLine) =>
+    const stepChanged = (line: TrajectoryLine) =>
       'step' in line && line.step !== undefined && cur?.step !== undefined && line.step !== cur.step
 
     if (scope !== undefined) {

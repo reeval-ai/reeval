@@ -22,7 +22,7 @@ import type {
   EvalMeta,
   EvalRecord,
   JSONValue,
-  TranscriptEvent,
+  TrajectoryEvent,
 } from '../types.ts'
 import { resourcesLine } from '../view/resources.ts'
 import { messageLine } from '../view/suite.ts'
@@ -49,7 +49,7 @@ export function reclassifyTurnErrors(a: Attempt): void {
   record.turnStatusRead = false
   const turn = record.turns[index]
   if (!turn) return
-  const errEvent = turn.transcript.find((e) => e.type === 'error')
+  const errEvent = turn.trajectory.find((e) => e.type === 'error')
   const errText = errEvent && errEvent.type === 'error' ? errEvent.message : undefined
   const kind = turnErrorKind(errText)
   const detail = messageLine(errText ?? 'unknown error')
@@ -264,7 +264,7 @@ export function recordEgress(a: Attempt, sandbox: Sandbox | undefined): void {
 }
 
 /**
- * Each turn's model calls and inferred tool durations in its transcript, and where its time
+ * Each turn's model calls and inferred tool durations in its trajectory, and where its time
  * went. After teardown, so a stream that outlived its turn (Cursor's) has ended.
  */
 export function recordTimeline(a: Attempt, sandbox: Sandbox | undefined): void {
@@ -272,7 +272,7 @@ export function recordTimeline(a: Attempt, sandbox: Sandbox | undefined): void {
   for (const turn of a.record.turns) {
     const events = inferDurations(
       [
-        ...turn.transcript,
+        ...turn.trajectory,
         ...modelCallEvents(calls, {
           startedAt: Date.parse(turn.startedAt),
           durationMs: turn.durationMs,
@@ -282,7 +282,7 @@ export function recordTimeline(a: Attempt, sandbox: Sandbox | undefined): void {
       ].sort((x, y) => x.atMs - y.atMs),
       turn.durationMs,
     )
-    turn.transcript = events
+    turn.trajectory = events
     turn.timeSplit = timeSplit(events, turn.durationMs)
   }
   const split = sumSplits(a.record.turns.map((t) => t.timeSplit))
@@ -358,7 +358,7 @@ export async function writeRecord(a: Attempt, stagingDir: string, id: string): P
     errorKind: record.error?.kind ?? null,
     ...(record.failure ? { failure: withoutStack(record.failure) } : {}),
     judgements: [],
-    turnErrors: turnErrors(record.turns.map((t) => t.transcript)),
+    turnErrors: turnErrors(record.turns.map((t) => t.trajectory)),
     ...(record.error?.prepare
       ? { prepare: { ref: record.error.prepare.ref, stage: record.error.prepare.stage } }
       : {}),
@@ -366,8 +366,8 @@ export async function writeRecord(a: Attempt, stagingDir: string, id: string): P
 }
 
 /** `turn N error: <message>` for each turn with an error event. */
-export function turnErrors(transcripts: TranscriptEvent[][]): string[] {
-  return transcripts.flatMap((events, i) => {
+export function turnErrors(trajectories: TrajectoryEvent[][]): string[] {
+  return trajectories.flatMap((events, i) => {
     const found = events.find((e) => e.type === 'error')
     return found?.type === 'error'
       ? [`turn ${i + 1} error: ${clip(redactSecrets(found.message.trim()), 500)}`]

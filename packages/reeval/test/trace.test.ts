@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { describe, test } from 'node:test'
 import { type RunTrace, runTrace } from '../src/history/trace.ts'
 import type { AttemptRecord, RunRecord } from '../src/history/types.ts'
-import type { TranscriptLine } from '../src/view/model.ts'
+import type { TrajectoryLine } from '../src/view/model.ts'
 import { fakeConfig, project, readRun, runCli, tempDir } from './helpers.ts'
 import { traceProblems } from './support/trace.ts'
 
@@ -143,19 +143,19 @@ describe('reeval show --trace', () => {
     })
   })
 
-  test('nests transcript events under their turn, clipping calls that overlap', () => {
+  test('nests trajectory events under their turn, clipping calls that overlap', () => {
     const a = attempt('x#1', 0, 10_000, {
       turns: [{ prompt: 'p', status: 'completed', startedAt: iso(1000), durationMs: 5000 }],
     })
     const line = (at: number, event: object) =>
-      ({ turn: 0, ts: iso(at), atMs: at - 1000, ...event }) as TranscriptLine
+      ({ turn: 0, ts: iso(at), atMs: at - 1000, ...event }) as TrajectoryLine
     const lines = [
       line(1000, { type: 'prompt', text: 'p' }),
       line(1500, { type: 'tool', tool: 'bash', toolCallId: '1', ok: true, durationMs: 2000 }),
       line(2000, { type: 'tool', tool: 'read', toolCallId: '2', ok: true, durationMs: 2000 }),
       line(4500, { type: 'reasoning', text: 'hm', durationMs: 9000 }),
       line(5000, { type: 'retry', message: 'overloaded' }),
-      { turn: 0, type: 'text', text: 'no time', durationMs: 1 } as unknown as TranscriptLine,
+      { turn: 0, type: 'text', text: 'no time', durationMs: 1 } as unknown as TrajectoryLine,
     ]
     const trace = runTrace(record([a]), new Map([[a.key, lines]]))
     assert.deepEqual(traceProblems(trace), [])

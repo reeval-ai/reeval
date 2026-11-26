@@ -1567,7 +1567,7 @@ export const features: Feature[] = [
       assert.equal(boatCreates(run, sandbox), 1, 'both attempts ran on one machine')
       // Whichever attempt ran second, the canary's or lands', found nothing the first left.
       const saw = run.evals.map((e) => {
-        const path = e.attempts[0]?.files.transcript?.path ?? ''
+        const path = e.attempts[0]?.files.trajectory?.path ?? ''
         const shell = readFileSync(join(runDir, path), 'utf8')
           .trim()
           .split('\n')
@@ -2082,7 +2082,7 @@ export const features: Feature[] = [
     async record({ run, project, runDir }) {
       const attempt = landed(run)
       assert.equal(attempt?.error, null)
-      const lines = readFileSync(join(runDir, attempt?.files.transcript?.path ?? ''), 'utf8')
+      const lines = readFileSync(join(runDir, attempt?.files.trajectory?.path ?? ''), 'utf8')
         .trim()
         .split('\n')
         .map((l) => JSON.parse(l))
@@ -2200,7 +2200,7 @@ export const features: Feature[] = [
         2,
         'one warning per attempt, on the terminal',
       )
-      // The record, transcripts and debug trace, with a twin: the same search finds the request.
+      // The record, trajectories and debug trace, with a twin: the same search finds the request.
       const state = join(project, '.reeval')
       assert.equal(filesContaining(state, BROKERED_KEY), '')
       assert.notEqual(filesContaining(state, '/v1/models'), '')
@@ -2790,7 +2790,7 @@ export const features: Feature[] = [
           .map((e) => `${runId}/${relative(history.dir, join(e.parentPath, e.name))}`),
       ].sort()
       assert.ok(
-        loose.some((p) => p.endsWith('/transcript.jsonl')),
+        loose.some((p) => p.endsWith('/trajectory.jsonl')),
         "the canary's failed attempt kept its files",
       )
       const archive = await openArchive(join(folder, `${runId}.zip`))
@@ -2851,7 +2851,7 @@ export const features: Feature[] = [
         output: false,
         files: false,
         diff: true,
-        transcript: false,
+        trajectory: false,
         turns: 'all',
         checks: false,
       })
@@ -2912,7 +2912,7 @@ export const features: Feature[] = [
         output: true,
         files: false,
         diff: true,
-        transcript: true,
+        trajectory: true,
         turns: 'all',
         checks: false,
       })
@@ -3561,8 +3561,8 @@ export const features: Feature[] = [
     canary: zeroBy('shell-output'),
     canaryGraded: { 'shell-output': { outputView: 'model', whole: true } },
     record: ({ run, runDir }) => {
-      const transcript = landed(run)?.files.transcript?.path ?? ''
-      const shell = readFileSync(join(runDir, transcript), 'utf8')
+      const trajectory = landed(run)?.files.trajectory?.path ?? ''
+      const shell = readFileSync(join(runDir, trajectory), 'utf8')
         .trim()
         .split('\n')
         .map((l) => JSON.parse(l))
@@ -3587,8 +3587,8 @@ export const features: Feature[] = [
       },
     },
     record: ({ run, runDir }) => {
-      const transcript = landed(run)?.files.transcript?.path ?? ''
-      const edit = readFileSync(join(runDir, transcript), 'utf8')
+      const trajectory = landed(run)?.files.trajectory?.path ?? ''
+      const edit = readFileSync(join(runDir, trajectory), 'utf8')
         .trim()
         .split('\n')
         .map((l) => JSON.parse(l))
@@ -3602,7 +3602,7 @@ export const features: Feature[] = [
     },
   },
   {
-    dir: 'harness/subagent-transcript',
+    dir: 'harness/subagent-trajectory',
     tiers: ['fake'],
     env: 'plain',
     canary: zeroBy('own-tokens'),
@@ -3639,7 +3639,7 @@ export const features: Feature[] = [
         usage: { ...own, input: 20, output: 2 },
       }
       assert.deepEqual(pick(unstreamed, Object.keys(unstreamedWant)), unstreamedWant)
-      const lines = readFileSync(join(runDir, attempt?.files.transcript?.path ?? ''), 'utf8')
+      const lines = readFileSync(join(runDir, attempt?.files.trajectory?.path ?? ''), 'utf8')
         .trim()
         .split('\n')
         .map((l) => JSON.parse(l))
@@ -3684,7 +3684,7 @@ export const features: Feature[] = [
         cacheWrite: 0,
         reasoning: 10,
       })
-      const lines = readFileSync(join(runDir, attempt?.files.transcript?.path ?? ''), 'utf8')
+      const lines = readFileSync(join(runDir, attempt?.files.trajectory?.path ?? ''), 'utf8')
         .trim()
         .split('\n')
         .map((l) => JSON.parse(l))
@@ -3828,8 +3828,8 @@ export const features: Feature[] = [
           ['noted', 2, 1],
         ],
       )
-      const path = attempt?.files.transcript?.path
-      assert.ok(path, 'lands wrote its transcript')
+      const path = attempt?.files.trajectory?.path
+      assert.ok(path, 'lands wrote its trajectory')
       const lines = readFileSync(join(runDir, path), 'utf8')
         .trim()
         .split('\n')
@@ -3865,7 +3865,7 @@ export const features: Feature[] = [
     record: ({ run, runDir }) => {
       const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
       assert.deepEqual(attempt?.decisionUse, { calls: 1, usage: null })
-      const path = attempt?.files.transcript?.path
+      const path = attempt?.files.trajectory?.path
       assert.ok(path)
       const line = readFileSync(join(runDir, path), 'utf8')
         .trim()
@@ -3899,9 +3899,9 @@ export const features: Feature[] = [
     canary: zeroBy('summary-clear'),
   },
   {
-    dir: 'judge/input-transcript',
+    dir: 'judge/input-trajectory',
     tiers: ['fake'],
-    env: 'transcript-app',
+    env: 'trajectory-app',
     canary: zeroBy('ran-the-tests'),
   },
   {
@@ -4188,7 +4188,7 @@ export const features: Feature[] = [
     },
   },
   {
-    dir: 'grade/builtin-transcript',
+    dir: 'grade/builtin-trajectory',
     tiers: ['fake'],
     env: 'skilled',
     canary: zeroBy('called-tool:Edit (required)'),

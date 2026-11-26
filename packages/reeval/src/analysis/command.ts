@@ -75,7 +75,7 @@ export function contextMarkdown(d: Digest, head: string, base: string | null): s
   return [
     `# reeval analysis context: ${head}${base ? ` vs ${base}` : ''}`,
     '',
-    'Analyze this reeval run for the engineer who wrote the evals. The digest below holds facts reeval computed (F…), evidence excerpts (E…, transcript lines as L<n>) and the attempts table. Cite those ids for every claim, keep to the verdicts in the facts, and suggest at most 5 concrete actions, each verified with a reeval command from the CLI list.',
+    'Analyze this reeval run for the engineer who wrote the evals. The digest below holds facts reeval computed (F…), evidence excerpts (E…, trajectory lines as L<n>) and the attempts table. Cite those ids for every claim, keep to the verdicts in the facts, and suggest at most 5 concrete actions, each verified with a reeval command from the CLI list.',
     '',
     ...(d.frame === 'study'
       ? [
@@ -102,7 +102,7 @@ export function contextMarkdown(d: Digest, head: string, base: string | null): s
     '',
     '- `reeval query effort`, `reeval query factor_effects`, `reeval query skill_reads`, `reeval query flaky_cells`, `reeval query drift`',
     `- \`reeval query "SELECT line, tool, target FROM tool_calls WHERE attempt_key = '<key>'"\`: an attempt's tool calls`,
-    "- `reeval show <run> --json`: the whole record; transcripts are under the run's artifact folder",
+    "- `reeval show <run> --json`: the whole record; trajectories are under the run's artifact folder",
     '',
     '## Digest',
     '',

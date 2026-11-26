@@ -8,7 +8,7 @@ import type { EvalDetail, RunReportIndex } from '../../src/view/report/core.ts'
 
 /**
  * Everything `reeval studio`'s data server answers for a project's runs (the run list, each run's
- * report index, each eval's detail and each transcript it links), fetched as a paired page would and written under
+ * report index, each eval's detail and each trajectory it links), fetched as a paired page would and written under
  * `out`, one file per response, so a test can search what the studio shows.
  */
 export async function writeStudioResponses(source: StudioSource, out: string): Promise<void> {
@@ -44,7 +44,7 @@ export async function writeStudioResponses(source: StudioSource, out: string): P
     for (const e of index?.evals ?? []) {
       const detail = (await get(studioPaths.eval(runId, e.id))) as EvalDetail
       for (const a of detail.attempts) {
-        if (a.links.transcript) await get(`${a.links.transcript}?limit=2000`, true)
+        if (a.links.trajectory) await get(`${a.links.trajectory}?limit=2000`, true)
       }
     }
   }

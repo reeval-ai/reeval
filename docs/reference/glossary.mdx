@@ -167,15 +167,15 @@ The task is what the agent is asked to do, sent with `c.send()`. For more inform
 
 `timeout` defaults to `'15m'`. A setup step's `timeout` defaults to `'5m'`. `capture.timeout` defaults to `'60s'`. `startTimeout` limits how long a harness may take to start.
 
-## Transcript
+## Trajectory
 
-A transcript records every message and tool call of an attempt as one JSON object per line in the `transcript.jsonl` file.
+A trajectory records every message and tool call of an attempt as one JSON object per line in the `trajectory.jsonl` file.
 
-`turn.transcript` is that turn's events. The Run history `transcript` tool is titled "Attempt transcript". `REEVAL_RAW_TRANSCRIPT` is the host variable. For more information about a transcript, see [Read a transcript](/results/inspection/debugging#read-a-transcript).
+`turn.trajectory` is that turn's events. The Run history `trajectory` tool is titled "Attempt trajectory". `REEVAL_RAW_TRAJECTORY` is the host variable. For more information about a trajectory, see [Read a trajectory](/results/inspection/debugging#read-a-trajectory).
 
 ## Turn
 
-A turn is the agent's reply to one `c.send()` call. The turn holds the final message, transcript events, token usage, the served model, and the workspace diff. For more information about a turn, see [Turns](/evaluations/task/turns).
+A turn is the agent's reply to one `c.send()` call. The turn holds the final message, trajectory events, token usage, the served model, and the workspace diff. For more information about a turn, see [Turns](/evaluations/task/turns).
 
 ## Variant
 

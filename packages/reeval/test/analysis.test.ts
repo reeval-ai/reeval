@@ -196,7 +196,7 @@ describe('facts on the dogfood history (2 runs, 36 real Cursor attempts)', () =>
         ['es-good', 6, 6, 4],
         ['es-weak', 6, 6, 4],
       ],
-      'every skill attempt read its SKILL.md, at transcript line 4',
+      'every skill attempt read its SKILL.md, at trajectory line 4',
     )
   })
 
@@ -1196,7 +1196,7 @@ describe('reeval analyze', () => {
     assert.match(
       e1?.lines[0] ?? '',
       /^L39 text: Fixed\./,
-      'the final message keeps its transcript line',
+      'the final message keeps its trajectory line',
     )
     assert.ok(
       digest.evidence.some((e) => e.ref === 'attempt:r2/fix-config/control#2'),

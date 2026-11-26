@@ -19,7 +19,7 @@ const native = (
 /*
  * The SDK's `tool_call` names (`SDKToolUseMessage.name`). The SDK calls its args and results
  * unstable, so every schema is loose. Keys follow `@ai-sdk/harness-cursor` (the ACP adapter) so
- * transcripts from both line up.
+ * trajectories from both line up.
  */
 export const CURSOR_SDK_BUILTIN_TOOLS = {
   bash: {

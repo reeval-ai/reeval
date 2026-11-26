@@ -230,12 +230,12 @@ const recordedRunId = (dir: string) =>
     '',
   )
 
-/** The archive's files under the run's folder that are transcripts. */
-async function transcripts(file: string): Promise<string[]> {
+/** The archive's files under the run's folder that are trajectories. */
+async function trajectories(file: string): Promise<string[]> {
   const archive = await openArchive(file)
   try {
     await archive.verify()
-    return archive.manifest.files.map((f) => f.path).filter((p) => /transcript/.test(p))
+    return archive.manifest.files.map((f) => f.path).filter((p) => /trajectory/.test(p))
   } finally {
     await archive.close()
   }
@@ -273,7 +273,7 @@ describe('reeval studio share', () => {
         r.stdout.trimEnd().endsWith(`Shared ${runId} (report, team): ${p.base}/s/${id}`),
         r.stdout,
       )
-      assert.doesNotMatch(r.stdout, /transcripts|without signing in/)
+      assert.doesNotMatch(r.stdout, /trajectories|without signing in/)
       never(r.stdout + r.stderr)
     } finally {
       await p.close()
@@ -301,7 +301,7 @@ describe('reeval studio share', () => {
     try {
       const full = await runCli(dir, ['studio', 'share', '--full'], { env: envFor(p.base) })
       assert.equal(full.code, 0, full.stdout + full.stderr)
-      assert.match(full.stdout, /^This share includes the run's transcripts and artifacts\.$/m)
+      assert.match(full.stdout, /^This share includes the run's trajectories and artifacts\.$/m)
       assert.doesNotMatch(
         full.stderr,
         /recorded with artifacts/,
@@ -312,7 +312,7 @@ describe('reeval studio share', () => {
       const pub = await runCli(dir, ['studio', 'share', '--public'], { env: envFor(p.base) })
       assert.equal(pub.code, 0, pub.stdout + pub.stderr)
       assert.match(pub.stdout, /^Anyone with the link can view it, without signing in\.$/m)
-      assert.doesNotMatch(pub.stdout, /transcripts/)
+      assert.doesNotMatch(pub.stdout, /trajectories/)
       assert.match(pub.stdout, /\(report, public\)/)
       const bodies = p.seen
         .filter((s) => s.method === 'POST')
@@ -326,7 +326,7 @@ describe('reeval studio share', () => {
     }
   })
 
-  test('--full says which transcripts are missing from a copy it pushed', async () => {
+  test('--full says which trajectories are missing from a copy it pushed', async () => {
     const p = await platform()
     try {
       const r = await runCli(dir, ['studio', 'share', '--full'], { env: envFor(p.base) })
@@ -334,7 +334,7 @@ describe('reeval studio share', () => {
       assert.match(r.stdout, /^Pushing /m)
       assert.match(
         r.stderr,
-        /recorded with artifacts evidence, so passing attempts' transcripts weren't kept: for future runs, history\.artifacts: 'all' or reeval record --artifacts all/,
+        /recorded with artifacts evidence, so passing attempts' trajectories weren't kept: for future runs, history\.artifacts: 'all' or reeval record --artifacts all/,
       )
     } finally {
       await p.close()
@@ -406,7 +406,7 @@ describe('reeval studio share', () => {
       assert.equal(share.pushed, true)
       assert.equal(share.created, true)
       assert.match(r.stderr, /Pushing /)
-      assert.match(r.stderr, /transcripts/)
+      assert.match(r.stderr, /trajectories/)
       assert.match(r.stderr, /without signing in/)
     } finally {
       await p.close()
@@ -867,8 +867,8 @@ describe('reeval cloud push --out and --json', () => {
     const id = (readdirSync(runs).find((f) => f.endsWith('.json')) as string).replace(/\.json$/, '')
     const staged = readdirSync(join(runs, id), { recursive: true }).map(String)
     assert.ok(
-      staged.some((f) => /transcript/.test(f)),
-      `the passing attempt's transcript is in .reeval/runs: ${staged.join(', ')}`,
+      staged.some((f) => /trajectory/.test(f)),
+      `the passing attempt's trajectory is in .reeval/runs: ${staged.join(', ')}`,
     )
 
     const refused = await runCli(scratchOnly, ['cloud', 'push', id, '--out', 'run.zip'])
@@ -889,7 +889,7 @@ describe('reeval cloud push --out and --json', () => {
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.equal(JSON.parse(r.stdout).runId, id)
     const file = join(scratchOnly, 'run.zip')
-    assert.ok((await transcripts(file)).length > 0, "the passing attempt's transcript")
+    assert.ok((await trajectories(file)).length > 0, "the passing attempt's trajectory")
     const archive = await openArchive(file)
     try {
       await archive.verify()
@@ -916,7 +916,7 @@ describe('reeval cloud push --out and --json', () => {
       'none.zip',
     ])
     assert.equal(none.code, 0, none.stdout + none.stderr)
-    assert.deepEqual(await transcripts(join(scratchOnly, 'none.zip')), [])
+    assert.deepEqual(await trajectories(join(scratchOnly, 'none.zip')), [])
     const bare = await openArchive(join(scratchOnly, 'none.zip'))
     try {
       assert.ok(!bare.has(`${id}/summary.md`) && !bare.has(`${id}/report.json`))
@@ -983,7 +983,7 @@ describe('reeval cloud push --out and --json', () => {
     ])
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const file = join(dir, 'out', 'all.zip')
-    assert.ok((await transcripts(file)).length > 0, "the passing attempt's transcript")
+    assert.ok((await trajectories(file)).length > 0, "the passing attempt's trajectory")
     const archive = await openArchive(file)
     try {
       await archive.verify()
@@ -1048,13 +1048,13 @@ describe('reeval cloud push --out and --json', () => {
     }
   })
 
-  test('a recorded run whose .reeval/runs copy lost a transcript falls back to the history copy, then the narrowing rule', async () => {
+  test('a recorded run whose .reeval/runs copy lost a trajectory falls back to the history copy, then the narrowing rule', async () => {
     const copy = join(dir, '.reeval', 'runs', runId)
-    const transcript = readdirSync(copy, { recursive: true })
+    const trajectory = readdirSync(copy, { recursive: true })
       .map(String)
-      .find((f) => f.endsWith('transcript.jsonl')) as string
-    assert.ok(transcript, 'the local copy has a transcript')
-    const file = join(copy, transcript)
+      .find((f) => f.endsWith('trajectory.jsonl')) as string
+    assert.ok(trajectory, 'the local copy has a trajectory')
+    const file = join(copy, trajectory)
     renameSync(file, `${file}.aside`)
     try {
       const r = await runCli(dir, [
@@ -1069,7 +1069,7 @@ describe('reeval cloud push --out and --json', () => {
       assert.equal(r.code, 2, r.stdout + r.stderr)
       assert.ok(
         r.stderr.includes(
-          `Pushing ${runId} from the history folder: its copy in .reeval/runs isn't the recorded run (${runId}/${transcript.split(sep).join('/')} is missing)`,
+          `Pushing ${runId} from the history folder: its copy in .reeval/runs isn't the recorded run (${runId}/${trajectory.split(sep).join('/')} is missing)`,
         ),
         r.stderr,
       )
@@ -1188,7 +1188,7 @@ describe('reeval cloud push --out and --json', () => {
     }
   }
 
-  test("a run recorded with reeval record --artifacts all carries every attempt's transcript", async () => {
+  test("a run recorded with reeval record --artifacts all carries every attempt's trajectory", async () => {
     const all = await linkedProject('cloud-push-artifacts')
     const flag = await runCli(all, ['run', '--artifacts', 'all'])
     assert.equal(flag.code, 2, flag.stdout + flag.stderr)
@@ -1202,10 +1202,10 @@ describe('reeval cloud push --out and --json', () => {
     assert.equal(recorded.code, 0, recorded.stdout + recorded.stderr)
     const r = await runCli(all, ['cloud', 'push', '--out', 'run.zip'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    assert.ok((await transcripts(join(all, 'run.zip'))).length > 0, 'the passing attempt keeps it')
+    assert.ok((await trajectories(join(all, 'run.zip'))).length > 0, 'the passing attempt keeps it')
     const evidence = await runCli(dir, ['cloud', 'push', '--out', 'out/run.zip'])
     assert.equal(evidence.code, 0, evidence.stdout + evidence.stderr)
-    assert.deepEqual(await transcripts(out()), [], "'evidence' leaves a passing attempt's out")
+    assert.deepEqual(await trajectories(out()), [], "'evidence' leaves a passing attempt's out")
   })
 })
 

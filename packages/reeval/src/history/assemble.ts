@@ -68,7 +68,7 @@ import type {
   RunContext,
   Snapshot,
   Target,
-  TranscriptEvent,
+  TrajectoryEvent,
   WebEventType,
 } from '../types.ts'
 import { promptTokens, sumUsage } from '../usage.ts'
@@ -83,7 +83,7 @@ import {
   worstOutcome,
 } from '../view/gate.ts'
 import { checkTries } from '../view/judgments.ts'
-import { parseTranscript } from '../view/model.ts'
+import { parseTrajectory } from '../view/model.ts'
 import { isLockfile, splitPatch } from '../view/patch.ts'
 import { SPANS_FILE } from '../view/spans.ts'
 import { turnErrorKind } from '../view/turn-error.ts'
@@ -119,7 +119,7 @@ import {
   WORKSPACE_MANIFEST,
 } from './types.ts'
 
-/** Final messages are cut at this size in the record; `transcript.jsonl` keeps them whole. */
+/** Final messages are cut at this size in the record; `trajectory.jsonl` keeps them whole. */
 const TURN_TEXT_LIMIT = 8 * 1024
 const TURN_ERROR_LIMIT = 1024
 
@@ -131,8 +131,8 @@ const maskedOver = (text: string, limit: number) =>
   text.length > limit ? redactSecrets(text) : text
 
 /** A turn's first error event, such as the provider's "Credit balance is too low". */
-export function turnError(transcript: TranscriptEvent[] | undefined): string | null {
-  const found = transcript?.find((e) => e.type === 'error')
+export function turnError(trajectory: TrajectoryEvent[] | undefined): string | null {
+  const found = trajectory?.find((e) => e.type === 'error')
   if (found?.type !== 'error') return null
   const message = maskedOver(found.message.trim(), TURN_ERROR_LIMIT)
   return message.length > TURN_ERROR_LIMIT ? `${message.slice(0, TURN_ERROR_LIMIT)}…` : message
@@ -142,7 +142,7 @@ export function turnError(transcript: TranscriptEvent[] | undefined): string | n
 export function turnText(text: string): string {
   const s = maskedOver(text, TURN_TEXT_LIMIT)
   return s.length > TURN_TEXT_LIMIT
-    ? `${s.slice(0, TURN_TEXT_LIMIT)}… [reeval: truncated ${s.length} characters; the whole message is the turn's last text event in transcript.jsonl]`
+    ? `${s.slice(0, TURN_TEXT_LIMIT)}… [reeval: truncated ${s.length} characters; the whole message is the turn's last text event in trajectory.jsonl]`
     : s
 }
 
@@ -387,7 +387,7 @@ function longText(value: unknown): string | undefined {
  * One JSON object per line: each turn's prompt, its events, then a `turn-end`, with each
  * `c.decide()` call before the prompt of the turn it came before, or last.
  */
-export function transcriptLines(record: EvalRecord): string {
+export function trajectoryLines(record: EvalRecord): string {
   const lines: string[] = []
   const decisions = record.decisions ?? []
   const decided = (before: (turn: number) => boolean) => {
@@ -415,7 +415,7 @@ export function transcriptLines(record: EvalRecord): string {
         text: turn.prompt,
       }),
     )
-    for (const event of turn.transcript) {
+    for (const event of turn.trajectory) {
       if ('input' in event || 'output' in event) {
         const input = longText(event.input)
         const output = longText(event.output)
@@ -463,7 +463,7 @@ function decisionUse(decisions: readonly DecisionRecord[]): DecisionUseSpend {
   }
 }
 
-/** Every stream part the harness sent, for debugging the normalizer (`REEVAL_RAW_TRANSCRIPT=1`). */
+/** Every stream part the harness sent, for debugging the normalizer (`REEVAL_RAW_TRAJECTORY=1`). */
 export function rawLines(record: EvalRecord): string | null {
   if (!record.turns.some((t) => t.raw)) return null
   const lines = record.turns.flatMap((turn, index) =>
@@ -485,7 +485,7 @@ function subagentRecords(turns: EvalRecord['turns']): SubagentRecord[] {
   let n = 0
   return turns.flatMap((t, turn) =>
     (t.subagents ?? []).map((s) => {
-      const own = t.transcript.filter((e) => 'subagent' in e && e.subagent === s.id)
+      const own = t.trajectory.filter((e) => 'subagent' in e && e.subagent === s.id)
       const streamed = s.events === 'streamed'
       const { id, ...rest } = s
       return {
@@ -504,16 +504,16 @@ function subagentRecords(turns: EvalRecord['turns']): SubagentRecord[] {
 
 /** See `activity.llmCalls`. */
 export function llmCalls(turns: EvalRecord['turns'], stepPerCall: boolean): number | null {
-  const calls = turns.flatMap((t) => t.transcript.filter((e) => e.type === 'model-call'))
+  const calls = turns.flatMap((t) => t.trajectory.filter((e) => e.type === 'model-call'))
   if (calls.some((c) => c.stream)) return null
   if (calls.length) return calls.filter((c) => c.role !== 'side').length
   if (!stepPerCall) return null
-  const steps = turns.map((t) => t.transcript.reduce((n, e) => Math.max(n, e.step ?? 0), 0))
+  const steps = turns.map((t) => t.trajectory.reduce((n, e) => Math.max(n, e.step ?? 0), 0))
   return steps.some((n) => n > 0) ? steps.reduce((n, s) => n + s, 0) : null
 }
 
 function activity(record: EvalRecord, stepPerCall: boolean): AttemptRecord['activity'] {
-  const events = record.turns.flatMap((t) => t.transcript)
+  const events = record.turns.flatMap((t) => t.trajectory)
   const count = (type: string) => events.filter((e) => e.type === type).length
   const web = (type: WebEventType) => {
     const n = count(type)
@@ -522,7 +522,7 @@ function activity(record: EvalRecord, stepPerCall: boolean): AttemptRecord['acti
   const turns = record.turns.map((t) =>
     t.reasoningMs !== undefined
       ? t.reasoningMs
-      : t.transcript.reduce(
+      : t.trajectory.reduce(
           (n, e) => n + (e.type === 'reasoning' && !e.subagent ? (e.durationMs ?? 0) : 0),
           0,
         ),
@@ -1292,9 +1292,9 @@ async function attemptEvidence(
     files.setupLog = out.add(`${dir}/setup.log`, log)
   }
   if (record && (record.turns.length > 0 || record.decisions?.length)) {
-    files.transcript = out.add(`${dir}/transcript.jsonl`, transcriptLines(record))
+    files.trajectory = out.add(`${dir}/trajectory.jsonl`, trajectoryLines(record))
     const raw = rawLines(record)
-    if (raw) files.rawTranscript = out.add(`${dir}/transcript.raw.jsonl`, raw)
+    if (raw) files.rawTrajectory = out.add(`${dir}/trajectory.raw.jsonl`, raw)
   }
   const rawPatch = record?.diff?.patch ?? null
   const patch = rawPatch !== null ? historyPatch(rawPatch) : null
@@ -1360,9 +1360,9 @@ async function attemptEvidence(
   }))
   return {
     turns: (record?.turns ?? []).map((t) => {
-      const error = turnError(t.transcript)
+      const error = turnError(t.trajectory)
       // Harness label first; else the gateway's main model-call in this turn's window.
-      const fromGateway = (t.transcript ?? [])
+      const fromGateway = (t.trajectory ?? [])
         .filter(
           (e) =>
             e.type === 'model-call' &&
@@ -1373,7 +1373,7 @@ async function attemptEvidence(
         .find((m): m is string => !!m)
       const servedModel = t.model ?? fromGateway ?? null
       const effort = effortFromModelLabel(servedModel) ?? null
-      const calls = (t.transcript ?? []).flatMap((e) =>
+      const calls = (t.trajectory ?? []).flatMap((e) =>
         e.type === 'model-call' && e.usage && e.role !== 'side' ? [e.usage] : [],
       )
       return {
@@ -1967,14 +1967,14 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
   return { record: final, artifacts: out.files, moves: out.moves, copies: out.copies }
 }
 
-/** Each attempt's transcript in the config's `exports` formats, beside it. */
+/** Each attempt's trajectory in the config's `exports` formats, beside it. */
 function writeExports(run: RunRecord, formats: ExportFormat[], out: Artifacts): void {
   if (!formats.length) return
   for (const attempt of run.evals.flatMap((e) => e.attempts)) {
-    const path = attempt.files.transcript?.path
+    const path = attempt.files.trajectory?.path
     const bytes = path && out.files.get(path)
     if (!bytes) continue
-    const lines = parseTranscript(Buffer.from(bytes).toString('utf8'))
+    const lines = parseTrajectory(Buffer.from(bytes).toString('utf8'))
     for (const format of formats) {
       const { file, render } = EXPORTERS[format]
       attempt.files[format] = out.add(

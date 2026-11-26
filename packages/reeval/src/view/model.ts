@@ -9,7 +9,7 @@ import type {
 } from '../history/types.ts'
 import { blocks } from '../target.ts'
 import { plural } from '../text.ts'
-import type { DecisionRecord, Outcome, TokenUsage, TranscriptEvent, TurnStatus } from '../types.ts'
+import type { DecisionRecord, Outcome, TokenUsage, TrajectoryEvent, TurnStatus } from '../types.ts'
 import { formatTokens, promptTokens } from '../usage.ts'
 import {
   type CompareCell,
@@ -22,7 +22,7 @@ import {
 } from './compare.ts'
 import { type CellEffort, cellContrast, cellEffort, type EffortContrast } from './effort.ts'
 import { cellJudgeRates, cellUsage, type JudgeKeyRate, uniqueJudgeLabels } from './judgments.ts'
-import { readableTranscriptLine } from './record.ts'
+import { readableTrajectoryLine } from './record.ts'
 
 // ── Formatting ───────────────────────────────────────────────────────────────────────────────
 
@@ -616,10 +616,10 @@ export function compareView(
   return { rows, counts, changes: stackChanges(base, head) }
 }
 
-// ── Transcript ───────────────────────────────────────────────────────────────────────────────
+// ── Trajectory ───────────────────────────────────────────────────────────────────────────────
 
-export type TranscriptLine =
-  | ({ turn: number } & TranscriptEvent)
+export type TrajectoryLine =
+  | ({ turn: number } & TrajectoryEvent)
   | { turn: number; ts: string; atMs: number; type: 'prompt'; text: string }
   | {
       turn: number
@@ -632,36 +632,36 @@ export type TranscriptLine =
   /** A `c.decide()` call, before the prompt of the turn it came before (`turn`). */
   | { turn: number; ts: string; atMs: number; type: 'decision'; decision: DecisionRecord }
 
-export type TranscriptItem =
+export type TrajectoryItem =
   | { kind: 'turn'; turn: number; prompt: string; ts: string }
-  | { kind: 'event'; turn: number; event: TranscriptLine }
+  | { kind: 'event'; turn: number; event: TrajectoryLine }
   | { kind: 'turn-end'; turn: number; status: TurnStatus; durationMs: number }
 
-/** Parses `transcript.jsonl`, skipping lines that aren't JSON (a truncated tail, say). */
-export function parseTranscript(text: string): TranscriptLine[] {
-  return text.split('\n').flatMap((line) => parseTranscriptLine(line) ?? [])
+/** Parses `trajectory.jsonl`, skipping lines that aren't JSON (a truncated tail, say). */
+export function parseTrajectory(text: string): TrajectoryLine[] {
+  return text.split('\n').flatMap((line) => parseTrajectoryLine(line) ?? [])
 }
 
 /**
- * `transcript.jsonl`'s lines in file order, each as `parseTranscriptLine` reads it, so line `n`
+ * `trajectory.jsonl`'s lines in file order, each as `parseTrajectoryLine` reads it, so line `n`
  * (from 1) is at index `n - 1`.
  */
-export function transcriptByLine(text: string): Array<TranscriptLine | null> {
-  return text.split('\n').map((line) => parseTranscriptLine(line))
+export function trajectoryByLine(text: string): Array<TrajectoryLine | null> {
+  return text.split('\n').map((line) => parseTrajectoryLine(line))
 }
 
-/** One line of a transcript, or null when it's blank, isn't JSON or has no `type`. */
-export function parseTranscriptLine(line: string): TranscriptLine | null {
+/** One line of a trajectory, or null when it's blank, isn't JSON or has no `type`. */
+export function parseTrajectoryLine(line: string): TrajectoryLine | null {
   if (!line.trim()) return null
   try {
-    const value = JSON.parse(line) as TranscriptLine
-    return value && typeof value.type === 'string' ? readableTranscriptLine(value) : null
+    const value = JSON.parse(line) as TrajectoryLine
+    return value && typeof value.type === 'string' ? readableTrajectoryLine(value) : null
   } catch {
     return null
   }
 }
 
-export function transcriptItems(lines: TranscriptLine[]): TranscriptItem[] {
+export function trajectoryItems(lines: TrajectoryLine[]): TrajectoryItem[] {
   return lines.map((line) => {
     if (line.type === 'prompt') {
       return { kind: 'turn', turn: line.turn, prompt: line.text, ts: line.ts }

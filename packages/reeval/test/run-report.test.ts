@@ -286,23 +286,23 @@ describe('buildRunReport', () => {
     assert.match(runReportMarkdown(report), /agent \$.+, judge \$.+ \(mixed\)/)
   })
 
-  test('colliding transcript paths get distinct attempt hrefs', () => {
+  test('colliding trajectory paths get distinct attempt hrefs', () => {
     const record = cloneRecord('with-layouts')
     const e = record.evals.find((ev) => ev.compare && ev.attempts.length >= 2)
     assert.ok(e)
     const [a, b] = e!.attempts
     assert.ok(a && b)
     const shared = {
-      path: 'shared/transcript.jsonl',
+      path: 'shared/trajectory.jsonl',
       sha256: '0'.repeat(64),
       bytes: 1,
     }
-    a.files.transcript = shared
-    b.files.transcript = { ...shared }
+    a.files.trajectory = shared
+    b.files.trajectory = { ...shared }
     const report = buildRunReport(record, { evals: [e!.key], links: { base: './' } })
     const hrefs = report.attempts.map((row) => row.href)
     assert.equal(new Set(hrefs).size, hrefs.length)
-    assert.ok(hrefs.some((h) => h.includes('shared/transcript.jsonl')))
+    assert.ok(hrefs.some((h) => h.includes('shared/trajectory.jsonl')))
     assert.ok(hrefs.includes(attemptAnchor(b.key)), 'the second falls back to its anchor')
     assert.match(attemptAnchor(b.key), /^#attempt-[a-z0-9-]+$/)
   })
@@ -507,9 +507,9 @@ describe('RunReport links', () => {
       links: { base, record: `/runs/${record.runId}/record` },
     })
     assert.equal(hosted.provenance.record, `/runs/${record.runId}/record`)
-    const transcripts = hosted.attempts.flatMap((a) => a.links.transcript ?? [])
-    assert.ok(transcripts.length > 0)
-    for (const t of transcripts) assert.ok(t.startsWith(base), t)
+    const trajectories = hosted.attempts.flatMap((a) => a.links.trajectory ?? [])
+    assert.ok(trajectories.length > 0)
+    for (const t of trajectories) assert.ok(t.startsWith(base), t)
     assert.doesNotMatch(JSON.stringify(hosted), /"\.\/[^"]+"/, 'no link is left relative to ./')
   })
 

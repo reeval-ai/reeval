@@ -1,6 +1,6 @@
 # @reeval/agents
 
-Runs coding-agent harnesses and records what they did: the transcript, tool calls, usage and the
+Runs coding-agent harnesses and records what they did: the trajectory, tool calls, usage and the
 served model. It's private to this monorepo, and reeval's build inlines it the way it inlines the
 other `@reeval/*` packages.
 
@@ -9,7 +9,7 @@ It runs a harness on a `Runner`: `local()` runs it on this machine, and anything
 the sandbox session the AI SDK harness adapters drive, and `test/runner-conformance.ts` is the
 suite every runner passes.
 
-What a harness reports for each turn is typed here too: `TranscriptEvent`, `TokenUsage`,
+What a harness reports for each turn is typed here too: `TrajectoryEvent`, `TokenUsage`,
 `TurnStatus` and `CostUsd`, with the usage arithmetic (`tokenUsage`, `addUsage`, `sumUsage`,
 `promptTokens`, `totalTokens`). The arithmetic is also `@reeval/agents/usage`, which loads
 nothing at run time, so it runs in any JavaScript runtime. `AgentError` is a failure of the
@@ -27,7 +27,7 @@ Vertex AI's.
 
 `startAgent()` drives a harness: given its catalog entry, its AI SDK adapter, a model and a
 runner, it starts a session over `runnerSession()` and returns one whose `send` runs a turn. Each
-turn's result has its transcript (`normalizeStream`), usage, served model and cost, and says when
+turn's result has its trajectory (`normalizeStream`), usage, served model and cost, and says when
 the API refused the key or the model provider stopped the turn (`providerStop`). A runner whose
 network sees the model calls passes their statuses and served models as `traffic`; a failure to
 start is an `AgentError`.
@@ -61,7 +61,7 @@ gets pnpm with npm where the CLI's install runs it and the runner has none, and 
 download a release need `curl` and `bash` there (Node's own image has both, its `-slim` doesn't).
 Claude Code, OpenCode, Goose, fx and Grok Build serve their bridge on a port the runner forwards:
 publish one (`docker({ ports: [24210] })`) and name it in `session: { ports }`. With `out`, the session writes `session.json`, a line of `turns.jsonl` and
-the turn's lines of `transcript.jsonl` as each turn ends (`raw/parts.jsonl` and `debug.log` on
+the turn's lines of `trajectory.jsonl` as each turn ends (`raw/parts.jsonl` and `debug.log` on
 request), every one with the credentials' exact values masked (not encoded forms, such as base64); `schema/` has their JSON Schemas, which
 `pnpm --filter reeval schema:check` holds to the types and lets change additively only.
 

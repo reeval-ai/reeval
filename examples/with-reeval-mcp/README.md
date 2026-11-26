@@ -1,7 +1,7 @@
 # with-reeval-mcp
 
 **Shows:** letting the agent you code with read your reeval history. `reeval mcp` serves runs as
-read-only MCP tools (`failures`, `transcript`, `compare`, `history` and the `query_*` views), and
+read-only MCP tools (`failures`, `trajectory`, `compare`, `history` and the `query_*` views), and
 [`.mcp.json`](./.mcp.json) (Claude Code) and [`.cursor/mcp.json`](./.cursor/mcp.json) (Cursor)
 start it. The eval fails on purpose, so there's a failure to ask about.
 
@@ -29,7 +29,7 @@ one profile you need. Keep `.mcp.json` and `.cursor/mcp.json` at your project's 
 
 **What to look at:** after the run, ask your agent "why did the last reeval run fail?". It calls
 the `failures` tool, which answers with each failed attempt, its failing command's log and the
-transcript's tail (trimmed here):
+trajectory's tail (trimmed here):
 
 ```json
 {

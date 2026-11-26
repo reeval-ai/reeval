@@ -1,5 +1,5 @@
 // The digest `reeval analyze` hands a model: facts computed by reeval (ids F1…), evidence excerpts chosen
-// by rule (ids E1…, transcript lines keep their numbers as L<n>), and an attempts table with short
+// by rule (ids E1…, trajectory lines keep their numbers as L<n>), and an attempts table with short
 // ids. Deterministic: the same records give the same digest, byte for byte, so it can be cached.
 import { readFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
@@ -160,7 +160,7 @@ export const RULES = [
   "A context-use fact counts each attempt's tool calls by class (context, dependency, web, verify, workspace) and lists which placed files each arm opened: how much an arm leaned on what its environment declared versus digging in installed packages. The classes are a heuristic over tool names and paths; cite them as counts, not as proof of intent.",
   'A contrast fact (kind contrast) is one pair of arms on one harness, a against b, when an eval has two variants or more: pass rate and lift of a over b, the checks that tell them apart (discriminates or mixed; sameOnBoth counts the rest) and effort. It answers how two variants differ from each other, not only from the control; gating stays each variant against its control.',
   'A check (kind checks) whose verdict is both-pass or both-fail passes, or fails, on both the variant and its control: it is no evidence for or against the variant. Only discriminates rows say which requirement separated them.',
-  "Compare-question win rates annotate the run: they never change pass, fail or the exit code. Cite them as annotation, never as a result that gates the run. A vote's reason is the model's wording: do not treat it as a check. Each pair is voted in both orders; splits counts pairs whose two orders picked opposite sides (the position decided, not the work), and rates count such a pair as one win each. With more than two arms, read headToHead (a–b wins per pair, splits apart), not the pooled rates. shows lists what each side was shown: a question that shows output or transcript can favor the better-written account rather than the better work, and one that shows artifacts rests on screenshots.",
+  "Compare-question win rates annotate the run: they never change pass, fail or the exit code. Cite them as annotation, never as a result that gates the run. A vote's reason is the model's wording: do not treat it as a check. Each pair is voted in both orders; splits counts pairs whose two orders picked opposite sides (the position decided, not the work), and rates count such a pair as one win each. With more than two arms, read headToHead (a–b wins per pair, splits apart), not the pooled rates. shows lists what each side was shown: a question that shows output or trajectory can favor the better-written account rather than the better work, and one that shows artifacts rests on screenshots.",
   "An observed fact is a value the eval's own code recorded with c.observe (what the agent installed, a count): counts tallies strings and each item of an array once per attempt, numbers summarizes number values. Observations never change pass, fail or the exit code: cite them as what happened, not as a check.",
   `tie beside a lift's verdict means both sides passed every attempt (both always pass: pass@1 can't tell them apart) or failed every attempt (both always fail: the task may be too hard, or the eval broken), on at least ${COMPARE_RUNS} a side. More runs won't separate them, smallSample or not: never say it needs more runs. Both always fail: say the eval needs checking (an oracle agent should pass it). Both always pass: say the task needs to be harder. measures beside a lift is its comparison on every other measure (each check's pass rate, judge scores, compare-question votes, tool calls, agent time, tokens), each with its own test: better and worse hold, leans is a difference that doesn't; one that says "N runs a side can't confirm it; M is the least that can" was measured on too few runs for its test to show anything, so say it needs M runs, never that the arms are the same. A ceiling with a better or worse measure has no tie: that measure is the result, so never call the arms the same. A ceiling with only leans has looks instead of tie: say it looks different and needs that many runs (or cases) to confirm, not that the task needs to be harder. looks "too faint to confirm" means no affordable number of runs would confirm it: say so, and that if a difference that faint doesn't matter, the task needs to be harder so the control can fail.`,
 ]
@@ -397,7 +397,7 @@ export async function buildDigestKeepingDropped(
       for (const a of e.attempts) {
         const id = `${short.get(r.record.runId)}/${tagOf(e.key)}/${cells.get(a.cell)}#${a.n}`
         idOf.set(`${r.record.runId}\0${a.key}`, id)
-        const any = a.files.transcript ?? a.files.judgeInput ?? a.checks.find((c) => c.log)?.log
+        const any = a.files.trajectory ?? a.files.judgeInput ?? a.checks.find((c) => c.log)?.log
         const assertions = a.assertions ?? []
         const failed = failedLabels(a)
         const judges = labeledJudgments(a)
@@ -706,7 +706,7 @@ export async function buildDigestKeepingDropped(
   }
   if (byCell.size) {
     fact('skill-reads', {
-      note: 'Attempts that read each skill they had (a load by name, or a tool call on skills/<name>/), and the transcript lines of the first read. source: placed by the environment, found in a skill directory the agent reads (skill-dir: a setup step, the workspace or a package manager put it there), or a SKILL.md read elsewhere (such as a package cache).',
+      note: 'Attempts that read each skill they had (a load by name, or a tool call on skills/<name>/), and the trajectory lines of the first read. source: placed by the environment, found in a skill directory the agent reads (skill-dir: a setup step, the workspace or a package manager put it there), or a SKILL.md read elsewhere (such as a package cache).',
       cells: [...byCell.values()].map((c) => ({
         cell: c.cell,
         skill: c.skill,
@@ -1148,15 +1148,15 @@ export async function buildDigestKeepingDropped(
     if (lines.length) evidence.push({ id: `E${evidence.length + 1}`, ref, why, lines, priority })
   }
   const runOf = new Map(runs.map((r) => [r.record.runId, r]))
-  const transcriptOf = async (runId: string, a: AttemptRecord) => {
+  const trajectoryOf = async (runId: string, a: AttemptRecord) => {
     const r = runOf.get(runId)
-    if (!r || !a.files.transcript) return null
-    return readFile(join(r.dir, runId, ...a.files.transcript.path.split('/')), 'utf8').catch(
+    if (!r || !a.files.trajectory) return null
+    return readFile(join(r.dir, runId, ...a.files.trajectory.path.split('/')), 'utf8').catch(
       () => null,
     )
   }
   const lastText = async (runId: string, a: AttemptRecord) => {
-    const text = await transcriptOf(runId, a)
+    const text = await trajectoryOf(runId, a)
     if (!text)
       return a.turns.at(-1)?.text ? [`final: ${clip(a.turns.at(-1)?.text ?? '', 1400)}`] : []
     const lines = text.split('\n')
@@ -1313,7 +1313,7 @@ export const digestChars = (d: Digest) => JSON.stringify(d).length
 /** Content hash of the digest: the cache key's input side. */
 export const digestHash = (d: Digest) => sha256(JSON.stringify(d))
 
-/** Every id a citation may name, and the transcript lines each evidence item holds. */
+/** Every id a citation may name, and the trajectory lines each evidence item holds. */
 export function citable(d: Digest) {
   const ids = new Set<string>([
     ...d.facts.map((f) => f.id),

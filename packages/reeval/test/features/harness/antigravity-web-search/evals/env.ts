@@ -20,5 +20,5 @@ export const completed = defineGrader('completed', {
 /** A search succeeded: one the gateway refused is still a web-search event, with ok false. */
 export const succeededSearch = defineGrader('search-succeeded', {
   grade: (c) =>
-    (c.turns[0]?.transcript ?? []).some((e) => e.type === 'web-search' && e.ok !== false),
+    (c.turns[0]?.trajectory ?? []).some((e) => e.type === 'web-search' && e.ok !== false),
 })

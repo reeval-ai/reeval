@@ -6,7 +6,7 @@ skilled = base.extend("skilled", {"env": {"MODE": "skilled"}})
 
 @evaluate(
     "asked of each attempt",
-    {"questions": [{"question": "How did the agent find the failing test?", "transcript": True}]},
+    {"questions": [{"question": "How did the agent find the failing test?", "trajectory": True}]},
 )
 async def asked_of_each_attempt(c): ...
 
@@ -20,7 +20,7 @@ async def asked_of_each_attempt(c): ...
             {
                 "question": "Did the agent run the tests first?",
                 "choices": ["yes", "no"],
-                "transcript": "tools",
+                "trajectory": "tools",
             }
         ],
     },
@@ -33,7 +33,7 @@ async def with_choices(c): ...
     {
         "compare": {"control": base, "variants": [skilled]},
         "questions": [
-            {"question": "What did the agent read first?", "transcript": "tools"},
+            {"question": "What did the agent read first?", "trajectory": "tools"},
             {"question": "Which is cleaner?", "across": "environment", "diff": True},
         ],
     },

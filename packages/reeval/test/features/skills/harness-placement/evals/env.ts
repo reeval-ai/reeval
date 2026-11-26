@@ -20,7 +20,7 @@ export const prompt =
  * reports stdout as its output, Cursor's `bash` tool as `output.stdout`.
  */
 export const shellOutput = (turn: Turn, n: number): string =>
-  turn.transcript.flatMap((e) => {
+  turn.trajectory.flatMap((e) => {
     if (e.type !== 'tool' || (e.tool !== 'shell' && e.tool !== 'bash')) return []
     const out = e.output as string | { stdout?: string } | null
     return [typeof out === 'string' ? out : (out?.stdout ?? '')]

@@ -47,7 +47,7 @@ describe('s3Store', () => {
       record: bytes('{"v":1}'),
       files: new Map([
         ['summary.md', bytes('# one')],
-        ['a/transcript.jsonl', bytes('{}')],
+        ['a/trajectory.jsonl', bytes('{}')],
       ]),
     }
     const created = await store.writeRun(run, {})
@@ -55,7 +55,7 @@ describe('s3Store', () => {
     assert.deepEqual([...s3.objects.keys()].sort(), [
       'ci/reeval-store.json',
       `ci/runs/2026-11/${RUN}.json`,
-      `ci/runs/2026-11/${RUN}/a/transcript.jsonl`,
+      `ci/runs/2026-11/${RUN}/a/trajectory.jsonl`,
       `ci/runs/2026-11/${RUN}/summary.md`,
     ])
     const puts = s3.requests.filter((r) => r.method === 'PUT').map((r) => r.key)
@@ -76,7 +76,7 @@ describe('s3Store', () => {
     assert.deepEqual(await store.listRuns(), [{ runId: RUN, version: created.version }])
     const read = await store.readRun(RUN)
     assert.equal(Buffer.from(read?.record ?? []).toString(), '{"v":1}')
-    assert.deepEqual([...(read?.files.keys() ?? [])].sort(), ['a/transcript.jsonl', 'summary.md'])
+    assert.deepEqual([...(read?.files.keys() ?? [])].sort(), ['a/trajectory.jsonl', 'summary.md'])
     assert.equal(read?.version, created.version)
 
     const next = {
@@ -88,7 +88,7 @@ describe('s3Store', () => {
     const replaced = await store.writeRun(next, { replaces: created.version })
     assert.ok(replaced.ok)
     assert.equal(
-      s3.objects.has(`ci/runs/2026-11/${RUN}/a/transcript.jsonl`),
+      s3.objects.has(`ci/runs/2026-11/${RUN}/a/trajectory.jsonl`),
       false,
       'files it no longer names go',
     )

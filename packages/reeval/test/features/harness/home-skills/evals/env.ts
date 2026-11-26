@@ -12,8 +12,8 @@ export const greeting = defineEnvironment('greeting', ({ skill }) => ({
 }))
 
 /** What the scripted agent's `n`th shell command printed. */
-export const shellOutput = (turn: Pick<Turn, 'transcript'> | undefined, n: number) =>
-  (turn?.transcript ?? []).flatMap((e) =>
+export const shellOutput = (turn: Pick<Turn, 'trajectory'> | undefined, n: number) =>
+  (turn?.trajectory ?? []).flatMap((e) =>
     e.type === 'tool' && e.tool === 'shell' ? [String(e.output ?? '')] : [],
   )[n]
 

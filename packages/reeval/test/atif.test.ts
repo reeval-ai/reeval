@@ -17,7 +17,7 @@ import { openArchive } from '../src/archive/index.ts'
 import type { RunRecord } from '../src/history/types.ts'
 import { toAtif } from '../src/view/atif.ts'
 import { trajectorySchema } from '../src/view/atif-schema.ts'
-import { parseTranscript } from '../src/view/model.ts'
+import { parseTrajectory } from '../src/view/model.ts'
 import { readableRecord } from '../src/view/record.ts'
 import { fakeConfig, project, runCli } from './helpers.ts'
 import { CORPUS_DIR, HISTORY_DIR } from './support/corpus.ts'
@@ -26,7 +26,7 @@ const GOLDEN_DIR = join(import.meta.dirname, 'fixtures/atif')
 const ENTRIES = ['real-harnesses', 'before-subagents', 'real-contract']
 const update = process.env.REEVAL_UPDATE_SNAPSHOTS === '1'
 
-/** Each attempt with a transcript in an entry's runs, with its golden's path and its export. */
+/** Each attempt with a trajectory in an entry's runs, with its golden's path and its export. */
 function exports(entry: string) {
   const history = join(CORPUS_DIR, entry, HISTORY_DIR)
   return readdirSync(history)
@@ -35,9 +35,9 @@ function exports(entry: string) {
       const run = readableRecord(JSON.parse(readFileSync(join(history, f), 'utf8')) as RunRecord)
       return run.evals.flatMap((e) =>
         e.attempts.flatMap((a) => {
-          const path = a.files.transcript?.path
+          const path = a.files.trajectory?.path
           if (!path) return []
-          const lines = parseTranscript(readFileSync(join(history, run.runId, path), 'utf8'))
+          const lines = parseTrajectory(readFileSync(join(history, run.runId, path), 'utf8'))
           const cell = path.split('/')[1] as string
           return [
             {
@@ -78,8 +78,8 @@ describe('toAtif', () => {
     const attempts = run.evals.flatMap((e) => e.attempts)
     assert.equal(attempts.length, 2)
     for (const a of attempts) {
-      const path = a.files.transcript?.path as string
-      const lines = parseTranscript(readFileSync(join(history, run.runId, path), 'utf8'))
+      const path = a.files.trajectory?.path as string
+      const lines = parseTrajectory(readFileSync(join(history, run.runId, path), 'utf8'))
       assert.ok(
         lines.some((l) => l.type === 'decision'),
         path,
@@ -309,7 +309,7 @@ describe('the ATIF schema', () => {
 })
 
 describe('exports in the config', () => {
-  test("writes each attempt's atif.json beside its transcript, kept in the history", async () => {
+  test("writes each attempt's atif.json beside its trajectory, kept in the history", async () => {
     const p = await project('config-exports', {
       'reeval.config.ts': fakeConfig({
         extra: "exports: ['atif'], record: 'always', history: { artifacts: 'all' },",
@@ -331,14 +331,14 @@ export default defineEval({
     const ref = attempt?.files.atif
     assert.equal(
       ref?.path,
-      attempt?.files.transcript?.path.replace('transcript.jsonl', 'atif.json'),
+      attempt?.files.trajectory?.path.replace('trajectory.jsonl', 'atif.json'),
     )
     const trajectory = JSON.parse(readFileSync(join(history, record.runId, ref.path), 'utf8'))
     const parsed = trajectorySchema.safeParse(trajectory)
     assert.ok(parsed.success, JSON.stringify(parsed.error?.issues, null, 2))
     assert.equal(parsed.data.session_id, record.runId)
 
-    // At the default `evidence` level a passing attempt keeps neither its transcript nor its export.
+    // At the default `evidence` level a passing attempt keeps neither its trajectory nor its export.
     writeFileSync(
       join(p.dir, 'reeval.config.ts'),
       fakeConfig({ extra: "exports: ['atif'], record: 'always'," }),
@@ -349,7 +349,7 @@ export default defineEval({
     const [kept] = (
       JSON.parse(readFileSync(join(history, runs[0] as string), 'utf8')) as RunRecord
     ).evals.flatMap((e) => e.attempts)
-    assert.deepEqual([kept?.files.transcript, kept?.files.atif], [undefined, undefined])
+    assert.deepEqual([kept?.files.trajectory, kept?.files.atif], [undefined, undefined])
   })
 })
 
@@ -394,6 +394,6 @@ describe('reeval export', () => {
     }
     const none = await runCli(p.dir, ['export', runId, '--format', 'atif', '--out', 'none'])
     assert.equal(none.code, 2)
-    assert.match(none.stderr, /kept no transcript for any attempt/)
+    assert.match(none.stderr, /kept no trajectory for any attempt/)
   })
 })

@@ -2,7 +2,7 @@
 // It keeps what the facts layer and the digest read, and shrinks the rest: each record's messages
 // are cut at what the digest quotes (1,400 characters of a reply, 400 of a prompt), and its changed
 // files lose reeval's own state (`.es/` and `.reeval/` debug, runs and staging); its context loses
-// the files every attempt on that harness saw unchanged, skills aside; each transcript
+// the files every attempt on that harness saw unchanged, skills aside; each trajectory
 // keeps every line, so line numbers still match, but only tool calls' targets and short text, and
 // only failing attempts keep their judge input and check logs. The records' file refs stay as they
 // were. Running it on its own output changes nothing.
@@ -85,8 +85,8 @@ for (const [name, record] of records) {
       const twin = e.attempts.some((x) => x.cell === a.cell && x.outcome !== 'pass')
       const src = (ref) => join(from, runId, ...ref.path.split('/'))
       const dst = (ref) => join(to, runId, ...ref.path.split('/'))
-      if (a.files.transcript) {
-        const lines = readFileSync(src(a.files.transcript), 'utf8').split('\n')
+      if (a.files.trajectory) {
+        const lines = readFileSync(src(a.files.trajectory), 'utf8').split('\n')
         const out = lines.map((line) => {
           if (!line.trim()) return line
           try {
@@ -95,7 +95,7 @@ for (const [name, record] of records) {
             return ''
           }
         })
-        write(dst(a.files.transcript), out.join('\n'))
+        write(dst(a.files.trajectory), out.join('\n'))
       }
       if (failed && a.files.judgeInput) {
         const inputs = JSON.parse(readFileSync(src(a.files.judgeInput), 'utf8'))

@@ -3,7 +3,7 @@ import type { WebEventType } from '../types.ts'
 
 const WEB_EVENTS: Record<string, WebEventType> = { webSearch: 'web-search', webFetch: 'web-fetch' }
 
-/** `harnessMetadata.cursorSdk.unreportedTools` as transcript event types. */
+/** `harnessMetadata.cursorSdk.unreportedTools` as trajectory event types. */
 export function cursorUnreported(harnessMetadata: unknown): WebEventType[] {
   const meta = harnessMetadata as { cursorSdk?: { unreportedTools?: unknown } } | undefined
   const tools = meta?.cursorSdk?.unreportedTools

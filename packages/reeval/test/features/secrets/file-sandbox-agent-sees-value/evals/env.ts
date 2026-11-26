@@ -13,4 +13,4 @@ export const keys = defineEnvironment('keys', ({ secret }) => ({
 
 /** What the scripted agent's shell command printed. */
 export const agentSaw = (turn: Turn) =>
-  turn.transcript.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : []))[0]
+  turn.trajectory.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : []))[0]

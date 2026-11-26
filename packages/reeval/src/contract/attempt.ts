@@ -22,7 +22,7 @@ import type {
   ExecRetry,
   FileChange,
   TokenUsage,
-  TranscriptEvent,
+  TrajectoryEvent,
   TurnData,
   TurnStatus,
   Wait,
@@ -65,7 +65,7 @@ const toolPayload = {
   outputTruncated: z.strictObject({ bytes: z.number() }).optional(),
 }
 
-export const transcriptEventSchema = z.discriminatedUnion('type', [
+export const trajectoryEventSchema = z.discriminatedUnion('type', [
   z.strictObject({
     ...at,
     type: z.enum(['text', 'reasoning']),
@@ -151,7 +151,7 @@ export const turnDataSchema = z.strictObject({
   status: turnStatusSchema,
   startedAt: z.string(),
   durationMs: z.number(),
-  transcript: z.array(transcriptEventSchema),
+  trajectory: z.array(trajectoryEventSchema),
   usage: tokenUsageSchema.nullable(),
   model: z.string().nullable(),
   unreported: z.array(webEventTypeSchema),
@@ -273,7 +273,7 @@ export type _SameAsSchema = [
   Assert<Same<z.infer<typeof diffSchema>, Diff>>,
   Assert<Same<z.infer<typeof turnStatusSchema>, TurnStatus>>,
   Assert<Same<z.infer<typeof webEventTypeSchema>, WebEventType>>,
-  Assert<Same<z.infer<typeof transcriptEventSchema>, TranscriptEvent>>,
+  Assert<Same<z.infer<typeof trajectoryEventSchema>, TrajectoryEvent>>,
   Assert<Same<z.infer<typeof turnDataSchema>, TurnData>>,
   Assert<Same<z.infer<typeof execResultSchema>, ExecResult>>,
   Assert<Same<z.infer<typeof execRetrySchema>, ExecRetry>>,
@@ -342,11 +342,11 @@ export const decideStatePartSchema = z
         diff: sharedInputFields.diff,
         contents: z.array(nonEmpty).optional(),
         observations: sharedInputFields.observations,
-        transcript: sharedInputFields.transcript,
+        trajectory: sharedInputFields.trajectory,
         on: z
           .strictObject({ turn: turnIndex })
           .optional()
-          .describe('The turn `output`, `diff` and `transcript` read instead of the latest.'),
+          .describe('The turn `output`, `diff` and `trajectory` read instead of the latest.'),
       })
       .describe(
         "The judge's inputs as one JSON part, masked as a judge's are, as `c.state(inputs)` gives them.",
@@ -671,7 +671,7 @@ export const ATTEMPT_SCHEMAS: Record<string, z.ZodType> = {
   JSONValue: jsonValueSchema,
   TurnData: turnDataSchema,
   TurnStatus: turnStatusSchema,
-  TranscriptEvent: transcriptEventSchema,
+  TrajectoryEvent: trajectoryEventSchema,
   TokenUsage: tokenUsageSchema,
   WebEventType: webEventTypeSchema,
   Diff: diffSchema,
@@ -700,7 +700,7 @@ export const ATTEMPT_SCHEMAS: Record<string, z.ZodType> = {
 export const ATTEMPT_TYPES = [
   'TurnData',
   'TurnStatus',
-  'TranscriptEvent',
+  'TrajectoryEvent',
   'TokenUsage',
   'WebEventType',
   'Diff',

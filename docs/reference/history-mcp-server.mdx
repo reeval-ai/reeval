@@ -49,9 +49,9 @@ The `compare` tool returns one row per evaluation. `head` and `base` are run ref
 
 The `analysis` tool returns `{ runId, entries }` for a run reference, from saved and cached files, newest first, with `saved` before `cached` at the same time. Each entry has `file`, `source` (`saved` or `cached`), and `doc`. `entries` is empty when the run has none.
 
-## `transcript`
+## `trajectory`
 
-The `transcript` tool returns one page of lines for a run reference. `attempt` is the key, or `<cell>#<n>` when one evaluation has that id. `offset` defaults to 0, and `limit` defaults to 200 (1 to 1000). The result includes `uri`, `total`, and `lines`. An unknown attempt, an id that more than one evaluation has, or a missing file is an error.
+The `trajectory` tool returns one page of lines for a run reference. `attempt` is the key, or `<cell>#<n>` when one evaluation has that id. `offset` defaults to 0, and `limit` defaults to 200 (1 to 1000). The result includes `uri`, `total`, and `lines`. An unknown attempt, an id that more than one evaluation has, or a missing file is an error.
 
 ## `query`
 
@@ -92,6 +92,6 @@ Each view has its own tool:
 
 The `run` resource is `reeval://runs/{runId}` for the full run id. The list is newest first, and each title ends in `recorded` or `scratch`. The body is `application/json`.
 
-## `reeval://runs/{runId}/transcripts/{attempt}`
+## `reeval://runs/{runId}/trajectories/{attempt}`
 
-The `transcript` resource is `reeval://runs/{runId}/transcripts/{attempt}`. The attempt key is percent-encoded, and the body is `application/jsonl`. The `transcript` tool returns this URI as `uri`.
+The `trajectory` resource is `reeval://runs/{runId}/trajectories/{attempt}`. The attempt key is percent-encoded, and the body is `application/jsonl`. The `trajectory` tool returns this URI as `uri`.

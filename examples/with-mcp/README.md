@@ -27,7 +27,7 @@ on Claude Code, and `--profile <name>` on any other agent in
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the attempt's `transcript.jsonl`, under `.reeval/runs/<run>/`. Every agent
+**What to look at:** the attempt's `trajectory.jsonl`, under `.reeval/runs/<run>/`. Every agent
 names the call `mcp__<server>__<tool>`, which is what `calledMcp('releases',
 'latest_version')` matches:
 

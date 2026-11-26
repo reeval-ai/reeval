@@ -4,13 +4,13 @@ import { parseDuration } from './duration.ts'
 import { skillsUsed } from './history/tool-class.ts'
 import { targetText } from './history/tool-target.ts'
 import { isObjectLike } from './object.ts'
-import { commandOf, isShellCall, transcriptCommands } from './shell-commands.ts'
+import { commandOf, isShellCall, trajectoryCommands } from './shell-commands.ts'
 import { formatDuration } from './text.ts'
 import type {
   Duration,
   FileChange,
   TokenUsage,
-  TranscriptEvent,
+  TrajectoryEvent,
   Turn,
   WebEventType,
 } from './types.ts'
@@ -23,19 +23,19 @@ export class HarnessCapabilityError extends Error {
 
 export type ToolInputMatch = string | RegExp | Record<string, unknown>
 
-type ToolEvent = Extract<TranscriptEvent, { type: 'tool' }>
+type ToolEvent = Extract<TrajectoryEvent, { type: 'tool' }>
 
-export type Subject = Pick<Turn, 'transcript' | 'unreported'>
+export type Subject = Pick<Turn, 'trajectory' | 'unreported'>
 
 const matches = (value: string, pattern: RegExp | string | undefined) =>
   pattern === undefined ||
   (typeof pattern === 'string' ? value.includes(pattern) : pattern.test(value))
 
-const toolsOf = (transcript: TranscriptEvent[]) =>
-  transcript.flatMap((e) => (e.type === 'tool' ? [e] : []))
+const toolsOf = (trajectory: TrajectoryEvent[]) =>
+  trajectory.flatMap((e) => (e.type === 'tool' ? [e] : []))
 
-const editsOf = (transcript: TranscriptEvent[]) =>
-  transcript.flatMap((e) => (e.type === 'file-edit' ? [e] : []))
+const editsOf = (trajectory: TrajectoryEvent[]) =>
+  trajectory.flatMap((e) => (e.type === 'file-edit' ? [e] : []))
 
 const isSkillCall = (event: ToolEvent, name: string): boolean =>
   skillsUsed(event.tool, targetText(event.input, event.tool), [name]).length > 0
@@ -59,13 +59,13 @@ export function inputMatches(input: unknown, expected?: ToolInputMatch): boolean
   })
 }
 
-const WEB_FIELD: Record<WebEventType, (e: TranscriptEvent) => string> = {
+const WEB_FIELD: Record<WebEventType, (e: TrajectoryEvent) => string> = {
   'web-search': (e) => ('query' in e ? e.query : ''),
   'web-fetch': (e) => ('url' in e ? e.url : ''),
 }
 
 /**
- * The queries (`web-search`) or URLs (`web-fetch`) the transcript has, all of them and those
+ * The queries (`web-search`) or URLs (`web-fetch`) the trajectory has, all of them and those
  * matching `pattern`. A subject whose harness doesn't report them is a `HarnessCapabilityError`.
  */
 export function webEvents(
@@ -80,43 +80,43 @@ export function webEvents(
       `${matcher} can't check this turn: its harness doesn't report ${what} ('${type}' is in turn.unreported), so the agent may have made them with no event. Check the reply or files instead, or use a harness that reports them.`,
     )
   }
-  const seen = subject.transcript.filter((e) => e.type === type).map(WEB_FIELD[type])
+  const seen = subject.trajectory.filter((e) => e.type === type).map(WEB_FIELD[type])
   return { seen, hits: seen.filter((v) => matches(v, pattern)) }
 }
 
-/** The transcript's tool calls that used the skill `name`. */
-export const skillCalls = (transcript: TranscriptEvent[], name: string): ToolEvent[] =>
-  toolsOf(transcript).filter((e) => isSkillCall(e, name))
+/** The trajectory's tool calls that used the skill `name`. */
+export const skillCalls = (trajectory: TrajectoryEvent[], name: string): ToolEvent[] =>
+  toolsOf(trajectory).filter((e) => isSkillCall(e, name))
 
-/** Which of the `placed` skills the transcript's tool calls used, in order of first use. */
+/** Which of the `placed` skills the trajectory's tool calls used, in order of first use. */
 export const placedSkillsUsed = (
-  transcript: TranscriptEvent[],
+  trajectory: TrajectoryEvent[],
   placed: readonly string[],
 ): string[] => [
   ...new Set(
-    toolsOf(transcript).flatMap((e) => skillsUsed(e.tool, targetText(e.input, e.tool), placed)),
+    toolsOf(trajectory).flatMap((e) => skillsUsed(e.tool, targetText(e.input, e.tool), placed)),
   ),
 ]
 
-/** The transcript's tool calls named `name`, whose input matches `input` when given. */
+/** The trajectory's tool calls named `name`, whose input matches `input` when given. */
 export const toolCalls = (
-  transcript: TranscriptEvent[],
+  trajectory: TrajectoryEvent[],
   name: string | RegExp,
   input?: ToolInputMatch,
 ): ToolEvent[] =>
-  toolsOf(transcript).filter((e) => nameMatches(e.tool, name) && inputMatches(e.input, input))
+  toolsOf(trajectory).filter((e) => nameMatches(e.tool, name) && inputMatches(e.input, input))
 
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-/** The transcript's calls to the MCP server `server`'s tools, or to its `tool`. */
+/** The trajectory's calls to the MCP server `server`'s tools, or to its `tool`. */
 export const mcpCalls = (
-  transcript: TranscriptEvent[],
+  trajectory: TrajectoryEvent[],
   server: string,
   tool?: string,
   input?: ToolInputMatch,
 ): ToolEvent[] =>
   toolCalls(
-    transcript,
+    trajectory,
     tool === undefined ? new RegExp(`^mcp__${escapeRegExp(server)}__.`) : `mcp__${server}__${tool}`,
     input,
   )
@@ -172,16 +172,16 @@ export function runMatchLabel(match: unknown): string | undefined {
 const shownCommand = (c: { program: string; args: string[] }) => [c.program, ...c.args].join(' ')
 
 /**
- * The commands the transcript ran, all of them and those matching `command`: shell commands by
+ * The commands the trajectory ran, all of them and those matching `command`: shell commands by
  * their text, or with a `RunMatch`, each program a segment of one ran, after its wrappers.
  */
 export function commandsRun(
-  transcript: TranscriptEvent[],
+  trajectory: TrajectoryEvent[],
   command?: RegExp | string | RunMatch,
 ): { seen: string[]; hits: string[] } {
   if (isObjectLike(command) && !(command instanceof RegExp)) {
     const match = checkRunMatch(command)
-    const commands = transcriptCommands(transcript)
+    const commands = trajectoryCommands(trajectory)
     const hits = commands.filter(
       (c) =>
         (typeof match.program === 'string'
@@ -190,7 +190,7 @@ export function commandsRun(
     )
     return { seen: commands.map(shownCommand), hits: hits.map(shownCommand) }
   }
-  const seen = transcript.filter(isShellCall).map(commandOf)
+  const seen = trajectory.filter(isShellCall).map(commandOf)
   return { seen, hits: seen.filter((c) => matches(c, command)) }
 }
 
@@ -206,9 +206,9 @@ export const TURN_EDITED: unique symbol = Symbol('reeval.turnEdited')
  */
 export const TURN_STATUS: unique symbol = Symbol('reeval.turnStatus')
 
-/** The paths the transcript's write and edit tool calls touched, once each, matching `path`. */
-export const editedPaths = (transcript: TranscriptEvent[], path?: RegExp | string): string[] =>
-  [...new Set(editsOf(transcript).map((e) => e.path))].filter((p) => matches(p, path))
+/** The paths the trajectory's write and edit tool calls touched, once each, matching `path`. */
+export const editedPaths = (trajectory: TrajectoryEvent[], path?: RegExp | string): string[] =>
+  [...new Set(editsOf(trajectory).map((e) => e.path))].filter((p) => matches(p, path))
 
 /** Whether `content` has `pattern`: a substring, or a match of a regular expression. */
 export const contentMatches = (content: string, pattern: RegExp | string): boolean =>
@@ -248,7 +248,7 @@ export type Limits = {
   duration?: Duration
 }
 
-export type BudgetSubject = Pick<Turn, 'usage' | 'transcript' | 'durationMs'>
+export type BudgetSubject = Pick<Turn, 'usage' | 'trajectory' | 'durationMs'>
 
 const count = (n: number) => n.toLocaleString('en-US')
 
@@ -315,13 +315,13 @@ export function budgetUsed(turns: readonly BudgetSubject[]): {
   callsOf: (tool: string) => number
   durationMs: number
 } {
-  const transcript = turns.flatMap((t) => t.transcript)
+  const trajectory = turns.flatMap((t) => t.trajectory)
   return {
     tokens: turns.some((t) => t.usage === null)
       ? null
       : turns.reduce((sum, t) => sum + totalTokens(t.usage as TokenUsage), 0),
-    toolCalls: transcript.filter((e) => 'toolCallId' in e).length,
-    callsOf: (tool) => toolsOf(transcript).filter((e) => e.tool === tool).length,
+    toolCalls: trajectory.filter((e) => 'toolCallId' in e).length,
+    callsOf: (tool) => toolsOf(trajectory).filter((e) => e.tool === tool).length,
     durationMs: turns.reduce((sum, t) => sum + t.durationMs, 0),
   }
 }

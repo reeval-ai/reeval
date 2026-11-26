@@ -9,11 +9,11 @@ export default defineEval({
   graders: [
     judge('Did the agent run the tests?', {
       name: 'ran-the-tests',
-      inputs: { transcript: 'tools' },
+      inputs: { trajectory: 'tools' },
       model: fakeJudge({
         // 0 only on the wrong value it's known to see; anything else errors the grader.
         score: (s) => {
-          const saw = String((s as Record<string, unknown>).transcript)
+          const saw = String((s as Record<string, unknown>).trajectory)
           if (/^tool shell: npm test → ok/m.test(saw) && !saw.includes('thinking it over')) return 0
           throw new Error(`the judge saw ${JSON.stringify(saw)}`)
         },

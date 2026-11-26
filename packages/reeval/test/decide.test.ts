@@ -57,7 +57,7 @@ describe('c.decide', () => {
     const { dir, evals } = readRun(p.dir, { history: 'evals/.history' })
     const attempt = evals[0]?.trial as AttemptRecord
     assert.equal(attempt.outcome, 'pass')
-    assert.equal(attempt.files.transcript, undefined, 'a passing attempt keeps no transcript')
+    assert.equal(attempt.files.trajectory, undefined, 'a passing attempt keeps no trajectory')
     const t = await readStoredAttempt(dir, attempt)
     assert.equal(t.decisions.length, 1)
     assert.equal(t.decisions[0]?.model, 'fake/fake-decision')

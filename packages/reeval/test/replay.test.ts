@@ -18,8 +18,8 @@ import { FX_RELAY_USAGE_FILE, FxStreamTranslator, FxUsageLedger } from '@reeval/
 import { GooseStreamTranslator } from '@reeval/harness-goose'
 import { OpenCodeStreamTranslator } from '@reeval/harness-opencode'
 import { PiStreamTranslator } from '@reeval/harness-pi'
-import { normalizeStream } from '../src/harness/transcript.ts'
-import type { TranscriptEvent } from '../src/types.ts'
+import { normalizeStream } from '../src/harness/trajectory.ts'
+import type { TrajectoryEvent } from '../src/types.ts'
 import { promptTokens, tokenUsage } from '../src/usage.ts'
 import {
   type BridgePart,
@@ -58,12 +58,12 @@ const events = (lines: Line[]) =>
   )
 
 const text = (v: unknown) => (typeof v === 'string' ? v : JSON.stringify(v ?? ''))
-const tools = (events: TranscriptEvent[]) => events.flatMap((e) => (e.type === 'tool' ? [e] : []))
-const edits = (events: TranscriptEvent[]) =>
+const tools = (events: TrajectoryEvent[]) => events.flatMap((e) => (e.type === 'tool' ? [e] : []))
+const edits = (events: TrajectoryEvent[]) =>
   events.flatMap((e) => (e.type === 'file-edit' ? [e] : []))
 
 /** What each captured behavior's stream must still say once normalized: robust signals only. */
-const signals: Record<string, (events: TranscriptEvent[]) => void> = {
+const signals: Record<string, (events: TrajectoryEvent[]) => void> = {
   skill(events) {
     // It read the file, or loaded it with its skill tool (OpenCode's `skill`, Goose's
     // `load_skill`).
@@ -440,7 +440,7 @@ describe('replay: a turn cut short mid-step, through each adapter and HarnessAge
   }
 
   for (const harness of Object.keys(translators)) {
-    test(`${harness}: a cancel ends the turn cleanly, its calls in the transcript`, async () => {
+    test(`${harness}: a cancel ends the turn cleanly, its calls in the trajectory`, async () => {
       const { stream, error } = await turnThrough(
         cutMidStep(harness, { exitCode: 137, aborted: true }),
       )
@@ -848,7 +848,7 @@ function substituted(harness: string, ...replacements: Array<[RegExp | string, s
   return nativeEvents(changed)
 }
 
-/** One raw-transcript line carrying `value` as the CLI's native event. */
+/** One raw-trajectory line carrying `value` as the CLI's native event. */
 const rawLine = (value: unknown) =>
   JSON.stringify({ turn: 0, ms: 1, part: { type: 'raw', rawValue: value } })
 
@@ -1039,7 +1039,7 @@ describe("replay: pi's format holds every stop reason pi defines, and a failed c
     const parts = [...lines.flatMap((l) => t.push(l)), ...t.end({ exitCode: 0 })]
     return events(parts.map((p, ms) => ({ turn: 0, ms, part: agentPart(p) as Line['part'] })))
   }
-  const kinds = (es: TranscriptEvent[]) => es.map((e) => e.type)
+  const kinds = (es: TrajectoryEvent[]) => es.map((e) => e.type)
 
   test("a turn pi auto-retried is not a format change, and keeps the retry's work", () => {
     for (const name of ['auto-retry.ndjson', 'auto-retry-exhausted.ndjson'])
@@ -1156,7 +1156,7 @@ describe("replay: fx's format holds a model call it retried", () => {
   const recovery = (l: Line) =>
     l.part.type === 'raw' && JSON.stringify(l.part.rawValue).includes('"modelResponseRecovery"')
 
-  test('the recovery updates are not a format change, and change nothing in the transcript', () => {
+  test('the recovery updates are not a format change, and change nothing in the trajectory', () => {
     assert.match(retried, /"state":"active","kind":"auto_retry"/)
     assert.match(retried, /"state":"recovered"/)
     assert.deepEqual(unknownSignatures('fx', nativeEvents(retried)), [])
@@ -1320,7 +1320,7 @@ describe('replay: a Cursor call the SDK never completed', () => {
     return ev?.type === 'tool_call' && ev.name === 'read' && ev.status === 'completed'
   }
   const readDone = native.find(isReadDone) as { event: Record<string, unknown> }
-  const transcript = (events: Record<string, unknown>[]) => {
+  const trajectory = (events: Record<string, unknown>[]) => {
     const t = new CursorSdkStreamTranslator({ workDir: '/reeval/workspace' })
     const parts = events.flatMap((e) => t.push(JSON.stringify(e)))
     return normalizeStream(
@@ -1331,7 +1331,7 @@ describe('replay: a Cursor call the SDK never completed', () => {
 
   test('it is unfinished (ok: null), not failed, and the calls that completed are ok', () => {
     assert.ok(readDone, 'the capture has the read completing')
-    assert.deepEqual(transcript(native.filter((e) => !isReadDone(e))), [
+    assert.deepEqual(trajectory(native.filter((e) => !isReadDone(e))), [
       ['read', null],
       ['bash', true],
     ])
@@ -1341,14 +1341,14 @@ describe('replay: a Cursor call the SDK never completed', () => {
     const rest = native.filter((e) => !isReadDone(e))
     const at = rest.findIndex((e) => e.type === 'result')
     const recovered = { type: 'event', recovered: 'Agent.messages.list', event: readDone.event }
-    assert.deepEqual(transcript([...rest.slice(0, at), recovered, ...rest.slice(at)]), [
+    assert.deepEqual(trajectory([...rest.slice(0, at), recovered, ...rest.slice(at)]), [
       ['read', true],
       ['bash', true],
     ])
   })
 
   test('twin: the captured turn as it is has every call ok', () => {
-    assert.deepEqual(transcript(native), [
+    assert.deepEqual(trajectory(native), [
       ['read', true],
       ['bash', true],
     ])

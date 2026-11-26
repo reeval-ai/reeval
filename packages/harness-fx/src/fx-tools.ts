@@ -7,7 +7,7 @@ type BuiltinTool = HarnessV1BuiltinTool<any, any>
 
 /*
  * fx's own tools, by the `name` its ACP `tool_call` updates carry, which `@ai-sdk/harness-acp`
- * matches before the title. Each is keyed by the name reeval's transcript reads (`bash`, `write`,
+ * matches before the title. Each is keyed by the name reeval's trajectory reads (`bash`, `write`,
  * `edit`, `webFetch`, `webSearch`); fx's file tools take `path`, not the common `file_path`, so
  * only `bash`, `glob`, `grep` and `webSearch` are common tools. The rest keep fx's names
  * (`skill` loads a skill, `subagent` delegates a task, `mcp_select_tool` looks up an MCP tool).

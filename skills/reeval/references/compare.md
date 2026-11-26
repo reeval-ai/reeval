@@ -99,7 +99,7 @@ export default defineEval({
   compare: { control: plain, variants: [houseStyle] },
   questions: [
     // asked of each attempt as it ends: free text, or a pick from choices
-    { question: 'How did the agent pick its greeting?', transcript: true },
+    { question: 'How did the agent pick its greeting?', trajectory: true },
     {
       question: 'Does greet.js handle a missing name?',
       diff: true,
@@ -124,7 +124,7 @@ export default defineEval({
 - `questions` sits beside `compare`, on an eval (never the config or a
   profile), and works without a `compare` too. It's always a list of objects:
   `{ question, across?, choices?, model?, turns?, …inputs }`, with at least one input
-  turned on (`task`, `output`, `files`, `diff`, `transcript`, `checks`, `artifacts`;
+  turned on (`task`, `output`, `files`, `diff`, `trajectory`, `checks`, `artifacts`;
   no `contents`, the workspaces are gone). There are no default inputs: an entry with
   none exits 2 at plan time.
 - **No `across`: asked of each attempt** as it ends with a pass or a fail (infra
@@ -153,12 +153,12 @@ export default defineEval({
   time while `--dry-run` still lists them. Keep deterministic checks for pass or
   fail.
 - Each side shows only the entry's inputs (`diff: ['src/**']`,
-  `transcript: 'tools', checks: ['npm test']`); `turns` defaults to `'all'`. Keep
+  `trajectory: 'tools', checks: ['npm test']`); `turns` defaults to `'all'`. Keep
   `output` off for pairwise questions, since the more confident summary wins on
   wording. For UI evals, `artifacts: ['sign-in']` (or `true`) sends each attempt's
   own capture of that name as an image. The `question` option takes only `model`
   (config → profile → eval → entry). A pairwise question showing
-  `transcript` across agents warns (tool names unblind them): ask it with
+  `trajectory` across agents warns (tool names unblind them): ask it with
   `across: 'environment'`.
 - Pairwise questions are answered on the host once all of an eval's attempts
   end. Attempts that failed their checks (a judge failure doesn't count) are

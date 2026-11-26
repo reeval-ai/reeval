@@ -1,5 +1,5 @@
 // The report's per-attempt facts (`attemptFacts`) against `reeval query`'s projection of the same
-// transcripts, on every corpus run, and what a report holds with and without the transcripts.
+// trajectories, on every corpus run, and what a report holds with and without the trajectories.
 import assert from 'node:assert/strict'
 import { cpSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -10,7 +10,7 @@ import { leveledArchiveFiles } from '../src/history/files.ts'
 import { readReportInputs } from '../src/history/report-inputs.ts'
 import type { AttemptRecord, RunRecord } from '../src/history/types.ts'
 import { type AttemptFacts, attemptFacts } from '../src/view/classify.ts'
-import { transcriptByLine } from '../src/view/model.ts'
+import { trajectoryByLine } from '../src/view/model.ts'
 import { readableRecord } from '../src/view/record.ts'
 import { buildRunReport, readableRunReport, runReportSchema } from '../src/view/report/index.ts'
 import { tempDir } from './helpers.ts'
@@ -94,7 +94,7 @@ describe('attemptFacts', () => {
             const mine = facts?.get(a.key)
             const where = `${entry.name} ${record.runId} ${a.key}`
             if (!mine) {
-              assert.equal(a.files.transcript, undefined, `${where}: a kept transcript`)
+              assert.equal(a.files.trajectory, undefined, `${where}: a kept trajectory`)
               continue
             }
             attempts++
@@ -108,7 +108,7 @@ describe('attemptFacts', () => {
         db.close()
       }
     }
-    assert.ok(attempts > 0 && calls > 0, 'the corpus has transcripts with tool calls')
+    assert.ok(attempts > 0 && calls > 0, 'the corpus has trajectories with tool calls')
     assert.ok(skills > 0, 'the corpus has a skill use')
     assert.ok(files > 0, 'the corpus has a context file read')
   })
@@ -120,12 +120,12 @@ describe('attemptFacts', () => {
         const record = recordOf(run.raw)
         const { facts } = await readReportInputs(join(entry.dir, HISTORY_DIR, record.runId), record)
         for (const a of attemptsOf(record)) {
-          const ref = a.files.transcript
+          const ref = a.files.trajectory
           const kept = facts?.get(a.key)
           if (!ref || !kept) continue
           const text = readFileSync(join(entry.dir, HISTORY_DIR, record.runId, ref.path), 'utf8')
           const clone = structuredClone(a)
-          assert.deepEqual(attemptFacts(record, clone, transcriptByLine(text)), kept, a.key)
+          assert.deepEqual(attemptFacts(record, clone, trajectoryByLine(text)), kept, a.key)
           if (kept.byClass.context > 0) compared++
         }
       }
@@ -139,15 +139,15 @@ describe('attemptFacts', () => {
     const record = recordOf(entry.runs[0]?.raw as Record<string, unknown>)
     const a = attemptsOf(record)[0] as AttemptRecord
     const tool = JSON.stringify({ type: 'tool', turn: 1, tool: 'bash', input: { command: 'ls' } })
-    const facts = attemptFacts(record, a, transcriptByLine(`\n{oops\n${tool}\n`))
+    const facts = attemptFacts(record, a, trajectoryByLine(`\n{oops\n${tool}\n`))
     assert.equal(facts.toolCalls, 1)
     assert.equal(facts.byClass.workspace, 1)
-    assert.deepEqual(transcriptByLine(`\n{oops\n${tool}`).slice(0, 2), [null, null])
+    assert.deepEqual(trajectoryByLine(`\n{oops\n${tool}`).slice(0, 2), [null, null])
   })
 })
 
 describe("the report's facts", () => {
-  test('are on every attempt row whose transcript was read, and absent on the others', async () => {
+  test('are on every attempt row whose trajectory was read, and absent on the others', async () => {
     let withFacts = 0
     let without = 0
     for (const entry of entries) {
@@ -180,11 +180,11 @@ describe("the report's facts", () => {
 
   test('readReportInputs reads none without the record', async () => {
     const entry = entries.find((e) =>
-      e.runs.some((r) => attemptsOf(recordOf(r.raw)).some((a) => a.files.transcript)),
+      e.runs.some((r) => attemptsOf(recordOf(r.raw)).some((a) => a.files.trajectory)),
     )
     assert.ok(entry)
     const run = entry.runs.find((r) =>
-      attemptsOf(recordOf(r.raw)).some((a) => a.files.transcript),
+      attemptsOf(recordOf(r.raw)).some((a) => a.files.trajectory),
     ) as (typeof entry.runs)[number]
     const record = recordOf(run.raw)
     const runDir = join(entry.dir, HISTORY_DIR, record.runId)
@@ -192,15 +192,15 @@ describe("the report's facts", () => {
     assert.ok((await readReportInputs(runDir, record)).facts?.size)
   })
 
-  test("are absent, not empty, on the passing attempts whose transcripts 'evidence' drops", async () => {
+  test("are absent, not empty, on the passing attempts whose trajectories 'evidence' drops", async () => {
     const found = entries.flatMap((entry) =>
       entry.runs.flatMap((run) => {
         const record = recordOf(run.raw)
-        const kept = attemptsOf(record).filter((a) => a.files.transcript)
+        const kept = attemptsOf(record).filter((a) => a.files.trajectory)
         return kept.some(failed) && kept.some((a) => !failed(a)) ? [{ entry, record }] : []
       }),
     )[0]
-    assert.ok(found, 'a corpus run keeps a passing and a failing transcript')
+    assert.ok(found, 'a corpus run keeps a passing and a failing trajectory')
     const { entry, record } = found
     const dir = join(tempDir('facts-evidence'), 'history')
     cpSync(join(entry.dir, HISTORY_DIR), dir, { recursive: true })
@@ -214,13 +214,13 @@ describe("the report's facts", () => {
     let failing = 0
     for (const row of report.attempts) {
       const a = outcome.get(row.key) as AttemptRecord
-      if (!a.files.transcript) continue
+      if (!a.files.trajectory) continue
       if (failed(a)) {
         failing++
-        assert.ok(row.facts, `${row.key} failed, so it keeps its transcript and its facts`)
+        assert.ok(row.facts, `${row.key} failed, so it keeps its trajectory and its facts`)
       } else {
         passing++
-        assert.equal('facts' in row, false, `${row.key} passed, so evidence dropped its transcript`)
+        assert.equal('facts' in row, false, `${row.key} passed, so evidence dropped its trajectory`)
       }
     }
     assert.ok(passing > 0 && failing > 0)

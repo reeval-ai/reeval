@@ -36,10 +36,10 @@ export const SHAPES: PersistedShape[] = [
     versionField: 'schemaVersion',
   },
   {
-    name: 'transcript-line',
+    name: 'trajectory-line',
     file: 'src/view/model.ts',
-    type: 'TranscriptLine',
-    where: "One line of an attempt's transcript.jsonl in a run's artifacts",
+    type: 'TrajectoryLine',
+    where: "One line of an attempt's trajectory.jsonl in a run's artifacts",
   },
   {
     name: 'analysis',
@@ -243,10 +243,10 @@ export const AGENTS_SHAPES: AgentsShape[] = [
     where: "One line of a session's turns.jsonl in its out directory",
   },
   {
-    name: 'transcript-line',
+    name: 'trajectory-line',
     file: '../agents/dist/out/types.d.ts',
-    type: 'OutTranscriptLine',
-    where: "One line of a session's transcript.jsonl in its out directory",
+    type: 'OutTrajectoryLine',
+    where: "One line of a session's trajectory.jsonl in its out directory",
   },
 ]
 

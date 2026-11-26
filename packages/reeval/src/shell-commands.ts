@@ -3,7 +3,7 @@
 // functions and backticks aren't followed.
 import { parse } from 'shell-quote'
 import { isObjectLike } from './object.ts'
-import type { AttemptContext, TranscriptEvent, Turn } from './types.ts'
+import type { AttemptContext, TrajectoryEvent, Turn } from './types.ts'
 
 /** One program a shell call ran: a segment of its command line, after its wrappers. */
 export type ShellCommand = {
@@ -28,9 +28,9 @@ export type ParsedCommand = Pick<ShellCommand, 'program' | 'args'>
 
 const SHELL_TOOLS = new Set(['bash', 'shell'])
 
-type ToolEvent = Extract<TranscriptEvent, { type: 'tool' }>
+type ToolEvent = Extract<TrajectoryEvent, { type: 'tool' }>
 
-export const isShellCall = (e: TranscriptEvent): e is ToolEvent =>
+export const isShellCall = (e: TrajectoryEvent): e is ToolEvent =>
   e.type === 'tool' && SHELL_TOOLS.has(e.tool)
 
 export const commandOf = (event: ToolEvent): string => {
@@ -242,20 +242,20 @@ export function parseCommandLine(line: string): ParsedCommand[] {
   return segments(line).flatMap(parseSegment)
 }
 
-/** The programs the transcript's shell calls ran, in order. */
-export const transcriptCommands = (
-  transcript: readonly TranscriptEvent[],
+/** The programs the trajectory's shell calls ran, in order. */
+export const trajectoryCommands = (
+  trajectory: readonly TrajectoryEvent[],
   turn = 0,
 ): ShellCommand[] =>
-  transcript.filter(isShellCall).flatMap((e) => {
+  trajectory.filter(isShellCall).flatMap((e) => {
     const line = commandOf(e)
     return parseCommandLine(line).map((p) => ({ ...p, line, ok: e.ok, turn }))
   })
 
 type ShellSubject =
-  | Pick<Turn, 'transcript'>
-  | readonly Pick<Turn, 'transcript'>[]
-  | { turns: readonly Pick<Turn, 'transcript'>[] }
+  | Pick<Turn, 'trajectory'>
+  | readonly Pick<Turn, 'trajectory'>[]
+  | { turns: readonly Pick<Turn, 'trajectory'>[] }
 
 /**
  * The programs the agent ran from its shell calls (the tools named `bash` or `shell`), in order:
@@ -266,12 +266,12 @@ type ShellSubject =
 export function shellCommands(subject: ShellSubject | AttemptContext): ShellCommand[] {
   const given: unknown = subject
   const turns = Array.isArray(given)
-    ? (given as Pick<Turn, 'transcript'>[])
+    ? (given as Pick<Turn, 'trajectory'>[])
     : isObjectLike(given) && Array.isArray(given.turns)
-      ? (given.turns as Pick<Turn, 'transcript'>[])
-      : isObjectLike(given) && Array.isArray(given.transcript)
-        ? [given as Pick<Turn, 'transcript'>]
+      ? (given.turns as Pick<Turn, 'trajectory'>[])
+      : isObjectLike(given) && Array.isArray(given.trajectory)
+        ? [given as Pick<Turn, 'trajectory'>]
         : undefined
   if (!turns) throw new TypeError('shellCommands() expects a turn from c.send(), c.turns, or c')
-  return turns.flatMap((t, i) => transcriptCommands(t.transcript, i))
+  return turns.flatMap((t, i) => trajectoryCommands(t.trajectory, i))
 }

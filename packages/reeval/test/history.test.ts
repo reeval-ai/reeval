@@ -140,7 +140,7 @@ describe('recording runs into evals/.history', () => {
     for (const file of [
       'summary.md',
       'report.json',
-      trial?.files.transcript?.path,
+      trial?.files.trajectory?.path,
       trial?.files.diff?.path,
     ]) {
       assert.ok(file && existsSync(join(recorded.dir, file)), file)
@@ -154,7 +154,7 @@ describe('recording runs into evals/.history', () => {
     const scratchReport = readableRunReport(
       JSON.parse(readFileSync(join(p.dir, '.reeval/runs', run.runId, 'report.json'), 'utf8')),
     )
-    assert.ok(report.attempts[0]?.facts, 'the recorded report has the facts of the kept transcript')
+    assert.ok(report.attempts[0]?.facts, 'the recorded report has the facts of the kept trajectory')
     assert.deepEqual(
       scratchReport.attempts.map((a) => a.facts),
       report.attempts.map((a) => a.facts),
@@ -173,7 +173,7 @@ describe('recording runs into evals/.history', () => {
       readFileSync(join(p.dir, HISTORY, '.gitattributes'), 'utf8'),
       HISTORY_GITATTRIBUTES,
     )
-    for (const file of [`${run.runId}.json`, `${run.runId}/${trial?.files.transcript?.path}`]) {
+    for (const file of [`${run.runId}.json`, `${run.runId}/${trial?.files.trajectory?.path}`]) {
       assert.equal(
         sh(p.dir, 'check-attr', 'linguist-generated', '--', `${HISTORY}/${file}`),
         `${HISTORY}/${file}: linguist-generated: true`,
@@ -633,7 +633,7 @@ export default defineEval({
     for (const s of shots) assert.ok(s.path && existsSync(join(dir, s.path)), s.path)
     for (const a of mixed?.attempts ?? []) {
       const kept = Object.keys(a.files).sort()
-      if (a.outcome === 'fail') assert.ok(a.files.transcript, `${a.id} keeps its transcript`)
+      if (a.outcome === 'fail') assert.ok(a.files.trajectory, `${a.id} keeps its trajectory`)
       else {
         assert.deepEqual(kept, ['artifacts', 'diff'], `${a.id}: the shown capture and its diff`)
         assert.deepEqual(
@@ -645,7 +645,7 @@ export default defineEval({
     const flat = evalOf('flat')
     assert.equal(flat?.outcome, 'fail')
     assert.ok(
-      flat?.attempts.every((a) => a.outcome === 'pass' && a.files.transcript),
+      flat?.attempts.every((a) => a.outcome === 'pass' && a.files.trajectory),
       'a lift gate that failed with no failed attempt keeps every attempt',
     )
     const lifted = evalOf('lifted')
@@ -654,7 +654,7 @@ export default defineEval({
     assert.ok(
       lifted?.attempts
         .filter((a) => a.cell === variantCell?.key)
-        .every((a) => a.outcome === 'pass' && a.files.transcript),
+        .every((a) => a.outcome === 'pass' && a.files.trajectory),
       "the lift-failed cell keeps its attempts beside the control's failure",
     )
   })
@@ -673,13 +673,13 @@ export default defineEval({
     const attempt = (name: string) => run.evals.find((e) => e.name === name)?.attempts[0]
     const fail = attempt('fails')
     assert.equal(fail?.outcome, 'fail')
-    for (const ref of [fail?.files.setupLog, fail?.files.transcript, fail?.checks[0]?.log]) {
+    for (const ref of [fail?.files.setupLog, fail?.files.trajectory, fail?.checks[0]?.log]) {
       assert.ok(ref && existsSync(join(dir, ref.path)), `the failed attempt keeps ${ref?.path}`)
     }
     const pass = attempt('passes')
     assert.equal(pass?.outcome, 'pass')
-    // evidencePass: drop transcript/setup/check logs; keep diff/captures when present.
-    assert.equal(pass?.files.transcript, undefined, 'no transcript for the passing attempt')
+    // evidencePass: drop trajectory/setup/check logs; keep diff/captures when present.
+    assert.equal(pass?.files.trajectory, undefined, 'no trajectory for the passing attempt')
     assert.equal(pass?.files.setupLog, undefined, 'no setup.log for the passing attempt')
     assert.deepEqual(
       pass?.checks.map((c) => c.log),
@@ -916,13 +916,13 @@ export default defineEval({
     })
     assert.equal(r.code, 2)
     assert.match(r.stderr, /Refusing to record .*look like they contain a secret/s)
-    assert.match(r.stderr, /\/transcript\.jsonl line \d+: the value of DEPLOY_TOKEN$/m)
+    assert.match(r.stderr, /\/trajectory\.jsonl line \d+: the value of DEPLOY_TOKEN$/m)
     assert.doesNotMatch(r.stderr, new RegExp(leaked), 'names files, not the secret')
     assert.doesNotMatch(r.stderr, new RegExp(leaked.slice(0, 4)), 'no part of a known value')
     assert.deepEqual(recordedRuns(p.dir), [])
 
     const { dir, evals } = readRun(p.dir)
-    await appendFile(join(dir, evals[0]?.trial.files.transcript?.path ?? ''), 'edited\n')
+    await appendFile(join(dir, evals[0]?.trial.files.trajectory?.path ?? ''), 'edited\n')
     const tampered = await runCli(p.dir, ['record', '--artifacts', 'all'])
     assert.equal(tampered.code, 2)
     assert.match(tampered.stderr, /changed since the run wrote it/)

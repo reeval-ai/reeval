@@ -3,7 +3,7 @@ import { defineEval } from 'reeval'
 import { MCP_LOG, plugged, prompts, toolNames, withFakePlugin } from './probes.ts'
 
 // The probe plugin's stdio MCP server starts in the sandbox and the agent calls its tool: the
-// server logged the call, and a transcript tool names it (each harness namespaces it its own way).
+// server logged the call, and a trajectory tool names it (each harness namespaces it its own way).
 export default defineEval({
   environment: plugged,
   agents: withFakePlugin,

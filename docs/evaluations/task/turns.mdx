@@ -7,7 +7,7 @@ Each `c.send()` runs one prompt on the harness and returns that turn. The first 
 
 ## Read the turn
 
-A turn's fields stay fixed after `c.send()` returns. Read the harness's final message from `turn.text`. The `turn.status` field reports `completed`, `aborted`, or `error`. The `turn.diff` field compares the workspace at the end of the turn with its state before the harness runs. Token counts for the turn are in `turn.usage`, or `null` when the harness reports none. Messages and tool calls are in `turn.transcript`.
+A turn's fields stay fixed after `c.send()` returns. Read the harness's final message from `turn.text`. The `turn.status` field reports `completed`, `aborted`, or `error`. The `turn.diff` field compares the workspace at the end of the turn with its state before the harness runs. Token counts for the turn are in `turn.usage`, or `null` when the harness reports none. Messages and tool calls are in `turn.trajectory`.
 
 In the `evals/user.eval.ts` file, keep the turn the first `c.send()` returns, then read the message, the changed paths, the generated tokens, the test file, and a command:
 

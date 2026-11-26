@@ -2,7 +2,7 @@ import { defineEval } from 'reeval'
 import { calledMcp, calledTool, ran, usedSkill, wrote } from 'reeval/graders'
 import { skilled } from './env.ts'
 
-// The transcript's built-ins: skills, tools, MCP calls, commands and edits.
+// The trajectory's built-ins: skills, tools, MCP calls, commands and edits.
 export default defineEval({
   environment: skilled,
   graders: [

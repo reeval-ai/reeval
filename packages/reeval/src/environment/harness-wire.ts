@@ -75,7 +75,7 @@ export type HarnessWire = {
   modelResponses?: readonly EndpointMatch[]
   /**
    * The agent's model calls besides `modelResponses` (which are model calls too): the egress
-   * gateway times each one and reads its tokens, for the transcript's `model-call` events.
+   * gateway times each one and reads its tokens, for the trajectory's `model-call` events.
    */
   modelCalls?: readonly EndpointMatch[]
   /** Set when one model call carries a whole turn, its tool calls inside it (Cursor's stream). */

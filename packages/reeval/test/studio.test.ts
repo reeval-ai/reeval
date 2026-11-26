@@ -42,9 +42,9 @@ import {
   judgeLabel,
   type PairResponse,
   pageLimit,
-  pageTranscript,
+  pageTrajectory,
   parseStudioPath,
-  parseTranscript,
+  parseTrajectory,
   REPORT_VERSION,
   RUN_LIST_LIMIT,
   type RunList,
@@ -58,10 +58,10 @@ import {
   STUDIO_ROUTES,
   splitPatch,
   studioPaths,
-  TRANSCRIPT_LIMIT,
-  type TranscriptPage,
-  transcriptItems,
-  transcriptQuery,
+  TRAJECTORY_LIMIT,
+  type TrajectoryPage,
+  trajectoryItems,
+  trajectoryQuery,
   uniqueJudgeLabels,
 } from '../src/view/index.ts'
 import { readableRunReport } from '../src/view/report/index.ts'
@@ -759,12 +759,12 @@ describe('view-models over a real history', () => {
     )
   })
 
-  test('transcripts parse into turns and events, skipping broken lines', async () => {
+  test('trajectories parse into turns and events, skipping broken lines', async () => {
     const run = records.get(headers[0]?.runId as string) as RunRecord
-    const ref = run.evals[0]?.attempts[0]?.files.transcript
+    const ref = run.evals[0]?.attempts[0]?.files.trajectory
     assert.ok(ref)
     const text = await readFile(join(source.historyDir, run.runId, ref.path), 'utf8')
-    const items = transcriptItems(parseTranscript(`${text}{"truncated`))
+    const items = trajectoryItems(parseTrajectory(`${text}{"truncated`))
     assert.equal(items[0]?.kind, 'turn')
     assert.equal(items.at(-1)?.kind, 'turn-end')
     assert.ok(items.some((i) => i.kind === 'event' && i.event.type === 'file-edit'))
@@ -939,11 +939,11 @@ describe('studio API contract', () => {
       evalId,
     })
     assert.deepEqual(
-      parseStudioPath(studioPaths.artifact(RUN, 'my-eval/fake-x/1/transcript.jsonl')),
+      parseStudioPath(studioPaths.artifact(RUN, 'my-eval/fake-x/1/trajectory.jsonl')),
       {
         route: 'artifact',
         runId: RUN,
-        segments: ['my-eval', 'fake-x', '1', 'transcript.jsonl'],
+        segments: ['my-eval', 'fake-x', '1', 'trajectory.jsonl'],
       },
     )
     assert.deepEqual(reportLinks(RUN), {
@@ -976,7 +976,7 @@ describe('studio API contract', () => {
       `${STUDIO_API_PREFIX}/runs/${RUN}`,
       `${STUDIO_API_PREFIX}/runs/${RUN}/view`,
       `${STUDIO_API_PREFIX}/runs/${RUN}/attempts/x`,
-      `${STUDIO_API_PREFIX}/runs/${RUN}/attempts/x/transcript`,
+      `${STUDIO_API_PREFIX}/runs/${RUN}/attempts/x/trajectory`,
       `${STUDIO_API_PREFIX}/other`,
       '/api/v2/runs',
       '/studio.json',
@@ -991,7 +991,7 @@ describe('studio API contract', () => {
     assert.equal(pageLimit('abc', RUN_LIST_LIMIT), RUN_LIST_LIMIT.default)
     assert.equal(pageLimit('-3', RUN_LIST_LIMIT), RUN_LIST_LIMIT.default)
     assert.equal(pageLimit('2', RUN_LIST_LIMIT), 2)
-    assert.equal(pageLimit('100000', TRANSCRIPT_LIMIT), TRANSCRIPT_LIMIT.max)
+    assert.equal(pageLimit('100000', TRAJECTORY_LIMIT), TRAJECTORY_LIMIT.max)
   })
 })
 
@@ -1069,15 +1069,15 @@ describe('studio data server', () => {
     const api = await paired()
     const runId = headers[0]?.runId as string
     const record = records.get(runId) as RunRecord
-    const transcript = record.evals[0]?.attempts[0]?.files.transcript?.path as string
+    const trajectory = record.evals[0]?.attempts[0]?.files.trajectory?.path as string
     const routes = [
       studioPaths.handshake(),
       studioPaths.runs(),
       studioPaths.report(runId),
       studioPaths.eval(runId, record.evals[0]?.key as string),
       studioPaths.artifact(runId, `${runId}.json`),
-      studioPaths.artifact(runId, transcript),
-      `${studioPaths.artifact(runId, transcript)}?limit=1`,
+      studioPaths.artifact(runId, trajectory),
+      `${studioPaths.artifact(runId, trajectory)}?limit=1`,
     ]
     for (const path of routes) {
       assert.equal((await api.get(path)).status, 200, path)
@@ -1195,20 +1195,20 @@ describe('studio data server', () => {
     const record = await json<RunRecord>(await api.get(report.provenance.record as string))
     assert.equal(record.runId, runId)
     const links = report.attempts.flatMap((a) => [
-      a.links.transcript,
+      a.links.trajectory,
       a.links.diff,
       ...a.links.captures.map((c) => c.href),
     ])
-    const transcripts = report.attempts.flatMap((a) => (a.links.transcript ? [a] : []))
-    assert.equal(transcripts.length, report.attempts.length, "artifacts: 'all' keeps every one")
+    const trajectories = report.attempts.flatMap((a) => (a.links.trajectory ? [a] : []))
+    assert.equal(trajectories.length, report.attempts.length, "artifacts: 'all' keeps every one")
     for (const href of links) {
       if (href) assert.equal((await api.get(href)).status, 200, href)
     }
-    for (const a of transcripts) {
-      const href = a.links.transcript as string
-      const page = await json<TranscriptPage>(await api.get(`${href}?cursor=0`))
+    for (const a of trajectories) {
+      const href = a.links.trajectory as string
+      const page = await json<TrajectoryPage>(await api.get(`${href}?cursor=0`))
       const raw = await (await api.get(href)).text()
-      assert.deepEqual(page.items, JSON.parse(JSON.stringify(parseTranscript(raw))), a.key)
+      assert.deepEqual(page.items, JSON.parse(JSON.stringify(parseTrajectory(raw))), a.key)
       assert.equal(page.totalLines, page.items.length)
     }
   })
@@ -1228,7 +1228,7 @@ describe('studio data server', () => {
       studioPaths.artifact(runId, `${unknown}.json`),
       `${STUDIO_API_PREFIX}/runs/${runId}/view`,
       `${STUDIO_API_PREFIX}/runs/${runId}/attempts/${encodeURIComponent(key)}`,
-      `${STUDIO_API_PREFIX}/runs/${runId}/attempts/${encodeURIComponent(key)}/transcript`,
+      `${STUDIO_API_PREFIX}/runs/${runId}/attempts/${encodeURIComponent(key)}/trajectory`,
     ]) {
       assert.equal((await api.get(path)).status, 404, path)
     }
@@ -1240,7 +1240,7 @@ describe('studio data server', () => {
     const runId = headers[0]?.runId as string
     const runDir = join(root, 'evals/.history', runId)
     const line = (n: number) => JSON.stringify({ type: 'text', turn: 1, text: `line ${n}` })
-    const many = TRANSCRIPT_LIMIT.max + 500
+    const many = TRAJECTORY_LIMIT.max + 500
     const files = {
       'empty.jsonl': '',
       'unterminated.jsonl': `${line(0)}\n${line(1)}`,
@@ -1261,7 +1261,7 @@ describe('studio data server', () => {
     for (const [name, text] of Object.entries(files)) writeFileSync(join(runDir, name), text)
     const api = await paired({ root, historyDir: join(root, 'evals/.history'), scratch: false })
     const page = async (name: string, query: string) =>
-      json<TranscriptPage>(await api.get(`${studioPaths.artifact(runId, name)}?${query}`))
+      json<TrajectoryPage>(await api.get(`${studioPaths.artifact(runId, name)}?${query}`))
 
     for (const [name, text] of Object.entries(files)) {
       const res = await api.get(studioPaths.artifact(runId, name))
@@ -1290,13 +1290,13 @@ describe('studio data server', () => {
     assert.equal(unterminated.next, null)
 
     const clamped = await page('many.jsonl', 'limit=100000')
-    assert.equal(clamped.items.length, TRANSCRIPT_LIMIT.max, 'the limit clamps to the maximum')
-    assert.equal(clamped.next, String(TRANSCRIPT_LIMIT.max))
+    assert.equal(clamped.items.length, TRAJECTORY_LIMIT.max, 'the limit clamps to the maximum')
+    assert.equal(clamped.next, String(TRAJECTORY_LIMIT.max))
     assert.equal(clamped.totalLines, many)
     const rest = await page('many.jsonl', `limit=100000&cursor=${clamped.next}`)
-    assert.equal(rest.items.length, many - TRANSCRIPT_LIMIT.max)
+    assert.equal(rest.items.length, many - TRAJECTORY_LIMIT.max)
     assert.equal(rest.next, null)
-    assert.equal((await page('many.jsonl', 'cursor=0')).items.length, TRANSCRIPT_LIMIT.default)
+    assert.equal((await page('many.jsonl', 'cursor=0')).items.length, TRAJECTORY_LIMIT.default)
     assert.deepEqual(await page('many.jsonl', `cursor=${many + 10}`), {
       items: [],
       next: null,
@@ -1323,12 +1323,12 @@ describe('studio data server', () => {
       assert.equal(res.status, 400, query)
       assert.match(await res.text(), /^(cursor|limit) must be a whole number of lines/, query)
     }
-    assert.deepEqual(transcriptQuery({ cursor: '7', limit: '100000' }), {
+    assert.deepEqual(trajectoryQuery({ cursor: '7', limit: '100000' }), {
       start: 7,
-      limit: TRANSCRIPT_LIMIT.max,
+      limit: TRAJECTORY_LIMIT.max,
     })
-    assert.deepEqual(transcriptQuery({}), { start: 0, limit: TRANSCRIPT_LIMIT.default })
-    assert.deepEqual(transcriptQuery({ cursor: '0', limit: '10' }), { start: 0, limit: 10 })
+    assert.deepEqual(trajectoryQuery({}), { start: 0, limit: TRAJECTORY_LIMIT.default })
+    assert.deepEqual(trajectoryQuery({ cursor: '0', limit: '10' }), { start: 0, limit: 10 })
 
     const wide = await page('wide.jsonl', 'limit=1')
     assert.equal((wide.items[0] as { text: string }).text.length, 256 * 1024)
@@ -1336,7 +1336,7 @@ describe('studio data server', () => {
     assert.deepEqual(
       (await page('mixed.jsonl', 'limit=10')).items.map((l) => (l as { text: string }).text),
       ['line 0', 'line 1'],
-      'lines that are not transcript lines are skipped',
+      'lines that are not trajectory lines are skipped',
     )
     const separators = await page('separators.jsonl', 'cursor=1&limit=2')
     assert.deepEqual(
@@ -1351,14 +1351,14 @@ describe('studio data server', () => {
         'cursor=0',
         'limit=1',
         'cursor=1&limit=1',
-        `cursor=${TRANSCRIPT_LIMIT.max}&limit=7`,
+        `cursor=${TRAJECTORY_LIMIT.max}&limit=7`,
       ]) {
-        const range = transcriptQuery(Object.fromEntries(new URLSearchParams(query)))
+        const range = trajectoryQuery(Object.fromEntries(new URLSearchParams(query)))
         assert.ok(typeof range !== 'string')
         assert.deepEqual(
           await page(name, query),
-          JSON.parse(JSON.stringify(pageTranscript(text, range))),
-          `${name}?${query}: the streamed page is pageTranscript's`,
+          JSON.parse(JSON.stringify(pageTrajectory(text, range))),
+          `${name}?${query}: the streamed page is pageTrajectory's`,
         )
       }
     }
@@ -1525,7 +1525,7 @@ describe('studio data server', () => {
     assert.equal(index.runId, runId)
   })
 
-  test("a run recorded at evidence links only the transcripts it kept: a passing attempt's is null", async () => {
+  test("a run recorded at evidence links only the trajectories it kept: a passing attempt's is null", async () => {
     const p = await project('studio-evidence', {
       '.gitignore': '.reeval/\nnode_modules/\nsandboxes/\n',
       'reeval.config.ts': fakeConfig({
@@ -1561,18 +1561,18 @@ export default defineEval({
     assert.equal(report.provenance.artifacts, 'evidence')
     assert.deepEqual(validate(reportSchema(), report), [])
     assert.deepEqual(readableRunReport(report), report)
-    const outcomes = report.attempts.map((a) => [a.evalId, a.outcome, !!a.links.transcript])
+    const outcomes = report.attempts.map((a) => [a.evalId, a.outcome, !!a.links.trajectory])
     assert.deepEqual(outcomes.sort(), [
       ['hello', 'pass', false],
       ['writes-bye', 'fail', true],
     ])
-    const failed = report.attempts.find((a) => a.outcome === 'fail')?.links.transcript as string
-    const page = await json<TranscriptPage>(
-      await api.get(`${failed}?limit=${TRANSCRIPT_LIMIT.max}`),
+    const failed = report.attempts.find((a) => a.outcome === 'fail')?.links.trajectory as string
+    const page = await json<TrajectoryPage>(
+      await api.get(`${failed}?limit=${TRAJECTORY_LIMIT.max}`),
     )
     assert.ok(
       page.items.some((l) => l.type === 'prompt'),
-      'the failing transcript pages',
+      'the failing trajectory pages',
     )
   })
 })

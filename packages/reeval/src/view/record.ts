@@ -1,5 +1,5 @@
 // How a file reeval wrote earlier (or later) reads in this reeval. Browser-safe. Every reader of a run
-// record, transcript line, analysis document, note and remarks file goes through here, and `pnpm schema:check` holds
+// record, trajectory line, analysis document, note and remarks file goes through here, and `pnpm schema:check` holds
 // the types to it: a field added as required needs a read default below, or a schemaVersion bump
 // with a migration.
 
@@ -14,13 +14,13 @@ import { targetOfGates } from '../target.ts'
 import type { CapturePageFile, DecisionRecord } from '../types.ts'
 import type { AnalysisDoc } from './analysis.ts'
 import { meanScores, scoresOf, targetCells } from './gate.ts'
-import type { TranscriptLine } from './model.ts'
+import type { TrajectoryLine } from './model.ts'
 import type { RunRemarks } from './remarks.ts'
 
 /** Each shape reeval persists and reads back; `schema/<name>.schema.json` is its snapshot. */
 export type ShapeName =
   | 'run-record'
-  | 'transcript-line'
+  | 'trajectory-line'
   | 'analysis'
   | 'analysis-note'
   | 'remarks'
@@ -66,7 +66,7 @@ export const READ_DEFAULTS: Record<ShapeName, ReadDefault[]> = {
     { path: 'evals[].cases[].cells[].checks[].control.notApplicable', empty: () => 0 },
     { path: 'evals[].cells[].checks[].control.notApplicable', empty: () => 0 },
   ],
-  'transcript-line': [],
+  'trajectory-line': [],
   analysis: [],
   'analysis-note': [],
   remarks: [],
@@ -248,9 +248,9 @@ function unmeasuredReasoning(record: RunRecord): RunRecord {
   return record
 }
 
-/** A transcript line as every reader sees it. */
-export const readableTranscriptLine = (line: TranscriptLine): TranscriptLine =>
-  fillDefaults('transcript-line', line)
+/** A trajectory line as every reader sees it. */
+export const readableTrajectoryLine = (line: TrajectoryLine): TrajectoryLine =>
+  fillDefaults('trajectory-line', line)
 
 /** An analysis document as every reader sees it; one from a newer reeval throws. */
 export const readableAnalysis = (doc: AnalysisDoc, what = 'This analysis'): AnalysisDoc =>

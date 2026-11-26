@@ -25,7 +25,7 @@ Each row is a mistake, what reeval says and the fix.
 | `opencode({ model: 'gemini-3.8-flash' })` | `an OpenCode model id names its provider` (exit 2) | `'google/gemini-3.8-flash'` |
 | No `judge.model` anywhere | `judge grader … has no model` | Set one, or `fakeJudge()` |
 | The judge's provider refuses a big input | The provider's message, then `The judge's input was ~…k tokens (estimated): diff …, of which …` | Add a `.gitignore` to the environment, or narrow the inputs: `{ diff: ['src/'] }` |
-| `judge(q, { inputs: {} })`, expecting the judge to see the task, answer and diff by default | `judge.inputs in … shows the judge nothing: turn on at least one, …` | There are no default inputs: turn on what the question needs, `{ diff: true }`, `{ contents: ['README.md'] }`, `{ output: true }`, `{ transcript: 'tools' }` |
+| `judge(q, { inputs: {} })`, expecting the judge to see the task, answer and diff by default | `judge.inputs in … shows the judge nothing: turn on at least one, …` | There are no default inputs: turn on what the question needs, `{ diff: true }`, `{ contents: ['README.md'] }`, `{ output: true }`, `{ trajectory: 'tools' }` |
 | An input (`diff`, `contents`, …) on a config, profile or eval `judge` | `Unknown judge option "diff" in …. diff is a judge grader's input: judge(question, { inputs: { diff } }).` | Put it in each judge grader's `inputs` |
 | A question as a string, or with no input | `questions … takes { question, model?, across?, choices?, turns? } with at least one of task, output, …` / `… shows the model nothing: …` (exit 2) | `{ question: 'Which is cleaner?', across: 'environment', diff: true }` |
 | `cursor()` with `fakeSandbox()` | real harnesses need `docker()` | Use `fakeAgent()` or `docker()` |

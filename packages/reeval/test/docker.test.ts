@@ -219,7 +219,7 @@ export default defineEval({
   async task(c) {
 
   const turn = await c.send('x')
-  const agentEnv = turn.transcript.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : [])).join('')
+  const agentEnv = turn.trajectory.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : [])).join('')
   assert.ok(agentEnv.split('\\n').includes('DB_URL'))
   assert.ok(!agentEnv.split('\\n').includes('CHECK_ONLY'))
   assert.equal((await c.exec('cat /opt/reeval-layer')).stdout, 'layer\\n')
@@ -1147,7 +1147,7 @@ export default defineEval({
   async task(c) {
 
   const turn = await c.send('x')
-  const shell = turn.transcript.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : []))
+  const shell = turn.trajectory.flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : []))
   assert.match(shell.join(''), /^v26\\./)
   assert.equal((await c.exec('grep -c bookworm /etc/os-release')).exitCode, 0)
   assert.equal((await c.exec('git --version && curl --version && pnpm --version')).exitCode, 0)

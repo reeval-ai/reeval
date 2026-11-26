@@ -35,7 +35,7 @@ one profile you need.
   artifacts/home.png
   artifacts/home.capture.json
   diff.patch
-  transcript.jsonl
+  trajectory.jsonl
   workspace.tar.gz
   …
 ```

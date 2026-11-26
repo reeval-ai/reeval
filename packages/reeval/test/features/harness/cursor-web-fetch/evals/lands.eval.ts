@@ -16,7 +16,7 @@ const reported = defineGrader('reports-the-beacon', {
       recent:
         !!reply && Math.abs(publishedAt(round) - Date.parse(turn?.startedAt ?? '')) < 10 * 60_000,
       randomness: !!reply && reply[2] === (await randomness(round)),
-      shell: (turn?.transcript ?? []).some(
+      shell: (turn?.trajectory ?? []).some(
         (e) => e.type === 'tool' && JSON.stringify(e.input).includes('drand'),
       ),
       unreported: turn?.unreported.length ?? 0,
@@ -25,7 +25,7 @@ const reported = defineGrader('reports-the-beacon', {
   score: (g) => (g.completed && g.recent && g.randomness && !g.shell && g.unreported === 0 ? 1 : 0),
 })
 
-// The agent really fetched the page, and the transcript shows the fetch. The Cursor SDK drops
+// The agent really fetched the page, and the trajectory shows the fetch. The Cursor SDK drops
 // web calls from its stream; the adapter's runner recovers them from the stored conversation.
 export default defineEval({
   environment: plain,

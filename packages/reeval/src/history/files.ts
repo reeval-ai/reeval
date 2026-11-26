@@ -544,7 +544,7 @@ const evidenceFiles = ({
   ...(workspaceManifest ? { workspaceManifest } : {}),
 })
 
-/** Passing attempts under `evidence` drop transcript, setup, check logs, and judge input. */
+/** Passing attempts under `evidence` drop trajectory, setup, check logs, and judge input. */
 const evidencePass = (a: { outcome: string }, level: ArtifactLevel) =>
   level === 'evidence' && !failed(a)
 

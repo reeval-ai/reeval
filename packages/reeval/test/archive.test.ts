@@ -378,7 +378,7 @@ const runFiles = () => [
   { path: `${RUN}.json`, data: record() },
   { path: `${RUN}/e/c/1/artifacts/shot.png`, data: PNG },
   {
-    path: `${RUN}/e/c/1/transcript.jsonl`,
+    path: `${RUN}/e/c/1/trajectory.jsonl`,
     data: async () => Buffer.from('{"type":"text"}\n'.repeat(20)),
   },
 ]
@@ -402,7 +402,7 @@ describe('run archives', () => {
       [
         `${RUN}.json`,
         `${RUN}/e/c/1/artifacts/shot.png`,
-        `${RUN}/e/c/1/transcript.jsonl`,
+        `${RUN}/e/c/1/trajectory.jsonl`,
         `${RUN}/summary.md`,
       ],
     )
@@ -422,7 +422,7 @@ describe('run archives', () => {
       [
         [`${RUN}.json`, 'deflate'],
         [`${RUN}/e/c/1/artifacts/shot.png`, 'store'],
-        [`${RUN}/e/c/1/transcript.jsonl`, 'deflate'],
+        [`${RUN}/e/c/1/trajectory.jsonl`, 'deflate'],
         [`${RUN}/summary.md`, 'deflate'],
         [MANIFEST_FILE, 'deflate'],
       ],

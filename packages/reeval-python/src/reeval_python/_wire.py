@@ -598,13 +598,13 @@ class DecideStatePartCapture(TypedDict):
     type: Literal["capture"]
 
 
-# The turn `output`, `diff` and `transcript` read instead of the latest.
+# The turn `output`, `diff` and `trajectory` read instead of the latest.
 class DecideStatePartInputsOn(TypedDict):
     # The turn's index, from 0.
     turn: int
 
 
-class DecideStatePartInputsTranscript3(TypedDict):
+class DecideStatePartInputsTrajectory3(TypedDict):
     agent: NotRequired[bool]
     detail: NotRequired[Literal["tools", "full"]]
     subagents: NotRequired[bool]
@@ -615,10 +615,10 @@ class DecideStatePartInputs(TypedDict):
     contents: NotRequired[list[str]]
     diff: NotRequired[bool | list[str]]
     observations: NotRequired[bool | list[str]]
-    # The turn `output`, `diff` and `transcript` read instead of the latest.
+    # The turn `output`, `diff` and `trajectory` read instead of the latest.
     on: NotRequired[DecideStatePartInputsOn]
     output: NotRequired[bool]
-    transcript: NotRequired[bool | Literal["tools", "full"] | DecideStatePartInputsTranscript3]
+    trajectory: NotRequired[bool | Literal["tools", "full"] | DecideStatePartInputsTrajectory3]
     type: Literal["inputs"]
 
 
@@ -1553,7 +1553,7 @@ class PluginSourcePlugin4(TypedDict):
 PluginSource: TypeAlias = "PluginSourcePlugin | PluginSourcePlugin2 | PluginSourcePlugin3 | PluginSourcePlugin4"
 
 
-class QuestionTranscript3(TypedDict):
+class QuestionTrajectory3(TypedDict):
     agent: NotRequired[bool]
     detail: NotRequired[Literal["tools", "full"]]
     subagents: NotRequired[bool]
@@ -1588,14 +1588,14 @@ class Question(TypedDict):
     question: str
     # The prompts the attempt was sent, once for both sides when they match.
     task: NotRequired[bool]
-    # The transcript as text lines: `true` is messages and tool calls with tool output clipped,
+    # The trajectory as text lines: `true` is messages and tool calls with tool output clipped,
     # `'tools'` tool calls only, `'full'` adds reasoning and whole tool output, each subagent's
     # events under its spawn call; `{ detail, agent, subagents }` picks the detail and whose
-    # events (`TranscriptView`). It names each harness's tools, so a pair of two harnesses isn't
+    # events (`TrajectoryView`). It names each harness's tools, so a pair of two harnesses isn't
     # blind.
-    transcript: NotRequired[bool | Literal["tools", "full"] | QuestionTranscript3]
-    # `'all'`: every turn under `turns`, each with its task, output and (with `transcript`)
-    # transcript; `'last'`: the last turn only. Default `'all'`.
+    trajectory: NotRequired[bool | Literal["tools", "full"] | QuestionTrajectory3]
+    # `'all'`: every turn under `turns`, each with its task, output and (with `trajectory`)
+    # trajectory; `'last'`: the last turn only. Default `'all'`.
     turns: NotRequired[Literal["last", "all"]]
 
 
@@ -1802,7 +1802,7 @@ class TokenUsage(TypedDict):
     reasoning: float | None
 
 
-class TranscriptEvent1(TypedDict):
+class TrajectoryEvent1(TypedDict):
     atMs: float
     durationMs: float | None
     # The harness's step in its turn the event came in, from 1: a model call where the adapter
@@ -1818,11 +1818,11 @@ class TranscriptEvent1(TypedDict):
 
 
 # Set when `output` is only part of the output, as a `tool` event's `outputTruncated`.
-class TranscriptEventFileEditOutputTruncated(TypedDict):
+class TrajectoryEventFileEditOutputTruncated(TypedDict):
     bytes: float
 
 
-class TranscriptEventFileEdit(TypedDict):
+class TrajectoryEventFileEdit(TypedDict):
     # Line counts, or null when the harness didn't send the content (e.g. deletes).
     added: float | None
     atMs: float
@@ -1839,7 +1839,7 @@ class TranscriptEventFileEdit(TypedDict):
     # one.
     output: NotRequired[Any]
     # Set when `output` is only part of the output, as a `tool` event's `outputTruncated`.
-    outputTruncated: NotRequired[TranscriptEventFileEditOutputTruncated]
+    outputTruncated: NotRequired[TrajectoryEventFileEditOutputTruncated]
     # What `output` holds, as a `tool` event's `outputView`.
     outputView: NotRequired[Literal["model", "full"]]
     path: str
@@ -1860,11 +1860,11 @@ class TranscriptEventFileEdit(TypedDict):
 
 
 # Set when `output` is only part of the output, as a `tool` event's `outputTruncated`.
-class TranscriptEventWebSearchOutputTruncated(TypedDict):
+class TrajectoryEventWebSearchOutputTruncated(TypedDict):
     bytes: float
 
 
-class TranscriptEventWebSearch(TypedDict):
+class TrajectoryEventWebSearch(TypedDict):
     atMs: float
     # Set when the harness never reported the call's end, so `durationMs` runs to the next
     # event's `atMs` (the turn's end for the last).
@@ -1879,7 +1879,7 @@ class TranscriptEventWebSearch(TypedDict):
     # one.
     output: NotRequired[Any]
     # Set when `output` is only part of the output, as a `tool` event's `outputTruncated`.
-    outputTruncated: NotRequired[TranscriptEventWebSearchOutputTruncated]
+    outputTruncated: NotRequired[TrajectoryEventWebSearchOutputTruncated]
     # What `output` holds, as a `tool` event's `outputView`.
     outputView: NotRequired[Literal["model", "full"]]
     query: str
@@ -1901,11 +1901,11 @@ class TranscriptEventWebSearch(TypedDict):
 
 
 # Set when `output` is only part of the output, as a `tool` event's `outputTruncated`.
-class TranscriptEventWebFetchOutputTruncated(TypedDict):
+class TrajectoryEventWebFetchOutputTruncated(TypedDict):
     bytes: float
 
 
-class TranscriptEventWebFetch(TypedDict):
+class TrajectoryEventWebFetch(TypedDict):
     atMs: float
     # The size of the fetched content the harness reports, in bytes; absent when it reports
     # none.
@@ -1922,7 +1922,7 @@ class TranscriptEventWebFetch(TypedDict):
     # one.
     output: NotRequired[Any]
     # Set when `output` is only part of the output, as a `tool` event's `outputTruncated`.
-    outputTruncated: NotRequired[TranscriptEventWebFetchOutputTruncated]
+    outputTruncated: NotRequired[TrajectoryEventWebFetchOutputTruncated]
     # What `output` holds, as a `tool` event's `outputView`.
     outputView: NotRequired[Literal["model", "full"]]
     # True when a shell-like tool or edit ran at least two minutes.
@@ -1944,30 +1944,30 @@ class TranscriptEventWebFetch(TypedDict):
 
 
 # Set when `output` is only part of the output, with a line where the rest was cut:
-# `transcript.jsonl` keeps the first 96K and last 16K characters of one past 128K (of its JSON,
+# `trajectory.jsonl` keeps the first 96K and last 16K characters of one past 128K (of its JSON,
 # for structured output), and the harness adapter keeps the first and last 512 KiB of a saved
 # output past 1 MiB. `bytes` is the whole output's size in UTF-8.
-class TranscriptEventToolOutputTruncated(TypedDict):
+class TrajectoryEventToolOutputTruncated(TypedDict):
     bytes: float
 
 
-class TranscriptEventTool(TypedDict):
+class TrajectoryEventTool(TypedDict):
     atMs: float
     # Set when the harness never reported the call's end, so `durationMs` runs to the next
     # event's `atMs` (the turn's end for the last).
     durationInferred: NotRequired[Literal[True]]
     durationMs: float | None
-    # The tool's input. `transcript.jsonl` keeps one whose JSON is past 128K characters as text:
+    # The tool's input. `trajectory.jsonl` keeps one whose JSON is past 128K characters as text:
     # its first 96K and last 16K characters, with a line where the rest was cut.
     input: Any
     # Whether the call succeeded; null when the harness never reported its result.
     ok: bool | None
     output: Any
     # Set when `output` is only part of the output, with a line where the rest was cut:
-    # `transcript.jsonl` keeps the first 96K and last 16K characters of one past 128K (of its
+    # `trajectory.jsonl` keeps the first 96K and last 16K characters of one past 128K (of its
     # JSON, for structured output), and the harness adapter keeps the first and last 512 KiB of
     # a saved output past 1 MiB. `bytes` is the whole output's size in UTF-8.
-    outputTruncated: NotRequired[TranscriptEventToolOutputTruncated]
+    outputTruncated: NotRequired[TrajectoryEventToolOutputTruncated]
     # What `output` holds: `model`, the result as the harness gave it to the model; `full`, the
     # tool's whole output, which can be more than the model saw (the harness cut it for the
     # model, or saved it to a file and gave the model a pointer, which reeval read).
@@ -1988,7 +1988,7 @@ class TranscriptEventTool(TypedDict):
     type: Literal["tool"]
 
 
-class TranscriptEventError(TypedDict):
+class TrajectoryEventError(TypedDict):
     atMs: float
     message: str
     # The harness's step in its turn the event came in, from 1: a model call where the adapter
@@ -2000,7 +2000,7 @@ class TranscriptEventError(TypedDict):
     type: Literal["error"]
 
 
-class TranscriptEventRetry(TypedDict):
+class TrajectoryEventRetry(TypedDict):
     atMs: float
     message: str
     # The harness's step in its turn the event came in, from 1: a model call where the adapter
@@ -2012,7 +2012,7 @@ class TranscriptEventRetry(TypedDict):
     type: Literal["retry"]
 
 
-class TranscriptEventModelCall(TypedDict):
+class TrajectoryEventModelCall(TypedDict):
     atMs: float
     durationMs: float
     # Milliseconds from the call's start to its response body's first byte; null when none came.
@@ -2048,13 +2048,13 @@ class TranscriptEventModelCall(TypedDict):
 # the harness never reported the end. Long shell or edit calls set `stalled: true`. A call the
 # harness never reported a result for (the turn ended or was cut short first) has `ok: null`: it
 # isn't known to have failed, and no failure count includes it.
-TranscriptEvent: TypeAlias = "TranscriptEvent1 | TranscriptEventFileEdit | TranscriptEventWebSearch | TranscriptEventWebFetch | TranscriptEventTool | TranscriptEventError | TranscriptEventRetry | TranscriptEventModelCall"
+TrajectoryEvent: TypeAlias = "TrajectoryEvent1 | TrajectoryEventFileEdit | TrajectoryEventWebSearch | TrajectoryEventWebFetch | TrajectoryEventTool | TrajectoryEventError | TrajectoryEventRetry | TrajectoryEventModelCall"
 
 
-# Which of the transcript the judge sees, as an object: `detail` is `'tools'` or `'full'`
+# Which of the trajectory the judge sees, as an object: `detail` is `'tools'` or `'full'`
 # (unset, what `true` shows), and `agent` and `subagents` whether the agent's own events and its
-# subagents' show, each unless false. Both false is refused: that's `transcript: false`.
-class TranscriptView(TypedDict):
+# subagents' show, each unless false. Both false is refused: that's `trajectory: false`.
+class TrajectoryView(TypedDict):
     agent: NotRequired[bool]
     detail: NotRequired[Literal["full", "tools"]]
     subagents: NotRequired[bool]
@@ -2074,9 +2074,9 @@ class TurnData(TypedDict):
     status: TurnStatus
     # The agent's final message for this turn.
     text: str
-    transcript: list[TranscriptEvent]
+    trajectory: list[TrajectoryEvent]
     # Event types the harness couldn't report for this turn: the agent may have searched or
-    # fetched with no event in `transcript`. `toHaveSearched()` and `toHaveFetched()` refuse
+    # fetched with no event in `trajectory`. `toHaveSearched()` and `toHaveFetched()` refuse
     # such a turn. Usually `[]`; a Cursor turn whose web calls the adapter couldn't recover (its
     # SDK drops them from the stream) is `['web-search', 'web-fetch']`.
     unreported: list[WebEventType]
@@ -2114,7 +2114,7 @@ class WaitMs(TypedDict):
 Wait: TypeAlias = "CaptureWait | WaitMs"
 
 
-# The transcript events a harness may be unable to report.
+# The trajectory events a harness may be unable to report.
 WebEventType: TypeAlias = "Literal[\"web-search\", \"web-fetch\"]"
 
 

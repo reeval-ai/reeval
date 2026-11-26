@@ -24,7 +24,7 @@ export type GraderTurn = Pick<
   | 'status'
   | 'startedAt'
   | 'durationMs'
-  | 'transcript'
+  | 'trajectory'
   | 'usage'
   | 'model'
   | 'unreported'
@@ -58,7 +58,7 @@ export type GraderSandbox = {
 export type GraderContext<C = unknown> = {
   /** The attempt's case; `{ key: '' }` for an eval without `cases`. */
   case: Case<C>
-  /** Each `c.send` turn, with its transcript, masked. */
+  /** Each `c.send` turn, with its trajectory, masked. */
   turns: readonly GraderTurn[]
   /** Each foreground `c.exec`, in call order, masked. */
   execs: readonly ExecLine[]
@@ -121,7 +121,7 @@ export type JudgeReference = string | HostFile | Record<string, HostFile>
 
 /** What a judge grader shows the judge, read from the stored attempt. */
 export type JudgeGraderInputs = JudgeInputs & {
-  /** `'all'`: every turn under `turns`, each with its task, output and transcript. Default `'last'`. */
+  /** `'all'`: every turn under `turns`, each with its task, output and trajectory. Default `'last'`. */
   turns?: 'last' | 'all'
   /**
    * How the judge sees `reference`: `'whole'` (the default) shows each reference file in full,

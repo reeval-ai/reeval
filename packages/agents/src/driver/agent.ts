@@ -4,7 +4,7 @@ import type { AgentKind, HarnessEntry, HarnessUsage } from '../catalog/entry.ts'
 import { AgentError } from '../errors.ts'
 import type { Runner } from '../runner.ts'
 import { type RunnerSessionOptions, runnerSession } from '../runner-session.ts'
-import type { CostUsd, TokenUsage, TranscriptEvent, TurnStatus } from '../types.ts'
+import type { CostUsd, TokenUsage, TrajectoryEvent, TurnStatus } from '../types.ts'
 import { addUsage, tokenUsage } from '../usage.ts'
 import { providerStop } from './provider-stop.ts'
 import { turnSubagents, turnTotals } from './subagents.ts'
@@ -14,7 +14,7 @@ import {
   reasoningTime,
   type StampedPart,
   timesReasoning,
-} from './transcript.ts'
+} from './trajectory.ts'
 import type { AgentLog, HarnessResult, HarnessSession } from './types.ts'
 
 /** A stream part into the attempt's trace, and each tool call as a `-v` line as it happens. */
@@ -81,7 +81,7 @@ type Usage = Parameters<typeof tokenUsage>[0]
 /** How long reading a CLI's stored usage gets, past which the turn keeps none. */
 const STORED_USAGE_MS = 5_000
 
-/** An adapter's usage, in the AI SDK's provider shape, as a transcript's; null when it counts nothing. */
+/** An adapter's usage, in the AI SDK's provider shape, as a trajectory's; null when it counts nothing. */
 export function harnessUsage(usage: HarnessUsage): TokenUsage | null {
   const { inputTokens: input, outputTokens: output } = usage
   if (input.total === undefined && output.total === undefined) return null
@@ -230,7 +230,7 @@ export type StartAgentOptions = {
 
 /**
  * Starts a real agent's session on `runner` through its AI SDK harness adapter. Each `send` is a
- * turn, whose result is its normalized transcript, usage, served model and cost, and whether the
+ * turn, whose result is its normalized trajectory, usage, served model and cost, and whether the
  * key was refused or the provider stopped it. Failing to start throws an {@link AgentError}.
  */
 export async function startAgent(options: StartAgentOptions): Promise<HarnessSession> {
@@ -314,7 +314,7 @@ export async function startAgent(options: StartAgentOptions): Promise<HarnessSes
         )
         return undefined
       })
-  let running: ((note: TranscriptEvent) => Promise<HarnessResult>) | undefined
+  let running: ((note: TrajectoryEvent) => Promise<HarnessResult>) | undefined
   let turn: { startedAt: number; salvaged?: Promise<TokenUsage | null> } | undefined
   return {
     async send(prompt, turnSignal) {
@@ -334,7 +334,7 @@ export async function startAgent(options: StartAgentOptions): Promise<HarnessSes
       const finish = async (
         text: string,
         status: TurnStatus,
-        extra: TranscriptEvent[] = [],
+        extra: TrajectoryEvent[] = [],
         reported: TokenUsage | null = stepUsage,
       ): Promise<HarnessResult> => {
         const own = reported ?? (await (current.salvaged ?? storedUsage(startedAt)))
@@ -369,7 +369,7 @@ export async function startAgent(options: StartAgentOptions): Promise<HarnessSes
           })
         }
         let hinted: string | undefined
-        const transcript = events.map((e) => {
+        const trajectory = events.map((e) => {
           if (e.type !== 'error') return e
           const hint = authHint?.(e.message, refused)
           if (!hint) return e
@@ -381,14 +381,14 @@ export async function startAgent(options: StartAgentOptions): Promise<HarnessSes
         const stopped = rejected
           ? undefined
           : providerStop({
-              errors: transcript.flatMap((e) => (e.type === 'error' ? [e.message] : [])),
+              errors: trajectory.flatMap((e) => (e.type === 'error' ? [e.message] : [])),
               status,
               statuses: modelSeen,
             })
         const cost = turnCost(finishMetadata)
         const subagents = await turnSubagents(
           entry.subagents,
-          transcript,
+          trajectory,
           parts.map((p) => p.part),
           readSandbox,
         )
@@ -412,12 +412,12 @@ export async function startAgent(options: StartAgentOptions): Promise<HarnessSes
           // The agent's own: a subagent's reasoning runs inside its spawn call's time.
           reasoningMs: reasoningTime(
             entry.reasoning,
-            transcript.filter((e) => !('subagent' in e && e.subagent)),
+            trajectory.filter((e) => !('subagent' in e && e.subagent)),
             own,
           ),
           startedAt: new Date(startedAt).toISOString(),
           durationMs: Date.now() - startedAt,
-          transcript,
+          trajectory,
           ...(rejected ? { rejectedKey: rejected } : {}),
           ...(stopped ? { providerStop: stopped } : {}),
           ...(options.raw ? { raw: parts } : {}),

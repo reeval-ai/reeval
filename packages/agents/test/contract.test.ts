@@ -17,7 +17,7 @@ import type { HarnessResult } from '../src/driver/types.ts'
 import { catalogAdapter, type HarnessSpec } from '../src/harnesses.ts'
 import type { Runner } from '../src/runner.ts'
 import { type AgentSession, agent } from '../src/session.ts'
-import type { TranscriptEvent } from '../src/types.ts'
+import type { TrajectoryEvent } from '../src/types.ts'
 
 /** Node's own image, with curl and bash, which the CLIs' installs download and run with. */
 const IMAGE = 'node:24'
@@ -180,9 +180,9 @@ function reserve(row: Row): void {
 }
 
 const text = (v: unknown) => (typeof v === 'string' ? v : JSON.stringify(v ?? ''))
-const tools = (events: readonly TranscriptEvent[]) =>
+const tools = (events: readonly TrajectoryEvent[]) =>
   events.flatMap((e) => (e.type === 'tool' ? [e] : []))
-const describeTools = (events: readonly TranscriptEvent[]) =>
+const describeTools = (events: readonly TrajectoryEvent[]) =>
   events
     .flatMap((e) =>
       e.type === 'tool'
@@ -197,7 +197,7 @@ const describeTools = (events: readonly TranscriptEvent[]) =>
 
 type ToolKind = 'readonly' | 'edit' | 'bash'
 
-/** Each catalog tool's kind, by its name in the transcript, from the adapter the session builds. */
+/** Each catalog tool's kind, by its name in the trajectory, from the adapter the session builds. */
 async function catalogOf(row: Row): Promise<Map<string, ToolKind | undefined>> {
   const adapter: HarnessV1 = await catalogAdapter({
     auth: { [row.key.name]: 'probe' },
@@ -259,34 +259,34 @@ for (const row of rows) {
         assert.equal(
           result.status,
           'completed',
-          `${turn}: the turn ended ${result.status}\n${describeTools(result.transcript)}`,
+          `${turn}: the turn ended ${result.status}\n${describeTools(result.trajectory)}`,
         )
         return result
       }
 
       await t.test('placed skill read', async () => {
         const result = await send('skill', PROMPTS.skill)
-        assert.equal(await read('skill-proof.txt'), SKILL_PROOF, describeTools(result.transcript))
+        assert.equal(await read('skill-proof.txt'), SKILL_PROOF, describeTools(result.trajectory))
       })
 
       await t.test('rules read', async () => {
         const result = await send('rules', PROMPTS.rules)
-        assert.equal(await read('codeword.txt'), RULES_WORD, describeTools(result.transcript))
+        assert.equal(await read('codeword.txt'), RULES_WORD, describeTools(result.trajectory))
       })
 
       await t.test('stdio MCP server called', async () => {
         const result = await send('mcp', PROMPTS.mcp)
-        assert.match((await read(MCP_LOG)) ?? '', /tools\/call/, describeTools(result.transcript))
+        assert.match((await read(MCP_LOG)) ?? '', /tools\/call/, describeTools(result.trajectory))
         assert.ok(
-          tools(result.transcript).some((e) => e.tool === 'mcp__stamp__house_stamp'),
-          `no mcp__stamp__house_stamp call:\n${describeTools(result.transcript)}`,
+          tools(result.trajectory).some((e) => e.tool === 'mcp__stamp__house_stamp'),
+          `no mcp__stamp__house_stamp call:\n${describeTools(result.trajectory)}`,
         )
       })
 
       await t.test('file edited and command run, as those kinds', async () => {
         const result = await send('edit and run', PROMPTS.editAndRun)
         const catalog = await catalogOf(row)
-        const events = result.transcript
+        const events = result.trajectory
         const how = describeTools(events)
         assert.equal(await read('notes.txt'), 'status: final', how)
         const kindOf = (tool: string) => catalog.get(tool)
@@ -310,7 +310,7 @@ for (const row of rows) {
         const unknown = [
           ...new Set(
             turns.flatMap(({ result }) =>
-              tools(result.transcript)
+              tools(result.trajectory)
                 .map((e) => e.tool)
                 .filter((n) => !n.startsWith('mcp__') && !catalog.has(n)),
             ),
@@ -319,7 +319,7 @@ for (const row of rows) {
         assert.deepEqual(
           unknown,
           [],
-          `${row.id} called tools its adapter's catalog doesn't know, so they reach the transcript under their native names: ${unknown.join(', ')}`,
+          `${row.id} called tools its adapter's catalog doesn't know, so they reach the trajectory under their native names: ${unknown.join(', ')}`,
         )
       })
 

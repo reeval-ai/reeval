@@ -16,6 +16,6 @@ export const TOOL = '/opt/reeval-fixture/bin/reeval-fixture-tool'
 
 /** What the scripted agent's shell command printed, one entry per line. */
 export const agentSaw = (turn: Turn) =>
-  turn.transcript
+  turn.trajectory
     .flatMap((e) => (e.type === 'tool' && e.tool === 'shell' ? [e.output] : []))[0]
     ?.split('\n') ?? []

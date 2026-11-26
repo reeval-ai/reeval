@@ -2,7 +2,7 @@
 
 **Shows:** browsing your runs in the studio. The agent adds `multiply(a, b)` to a small package;
 `--record` copies the run into `.history/`, and `reeval studio` serves every run, eval and
-transcript on `127.0.0.1` to the studio page it opens.
+trajectory on `127.0.0.1` to the studio page it opens.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
 first. A browser to open the studio in. A real agent needs its key in `.env.local`

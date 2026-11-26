@@ -568,8 +568,8 @@ export type AttemptIndexRow = {
   /** Its model calls (`activity.llmCalls`); absent in reports from before reeval counted them. */
   llmCalls?: Figure
   /**
-   * What its transcript shows it did, from the report's `facts`; absent when the report had none
-   * for it, such as a passing attempt whose transcript `evidence` didn't keep.
+   * What its trajectory shows it did, from the report's `facts`; absent when the report had none
+   * for it, such as a passing attempt whose trajectory `evidence` didn't keep.
    */
   facts?: AttemptFacts
   /** `AttemptRecord.score`; absent when it has none. */
@@ -579,7 +579,7 @@ export type AttemptIndexRow = {
   /** Lines exclude lockfiles; null counts print `not recorded`. */
   diff: { files: number; added: number | null; removed: number | null; text: string } | null
   links: {
-    transcript: string | null
+    trajectory: string | null
     diff: string | null
     captures: Array<{ name: string; href: string }>
     questions: string[]

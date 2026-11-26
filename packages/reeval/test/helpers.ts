@@ -311,9 +311,9 @@ export function assertKeyRejected(
   assert.equal(trial?.turns[0]?.status, 'error')
   const failed = (trial?.assertions ?? []).filter((x) => x.status !== 'pass')
   assert.deepEqual(failed, [], 'the checks after the turn passed')
-  const transcript = trial?.files.transcript?.path
-  return transcript
-    ? read(transcript)
+  const trajectory = trial?.files.trajectory?.path
+  return trajectory
+    ? read(trajectory)
         .trim()
         .split('\n')
         .map((l) => JSON.parse(l))

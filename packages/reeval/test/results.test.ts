@@ -1239,7 +1239,7 @@ describe('compare question pairs', () => {
       files: [],
       checksPassed: true,
       control: false,
-      turns: [{ prompt: 'go', text: undefined, transcript: undefined }],
+      turns: [{ prompt: 'go', text: undefined, trajectory: undefined }],
       checks: [],
       id: 'h/sdk/fake#2',
       key: undefined,

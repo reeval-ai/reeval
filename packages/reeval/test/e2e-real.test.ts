@@ -119,7 +119,7 @@ for (const row of harnesses.filter((r) => !r.harness)) {
       assert.equal(shown.runId, runs[1])
     })
 
-    test("the studio's report: both runs, linking every attempt's transcript", async () => {
+    test("the studio's report: both runs, linking every attempt's trajectory", async () => {
       assert.equal(runs.length, 2, 'the runs failed')
       const source = { root: dir, historyDir: join(dir, 'evals/.history'), scratch: false }
       for (const id of runs) {
@@ -131,9 +131,9 @@ for (const row of harnesses.filter((r) => !r.harness)) {
         })
         assert.ok(report.attempts.length > 0, id)
         for (const a of report.attempts) {
-          assert.ok(a.links.transcript, `${id} ${a.key}: no transcript link`)
-          assert.ok(a.facts, `${id} ${a.key}: no facts from its transcript`)
-          const path = a.links.transcript.slice(reportLinks(id).base.length)
+          assert.ok(a.links.trajectory, `${id} ${a.key}: no trajectory link`)
+          assert.ok(a.facts, `${id} ${a.key}: no facts from its trajectory`)
+          const path = a.links.trajectory.slice(reportLinks(id).base.length)
           assert.ok(existsSync(join(run.dir, id, path)), `${id} ${a.key}: ${path}`)
         }
       }

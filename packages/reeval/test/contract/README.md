@@ -10,27 +10,27 @@ what it should. The rows are in [`../support/harnesses.ts`](../support/harnesses
 | skill placed where the agent reads it, and used | `skill-proof.txt` holds a code only the skill has | no turn: no proof | the attempt's `context` lists the skill at the harness's path |
 | skill a setup step installed, used and counted | `installed-proof.txt` holds a code only the skill has; the environment has no `skills`, and a setup step copies the skill into every agent's workspace skill directory | no turn: no proof | the environment placed no skill, and `reeval query skill_reads` has the skill for the attempt with `source` `skill-dir` and at least one read |
 | rules read | `codeword.txt` holds a word only the rules have | no turn: no word | — |
-| stdio MCP server started and called | the server logged `tools/call`; the transcript names `mcp__stamp__house_stamp` | no turn: no call | the environment lists the server ; on a harness with no MCP client, the MCP evals (tagged `mcp`) are left out of its run, and `--dry-run` of them exits 2 naming the eval, harness and server, while a `--dry-run` of an eval without MCP plans |
-| file edited and command run, both in the transcript | `notes.txt` changed; the transcript has its edit and a tool whose output is `contract-42` | no turn: unchanged | `changedFiles` has `notes.txt` |
-| every tool call in the adapter's catalog | — | replay's: agy 1.4.3's captures as the adapter before it reported them (`read_file`, `edit_file`, `write_file` as unknown tools) | every attempt's transcript names only tools in the adapter's `builtinTools` (or `mcp__<server>__<tool>`), and on a CLI whose native events name the tool (Antigravity, Cursor, pi, Goose) every native name is one the adapter maps; the failure names the harness and each unknown tool |
+| stdio MCP server started and called | the server logged `tools/call`; the trajectory names `mcp__stamp__house_stamp` | no turn: no call | the environment lists the server ; on a harness with no MCP client, the MCP evals (tagged `mcp`) are left out of its run, and `--dry-run` of them exits 2 naming the eval, harness and server, while a `--dry-run` of an eval without MCP plans |
+| file edited and command run, both in the trajectory | `notes.txt` changed; the trajectory has its edit and a tool whose output is `contract-42` | no turn: unchanged | `changedFiles` has `notes.txt` |
+| every tool call in the adapter's catalog | — | replay's: agy 1.4.3's captures as the adapter before it reported them (`read_file`, `edit_file`, `write_file` as unknown tools) | every attempt's trajectory names only tools in the adapter's `builtinTools` (or `mcp__<server>__<tool>`), and on a CLI whose native events name the tool (Antigravity, Cursor, pi, Goose) every native name is one the adapter maps; the failure names the harness and each unknown tool |
 | file edits, reads and commands normalized | — | replay's: the same captures, and a command renamed to an unknown tool | in the edit-and-run, skill and egress attempts, the edit of `notes.txt` and `skill-proof.txt` is a `file-edit` event (or a command naming the file), the skill's read a `readonly` or `bash` tool, the `contract-42` command and the `curl` a `bash` tool, by the catalog's `toolUseKind`; the failure names the harness and the tools that carried it instead |
 | tokens recorded where the harness reports them | — | — | every turn has usage (or none, for a harness that reports none) |
 | uncached input counted apart from the cache | — | — | in every attempt whose model calls the gateway read tokens from (not Cursor's protobuf, nor the plugin subagent attempt, whose subagent's calls aren't in its turn's usage), the turns' `input`, `cacheRead` and `cacheWrite` each sum to the gateway's for the attempt's main model calls: an adapter that counts cache reads or writes in `input` fails |
 | real key never in the container | after a turn, a scan of every process's environment and command line and every file under the writable roots finds no form of the key | the same scan finds a value planted in the environment and a home file | the key isn't in the run directory |
 | deny-all plus auto hosts works | under `egress: 'deny-all'` the turn completes, and a `curl` to example.com gets a 403 at CONNECT | no turn: the same `curl` isn't a 200 | `egress`: the harness's automatic hosts allowed, its API contacted, example.com:443 refused and recorded |
 | served model recorded | — | — | every attempt's `servedModels` names the model (null for a harness whose requests don't say) |
-| reasoning text and time recorded | the `reasoning` eval, on a row with a `reasoningModel` (one that shows its thinking), writes the one prime | — | the attempt's transcript has a `reasoning` event with text, and every turn a `reasoningMs` above 0: on Antigravity, the thoughts the adapter read back from agy's stored conversation |
+| reasoning text and time recorded | the `reasoning` eval, on a row with a `reasoningModel` (one that shows its thinking), writes the one prime | — | the attempt's trajectory has a `reasoning` event with text, and every turn a `reasoningMs` above 0: on Antigravity, the thoughts the adapter read back from agy's stored conversation |
 | effort sent as the model's own setting | the `effort` eval, on a row with an `effort`, passes | — | every answered model call of that attempt that sets reasoning (`requestEffort` in `.reeval/debug`) sets the row's level in the field the model reads, and more than one does; in the same task without `effort`, some call sets none |
 | upstream provider and cost recorded | — | — | on a gateway whose responses say them (the `*-openrouter` rows), every attempt's `upstreams` names a provider with its calls and `reportedCostUsd` is above 0; elsewhere both are unset |
 | nothing silently unreported | — | — | every turn's `unreported` is empty: no harness fell back to flagging events it couldn't report (the Cursor SDK's web calls, when recovering them fails or finds a stored shape it doesn't know) |
-| native stream format unchanged | — | — | every native event in the raw transcripts matches `../replay/formats/<harness>.json`, plus, on an ACP harness, every status, tool kind and stop reason ACP defines (a failed tool call is the model's doing, not a format change), on pi every stop reason its one-shot loop ends a call with and a failed call's `errorMessage`, on Cursor every status, run status and tool status the SDK defines and the runner's `error` and `unreported` lines, on Antigravity agy's `error_message` steps and failed tool and turn (a provider's 4xx or 5xx, or a canceled turn, is not a format change), and on Codex every event, item type, key and status `codex exec`'s `exec_events.rs` defines (a command that exits non-zero, a refused key's retries and failed turn, a reasoning or web item) |
+| native stream format unchanged | — | — | every native event in the raw trajectories matches `../replay/formats/<harness>.json`, plus, on an ACP harness, every status, tool kind and stop reason ACP defines (a failed tool call is the model's doing, not a format change), on pi every stop reason its one-shot loop ends a call with and a failed call's `errorMessage`, on Cursor every status, run status and tool status the SDK defines and the runner's `error` and `unreported` lines, on Antigravity agy's `error_message` steps and failed tool and turn (a provider's 4xx or 5xx, or a canceled turn, is not a format change), and on Codex every event, item type, key and status `codex exec`'s `exec_events.rs` defines (a command that exits non-zero, a refused key's retries and failed turn, a reasoning or web item) |
 | plugin skill used | `plugin-proof.txt` holds a code only the probe plugin's skill has | no turn: no proof | the attempt's `context` lists the skill at the row's `plugin.skillContext`, and the environment's plugin record lists the skill |
-| plugin MCP server called | the plugin's `stamp.mjs` logged `tools/call`; a tool named `mcp__…stamp__house_stamp` is in the transcript | no turn: no call | the plugin record lists `stamp`, and the environment's `mcp` has `probe:stamp` |
+| plugin MCP server called | the plugin's `stamp.mjs` logged `tools/call`; a tool named `mcp__…stamp__house_stamp` is in the trajectory | no turn: no call | the plugin record lists `stamp`, and the environment's `mcp` has `probe:stamp` |
 | plugin hook ran | the `SessionStart` hook wrote `/tmp/reeval-plugin-hook.txt` | an environment without the plugin: no marker | — |
 | plugin subagent available | a successful tool call names `probe-agent` (or `probe:probe-agent`) in a field naming an agent, such as `subagent_type`: a search for the name, or a delegation the agent refuses, doesn't count | the same turn in an environment without the plugin: no such call (Claude Code's is refused, Grok Build spawns a general-purpose subagent) | — |
 | plugin rules read | `plugin-codeword.txt` holds the codeword only the probe plugin's rule has | an environment without the plugin: no codeword | — |
 | plugin part it can't load refused | — | — | `--dry-run` with the probe's every part (its `rules/` included) exits 2 naming the part and the parts the row loads; a row that loads every part skips |
-| plugin hermetic | — | — | the plugin skill attempt's `context` has no other skill and no plugin outside `~/.reeval/plugins/` (or the row's `plugin.copy`), the plugin skill and MCP attempts' transcripts call no other MCP server and name no other plugin's files, under `deny-all` nothing was blocked, and every host contacted is one of the row's automatic hosts |
+| plugin hermetic | — | — | the plugin skill attempt's `context` has no other skill and no plugin outside `~/.reeval/plugins/` (or the row's `plugin.copy`), the plugin skill and MCP attempts' trajectories call no other MCP server and name no other plugin's files, under `deny-all` nothing was blocked, and every host contacted is one of the row's automatic hosts |
 | clean teardown | — | — | the run is `complete` and no container with its label is left |
 
 The key scanner ([`scan.mjs`](./scan.mjs)) is given only the sha256, length and a rolling hash of
@@ -82,7 +82,7 @@ that closes fails until its cell says so.
 | Served model (gateway) | **dropped**? [26] | **dropped** [27] | captured | captured | captured | captured | captured | captured | captured |
 | Provider or CLI cost | n/p | **dropped** [28] | n/p | n/p | **dropped** [29] | **dropped** [30] | n/p | n/p | **dropped** [31] |
 | Usage on an aborted turn | **dropped** [32] | captured | **dropped** [33] | partial [34] | **dropped** [35] | **dropped** | captured | **dropped** | **dropped** [36] |
-| Transcript of an aborted turn | captured | captured | captured | captured | **dropped** [37] | **dropped** [37] | captured | **dropped** [37] | **dropped** [37] |
+| Trajectory of an aborted turn | captured | captured | captured | captured | **dropped** [37] | **dropped** [37] | captured | **dropped** [37] | **dropped** [37] |
 | Large shell output | **dropped** [38] | partial [39] | captured [40] | partial [39] | partial [39] | partial [39] | partial [39] | captured [40] | partial [39] |
 | Large MCP result | **dropped** [41] | partial [42] | captured | **dropped** [43] | partial [44] | captured | partial [39] | partial [45] | partial [46] |
 | Small MCP args and result | captured | captured | captured | captured | partial [47] | partial [48] | partial [49] | partial [50] | captured |
@@ -130,7 +130,7 @@ that closes fails until its cell says so.
 37. No parts: harness-acp drops what it buffered when it abandons the turn.
 38. `""`; the full output is in `~/.cursor/projects/*/agent-tools/*.txt`.
 39. The CLI's truncated view, which the model saw; the full output is spilled to disk.
-40. More than the model saw: the transcript has the full output.
+40. More than the model saw: the trajectory has the full output.
 41. `""`; spilled like the shell output.
 42. A "saved to …" notice, which the model saw; the result is in `tool-results/`.
 43. `""`; the result is in `brain/<id>/.system_generated/steps/<n>/output.txt`.
@@ -162,7 +162,7 @@ that closes fails until its cell says so.
 | Served model (gateway) | the attempt's `servedModels`, from the model calls' responses |
 | Provider or CLI cost | the cost the provider or the CLI reports, never reeval's own price table |
 | Usage on an aborted turn | a timed-out turn's `usage`, equal to the calls the wire shows |
-| Transcript of an aborted turn | a timed-out turn's events: the tool calls whose requests the wire shows |
+| Trajectory of an aborted turn | a timed-out turn's events: the tool calls whose requests the wire shows |
 | Large shell output | a ~300 KB command's output in its tool event: full, or marked truncated or spilled |
 | Large MCP result | a ~60 KB MCP result in its tool event: full, or marked truncated or spilled |
 | Small MCP args and result | an MCP call's arguments and result text, without the CLI's own wrapper |
@@ -238,7 +238,7 @@ fake or phrase differently:
 | Check | Robust signal | Why not the obvious one |
 |---|---|---|
 | skill, rules | a file whose content only the skill or rules know | the reply's wording varies; a file is either right or not |
-| MCP | the server's own log, then the transcript's tool name | the reply may paraphrase the tool's result |
+| MCP | the server's own log, then the trajectory's tool name | the reply may paraphrase the tool's result |
 | edit | the file's content, then an edit event **or** a tool call naming the file | agents edit with their edit tool or from the shell; both are the agent editing |
 | command | a tool output containing `contract-42` | only running `echo contract-$((6*7))` prints it; the command text alone could be echoed back |
 | key | a hash scan of the container, after a real turn | a grep for the key would need the key in the container |

@@ -4,7 +4,7 @@ import { contractHarness } from '../harness.ts'
 import { notes, prompts, trimmed } from './probes.ts'
 
 // A task the model has to think about, on a model of the row's that shows its thinking
-// (REEVAL_CONTRACT_REASONING_MODEL): contract.test.ts checks the transcript has the reasoning's
+// (REEVAL_CONTRACT_REASONING_MODEL): contract.test.ts checks the trajectory has the reasoning's
 // text and the turn its time. Tagged so a row with no such model leaves it out with
 // --tag '!reasoning'.
 export default defineEval({

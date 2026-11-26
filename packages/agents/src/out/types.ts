@@ -3,7 +3,7 @@
 import type { AgentKind } from '../catalog/entry.ts'
 import type { HarnessResult } from '../driver/types.ts'
 import type { RunnerInfo } from '../runner.ts'
-import type { TranscriptEvent } from '../types.ts'
+import type { TrajectoryEvent } from '../types.ts'
 
 /** `session.json`: the session as a whole, rewritten as it starts and as it ends. */
 export type OutSession = {
@@ -26,8 +26,8 @@ export type OutSession = {
   error?: string
 }
 
-/** One line of `turns.jsonl`: a turn's result, less its transcript, raw parts and steps. */
-export type OutTurn = Omit<HarnessResult, 'transcript' | 'raw' | 'steps'> & {
+/** One line of `turns.jsonl`: a turn's result, less its trajectory, raw parts and steps. */
+export type OutTurn = Omit<HarnessResult, 'trajectory' | 'raw' | 'steps'> & {
   /** The turn's index in the session, from 0. */
   turn: number
   /** What the turn was sent. */
@@ -35,10 +35,10 @@ export type OutTurn = Omit<HarnessResult, 'transcript' | 'raw' | 'steps'> & {
 }
 
 /**
- * One line of `transcript.jsonl`: a transcript event and its turn. A tool's output past 128K
+ * One line of `trajectory.jsonl`: a trajectory event and its turn. A tool's output past 128K
  * characters is cut to its head and tail, with `outputTruncated` its whole size in bytes.
  */
-export type OutTranscriptLine = TranscriptEvent & {
+export type OutTrajectoryLine = TrajectoryEvent & {
   /** The turn's index in the session, from 0. */
   turn: number
 }

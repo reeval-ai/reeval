@@ -41,7 +41,7 @@ function mcpSupport(agent) {
   return out
 }
 
-/** The web events reeval records for an agent: its adapter's tools that the transcript maps to them. */
+/** The web events reeval records for an agent: its adapter's tools that the trajectory maps to them. */
 async function webEvents(kind, agent, model) {
   const adapter = await harnessAdapter(
     { kind, model },

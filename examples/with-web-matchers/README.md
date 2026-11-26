@@ -2,7 +2,7 @@
 
 **Shows:** checking that the agent searched the web and read the docs, rather than answering from
 memory. The agent finds the Node.js version that added `util.parseArgs()` and writes it in
-`ANSWER.md`; the `searched` and `fetched` graders read the transcript, and `hasFile` the answer.
+`ANSWER.md`; the `searched` and `fetched` graders read the trajectory, and `hasFile` the answer.
 
 **Needs:** a real agent and the network: `ANTHROPIC_API_KEY` in `.env.local`, Docker, and
 `pnpm reeval image build` once. In this repo, run `pnpm install && pnpm build` at the root first.
@@ -24,7 +24,7 @@ fail instead of scoring on nothing.
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the web events in the attempt's `transcript.jsonl`, from a Claude Code run,
+**What to look at:** the web events in the attempt's `trajectory.jsonl`, from a Claude Code run,
 trimmed:
 
 ```text

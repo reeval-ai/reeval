@@ -9,10 +9,10 @@ import type {
 } from '../types.ts'
 import { judgeDiff } from './patch.ts'
 import type { Draft, DraftTurn } from './state.ts'
-import { type JudgeSubagent, transcriptForJudge } from './transcript.ts'
+import { type JudgeSubagent, trajectoryForJudge } from './trajectory.ts'
 
 /** A turn as the judge's state reads it. */
-export type DraftSource = Pick<TurnData, 'prompt' | 'text' | 'transcript'> & {
+export type DraftSource = Pick<TurnData, 'prompt' | 'text' | 'trajectory'> & {
   subagents?: readonly JudgeSubagent[]
 }
 
@@ -42,7 +42,7 @@ const isExactPath = (entry: string) => !entry.startsWith('!') && !/[*?[\]{}]/.te
 /**
  * The judge's state for the inputs turned on: the graded turn's task and output (or every
  * turn's), its changed files and diff as `judgeDiff` shows them, files whole, `c.exec` results and
- * the transcript.
+ * the trajectory.
  */
 export async function draftState(src: DraftSources): Promise<{ draft: Draft; dropped: string[] }> {
   const { wanted } = src
@@ -53,9 +53,9 @@ export async function draftState(src: DraftSources): Promise<{ draft: Draft; dro
     return {
       ...(wanted.task ? { task: turn?.prompt } : {}),
       ...(wanted.output ? { output: subject ? src.output : turn?.text } : {}),
-      ...(wanted.transcript && turn
+      ...(wanted.trajectory && turn
         ? {
-            transcript: transcriptForJudge(turn.transcript, wanted.transcript, turn.subagents).join(
+            trajectory: trajectoryForJudge(turn.trajectory, wanted.trajectory, turn.subagents).join(
               '\n',
             ),
           }

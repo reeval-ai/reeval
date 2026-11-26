@@ -244,10 +244,10 @@ describe('persisted shapes', () => {
     assert.deepEqual(changes({ type: 'number' }, { anyOf: [{ type: 'number' }, { const: 3 }] }), [])
   })
 
-  test('a transcript event type that disappears fails, by its variant', () => {
-    const now = snapshot('transcript-line')
+  test('a trajectory event type that disappears fails, by its variant', () => {
+    const now = snapshot('trajectory-line')
     const fewer = copy(now)
-    const line = def(fewer, 'TranscriptLine')
+    const line = def(fewer, 'TrajectoryLine')
     line.anyOf = line.anyOf?.filter((s) => (s.properties?.type as Schema)?.const !== 'tool')
     const changes = compare(now, fewer, none)
     assert.deepEqual(
@@ -339,8 +339,8 @@ const has = (value: unknown, segments: string[]): boolean => {
 }
 
 describe('read defaults', () => {
-  const { records, transcripts, analyses, eventStreams } = corpus()
-  const lines = transcripts.flatMap((f) =>
+  const { records, trajectories, analyses, eventStreams } = corpus()
+  const lines = trajectories.flatMap((f) =>
     readFileSync(f, 'utf8')
       .split('\n')
       .filter((l) => l.trim())
@@ -356,7 +356,7 @@ describe('read defaults', () => {
   test('each read default runs on a corpus file written before its field existed', () => {
     const files: Record<string, unknown[]> = {
       'run-record': records.map((r) => r.value),
-      'transcript-line': lines,
+      'trajectory-line': lines,
       analysis: analyses.map((a) => a.value),
       'analysis-note': [],
       remarks: [],
@@ -381,7 +381,7 @@ describe('read defaults', () => {
     }
   })
 
-  test('every corpus record, transcript line and saved analysis, read, fits the current schema', async () => {
+  test('every corpus record, trajectory line and saved analysis, read, fits the current schema', async () => {
     assert.ok(records.length > 0 && lines.length > 0 && analyses.length > 0)
     const current = new Map(SHAPES.map((s) => [s.name, snapshot(s.name)]))
     assert.equal((await checkCorpus(current)).join('\n'), '')

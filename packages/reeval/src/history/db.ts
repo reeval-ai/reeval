@@ -13,7 +13,7 @@ import type { JSONValue } from '../types.ts'
 import { classifyAttempt, declaredContext, isRuntimeState } from '../view/classify.ts'
 import { filesChanged } from '../view/effort.ts'
 import { cellMeasures, familyMeasures, type Measure } from '../view/measures.ts'
-import { transcriptByLine } from '../view/model.ts'
+import { trajectoryByLine } from '../view/model.ts'
 import { caseEntries, caseName } from './cases.ts'
 import { DERIVED, DERIVED_TABLES, deriveFacts, PART_COLUMNS } from './facts.ts'
 import { readingStamp, readRecord, recordNames, scratchDir, warnUnreadable } from './files.ts'
@@ -201,7 +201,7 @@ CREATE TABLE attempt_context (
   run_id TEXT NOT NULL, attempt_key TEXT NOT NULL, path TEXT NOT NULL, sha256 TEXT, runtime INTEGER,
   declared INTEGER
 );
--- Every tool call in each attempt's transcript: its line in transcript.jsonl (from 1), target,
+-- Every tool call in each attempt's trajectory: its line in trajectory.jsonl (from 1), target,
 -- ok (null when the harness never reported its result), class (context, dependency, web,
 -- verify or workspace: a heuristic, see tool-class.ts) and subagent (the id of the subagent that
 -- made it, as in subagents; null for the agent's own).
@@ -349,11 +349,11 @@ CREATE VIEW question_pairs AS SELECT * FROM question_pairs_m;
 -- observed (over time), not_measured (one level).
 CREATE VIEW factor_effects AS SELECT * FROM factor_effects_m;
 
--- Whether each attempt read each skill it had, and at which transcript line: the tool calls
+-- Whether each attempt read each skill it had, and at which trajectory line: the tool calls
 -- skill_uses has for it. A cell's skills are the ones its environment placed (source placed, with
 -- their placement) and the ones any of its attempts found (skill-dir or elsewhere, as found_skills
 -- has them), so a found skill an attempt never opened reads 0. An attempt whose record has tool
--- calls but whose transcript wasn't kept (or couldn't be read) is left out: unknown, not unread.
+-- calls but whose trajectory wasn't kept (or couldn't be read) is left out: unknown, not unread.
 CREATE VIEW skill_reads AS
   WITH skills AS (
     SELECT c.run_id, c.eval_key, c.key AS cell_key, s.name AS skill, s.placement,
@@ -393,8 +393,8 @@ CREATE VIEW context_use AS
   GROUP BY a.run_id, a.key, t.class;
 
 -- Each file the environment declared (its skills' files, rules), per attempt: how many tool calls
--- named it, directly or through a glob, and the first one's transcript line (null: never read).
--- Left out, like skill_reads, for an attempt whose tool calls weren't read from a transcript.
+-- named it, directly or through a glob, and the first one's trajectory line (null: never read).
+-- Left out, like skill_reads, for an attempt whose tool calls weren't read from a trajectory.
 CREATE VIEW skill_files AS
   SELECT a.run_id, a.eval_key, a.cell_key, c.environment, a.key AS attempt_key,
     a.id AS attempt_id, x.path,
@@ -538,7 +538,7 @@ function insertRun(
   db: DatabaseSync,
   record: RunRecord,
   recorded: boolean,
-  transcripts: Map<string, string>,
+  trajectories: Map<string, string>,
 ): void {
   const run = (sql: string, ...values: SQLInputValue[]) => db.prepare(sql).run(...values)
   const { runner, summary, git } = record
@@ -910,11 +910,11 @@ function insertRun(
           x.usage?.reasoning ?? null,
         )
       }
-      const transcript = transcripts.get(a.key)
+      const trajectory = trajectories.get(a.key)
       const classified = classifyAttempt(
         a,
         { skills, mcp: env?.mcp ?? [] },
-        transcript === undefined ? undefined : transcriptByLine(transcript),
+        trajectory === undefined ? undefined : trajectoryByLine(trajectory),
       )
       for (const t of classified.calls) {
         run(
@@ -1205,12 +1205,12 @@ function current(db: DatabaseSync): boolean {
   }
 }
 
-/** Each attempt's transcript.jsonl, by attempt key, where the run kept it. */
-async function readTranscripts(dir: string, record: RunRecord): Promise<Map<string, string>> {
+/** Each attempt's trajectory.jsonl, by attempt key, where the run kept it. */
+async function readTrajectories(dir: string, record: RunRecord): Promise<Map<string, string>> {
   const out = new Map<string, string>()
   for (const e of record.evals) {
     for (const a of e.attempts) {
-      const ref = a.files.transcript
+      const ref = a.files.trajectory
       if (!ref) continue
       const text = await readFile(join(dir, record.runId, ...ref.path.split('/')), 'utf8').catch(
         () => null,
@@ -1285,7 +1285,7 @@ async function sync(
         continue
       }
       if (had) removeRun(db, runId)
-      insertRun(db, record, recorded, await readTranscripts(dirname(path), record))
+      insertRun(db, record, recorded, await readTrajectories(dirname(path), record))
       db.prepare('INSERT INTO files VALUES (?, ?, ?, ?)').run(runId, rel, info.size, info.mtimeMs)
       added++
     }

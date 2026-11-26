@@ -83,7 +83,7 @@ export const EXAMPLES: Record<string, Example> = {
   'with-checks-and-gates': { run: { 'fake/math/fake': pass(1) } },
   'with-hidden-tests': { run: { 'fake/slugify/fake': pass(1) }, docker: true },
   'with-guarded-files': { run: { 'fake/math/fake': pass(1) }, profiles: { canary: fakePlan } },
-  'with-transcript-matchers': { run: { 'fake/math/fake': pass(1) } },
+  'with-trajectory-matchers': { run: { 'fake/math/fake': pass(1) } },
   'with-web-matchers': {
     run: { needs: 'ANTHROPIC_API_KEY, Docker and the network' },
     plain: inDocker('claude-code:claude-sonnet-5'),

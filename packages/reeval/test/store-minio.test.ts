@@ -42,7 +42,7 @@ describe('s3Store on MinIO', { skip }, () => {
       record: bytes('{"v":1}'),
       files: new Map([
         ['summary.md', bytes('# one')],
-        ['a/transcript.jsonl', bytes('{}')],
+        ['a/trajectory.jsonl', bytes('{}')],
       ]),
     }
     const created = await store.writeRun(run, {})
@@ -50,7 +50,7 @@ describe('s3Store on MinIO', { skip }, () => {
     assert.deepEqual(await s3.keys('ci/'), [
       'ci/reeval-store.json',
       `ci/runs/2026-11/${RUN}.json`,
-      `ci/runs/2026-11/${RUN}/a/transcript.jsonl`,
+      `ci/runs/2026-11/${RUN}/a/trajectory.jsonl`,
       `ci/runs/2026-11/${RUN}/summary.md`,
     ])
     assert.deepEqual(await store.writeRun(run, {}), { ok: false }, 'If-None-Match: * holds')

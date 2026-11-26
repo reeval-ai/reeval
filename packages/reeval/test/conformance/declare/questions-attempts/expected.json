@@ -8,7 +8,7 @@
         "questions": [
           {
             "question": "How did the agent find the failing test?",
-            "transcript": true
+            "trajectory": true
           }
         ]
       },
@@ -31,7 +31,7 @@
           {
             "question": "Did the agent run the tests first?",
             "choices": ["yes", "no"],
-            "transcript": "tools"
+            "trajectory": "tools"
           }
         ]
       },
@@ -88,7 +88,7 @@
         "questions": [
           {
             "question": "What did the agent read first?",
-            "transcript": "tools"
+            "trajectory": "tools"
           },
           {
             "question": "Which is cleaner?",

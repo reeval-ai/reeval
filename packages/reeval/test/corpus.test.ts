@@ -42,7 +42,7 @@ const REQUIRED = [
   'todo',
   'status budget',
   'saved analysis',
-  'transcript',
+  'trajectory',
   'diff',
   'tokens',
   'harness cursor',
@@ -64,7 +64,7 @@ function covers(record: RunRecord, raw: Record<string, unknown>, hasAnalysis: bo
   for (const a of attempts) {
     for (const j of a.judgements) out.add(`judge ${j.verdict}`)
     out.add(`outcome ${a.outcome}`)
-    if (a.files.transcript) out.add('transcript')
+    if (a.files.trajectory) out.add('trajectory')
     if (a.files.diff) out.add('diff')
     if (a.usage) out.add('tokens')
   }
@@ -250,7 +250,7 @@ describe('the record corpus', { concurrency: 4 }, () => {
     }
   })
 
-  test('real-harness runs have the transcripts and diffs later readers use', () => {
+  test('real-harness runs have the trajectories and diffs later readers use', () => {
     const attempts = realAttempts()
     for (const harness of REAL_HARNESSES) {
       const e2e = attempts.filter((a) => a.entry === 'real-e2e-pairs' && a.harness === harness)
@@ -266,7 +266,7 @@ describe('the record corpus', { concurrency: 4 }, () => {
       for (const a of agent) {
         const where = `${a.entry} ${a.runId} ${a.attempt.key}`
         assert.equal(a.attempt.outcome, 'pass', where)
-        assert.ok(a.transcript && existsSync(a.transcript), `${where}: transcript`)
+        assert.ok(a.trajectory && existsSync(a.trajectory), `${where}: trajectory`)
         assert.ok(a.diff && existsSync(a.diff), `${where}: diff`)
       }
     }

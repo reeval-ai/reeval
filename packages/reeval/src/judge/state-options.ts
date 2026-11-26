@@ -15,7 +15,7 @@ export function resolveStateOptions(
     files: call.files ?? false,
     diff: call.diff ?? false,
     contents: call.contents ?? [],
-    transcript: call.transcript ?? false,
+    trajectory: call.trajectory ?? false,
     turns: call.turns ?? 'last',
     checks: call.checks ?? false,
     ...(observationsOn(observations) ? { observations } : {}),

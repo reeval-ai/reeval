@@ -12,10 +12,10 @@ import { join } from 'node:path'
 import { after, before, describe, test } from 'node:test'
 import { attemptDebugDir, parseAttemptKey } from '../src/debug/files.ts'
 import type { AttemptRecord, RunRecord } from '../src/history/types.ts'
-import type { PluginPart, TokenUsage, TranscriptEvent } from '../src/types.ts'
+import type { PluginPart, TokenUsage, TrajectoryEvent } from '../src/types.ts'
 import { isRuntimeState } from '../src/view/classify.ts'
 import type { DebugRequest } from '../src/view/debug.ts'
-import { parseTranscript, type TranscriptLine } from '../src/view/model.ts'
+import { parseTrajectory, type TrajectoryLine } from '../src/view/model.ts'
 import {
   BLOCKED_HOST,
   PLANTED,
@@ -45,7 +45,7 @@ import {
   learnSignatures,
   nativeEvents,
   nativeToolNames,
-  rawTranscripts,
+  rawTrajectories,
   signatures,
 } from './support/stream-formats.ts'
 import {
@@ -70,7 +70,7 @@ type Behavior = {
   skips?: (row: HarnessRow) => string | undefined
 }
 
-/** A path into a plugin store in a transcript line's JSON: a Cursor or Claude plugin, or a cache. */
+/** A path into a plugin store in a trajectory line's JSON: a Cursor or Claude plugin, or a cache. */
 const PLUGIN_FILE =
   /[^\s"'\\]*(?:\.cursor\/plugins\/|\.claude\/plugins\/|plugins\/cache\/)[^\s"'\\]*/g
 
@@ -194,12 +194,12 @@ type TurnRecord = AttemptRecord['turns'][number] & {
   model?: string | null
 }
 
-/** The attempt's normalized transcript, from its `transcript.jsonl`. */
-const transcriptOf = (ran: Ran, a: AttemptRecord): TranscriptEvent[] => {
-  const file = a.files.transcript?.path
-  assert.ok(file, `${a.key} has no transcript`)
-  return parseTranscript(readFileSync(join(ran.runDir, file), 'utf8')).filter(
-    (l): l is TranscriptLine & TranscriptEvent => l.type !== 'prompt' && l.type !== 'turn-end',
+/** The attempt's normalized trajectory, from its `trajectory.jsonl`. */
+const trajectoryOf = (ran: Ran, a: AttemptRecord): TrajectoryEvent[] => {
+  const file = a.files.trajectory?.path
+  assert.ok(file, `${a.key} has no trajectory`)
+  return parseTrajectory(readFileSync(join(ran.runDir, file), 'utf8')).filter(
+    (l): l is TrajectoryLine & TrajectoryEvent => l.type !== 'prompt' && l.type !== 'turn-end',
   )
 }
 
@@ -310,7 +310,7 @@ export const behaviors: Behavior[] = [
     },
   },
   {
-    name: 'file edited and command run, both in the transcript',
+    name: 'file edited and command run, both in the trajectory',
     canary: true,
     check(ran, row) {
       const a = checkAndCanary(
@@ -373,7 +373,7 @@ export const behaviors: Behavior[] = [
         .flatMap((e) => e.attempts)
         .filter((a) => a.turns.length > 0)
       for (const a of attempts) {
-        const calls = transcriptOf(ran, a).flatMap((e) =>
+        const calls = trajectoryOf(ran, a).flatMap((e) =>
           e.type === 'model-call' && e.role !== 'side' ? [e.usage] : [],
         )
         // The gateway reads no tokens from Cursor's protobuf, or from a response it couldn't parse.
@@ -406,14 +406,14 @@ export const behaviors: Behavior[] = [
         )
       if (expected.text) {
         const chars = attempts.map((a) =>
-          transcriptOf(ran, a).reduce(
+          trajectoryOf(ran, a).reduce(
             (n, e) => n + (e.type === 'reasoning' ? e.text.length : 0),
             0,
           ),
         )
         assert.ok(
           chars.some((n) => n > 0),
-          `no transcript has reasoning text: ${JSON.stringify(chars)}`,
+          `no trajectory has reasoning text: ${JSON.stringify(chars)}`,
         )
       }
     },
@@ -520,10 +520,10 @@ export const behaviors: Behavior[] = [
       const a = evalNamed(ran.run, 'reasoning').attempts[0]
       assert.ok(a, 'the reasoning eval has no attempt')
       assert.equal(a.outcome, 'pass', `reasoning: ${detail(a)}`)
-      const blocks = transcriptOf(ran, a).flatMap((e) => (e.type === 'reasoning' ? [e] : []))
+      const blocks = trajectoryOf(ran, a).flatMap((e) => (e.type === 'reasoning' ? [e] : []))
       assert.ok(
         blocks.some((b) => b.text.trim()),
-        `${a.key}: no reasoning text in the transcript`,
+        `${a.key}: no reasoning text in the trajectory`,
       )
       for (const t of a.turns as TurnRecord[])
         assert.ok((t.reasoningMs ?? 0) > 0, `${a.key}: a turn's reasoningMs is ${t.reasoningMs}`)
@@ -570,16 +570,16 @@ export const behaviors: Behavior[] = [
     async check(ran, row) {
       const catalog = await catalogOf(row)
       const unknown = withTurns(ran.run).flatMap((a) =>
-        unmappedTools(catalog, transcriptOf(ran, a)).map((t) => `${t} (in ${a.key})`),
+        unmappedTools(catalog, trajectoryOf(ran, a)).map((t) => `${t} (in ${a.key})`),
       )
-      const native = rawTranscripts(ran.runDir).flatMap(
+      const native = rawTrajectories(ran.runDir).flatMap(
         (f) => nativeToolNames(harnessOf(row), nativeEvents(readFileSync(f, 'utf8'))) ?? [],
       )
       unknown.push(...unmappedNativeTools(catalog, native).map((t) => `${t} (native)`))
       assert.deepEqual(
         unknown,
         [],
-        `${row.id} called tools its adapter's catalog doesn't know, so they reach the transcript under their native names: ${unknown.join(', ')}. Map them in the adapter's catalog.`,
+        `${row.id} called tools its adapter's catalog doesn't know, so they reach the trajectory under their native names: ${unknown.join(', ')}. Map them in the adapter's catalog.`,
       )
     },
   },
@@ -589,7 +589,7 @@ export const behaviors: Behavior[] = [
     async check(ran, row) {
       const catalog = await catalogOf(row)
       const failures = Object.keys(SIGNALS).flatMap((name) =>
-        misfiled(catalog, name, transcriptOf(ran, attempt(ran, row, name, envOf[name] ?? ''))),
+        misfiled(catalog, name, trajectoryOf(ran, attempt(ran, row, name, envOf[name] ?? ''))),
       )
       assert.deepEqual(failures, [], failures.join('\n'))
     },
@@ -601,10 +601,10 @@ export const behaviors: Behavior[] = [
       // One format per CLI: OpenCode's rows on other providers share OpenCode's.
       const cli = harnessOf(row)
       if (!hasFormat(cli)) return 'n/a'
-      const events = rawTranscripts(ran.runDir).flatMap((f) =>
+      const events = rawTrajectories(ran.runDir).flatMap((f) =>
         nativeEvents(readFileSync(f, 'utf8')),
       )
-      assert.ok(events.length > 0, 'no native events in the raw transcripts')
+      assert.ok(events.length > 0, 'no native events in the raw trajectories')
       const seen = signatures(cli, events)
       if (process.env.REEVAL_UPDATE_FORMATS === '1') learnSignatures(cli, seen)
       const known = new Set(knownSignatures(cli))
@@ -741,9 +741,9 @@ export const behaviors: Behavior[] = [
       assert.deepEqual(undeclared, [], 'undeclared plugin items in the context')
       // Nor did the agent reach another plugin's MCP servers or files while it worked.
       for (const name of ['plugin-skill', 'plugin-mcp']) {
-        const ref = attempt(ran, row, name, 'plugged').files.transcript
-        assert.ok(ref, `${name}: no transcript`)
-        const lines = parseTranscript(readFileSync(join(ran.runDir, ref.path), 'utf8'))
+        const ref = attempt(ran, row, name, 'plugged').files.trajectory
+        assert.ok(ref, `${name}: no trajectory`)
+        const lines = parseTrajectory(readFileSync(join(ran.runDir, ref.path), 'utf8'))
         const mcpTools = lines.flatMap((l) =>
           l.type === 'tool' && /mcp/i.test(l.tool) && !/stamp/.test(l.tool) ? [l.tool] : [],
         )
@@ -753,7 +753,7 @@ export const behaviors: Behavior[] = [
             .map(([p]) => p.replace(/^\/(home\/[^/]+|root)\//, '~/'))
             .filter((p) => !row.plugin?.own?.test(p)),
         )
-        assert.deepEqual(elsewhere, [], `${name}: another plugin's files in the transcript`)
+        assert.deepEqual(elsewhere, [], `${name}: another plugin's files in the trajectory`)
       }
       const egress = a.egress
       assert.equal(egress?.policy, 'deny-all')
@@ -785,7 +785,7 @@ export const behaviors: Behavior[] = [
 const CAPTURED = ['skill', 'mcp', 'edit-and-run', 'egress']
 
 /**
- * Copies the captured evals' raw transcripts to test/replay/<harness>/, for replay.test.ts. Cursor's
+ * Copies the captured evals' raw trajectories to test/replay/<harness>/, for replay.test.ts. Cursor's
  * command list is dropped: it names the account's team commands and isn't used.
  */
 function capture(ran: Ran, row: HarnessRow) {
@@ -793,7 +793,7 @@ function capture(ran: Ran, row: HarnessRow) {
   mkdirSync(dir, { recursive: true })
   for (const name of CAPTURED.filter((n) => n !== 'mcp' || row.mcp !== false)) {
     const a = evalNamed(ran.run, name).attempts[0]
-    const raw = a?.files.rawTranscript?.path
+    const raw = a?.files.rawTrajectory?.path
     assert.ok(a?.outcome === 'pass' && raw, `can't capture ${name}: ${a?.outcome}, ${raw}`)
     const lines = readFileSync(join(ran.runDir, raw), 'utf8')
       .split('\n')
@@ -825,7 +825,7 @@ for (const row of harnesses) {
           env: {
             ...rowEnv(row),
             // Kept for the format check and the replay captures; the files are small.
-            REEVAL_RAW_TRANSCRIPT: '1',
+            REEVAL_RAW_TRAJECTORY: '1',
             REEVAL_CONTRACT_KEY_TARGETS: scanTargets(keyOf(row) ?? `no key ${Date.now()}`),
             REEVAL_CONTRACT_PLANTED_TARGETS: scanTargets(PLANTED),
           },
