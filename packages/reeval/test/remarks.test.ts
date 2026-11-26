@@ -248,8 +248,9 @@ export default defineEval({
 })
 `,
     })
-    // Plain output is silent until the run ends, which on a slow runner passes the default 60s.
-    const r = await runCli(p.dir, ['run'], { timeoutMs: 300_000 })
+    // Plain output is silent until the run ends, which on a slow runner passes the default 60s;
+    // under macOS's 300s test timeout, so a hang still kills the CLI and prints its output.
+    const r = await runCli(p.dir, ['run'], { timeoutMs: 240_000 })
     assert.equal(r.code, 1, r.stdout + r.stderr)
     const { run } = readRun(p.dir)
     // A fake turn's agent time is scheduling jitter, which four runs a side can separate.
