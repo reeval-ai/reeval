@@ -85,8 +85,9 @@ for (const [name, record] of records) {
       const twin = e.attempts.some((x) => x.cell === a.cell && x.outcome !== 'pass')
       const src = (ref) => join(from, runId, ...ref.path.split('/'))
       const dst = (ref) => join(to, runId, ...ref.path.split('/'))
-      if (a.files.trajectory) {
-        const lines = readFileSync(src(a.files.trajectory), 'utf8').split('\n')
+      const trajectory = a.files.trajectory ?? a.files.transcript
+      if (trajectory) {
+        const lines = readFileSync(src(trajectory), 'utf8').split('\n')
         const out = lines.map((line) => {
           if (!line.trim()) return line
           try {
@@ -95,7 +96,7 @@ for (const [name, record] of records) {
             return ''
           }
         })
-        write(dst(a.files.trajectory), out.join('\n'))
+        write(dst(trajectory), out.join('\n'))
       }
       if (failed && a.files.judgeInput) {
         const inputs = JSON.parse(readFileSync(src(a.files.judgeInput), 'utf8'))

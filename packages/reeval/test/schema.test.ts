@@ -16,6 +16,7 @@ import {
 import { compare } from '../scripts/schema/compat.ts'
 import { generate, type Schema, type ShapeSchema } from '../scripts/schema/generate.ts'
 import { SHAPES } from '../scripts/schema/shapes.ts'
+import { readableEventLine } from '../src/view/events.ts'
 import {
   fillDefaults,
   NewerSchemaError,
@@ -484,5 +485,29 @@ describe('schema:update', () => {
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
+  })
+})
+
+describe('version 1 runs read with trajectory fields', () => {
+  test('an event stream: the header, a question state and the run-end record', () => {
+    const read = (line: object) =>
+      readableEventLine(line as never) as unknown as Record<string, any>
+    assert.equal(read({ type: 'header', schemaVersion: 1, runId: 'r' }).schemaVersion, 2)
+    const start = read({
+      type: 'eval-start',
+      attempt: { plan: { questions: [{ state: { transcript: 'full' } }] } },
+    })
+    assert.deepEqual(start.attempt.plan.questions[0].state, { trajectory: 'full' })
+    const end = read({
+      type: 'run-end',
+      record: {
+        schemaVersion: 1,
+        evals: [{ attempts: [{ files: { transcript: { path: 'a/transcript.jsonl' } } }] }],
+      },
+    })
+    assert.equal(end.record.schemaVersion, 2)
+    assert.deepEqual(end.record.evals[0].attempts[0].files, {
+      trajectory: { path: 'a/transcript.jsonl' },
+    })
   })
 })

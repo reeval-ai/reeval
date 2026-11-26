@@ -58,7 +58,7 @@ loading. The `reeval.config.ts` follows the config API like any other project.
 | `before-eval-skip` | The corpus project's fake-harness runs from before `evals[].skip` (an eval declared with `evaluate.skip`, told apart from one that hasn't run yet) and the `evals.declared` query column |
 | `before-tool-output-view` | The corpus project's fake-harness runs from before trajectory lines' `outputView` and `outputTruncated` (which view of a tool's output the trajectory holds, and whether reeval cut it) |
 | `before-edit-web-payloads` | The corpus project's fake-harness runs from before `input`, `output`, `outputView` and `outputTruncated` on trajectory lines of type `file-edit`, `web-search` and `web-fetch` (the tool call's arguments and result beside its semantic fields) |
-| `before-trajectory-step` | The corpus project's fake-harness runs from before trajectory lines' `step` (the harness's step in its turn each event came in) |
+| `before-transcript-step` | The corpus project's fake-harness runs from before trajectory lines' `step` (the harness's step in its turn each event came in) |
 | `before-retry-errors` | The corpus project's fake-harness runs from before `evals[].attempts[].retries` (the infra errors an attempt ended with before `reeval run --retry-errors` or `--resume` ran it again) |
 | `before-vm-image` | The fake harness in `tart()` on the fake `tart`, from before `evals[].attempts[].vmImage` (the image an attempt's VM was cloned from, with its digest), when a run pulled the image itself |
 | `with-vm-image` | The same run with `evals[].attempts[].vmImage`, its digest also the cell's `fingerprintParts.image` |

@@ -5837,7 +5837,7 @@ export const features: Feature[] = [
         .map((l) => JSON.parse(l) as { type: string; [k: string]: unknown })
       assert.deepEqual(
         [lines[0]?.type, lines[0]?.schemaVersion, lines[0]?.runId],
-        ['header', 1, run.runId],
+        ['header', 2, run.runId],
       )
       assert.deepEqual(lines.at(-1)?.type === 'exit' && lines.at(-1)?.code, 1)
       assert.ok(lines.some((l) => l.type === 'log' && l.text === 'streamed from lands\n'))

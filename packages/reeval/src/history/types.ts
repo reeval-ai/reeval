@@ -188,7 +188,7 @@ export type AttemptFiles = {
   rawTrajectory?: FileRef
   diff?: FileRef
   judgeInput?: FileRef
-  /** The trajectory as a Harbor ATIF trajectory, with the config's `exports: ['atif']`. */
+  /** The attempt as a Harbor ATIF trajectory, with the config's `exports: ['atif']`. */
   atif?: FileRef
   /**
    * PNGs from `c.capture()`, under the `artifacts/<name>.png` path, then the page as each of its

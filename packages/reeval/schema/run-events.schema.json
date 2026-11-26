@@ -339,7 +339,7 @@
           }
         },
         "atif": {
-          "description": "The trajectory as a Harbor ATIF trajectory, with the config's `exports: ['atif']`.",
+          "description": "The attempt as a Harbor ATIF trajectory, with the config's `exports: ['atif']`.",
           "$ref": "#/$defs/FileRef"
         },
         "decisions": {

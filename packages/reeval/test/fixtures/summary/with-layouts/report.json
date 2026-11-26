@@ -50,17 +50,17 @@
         {
           "id": "A1",
           "key": "evals/family.eval.ts › adds a reset button that builds # fake/-/fake#1",
-          "href": "./evals-family-eval-ts-adds-a-reset-button-that-builds-5f0694/fake-fake-70e87d/1/trajectory.jsonl"
+          "href": "./evals-family-eval-ts-adds-a-reset-button-that-builds-5f0694/fake-fake-70e87d/1/transcript.jsonl"
         },
         {
           "id": "A2",
           "key": "evals/family.eval.ts › adds a double button that builds # fake/-/fake#1",
-          "href": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/trajectory.jsonl"
+          "href": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/transcript.jsonl"
         },
         {
           "id": "A3",
           "key": "evals/family.eval.ts › adds a clear button that builds # fake/-/fake#1",
-          "href": "./evals-family-eval-ts-adds-a-clear-button-that-builds-ddd4f5/fake-fake-70e87d/1/trajectory.jsonl"
+          "href": "./evals-family-eval-ts-adds-a-clear-button-that-builds-ddd4f5/fake-fake-70e87d/1/transcript.jsonl"
         }
       ]
     },
@@ -80,42 +80,42 @@
         {
           "id": "A4",
           "key": "evals/family.eval.ts › greets Ada in the house style # fake/plain/fake#1",
-          "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/trajectory.jsonl"
+          "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/transcript.jsonl"
         },
         {
           "id": "A5",
           "key": "evals/family.eval.ts › greets Ada in the house style # fake/with-skill/fake#1",
-          "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-with-skill-fake-14b6ac/1/trajectory.jsonl"
+          "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
         },
         {
           "id": "A6",
           "key": "evals/family.eval.ts › greets Grace in the house style # fake/plain/fake#1",
-          "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/trajectory.jsonl"
+          "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/transcript.jsonl"
         },
         {
           "id": "A7",
           "key": "evals/family.eval.ts › greets Grace in the house style # fake/with-skill/fake#1",
-          "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-with-skill-fake-14b6ac/1/trajectory.jsonl"
+          "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
         },
         {
           "id": "A8",
           "key": "evals/family.eval.ts › greets Linus in the house style # fake/plain/fake#1",
-          "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/trajectory.jsonl"
+          "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/transcript.jsonl"
         },
         {
           "id": "A9",
           "key": "evals/family.eval.ts › greets Linus in the house style # fake/with-skill/fake#1",
-          "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-with-skill-fake-14b6ac/1/trajectory.jsonl"
+          "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
         },
         {
           "id": "A10",
           "key": "evals/family.eval.ts › greets Edsger in the house style # fake/plain/fake#1",
-          "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/trajectory.jsonl"
+          "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/transcript.jsonl"
         },
         {
           "id": "A11",
           "key": "evals/family.eval.ts › greets Edsger in the house style # fake/with-skill/fake#1",
-          "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-with-skill-fake-14b6ac/1/trajectory.jsonl"
+          "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
         }
       ]
     },
@@ -128,12 +128,12 @@
         {
           "id": "A12",
           "key": "evals/harnesses.eval.ts › greets in the house style on each agent # skilled/-/fake#1",
-          "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/skilled-fake-cd398f/1/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/skilled-fake-cd398f/1/transcript.jsonl"
         },
         {
           "id": "A13",
           "key": "evals/harnesses.eval.ts › greets in the house style on each agent # terse/-/fake#1",
-          "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/transcript.jsonl"
         }
       ]
     },
@@ -153,82 +153,82 @@
         {
           "id": "A14",
           "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#1",
-          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/transcript.jsonl"
         },
         {
           "id": "A30",
           "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#2",
-          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/transcript.jsonl"
         },
         {
           "id": "A40",
           "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#3",
-          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/transcript.jsonl"
         },
         {
           "id": "A48",
           "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#4",
-          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/transcript.jsonl"
         },
         {
           "id": "A15",
           "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/with-skill/fake#1",
-          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/1/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/1/transcript.jsonl"
         },
         {
           "id": "A31",
           "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/with-skill/fake#2",
-          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/2/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/2/transcript.jsonl"
         },
         {
           "id": "A41",
           "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/with-skill/fake#3",
-          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/3/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/3/transcript.jsonl"
         },
         {
           "id": "A50",
           "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/with-skill/fake#4",
-          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/4/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/4/transcript.jsonl"
         },
         {
           "id": "A16",
           "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#1",
-          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/transcript.jsonl"
         },
         {
           "id": "A32",
           "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#2",
-          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/transcript.jsonl"
         },
         {
           "id": "A42",
           "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#3",
-          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/transcript.jsonl"
         },
         {
           "id": "A51",
           "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#4",
-          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/transcript.jsonl"
         },
         {
           "id": "A17",
           "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#1",
-          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/transcript.jsonl"
         },
         {
           "id": "A33",
           "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#2",
-          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/transcript.jsonl"
         },
         {
           "id": "A43",
           "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#3",
-          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/transcript.jsonl"
         },
         {
           "id": "A52",
           "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#4",
-          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/trajectory.jsonl"
+          "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/transcript.jsonl"
         }
       ]
     },
@@ -248,62 +248,62 @@
         {
           "id": "A18",
           "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#1",
-          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/transcript.jsonl"
         },
         {
           "id": "A34",
           "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#2",
-          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/transcript.jsonl"
         },
         {
           "id": "A44",
           "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#3",
-          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/transcript.jsonl"
         },
         {
           "id": "A53",
           "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#4",
-          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/transcript.jsonl"
         },
         {
           "id": "A19",
           "key": "evals/measure.eval.ts › greets in the house style # fake/with-skill/fake#1",
-          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/1/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
         },
         {
           "id": "A35",
           "key": "evals/measure.eval.ts › greets in the house style # fake/with-skill/fake#2",
-          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/2/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/2/transcript.jsonl"
         },
         {
           "id": "A45",
           "key": "evals/measure.eval.ts › greets in the house style # fake/with-skill/fake#3",
-          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/3/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/3/transcript.jsonl"
         },
         {
           "id": "A54",
           "key": "evals/measure.eval.ts › greets in the house style # fake/with-skill/fake#4",
-          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/4/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/4/transcript.jsonl"
         },
         {
           "id": "A20",
           "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#1",
-          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/transcript.jsonl"
         },
         {
           "id": "A36",
           "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#2",
-          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/transcript.jsonl"
         },
         {
           "id": "A46",
           "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#3",
-          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/transcript.jsonl"
         },
         {
           "id": "A55",
           "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#4",
-          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/transcript.jsonl"
         }
       ]
     },
@@ -316,42 +316,42 @@
         {
           "id": "A21",
           "key": "evals/measure.eval.ts › keeps the plain greeting # fake/plain/fake#1",
-          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/1/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/1/transcript.jsonl"
         },
         {
           "id": "A37",
           "key": "evals/measure.eval.ts › keeps the plain greeting # fake/plain/fake#2",
-          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/2/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/2/transcript.jsonl"
         },
         {
           "id": "A47",
           "key": "evals/measure.eval.ts › keeps the plain greeting # fake/plain/fake#3",
-          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/3/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/3/transcript.jsonl"
         },
         {
           "id": "A56",
           "key": "evals/measure.eval.ts › keeps the plain greeting # fake/plain/fake#4",
-          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/4/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/4/transcript.jsonl"
         },
         {
           "id": "A22",
           "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#1",
-          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
         },
         {
           "id": "A38",
           "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#2",
-          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/transcript.jsonl"
         },
         {
           "id": "A49",
           "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#3",
-          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/transcript.jsonl"
         },
         {
           "id": "A57",
           "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#4",
-          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/transcript.jsonl"
         }
       ]
     },
@@ -371,12 +371,12 @@
         {
           "id": "A23",
           "key": "evals/measure.eval.ts › greets once # fake/plain/fake#1",
-          "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/transcript.jsonl"
         },
         {
           "id": "A24",
           "key": "evals/measure.eval.ts › greets once # fake/with-skill/fake#1",
-          "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-with-skill-fake-14b6ac/1/trajectory.jsonl"
+          "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
         }
       ]
     },
@@ -389,7 +389,7 @@
         {
           "id": "A25",
           "key": "evals/results.eval.ts › writes greet.js # fake/-/fake#1",
-          "href": "./evals-results-eval-ts-writes-greet-js-3064b7/fake-fake-70e87d/1/trajectory.jsonl"
+          "href": "./evals-results-eval-ts-writes-greet-js-3064b7/fake-fake-70e87d/1/transcript.jsonl"
         }
       ]
     },
@@ -402,7 +402,7 @@
         {
           "id": "A26",
           "key": "evals/results.eval.ts › greets in French # fake/-/fake#1",
-          "href": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/trajectory.jsonl"
+          "href": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/transcript.jsonl"
         }
       ]
     },
@@ -415,12 +415,12 @@
         {
           "id": "A27",
           "key": "evals/results.eval.ts › explains why greet.js fails # fake/-/fake#1",
-          "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/1/trajectory.jsonl"
+          "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/1/transcript.jsonl"
         },
         {
           "id": "A39",
           "key": "evals/results.eval.ts › explains why greet.js fails # fake/-/fake#2",
-          "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/trajectory.jsonl"
+          "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/transcript.jsonl"
         }
       ]
     },
@@ -433,7 +433,7 @@
         {
           "id": "A28",
           "key": "evals/results.eval.ts › reads the fixture repo # fake/-/fake#1",
-          "href": "./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/trajectory.jsonl"
+          "href": "./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/transcript.jsonl"
         }
       ]
     }
@@ -871,7 +871,7 @@
               {
                 "id": "A2",
                 "key": "evals/family.eval.ts › adds a double button that builds # fake/-/fake#1",
-                "href": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/trajectory.jsonl"
+                "href": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/transcript.jsonl"
               }
             ]
           },
@@ -888,7 +888,7 @@
               {
                 "id": "A2",
                 "key": "evals/family.eval.ts › adds a double button that builds # fake/-/fake#1",
-                "href": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/trajectory.jsonl"
+                "href": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/transcript.jsonl"
               }
             ]
           }
@@ -1553,22 +1553,22 @@
               {
                 "id": "A4",
                 "key": "evals/family.eval.ts › greets Ada in the house style # fake/plain/fake#1",
-                "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/trajectory.jsonl"
+                "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/transcript.jsonl"
               },
               {
                 "id": "A6",
                 "key": "evals/family.eval.ts › greets Grace in the house style # fake/plain/fake#1",
-                "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/trajectory.jsonl"
+                "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/transcript.jsonl"
               },
               {
                 "id": "A8",
                 "key": "evals/family.eval.ts › greets Linus in the house style # fake/plain/fake#1",
-                "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/trajectory.jsonl"
+                "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/transcript.jsonl"
               },
               {
                 "id": "A10",
                 "key": "evals/family.eval.ts › greets Edsger in the house style # fake/plain/fake#1",
-                "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/trajectory.jsonl"
+                "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/transcript.jsonl"
               }
             ]
           },
@@ -1585,22 +1585,22 @@
               {
                 "id": "A4",
                 "key": "evals/family.eval.ts › greets Ada in the house style # fake/plain/fake#1",
-                "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/trajectory.jsonl"
+                "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/transcript.jsonl"
               },
               {
                 "id": "A6",
                 "key": "evals/family.eval.ts › greets Grace in the house style # fake/plain/fake#1",
-                "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/trajectory.jsonl"
+                "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/transcript.jsonl"
               },
               {
                 "id": "A8",
                 "key": "evals/family.eval.ts › greets Linus in the house style # fake/plain/fake#1",
-                "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/trajectory.jsonl"
+                "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/transcript.jsonl"
               },
               {
                 "id": "A10",
                 "key": "evals/family.eval.ts › greets Edsger in the house style # fake/plain/fake#1",
-                "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/trajectory.jsonl"
+                "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/transcript.jsonl"
               }
             ]
           }
@@ -2025,7 +2025,7 @@
               {
                 "id": "A13",
                 "key": "evals/harnesses.eval.ts › greets in the house style on each agent # terse/-/fake#1",
-                "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/transcript.jsonl"
               }
             ]
           },
@@ -2042,7 +2042,7 @@
               {
                 "id": "A13",
                 "key": "evals/harnesses.eval.ts › greets in the house style on each agent # terse/-/fake#1",
-                "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/transcript.jsonl"
               }
             ]
           }
@@ -2949,62 +2949,62 @@
               {
                 "id": "A14",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#1",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/transcript.jsonl"
               },
               {
                 "id": "A30",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#2",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/transcript.jsonl"
               },
               {
                 "id": "A40",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#3",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/transcript.jsonl"
               },
               {
                 "id": "A48",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#4",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/transcript.jsonl"
               },
               {
                 "id": "A16",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#1",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/transcript.jsonl"
               },
               {
                 "id": "A32",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#2",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/transcript.jsonl"
               },
               {
                 "id": "A42",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#3",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/transcript.jsonl"
               },
               {
                 "id": "A51",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#4",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/transcript.jsonl"
               },
               {
                 "id": "A17",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#1",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/transcript.jsonl"
               },
               {
                 "id": "A33",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#2",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/transcript.jsonl"
               },
               {
                 "id": "A43",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#3",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/transcript.jsonl"
               },
               {
                 "id": "A52",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#4",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/transcript.jsonl"
               }
             ]
           },
@@ -3021,62 +3021,62 @@
               {
                 "id": "A14",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#1",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/transcript.jsonl"
               },
               {
                 "id": "A30",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#2",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/transcript.jsonl"
               },
               {
                 "id": "A40",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#3",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/transcript.jsonl"
               },
               {
                 "id": "A48",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#4",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/transcript.jsonl"
               },
               {
                 "id": "A16",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#1",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/transcript.jsonl"
               },
               {
                 "id": "A32",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#2",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/transcript.jsonl"
               },
               {
                 "id": "A42",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#3",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/transcript.jsonl"
               },
               {
                 "id": "A51",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#4",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/transcript.jsonl"
               },
               {
                 "id": "A17",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#1",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/transcript.jsonl"
               },
               {
                 "id": "A33",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#2",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/transcript.jsonl"
               },
               {
                 "id": "A43",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#3",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/transcript.jsonl"
               },
               {
                 "id": "A52",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#4",
-                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/trajectory.jsonl"
+                "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/transcript.jsonl"
               }
             ]
           }
@@ -4194,42 +4194,42 @@
               {
                 "id": "A18",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#1",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/transcript.jsonl"
               },
               {
                 "id": "A34",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#2",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/transcript.jsonl"
               },
               {
                 "id": "A44",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#3",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/transcript.jsonl"
               },
               {
                 "id": "A53",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#4",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/transcript.jsonl"
               },
               {
                 "id": "A20",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#1",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/transcript.jsonl"
               },
               {
                 "id": "A36",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#2",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/transcript.jsonl"
               },
               {
                 "id": "A46",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#3",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/transcript.jsonl"
               },
               {
                 "id": "A55",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#4",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/transcript.jsonl"
               }
             ]
           },
@@ -4246,42 +4246,42 @@
               {
                 "id": "A18",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#1",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/transcript.jsonl"
               },
               {
                 "id": "A34",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#2",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/transcript.jsonl"
               },
               {
                 "id": "A44",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#3",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/transcript.jsonl"
               },
               {
                 "id": "A53",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#4",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/transcript.jsonl"
               },
               {
                 "id": "A20",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#1",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/transcript.jsonl"
               },
               {
                 "id": "A36",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#2",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/transcript.jsonl"
               },
               {
                 "id": "A46",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#3",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/transcript.jsonl"
               },
               {
                 "id": "A55",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#4",
-                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/transcript.jsonl"
               }
             ]
           }
@@ -4946,22 +4946,22 @@
               {
                 "id": "A22",
                 "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#1",
-                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
               },
               {
                 "id": "A38",
                 "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#2",
-                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/transcript.jsonl"
               },
               {
                 "id": "A49",
                 "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#3",
-                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/transcript.jsonl"
               },
               {
                 "id": "A57",
                 "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#4",
-                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/transcript.jsonl"
               }
             ]
           },
@@ -4978,22 +4978,22 @@
               {
                 "id": "A22",
                 "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#1",
-                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
               },
               {
                 "id": "A38",
                 "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#2",
-                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/transcript.jsonl"
               },
               {
                 "id": "A49",
                 "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#3",
-                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/transcript.jsonl"
               },
               {
                 "id": "A57",
                 "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#4",
-                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/transcript.jsonl"
               }
             ]
           }
@@ -5658,7 +5658,7 @@
               {
                 "id": "A23",
                 "key": "evals/measure.eval.ts › greets once # fake/plain/fake#1",
-                "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/transcript.jsonl"
               }
             ]
           },
@@ -5675,7 +5675,7 @@
               {
                 "id": "A23",
                 "key": "evals/measure.eval.ts › greets once # fake/plain/fake#1",
-                "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/trajectory.jsonl"
+                "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/transcript.jsonl"
               }
             ]
           }
@@ -6057,7 +6057,7 @@
               {
                 "id": "A26",
                 "key": "evals/results.eval.ts › greets in French # fake/-/fake#1",
-                "href": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/trajectory.jsonl"
+                "href": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/transcript.jsonl"
               }
             ]
           },
@@ -6074,7 +6074,7 @@
               {
                 "id": "A26",
                 "key": "evals/results.eval.ts › greets in French # fake/-/fake#1",
-                "href": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/trajectory.jsonl"
+                "href": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/transcript.jsonl"
               }
             ]
           }
@@ -6288,7 +6288,7 @@
               {
                 "id": "A39",
                 "key": "evals/results.eval.ts › explains why greet.js fails # fake/-/fake#2",
-                "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/trajectory.jsonl"
+                "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/transcript.jsonl"
               }
             ]
           },
@@ -6305,7 +6305,7 @@
               {
                 "id": "A39",
                 "key": "evals/results.eval.ts › explains why greet.js fails # fake/-/fake#2",
-                "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/trajectory.jsonl"
+                "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/transcript.jsonl"
               }
             ]
           }
@@ -6369,7 +6369,7 @@
               {
                 "id": "A28",
                 "key": "evals/results.eval.ts › reads the fixture repo # fake/-/fake#1",
-                "href": "./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/trajectory.jsonl"
+                "href": "./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/transcript.jsonl"
               }
             ]
           }
@@ -6626,12 +6626,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-family-eval-ts-adds-a-reset-button-that-builds-5f0694/fake-fake-70e87d/1/trajectory.jsonl",
+        "trajectory": "./evals-family-eval-ts-adds-a-reset-button-that-builds-5f0694/fake-fake-70e87d/1/transcript.jsonl",
         "diff": "./evals-family-eval-ts-adds-a-reset-button-that-builds-5f0694/fake-fake-70e87d/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-family-eval-ts-adds-a-reset-button-that-builds-5f0694/fake-fake-70e87d/1/trajectory.jsonl"
+      "href": "./evals-family-eval-ts-adds-a-reset-button-that-builds-5f0694/fake-fake-70e87d/1/transcript.jsonl"
     },
     {
       "id": "A2",
@@ -6667,12 +6667,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/trajectory.jsonl",
+        "trajectory": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/transcript.jsonl",
         "diff": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/trajectory.jsonl"
+      "href": "./evals-family-eval-ts-adds-a-double-button-that-builds-f0ec30/fake-fake-70e87d/1/transcript.jsonl"
     },
     {
       "id": "A3",
@@ -6708,12 +6708,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-family-eval-ts-adds-a-clear-button-that-builds-ddd4f5/fake-fake-70e87d/1/trajectory.jsonl",
+        "trajectory": "./evals-family-eval-ts-adds-a-clear-button-that-builds-ddd4f5/fake-fake-70e87d/1/transcript.jsonl",
         "diff": "./evals-family-eval-ts-adds-a-clear-button-that-builds-ddd4f5/fake-fake-70e87d/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-family-eval-ts-adds-a-clear-button-that-builds-ddd4f5/fake-fake-70e87d/1/trajectory.jsonl"
+      "href": "./evals-family-eval-ts-adds-a-clear-button-that-builds-ddd4f5/fake-fake-70e87d/1/transcript.jsonl"
     },
     {
       "id": "A4",
@@ -6749,12 +6749,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/trajectory.jsonl",
+        "trajectory": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/transcript.jsonl",
         "diff": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/trajectory.jsonl"
+      "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-plain-fake-57f9db/1/transcript.jsonl"
     },
     {
       "id": "A5",
@@ -6790,12 +6790,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-with-skill-fake-14b6ac/1/trajectory.jsonl",
+        "trajectory": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
         "diff": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-with-skill-fake-14b6ac/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-with-skill-fake-14b6ac/1/trajectory.jsonl"
+      "href": "./evals-family-eval-ts-greets-ada-in-the-house-style-99b107/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
     },
     {
       "id": "A6",
@@ -6831,12 +6831,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/trajectory.jsonl",
+        "trajectory": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/transcript.jsonl",
         "diff": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/trajectory.jsonl"
+      "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-plain-fake-57f9db/1/transcript.jsonl"
     },
     {
       "id": "A7",
@@ -6872,12 +6872,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-with-skill-fake-14b6ac/1/trajectory.jsonl",
+        "trajectory": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
         "diff": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-with-skill-fake-14b6ac/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-with-skill-fake-14b6ac/1/trajectory.jsonl"
+      "href": "./evals-family-eval-ts-greets-grace-in-the-house-style-34ef1c/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
     },
     {
       "id": "A8",
@@ -6913,12 +6913,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/trajectory.jsonl",
+        "trajectory": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/transcript.jsonl",
         "diff": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/trajectory.jsonl"
+      "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-plain-fake-57f9db/1/transcript.jsonl"
     },
     {
       "id": "A9",
@@ -6954,12 +6954,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-with-skill-fake-14b6ac/1/trajectory.jsonl",
+        "trajectory": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
         "diff": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-with-skill-fake-14b6ac/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-with-skill-fake-14b6ac/1/trajectory.jsonl"
+      "href": "./evals-family-eval-ts-greets-linus-in-the-house-style-74cc7a/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
     },
     {
       "id": "A10",
@@ -6995,12 +6995,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/trajectory.jsonl",
+        "trajectory": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/transcript.jsonl",
         "diff": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/trajectory.jsonl"
+      "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-plain-fake-57f9db/1/transcript.jsonl"
     },
     {
       "id": "A11",
@@ -7036,12 +7036,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-with-skill-fake-14b6ac/1/trajectory.jsonl",
+        "trajectory": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
         "diff": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-with-skill-fake-14b6ac/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-with-skill-fake-14b6ac/1/trajectory.jsonl"
+      "href": "./evals-family-eval-ts-greets-edsger-in-the-house-style-75df7a/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
     },
     {
       "id": "A12",
@@ -7077,12 +7077,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/skilled-fake-cd398f/1/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/skilled-fake-cd398f/1/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/skilled-fake-cd398f/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/skilled-fake-cd398f/1/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/skilled-fake-cd398f/1/transcript.jsonl"
     },
     {
       "id": "A13",
@@ -7118,12 +7118,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-greets-in-the-house-style-on-each-ag-34547a/terse-fake-ea7484/1/transcript.jsonl"
     },
     {
       "id": "A14",
@@ -7159,12 +7159,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/1/transcript.jsonl"
     },
     {
       "id": "A15",
@@ -7200,12 +7200,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/1/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/1/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/1/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/1/transcript.jsonl"
     },
     {
       "id": "A16",
@@ -7241,12 +7241,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/1/transcript.jsonl"
     },
     {
       "id": "A17",
@@ -7282,12 +7282,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/1/transcript.jsonl"
     },
     {
       "id": "A18",
@@ -7323,12 +7323,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/1/transcript.jsonl"
     },
     {
       "id": "A19",
@@ -7364,12 +7364,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/1/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/1/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
     },
     {
       "id": "A20",
@@ -7405,12 +7405,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/1/transcript.jsonl"
     },
     {
       "id": "A21",
@@ -7446,12 +7446,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/1/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/1/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/1/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/1/transcript.jsonl"
     },
     {
       "id": "A22",
@@ -7487,12 +7487,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
     },
     {
       "id": "A23",
@@ -7528,12 +7528,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-plain-fake-57f9db/1/transcript.jsonl"
     },
     {
       "id": "A24",
@@ -7569,12 +7569,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-greets-once-98c8e5/fake-with-skill-fake-14b6ac/1/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-greets-once-98c8e5/fake-with-skill-fake-14b6ac/1/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-greets-once-98c8e5/fake-with-skill-fake-14b6ac/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-with-skill-fake-14b6ac/1/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-greets-once-98c8e5/fake-with-skill-fake-14b6ac/1/transcript.jsonl"
     },
     {
       "id": "A25",
@@ -7610,12 +7610,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-results-eval-ts-writes-greet-js-3064b7/fake-fake-70e87d/1/trajectory.jsonl",
+        "trajectory": "./evals-results-eval-ts-writes-greet-js-3064b7/fake-fake-70e87d/1/transcript.jsonl",
         "diff": "./evals-results-eval-ts-writes-greet-js-3064b7/fake-fake-70e87d/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-results-eval-ts-writes-greet-js-3064b7/fake-fake-70e87d/1/trajectory.jsonl"
+      "href": "./evals-results-eval-ts-writes-greet-js-3064b7/fake-fake-70e87d/1/transcript.jsonl"
     },
     {
       "id": "A26",
@@ -7651,12 +7651,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/trajectory.jsonl",
+        "trajectory": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/transcript.jsonl",
         "diff": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/trajectory.jsonl"
+      "href": "./evals-results-eval-ts-greets-in-french-46f7b3/fake-fake-70e87d/1/transcript.jsonl"
     },
     {
       "id": "A27",
@@ -7692,12 +7692,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/1/trajectory.jsonl",
+        "trajectory": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/1/transcript.jsonl",
         "diff": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/1/trajectory.jsonl"
+      "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/1/transcript.jsonl"
     },
     {
       "id": "A28",
@@ -7733,12 +7733,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/trajectory.jsonl",
+        "trajectory": "./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/transcript.jsonl",
         "diff": "./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/trajectory.jsonl"
+      "href": "./evals-results-eval-ts-reads-the-fixture-repo-149759/fake-fake-70e87d/1/transcript.jsonl"
     },
     {
       "id": "A29",
@@ -7809,12 +7809,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/2/transcript.jsonl"
     },
     {
       "id": "A31",
@@ -7850,12 +7850,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/2/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/2/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/2/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/2/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/2/transcript.jsonl"
     },
     {
       "id": "A32",
@@ -7891,12 +7891,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/2/transcript.jsonl"
     },
     {
       "id": "A33",
@@ -7932,12 +7932,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/2/transcript.jsonl"
     },
     {
       "id": "A34",
@@ -7973,12 +7973,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/2/transcript.jsonl"
     },
     {
       "id": "A35",
@@ -8014,12 +8014,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/2/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/2/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/2/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/2/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/2/transcript.jsonl"
     },
     {
       "id": "A36",
@@ -8055,12 +8055,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/2/transcript.jsonl"
     },
     {
       "id": "A37",
@@ -8096,12 +8096,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/2/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/2/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/2/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/2/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/2/transcript.jsonl"
     },
     {
       "id": "A38",
@@ -8137,12 +8137,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/2/transcript.jsonl"
     },
     {
       "id": "A39",
@@ -8178,12 +8178,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/trajectory.jsonl",
+        "trajectory": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/transcript.jsonl",
         "diff": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/trajectory.jsonl"
+      "href": "./evals-results-eval-ts-explains-why-greet-js-fails-6cc153/fake-fake-70e87d/2/transcript.jsonl"
     },
     {
       "id": "A40",
@@ -8219,12 +8219,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/3/transcript.jsonl"
     },
     {
       "id": "A41",
@@ -8260,12 +8260,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/3/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/3/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/3/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/3/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/3/transcript.jsonl"
     },
     {
       "id": "A42",
@@ -8301,12 +8301,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/3/transcript.jsonl"
     },
     {
       "id": "A43",
@@ -8342,12 +8342,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/3/transcript.jsonl"
     },
     {
       "id": "A44",
@@ -8383,12 +8383,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/3/transcript.jsonl"
     },
     {
       "id": "A45",
@@ -8424,12 +8424,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/3/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/3/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/3/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/3/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/3/transcript.jsonl"
     },
     {
       "id": "A46",
@@ -8465,12 +8465,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/3/transcript.jsonl"
     },
     {
       "id": "A47",
@@ -8506,12 +8506,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/3/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/3/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/3/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/3/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/3/transcript.jsonl"
     },
     {
       "id": "A48",
@@ -8547,12 +8547,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-plain-fake-21e207/4/transcript.jsonl"
     },
     {
       "id": "A49",
@@ -8588,12 +8588,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/3/transcript.jsonl"
     },
     {
       "id": "A50",
@@ -8629,12 +8629,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/4/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/4/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/4/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/4/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/learner-with-skill-fake-e434d7/4/transcript.jsonl"
     },
     {
       "id": "A51",
@@ -8670,12 +8670,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-plain-fake-399b00/4/transcript.jsonl"
     },
     {
       "id": "A52",
@@ -8711,12 +8711,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/trajectory.jsonl",
+        "trajectory": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/transcript.jsonl",
         "diff": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/trajectory.jsonl"
+      "href": "./evals-harnesses-eval-ts-learns-the-house-style-from-the-skil-658456/terse-with-skill-fake-d29434/4/transcript.jsonl"
     },
     {
       "id": "A53",
@@ -8752,12 +8752,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-plain-fake-57f9db/4/transcript.jsonl"
     },
     {
       "id": "A54",
@@ -8793,12 +8793,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/4/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/4/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/4/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/4/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-skill-fake-14b6ac/4/transcript.jsonl"
     },
     {
       "id": "A55",
@@ -8834,12 +8834,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-greets-in-the-house-style-2cd46f/fake-with-doc-fake-ff0b8e/4/transcript.jsonl"
     },
     {
       "id": "A56",
@@ -8875,12 +8875,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/4/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/4/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/4/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/4/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-plain-fake-57f9db/4/transcript.jsonl"
     },
     {
       "id": "A57",
@@ -8916,12 +8916,12 @@
         "text": "1 files (lines not recorded)"
       },
       "links": {
-        "trajectory": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/trajectory.jsonl",
+        "trajectory": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/transcript.jsonl",
         "diff": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/diff.patch",
         "captures": [],
         "questions": []
       },
-      "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/trajectory.jsonl"
+      "href": "./evals-measure-eval-ts-keeps-the-plain-greeting-26b1d6/fake-with-skill-fake-14b6ac/4/transcript.jsonl"
     }
   ]
 }
